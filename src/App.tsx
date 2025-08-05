@@ -1,16 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import WebSocket from "@tauri-apps/plugin-websocket";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [greetMsg] = useState("");
+  const [_, setName] = useState("");
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  useEffect(() => {
+    // when using `"withGlobalTauri": true`, you may use
+    // const WebSocket = window.__TAURI__.websocket;
+
+    const enableFetch = async () => {
+      try {
+        fetch("http://localhost:4004/config?p=feather")
+          .then((res) => res.json())
+          .then((data) => console.log("Got from Love2D:", data));
+        // post
+        // fetch("http://localhost:4004/config", {
+        //   method: "POST",
+        //   headers: {
+        //     "Content-Type": "application/json",
+        //   },
+        //   body: JSON.stringify({
+        //     input: "Hello World",
+        //   }),
+        // })
+        //   .then((res) => res.json())
+        //   .then((data) => console.log("Got from Love2D:", data));
+      } catch (e) {
+        console.log(e);
+      }
+    };
+
+    const interval = setInterval(enableFetch, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <main className="container">
@@ -33,7 +59,6 @@ function App() {
         className="row"
         onSubmit={(e) => {
           e.preventDefault();
-          greet();
         }}
       >
         <input
