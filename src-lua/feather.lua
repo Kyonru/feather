@@ -21,7 +21,7 @@ function Feather:init(config)
   self.whitelist = conf.whitelist or { "127.0.0.1" }
   self.maxTempLogs = conf.maxTempLogs or 200
   self.updateInterval = conf.updateInterval or 0.5
-  self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or true
+  self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler and true or false
   self.plugins = conf.plugins or {}
   self.lastDelivery = 0
   customErrorHandler = conf.errorHandler or errorhandler
@@ -40,17 +40,17 @@ function Feather:init(config)
       selfRef:onerror(msg) -- Log the error first
       selfRef:finish()
 
-      local function isDelivered()
-        return selfRef.lastDelivery > selfRef.lastError
-      end
-      local delivered = isDelivered()
+      -- local function isDelivered()
+      --   return selfRef.lastDelivery > selfRef.lastError
+      -- end
+      -- local delivered = isDelivered()
 
-      local start = love.timer.getTime()
-      while not delivered and (love.timer.getTime() - start) < 3 do
-        selfRef:update()
-        delivered = isDelivered()
-        love.timer.sleep(0.1)
-      end
+      -- local start = love.timer.getTime()
+      -- while not delivered and (love.timer.getTime() - start) < 3 do
+      --   selfRef:update()
+      --   delivered = isDelivered()
+      --   love.timer.sleep(0.1)
+      -- end
 
       return customErrorHandler(msg)
     end
@@ -160,7 +160,7 @@ function Feather:update()
 
     local addr = client:getsockname()
 
-    self:print(request)
+    self.logger(request)
     if not self:__isInWhitelist(addr) then
       self:trace("non-whitelisted connection attempt: ", addr)
       client:close()
@@ -191,7 +191,7 @@ function Feather:log(line)
   line.count = 1
   table.insert(self.logs, line)
   if #self.logs > self.maxTempLogs then
-    table.remove(self.lines, 1)
+    table.remove(self.logs, 1)
   end
 end
 

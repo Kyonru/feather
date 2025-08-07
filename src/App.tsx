@@ -1,76 +1,73 @@
-import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import WebSocket from "@tauri-apps/plugin-websocket";
+import { ColumnDef } from "@tanstack/react-table";
 import "./App.css";
+import { unionBy } from "./utils/arrays";
+import { useQuery } from "@tanstack/react-query";
+//
+export const columns: ColumnDef<{}>[] = [
+  {
+    accessorKey: "count",
+    header: "Count",
+  },
+  {
+    accessorKey: "type",
+    header: "Type",
+  },
+  {
+    accessorKey: "str",
+    header: () => "Log",
+    cell: (info) => info.getValue() as string,
+    size: 250, //starting column size
+    maxSize: 250, //enforced during column resizing
+  },
+  {
+    accessorKey: "time",
+    header: "Timestamp",
+  },
+];
 
-function App() {
-  const [greetMsg] = useState("");
-  const [_, setName] = useState("");
-
-  useEffect(() => {
-    // when using `"withGlobalTauri": true`, you may use
-    // const WebSocket = window.__TAURI__.websocket;
-
-    const enableFetch = async () => {
-      try {
-        fetch("http://localhost:4004/config?p=feather")
-          .then((res) => res.json())
-          .then((data) => console.log("Got from Love2D:", data));
-        // post
-        // fetch("http://localhost:4004/config", {
-        //   method: "POST",
-        //   headers: {
-        //     "Content-Type": "application/json",
-        //   },
-        //   body: JSON.stringify({
-        //     input: "Hello World",
-        //   }),
-        // })
-        //   .then((res) => res.json())
-        //   .then((data) => console.log("Got from Love2D:", data));
-      } catch (e) {
-        console.log(e);
-      }
-    };
-
-    const interval = setInterval(enableFetch, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
+import { AppSidebar } from "@/components/app-sidebar";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { DataTable } from "@/components/data-table";
+import { SectionCards } from "@/components/section-cards";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+export default function Page() {
+  const { isPending, error, data } = useQuery({
+    initialData: [],
+    queryKey: ["repoData"],
+    queryFn: async () => {
+      const response = await fetch("http://localhost:4004/config?p=feather");
+      const dataLogs = await response.json();
+      const logs = unionBy(data || [], dataLogs, (item) => item.id);
+      return logs;
+    },
+    refetchInterval: 1000,
+  });
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <SectionCards />
+              <div className="px-4 lg:px-6">
+                <ChartAreaInteractive />
+              </div>
+              <DataTable data={data} />
+            </div>
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
-
-export default App;

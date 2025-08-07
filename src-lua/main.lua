@@ -139,7 +139,8 @@ local function customerrorhandler(msg)
 end
 
 local debugger = FeatherDebugger({
-  errorHandler = customerrorhandler,
+  -- errorHandler = customerrorhandler,
+  autoRegisterErrorHandler = false
 })
 
 a = 0
@@ -148,14 +149,51 @@ function love.load() end
 function love.draw() end
 
 function love.update(dt)
+  debugger:update()
   a = a + dt
 
   if a > 1 then
     -- print(a)
     a = 0
+    print(math.random(1, 2))
+    print({
+      type = "feather:finish",
+      body = {
+        lol = "hey",
+        another = {
+          one = 1,
+          copy = {
+            type = "feather:finish",
+            body = {
+              lol = "hey",
+              another = {
+                one = 1,
+              },
+            },
+            of_a = {
+              type = "feather:finish",
+              body = {
+                lol = "hey",
+                another = {
+                  one = 1,
+                },
+              },
+              copy = {
+                type = "feather:finish",
+                body = {
+                  lol = "hey",
+                  another = {
+                    one = 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
   end
 
-  debugger:update()
 end
 
 function love.keypressed(key)
