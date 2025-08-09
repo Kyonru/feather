@@ -5,6 +5,9 @@ local json = require("lib.json")
 local Class = require("lib.class")
 local utf8 = require("utf8")
 local errorhandler = require("error_handler")
+local get_current_dir = require("utils").get_current_dir
+
+local logs = {}
 
 local Feather = Class({})
 
@@ -12,15 +15,17 @@ local customErrorHandler = errorhandler
 
 function Feather:init(config)
   local conf = config or {}
-  self.logs = {}
   self.pages = {}
   self.host = conf.host or "*"
+  self.baseDir = conf.baseDir or ""
   self.port = conf.port or 4004
   self.wrapPrint = conf.wrapPrint or true
   self.timestamp = conf.timestamp or true
   self.whitelist = conf.whitelist or { "127.0.0.1" }
   self.maxTempLogs = conf.maxTempLogs or 200
-  self.updateInterval = conf.updateInterval or 0.5
+  self.updateInterval = conf.updateInterval or 0.1
+  ---TODO: find a better way to ensure that the error handler is called, maybe a thread?
+  self.errorWait = conf.errorWait or 10
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler and true or false
   self.plugins = conf.plugins or {}
   self.lastDelivery = 0
@@ -37,20 +42,20 @@ function Feather:init(config)
     local selfRef = self -- capture `self` to avoid upvalue issues
 
     function love.errorhandler(msg)
-      selfRef:onerror(msg) -- Log the error first
-      selfRef:finish()
+      selfRef:onerror(msg, true) -- Log the error first
 
-      -- local function isDelivered()
-      --   return selfRef.lastDelivery > selfRef.lastError
-      -- end
-      -- local delivered = isDelivered()
+      local function isDelivered()
+        return selfRef.lastDelivery > selfRef.lastError
+      end
 
-      -- local start = love.timer.getTime()
-      -- while not delivered and (love.timer.getTime() - start) < 3 do
-      --   selfRef:update()
-      --   delivered = isDelivered()
-      --   love.timer.sleep(0.1)
-      -- end
+      local delivered = isDelivered()
+
+      local start = love.timer.getTime()
+      while not delivered and (love.timer.getTime() - start) < selfRef.errorWait do
+        selfRef:update()
+        delivered = isDelivered()
+        love.timer.sleep(self.updateInterval)
+      end
 
       return customErrorHandler(msg)
     end
@@ -70,9 +75,8 @@ function Feather:init(config)
   end
 end
 
-function Feather:__buildResponse()
-  local body = json.encode(self.logs)
-
+---@param body table | string | number
+function Feather:__buildResponse(body)
   local response = table.concat({
     "HTTP/1.1 200 OK",
     "Content-Type: application/json",
@@ -83,6 +87,35 @@ function Feather:__buildResponse()
   }, "\r\n")
 
   return response
+end
+
+function Feather:__getConfig()
+  local config = {
+    plugins = self.plugins,
+    root_path = get_current_dir() .. "/" .. self.baseDir,
+  }
+
+  return config
+end
+
+function Feather:__buildRequest(request)
+  local method, pathWithQuery = request:match("^(%u+)%s+([^%s]+)")
+  local path, queryString = pathWithQuery:match("^([^?]+)%??(.*)$")
+  local function parseQuery(qs)
+    local params = {}
+    for key, val in qs:gmatch("([^&=?]+)=([^&=?]+)") do
+      params[key] = val
+    end
+    return params
+  end
+
+  local params = parseQuery(queryString)
+
+  return {
+    method = method,
+    path = path,
+    params = params,
+  }
 end
 
 function Feather:__format(...)
@@ -135,28 +168,37 @@ function Feather:__errorTraceback(msg)
 end
 
 function Feather:clear()
-  self.logs = {}
+  logs = {}
 end
 
 function Feather:finish()
   self:log({ type = "feather:finish" })
 end
 
-function Feather:onerror(msg)
+function Feather:onerror(msg, finish)
   local err = self:__errorTraceback(msg)
   self:log({ type = "error", str = self:__errorTraceback(msg) })
   if self.wrapPrint then
     self.logger("[Feather] ERROR: " .. err)
   end
   self.lastError = os.time()
+
+  if finish then
+    self:finish()
+  end
 end
 
 function Feather:update()
   local client = self.server:accept()
   if client then
+    if #logs == 0 then
+      self:log({ type = "feather:start" })
+    end
+
     client:settimeout(1)
 
-    local request = client:receive()
+    local rawRequest = client:receive()
+    local request = self:__buildRequest(rawRequest)
 
     local addr = client:getsockname()
 
@@ -166,11 +208,24 @@ function Feather:update()
       client:close()
     end
 
-    if request and request:find("GET") then
-      local response = self:__buildResponse()
+    self.logger(request.method)
+    if request and request.method == "GET" then
+
+      local response = ""
+
+      self.logger(request.path)
+      if request.path == "/config" then
+        local body = json.encode(self:__getConfig())
+        response = self:__buildResponse(body)
+      end
+
+      if request.path == "/logs" then
+        local body = json.encode(logs)
+        response = self:__buildResponse(body)
+        self.lastDelivery = os.time()
+      end
 
       client:send(response)
-      self.lastDelivery = os.time()
     end
 
     client:close()
@@ -186,18 +241,22 @@ function Feather:trace(...)
 end
 
 function Feather:log(line)
-  line.id = tostring(os.time()) .. "-" .. tostring(#self.logs + 1)
+  line.id = tostring(os.time()) .. "-" .. tostring(#logs + 1)
   line.time = os.time()
   line.count = 1
-  table.insert(self.logs, line)
-  if #self.logs > self.maxTempLogs then
-    table.remove(self.logs, 1)
-  end
+  line.trace = debug.traceback()
+
+  table.insert(logs, line)
+
+  --- Find a way to avoid deleting incoming logs
+  -- if #logs > self.maxTempLogs then
+  --   table.remove(logs, 1)
+  -- end
 end
 
 function Feather:print(...)
   local str = self:__format(...)
-  local last = self.logs[#self.logs]
+  local last = logs[#logs]
   if last and str == last.str then
     -- Update last line if this line is a duplicate of it
     last.time = os.time()

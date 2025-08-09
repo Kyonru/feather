@@ -1,5 +1,7 @@
 local FeatherDebugger = require("feather")
 
+local test = require("test.another.lib")
+
 local utf8 = require("utf8")
 
 local function error_printer(msg, layer)
@@ -139,8 +141,9 @@ local function customerrorhandler(msg)
 end
 
 local debugger = FeatherDebugger({
-  -- errorHandler = customerrorhandler,
-  autoRegisterErrorHandler = false
+  errorHandler = customerrorhandler,
+  autoRegisterErrorHandler = true,
+  baseDir = "src-lua",
 })
 
 a = 0
@@ -153,7 +156,7 @@ function love.update(dt)
   a = a + dt
 
   if a > 1 then
-    -- print(a)
+    print(a)
     a = 0
     print(math.random(1, 2))
     print({
@@ -193,11 +196,12 @@ function love.update(dt)
       },
     })
   end
-
 end
 
 function love.keypressed(key)
   if key == "space" then
-    c = b.a * 2
+    -- c = b.a * 2
+
+    test()
   end
 end

@@ -4,8 +4,6 @@ const queryClient = new QueryClient();
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </div>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 };

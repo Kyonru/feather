@@ -52,16 +52,16 @@ function errorhandler(msg)
 
 	local sanitizedmsg = {}
 	for char in msg:gmatch(utf8.charpattern) do
-		table.insert(sanitizedmsg, char)
+    table.insert(sanitizedmsg.msg, char)
 	end
-	sanitizedmsg = table.concat(sanitizedmsg)
+  local sanitized = table.concat(sanitizedmsg)
 
-	local err = {}
+  local err = {}
 
-	table.insert(err, "Error\n")
-	table.insert(err, sanitizedmsg)
+  table.insert(err, "Error\n")
+  table.insert(err, sanitized)
 
-	if #sanitizedmsg ~= #msg then
+	if #sanitized ~= #msg then
 		table.insert(err, "Invalid UTF-8 string in error message.")
 	end
 
