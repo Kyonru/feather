@@ -1,10 +1,4 @@
-import * as React from "react";
-import {
-  IconClockRecord,
-  IconLoader,
-  IconWashDrycleanOff,
-  IconDoorExit,
-} from "@tabler/icons-react";
+import { forwardRef, useEffect, useState } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -15,15 +9,13 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   Row,
+  RowSelectionState,
   SortingState,
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-
 import { TableVirtuoso } from "react-virtuoso";
-
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import {
   TableCell,
   TableHead,
@@ -33,25 +25,22 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
-  CircleX,
   CircleXIcon,
   ClockAlert,
-  Feather,
   FeatherIcon,
-  FileClock,
   FileClockIcon,
 } from "lucide-react";
-import { on } from "events";
 import { Log } from "@/hooks/use-logs";
+import { Input } from "./ui/input";
 
 // Original Table is wrapped with a <div> (see https://ui.shadcn.com/docs/components/table#radix-:r24:-content-manual),
 // but here we don't want it, so let's use a new component with only <table> tag
-const TableComponent = React.forwardRef<
+const TableComponent = forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
+>(({ className, ...props }, tableRef) => (
   <table
-    ref={ref}
+    ref={tableRef}
     className={cn("w-full caption-bottom text-sm", className)}
     {...props}
   />
@@ -105,10 +94,7 @@ export const columns: ColumnDef<Log>[] = [
   },
 ];
 
-const TableRowComponent = <TData,>(
-  rows: Row<TData>[],
-  onRowClick?: (index: number) => void
-) =>
+const TableRowComponent = <TData,>(rows: Row<TData>[]) =>
   function getTableRow(props: React.HTMLAttributes<HTMLTableRowElement>) {
     // @ts-expect-error data-index is a valid attribute
     const index = props["data-index"];
@@ -119,7 +105,7 @@ const TableRowComponent = <TData,>(
     return (
       <TableRow
         key={row.id}
-        onClick={() => onRowClick?.(index)}
+        onClick={() => row.toggleSelected()}
         data-state={row.getIsSelected() && "selected"}
         className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
         {...props}
@@ -137,37 +123,39 @@ const TableRowComponent = <TData,>(
 
 export function DataTable({
   data,
-  onRowClick,
-  rowSelection,
+  onRowSelection,
+  showSearch,
 }: {
   data: Log[];
-  onRowClick?: (index: number) => void;
+  onRowSelection?: (id: string) => void;
   rowSelection?: Record<string, boolean>;
+  showSearch?: boolean;
 }) {
-  const [_, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState<any>([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const table = useReactTable({
     data,
     columns,
     state: {
+      rowSelection,
+      globalFilter,
       sorting,
       columnVisibility,
-      rowSelection: rowSelection ?? {},
       columnFilters,
     },
     getRowId: (row) => row.id,
     enableRowSelection: true,
+    enableMultiRowSelection: false,
     onRowSelectionChange: setRowSelection,
+    getCoreRowModel: getCoreRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
@@ -175,6 +163,13 @@ export function DataTable({
   });
 
   const rows = table.getRowModel().rows;
+
+  useEffect(() => {
+    if (rowSelection) {
+      const selected = Object.keys(rowSelection);
+      onRowSelection?.(selected[0]);
+    }
+  }, [rowSelection]);
 
   return (
     <Tabs
@@ -185,13 +180,20 @@ export function DataTable({
         value="outline"
         className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
       >
+        {showSearch && (
+          <Input
+            placeholder="Search..."
+            className="mt-2"
+            onChange={(e) => table.setGlobalFilter(String(e.target.value))}
+          />
+        )}
         <div className="overflow-hidden rounded-lg border">
           <TableVirtuoso
-            style={{ height: 500 }}
+            style={{ height: window.innerHeight - 180 }}
             totalCount={rows.length}
             components={{
               Table: TableComponent,
-              TableRow: TableRowComponent(rows, onRowClick),
+              TableRow: TableRowComponent(rows),
               TableHead: TableHeader,
             }}
             fixedHeaderContent={() =>

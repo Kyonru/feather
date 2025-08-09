@@ -1,10 +1,6 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { unionBy } from "../../utils/arrays";
-import { useQuery } from "@tanstack/react-query";
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { BadgeType, DataTable } from "@/components/data-table";
-import { SectionCards } from "@/components/section-cards";
 import { PageLayout } from "@/components/page-layout";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,7 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CheckIcon, ClipboardIcon } from "lucide-react";
 import { useConfig } from "@/hooks/use-config";
-import { useLogs } from "@/hooks/use-logs";
+import { Log, useLogs } from "@/hooks/use-logs";
 
 export const columns: ColumnDef<{}>[] = [
   {
@@ -70,7 +66,6 @@ export function LuaBlock({ code }: { code: string }) {
       <div className="max-h-64">
         <SyntaxHighlighter
           wrapLines
-          wrapLongLines
           language="lua"
           // @ts-ignore
           style={oneLight}
@@ -169,25 +164,25 @@ export function copyToClipboardWithMeta(value: string) {
   navigator.clipboard.writeText(value);
 }
 
-export function ErrorSidePanel({
-  errorData,
+export function LogSidePanel({
+  data,
   basePath,
   onClose,
 }: {
   onClose: (o: boolean) => void;
   basePath: string;
-  errorData: any;
+  data: Log;
 }) {
-  const trace = errorData.type === "error" ? errorData.str : errorData.trace;
+  const trace = data.type === "error" ? data.str : data.trace;
   const isFeatherEvent =
-    errorData.type === "feather:finish" || errorData.type === "feather:start";
+    data.type === "feather:finish" || data.type === "feather:start";
 
   return (
     <Card className="w-[420px] rounded-none rounded-br-xl">
       <CardHeader className="flex items-center justify-between">
         <div>
           <CardTitle>Log Details</CardTitle>
-          <CardDescription>ID: {errorData.id}</CardDescription>
+          <CardDescription>ID: {data.id}</CardDescription>
         </div>
         <div>
           <Button onClick={() => onClose(false)} variant="secondary">
@@ -199,28 +194,28 @@ export function ErrorSidePanel({
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Type</span>
-          <BadgeType type={errorData.type} />
+          <BadgeType type={data.type} />
         </div>
 
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Count</span>
-          <span>{errorData.count}</span>
+          <span>{data.count}</span>
         </div>
 
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Time</span>
-          <span>{errorData.time}</span>
+          <span>{data.time}</span>
         </div>
 
-        {errorData.type === "output" ? (
+        {data.type === "output" ? (
           <>
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Log</span>
 
-                <CopyButton value={errorData.str} />
+                <CopyButton value={data.str} />
               </div>
-              <LuaBlock code={errorData.str} />
+              <LuaBlock code={data.str} />
             </div>
 
             <Separator />
@@ -244,51 +239,35 @@ export function ErrorSidePanel({
 }
 
 export default function Page() {
-  // const { isPending, error, data } = useQuery({
-  //   initialData: [],
-  //   queryKey: ["repoData"],
-  //   queryFn: async () => {
-  //     const response = await fetch("http://localhost:4004/config?p=feather");
-  //     const dataLogs = await response.json();
-  //     const logs = unionBy(data || [], dataLogs, (item) => item.id);
-  //     return logs;
-  //   },
-  //   refetchInterval: 1000,
-  // });
-
   const { data } = useConfig();
   const { data: logs } = useLogs({
     enabled: data !== undefined,
   });
 
-  const [errorData, setErrorData] = useState<any>(null);
+  const [selectedLog, setSelectedLog] = useState<Log | null>(null);
 
   const onClose = () => {
-    setErrorData(null);
+    setSelectedLog(null);
   };
 
   return (
     <PageLayout
       right={
-        errorData && (
-          <ErrorSidePanel
+        selectedLog && (
+          <LogSidePanel
             basePath={data?.root_path || ""}
-            errorData={errorData}
+            data={selectedLog}
             onClose={onClose}
           />
         )
       }
     >
-      <SectionCards />
-      <div className="px-4 lg:px-6">
-        <ChartAreaInteractive />
-      </div>
       <DataTable
-        onRowClick={(index) => {
-          setErrorData(logs[index]);
+        showSearch
+        onRowSelection={(id) => {
+          setSelectedLog(logs.find((item) => item.id === id) || null);
         }}
         data={logs}
-        rowSelection={errorData ? { [errorData.id]: true } : undefined}
       />
     </PageLayout>
   );

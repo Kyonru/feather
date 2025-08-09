@@ -35,14 +35,10 @@ export const useLogs = ({
     initialData: [],
     queryKey: ["logs"],
     queryFn: async () => {
-      console.log(`${Server.LOCAL}${ServerRoute.LOG}?p=feather`);
-
       const response = await fetch(
         `${Server.LOCAL}${ServerRoute.LOG}?p=feather`
       );
       const dataLogs = (await response.json()) as Log[];
-
-      console.log({ dataLogs });
 
       const logs = unionBy<Log, string>(
         data || [],
