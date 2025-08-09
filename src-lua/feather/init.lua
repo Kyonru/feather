@@ -1,11 +1,11 @@
 -- Very minimal HTTP server inside Love2D
 local socket = require("socket")
-local inspect = require("lib.inspect")
-local json = require("lib.json")
-local Class = require("lib.class")
+local inspect = require("feather.lib.inspect")
+local json = require("feather.lib.json")
+local Class = require("feather.lib.class")
 local utf8 = require("utf8")
-local errorhandler = require("error_handler")
-local get_current_dir = require("utils").get_current_dir
+local errorhandler = require("feather.error_handler")
+local get_current_dir = require("feather.utils").get_current_dir
 
 local logs = {}
 
@@ -210,7 +210,6 @@ function Feather:update()
 
     self.logger(request.method)
     if request and request.method == "GET" then
-
       local response = ""
 
       self.logger(request.path)
