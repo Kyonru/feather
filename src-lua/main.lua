@@ -147,12 +147,13 @@ local debugger = FeatherDebugger({
 })
 
 a = 0
+
 function love.load() end
 
 function love.draw() end
 
 function love.update(dt)
-  debugger:update()
+  debugger:update(dt)
   a = a + dt
 
   if a > 1 then

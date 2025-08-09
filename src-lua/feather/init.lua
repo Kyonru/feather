@@ -1,4 +1,4 @@
--- Very minimal HTTP server inside Love2D
+-- Not Very minimal HTTP server inside Love2D
 local socket = require("socket")
 local inspect = require("feather.lib.inspect")
 local json = require("feather.lib.json")
@@ -6,6 +6,9 @@ local Class = require("feather.lib.class")
 local utf8 = require("utf8")
 local errorhandler = require("feather.error_handler")
 local get_current_dir = require("feather.utils").get_current_dir
+local Performance = require("feather.plugins.performance")
+
+local performance = Performance()
 
 local logs = {}
 
@@ -188,7 +191,8 @@ function Feather:onerror(msg, finish)
   end
 end
 
-function Feather:update()
+---@param dt number
+function Feather:update(dt)
   local client = self.server:accept()
   if client then
     if #logs == 0 then
@@ -224,6 +228,11 @@ function Feather:update()
         self.lastDelivery = os.time()
       end
 
+      if request.path == "/performance" then
+        local body = json.encode(performance:getResponseBody(dt))
+        response = self:__buildResponse(body)
+      end
+
       client:send(response)
     end
 
@@ -248,9 +257,9 @@ function Feather:log(line)
   table.insert(logs, line)
 
   --- Find a way to avoid deleting incoming logs
-  -- if #logs > self.maxTempLogs then
-  --   table.remove(logs, 1)
-  -- end
+  if #logs > self.maxTempLogs then
+    table.remove(logs, 1)
+  end
 end
 
 function Feather:print(...)

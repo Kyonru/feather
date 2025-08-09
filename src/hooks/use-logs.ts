@@ -32,28 +32,29 @@ export const useLogs = ({
   refetch: () => void;
 } => {
   const { isPending, error, data, refetch } = useQuery({
-    initialData: [],
     queryKey: ["logs"],
-    queryFn: async () => {
-      const response = await fetch(
-        `${Server.LOCAL}${ServerRoute.LOG}?p=feather`
-      );
-      const dataLogs = (await response.json()) as Log[];
+    queryFn: async (): Promise<Log[]> => {
+      try {
+        const response = await fetch(`${Server.LOCAL}${ServerRoute.LOG}`);
+        const dataLogs = (await response.json()) as Log[];
 
-      const logs = unionBy<Log, string>(
-        data || [],
-        dataLogs,
-        (item) => item.id
-      ) as Log[];
-      return logs;
+        const logs = unionBy<Log, string>(
+          data || [],
+          dataLogs,
+          (item) => item.id
+        ) as Log[];
+        return logs;
+      } catch (error) {
+        return (data || []) as Log[];
+      }
     },
     // TODO: use config
     refetchInterval: 1000,
-    enabled: true,
+    enabled,
   });
 
   return {
-    data,
+    data: data || [],
     isPending,
     error,
     refetch,

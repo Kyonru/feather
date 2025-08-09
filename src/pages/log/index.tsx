@@ -204,7 +204,7 @@ export function LogSidePanel({
 
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Time</span>
-          <span>{data.time}</span>
+          <span>{new Date(data.time * 1000).toLocaleString()}</span>
         </div>
 
         {data.type === "output" ? (

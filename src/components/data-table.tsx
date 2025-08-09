@@ -77,20 +77,27 @@ export const columns: ColumnDef<Log>[] = [
     accessorKey: "count",
     header: () => <div className="text-left">Count</div>,
     size: 50,
+    enableColumnFilter: true,
   },
   {
     accessorKey: "type",
     header: "Type",
     cell: ({ row }) => <BadgeType type={row.original.type} />,
     size: 150,
+    enableColumnFilter: true,
   },
   {
     accessorKey: "str",
     header: () => <div className="w-full text-left">Log</div>,
+    enableColumnFilter: true,
   },
   {
     accessorKey: "time",
-    header: () => <div className="w-full text-left">Timestamp</div>,
+    header: () => <div className="w-full text-left">Time</div>,
+    cell: ({ row }) => (
+      <span>{new Date(row.original.time * 1000).toLocaleString()}</span>
+    ),
+    enableColumnFilter: true,
   },
 ];
 
@@ -137,6 +144,17 @@ export function DataTable({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
 
+  function globalFilterFn(row: Row<any>, _: string, filterValue: any) {
+    return (
+      String(row.getValue("str"))
+        .toLowerCase()
+        .includes(String(filterValue).toLowerCase()) ||
+      String(row.getValue("type"))
+        .toLowerCase()
+        .includes(String(filterValue).toLowerCase())
+    );
+  }
+
   const table = useReactTable({
     data,
     columns,
@@ -147,6 +165,9 @@ export function DataTable({
       columnVisibility,
       columnFilters,
     },
+    enableFilters: true,
+    enableGlobalFilter: true,
+    globalFilterFn: globalFilterFn,
     getRowId: (row) => row.id,
     enableRowSelection: true,
     enableMultiRowSelection: false,
