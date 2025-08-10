@@ -27,7 +27,7 @@ function Feather:init(config)
   self.whitelist = conf.whitelist or { "127.0.0.1" }
   self.maxTempLogs = conf.maxTempLogs or 200
   self.updateInterval = conf.updateInterval or 0.1
-  self.defaultObservers = conf.defaultObservers or true
+  self.defaultObservers = conf.defaultObservers or false
   ---TODO: find a better way to ensure that the error handler is called, maybe a thread?
   self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler and true or false
