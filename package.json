@@ -9,6 +9,10 @@
     "lua": "sh ./scripts/watch-lua.sh",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "typecheck:web": "tsc --noEmit -p tsconfig.json --composite false",
+    "typecheck:lua": "luacheck src-lua",
+    "typecheck": "npm run typecheck:web && npm run typecheck:lua",
+    "lint": "eslint src --ext .ts,.tsx",
     "tauri": "tauri"
   },
   "dependencies": {

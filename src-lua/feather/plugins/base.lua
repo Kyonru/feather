@@ -1,20 +1,22 @@
-local Class = require("feather.lib.class")
+local PATH = string.sub(..., 1, string.len(...) - string.len("plugins.base"))
+
+local Class = require(PATH .. ".lib.class")
 
 local FeatherPlugin = Class({
   init = function(self, config)
     self.config = config
   end,
   update = function(self, dt)
-    print("update")
+    return self, dt
   end,
   onerror = function(self, msg)
-    print("onerror")
+    return self, msg
   end,
   onerrorhandler = function(self, msg)
-    print("onerrorhandler")
+    return self, msg
   end,
   getResponseBody = function(self)
-    return "Hello World"
+    return self, "Hello World"
   end,
 })
 

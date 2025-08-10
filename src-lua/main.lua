@@ -17,7 +17,7 @@ local function customerrorhandler(msg)
     return
   end
 
-  if not love.graphics.isCreated() or not love.window.isOpen() then
+  if not love.window.isOpen() then
     local success, status = pcall(love.window.setMode, 800, 600)
     if not success or not status then
       return
@@ -35,7 +35,7 @@ local function customerrorhandler(msg)
   end
   if love.joystick then
     -- Stop all joystick vibrations.
-    for i, v in ipairs(love.joystick.getJoysticks()) do
+    for _, v in ipairs(love.joystick.getJoysticks()) do
       v:setVibration()
     end
   end
@@ -44,7 +44,7 @@ local function customerrorhandler(msg)
   end
 
   love.graphics.reset()
-  local font = love.graphics.setNewFont(14)
+  love.graphics.setNewFont(14)
 
   love.graphics.setColor(1, 1, 1)
 
@@ -52,18 +52,18 @@ local function customerrorhandler(msg)
 
   love.graphics.origin()
 
-  local sanitizedmsg = {}
+  local sanitizedMsg = {}
   for char in msg:gmatch(utf8.charpattern) do
-    table.insert(sanitizedmsg, char)
+    table.insert(sanitizedMsg, char)
   end
-  sanitizedmsg = table.concat(sanitizedmsg)
+  local sanitized = table.concat(sanitizedMsg)
 
   local err = {}
 
   table.insert(err, "Error\n")
-  table.insert(err, sanitizedmsg)
+  table.insert(err, sanitized)
 
-  if #sanitizedmsg ~= #msg then
+  if #sanitized ~= #msg then
     table.insert(err, "Invalid UTF-8 string in error message.")
   end
 
@@ -107,7 +107,7 @@ local function customerrorhandler(msg)
   return function()
     love.event.pump()
 
-    for e, a, b, c in love.event.poll() do
+    for e, a, _, _ in love.event.poll() do
       if e == "quit" then
         return 1
       elseif e == "keypressed" and a == "escape" then
@@ -147,7 +147,7 @@ local debugger = FeatherDebugger({
   debug = true,
 })
 
-a = 0
+local a = 0
 
 function love.load() end
 

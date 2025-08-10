@@ -1,6 +1,6 @@
 # Feather 🪶 — Debug & Inspect Tool for LÖVE (love2d)
 
-Feather is a lightweight, extensible debug tool for [LÖVE](https://love2d.org) projects, inspired by [LoveBird](https://github.com/rxi/lovebird).
+Feather is an extensible debug tool for [LÖVE](https://love2d.org) projects, inspired by [LoveBird](https://github.com/rxi/lovebird).
 It lets you **inspect logs, variables, performance metrics, and errors in real-time** over a network connection — perfect for debugging on desktop or mobile without stopping the game.
 
 ---
@@ -107,7 +107,16 @@ http://127.0.0.1:4004
 
 ---
 
+## 📦 Dependencies
+
+- [Hump Class](https://github.com/vrld/hump/blob/master/class.lua)
+- [Inspect](https://github.com/kikito/inspect.lua)
+- [json.lua](https://github.com/rxi/json.lua)
+
+---
+
 ## 📜 License
+
 
 Feel free to use and remix this project for personal, educational, or non-commercial fun.
 
