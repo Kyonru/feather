@@ -1,15 +1,15 @@
-import { Server, ServerRoute } from "@/constants/server";
-import { timeout } from "@/lib/utils";
-import { useConfigStore } from "@/store/config";
-import { unionBy } from "@/utils/arrays";
-import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
+import { Server, ServerRoute } from '@/constants/server';
+import { timeout } from '@/lib/utils';
+import { useConfigStore } from '@/store/config';
+import { unionBy } from '@/utils/arrays';
+import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 
 enum LogType {
-  OUTPUT = "output",
-  ERROR = "error",
-  FEATHER_START = "feather:start",
-  FEATHER_FINISH = "feather:finish",
+  OUTPUT = 'output',
+  ERROR = 'error',
+  FEATHER_START = 'feather:start',
+  FEATHER_FINISH = 'feather:finish',
 }
 
 export const schema = z.object({
@@ -33,23 +33,16 @@ export const useLogs = (): {
   const disconnected = useConfigStore((state) => state.disconnected);
 
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: ["logs"],
+    queryKey: ['logs'],
     queryFn: async (): Promise<Log[]> => {
       try {
-        const response = await timeout<Response>(
-          3000,
-          fetch(`${Server.LOCAL}${ServerRoute.LOG}`)
-        );
+        const response = await timeout<Response>(3000, fetch(`${Server.LOCAL}${ServerRoute.LOG}`));
 
         const dataLogs = (await response.json()) as Log[];
 
-        const logs = unionBy<Log, string>(
-          data || [],
-          dataLogs,
-          (item) => item.id
-        ) as Log[];
+        const logs = unionBy<Log, string>(data || [], dataLogs, (item) => item.id) as Log[];
         return logs;
-      } catch (error) {
+      } catch {
         setDisconnected(true);
         return (data || []) as Log[];
       }

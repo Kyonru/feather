@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -48,7 +48,10 @@ jobs:
           sudo apt-get install -y lua5.4 luarocks
 
       - name: Install luacheck
-        run: luarocks install luacheck
+        run: luarocks install luacheck --local
+
+      - name: Add local LuaRocks bin to PATH
+        run: echo "$HOME/.luarocks/bin" >> $GITHUB_PATH
 
       - name: Run luacheck with Love2D globals
-        run: luacheck src-lua
+        run: luacheck src-lua --globals love

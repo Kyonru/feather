@@ -2,7 +2,7 @@ name: LuaRocks release
 on:
   push:
     tags: # Will upload to luarocks.org when a tag is pushed
-      - "*"
+      - '*'
   pull_request: # Will test a local install without uploading to luarocks.org
 
 jobs:
@@ -17,6 +17,7 @@ jobs:
       - name: LuaRocks Upload
         uses: nvim-neorocks/luarocks-tag-release@v7
         with:
+          license: Feather License
           labels: |
             love2d
             löve
@@ -32,5 +33,5 @@ jobs:
       - name: GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          bodyFile: "CHANGELOG.md"
+          bodyFile: 'CHANGELOG.md'
           allowUpdates: true

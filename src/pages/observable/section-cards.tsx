@@ -1,11 +1,12 @@
-import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export function SectionCards({
   onSelect,
   selected,
   data,
 }: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>[];
   selected: string | null;
   onSelect: (key: string) => void;
@@ -17,23 +18,19 @@ export function SectionCards({
           <Card
             key={item.key}
             className={cn({
-              "@container/card": true,
-              "hover:bg-pink-500": true,
-              "active:bg-pink-900": true,
-              "bg-pink-700": selected === item.key,
+              '@container/card': true,
+              'hover:bg-pink-500': true,
+              'active:bg-pink-900': true,
+              'bg-pink-700': selected === item.key,
             })}
             onClick={() => onSelect(item.key)}
           >
             <CardHeader>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                {item.key}
-              </CardTitle>
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">{item.key}</CardTitle>
             </CardHeader>
             <CardFooter>
               <div className="truncate">
-                <p className="line-clamp-[calc(var(--characters)/100)]">
-                  {`${item.value}`}
-                </p>
+                <p className="line-clamp-[calc(var(--characters)/100)]">{`${item.value}`}</p>
               </div>
             </CardFooter>
           </Card>

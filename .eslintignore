@@ -1,0 +1,27 @@
+## Modules and libraries
+node_modules/
+dist/
+build/
+
+## Build files
+pnpm-lock.json
+
+## Environment
+src/vite-env.d.ts
+env.d.ts
+
+## Linter / Formatter
+.prettierrc
+.eslintrc
+.stylelintrc
+
+## Config files
+vite.config.ts
+tailwind.config.cjs
+postcss.config.cjs
+
+## Tauri
+src-tauri/
+
+## Lua
+src-lua/

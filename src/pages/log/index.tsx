@@ -1,51 +1,38 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { BadgeType, DataTable } from "@/components/data-table";
-import { PageLayout } from "@/components/page-layout";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button, CopyButton } from "@/components/ui/button";
-import { useConfig } from "@/hooks/use-config";
-import { Log, useLogs } from "@/hooks/use-logs";
-import { LuaBlock, TraceViewer } from "@/components/code";
+import { ColumnDef } from '@tanstack/react-table';
+import { BadgeType, DataTable } from '@/components/data-table';
+import { PageLayout } from '@/components/page-layout';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button, CopyButton } from '@/components/ui/button';
+import { useConfig } from '@/hooks/use-config';
+import { Log, useLogs } from '@/hooks/use-logs';
+import { LuaBlock, TraceViewer } from '@/components/code';
 
-export const columns: ColumnDef<{}>[] = [
+export const columns: ColumnDef<Log>[] = [
   {
-    accessorKey: "count",
-    header: "Count",
+    accessorKey: 'count',
+    header: 'Count',
   },
   {
-    accessorKey: "type",
-    header: "Type",
+    accessorKey: 'type',
+    header: 'Type',
   },
   {
-    accessorKey: "str",
-    header: () => "Log",
+    accessorKey: 'str',
+    header: () => 'Log',
     cell: (info) => info.getValue() as string,
     size: 250,
     maxSize: 250,
   },
   {
-    accessorKey: "time",
-    header: "Timestamp",
+    accessorKey: 'time',
+    header: 'Timestamp',
   },
 ];
 
-export function TraceBlock({
-  code,
-  basePath,
-}: {
-  code: string;
-  basePath: string;
-}) {
+export function TraceBlock({ code, basePath }: { code: string; basePath: string }) {
   return (
     <ScrollArea className="mt-2 h-52 rounded border bg-muted p-2 font-mono text-xs">
       <TraceViewer basePath={basePath} trace={code} />
@@ -62,9 +49,8 @@ export function LogSidePanel({
   basePath: string;
   data: Log;
 }) {
-  const trace = data.type === "error" ? data.str : data.trace;
-  const isFeatherEvent =
-    data.type === "feather:finish" || data.type === "feather:start";
+  const trace = data.type === 'error' ? data.str : data.trace;
+  const isFeatherEvent = data.type === 'feather:finish' || data.type === 'feather:start';
 
   return (
     <Card className="w-[420px] rounded-none rounded-br-xl">
@@ -96,7 +82,7 @@ export function LogSidePanel({
           <span>{new Date(data.time * 1000).toLocaleString()}</span>
         </div>
 
-        {data.type === "output" ? (
+        {data.type === 'output' ? (
           <>
             <div>
               <div className="flex items-center justify-between">
@@ -139,15 +125,7 @@ export default function Page() {
 
   return (
     <PageLayout
-      right={
-        selectedLog && (
-          <LogSidePanel
-            basePath={data?.root_path || ""}
-            data={selectedLog}
-            onClose={onClose}
-          />
-        )
-      }
+      right={selectedLog && <LogSidePanel basePath={data?.root_path || ''} data={selectedLog} onClose={onClose} />}
     >
       <DataTable
         showSearch

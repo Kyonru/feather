@@ -58,21 +58,21 @@ end
 
 `Feather:init(config)` accepts the following options:
 
-| Option                      | Type        | Default              | Description |
-|-----------------------------|-------------|----------------------|-------------|
-| `debug`                     | `boolean`   | `false`              | Enable or disable Feather entirely. |
-| `host`                      | `string`    | `"*"`                | Host address to bind the server to. |
-| `port`                      | `number`    | `4004`               | Port to listen on. |
-| `baseDir`                   | `string`    | `""`                 | Base directory path for file references and deeplinking to vs code |
-| `wrapPrint`                  | `boolean`   | `false`              | Wrap `print()` calls to send to Feather's log viewer. |
-| `whitelist`                 | `table`     | `{ "127.0.0.1" }`    | List of IPs allowed to connect. |
-| `maxTempLogs`                | `number`    | `200`                | Max number of temporary logs stored before rotation. |
-| `updateInterval`             | `number`    | `0.1`                | Interval between sending updates to clients. |
-| `defaultObservers`           | `boolean`   | `false`               | Register built-in variable watchers. |
-| `errorWait`                  | `number`    | `3`                  | Seconds to wait for error delivery before showing LÖVE's handler. |
-| `autoRegisterErrorHandler`   | `boolean`   | `false`              | Replace LÖVE's `errorhandler` to capture errors. |
-| `errorHandler`               | `function`  | `love.errorhandler`  | Custom error handler to use. |
-| `plugins`                    | `table`     | `{}`                 | List of plugin modules to load. (Support Coming soon) |
+| Option                     | Type       | Default             | Description                                                        |
+| -------------------------- | ---------- | ------------------- | ------------------------------------------------------------------ |
+| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                |
+| `host`                     | `string`   | `"*"`               | Host address to bind the server to.                                |
+| `port`                     | `number`   | `4004`              | Port to listen on.                                                 |
+| `baseDir`                  | `string`   | `""`                | Base directory path for file references and deeplinking to vs code |
+| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.              |
+| `whitelist`                | `table`    | `{ "127.0.0.1" }`   | List of IPs allowed to connect.                                    |
+| `maxTempLogs`              | `number`   | `200`               | Max number of temporary logs stored before rotation.               |
+| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                       |
+| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                               |
+| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.  |
+| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                   |
+| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                       |
+| `plugins`                  | `table`    | `{}`                | List of plugin modules to load. (Support Coming soon)              |
 
 ---
 
@@ -116,7 +116,6 @@ http://127.0.0.1:4004
 ---
 
 ## 📜 License
-
 
 Feel free to use and remix this project for personal, educational, or non-commercial fun.
 
