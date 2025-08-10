@@ -1,5 +1,4 @@
 import { ColumnDef } from "@tanstack/react-table";
-import SyntaxHighlighter from "react-syntax-highlighter";
 import { BadgeType, DataTable } from "@/components/data-table";
 import { PageLayout } from "@/components/page-layout";
 import { Separator } from "@/components/ui/separator";
@@ -13,16 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import oneLight from "@/assets/theme/light";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { CheckIcon, ClipboardIcon } from "lucide-react";
+import { Button, CopyButton } from "@/components/ui/button";
 import { useConfig } from "@/hooks/use-config";
 import { Log, useLogs } from "@/hooks/use-logs";
+import { LuaBlock, TraceViewer } from "@/components/code";
 
 export const columns: ColumnDef<{}>[] = [
   {
@@ -58,110 +51,6 @@ export function TraceBlock({
       <TraceViewer basePath={basePath} trace={code} />
     </ScrollArea>
   );
-}
-
-export function LuaBlock({ code }: { code: string }) {
-  return (
-    <ScrollArea className="mt-2 w-full rounded border bg-muted p-2 font-mono text-xs">
-      <div className="max-h-64">
-        <SyntaxHighlighter
-          wrapLines
-          language="lua"
-          // @ts-ignore
-          style={oneLight}
-          showLineNumbers
-        >
-          {code}
-        </SyntaxHighlighter>
-      </div>
-    </ScrollArea>
-  );
-}
-
-export function TraceViewer({
-  onFileClick,
-  trace,
-  basePath,
-}: {
-  onFileClick?: (file: string, line?: number) => void;
-  trace: string;
-  basePath: string;
-}) {
-  const highlightLine = (line: string, index: number) => {
-    // Clickable file:line pattern
-    const filePattern = /([\w./\\-]+\.lua):(\d+)/g;
-    // "in function"
-    const inFunctionPattern = /\bin function\b/g;
-    // 'functionName'
-    const quotedPattern = /'([^']+)'/g;
-
-    let html = line
-      .replace(
-        filePattern,
-        (_, file, lineNum) =>
-          `<a href="vscode://file/${basePath}/${file}:${lineNum}" class="text-blue-500 underline">${file}:${lineNum}</a>`
-      )
-      .replace(
-        inFunctionPattern,
-        `<span class="text-purple-500 font-medium">in function</span>`
-      )
-      .replace(quotedPattern, `<span class="text-green-500">'$1'</span>`);
-
-    return (
-      <div
-        key={index}
-        className="whitespace-pre-wrap break-words"
-        dangerouslySetInnerHTML={{ __html: html }}
-        onClick={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.tagName === "A" && target.dataset.file) {
-            e.preventDefault();
-            onFileClick?.(
-              target.dataset.file,
-              target.dataset.line ? parseInt(target.dataset.line) : undefined
-            );
-          }
-        }}
-      />
-    );
-  };
-
-  return (
-    <div className="font-mono text-xs space-y-1">
-      {trace.split("\n").map(highlightLine)}
-    </div>
-  );
-}
-
-function CopyButton({ value }: { value: string }) {
-  const [hasCopied, setHasCopied] = useState(false);
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          data-slot="copy-button"
-          onClick={() => {
-            copyToClipboardWithMeta(value);
-            setHasCopied(true);
-            setTimeout(() => {
-              setHasCopied(false);
-            }, 2000);
-          }}
-        >
-          <span>{hasCopied ? "Copied" : "Copy"}</span>
-          {hasCopied ? <CheckIcon /> : <ClipboardIcon />}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        {hasCopied ? "Copied" : "Copy to Clipboard"}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-export function copyToClipboardWithMeta(value: string) {
-  navigator.clipboard.writeText(value);
 }
 
 export function LogSidePanel({
@@ -240,9 +129,7 @@ export function LogSidePanel({
 
 export default function Page() {
   const { data } = useConfig();
-  const { data: logs } = useLogs({
-    enabled: data !== undefined,
-  });
+  const { data: logs } = useLogs();
 
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
 

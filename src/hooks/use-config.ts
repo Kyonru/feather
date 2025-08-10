@@ -1,36 +1,41 @@
 import { Server, ServerRoute } from "@/constants/server";
+import { timeout } from "@/lib/utils";
+import { Config, useConfigStore } from "@/store/config";
 import { useQuery } from "@tanstack/react-query";
-
-interface Config {
-  plugins: {
-    name: string;
-    route: string;
-    description: string;
-    config: any;
-  }[];
-  root_path: string;
-}
 
 export function useConfig(): {
   data: Config | undefined;
-  isPending: boolean;
+  isFetching: boolean;
   error: unknown;
   refetch: () => void;
 } {
-  const { isPending, error, data, refetch } = useQuery({
+  const setConfig = useConfigStore((state) => state.setConfig);
+  const setDisconnected = useConfigStore((state) => state.setDisconnected);
+
+  const { isFetching, error, data, refetch } = useQuery({
     queryKey: ["config"],
     queryFn: async () => {
-      const response = await fetch(
-        `${Server.LOCAL}${ServerRoute.CONFIG}?p=feather`
-      );
-      const config = await response.json();
-      return config;
+      try {
+        const response = await timeout<Response>(
+          3000,
+          fetch(`${Server.LOCAL}${ServerRoute.CONFIG}?p=feather`)
+        );
+        const config = await response.json();
+
+        setConfig(config);
+        setDisconnected(false);
+        return config;
+      } catch (error) {
+        setConfig(null);
+        setDisconnected(true);
+        return null;
+      }
     },
   });
 
   return {
     data,
-    isPending,
+    isFetching,
     error,
     refetch,
   };

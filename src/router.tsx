@@ -4,6 +4,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { BrowserRouter, Routes, Route } from "react-router";
 import Logs from "./pages/log";
 import Performance from "./pages/performance";
+import Observability from "./pages/observable";
 import Plugins from "./pages/plugins";
 
 export const Router = () => {
@@ -23,6 +24,7 @@ export const Router = () => {
           <Routes>
             <Route path="/" element={<Logs />} />
             <Route path="/performance" element={<Performance />} />
+            <Route path="/observability" element={<Observability />} />
 
             <Route path="/plugins">
               <Route path=":plugin" element={<Plugins />} />

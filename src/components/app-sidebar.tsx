@@ -1,8 +1,8 @@
 import * as React from "react";
 
-import { NavPlugins } from "@/components/nav-plugins";
+// import { NavPlugins } from "@/components/nav-plugins";
 import { NavMain } from "@/components/nav-main";
-import { NavSecondary } from "@/components/nav-secondary";
+// import { NavSecondary } from "@/components/nav-secondary";
 import {
   Sidebar,
   SidebarContent,
@@ -99,8 +99,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavPlugins items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* <NavPlugins items={data.documents} />
+        <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
     </Sidebar>
   );

@@ -1,4 +1,6 @@
 import { Server, ServerRoute } from "@/constants/server";
+import { timeout } from "@/lib/utils";
+import { useConfigStore } from "@/store/config";
 import { useQuery } from "@tanstack/react-query";
 
 type SystemInfo = {
@@ -73,23 +75,24 @@ export const DEFAULT_METRIC: PerformanceMetrics = {
   },
 };
 
-export const usePerformance = ({
-  enabled,
-}: {
-  enabled: boolean;
-}): {
+export const usePerformance = (): {
   data: PerformanceMetrics[];
   isPending: boolean;
   error: unknown;
   refetch: () => void;
 } => {
+  const setDisconnected = useConfigStore((state) => state.setDisconnected);
+  const disconnected = useConfigStore((state) => state.disconnected);
+
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ["performance"],
     queryFn: async (): Promise<PerformanceMetrics[]> => {
       try {
-        const response = await fetch(
-          `${Server.LOCAL}${ServerRoute.PERFORMANCE}`
+        const response = await timeout<Response>(
+          3000,
+          fetch(`${Server.LOCAL}${ServerRoute.PERFORMANCE}`)
         );
+
         const performance = (await response.json()) as PerformanceMetrics;
 
         const metrics = ((data || []).concat(performance) ||
@@ -97,12 +100,13 @@ export const usePerformance = ({
 
         return metrics;
       } catch (error) {
+        setDisconnected(true);
         return (data || []) as PerformanceMetrics[];
       }
     },
     // TODO: use config
     refetchInterval: 1000,
-    enabled,
+    enabled: !disconnected,
   });
 
   return {

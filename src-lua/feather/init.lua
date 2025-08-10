@@ -19,19 +19,26 @@ local customErrorHandler = errorhandler
 function Feather:init(config)
   local conf = config or {}
   self.pages = {}
+  self.debug = conf.debug or false
   self.host = conf.host or "*"
   self.baseDir = conf.baseDir or ""
   self.port = conf.port or 4004
-  self.wrapPrint = conf.wrapPrint or true
-  self.timestamp = conf.timestamp or true
+  self.wrapPrint = conf.wrapPrint or false
   self.whitelist = conf.whitelist or { "127.0.0.1" }
   self.maxTempLogs = conf.maxTempLogs or 200
   self.updateInterval = conf.updateInterval or 0.1
+  self.defaultObservers = conf.defaultObservers or true
   ---TODO: find a better way to ensure that the error handler is called, maybe a thread?
-  self.errorWait = conf.errorWait or 10
+  self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler and true or false
   self.plugins = conf.plugins or {}
   self.lastDelivery = 0
+  self.observers = {}
+
+  if not self.debug then
+    return
+  end
+
   customErrorHandler = conf.errorHandler or errorhandler
 
   local server = assert(socket.bind(self.host, self.port))
@@ -55,7 +62,7 @@ function Feather:init(config)
 
       local start = love.timer.getTime()
       while not delivered and (love.timer.getTime() - start) < selfRef.errorWait do
-        selfRef:update()
+        selfRef:update(0)
         delivered = isDelivered()
         love.timer.sleep(self.updateInterval)
       end
@@ -135,6 +142,33 @@ function Feather:__isInWhitelist(addr)
   return false
 end
 
+function Feather:__defaultObservers()
+  self:observe("Global", _G)
+  self:observe("Lua Version", _VERSION)
+end
+
+--- Tracks the value of a key in the observers table
+---@param key string
+---@param value any
+function Feather:observe(key, value)
+  if not self.debug then
+    return
+  end
+
+  self.observers = self.observers or {}
+
+  local curr = self:__format(value)
+
+  for i, observer in ipairs(self.observers) do
+    if observer.key == key then
+      observer.value = curr
+      return
+    end
+  end
+
+  table.insert(self.observers, { key = key, value = curr })
+end
+
 function Feather:__errorTraceback(msg)
   local trace = debug.traceback()
 
@@ -179,6 +213,10 @@ function Feather:finish()
 end
 
 function Feather:onerror(msg, finish)
+  if not self.debug then
+    return
+  end
+
   local err = self:__errorTraceback(msg)
   self:log({ type = "error", str = self:__errorTraceback(msg) })
   if self.wrapPrint then
@@ -193,6 +231,10 @@ end
 
 ---@param dt number
 function Feather:update(dt)
+  if not self.debug then
+    return
+  end
+
   local client = self.server:accept()
   if client then
     if #logs == 0 then
@@ -233,6 +275,14 @@ function Feather:update(dt)
         response = self:__buildResponse(body)
       end
 
+      if request.path == "/observers" then
+        if self.defaultObservers then
+          self:__defaultObservers()
+        end
+        local body = json.encode(self.observers)
+        response = self:__buildResponse(body)
+      end
+
       client:send(response)
     end
 
@@ -241,6 +291,10 @@ function Feather:update(dt)
 end
 
 function Feather:trace(...)
+  if not self.debug then
+    return
+  end
+
   local str = "[Feather] " .. self:__format(...)
   self.logger(str)
   if not self.wrapPrint then
@@ -249,6 +303,10 @@ function Feather:trace(...)
 end
 
 function Feather:log(line)
+  if not self.debug then
+    return
+  end
+
   line.id = tostring(os.time()) .. "-" .. tostring(#logs + 1)
   line.time = os.time()
   line.count = 1
@@ -263,6 +321,10 @@ function Feather:log(line)
 end
 
 function Feather:print(...)
+  if not self.debug then
+    return
+  end
+
   local str = self:__format(...)
   local last = logs[#logs]
   if last and str == last.str then

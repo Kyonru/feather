@@ -144,6 +144,7 @@ local debugger = FeatherDebugger({
   errorHandler = customerrorhandler,
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
+  debug = true,
 })
 
 a = 0
@@ -159,8 +160,46 @@ function love.update(dt)
   if a > 1 then
     print(a)
     a = 0
+    debugger:observe("a", a)
     print(math.random(1, 2))
     print({
+      type = "feather:finish",
+      body = {
+        lol = "hey",
+        another = {
+          one = 1,
+          copy = {
+            type = "feather:finish",
+            body = {
+              lol = "hey",
+              another = {
+                one = 1,
+              },
+            },
+            of_a = {
+              type = "feather:finish",
+              body = {
+                lol = "hey",
+                another = {
+                  one = 1,
+                },
+              },
+              copy = {
+                type = "feather:finish",
+                body = {
+                  lol = "hey",
+                  another = {
+                    one = 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+
+    debugger:observe("object", {
       type = "feather:finish",
       body = {
         lol = "hey",

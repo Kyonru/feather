@@ -1,4 +1,6 @@
 import { Server, ServerRoute } from "@/constants/server";
+import { timeout } from "@/lib/utils";
+import { useConfigStore } from "@/store/config";
 import { unionBy } from "@/utils/arrays";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -21,21 +23,24 @@ export const schema = z.object({
 
 export type Log = z.infer<typeof schema>;
 
-export const useLogs = ({
-  enabled,
-}: {
-  enabled: boolean;
-}): {
+export const useLogs = (): {
   data: Log[];
   isPending: boolean;
   error: unknown;
   refetch: () => void;
 } => {
+  const setDisconnected = useConfigStore((state) => state.setDisconnected);
+  const disconnected = useConfigStore((state) => state.disconnected);
+
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ["logs"],
     queryFn: async (): Promise<Log[]> => {
       try {
-        const response = await fetch(`${Server.LOCAL}${ServerRoute.LOG}`);
+        const response = await timeout<Response>(
+          3000,
+          fetch(`${Server.LOCAL}${ServerRoute.LOG}`)
+        );
+
         const dataLogs = (await response.json()) as Log[];
 
         const logs = unionBy<Log, string>(
@@ -45,12 +50,13 @@ export const useLogs = ({
         ) as Log[];
         return logs;
       } catch (error) {
+        setDisconnected(true);
         return (data || []) as Log[];
       }
     },
     // TODO: use config
     refetchInterval: 1000,
-    enabled,
+    enabled: !disconnected,
   });
 
   return {
