@@ -16,6 +16,10 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 
 ---
 
+![log tab](docs/images/logs.png)
+![performance tab](docs/images/performance.png)
+![observability tab](docs/images/observable.png)
+
 ## 📦 Installation
 
 1. **Download Feather**

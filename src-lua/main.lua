@@ -160,7 +160,7 @@ function love.update(dt)
   if a > 1 then
     print(a)
     a = 0
-    debugger:observe("a", a)
+    debugger:observe("awesome variable", a)
     print(math.random(1, 2))
     print({
       type = "feather:finish",
@@ -199,7 +199,7 @@ function love.update(dt)
       },
     })
 
-    debugger:observe("object", {
+    debugger:observe("complex table", {
       type = "feather:finish",
       body = {
         lol = "hey",
