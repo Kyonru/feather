@@ -13,11 +13,13 @@ Use, copy, modify, and distribute the Licensed Work in source and/or compiled fo
 
 Use the Licensed Work for personal, educational, or non-commercial purposes, including open source projects that comply with the restrictions below.
 
+Use the Licensed Work for commercial purposes only if your product or service is not a derivative or direct copy of this Licensed Work (for example, you may use it as part of building a different kind of product or game, but not to create another debugger or substantially similar competing product).
+
 ## Restrictions
 
 You may not:
 
-Commercial Products – Use the Licensed Work, in whole or in part, to create or offer any commercial product or service without prior written approval from the Licensor.
+Commercial Products – Use the Licensed Work, in whole or in part, to create or offer any commercial product or service that is a derivative or direct copy of this Licensed Work (e.g., another debugger or substantially similar competing product) without prior written approval from the Licensor. Commercial use is allowed for other types of products or services that are not substantially similar to the Licensed Work.
 
 Open Source Derivatives – Create or distribute a free/open source product based on the Licensed Work if that product’s license or terms would allow others to commercially use, sell, or license it, unless prior written approval from the Licensor is obtained.
 
