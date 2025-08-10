@@ -109,7 +109,11 @@ http://127.0.0.1:4004
 
 ## 📜 License
 
-TBD, this project is currently in development. It will be released under a permissive license once it's ready. Feel free to use it for your own projects and provide feedback to improve it.
+Feel free to use and remix this project for personal, educational, or non-commercial fun.
+
+Just don’t sell it, don’t make forks that let others sell it, and don’t use it for AI training — unless I say it’s okay.
+
+Full license: See [LICENSE.md](LICENSE.md)
 
 ---
 
