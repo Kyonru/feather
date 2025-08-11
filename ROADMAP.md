@@ -23,8 +23,6 @@
   ```
 
 - [ ] Log levels & colors
-- [x] Search & filter logs
-- [x] Clickable file/line links
 
 ---
 
@@ -42,9 +40,6 @@
   - SIGNAL
   - LUA STATE
   - CARGO
-- [x] Expandable log entries
-- [x] Structured log capture (tables, JSON)
-- [x] Basic performance metrics (FPS, memory)
 - [ ] Mini overlay mode
 
 ---
@@ -55,9 +50,7 @@
 - [ ] Add Tests
 - [ ] Add mismatch version notification
 - [ ] Add check for updates
-- [x] `feather:observe()` object explorer
 - [ ] Editable observed variables
-- [x] Log history persistence
 - [ ] Logs should be fetched globally not in tab
 
 ---
@@ -67,7 +60,6 @@
 - [ ] Add about page
 - [ ] Add changelog page
 - [ ] Add license page
-- [x] Realtime charts for performance metrics
 - [ ] Asset viewer (textures, audio list)
 - [ ] Table diffing in observed variables
 - [ ] Add Security Information section to README
@@ -124,9 +116,7 @@
 
 ## 1.0.0 – Trust Release
 
-- [x] Automated builds/tests for all platforms
 - [ ] Security pass (remote debugging encryption, safe eval defaults)
-- [x] Changelog & semantic versioning commitment
 - [ ] Public plugin library launch
 - [ ] Announce to broader gamedev communities
 - [ ] Add i18n support
