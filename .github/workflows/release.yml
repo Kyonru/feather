@@ -43,15 +43,6 @@ jobs:
           artifacts: feather-${{ steps.get_version.outputs.version }}-1.rockspec, feather-${{ steps.get_version.outputs.version }}-1.src.rock
           bodyFile: 'CHANGELOG.md'
           allowUpdates: true
-      # - name: Upload binaries to release
-      #   uses: softprops/action-gh-release@v1
-      #   if: ${{ startsWith(github.ref, 'refs/tags/') }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     files: |
-      #       feather-${{ steps.get_version.outputs.version }}-1.rockspec
-      #       feather-${{ steps.get_version.outputs.version }}-1.src.rock
 
   tauri-release:
     permissions:
