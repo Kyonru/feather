@@ -33,7 +33,7 @@ function Feather:init(config)
   self.defaultObservers = conf.defaultObservers or false
   ---TODO: find a better way to ensure that the error handler is called, maybe a thread?
   self.errorWait = conf.errorWait or 3
-  self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler and true or false
+  self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
   self.plugins = conf.plugins or {}
   self.lastDelivery = 0
   self.observers = {}
