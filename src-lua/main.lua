@@ -142,6 +142,9 @@ end
 
 local debugger = FeatherDebugger({
   errorHandler = customerrorhandler,
+  wrappedPrint = true,
+  wrapPrint = true,
+  defaultObservers = true,
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
   debug = true,
