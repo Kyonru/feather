@@ -1,7 +1,8 @@
-import { Server, ServerRoute } from "@/constants/server";
-import { timeout } from "@/lib/utils";
-import { useConfigStore } from "@/store/config";
-import { useQuery } from "@tanstack/react-query";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Server, ServerRoute } from '@/constants/server';
+import { timeout } from '@/lib/utils';
+import { useConfigStore } from '@/store/config';
+import { useQuery } from '@tanstack/react-query';
 
 export const useObservability = (): {
   data: Record<string, any>[];
@@ -13,17 +14,14 @@ export const useObservability = (): {
   const disconnected = useConfigStore((state) => state.disconnected);
 
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: ["observers"],
+    queryKey: ['observers'],
     queryFn: async (): Promise<Record<string, any>[]> => {
       try {
-        const response = await timeout<Response>(
-          3000,
-          fetch(`${Server.LOCAL}${ServerRoute.OBSERVERS}`)
-        );
+        const response = await timeout<Response>(3000, fetch(`${Server.LOCAL}${ServerRoute.OBSERVERS}`));
 
         const observers = (await response.json()) as Record<string, any>;
         return observers as Record<string, any>[];
-      } catch (error) {
+      } catch {
         setDisconnected(true);
         return [];
       }

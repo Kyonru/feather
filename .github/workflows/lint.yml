@@ -1,0 +1,57 @@
+name: Lint
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  lint:
+    name: Run TypeScript Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript checks
+        run: npm run typecheck:web
+
+      - name: Run linting
+        run: npm run lint
+  lint-lua:
+    name: Run Lua (Love2D) Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: |
+      contains(github.event_name, 'pull_request') ||
+      contains(github.event.head_commit.message, 'src-lua/') ||
+      github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Lua & luarocks
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4 luarocks
+
+      - name: Install luacheck
+        run: luarocks install luacheck --local
+
+      - name: Add local LuaRocks bin to PATH
+        run: echo "$HOME/.luarocks/bin" >> $GITHUB_PATH
+
+      - name: Run luacheck with Love2D globals
+        run: luacheck src-lua --globals love

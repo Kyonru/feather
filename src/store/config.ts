@@ -1,11 +1,11 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 export interface Config {
   plugins: {
     name: string;
     route: string;
     description: string;
-    config: any;
+    config: unknown;
   }[];
   root_path: string;
 }

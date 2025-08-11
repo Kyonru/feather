@@ -1,7 +1,7 @@
-import { Server, ServerRoute } from "@/constants/server";
-import { timeout } from "@/lib/utils";
-import { useConfigStore } from "@/store/config";
-import { useQuery } from "@tanstack/react-query";
+import { Server, ServerRoute } from '@/constants/server';
+import { timeout } from '@/lib/utils';
+import { useConfigStore } from '@/store/config';
+import { useQuery } from '@tanstack/react-query';
 
 type SystemInfo = {
   arch: string;
@@ -69,9 +69,9 @@ export const DEFAULT_METRIC: PerformanceMetrics = {
   fps: 0,
   frameTime: 0,
   sysInfo: {
-    arch: "",
+    arch: '',
     cpuCount: 0,
-    os: "",
+    os: '',
   },
 };
 
@@ -85,21 +85,17 @@ export const usePerformance = (): {
   const disconnected = useConfigStore((state) => state.disconnected);
 
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: ["performance"],
+    queryKey: ['performance'],
     queryFn: async (): Promise<PerformanceMetrics[]> => {
       try {
-        const response = await timeout<Response>(
-          3000,
-          fetch(`${Server.LOCAL}${ServerRoute.PERFORMANCE}`)
-        );
+        const response = await timeout<Response>(3000, fetch(`${Server.LOCAL}${ServerRoute.PERFORMANCE}`));
 
         const performance = (await response.json()) as PerformanceMetrics;
 
-        const metrics = ((data || []).concat(performance) ||
-          []) as PerformanceMetrics[];
+        const metrics = ((data || []).concat(performance) || []) as PerformanceMetrics[];
 
         return metrics;
-      } catch (error) {
+      } catch {
         setDisconnected(true);
         return (data || []) as PerformanceMetrics[];
       }

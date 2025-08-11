@@ -1,12 +1,15 @@
--- Not Very minimal HTTP server inside Love2D
 local socket = require("socket")
-local inspect = require("feather.lib.inspect")
-local json = require("feather.lib.json")
-local Class = require("feather.lib.class")
 local utf8 = require("utf8")
-local errorhandler = require("feather.error_handler")
-local get_current_dir = require("feather.utils").get_current_dir
-local Performance = require("feather.plugins.performance")
+
+-- lib Path
+local PATH = (...):gsub("%.init$", "")
+
+local inspect = require(PATH .. ".lib.inspect")
+local json = require(PATH .. ".lib.json")
+local Class = require(PATH .. ".lib.class")
+local errorhandler = require(PATH .. ".error_handler")
+local get_current_dir = require(PATH .. ".utils").get_current_dir
+local Performance = require(PATH .. ".plugins.performance")
 
 local performance = Performance()
 
@@ -78,6 +81,7 @@ function Feather:init(config)
 
     local selfRef = self -- capture `self` to avoid upvalue issues
 
+    --
     print = function(...)
       logger(...)
       selfRef.print(self, ...)
@@ -159,7 +163,7 @@ function Feather:observe(key, value)
 
   local curr = self:__format(value)
 
-  for i, observer in ipairs(self.observers) do
+  for _, observer in ipairs(self.observers) do
     if observer.key == key then
       observer.value = curr
       return

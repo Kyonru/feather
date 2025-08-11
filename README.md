@@ -1,6 +1,6 @@
 # Feather 🪶 — Debug & Inspect Tool for LÖVE (love2d)
 
-Feather is a lightweight, extensible debug tool for [LÖVE](https://love2d.org) projects, inspired by [LoveBird](https://github.com/rxi/lovebird).
+Feather is an extensible debug tool for [LÖVE](https://love2d.org) projects, inspired by [LoveBird](https://github.com/rxi/lovebird).
 It lets you **inspect logs, variables, performance metrics, and errors in real-time** over a network connection — perfect for debugging on desktop or mobile without stopping the game.
 
 ---
@@ -58,21 +58,21 @@ end
 
 `Feather:init(config)` accepts the following options:
 
-| Option                      | Type        | Default              | Description |
-|-----------------------------|-------------|----------------------|-------------|
-| `debug`                     | `boolean`   | `false`              | Enable or disable Feather entirely. |
-| `host`                      | `string`    | `"*"`                | Host address to bind the server to. |
-| `port`                      | `number`    | `4004`               | Port to listen on. |
-| `baseDir`                   | `string`    | `""`                 | Base directory path for file references and deeplinking to vs code |
-| `wrapPrint`                  | `boolean`   | `false`              | Wrap `print()` calls to send to Feather's log viewer. |
-| `whitelist`                 | `table`     | `{ "127.0.0.1" }`    | List of IPs allowed to connect. |
-| `maxTempLogs`                | `number`    | `200`                | Max number of temporary logs stored before rotation. |
-| `updateInterval`             | `number`    | `0.1`                | Interval between sending updates to clients. |
-| `defaultObservers`           | `boolean`   | `false`               | Register built-in variable watchers. |
-| `errorWait`                  | `number`    | `3`                  | Seconds to wait for error delivery before showing LÖVE's handler. |
-| `autoRegisterErrorHandler`   | `boolean`   | `false`              | Replace LÖVE's `errorhandler` to capture errors. |
-| `errorHandler`               | `function`  | `love.errorhandler`  | Custom error handler to use. |
-| `plugins`                    | `table`     | `{}`                 | List of plugin modules to load. (Support Coming soon) |
+| Option                     | Type       | Default             | Description                                                        |
+| -------------------------- | ---------- | ------------------- | ------------------------------------------------------------------ |
+| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                |
+| `host`                     | `string`   | `"*"`               | Host address to bind the server to.                                |
+| `port`                     | `number`   | `4004`              | Port to listen on.                                                 |
+| `baseDir`                  | `string`   | `""`                | Base directory path for file references and deeplinking to vs code |
+| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.              |
+| `whitelist`                | `table`    | `{ "127.0.0.1" }`   | List of IPs allowed to connect.                                    |
+| `maxTempLogs`              | `number`   | `200`               | Max number of temporary logs stored before rotation.               |
+| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                       |
+| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                               |
+| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.  |
+| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                   |
+| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                       |
+| `plugins`                  | `table`    | `{}`                | List of plugin modules to load. (Support Coming soon)              |
 
 ---
 
@@ -104,6 +104,14 @@ http://127.0.0.1:4004
 - Only enable `debug = true` in development builds — disable it for release for performance and security.
 - Use `wrapPrint = true` to capture all `print()` logs automatically. `print` function will be wrapped with custom logic to send logs to Feather.
 - Add custom variable observers to monitor your game's state.
+
+---
+
+## 📦 Dependencies
+
+- [Hump Class](https://github.com/vrld/hump/blob/master/class.lua)
+- [Inspect](https://github.com/kikito/inspect.lua)
+- [json.lua](https://github.com/rxi/json.lua)
 
 ---
 
