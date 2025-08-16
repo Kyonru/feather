@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [v0.1.3] - 2025-08-16 - The one with the deep linking fix
+
+### Added
+
+- [x] Fix deep linking pointer
+- [x] Fix deep linking
+- [x] Log levels & colors
+- [x] Improve auto-complete and documentation
+
 ## [v0.1.2] - 2025-08-10
 
 ### Added
@@ -37,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
-[unreleased]: https://github.com/Kyonru/feather/compare/v0.1.0...HEAD
-[v0.1.2]: https://github.com/Kyonru/feather/compare/v0.1.0...v0.1.2
+[unreleased]: https://github.com/Kyonru/feather/compare/v0.1.3...HEAD
+[v0.1.3]: https://github.com/Kyonru/feather/compare/v0.1.2...v0.1.3
+[v0.1.2]: https://github.com/Kyonru/feather/compare/v0.1.1...v0.1.2
 [v0.1.1]: https://github.com/Kyonru/feather/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/Kyonru/feather/releases/tag/v0.1.0
