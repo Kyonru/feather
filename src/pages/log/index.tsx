@@ -9,6 +9,8 @@ import { Button, CopyButton } from '@/components/ui/button';
 import { useConfig } from '@/hooks/use-config';
 import { Log, useLogs } from '@/hooks/use-logs';
 import { LuaBlock, TraceViewer } from '@/components/code';
+import { isWeb } from '@/lib/utils';
+import { Command } from '@tauri-apps/plugin-shell';
 
 export const columns: ColumnDef<Log>[] = [
   {
@@ -35,7 +37,24 @@ export const columns: ColumnDef<Log>[] = [
 export function TraceBlock({ code, basePath }: { code: string; basePath: string }) {
   return (
     <ScrollArea className="mt-2 h-52 rounded border bg-muted p-2 font-mono text-xs">
-      <TraceViewer basePath={basePath} trace={code} />
+      <TraceViewer
+        trace={code}
+        onFileClick={async (file, line) => {
+          try {
+            if (isWeb()) {
+              open(`vscode://file/${basePath}/${file}:${line}`);
+              return;
+            }
+
+            // TODO: add support for other OS (Windows)
+            // TODO: add support for other editors
+            // TODO: Test on Linux
+            await Command.create('code', ['-c', `/usr/local/bin/code --goto ${basePath}/${file}:${line}`]).execute();
+          } catch (e) {
+            console.log(e);
+          }
+        }}
+      />
     </ScrollArea>
   );
 }

@@ -1,3 +1,4 @@
+import { isTauri } from '@tauri-apps/api/core';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -26,4 +27,8 @@ export function timeout<T>(ms: number, promise: Promise<any>): Promise<T> {
         reject(reason);
       });
   });
+}
+
+export function isWeb() {
+  return !isTauri();
 }

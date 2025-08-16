@@ -7,7 +7,22 @@
   ],
   "permissions": [
     "core:default",
-    "opener:default",
-    "websocket:default"
+    "shell:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "code",
+          "cmd": "sh",
+          "args": [
+            "-c",
+            {
+              "validator": "\\S*\\/?code\\s+--goto\\s+\\S+"
+            }
+          ],
+          "sidecar": false
+        }
+      ]
+    }
   ]
 }

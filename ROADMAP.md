@@ -52,6 +52,7 @@
 - [ ] Add check for updates
 - [ ] Editable observed variables
 - [ ] Logs should be fetched globally not in tab
+- [ ] Add optional screenshot on error
 
 ---
 

@@ -25,11 +25,9 @@ export function LuaBlock({ code, className }: { code: string; className?: string
 export function TraceViewer({
   onFileClick,
   trace,
-  basePath,
 }: {
   onFileClick?: (file: string, line?: number) => void;
   trace: string;
-  basePath: string;
 }) {
   const highlightLine = (line: string, index: number) => {
     // Clickable file:line pattern
@@ -43,7 +41,7 @@ export function TraceViewer({
       .replace(
         filePattern,
         (_, file, lineNum) =>
-          `<a href="vscode://file/${basePath}/${file}:${lineNum}" class="text-blue-500 underline">${file}:${lineNum}</a>`,
+          `<a href="${file}:${lineNum}" data-file="${file}" data-line="${lineNum}" style="cursor: pointer;" class="text-blue-500 underline hover:cursor-pointer">${file}:${lineNum}</a>`,
       )
       .replace(inFunctionPattern, `<span class="text-purple-500 font-medium">in function</span>`)
       .replace(quotedPattern, `<span class="text-green-500">'$1'</span>`);
@@ -54,10 +52,11 @@ export function TraceViewer({
         className="whitespace-pre-wrap break-words"
         dangerouslySetInnerHTML={{ __html: html }}
         onClick={(e) => {
+          e.preventDefault();
           const target = e.target as HTMLElement;
+
           if (target.tagName === 'A' && target.dataset.file) {
-            e.preventDefault();
-            onFileClick?.(target.dataset.file, target.dataset.line ? parseInt(target.dataset.line) : undefined);
+            onFileClick?.(target.dataset.file, target.dataset.line ? parseInt(target.dataset.line) : 1);
           }
         }}
       />
