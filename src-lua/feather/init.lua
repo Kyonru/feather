@@ -1,3 +1,4 @@
+---@diagnostic disable: invisible
 local socket = require("socket")
 local utf8 = require("utf8")
 
@@ -15,13 +16,50 @@ local performance = Performance()
 
 local logs = {}
 
+---@class Feather: FeatherConfig
+---@field lastDelivery number
+---@field lastError number
+---@field debug boolean
+---@field protected server any
+---@field observe fun(self: Feather, key: string, value: table | string | number | boolean) Updates value in the observers tab
+---@field log fun(self: Feather, line: FeatherLine) Logs a line
+---@field finish fun(self: Feather) Logs a finish line
+---@field print fun(self: Feather, ...) Prints a log
+---@field trace fun(self: Feather, ...) Prints a trace
+---@field error fun(self: Feather, msg: string) Prints an error
+---@field update fun(self: Feather, dt: number) Updates the Feather instance
+---@field protected __print fun(self: Feather, type: string, str: string)
+---@field protected __countOnRepeat fun(self: Feather, type: LogType, ...: unknown)
+---@field protected __onerror fun(self: Feather, msg: string, finish: boolean)
+---@field protected __getConfig fun(self: Feather): FeatherConfig
+---@field protected __buildResponse fun(self: Feather, body: table | string | number): string
+---@field protected __buildRequest fun(self: Feather, request: table): table
+---@field protected __format fun(self: Feather, ...: any): string
+---@field protected __isInWhitelist fun(self: Feather, addr: string): boolean
+---@field protected __defaultObservers fun(self: Feather)
+---@field protected __errorTraceback fun(self: Feather, msg: string): string
 local Feather = Class({})
 
 local customErrorHandler = errorhandler
 
+---@class FeatherConfig
+---@field debug boolean
+---@field host? string
+---@field port? number
+---@field baseDir? string
+---@field wrapPrint? boolean
+---@field whitelist? table
+---@field maxTempLogs? number
+---@field updateInterval? number
+---@field defaultObservers? boolean
+---@field errorWait? number
+---@field autoRegisterErrorHandler? boolean
+---@field errorHandler? function
+---@field plugins? table
+--- Feather constructor
+---@param config FeatherConfig
 function Feather:init(config)
   local conf = config or {}
-  self.pages = {}
   self.debug = conf.debug or false
   self.host = conf.host or "*"
   self.baseDir = conf.baseDir or ""
@@ -55,7 +93,7 @@ function Feather:init(config)
     local selfRef = self -- capture `self` to avoid upvalue issues
 
     function love.errorhandler(msg)
-      selfRef:onerror(msg, true) -- Log the error first
+      selfRef:__onerror(msg, true) -- Log the error first
 
       local function isDelivered()
         return selfRef.lastDelivery > selfRef.lastError
@@ -89,7 +127,6 @@ function Feather:init(config)
   end
 end
 
----@param body table | string | number
 function Feather:__buildResponse(body)
   local response = table.concat({
     "HTTP/1.1 200 OK",
@@ -104,9 +141,15 @@ function Feather:__buildResponse(body)
 end
 
 function Feather:__getConfig()
+  local root_path = get_current_dir()
+
+  if #self.baseDir > 0 then
+    root_path = root_path .. "/" .. self.baseDir
+  end
+
   local config = {
     plugins = self.plugins,
-    root_path = get_current_dir() .. "/" .. self.baseDir,
+    root_path = root_path,
   }
 
   return config
@@ -152,8 +195,8 @@ function Feather:__defaultObservers()
 end
 
 --- Tracks the value of a key in the observers table
----@param key string
----@param value any
+---@alias FeatherObserve fun(self: Feather, key: string, value: table | string | number | boolean)
+---@type FeatherObserve
 function Feather:observe(key, value)
   if not self.debug then
     return
@@ -208,15 +251,19 @@ function Feather:__errorTraceback(msg)
   return p
 end
 
+---@alias FeatherClear fun(self: Feather)
+---@type FeatherClear
 function Feather:clear()
   logs = {}
 end
 
+---@alias FeatherFinish fun(self: Feather)
+---@type FeatherFinish
 function Feather:finish()
   self:log({ type = "feather:finish" })
 end
 
-function Feather:onerror(msg, finish)
+function Feather:__onerror(msg, finish)
   if not self.debug then
     return
   end
@@ -231,6 +278,12 @@ function Feather:onerror(msg, finish)
   if finish then
     self:finish()
   end
+end
+
+---@alias FeatherError fun(self: Feather, msg: string)
+---@type FeatherError
+function Feather:error(msg)
+  self:__onerror(msg, false)
 end
 
 ---@param dt number
@@ -294,18 +347,29 @@ function Feather:update(dt)
   end
 end
 
+---@alias FeatherTrace fun(self: Feather, ...)
+---@type FeatherTrace
 function Feather:trace(...)
   if not self.debug then
     return
   end
 
   local str = "[Feather] " .. self:__format(...)
+
   self.logger(str)
-  if not self.wrapPrint then
-    self:print(str)
-  end
+  self:__print("trace", str)
 end
 
+---@alias LogType "output" | "trace" | "error" | "feather:finish" | "feather:start" | "output" | "error"
+---@class FeatherLine
+---@field type LogType
+---@field str? string
+---@field id? string
+---@field time? number
+---@field count? number
+---@field trace? string
+---@alias FeatherLog fun(self: Feather, line: FeatherLine)
+---@type FeatherLog
 function Feather:log(line)
   if not self.debug then
     return
@@ -324,7 +388,17 @@ function Feather:log(line)
   end
 end
 
+---@alias FeatherPrint fun(self: Feather, ...)
+---@type FeatherPrint
 function Feather:print(...)
+  self:__countOnRepeat("output", ...)
+end
+
+--- Manages the print function internally
+--- @param self Feather
+--- @param type LogType
+--- @param ... unknown
+function Feather:__countOnRepeat(type, ...)
   if not self.debug then
     return
   end
@@ -336,8 +410,12 @@ function Feather:print(...)
     last.time = os.time()
     last.count = last.count + 1
   else
-    self:log({ type = "output", str = str })
+    self:log({ type = type, str = str })
   end
 end
 
-return Feather
+---@type fun(config: FeatherConfig): Feather
+---@diagnostic disable-next-line: assign-type-mismatch
+local casted = Feather
+
+return casted

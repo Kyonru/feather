@@ -2,27 +2,10 @@
 
 ## 0.1.3 – Core Stability
 
-- [ ] Fix deep linking pointer
-- [ ] Fix deep linking
-
-  ```ts
-  {
-    "tauri": {
-      "security": {
-        "dangerousDisableAssetCspModification": false,
-        "csp": null
-      },
-      "allowlist": {
-        "shell": {
-          "open": true,
-          "scope": ["vscode://*"]
-        }
-      }
-    }
-  }
-  ```
-
-- [ ] Log levels & colors
+- [x] Fix deep linking pointer
+- [x] Fix deep linking
+- [x] Log levels & colors
+- [x] Improve auto-complete and documentation
 
 ---
 

@@ -23,9 +23,15 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 ## 📦 Installation
 
 1. **Download Feather**
-   Copy the `feather` folder into your project folder.
 
-2. **Require Feather**
+- Download the latest release from the [releases page](https://github.com/Kyonru/feather/releases)
+- Or install it via [Luarocks](https://luarocks.org/)
+
+  ```bash
+  luarocks install feather
+  ```
+
+1. **Require Feather**
 
    ```lua
    local Feather = require "feather"
@@ -38,17 +44,17 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 ### Basic Setup
 
 ```lua
-function love.load()
-  Feather:init({
-    debug = true,           -- Enable/disable Feather
-    wrapPrint = true,        -- Capture print() calls
-    autoRegisterErrorHandler = true, -- Automatically catch errors
-    errorHandler = customerrorhandler, -- Custom error handler, if not, a copy of LÖVE's error handler will be used
-  })
-end
+local FeatherDebugger = require "feather"
+
+local debugger = FeatherDebugger({
+  debug = Config.__IS_DEBUG, -- Make sure to only run in debug mode
+  wrapPrint = true,
+  defaultObservers = true,
+  autoRegisterErrorHandler = true,
+})
 
 function love.update(dt)
-  Feather:update(dt) -- Required for processing requests
+  debugger:update(dt) -- Required for processing requests
 end
 ```
 
@@ -58,21 +64,21 @@ end
 
 `Feather:init(config)` accepts the following options:
 
-| Option                     | Type       | Default             | Description                                                        |
-| -------------------------- | ---------- | ------------------- | ------------------------------------------------------------------ |
-| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                |
-| `host`                     | `string`   | `"*"`               | Host address to bind the server to.                                |
-| `port`                     | `number`   | `4004`              | Port to listen on.                                                 |
-| `baseDir`                  | `string`   | `""`                | Base directory path for file references and deeplinking to vs code |
-| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.              |
-| `whitelist`                | `table`    | `{ "127.0.0.1" }`   | List of IPs allowed to connect.                                    |
-| `maxTempLogs`              | `number`   | `200`               | Max number of temporary logs stored before rotation.               |
-| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                       |
-| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                               |
-| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.  |
-| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                   |
-| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                       |
-| `plugins`                  | `table`    | `{}`                | List of plugin modules to load. (Support Coming soon)              |
+| Option                     | Type       | Default             | Description                                                                                         |
+| -------------------------- | ---------- | ------------------- | --------------------------------------------------------------------------------------------------- |
+| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                                                 |
+| `host`                     | `string`   | `"*"`               | Host address to bind the server to.                                                                 |
+| `port`                     | `number`   | `4004`              | Port to listen on.                                                                                  |
+| `baseDir`                  | `string`   | `""`                | Base directory path for file references and deeplinking to vs code, useful for multi-project setups |
+| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.                                               |
+| `whitelist`                | `table`    | `{ "127.0.0.1" }`   | List of IPs allowed to connect.                                                                     |
+| `maxTempLogs`              | `number`   | `200`               | Max number of temporary logs stored before rotation.                                                |
+| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                                                        |
+| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                                                                |
+| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.                                   |
+| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                                    |
+| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                                                        |
+| `plugins`                  | `table`    | `{}`                | List of plugin modules to load. (Support Coming soon)                                               |
 
 ---
 
@@ -84,18 +90,7 @@ When running your game with Feather enabled, you'll see:
 Listening on 127.0.0.1:4004
 ```
 
-Install the feather app or locally build the web app and visit:
-
-```bash
-npm install
-npm run web
-```
-
-Open a web browser and visit:
-
-```url
-http://127.0.0.1:4004
-```
+Install the feather app from the [releases page](https://github.com/Kyonru/feather/releases), it will automatically connect to your game.
 
 ---
 
@@ -114,6 +109,47 @@ http://127.0.0.1:4004
 - [json.lua](https://github.com/rxi/json.lua)
 
 ---
+
+## Documentation
+
+### Observers
+
+Observers are a way to inspect variables values in real-time. They are useful for debugging and observing game state.
+
+```lua
+  debugger:observe("Awesome player instance", player)
+```
+
+### Log
+
+Feather will automatically capture and log print() calls in real-time, using the `output` type. You can also manually log using the `log` and `print` functions.
+
+```lua
+  debugger:print("Something happened")
+```
+
+```lua
+  debugger:log({
+    type = "awesome_log_type",
+    str = "Something happened",
+  })
+```
+
+### Trace
+
+Feather automatically includes trace in errors and logs. You can also manually log traces using the `trace` function.
+
+```lua
+  debugger:trace("Something happened")
+```
+
+### Error Logging
+
+Feather will automatically capture and log errors in real-time. You can also manually log errors using the `error` function.
+
+```lua
+  debugger:error("Something went wrong")
+```
 
 ## 📜 License
 
