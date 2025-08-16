@@ -1,14 +1,5 @@
 # Feather Roadmap
 
-## 0.1.3 – Core Stability
-
-- [x] Fix deep linking pointer
-- [x] Fix deep linking
-- [x] Log levels & colors
-- [x] Improve auto-complete and documentation
-
----
-
 ## 0.2.0 – Developer Customization
 
 - [ ] Add settings:
