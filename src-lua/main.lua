@@ -1,8 +1,9 @@
 local FeatherDebugger = require("feather")
 local FeatherPluginManager = require("feather.plugin_manager")
-
-local test = require("test.another.lib")
-
+local HumpSignalPlugin = require("plugins.hump.signal")
+local Signal = require("demo.lib.hump.signal")
+local TestPlugin = require("demo.plugin")
+local test = require("demo.another.lib")
 local utf8 = require("utf8")
 
 local function error_printer(msg, layer)
@@ -141,8 +142,6 @@ local function customerrorhandler(msg)
   end
 end
 
-local TestPlugin = require("test.plugin")
-
 local debugger = FeatherDebugger({
   errorHandler = customerrorhandler,
   wrappedPrint = true,
@@ -159,12 +158,30 @@ local debugger = FeatherDebugger({
     FeatherPluginManager.createPlugin({ 2 }, "test2", {
       test = true,
     }),
+    FeatherPluginManager.createPlugin(HumpSignalPlugin, "hump.signal", {
+      signal = Signal,
+      register = {
+        "emit",
+        "register",
+        "remove",
+        "emitPattern",
+        "registerPattern",
+        "removePattern",
+        "clearPattern",
+      },
+    }),
   },
 })
 
 local a = 0
 
-function love.load() end
+function love.load()
+  Signal.register("shoot", function(x, y, dx, dy)
+    -- for every critter in the path of the bullet:
+    -- try to avoid being hit
+    print(x, y, dx, dy)
+  end)
+end
 
 function love.draw() end
 
@@ -173,83 +190,8 @@ function love.update(dt)
   a = a + dt
 
   if a > 1 then
-    print(a)
     a = 0
     debugger:observe("awesome variable", a)
-    print(math.random(1, 2))
-    print({
-      type = "feather:finish",
-      body = {
-        lol = "hey",
-        another = {
-          one = 1,
-          copy = {
-            type = "feather:finish",
-            body = {
-              lol = "hey",
-              another = {
-                one = 1,
-              },
-            },
-            of_a = {
-              type = "feather:finish",
-              body = {
-                lol = "hey",
-                another = {
-                  one = 1,
-                },
-              },
-              copy = {
-                type = "feather:finish",
-                body = {
-                  lol = "hey",
-                  another = {
-                    one = 1,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    })
-
-    debugger:observe("complex table", {
-      type = "feather:finish",
-      body = {
-        lol = "hey",
-        another = {
-          one = 1,
-          copy = {
-            type = "feather:finish",
-            body = {
-              lol = "hey",
-              another = {
-                one = 1,
-              },
-            },
-            of_a = {
-              type = "feather:finish",
-              body = {
-                lol = "hey",
-                another = {
-                  one = 1,
-                },
-              },
-              copy = {
-                type = "feather:finish",
-                body = {
-                  lol = "hey",
-                  another = {
-                    one = 1,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    })
   end
 end
 

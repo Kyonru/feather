@@ -11,30 +11,32 @@
   - [x] download feather rock file for the version you are using
 - [x] Add basic plugin support
 - [ ] Add optional plugins:
-  - [ ] SIGNAL
+  - [x] SIGNAL
   - [ ] LUA STATE
   - [ ] CARGO
 - [ ] Mini overlay mode
+- [ ] Add plugin documentation
 
 ---
 
 ## 0.3.0 – Variable Inspection
 
-- [ ] Change `test` folder to `example` folder
+- [x] Change `test` folder to `demo` folder
 - [ ] Add Tests
 - [x] Add mismatch version notification
 - [ ] Add check for updates
 - [ ] Editable observed variables
 - [ ] Logs should be fetched globally not in tab
 - [ ] Add optional screenshot on error
+- [ ] Add clear logs button
 
 ---
 
 ## 0.4.0 – Performance & Assets
 
-- [ ] Add about page
-- [ ] Add changelog page
-- [ ] Add license page
+- [x] Add about page
+- [ ] Add changelog page (github link)
+- [ ] Add license page (github link)
 - [ ] Asset viewer (textures, audio list)
 - [ ] Table diffing in observed variables
 - [ ] Add Security Information section to README
@@ -55,6 +57,7 @@
 ## 0.6.0 – Stability & Compatibility
 
 - [ ] Full OS & Love2D version testing (Windows/macOS/Linux)
+- [ ] Add remote debugging
 - [ ] Fix edge cases for large log/variable data
 - [ ] Configurable performance sampling interval
 - [ ] Low-overhead mode for production builds, scripts and plugins to disable code in production
@@ -97,9 +100,3 @@
 - [ ] Add i18n support
 
 ---
-
-**Legend:**
-
-- **Low Effort**: UI or small logic changes
-- **Medium Effort**: New UI + backend work
-- **High Effort**: Requires significant architecture or API work
