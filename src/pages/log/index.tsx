@@ -11,6 +11,7 @@ import { Log, useLogs } from '@/hooks/use-logs';
 import { LuaBlock, TraceViewer } from '@/components/code';
 import { isWeb } from '@/lib/utils';
 import { Command } from '@tauri-apps/plugin-shell';
+import { useSettingsStore } from '@/store/settings';
 
 export const columns: ColumnDef<Log>[] = [
   {
@@ -35,6 +36,7 @@ export const columns: ColumnDef<Log>[] = [
 ];
 
 export function TraceBlock({ code, basePath }: { code: string; basePath: string }) {
+  const textEditorPath = useSettingsStore((state) => state.textEditorPath);
   return (
     <ScrollArea className="mt-2 h-52 rounded border bg-muted p-2 font-mono text-xs">
       <TraceViewer
@@ -49,7 +51,7 @@ export function TraceBlock({ code, basePath }: { code: string; basePath: string 
             // TODO: add support for other OS (Windows)
             // TODO: add support for other editors
             // TODO: Test on Linux
-            await Command.create('code', ['-c', `/usr/local/bin/code --goto ${basePath}/${file}:${line}`]).execute();
+            await Command.create('code', ['-c', `${textEditorPath} --goto ${basePath}/${file}:${line}`]).execute();
           } catch (e) {
             console.log(e);
           }

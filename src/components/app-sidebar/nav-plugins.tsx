@@ -7,17 +7,27 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { NavLink, useLocation } from 'react-router';
+import { BotMessageSquareIcon, ClipboardPlusIcon, DatabaseIcon } from 'lucide-react';
 
-export function NavPlugins({
-  items,
-}: {
-  items: {
-    name: string;
-    url: string;
-    icon: React.ComponentType<unknown>;
-  }[];
-}) {
+export function NavPlugins() {
   const location = useLocation();
+  const items = [
+    {
+      name: 'Data Library',
+      url: '/plugins/data-library',
+      icon: DatabaseIcon,
+    },
+    {
+      name: 'Reports',
+      url: '/plugins/reports',
+      icon: ClipboardPlusIcon,
+    },
+    {
+      name: 'Word Assistant',
+      url: '/plugins/word-assistant',
+      icon: BotMessageSquareIcon,
+    },
+  ];
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Plugins</SidebarGroupLabel>

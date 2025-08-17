@@ -1,7 +1,8 @@
-import { Server, ServerRoute } from '@/constants/server';
+import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/lib/utils';
 import { Config, useConfigStore } from '@/store/config';
 import { useQuery } from '@tanstack/react-query';
+import { useServer } from './use-server';
 
 export function useConfig(): {
   data: Config | undefined;
@@ -11,12 +12,13 @@ export function useConfig(): {
 } {
   const setConfig = useConfigStore((state) => state.setConfig);
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
+  const { url: serverUrl } = useServer();
 
   const { isFetching, error, data, refetch } = useQuery({
     queryKey: ['config'],
     queryFn: async () => {
       try {
-        const response = await timeout<Response>(3000, fetch(`${Server.LOCAL}${ServerRoute.CONFIG}?p=feather`));
+        const response = await timeout<Response>(3000, fetch(`${serverUrl}${ServerRoute.CONFIG}?p=feather`));
         const config = await response.json();
 
         setConfig(config);

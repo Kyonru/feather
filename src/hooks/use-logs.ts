@@ -1,9 +1,10 @@
-import { Server, ServerRoute } from '@/constants/server';
+import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/lib/utils';
 import { useConfigStore } from '@/store/config';
 import { unionBy } from '@/utils/arrays';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useServer } from './use-server';
 
 enum LogType {
   OUTPUT = 'output',
@@ -31,12 +32,13 @@ export const useLogs = (): {
 } => {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
+  const { url: serverUrl } = useServer();
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['logs'],
     queryFn: async (): Promise<Log[]> => {
       try {
-        const response = await timeout<Response>(3000, fetch(`${Server.LOCAL}${ServerRoute.LOG}`));
+        const response = await timeout<Response>(3000, fetch(`${serverUrl}${ServerRoute.LOG}`));
 
         const dataLogs = (await response.json()) as Log[];
 

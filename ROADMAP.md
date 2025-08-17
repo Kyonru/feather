@@ -3,12 +3,12 @@
 ## 0.2.0 – Developer Customization
 
 - [ ] Add settings:
-  - custom port
-  - custom URL
-  - dark/light mode
-  - custom editor deeplinking
-  - default settings
-  - download feather rock file for the version you are using
+  - [x] custom port
+  - [x] custom URL
+  - [x] dark/light mode
+  - [x] custom editor deeplinking
+  - [x] default settings
+  - [ ] download feather rock file for the version you are using
 - [ ] Add basic plugin support
 - [ ] Add optional plugins:
   - SIGNAL

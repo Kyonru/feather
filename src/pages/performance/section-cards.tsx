@@ -1,16 +1,9 @@
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardAction,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { DEFAULT_METRIC, PerformanceMetrics } from "@/hooks/use-performance";
-import { cn } from "@/lib/utils";
-import { TrendingDownIcon, TrendingUpIcon } from "lucide-react";
-import { useMemo } from "react";
+import { Badge } from '@/components/ui/badge';
+import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { DEFAULT_METRIC, PerformanceMetrics } from '@/hooks/use-performance';
+import { cn } from '@/lib/utils';
+import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react';
+import { useMemo } from 'react';
 
 const TrendingBadge = ({ value }: { value: number }) => {
   return (
@@ -28,7 +21,7 @@ export function SectionCards({
 }: {
   data: PerformanceMetrics[];
   selected: string;
-  onSelect: (key: "fps" | "memory") => void;
+  onSelect: (key: 'fps' | 'memory') => void;
 }) {
   const metric = useMemo(() => {
     const defaultMetric = DEFAULT_METRIC;
@@ -69,12 +62,13 @@ export function SectionCards({
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-3 @5xl/main:grid-cols-5">
       <Card
         className={cn({
-          "@container/card": true,
-          "hover:bg-sky-500": true,
-          "active:bg-sky-900": true,
-          "bg-sky-700": selected === "fps",
+          '@container/card': true,
+          'hover:bg-sky-500': true,
+          'active:bg-sky-900': true,
+          'justify-between': true,
+          'bg-sky-700': selected === 'fps',
         })}
-        onClick={() => onSelect("fps")}
+        onClick={() => onSelect('fps')}
       >
         <CardHeader>
           <CardDescription>FPS</CardDescription>
@@ -87,17 +81,18 @@ export function SectionCards({
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">Frame Time</div>
-          <div className="text-black">{metric.frameTime.toFixed(2)} ms</div>
+          <div className="text-muted-foreground">{metric.frameTime.toFixed(2)} ms</div>
         </CardFooter>
       </Card>
       <Card
         className={cn({
-          "@container/card": true,
-          "hover:bg-sky-500": true,
-          "active:bg-sky-900": true,
-          "bg-sky-700": selected === "memory",
+          '@container/card': true,
+          'hover:bg-sky-500': true,
+          'active:bg-sky-900': true,
+          'justify-between': true,
+          'bg-sky-700': selected === 'memory',
         })}
-        onClick={() => onSelect("memory")}
+        onClick={() => onSelect('memory')}
       >
         <CardHeader>
           <CardDescription>Memory</CardDescription>
@@ -109,15 +104,11 @@ export function SectionCards({
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Texture Memory
-          </div>
-          <div className="text-muted-foreground">
-            {metric.stats.texturememory} MB
-          </div>
+          <div className="line-clamp-1 flex gap-2 font-medium">Texture Memory</div>
+          <div className="text-muted-foreground">{metric.stats.texturememory} MB</div>
         </CardFooter>
       </Card>
-      <Card className="@container/card">
+      <Card className="@container/card justify-between">
         <CardHeader>
           <CardDescription>Active Canvases</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -126,24 +117,16 @@ export function SectionCards({
         </CardHeader>
         <div className="grid grid-cols-2 gap-4">
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Canvas Switches
-            </div>
-            <div className="text-muted-foreground">
-              {metric.stats.canvasswitches}
-            </div>
+            <div className="line-clamp-1 flex gap-2 font-medium">Canvas Switches</div>
+            <div className="text-muted-foreground">{metric.stats.canvasswitches}</div>
           </CardFooter>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Shader Switches
-            </div>
-            <div className="text-muted-foreground">
-              {metric.stats.shaderswitches}
-            </div>
+            <div className="line-clamp-1 flex gap-2 font-medium">Shader Switches</div>
+            <div className="text-muted-foreground">{metric.stats.shaderswitches}</div>
           </CardFooter>
         </div>
       </Card>
-      <Card className="@container/card">
+      <Card className="@container/card justify-between">
         <CardHeader>
           <CardDescription>Draw Calls</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -151,15 +134,11 @@ export function SectionCards({
           </CardTitle>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Draw calls batched
-          </div>
-          <div className="text-muted-foreground">
-            {metric.stats.drawcallsbatched}
-          </div>
+          <div className="line-clamp-1 flex gap-2 font-medium">Draw calls batched</div>
+          <div className="text-muted-foreground">{metric.stats.drawcallsbatched}</div>
         </CardFooter>
       </Card>
-      <Card className="@container/card">
+      <Card className="@container/card justify-between">
         <CardHeader>
           <CardDescription>Assets</CardDescription>
         </CardHeader>

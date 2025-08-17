@@ -1,7 +1,8 @@
-import { Server, ServerRoute } from '@/constants/server';
+import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/lib/utils';
 import { useConfigStore } from '@/store/config';
 import { useQuery } from '@tanstack/react-query';
+import { useServer } from './use-server';
 
 type SystemInfo = {
   arch: string;
@@ -83,12 +84,13 @@ export const usePerformance = (): {
 } => {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
+  const { url: serverUrl } = useServer();
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['performance'],
     queryFn: async (): Promise<PerformanceMetrics[]> => {
       try {
-        const response = await timeout<Response>(3000, fetch(`${Server.LOCAL}${ServerRoute.PERFORMANCE}`));
+        const response = await timeout<Response>(3000, fetch(`${serverUrl}${ServerRoute.PERFORMANCE}`));
 
         const performance = (await response.json()) as PerformanceMetrics;
 

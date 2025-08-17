@@ -7,17 +7,26 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { NavLink, useLocation } from 'react-router';
+import { GaugeIcon, LogsIcon, TelescopeIcon } from 'lucide-react';
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string;
-    url: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    icon?: React.ComponentType<any>;
-  }[];
-}) {
+export function NavMain() {
+  const items = [
+    {
+      title: 'Logs',
+      url: '/',
+      icon: LogsIcon,
+    },
+    {
+      title: 'Performance',
+      url: '/performance',
+      icon: GaugeIcon,
+    },
+    {
+      title: 'Observability',
+      url: '/observability',
+      icon: TelescopeIcon,
+    },
+  ];
   const location = useLocation();
   return (
     <SidebarGroup>

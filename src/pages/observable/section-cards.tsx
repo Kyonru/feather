@@ -22,11 +22,12 @@ export function SectionCards({
               'hover:bg-pink-500': true,
               'active:bg-pink-900': true,
               'bg-pink-700': selected === item.key,
+              'justify-between': true,
             })}
             onClick={() => onSelect(item.key)}
           >
             <CardHeader>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">{item.key}</CardTitle>
+              <CardTitle className="text-xl font-semibold tabular-nums @[250px]/card:text-3xl">{item.key}</CardTitle>
             </CardHeader>
             <CardFooter>
               <div className="truncate">

@@ -41,7 +41,6 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: feather-${{ steps.get_version.outputs.version }}-1.rockspec, feather-${{ steps.get_version.outputs.version }}-1.src.rock
-          bodyFile: 'CHANGELOG.md'
           allowUpdates: true
 
   tauri-release:
