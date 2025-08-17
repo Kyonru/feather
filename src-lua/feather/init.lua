@@ -5,39 +5,33 @@ local utf8 = require("utf8")
 -- lib Path
 local PATH = (...):gsub("%.init$", "")
 
-local inspect = require(PATH .. ".lib.inspect")
-local json = require(PATH .. ".lib.json")
 local Class = require(PATH .. ".lib.class")
 local errorhandler = require(PATH .. ".error_handler")
-local get_current_dir = require(PATH .. ".utils").get_current_dir
 local Performance = require(PATH .. ".plugins.performance")
 local FeatherPluginManager = require(PATH .. ".plugin_manager")
+local FeatherLogger = require(PATH .. ".plugins.logger")
+local get_current_dir = require(PATH .. ".utils").get_current_dir
+local format = require(PATH .. ".utils").format
+local serverUtils = require(PATH .. ".server_utils")
 
 local performance = Performance()
 
-local logs = {}
 local FEATHER_VERSION = "0.2.0"
 
 ---@class Feather: FeatherConfig
 ---@field lastDelivery number
 ---@field lastError number
 ---@field debug boolean
+---@field featherLogger FeatherLogger
 ---@field protected server any
 ---@field observe fun(self: Feather, key: string, value: table | string | number | boolean) Updates value in the observers tab
----@field log fun(self: Feather, line: FeatherLine) Logs a line
 ---@field finish fun(self: Feather) Logs a finish line
 ---@field print fun(self: Feather, ...) Prints a log
 ---@field trace fun(self: Feather, ...) Prints a trace
 ---@field error fun(self: Feather, msg: string) Prints an error
 ---@field update fun(self: Feather, dt: number) Updates the Feather instance
----@field protected __print fun(self: Feather, type: string, str: string)
----@field protected __countOnRepeat fun(self: Feather, type: LogType, ...: unknown)
 ---@field protected __onerror fun(self: Feather, msg: string, finish: boolean)
 ---@field protected __getConfig fun(self: Feather): FeatherConfig
----@field protected __buildResponse fun(self: Feather, body: table | string | number): string
----@field protected __buildRequest fun(self: Feather, request: table): table
----@field protected __format fun(self: Feather, ...: any): string
----@field protected __isInWhitelist fun(self: Feather, addr: string): boolean
 ---@field protected __defaultObservers fun(self: Feather)
 ---@field protected __errorTraceback fun(self: Feather, msg: string): string
 local Feather = Class({})
@@ -92,6 +86,9 @@ function Feather:init(config)
   print("Listening on " .. self.addr .. ":" .. self.port)
   self.server:settimeout(0)
 
+  ---@type FeatherLogger
+  self.featherLogger = FeatherLogger(self)
+
   if self.autoRegisterErrorHandler then
     local selfRef = self -- capture `self` to avoid upvalue issues
 
@@ -115,34 +112,7 @@ function Feather:init(config)
     end
   end
 
-  -- Wrap print
-  self.logger = print
-  if self.wrapPrint then
-    local logger = print
-
-    local selfRef = self -- capture `self` to avoid upvalue issues
-
-    --
-    print = function(...)
-      logger(...)
-      selfRef.print(self, ...)
-    end
-  end
-
-  self.pluginManager = FeatherPluginManager(self, logs)
-end
-
-function Feather:__buildResponse(body)
-  local response = table.concat({
-    "HTTP/1.1 200 OK",
-    "Content-Type: application/json",
-    "Access-Control-Allow-Origin: *",
-    "Content-Length: " .. #body,
-    "",
-    body,
-  }, "\r\n")
-
-  return response
+  self.pluginManager = FeatherPluginManager(self, self.featherLogger)
 end
 
 function Feather:__getConfig()
@@ -152,56 +122,13 @@ function Feather:__getConfig()
     root_path = root_path .. "/" .. self.baseDir
   end
 
-  local pluginKeys = {}
-
-  for _, plugin in ipairs(self.plugins) do
-    table.insert(pluginKeys, plugin.identifier)
-  end
-
   local config = {
-    plugins = pluginKeys,
+    plugins = self.pluginManager:getConfig(),
     root_path = root_path,
     version = FEATHER_VERSION,
   }
 
   return config
-end
-
---- Builds a request object from a raw request string
----@param request string
----@return table
-function Feather:__buildRequest(request)
-  local method, pathWithQuery = request:match("^(%u+)%s+([^%s]+)")
-  local path, queryString = pathWithQuery:match("^([^?]+)%??(.*)$")
-  local function parseQuery(qs)
-    local params = {}
-    for key, val in qs:gmatch("([^&=?]+)=([^&=?]+)") do
-      params[key] = val
-    end
-    return params
-  end
-
-  local params = parseQuery(queryString)
-
-  return {
-    method = method,
-    path = path,
-    params = params,
-  }
-end
-
-function Feather:__format(...)
-  return inspect(..., { newline = "\n", indent = "\t" })
-end
-
-function Feather:__isInWhitelist(addr)
-  for _, a in pairs(self.whitelist) do
-    local ptn = "^" .. a:gsub("%.", "%%."):gsub("%*", "%%d*") .. "$"
-    if addr:match(ptn) then
-      return true
-    end
-  end
-  return false
 end
 
 function Feather:__defaultObservers()
@@ -250,9 +177,9 @@ function Feather:__onerror(msg, finish)
   end
 
   local err = self:__errorTraceback(msg)
-  self:log({ type = "error", str = self:__errorTraceback(msg) })
+  self.featherLogger:log({ type = "error", str = self:__errorTraceback(msg) })
   if self.wrapPrint then
-    self.logger("[Feather] ERROR: " .. err)
+    self.featherLogger.logger("[Feather] ERROR: " .. err)
   end
   self.lastError = os.time()
   self.pluginManager:onerror(msg, self)
@@ -272,7 +199,7 @@ function Feather:observe(key, value)
 
   self.observers = self.observers or {}
 
-  local curr = self:__format(value)
+  local curr = format(value)
 
   for _, observer in ipairs(self.observers) do
     if observer.key == key then
@@ -287,13 +214,13 @@ end
 ---@alias FeatherClear fun(self: Feather)
 ---@type FeatherClear
 function Feather:clear()
-  logs = {}
+  self.featherLogger:clear()
 end
 
 ---@alias FeatherFinish fun(self: Feather)
 ---@type FeatherFinish
 function Feather:finish()
-  self:log({ type = "feather:finish" })
+  self.featherLogger:log({ type = "feather:finish" })
 
   self.pluginManager:finish(self)
 end
@@ -312,57 +239,46 @@ function Feather:update(dt)
 
   local client = self.server:accept()
   if client then
-    if #logs == 0 then
-      self:log({ type = "feather:start" })
+    if #self.featherLogger.logs == 0 then
+      self.featherLogger:log({ type = "feather:start" })
     end
 
     client:settimeout(1)
 
     local rawRequest = client:receive()
-    local request = self:__buildRequest(rawRequest)
+    local request = serverUtils.buildRequest(rawRequest)
 
     local addr = client:getsockname()
-
-    self.logger(request)
-    if not self:__isInWhitelist(addr) then
+    if not serverUtils.isInWhitelist(addr, self.whitelist) then
       self:trace("non-whitelisted connection attempt: ", addr)
       client:close()
     end
-
-    self.logger(request.method)
     if request and request.method == "GET" then
       local response = ""
-
-      self.logger(request.path)
       if request.path == "/config" then
-        local body = json.encode(self:__getConfig())
-        response = self:__buildResponse(body)
+        response = serverUtils.createResponse(self:__getConfig())
       end
 
       if request.path == "/logs" then
-        local body = json.encode(logs)
-        response = self:__buildResponse(body)
+        response = serverUtils.createResponse(self.featherLogger.logs)
         self.lastDelivery = os.time()
       end
 
       if request.path == "/performance" then
-        local body = json.encode(performance:getResponseBody(dt))
-        response = self:__buildResponse(body)
+        response = serverUtils.createResponse(performance:getResponseBody(dt))
       end
 
       if request.path == "/observers" then
         if self.defaultObservers then
           self:__defaultObservers()
         end
-        local body = json.encode(self.observers)
-        response = self:__buildResponse(body)
+        response = serverUtils.createResponse(self.observers)
       end
 
       if request.path == "/plugins" then
         local pluginResponse = self.pluginManager:handleRequest(request, self)
 
-        local body = json.encode(pluginResponse)
-        response = self:__buildResponse(body)
+        response = serverUtils.createResponse(pluginResponse)
       end
 
       client:send(response)
@@ -380,64 +296,10 @@ function Feather:trace(...)
     return
   end
 
-  local str = "[Feather] " .. self:__format(...)
+  local str = "[Feather] " .. format(...)
 
-  self.logger(str)
-  self:__print("trace", str)
-end
-
----@alias LogType "output" | "trace" | "error" | "feather:finish" | "feather:start" | "output" | "error"
----@class FeatherLine
----@field type LogType
----@field str? string
----@field id? string
----@field time? number
----@field count? number
----@field trace? string
----@alias FeatherLog fun(self: Feather, line: FeatherLine)
----@type FeatherLog
-function Feather:log(line)
-  if not self.debug then
-    return
-  end
-
-  line.id = tostring(os.time()) .. "-" .. tostring(#logs + 1)
-  line.time = os.time()
-  line.count = 1
-  line.trace = debug.traceback()
-
-  table.insert(logs, line)
-
-  --- Find a way to avoid deleting incoming logs
-  if #logs > self.maxTempLogs then
-    table.remove(logs, 1)
-  end
-end
-
----@alias FeatherPrint fun(self: Feather, ...)
----@type FeatherPrint
-function Feather:print(...)
-  self:__countOnRepeat("output", ...)
-end
-
---- Manages the print function internally
---- @param self Feather
---- @param type LogType
---- @param ... unknown
-function Feather:__countOnRepeat(type, ...)
-  if not self.debug then
-    return
-  end
-
-  local str = self:__format(...)
-  local last = logs[#logs]
-  if last and str == last.str then
-    -- Update last line if this line is a duplicate of it
-    last.time = os.time()
-    last.count = last.count + 1
-  else
-    self:log({ type = type, str = str })
-  end
+  self.featherLogger.logger(str)
+  self.featherLogger:print("trace", str)
 end
 
 ---@type fun(config: FeatherConfig): Feather

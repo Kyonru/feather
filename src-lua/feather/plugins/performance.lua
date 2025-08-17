@@ -4,7 +4,7 @@ local Class = require(PATH .. ".lib.class")
 local Base = require(PATH .. ".plugins.base")
 
 local FeatherPerformance = Class({
-  Class({ __includes = Base }),
+  __includes = Base,
   init = function(self, config)
     self.config = config
     self.sysInfo = {

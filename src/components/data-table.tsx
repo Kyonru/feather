@@ -19,9 +19,10 @@ import { Badge } from '@/components/ui/badge';
 import { TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { CircleXIcon, ClockAlert, FeatherIcon, FileClockIcon } from 'lucide-react';
 import { Log } from '@/hooks/use-logs';
 import { Input } from './ui/input';
+import { useConfigStore } from '@/store/config';
+import { DynamicIcon, IconName } from 'lucide-react/dynamic';
 
 // Original Table is wrapped with a <div> (see https://ui.shadcn.com/docs/components/table#radix-:r24:-content-manual),
 // but here we don't want it, so let's use a new component with only <table> tag
@@ -32,26 +33,58 @@ const TableComponent = forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTab
 );
 TableComponent.displayName = 'TableComponent';
 
-const LogTypeIcon = ({ type }: { type: string }) => {
-  if (type === 'output') {
-    return <FileClockIcon className="text-gray-700 dark:text-gray-400" />;
-  }
-
-  if (type === 'error') {
-    return <CircleXIcon className="text-red-700 dark:text-red-400" />;
-  }
-
-  if (type === 'feather:finish' || type === 'feather:start') {
-    return <FeatherIcon className="text-yellow-700 dark:text-yellow-400" />;
-  }
-
-  return <ClockAlert className="text-cyan-700 dark:text-cyan-400" />;
+const LogTypeIcon = ({ icon, color }: { icon: IconName; color: string }) => {
+  return <DynamicIcon className={color} name={icon as IconName} />;
 };
 
 export const BadgeType = ({ type }: { type: string }) => {
+  const config = useConfigStore((state) => state.config);
+
+  let icon: IconName = 'file-question-mark';
+  let color = 'bg-gray-700 dark:bg-gray-400';
+
+  if (type === 'output') {
+    icon = 'file-clock';
+    color = 'bg-cyan-700 dark:bg-cyan-400';
+  }
+
+  if (type === 'error') {
+    icon = 'circle-x';
+    color = 'bg-red-700 dark:bg-red-400';
+  }
+
+  if (type === 'feather:finish' || type === 'feather:start') {
+    icon = 'feather';
+    color = 'bg-yellow-700 dark:bg-yellow-400';
+  }
+
+  if (config && config.plugins) {
+    const pluginKey = Object.keys(config.plugins).find((key) => {
+      if (!config.plugins[key].type) {
+        return false;
+      }
+
+      return type.includes(config.plugins[key].type);
+    });
+
+    if (pluginKey) {
+      const plugin = config.plugins[pluginKey];
+
+      if (plugin.icon) {
+        icon = plugin.icon;
+      }
+
+      // TODO: Fix color not being applied
+      // if (plugin.color) {
+      //   const temp = plugin.color.trim().toLowerCase();
+      //   color = ` bg-[${temp}]`;
+      // }
+    }
+  }
+
   return (
-    <Badge variant="outline" className="text-muted-foreground px-1.5">
-      <LogTypeIcon type={type} />
+    <Badge variant="default" className={`${color} px-1.5`}>
+      <LogTypeIcon icon={icon} color={color} />
       {type}
     </Badge>
   );

@@ -2,10 +2,19 @@ local PATH = string.sub(..., 1, string.len(...) - string.len("plugin_manager"))
 
 local Class = require(PATH .. ".lib.class")
 
+--- @class FeatherPluginInstance
+--- @field instance FeatherPlugin
+--- @field identifier string
+
+---@class FeatherPluginManager
+---@field plugins FeatherPluginInstance[]
 local FeatherPluginManager = Class({})
 
-function FeatherPluginManager:init(feather, logs)
+---@param logger FeatherLogger
+---@param feather Feather
+function FeatherPluginManager:init(feather, logger)
   self.plugins = {}
+  self.logger = logger
 
   if not feather.plugins then
     return
@@ -17,23 +26,18 @@ function FeatherPluginManager:init(feather, logs)
     local ok, pluginInstance = pcall(plugin.plugin, {
       options = plugin.options,
       feather = feather,
+      logger = logger,
     })
 
     if ok then
-      pluginInstance.logger = feather.logger
+      pluginInstance.logger = logger
 
       table.insert(self.plugins, {
         instance = pluginInstance,
         identifier = plugin.identifier,
       })
     else
-      -- TODO: Make logger a shared plugin independent from feather
-      logs[#logs + 1] = {
-        type = "error",
-        str = debug.traceback(pluginInstance),
-        count = 1,
-        time = os.time(),
-      }
+      self.logger:log({ type = "error", str = debug.traceback(pluginInstance) })
     end
   end
 end
@@ -72,6 +76,18 @@ function FeatherPluginManager.createPlugin(plugin, identifier, options)
     identifier = identifier,
     options = options,
   }
+end
+
+function FeatherPluginManager:getConfig()
+  local pluginsConfig = {}
+
+  for _, plugin in ipairs(self.plugins) do
+    local config = plugin.instance:getConfig()
+
+    pluginsConfig[plugin.identifier] = config
+  end
+
+  return pluginsConfig
 end
 
 return FeatherPluginManager

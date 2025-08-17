@@ -1,12 +1,8 @@
 import { create } from 'zustand';
 
 export interface Config {
-  plugins: {
-    name: string;
-    route: string;
-    description: string;
-    config: unknown;
-  }[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  plugins: Record<string, any>;
   root_path: string;
   version: string;
 }
