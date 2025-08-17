@@ -5,13 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.2.0] - Unreleased
+## [v0.2.0] - 2025-08-17 - The one with the plugin system and dark mode support
 
 ### Added
 
-### Changed
-
-### Removed
+- Add dark mode support
+- Add settings page:
+  - custom port
+  - custom URL
+  - custom editor deeplinking
+  - default settings
+- Add about page:
+  - download feather rock file for the version you are using
+  - add mismatch version notification
+- Add basic plugin support
+  - Add plugin documentation
+- Add optional plugins:
+  - [signal](https://hump.readthedocs.io/en/latest/signal.html)
+  - [lua-state-machine](https://github.com/kyleconroy/lua-state-machine)
 
 ## [v0.1.3] - 2025-08-16 - The one with the deep linking fix
 

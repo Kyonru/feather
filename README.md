@@ -155,6 +155,10 @@ Feather will automatically capture and log errors in real-time. You can also man
 
 Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Check out the [Feather Plugins](docs/plugins.md) repository for more information.
 
+## Recommendations
+
+- [OverlayStats](https://github.com/Oval-Tutu/bootstrap-love2d-project/blob/main/game/lib/overlayStats.lua) by [Oval-Tutu](https://github.com/Oval-Tutu) is a great way to visualize your game's performance in real-time on the game, the performance plugin is inspired by it.
+
 ## 📜 License
 
 Feel free to use and remix this project for personal, educational, or non-commercial fun.
