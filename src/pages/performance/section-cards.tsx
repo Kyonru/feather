@@ -63,10 +63,13 @@ export function SectionCards({
       <Card
         className={cn({
           '@container/card': true,
+          'justify-between': true,
           'hover:bg-sky-500': true,
           'active:bg-sky-900': true,
-          'justify-between': true,
           'bg-sky-700': selected === 'fps',
+          'dark:active:border-sky-900': true,
+          'dark:hover:border-sky-500': true,
+          'dark:border-sky-700': selected === 'fps',
         })}
         onClick={() => onSelect('fps')}
       >
@@ -87,10 +90,13 @@ export function SectionCards({
       <Card
         className={cn({
           '@container/card': true,
+          'justify-between': true,
           'hover:bg-sky-500': true,
           'active:bg-sky-900': true,
-          'justify-between': true,
           'bg-sky-700': selected === 'memory',
+          'dark:active:border-sky-900': true,
+          'dark:hover:border-sky-500': true,
+          'dark:border-sky-700': selected === 'memory',
         })}
         onClick={() => onSelect('memory')}
       >

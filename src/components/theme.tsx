@@ -17,6 +17,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 
       root.classList.add(systemTheme);
+
       return;
     }
 

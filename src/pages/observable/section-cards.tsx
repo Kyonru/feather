@@ -19,10 +19,13 @@ export function SectionCards({
             key={item.key}
             className={cn({
               '@container/card': true,
+              'justify-between': true,
               'hover:bg-pink-500': true,
               'active:bg-pink-900': true,
               'bg-pink-700': selected === item.key,
-              'justify-between': true,
+              'dark:hover:border-pink-500': true,
+              'dark:active:border-pink-900': true,
+              'dark:border-pink-700': selected === item.key,
             })}
             onClick={() => onSelect(item.key)}
           >
