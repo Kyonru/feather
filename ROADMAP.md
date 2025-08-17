@@ -8,7 +8,7 @@
   - [x] dark/light mode
   - [x] custom editor deeplinking
   - [x] default settings
-  - [ ] download feather rock file for the version you are using
+  - [x] download feather rock file for the version you are using
 - [ ] Add basic plugin support
 - [ ] Add optional plugins:
   - SIGNAL
@@ -22,7 +22,7 @@
 
 - [ ] Change `test` folder to `example` folder
 - [ ] Add Tests
-- [ ] Add mismatch version notification
+- [x] Add mismatch version notification
 - [ ] Add check for updates
 - [ ] Editable observed variables
 - [ ] Logs should be fetched globally not in tab

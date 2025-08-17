@@ -3,6 +3,7 @@ import { timeout } from '@/lib/utils';
 import { Config, useConfigStore } from '@/store/config';
 import { useQuery } from '@tanstack/react-query';
 import { useServer } from './use-server';
+import { version } from '../../package.json';
 
 export function useConfig(): {
   data: Config | undefined;
@@ -39,3 +40,10 @@ export function useConfig(): {
     refetch,
   };
 }
+
+export const useVersionMismatch = () => {
+  const config = useConfigStore((state) => state.config);
+  const isVersionMismatch = config?.version !== version;
+
+  return isVersionMismatch;
+};

@@ -6,11 +6,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { InfoIcon, SettingsIcon } from 'lucide-react';
+import { BadgeAlertIcon, InfoIcon, SettingsIcon } from 'lucide-react';
 import { useSettingsStore } from '@/store/settings';
+import { useAboutStore } from '@/store/about';
+import { useVersionMismatch } from '@/hooks/use-config';
 
 export function NavBottom({ ...props }: {} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const setSettingsOpen = useSettingsStore((state) => state.setOpen);
+  const setAboutOpen = useAboutStore((state) => state.setOpen);
+  const isVersionMismatch = useVersionMismatch();
 
   const items = [
     {
@@ -23,9 +27,10 @@ export function NavBottom({ ...props }: {} & React.ComponentPropsWithoutRef<type
     {
       title: 'About',
       onPress: () => {
-        // TODO: add about page
+        setAboutOpen(true);
       },
-      icon: InfoIcon,
+      icon: isVersionMismatch ? BadgeAlertIcon : InfoIcon,
+      className: isVersionMismatch ? 'bg-yellow-50 dark:bg-yellow-950 animate-pulse' : '',
     },
   ];
 
@@ -35,7 +40,7 @@ export function NavBottom({ ...props }: {} & React.ComponentPropsWithoutRef<type
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild className={item.className}>
                 <a
                   onClick={(e) => {
                     e.preventDefault();

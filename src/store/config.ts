@@ -8,6 +8,7 @@ export interface Config {
     config: unknown;
   }[];
   root_path: string;
+  version: string;
 }
 
 interface ConfigStore {

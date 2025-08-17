@@ -11,6 +11,7 @@ import Observability from './pages/observable';
 import Plugins from './pages/plugins';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
+import { AboutModal } from './pages/about';
 
 const Modals = () => {
   const disconnected = useConfigStore((state) => state.disconnected);
@@ -31,6 +32,7 @@ const Modals = () => {
   return (
     <>
       <SettingsModal />
+      <AboutModal />
       <Toaster richColors />
     </>
   );

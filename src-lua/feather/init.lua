@@ -15,6 +15,7 @@ local Performance = require(PATH .. ".plugins.performance")
 local performance = Performance()
 
 local logs = {}
+local FEATHER_VERSION = "0.2.0"
 
 ---@class Feather: FeatherConfig
 ---@field lastDelivery number
@@ -150,6 +151,7 @@ function Feather:__getConfig()
   local config = {
     plugins = self.plugins,
     root_path = root_path,
+    version = FEATHER_VERSION,
   }
 
   return config
