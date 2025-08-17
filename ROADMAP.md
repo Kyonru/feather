@@ -2,18 +2,18 @@
 
 ## 0.2.0 – Developer Customization
 
-- [ ] Add settings:
+- [x] Add settings and about page:
   - [x] custom port
   - [x] custom URL
   - [x] dark/light mode
   - [x] custom editor deeplinking
   - [x] default settings
   - [x] download feather rock file for the version you are using
-- [ ] Add basic plugin support
+- [x] Add basic plugin support
 - [ ] Add optional plugins:
-  - SIGNAL
-  - LUA STATE
-  - CARGO
+  - [ ] SIGNAL
+  - [ ] LUA STATE
+  - [ ] CARGO
 - [ ] Mini overlay mode
 
 ---

@@ -11,6 +11,7 @@ local Class = require(PATH .. ".lib.class")
 local errorhandler = require(PATH .. ".error_handler")
 local get_current_dir = require(PATH .. ".utils").get_current_dir
 local Performance = require(PATH .. ".plugins.performance")
+local FeatherPluginManager = require(PATH .. ".plugin_manager")
 
 local performance = Performance()
 
@@ -75,6 +76,7 @@ function Feather:init(config)
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
   self.plugins = conf.plugins or {}
   self.lastDelivery = 0
+  self.lastError = 0
   self.observers = {}
 
   if not self.debug then
@@ -126,6 +128,8 @@ function Feather:init(config)
       selfRef.print(self, ...)
     end
   end
+
+  self.pluginManager = FeatherPluginManager(self, logs)
 end
 
 function Feather:__buildResponse(body)
@@ -148,8 +152,14 @@ function Feather:__getConfig()
     root_path = root_path .. "/" .. self.baseDir
   end
 
+  local pluginKeys = {}
+
+  for _, plugin in ipairs(self.plugins) do
+    table.insert(pluginKeys, plugin.identifier)
+  end
+
   local config = {
-    plugins = self.plugins,
+    plugins = pluginKeys,
     root_path = root_path,
     version = FEATHER_VERSION,
   }
@@ -157,6 +167,9 @@ function Feather:__getConfig()
   return config
 end
 
+--- Builds a request object from a raw request string
+---@param request string
+---@return table
 function Feather:__buildRequest(request)
   local method, pathWithQuery = request:match("^(%u+)%s+([^%s]+)")
   local path, queryString = pathWithQuery:match("^([^?]+)%??(.*)$")
@@ -196,28 +209,6 @@ function Feather:__defaultObservers()
   self:observe("Lua Version", _VERSION)
 end
 
---- Tracks the value of a key in the observers table
----@alias FeatherObserve fun(self: Feather, key: string, value: table | string | number | boolean)
----@type FeatherObserve
-function Feather:observe(key, value)
-  if not self.debug then
-    return
-  end
-
-  self.observers = self.observers or {}
-
-  local curr = self:__format(value)
-
-  for _, observer in ipairs(self.observers) do
-    if observer.key == key then
-      observer.value = curr
-      return
-    end
-  end
-
-  table.insert(self.observers, { key = key, value = curr })
-end
-
 function Feather:__errorTraceback(msg)
   local trace = debug.traceback()
 
@@ -253,18 +244,6 @@ function Feather:__errorTraceback(msg)
   return p
 end
 
----@alias FeatherClear fun(self: Feather)
----@type FeatherClear
-function Feather:clear()
-  logs = {}
-end
-
----@alias FeatherFinish fun(self: Feather)
----@type FeatherFinish
-function Feather:finish()
-  self:log({ type = "feather:finish" })
-end
-
 function Feather:__onerror(msg, finish)
   if not self.debug then
     return
@@ -276,10 +255,47 @@ function Feather:__onerror(msg, finish)
     self.logger("[Feather] ERROR: " .. err)
   end
   self.lastError = os.time()
+  self.pluginManager:onerror(msg, self)
 
   if finish then
     self:finish()
   end
+end
+
+--- Tracks the value of a key in the observers table
+---@alias FeatherObserve fun(self: Feather, key: string, value: table | string | number | boolean)
+---@type FeatherObserve
+function Feather:observe(key, value)
+  if not self.debug then
+    return
+  end
+
+  self.observers = self.observers or {}
+
+  local curr = self:__format(value)
+
+  for _, observer in ipairs(self.observers) do
+    if observer.key == key then
+      observer.value = curr
+      return
+    end
+  end
+
+  table.insert(self.observers, { key = key, value = curr })
+end
+
+---@alias FeatherClear fun(self: Feather)
+---@type FeatherClear
+function Feather:clear()
+  logs = {}
+end
+
+---@alias FeatherFinish fun(self: Feather)
+---@type FeatherFinish
+function Feather:finish()
+  self:log({ type = "feather:finish" })
+
+  self.pluginManager:finish(self)
 end
 
 ---@alias FeatherError fun(self: Feather, msg: string)
@@ -342,11 +358,19 @@ function Feather:update(dt)
         response = self:__buildResponse(body)
       end
 
+      if request.path == "/plugins" then
+        local pluginResponse = self.pluginManager:handleRequest(request, self)
+
+        local body = json.encode(pluginResponse)
+        response = self:__buildResponse(body)
+      end
+
       client:send(response)
     end
 
     client:close()
   end
+  self.pluginManager:update(dt, self)
 end
 
 ---@alias FeatherTrace fun(self: Feather, ...)

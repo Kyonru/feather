@@ -1,4 +1,5 @@
 local FeatherDebugger = require("feather")
+local FeatherPluginManager = require("feather.plugin_manager")
 
 local test = require("test.another.lib")
 
@@ -140,6 +141,8 @@ local function customerrorhandler(msg)
   end
 end
 
+local TestPlugin = require("test.plugin")
+
 local debugger = FeatherDebugger({
   errorHandler = customerrorhandler,
   wrappedPrint = true,
@@ -148,6 +151,15 @@ local debugger = FeatherDebugger({
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
   debug = true,
+  plugins = {
+    FeatherPluginManager.createPlugin(TestPlugin, "test", {
+      test = true,
+    }),
+    ---@diagnostic disable-next-line: missing-fields
+    FeatherPluginManager.createPlugin({ 2 }, "test2", {
+      test = true,
+    }),
+  },
 })
 
 local a = 0
