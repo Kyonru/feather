@@ -1,10 +1,13 @@
+local utf8 = require("utf8")
 local FeatherDebugger = require("feather")
 local FeatherPluginManager = require("feather.plugin_manager")
 local HumpSignalPlugin = require("plugins.hump.signal")
-local Signal = require("demo.lib.hump.signal")
+local LuaStateMachinePlugin = require("plugins.lua-state-machine")
+
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
-local utf8 = require("utf8")
+local Signal = require("demo.lib.hump.signal")
+local machine = require("demo.lib.statemachine")
 
 local function error_printer(msg, layer)
   print((debug.traceback("Error: " .. tostring(msg), 1 + (layer or 1)):gsub("\n[^\n]+$", "")))
@@ -154,6 +157,7 @@ local debugger = FeatherDebugger({
     FeatherPluginManager.createPlugin(TestPlugin, "test", {
       test = true,
     }),
+    --- Should handle error gracefully
     ---@diagnostic disable-next-line: missing-fields
     FeatherPluginManager.createPlugin({ 2 }, "test2", {
       test = true,
@@ -170,10 +174,15 @@ local debugger = FeatherDebugger({
         "clearPattern",
       },
     }),
+    FeatherPluginManager.createPlugin(LuaStateMachinePlugin, "lua-state-machine", {
+      machine = machine,
+    }),
   },
 })
 
 local a = 0
+local counter = 0
+local state
 
 function love.load()
   Signal.register("shoot", function(x, y, dx, dy)
@@ -181,6 +190,16 @@ function love.load()
     -- try to avoid being hit
     print(x, y, dx, dy)
   end)
+
+  state = machine.create({
+    initial = "green",
+    events = {
+      { name = "warn", from = "green", to = "yellow" },
+      { name = "panic", from = "yellow", to = "red" },
+      { name = "calm", from = "red", to = "yellow" },
+      { name = "clear", from = "yellow", to = "green" },
+    },
+  })
 end
 
 function love.draw() end
@@ -188,10 +207,23 @@ function love.draw() end
 function love.update(dt)
   debugger:update(dt)
   a = a + dt
+  counter = counter + dt
 
   if a > 1 then
     a = 0
     debugger:observe("awesome variable", a)
+  end
+
+  if counter < 5 then
+    state:warn()
+  elseif counter < 10 then
+    state:panic()
+  elseif counter < 15 then
+    state:calm()
+  elseif counter < 20 then
+    state:clear()
+  else
+    counter = 0
   end
 end
 

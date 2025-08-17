@@ -5,6 +5,7 @@ local Class = require(PATH .. ".lib.class")
 ---@class FeatherPlugin
 ---@field options table
 ---@field logger FeatherLogger
+---@field observer FeatherObserver
 ---@field init fun(self: FeatherPlugin, config: table)
 ---@field update fun(self: FeatherPlugin, dt: number, feather: Feather): ...
 ---@field onerror fun(self: FeatherPlugin, msg: string, feather: Feather): ...
@@ -16,6 +17,7 @@ local FeatherPlugin = Class({})
 function FeatherPlugin:init(config)
   self.options = config.options or {}
   self.logger = config.logger or {}
+  self.observer = config.observer or {}
 end
 
 function FeatherPlugin:update(dt)

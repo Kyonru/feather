@@ -83,7 +83,7 @@ export const BadgeType = ({ type }: { type: string }) => {
   }
 
   return (
-    <Badge variant="default" className={`${color} px-1.5`}>
+    <Badge variant="default" className={`${color} h-8 min-w-16 px-1.5`}>
       <LogTypeIcon icon={icon} color={color} />
       {type}
     </Badge>

@@ -10,11 +10,13 @@ local Class = require(PATH .. ".lib.class")
 ---@field plugins FeatherPluginInstance[]
 local FeatherPluginManager = Class({})
 
----@param logger FeatherLogger
 ---@param feather Feather
-function FeatherPluginManager:init(feather, logger)
+---@param logger FeatherLogger
+---@param observer FeatherObserver
+function FeatherPluginManager:init(feather, logger, observer)
   self.plugins = {}
   self.logger = logger
+  self.observer = observer
 
   if not feather.plugins then
     return
@@ -27,11 +29,10 @@ function FeatherPluginManager:init(feather, logger)
       options = plugin.options,
       feather = feather,
       logger = logger,
+      observer = observer,
     })
 
     if ok then
-      pluginInstance.logger = logger
-
       table.insert(self.plugins, {
         instance = pluginInstance,
         identifier = plugin.identifier,

@@ -10,6 +10,7 @@ local errorhandler = require(PATH .. ".error_handler")
 local Performance = require(PATH .. ".plugins.performance")
 local FeatherPluginManager = require(PATH .. ".plugin_manager")
 local FeatherLogger = require(PATH .. ".plugins.logger")
+local FeatherObserver = require(PATH .. ".plugins.observer")
 local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
 local serverUtils = require(PATH .. ".server_utils")
@@ -32,7 +33,6 @@ local FEATHER_VERSION = "0.2.0"
 ---@field update fun(self: Feather, dt: number) Updates the Feather instance
 ---@field protected __onerror fun(self: Feather, msg: string, finish: boolean)
 ---@field protected __getConfig fun(self: Feather): FeatherConfig
----@field protected __defaultObservers fun(self: Feather)
 ---@field protected __errorTraceback fun(self: Feather, msg: string): string
 local Feather = Class({})
 
@@ -71,7 +71,6 @@ function Feather:init(config)
   self.plugins = conf.plugins or {}
   self.lastDelivery = 0
   self.lastError = 0
-  self.observers = {}
 
   if not self.debug then
     return
@@ -88,6 +87,9 @@ function Feather:init(config)
 
   ---@type FeatherLogger
   self.featherLogger = FeatherLogger(self)
+
+  ---@type FeatherObserver
+  self.featherObserver = FeatherObserver(self)
 
   if self.autoRegisterErrorHandler then
     local selfRef = self -- capture `self` to avoid upvalue issues
@@ -112,7 +114,7 @@ function Feather:init(config)
     end
   end
 
-  self.pluginManager = FeatherPluginManager(self, self.featherLogger)
+  self.pluginManager = FeatherPluginManager(self, self.featherLogger, self.featherObserver)
 end
 
 function Feather:__getConfig()
@@ -129,11 +131,6 @@ function Feather:__getConfig()
   }
 
   return config
-end
-
-function Feather:__defaultObservers()
-  self:observe("Global", _G)
-  self:observe("Lua Version", _VERSION)
 end
 
 function Feather:__errorTraceback(msg)
@@ -190,25 +187,10 @@ function Feather:__onerror(msg, finish)
 end
 
 --- Tracks the value of a key in the observers table
----@alias FeatherObserve fun(self: Feather, key: string, value: table | string | number | boolean)
----@type FeatherObserve
+---@param key string
+---@param value table | string | number | boolean
 function Feather:observe(key, value)
-  if not self.debug then
-    return
-  end
-
-  self.observers = self.observers or {}
-
-  local curr = format(value)
-
-  for _, observer in ipairs(self.observers) do
-    if observer.key == key then
-      observer.value = curr
-      return
-    end
-  end
-
-  table.insert(self.observers, { key = key, value = curr })
+  self.featherObserver:observe(key, value)
 end
 
 ---@alias FeatherClear fun(self: Feather)
@@ -269,10 +251,7 @@ function Feather:update(dt)
       end
 
       if request.path == "/observers" then
-        if self.defaultObservers then
-          self:__defaultObservers()
-        end
-        response = serverUtils.createResponse(self.observers)
+        response = serverUtils.createResponse(self.featherObserver:getResponseBody())
       end
 
       if request.path == "/plugins" then

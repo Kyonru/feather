@@ -1,6 +1,6 @@
 # HumpSignalPlugin
 
-`HumpSignalPlugin` is a [Feather](https://github.com/Kyonru/feather) plugin that
+`HumpSignalPlugin` is a [Feather Debugger](https://github.com/Kyonru/feather) plugin that
 integrates with\
 [HUMP Signal](https://hump.readthedocs.io/en/latest/signal.html) to
 automatically log when signals are **registered, emitted, or removed**.
@@ -8,15 +8,15 @@ automatically log when signals are **registered, emitted, or removed**.
 This makes it easier to debug event-driven code without manually
 wrapping each signal call.
 
-------------------------------------------------------------------------
-
 ## Setup
+
+Place `signal.lua` in your `feather/plugins/` directory (or wherever you keep your Feather plugins). You might need to modify the require path to match your project structure.
 
 Register the plugin through `FeatherPluginManager`:
 
 ``` lua
 local Signal = require("hump.signal")
-local HumpSignalPlugin = require("feather.plugins.hump-signal")
+local HumpSignalPlugin = require("feather.plugins.hump.signal")
 
 local plugin = FeatherPluginManager.createPlugin(HumpSignalPlugin, "hump.signal", {
   signal = Signal,
@@ -34,8 +34,6 @@ local plugin = FeatherPluginManager.createPlugin(HumpSignalPlugin, "hump.signal"
 -- Add the plugin to Feather on initialization
 ```
 
-------------------------------------------------------------------------
-
 ## Options
 
 | Option     | Type       | Description                                                                                       |
@@ -46,8 +44,6 @@ local plugin = FeatherPluginManager.createPlugin(HumpSignalPlugin, "hump.signal"
 If `signal` or `register` is missing or invalid, the plugin will skip
 initialization.
 
-------------------------------------------------------------------------
-
 ## How It Works
 
 - Each listed method is wrapped using Feather's logger.
@@ -55,8 +51,6 @@ initialization.
   - **Type**: `"Hump.Signal:<method>"`
   - **Arguments** passed into the call
 - The original signal method still executes normally.
-
-------------------------------------------------------------------------
 
 ## Example
 
@@ -76,8 +70,6 @@ Signal:emit("damage", 25)
 [Hump.Signal:emit] damage, 25
 Player damaged: 25
 ```
-
-------------------------------------------------------------------------
 
 ## Notes
 
