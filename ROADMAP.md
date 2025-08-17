@@ -10,12 +10,14 @@
   - [x] default settings
   - [x] download feather rock file for the version you are using
 - [x] Add basic plugin support
-- [ ] Add optional plugins:
+- [x] Add optional plugins:
   - [x] SIGNAL
-  - [ ] LUA STATE
-  - [ ] CARGO
-- [ ] Mini overlay mode
-- [ ] Add plugin documentation
+  - [x] LUA STATE
+  - [ ] ~~CARGO~~
+- [x] Add plugin documentation
+- [ ] ~~Mini overlay mode~~
+
+Use OverlayStats instead (see [this](https://github.com/Oval-Tutu/bootstrap-love2d-project/blob/main/game/lib/overlayStats.lua)).
 
 ---
 

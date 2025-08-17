@@ -1,9 +1,15 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import oneLight from '@/assets/theme/light';
+import onDark from '@/assets/theme/dark';
+
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/hooks/use-theme';
 
 export function LuaBlock({ code, className }: { code: string; className?: string }) {
+  const theme = useTheme();
+  const style = theme === 'dark' ? onDark : oneLight;
+
   return (
     <ScrollArea className="mt-2 w-full rounded border bg-muted p-2 font-mono text-xs">
       <div className={cn('max-h-64', className)}>
@@ -12,7 +18,7 @@ export function LuaBlock({ code, className }: { code: string; className?: string
           language="lua"
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-expect-error
-          style={oneLight}
+          style={style}
           showLineNumbers
         >
           {code}
