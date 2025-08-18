@@ -17,7 +17,7 @@ local serverUtils = require(PATH .. ".server_utils")
 
 local performance = Performance()
 
-local FEATHER_VERSION = "0.2.0"
+local FEATHER_VERSION = "0.3.0"
 
 ---@class Feather: FeatherConfig
 ---@field lastDelivery number

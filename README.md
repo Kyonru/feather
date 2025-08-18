@@ -151,7 +151,7 @@ Feather will automatically capture and log errors in real-time. You can also man
   debugger:error("Something went wrong")
 ```
 
-### Plugins
+## Plugins
 
 Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Check out the [Feather Plugins](docs/plugins.md) repository for more information.
 

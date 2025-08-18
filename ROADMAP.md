@@ -1,31 +1,8 @@
 # Feather Roadmap
 
-## 0.2.0 – Developer Customization
-
-- [x] Add settings and about page:
-  - [x] custom port
-  - [x] custom URL
-  - [x] dark/light mode
-  - [x] custom editor deeplinking
-  - [x] default settings
-  - [x] download feather rock file for the version you are using
-- [x] Add basic plugin support
-- [x] Add optional plugins:
-  - [x] SIGNAL
-  - [x] LUA STATE
-  - [ ] ~~CARGO~~
-- [x] Add plugin documentation
-- [ ] ~~Mini overlay mode~~
-
-Use OverlayStats instead (see [this](https://github.com/Oval-Tutu/bootstrap-love2d-project/blob/main/game/lib/overlayStats.lua)).
-
----
-
 ## 0.3.0 – Variable Inspection
 
-- [x] Change `test` folder to `demo` folder
 - [ ] Add Tests
-- [x] Add mismatch version notification
 - [ ] Add check for updates
 - [ ] Editable observed variables
 - [ ] Logs should be fetched globally not in tab
@@ -36,7 +13,6 @@ Use OverlayStats instead (see [this](https://github.com/Oval-Tutu/bootstrap-love
 
 ## 0.4.0 – Performance & Assets
 
-- [x] Add about page
 - [ ] Add changelog page (github link)
 - [ ] Add license page (github link)
 - [ ] Asset viewer (textures, audio list)
