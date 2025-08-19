@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DEFAULT_METRIC, PerformanceMetrics } from '@/hooks/use-performance';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/styles';
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react';
 import { useMemo } from 'react';
 

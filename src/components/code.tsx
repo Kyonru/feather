@@ -3,7 +3,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import oneLight from '@/assets/theme/light';
 import onDark from '@/assets/theme/dark';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/styles';
 import { useTheme } from '@/hooks/use-theme';
 
 export function LuaBlock({ code, className }: { code: string; className?: string }) {

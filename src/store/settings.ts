@@ -7,9 +7,11 @@ type SettingsStoreState = {
   host: string;
   port: number;
   textEditorPath: string;
+  isLatestVersion: boolean;
 };
 
 type SettingsStoreActions = {
+  setIsLatestVersion: (isLatestVersion: boolean) => void;
   setOpen: (open: boolean) => void;
   setTheme: (theme: 'system' | 'light' | 'dark') => void;
   setHost: (host: string) => void;
@@ -21,6 +23,7 @@ type SettingsStoreActions = {
 type SettingsStore = SettingsStoreState & SettingsStoreActions;
 
 const defaultSettings: SettingsStoreState = {
+  isLatestVersion: true,
   open: false,
   theme: 'system',
   host: 'http://localhost',
@@ -32,6 +35,7 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
       ...defaultSettings,
+      setIsLatestVersion: (isLatestVersion: boolean) => set({ isLatestVersion }),
       setOpen: (open: boolean) => set({ open }),
       setTheme: (theme: 'system' | 'light' | 'dark') => set({ theme }),
       setHost: (host: string) => set({ host }),

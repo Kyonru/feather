@@ -18,7 +18,7 @@ import { TableVirtuoso } from 'react-virtuoso';
 import { Badge } from '@/components/ui/badge';
 import { TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/styles';
 import { Log } from '@/hooks/use-logs';
 import { Input } from './ui/input';
 import { useConfigStore } from '@/store/config';

@@ -12,8 +12,10 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { FeatherIcon } from 'lucide-react';
+import { useLatestVersion } from '@/hooks/use-latest-version';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  useLatestVersion();
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>

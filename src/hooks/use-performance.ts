@@ -1,5 +1,5 @@
 import { ServerRoute } from '@/constants/server';
-import { timeout } from '@/lib/utils';
+import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
 import { useQuery } from '@tanstack/react-query';
 import { useServer } from './use-server';

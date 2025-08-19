@@ -3,11 +3,12 @@
 ## 0.3.0 – Variable Inspection
 
 - [ ] Add Tests
-- [ ] Add check for updates
+- [x] Add check for updates
 - [ ] Editable observed variables
 - [ ] Logs should be fetched globally not in tab
 - [ ] Add optional screenshot on error
 - [ ] Add clear logs button
+- [ ] Add observed type, metadata
 
 ---
 
@@ -15,6 +16,9 @@
 
 - [ ] Add changelog page (github link)
 - [ ] Add license page (github link)
+- [ ] Add take screenshot button (on logs an screenshot entry is created)
+- [ ] SPIKE: Explore gift creation
+- [ ] SPIKE: Asset viewer (textures, audio list)
 - [ ] Asset viewer (textures, audio list)
 - [ ] Table diffing in observed variables
 - [ ] Add Security Information section to README

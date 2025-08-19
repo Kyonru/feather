@@ -5,7 +5,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
 import { GaugeIcon, LogsIcon, TelescopeIcon } from 'lucide-react';
 

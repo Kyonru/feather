@@ -9,7 +9,7 @@ import { Button, CopyButton } from '@/components/ui/button';
 import { useConfig } from '@/hooks/use-config';
 import { Log, useLogs } from '@/hooks/use-logs';
 import { LuaBlock, TraceViewer } from '@/components/code';
-import { isWeb } from '@/lib/utils';
+import { isWeb } from '@/utils/platform';
 import { Command } from '@tauri-apps/plugin-shell';
 import { useSettingsStore } from '@/store/settings';
 
