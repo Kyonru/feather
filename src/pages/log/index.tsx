@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button, CopyButton } from '@/components/ui/button';
 import { useConfig } from '@/hooks/use-config';
-import { Log, useLogs } from '@/hooks/use-logs';
+import { Log, LogType, useLogs } from '@/hooks/use-logs';
 import { LuaBlock, TraceViewer } from '@/components/code';
 import { isWeb } from '@/utils/platform';
 import { Command } from '@tauri-apps/plugin-shell';
@@ -71,7 +71,7 @@ export function LogSidePanel({
   data: Log;
 }) {
   const trace = data.type === 'error' ? data.str : data.trace;
-  const isFeatherEvent = data.type === 'feather:finish' || data.type === 'feather:start';
+  const isFeatherEvent = data.type === LogType.FEATHER_FINISH || data.type === LogType.FEATHER_START;
 
   return (
     <Card className="w-[420px] rounded-none rounded-br-xl">
@@ -136,7 +136,9 @@ export function LogSidePanel({
 
 export default function Page() {
   const { data } = useConfig();
-  const { data: logs } = useLogs();
+  const { data: logs, clear } = useLogs();
+  const pausedLogs = useSettingsStore((state) => state.pausedLogs);
+  const setPausedLogs = useSettingsStore((state) => state.setPausedLogs);
 
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
 
@@ -144,11 +146,20 @@ export default function Page() {
     setSelectedLog(null);
   };
 
+  const onClear = () => {
+    clear();
+  };
+
   return (
     <PageLayout
       right={selectedLog && <LogSidePanel basePath={data?.root_path || ''} data={selectedLog} onClose={onClose} />}
     >
       <DataTable
+        isPaused={pausedLogs}
+        onPlayPause={() => {
+          setPausedLogs(!pausedLogs);
+        }}
+        onClear={onClear}
         showSearch
         onRowSelection={(id) => {
           setSelectedLog(logs.find((item) => item.id === id) || null);

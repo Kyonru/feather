@@ -8,6 +8,7 @@ type SettingsStoreState = {
   port: number;
   textEditorPath: string;
   isLatestVersion: boolean;
+  pausedLogs: boolean;
 };
 
 type SettingsStoreActions = {
@@ -17,6 +18,7 @@ type SettingsStoreActions = {
   setHost: (host: string) => void;
   setPort: (port: number) => void;
   setTextEditorPath: (textEditorPath: string) => void;
+  setPausedLogs: (pausedLogs: boolean) => void;
   reset: () => void;
 };
 
@@ -29,6 +31,7 @@ const defaultSettings: SettingsStoreState = {
   host: 'http://localhost',
   port: 4004,
   textEditorPath: '/usr/local/bin/code',
+  pausedLogs: false,
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -42,6 +45,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setPort: (port: number) => set({ port }),
       setTextEditorPath: (textEditorPath: string) => set({ textEditorPath }),
       reset: () => set((state) => ({ ...state, ...defaultSettings, open: state.open })),
+      setPausedLogs: (pausedLogs: boolean) => set({ pausedLogs }),
     }),
     { name: 'settings-storage' },
   ),

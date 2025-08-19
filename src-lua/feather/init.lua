@@ -27,7 +27,6 @@ local FEATHER_VERSION = "0.3.0"
 ---@field protected server any
 ---@field observe fun(self: Feather, key: string, value: table | string | number | boolean) Updates value in the observers tab
 ---@field finish fun(self: Feather) Logs a finish line
----@field print fun(self: Feather, ...) Prints a log
 ---@field trace fun(self: Feather, ...) Prints a trace
 ---@field error fun(self: Feather, msg: string) Prints an error
 ---@field update fun(self: Feather, dt: number) Updates the Feather instance
@@ -87,6 +86,7 @@ function Feather:init(config)
 
   ---@type FeatherLogger
   self.featherLogger = FeatherLogger(self)
+  self.featherLogger:log({ type = "feather:start" })
 
   ---@type FeatherObserver
   self.featherObserver = FeatherObserver(self)
@@ -221,10 +221,6 @@ function Feather:update(dt)
 
   local client = self.server:accept()
   if client then
-    if #self.featherLogger.logs == 0 then
-      self.featherLogger:log({ type = "feather:start" })
-    end
-
     client:settimeout(1)
 
     local rawRequest = client:receive()
@@ -235,32 +231,42 @@ function Feather:update(dt)
       self:trace("non-whitelisted connection attempt: ", addr)
       client:close()
     end
-    if request and request.method == "GET" then
-      local response = ""
-      if request.path == "/config" then
-        response = serverUtils.createResponse(self:__getConfig())
+    if request then
+      local response = {}
+      if request.method == "GET" then
+        if request.path == "/config" then
+          response.data = self:__getConfig()
+        end
+
+        if request.path == "/logs" then
+          response.data = self.featherLogger.logs
+          self.lastDelivery = os.time()
+        end
+
+        if request.path == "/performance" then
+          response.data = performance:getResponseBody(dt)
+        end
+
+        if request.path == "/observers" then
+          response.data = self.featherObserver:getResponseBody()
+        end
+
+        if request.path == "/plugins" then
+          local pluginResponse = self.pluginManager:handleRequest(request, self)
+
+          response.data = pluginResponse
+        end
       end
 
-      if request.path == "/logs" then
-        response = serverUtils.createResponse(self.featherLogger.logs)
-        self.lastDelivery = os.time()
+      if request.method == "POST" then
+        if request.path == "/logs" then
+          if request.params.action == "clear" then
+            self.featherLogger:clear()
+          end
+        end
       end
 
-      if request.path == "/performance" then
-        response = serverUtils.createResponse(performance:getResponseBody(dt))
-      end
-
-      if request.path == "/observers" then
-        response = serverUtils.createResponse(self.featherObserver:getResponseBody())
-      end
-
-      if request.path == "/plugins" then
-        local pluginResponse = self.pluginManager:handleRequest(request, self)
-
-        response = serverUtils.createResponse(pluginResponse)
-      end
-
-      client:send(response)
+      client:send(serverUtils.createResponse(response.data or {}))
     end
 
     client:close()

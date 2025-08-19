@@ -212,6 +212,8 @@ function love.update(dt)
   if a > 1 then
     a = 0
     debugger:observe("awesome variable", a)
+    -- print(a)
+    print(math.random(1, 2))
   end
 
   if counter < 5 then
@@ -229,6 +231,10 @@ end
 
 function love.keypressed(key)
   if key == "space" then
+    print(a)
+  end
+
+  if key == "escape" then
     -- c = b.a * 2
 
     test()

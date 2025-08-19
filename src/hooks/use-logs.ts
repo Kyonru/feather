@@ -2,11 +2,12 @@ import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
 import { unionBy } from '@/utils/arrays';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useServer } from './use-server';
+import { useSettingsStore } from '@/store/settings';
 
-enum LogType {
+export enum LogType {
   OUTPUT = 'output',
   ERROR = 'error',
   FEATHER_START = 'feather:start',
@@ -29,9 +30,12 @@ export const useLogs = (): {
   isPending: boolean;
   error: unknown;
   refetch: () => void;
+  clear: () => void;
 } => {
+  const queryClient = useQueryClient();
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
+  const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const { url: serverUrl } = useServer();
 
   const { isPending, error, data, refetch } = useQuery({
@@ -51,13 +55,46 @@ export const useLogs = (): {
     },
     // TODO: use config
     refetchInterval: 1000,
-    enabled: !disconnected,
+    enabled: !disconnected && !pausedLogs,
   });
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      try {
+        await timeout<Response>(
+          3000,
+          fetch(`${serverUrl}${ServerRoute.LOG}?action=clear`, {
+            method: 'POST',
+          }),
+        );
+
+        return [];
+      } catch {
+        setDisconnected(true);
+        return [];
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['logs'] });
+    },
+  });
+
+  const clear = () => {
+    mutation.mutate();
+
+    queryClient.cancelQueries({
+      queryKey: ['logs'],
+      exact: true,
+    });
+
+    queryClient.setQueryData(['logs'], []);
+  };
 
   return {
     data: data || [],
     isPending,
     error,
     refetch,
+    clear,
   };
 };
