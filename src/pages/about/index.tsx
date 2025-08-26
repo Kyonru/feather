@@ -15,6 +15,8 @@ import { useConfigStore } from '@/store/config';
 import { Label } from '@/components/ui/label';
 import { useVersionMismatch } from '@/hooks/use-config';
 import { useSettingsStore } from '@/store/settings';
+import { BookOpenIcon, HandCoinsIcon, HistoryIcon } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function AboutModal() {
   const open = useAboutStore((state) => state.open);
@@ -29,6 +31,21 @@ export function AboutModal() {
 
   const onLatestVersion = () => {
     const url = `https://github.com/Kyonru/feather/releases`;
+    openUrl(url);
+  };
+
+  const onLicense = () => {
+    const url = `https://github.com/Kyonru/feather/blob/main/LICENSE.md`;
+    openUrl(url);
+  };
+
+  const onChangelog = () => {
+    const url = `https://github.com/Kyonru/feather/blob/main/CHANGELOG.md`;
+    openUrl(url);
+  };
+
+  const onSupport = () => {
+    const url = `https://github.com/sponsors/Kyonru`;
     openUrl(url);
   };
 
@@ -101,6 +118,39 @@ export function AboutModal() {
               </div>
             </Label>
           )}
+
+          <div className="flex flex-row gap-1">
+            <Tooltip>
+              <TooltipTrigger>
+                <Button variant="ghost" onClick={onLicense} className="w-fit">
+                  <BookOpenIcon className="text-chart-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>License</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger>
+                <Button variant="ghost" onClick={onChangelog} className="w-fit">
+                  <HistoryIcon className="text-chart-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Changelog</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger>
+                <Button variant="ghost" onClick={onSupport} className="w-fit">
+                  <HandCoinsIcon className="text-chart-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Support</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

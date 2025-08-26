@@ -2,20 +2,20 @@
 
 ## 0.3.0 – Variable Inspection
 
-- [ ] Add Tests
 - [x] Add check for updates
-- [ ] Editable observed variables
-- [ ] Logs should be fetched globally not in tab
-- [ ] Add optional screenshot on error
-- [ ] Add clear logs button
-- [ ] Add observed type, metadata
+- [x] Logs should be fetched globally not in tab
+- [x] Add clear logs button
+- [x] Add play/pause logs button
+- [x] Add changelog page (github link)
+- [x] Add license page (github link)
 
 ---
 
 ## 0.4.0 – Performance & Assets
 
-- [ ] Add changelog page (github link)
-- [ ] Add license page (github link)
+- [ ] Editable observed variables
+- [ ] Add optional screenshot on error
+- [ ] Add observed type, metadata
 - [ ] Add take screenshot button (on logs an screenshot entry is created)
 - [ ] SPIKE: Explore gift creation
 - [ ] SPIKE: Asset viewer (textures, audio list)
@@ -48,6 +48,7 @@
 
 ## 0.7.0 – Plugin System Maturity
 
+- [ ] Add Tests
 - [ ] Stable public plugin API documentation
 - [ ] Runtime load/unload plugins
 - [ ] Versioned plugin compatibility
