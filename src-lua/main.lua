@@ -3,7 +3,7 @@ local FeatherDebugger = require("feather")
 local FeatherPluginManager = require("feather.plugin_manager")
 local HumpSignalPlugin = require("plugins.hump.signal")
 local LuaStateMachinePlugin = require("plugins.lua-state-machine")
-local ScreenshotPlugin = require("feather.plugins.screenshots")
+local ScreenshotPlugin = require("plugins.screenshots")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -153,6 +153,7 @@ local debugger = FeatherDebugger({
   defaultObservers = true,
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
+  captureScreenshot = true,
   debug = true,
   plugins = {
     FeatherPluginManager.createPlugin(TestPlugin, "test", {
@@ -254,5 +255,15 @@ function love.keypressed(key)
     -- c = b.a * 2
 
     test()
+  end
+
+  if key == "f" then
+    debugger:toggleScreenshots(not debugger.captureScreenshot)
+  end
+
+  if key == "f1" then
+    debugger:action("screenshots", "screenshot", {})
+  elseif key == "f2" then
+    debugger:action("screenshots", "gif", { duration = 3, fps = 60 })
   end
 end

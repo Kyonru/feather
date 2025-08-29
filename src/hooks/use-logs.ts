@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useServer } from './use-server';
 import { useSettingsStore } from '@/store/settings';
+import { useState } from 'react';
 
 export enum LogType {
   OUTPUT = 'output',
@@ -21,22 +22,28 @@ export const schema = z.object({
   type: z.enum(Object.values(LogType)),
   str: z.string(),
   trace: z.string(),
+  screenshot: z.string().optional(),
 });
 
 export type Log = z.infer<typeof schema>;
 
 export const useLogs = (): {
-  data: Log[];
+  data: {
+    logs: Log[];
+    screenshotEnabled: boolean;
+  };
   isPending: boolean;
   error: unknown;
   refetch: () => void;
   clear: () => void;
+  onScreenshotChange: () => void;
 } => {
   const queryClient = useQueryClient();
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const { url: serverUrl } = useServer();
+  const [screenshotEnabled, setScreenshotEnabled] = useState(false);
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['logs'],
@@ -44,7 +51,10 @@ export const useLogs = (): {
       try {
         const response = await timeout<Response>(3000, fetch(`${serverUrl}${ServerRoute.LOG}`));
 
-        const dataLogs = (await response.json()) as Log[];
+        const raw = await response.json();
+
+        setScreenshotEnabled(raw.screenshotEnabled);
+        const dataLogs = raw.data as Log[];
 
         const logs = unionBy<Log, string>(data || [], dataLogs, (item) => item.id) as Log[];
         return logs;
@@ -79,6 +89,25 @@ export const useLogs = (): {
     },
   });
 
+  const enableScreenshotsMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        await timeout<Response>(
+          3000,
+          fetch(`${serverUrl}${ServerRoute.LOG}?action=toggle-screenshots`, {
+            method: 'POST',
+          }),
+        );
+
+        return [];
+      } catch {
+        setDisconnected(true);
+        return [];
+      }
+    },
+    onSuccess: () => {},
+  });
+
   const clear = () => {
     mutation.mutate();
 
@@ -90,11 +119,19 @@ export const useLogs = (): {
     queryClient.setQueryData(['logs'], []);
   };
 
+  const onScreenshotChange = () => {
+    enableScreenshotsMutation.mutate();
+  };
+
   return {
-    data: data || [],
+    data: {
+      logs: data || [],
+      screenshotEnabled,
+    },
     isPending,
     error,
     refetch,
     clear,
+    onScreenshotChange,
   };
 };

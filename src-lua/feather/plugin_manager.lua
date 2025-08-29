@@ -139,4 +139,21 @@ function FeatherPluginManager:getConfig()
   return pluginsConfig
 end
 
+function FeatherPluginManager:action(plugin, action, params, feather)
+  local request = {
+    params = {},
+    path = "/plugins/" .. plugin,
+    method = "CUSTOM",
+  }
+
+  for key, value in pairs(params) do
+    request.params[key] = value
+  end
+
+  request.params["action"] = action
+
+  self.logger.logger("[FeatherPluginManager] Action: " .. plugin .. ":" .. action)
+  self:handleActionRequest(request, feather)
+end
+
 return FeatherPluginManager

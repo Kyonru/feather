@@ -3,9 +3,7 @@
 ## 0.4.0 – Performance & Assets
 
 - [ ] Editable observed variables
-- [ ] Add optional screenshot on error
 - [ ] Add observed type, metadata
-- [ ] Add take screenshot button (on logs an screenshot entry is created)
 - [ ] SPIKE: Explore gif creation
 - [ ] SPIKE: Asset viewer (textures, audio list)
 - [ ] Asset viewer (textures, audio list)

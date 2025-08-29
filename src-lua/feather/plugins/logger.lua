@@ -9,8 +9,10 @@ local wrapWith = require(PATH .. ".utils").wrapWith
 ---@field logs FeatherLine[]
 ---@field debug boolean
 ---@field wrapPrint boolean
+---@field captureScreenshot boolean
+---@field lastScreenshot string|love.ByteData
 ---@field maxTempLogs number
----@field log fun(self: FeatherLogger, line: FeatherLine) Logs a line
+---@field log fun(self: FeatherLogger, line: FeatherLine, screenshot?: boolean) Logs a line
 ---@field logger fun(...: any)
 ---@field print fun(self: FeatherLogger, ...: any)
 ---@field clear fun(self: FeatherLogger)
@@ -23,6 +25,8 @@ local FeatherLogger = Class({
     self.debug = config.debug
     self.wrapPrint = config.wrapPrint
     self.maxTempLogs = config.maxTempLogs
+    self.captureScreenshot = config.captureScreenshot
+    self.lastScreenshot = nil
 
     -- Wrap print
     self.logger = print
@@ -42,6 +46,23 @@ local FeatherLogger = Class({
 
 function FeatherLogger:print(...)
   self:__countOnRepeat("output", ...)
+end
+
+function FeatherLogger:update()
+  if not self.captureScreenshot then
+    return
+  end
+
+  self.lastScreenshot = nil
+
+  love.graphics.captureScreenshot(function(img)
+    local fileData = img:encode("png")
+    local pngBytes = fileData:getString()
+
+    local b64 = love.data.encode("string", "base64", pngBytes)
+
+    self.lastScreenshot = b64
+  end)
 end
 
 --- Manages the print function internally
@@ -72,11 +93,16 @@ end
 ---@field time? number
 ---@field count? number
 ---@field trace? string
----@alias FeatherLog fun(self: FeatherLogger, line: FeatherLine)
+---@field screenshot? string|love.ByteData
+---@alias FeatherLog fun(self: FeatherLogger, line: FeatherLine, screenshot?: boolean)
 ---@type FeatherLog
-function FeatherLogger:log(line)
+function FeatherLogger:log(line, screenshot)
   if not self.debug then
     return
+  end
+
+  if screenshot then
+    line.screenshot = self.lastScreenshot
   end
 
   line.id = tostring(os.time()) .. "-" .. tostring(#self.logs + 1)

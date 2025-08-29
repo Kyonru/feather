@@ -12,6 +12,7 @@ import { LuaBlock, TraceViewer } from '@/components/code';
 import { isWeb } from '@/utils/platform';
 import { Command } from '@tauri-apps/plugin-shell';
 import { useSettingsStore } from '@/store/settings';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export const columns: ColumnDef<Log>[] = [
   {
@@ -71,6 +72,7 @@ export function LogSidePanel({
   data: Log;
 }) {
   const trace = data.type === 'error' ? data.str : data.trace;
+  const screenshot = data.screenshot;
   const isFeatherEvent = data.type === LogType.FEATHER_FINISH || data.type === LogType.FEATHER_START;
 
   return (
@@ -130,13 +132,35 @@ export function LogSidePanel({
           <CopyButton value={trace} />
         </CardFooter>
       ) : null}
+      {screenshot ? (
+        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <span className="text-sm font-medium">Screenshot</span>
+
+          <Dialog>
+            <DialogTrigger>
+              <img src={`data:image/png;base64,${screenshot}`} className="h-full w-full" />
+            </DialogTrigger>
+            <DialogContent className="h-[90vh] w-full sm:max-w-1/2">
+              <DialogHeader>
+                <DialogTitle>Screenshot</DialogTitle>
+              </DialogHeader>
+              <div className="flex justify-center sm:px-12 p-8 h-[90vh]">
+                <img
+                  src={`data:image/png;base64,${screenshot}`}
+                  className="object-scale-down max-h-full drop-shadow-md rounded-md m-auto"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardFooter>
+      ) : null}
     </Card>
   );
 }
 
 export default function Page() {
   const { data } = useConfig();
-  const { data: logs, clear } = useLogs();
+  const { data: logsData, clear, onScreenshotChange } = useLogs();
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const setPausedLogs = useSettingsStore((state) => state.setPausedLogs);
 
@@ -150,11 +174,16 @@ export default function Page() {
     clear();
   };
 
+  const logs = logsData.logs;
+  const screenshotEnabled = logsData.screenshotEnabled;
+
   return (
     <PageLayout
       right={selectedLog && <LogSidePanel basePath={data?.root_path || ''} data={selectedLog} onClose={onClose} />}
     >
       <DataTable
+        screenshotEnabled={screenshotEnabled}
+        onScreenshotChange={onScreenshotChange}
         isPaused={pausedLogs}
         onPlayPause={() => {
           setPausedLogs(!pausedLogs);

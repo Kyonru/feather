@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add play/pause logs button
 - Add changelog page (github link)
 - Add license page (github link)
+- Add screenshot plugin
+- Add basic UI support for plugins
+- Add action support for plugins
+- Add screenshot option for error capture
 
 ### Changed
 

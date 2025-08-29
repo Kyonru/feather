@@ -70,11 +70,28 @@ local plugin = FeatherPluginManager.createPlugin(MyPlugin, "my-plugin", {
 
 The FeatherPluginManager will handle the lifecycle of the plugin and call the appropriate functions. Here's a breakdown of the plugin lifecycle:
 
-1. **Initialization**: The plugin is initialized with the provided options.
-2. **Request Handling**: The plugin handles requests from the client.
-3. **Update**: The plugin is updated every frame.
-4. **Error Handling**: The plugin handles errors that occur in the game.
-5. **Finish**: The plugin is finished and the game is closed.
+### Initialization
+
+- `init(config)`: This function is called when the plugin is initialized.
+- `getConfig()`: This function returns the configuration for the plugin when the Feather app is initialized. Sent to the client app.
+
+### Request Handling
+
+- `handleRequest(request, feather)`: This function is called when a request is received. (GET)
+- `handleActionRequest(request, feather)`: This function is called when an action request is received. (POST)
+- `handleParamsUpdate(request, feather)`: This function is called when a params update request is received. (PUT)
+
+### Update
+
+- `update(dt, feather)`: This function is called every frame. (Called after the request handling)
+
+### Error Handling
+
+- `onerror(msg, feather)`: This function is called when an error occurs. Errors in this function will close the game abruptly. No frame is rendered after this function is called.
+
+### finish
+
+- `finish(feather)`: This function is called when the server is closed.
 
 ## Plugin options
 
@@ -111,6 +128,31 @@ function MyPlugin:getConfig()
     color = "#ff0000",
     icon = "my-plugin-icon",
   }
+end
+```
+
+## Using Plugin Actions
+
+Feather plugins can also be used to trigger actions from game code at runtime.
+
+```lua
+local debugger = FeatherDebugger({
+  debug = true,
+  plugins = {
+    FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
+      screenshotDirectory = "screenshots",
+      fps = 30,
+      gifDuration = 5,
+    }),
+  },
+})
+
+function love.keypressed(key)
+  if key == "f1" then
+    debugger:action("screenshots", "screenshot", {})
+  elseif key == "f2" then
+    debugger:action("screenshots", "gif", { duration = 3, fps = 60 })
+  end
 end
 ```
 

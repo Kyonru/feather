@@ -30,9 +30,12 @@ import {
   FileQuestionMarkIcon,
   PauseIcon,
   PlayIcon,
+  ScreenShareIcon,
+  ScreenShareOffIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { Button } from './ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 // Original Table is wrapped with a <div> (see https://ui.shadcn.com/docs/components/table#radix-:r24:-content-manual),
 // but here we don't want it, so let's use a new component with only <table> tag
@@ -164,6 +167,8 @@ export function DataTable({
   isPaused,
   onPlayPause,
   showSearch,
+  screenshotEnabled,
+  onScreenshotChange,
 }: {
   data: Log[];
   onRowSelection?: (id: string) => void;
@@ -172,6 +177,8 @@ export function DataTable({
   onPlayPause: () => void;
   rowSelection?: Record<string, boolean>;
   showSearch?: boolean;
+  screenshotEnabled?: boolean;
+  onScreenshotChange?: () => void;
 }) {
   const [globalFilter, setGlobalFilter] = useState<unknown>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -230,19 +237,49 @@ export function DataTable({
           <div className="flex items-center gap-2 mt-2">
             <Input placeholder="Search..." onChange={(e) => table.setGlobalFilter(String(e.target.value))} />
 
-            <Button variant="secondary" size="icon" onClick={onPlayPause}>
-              {isPaused ? (
-                <PlayIcon className="text-green-500 cursor-pointer" />
-              ) : (
-                <PauseIcon className="text-blue-500 cursor-pointer" />
-              )}
-              <span className="sr-only">Pause</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger>
+                <Button variant="secondary" size="icon" onClick={onPlayPause}>
+                  {isPaused ? (
+                    <PlayIcon className="text-green-500 cursor-pointer" />
+                  ) : (
+                    <PauseIcon className="text-blue-500 cursor-pointer" />
+                  )}
+                  <span className="sr-only">Pause</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Pause</p>
+              </TooltipContent>
+            </Tooltip>
 
-            <Button variant="secondary" size="icon" onClick={onClear}>
-              <Trash2Icon className=" text-orange-500 cursor-pointer" />
-              <span className="sr-only">Clear history</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger>
+                <Button variant="secondary" size="icon" onClick={onClear}>
+                  <Trash2Icon className=" text-orange-500 cursor-pointer" />
+                  <span className="sr-only">Clear history</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Clear history</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger>
+                <Button variant="secondary" size="icon" onClick={onScreenshotChange}>
+                  {screenshotEnabled ? (
+                    <ScreenShareIcon className=" text-green-500 cursor-pointer" />
+                  ) : (
+                    <ScreenShareOffIcon className=" text-red-500 cursor-pointer" />
+                  )}
+                  <span className="sr-only">{screenshotEnabled ? 'Disable Screenshots' : 'Enable Screenshots'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{screenshotEnabled ? 'Disable Screenshots' : 'Enable Screenshots'}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
         <div className="overflow-hidden rounded-lg border">

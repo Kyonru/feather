@@ -48,6 +48,7 @@ local customErrorHandler = errorhandler
 ---@field maxTempLogs? number
 ---@field updateInterval? number
 ---@field defaultObservers? boolean
+---@field captureScreenshot? boolean
 ---@field errorWait? number
 ---@field autoRegisterErrorHandler? boolean
 ---@field errorHandler? function
@@ -65,6 +66,7 @@ function Feather:init(config)
   self.maxTempLogs = conf.maxTempLogs or 200
   self.updateInterval = conf.updateInterval or 0.1
   self.defaultObservers = conf.defaultObservers or false
+  self.captureScreenshot = conf.captureScreenshot or false
   ---TODO: find a better way to ensure that the error handler is called, maybe a thread?
   self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
@@ -175,7 +177,7 @@ function Feather:__onerror(msg, finish)
   end
 
   local err = self:__errorTraceback(msg)
-  self.featherLogger:log({ type = "error", str = self:__errorTraceback(msg) })
+  self.featherLogger:log({ type = "error", str = self:__errorTraceback(msg) }, true)
   if self.wrapPrint then
     self.featherLogger.logger("[Feather] ERROR: " .. err)
   end
@@ -240,7 +242,11 @@ function Feather:update(dt)
         end
 
         if request.path == "/logs" then
-          response.data = self.featherLogger.logs
+          local bodyData = {
+            data = self.featherLogger.logs,
+            screenshotEnabled = self.captureScreenshot,
+          }
+          response.data = bodyData
           self.lastDelivery = os.time()
         end
 
@@ -273,6 +279,10 @@ function Feather:update(dt)
           if request.params.action == "clear" then
             self.featherLogger:clear()
           end
+
+          if request.params.action == "toggle-screenshots" then
+            self:toggleScreenshots(not self.captureScreenshot)
+          end
         end
 
         if request.path ~= nil and startsWith(request.path, "/plugins") then
@@ -287,6 +297,7 @@ function Feather:update(dt)
 
     client:close()
   end
+  self.featherLogger:update(dt)
   self.pluginManager:update(dt, self)
 end
 
@@ -301,6 +312,21 @@ function Feather:trace(...)
 
   self.featherLogger.logger(str)
   self.featherLogger:print("trace", str)
+end
+
+--- Execute an action from a plugin
+---@param plugin string
+---@param action string
+---@param params table
+function Feather:action(plugin, action, params)
+  self.pluginManager:action(plugin, action, params, self)
+end
+
+--- ToggleScreenshots
+--- @param enabled boolean
+function Feather:toggleScreenshots(enabled)
+  self.captureScreenshot = enabled
+  self.featherLogger.captureScreenshot = self.captureScreenshot
 end
 
 ---@type fun(config: FeatherConfig): Feather
