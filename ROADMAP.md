@@ -1,23 +1,12 @@
 # Feather Roadmap
 
-## 0.3.0 – Variable Inspection
-
-- [x] Add check for updates
-- [x] Logs should be fetched globally not in tab
-- [x] Add clear logs button
-- [x] Add play/pause logs button
-- [x] Add changelog page (github link)
-- [x] Add license page (github link)
-
----
-
 ## 0.4.0 – Performance & Assets
 
 - [ ] Editable observed variables
 - [ ] Add optional screenshot on error
 - [ ] Add observed type, metadata
 - [ ] Add take screenshot button (on logs an screenshot entry is created)
-- [ ] SPIKE: Explore gift creation
+- [ ] SPIKE: Explore gif creation
 - [ ] SPIKE: Asset viewer (textures, audio list)
 - [ ] Asset viewer (textures, audio list)
 - [ ] Table diffing in observed variables
@@ -28,6 +17,7 @@
 ## 0.5.0 – Community Release
 
 - [ ] Plugin API improvements
+- [ ] Optional API key for remote debugging
 - [ ] Expression evaluator (`eval` in game)
 - [ ] Entity/component list
 - [ ] Bounding box overlay toggle

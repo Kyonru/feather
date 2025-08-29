@@ -32,8 +32,13 @@ local function wrapWith(tbl, methodName, callback)
   end
 end
 
+local function startsWith(str, value)
+  return string.sub(str, 1, string.len(value)) == value
+end
+
 return {
   get_current_dir = get_current_dir,
   format = format,
   wrapWith = wrapWith,
+  startsWith = startsWith,
 }

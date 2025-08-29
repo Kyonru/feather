@@ -1,73 +1,56 @@
-import * as React from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import * as React from 'react';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
-import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { PerformanceMetrics } from "@/hooks/use-performance";
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { PerformanceMetrics } from '@/hooks/use-performance';
 
-export const description = "An interactive area chart";
+export const description = 'An interactive area chart';
 
 const chartConfig = {
   fps: {
-    label: "FPS",
-    color: "var(--chart-2)",
+    label: 'FPS',
+    color: 'var(--chart-2)',
   },
   memory: {
-    label: "Memory",
-    color: "var(--chart-1)",
+    label: 'Memory',
+    color: 'var(--chart-1)',
   },
 } satisfies ChartConfig;
 
 const timeRanges = [
   {
-    label: "Last 3 seconds",
-    value: "3s",
+    label: 'Last 3 seconds',
+    value: '3s',
   },
   {
-    label: "Last 5 seconds",
-    value: "5s",
+    label: 'Last 5 seconds',
+    value: '5s',
   },
   {
-    label: "Last 15 seconds",
-    value: "15s",
+    label: 'Last 15 seconds',
+    value: '15s',
   },
 ];
 
 export function ChartAreaInteractive({
   title,
   data,
-  dataKey = "fps",
+  dataKey = 'fps',
 }: {
-  dataKey?: "fps" | "memory";
+  dataKey?: 'fps' | 'memory';
   title: string;
   data: PerformanceMetrics[];
 }) {
   const isMobile = useIsMobile();
-  const [timeRange, setTimeRange] = React.useState("5s");
+  const [timeRange, setTimeRange] = React.useState('5s');
 
   React.useEffect(() => {
     if (isMobile) {
-      setTimeRange("3s");
+      setTimeRange('3s');
     }
   }, [isMobile]);
 
@@ -75,34 +58,25 @@ export function ChartAreaInteractive({
     const date = new Date(item.time * 1000);
     const referenceDate = new Date(data[data.length - 1].time * 1000);
     let secondsToSubtract = 3;
-    if (timeRange === "5s") {
+    if (timeRange === '5s') {
       secondsToSubtract = 5;
-    } else if (timeRange === "15s") {
+    } else if (timeRange === '15s') {
       secondsToSubtract = 15;
     }
-    const startDate = new Date(
-      referenceDate.getTime() - secondsToSubtract * 1000
-    );
+    const startDate = new Date(referenceDate.getTime() - secondsToSubtract * 1000);
     return date >= startDate;
   });
 
   const formatXAxis = (value: number) => {
     const date = new Date(value * 1000);
 
-    const rtf1 = new Intl.RelativeTimeFormat("en", {
-      style: "short",
+    const rtf1 = new Intl.RelativeTimeFormat('en', {
+      style: 'short',
     });
 
     const diff = (new Date().getTime() - date.getTime()) / 1000;
 
-    console.log({
-      diff,
-      value,
-      date,
-      now: new Date().getTime(),
-    });
-
-    return rtf1.format(-Math.round(diff), "second");
+    return rtf1.format(-Math.round(diff), 'second');
   };
 
   return (
@@ -140,43 +114,20 @@ export function ChartAreaInteractive({
         </CardAction>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        <ChartContainer
-          config={chartConfig}
-          className="aspect-auto h-[250px] w-full"
-        >
+        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
           <AreaChart data={filteredData}>
             <defs>
-              <linearGradient id={"fillMobile"} x1="0" y1="0" x2="0" y2="1">
-                {dataKey === "fps" ? (
+              <linearGradient id={'fillMobile'} x1="0" y1="0" x2="0" y2="1">
+                {dataKey === 'fps' ? (
                   <>
-                    <stop
-                      offset="0%"
-                      stopColor={`var(--color-${dataKey})`}
-                      stopOpacity={1}
-                    />
-                    <stop
-                      offset="50%"
-                      stopColor={`var(--color-${dataKey})`}
-                      stopOpacity={0.6}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={`var(--color-red-500)`}
-                      stopOpacity={0.1}
-                    />
+                    <stop offset="0%" stopColor={`var(--color-${dataKey})`} stopOpacity={1} />
+                    <stop offset="50%" stopColor={`var(--color-${dataKey})`} stopOpacity={0.6} />
+                    <stop offset="100%" stopColor={`var(--color-red-500)`} stopOpacity={0.1} />
                   </>
                 ) : (
                   <>
-                    <stop
-                      offset="5%"
-                      stopColor={`var(--color-red-500)`}
-                      stopOpacity={1}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor={`var(--color-${dataKey})`}
-                      stopOpacity={0.3}
-                    />
+                    <stop offset="5%" stopColor={`var(--color-red-500)`} stopOpacity={1} />
+                    <stop offset="95%" stopColor={`var(--color-${dataKey})`} stopOpacity={0.3} />
                   </>
                 )}
               </linearGradient>
@@ -199,7 +150,7 @@ export function ChartAreaInteractive({
               tickMargin={2}
               minTickGap={1}
               tickFormatter={(value) => {
-                if (dataKey === "fps") {
+                if (dataKey === 'fps') {
                   return `${value} FPS`;
                 }
 

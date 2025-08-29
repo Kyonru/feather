@@ -3,6 +3,7 @@ local FeatherDebugger = require("feather")
 local FeatherPluginManager = require("feather.plugin_manager")
 local HumpSignalPlugin = require("plugins.hump.signal")
 local LuaStateMachinePlugin = require("plugins.lua-state-machine")
+local ScreenshotPlugin = require("feather.plugins.screenshots")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -177,12 +178,19 @@ local debugger = FeatherDebugger({
     FeatherPluginManager.createPlugin(LuaStateMachinePlugin, "lua-state-machine", {
       machine = machine,
     }),
+    FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
+      screenshotDirectory = "screenshots",
+      fps = 30,
+      gifDuration = 5,
+    }),
   },
 })
 
 local a = 0
 local counter = 0
 local state
+
+local time = 0
 
 function love.load()
   Signal.register("shoot", function(x, y, dx, dy)
@@ -202,12 +210,20 @@ function love.load()
   })
 end
 
-function love.draw() end
+function love.draw()
+  love.graphics.circle(
+    "fill",
+    love.graphics.getHeight() / 2 + 100 * math.sin(time),
+    love.graphics.getHeight() / 2 + 100 * math.cos(time),
+    10
+  )
+end
 
 function love.update(dt)
   debugger:update(dt)
   a = a + dt
   counter = counter + dt
+  time = time + dt
 
   if a > 1 then
     a = 0

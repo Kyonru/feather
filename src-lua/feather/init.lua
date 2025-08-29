@@ -13,6 +13,7 @@ local FeatherLogger = require(PATH .. ".plugins.logger")
 local FeatherObserver = require(PATH .. ".plugins.observer")
 local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
+local startsWith = require(PATH .. ".utils").startsWith
 local serverUtils = require(PATH .. ".server_utils")
 
 local performance = Performance()
@@ -251,8 +252,17 @@ function Feather:update(dt)
           response.data = self.featherObserver:getResponseBody()
         end
 
-        if request.path == "/plugins" then
+        if request.path ~= nil and startsWith(request.path, "/plugins") then
           local pluginResponse = self.pluginManager:handleRequest(request, self)
+
+          response.data = pluginResponse
+        end
+      end
+
+      if request.method == "OPTIONS" then
+        if request.path ~= nil and startsWith(request.path, "/plugins") then
+          self.featherLogger.logger(request.path, request.params.action, request.params.duration, request.params.fps)
+          local pluginResponse = self.pluginManager:handleParamsUpdate(request, self)
 
           response.data = pluginResponse
         end
@@ -263,6 +273,12 @@ function Feather:update(dt)
           if request.params.action == "clear" then
             self.featherLogger:clear()
           end
+        end
+
+        if request.path ~= nil and startsWith(request.path, "/plugins") then
+          local pluginResponse = self.pluginManager:handleActionRequest(request, self)
+
+          response.data = pluginResponse
         end
       end
 

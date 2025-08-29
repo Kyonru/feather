@@ -7,27 +7,32 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
-import { BotMessageSquareIcon, ClipboardPlusIcon, DatabaseIcon } from 'lucide-react';
+import { useConfigStore } from '@/store/config';
+import { useMemo } from 'react';
+import { DynamicIcon } from 'lucide-react/dynamic';
 
 export function NavPlugins() {
   const location = useLocation();
-  const items = [
-    {
-      name: 'Data Library',
-      url: '/plugins/data-library',
-      icon: DatabaseIcon,
-    },
-    {
-      name: 'Reports',
-      url: '/plugins/reports',
-      icon: ClipboardPlusIcon,
-    },
-    {
-      name: 'Word Assistant',
-      url: '/plugins/word-assistant',
-      icon: BotMessageSquareIcon,
-    },
-  ];
+  const plugins = useConfigStore((state) => state.config?.plugins);
+
+  const items = useMemo(() => {
+    const pluginItems = [];
+
+    if (plugins) {
+      for (const [key, value] of Object.entries(plugins)) {
+        if (value.tabName) {
+          pluginItems.push({
+            name: value.tabName,
+            url: `/plugins/${key}`,
+            icon: value.icon,
+          });
+        }
+      }
+    }
+
+    return pluginItems;
+  }, [plugins]);
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Plugins</SidebarGroupLabel>
@@ -42,7 +47,7 @@ export function NavPlugins() {
                 })}
                 tooltip={item.name}
               >
-                {item.icon && <item.icon />}
+                {item.icon && <DynamicIcon className="size-4" name={item.icon} />}
                 <span>{item.name}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>

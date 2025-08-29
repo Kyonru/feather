@@ -9,6 +9,7 @@ function server.buildResponse(body)
     "HTTP/1.1 200 OK",
     "Content-Type: application/json",
     "Access-Control-Allow-Origin: *",
+    "Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS",
     "Content-Length: " .. #body,
     "",
     body,

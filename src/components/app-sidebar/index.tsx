@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-// import { NavPlugins } from "@/components/nav-plugins";
+import { NavPlugins } from '@/components/app-sidebar/nav-plugins';
 import { NavMain } from '@/components/app-sidebar/nav-main';
 import { NavBottom } from '@/components/app-sidebar/nav-bottom';
 import {
@@ -32,7 +32,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain />
-        {/* <NavPlugins items={data.documents} /> */}
+        <NavPlugins />
         <NavBottom className="mt-auto" />
       </SidebarContent>
     </Sidebar>

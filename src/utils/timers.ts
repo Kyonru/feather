@@ -16,3 +16,27 @@ export function timeout<T>(ms: number, promise: Promise<any>): Promise<T> {
       });
   });
 }
+
+/**
+ * Debounce (trailing only).
+ * Runs `fn` only after no calls have happened for `wait` ms.
+ */
+export function debounce<T extends (...args: unknown[]) => void>(fn: T, wait: number = 300) {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debounced = (...args: Parameters<T>): void => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      fn(...args);
+    }, wait);
+  };
+
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+  };
+
+  return debounced as T & { cancel: () => void };
+}

@@ -10,6 +10,8 @@ local Class = require(PATH .. ".lib.class")
 ---@field update fun(self: FeatherPlugin, dt: number, feather: Feather): ...
 ---@field onerror fun(self: FeatherPlugin, msg: string, feather: Feather): ...
 ---@field handleRequest fun(self: FeatherPlugin, request: table, feather: Feather): ...
+---@field handleActionRequest fun(self: FeatherPlugin, request: table, feather: Feather): ...
+---@field handleParamsUpdate fun(self: FeatherPlugin, request: table, feather: Feather): ...
 ---@field finish fun(self: FeatherPlugin, feather: Feather): ...
 ---@field getConfig fun(self: FeatherPlugin): table
 local FeatherPlugin = Class({})
@@ -30,6 +32,14 @@ end
 
 function FeatherPlugin:handleRequest(request)
   return self, request
+end
+
+function FeatherPlugin:handleActionRequest(request)
+  return self, request
+end
+
+function FeatherPlugin:handleParamsUpdate()
+  return {}
 end
 
 function FeatherPlugin:finish()

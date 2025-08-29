@@ -55,9 +55,57 @@ function FeatherPluginManager:onerror(msg, feather)
   end
 end
 
-function FeatherPluginManager:handleRequest(request, feather)
+function FeatherPluginManager:getPluginByUrl(url)
   for _, plugin in ipairs(self.plugins) do
-    pcall(plugin.instance.handleRequest, plugin.instance, request, feather)
+    if url == "/plugins/" .. plugin.identifier then
+      return plugin
+    end
+  end
+end
+
+function FeatherPluginManager:handleRequest(request, feather)
+  local plugin = self:getPluginByUrl(request.path)
+
+  if plugin then
+    local status, data = pcall(plugin.instance.handleRequest, plugin.instance, request, feather)
+
+    if not status then
+      feather.featherLogger.logger("[FeatherPluginManager] Error handling request: " .. data)
+      return
+    end
+    return data
+  end
+end
+
+function FeatherPluginManager:handleActionRequest(request, feather)
+  local plugin = self:getPluginByUrl(request.path)
+
+  feather.featherLogger.logger("[FeatherPluginManager] Received action request: " .. request.path)
+
+  if plugin then
+    local status, data = pcall(plugin.instance.handleActionRequest, plugin.instance, request, feather)
+
+    if not status then
+      feather.featherLogger.logger("[FeatherPluginManager] Error handling action request: " .. data)
+      return
+    end
+    return data
+  end
+end
+
+function FeatherPluginManager:handleParamsUpdate(request, feather)
+  local plugin = self:getPluginByUrl(request.path)
+
+  feather.featherLogger.logger("[FeatherPluginManager] Received params update: " .. request.path)
+
+  if plugin then
+    local status, data = pcall(plugin.instance.handleParamsUpdate, plugin.instance, request, feather)
+
+    if not status then
+      feather.featherLogger.logger("[FeatherPluginManager] Error handling params update: " .. data)
+      return
+    end
+    return data
   end
 end
 
