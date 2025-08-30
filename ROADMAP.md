@@ -13,7 +13,6 @@
 ## 0.5.0 – Community Release
 
 - [ ] Plugin API improvements
-- [ ] Optional API key for remote debugging
 - [ ] Expression evaluator (`eval` in game)
 - [ ] Entity/component list
 - [ ] Bounding box overlay toggle
@@ -25,7 +24,7 @@
 ## 0.6.0 – Stability & Compatibility
 
 - [ ] Full OS & Love2D version testing (Windows/macOS/Linux)
-- [ ] Add remote debugging
+- [ ] Add remote debugging with WebSockets
 - [ ] Fix edge cases for large log/variable data
 - [ ] Configurable performance sampling interval
 - [ ] Low-overhead mode for production builds, scripts and plugins to disable code in production
@@ -35,6 +34,7 @@
 ## 0.7.0 – Plugin System Maturity
 
 - [ ] Add Tests
+- [ ] Connect to multiple servers / games
 - [ ] Stable public plugin API documentation
 - [ ] Runtime load/unload plugins
 - [ ] Versioned plugin compatibility

@@ -25,7 +25,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 1. **Download Feather**
 
 - Download the latest release from the [releases page](https://github.com/Kyonru/feather/releases)
-- Or install it via [Luarocks](https://luarocks.org/)
+- Or install it via [Luarocks](https://luarocks.org/modules/kyonru/feather)
 
   ```bash
   luarocks install feather

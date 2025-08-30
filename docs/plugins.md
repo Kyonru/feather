@@ -10,6 +10,8 @@ To create a plugin, you need to create a Lua module that exports a table with th
 - `update(dt, feather)`: This function is called every frame.
 - `onerror(msg, feather)`: This function is called when an error occurs. Errors in this function will close the game abruptly.
 - `handleRequest(request, feather)`: This function is called when a request is received.
+- `handleActionRequest(request, feather)`: This function is called when an action request is received.
+- `handleParamsUpdate(request, feather)`: This function is called when a params update request is received.
 - `finish(feather)`: This function is called when the server is closed.
 - `getConfig()`: This function returns the configuration for the plugin. Sent to the client app.
 
@@ -38,6 +40,16 @@ function MyPlugin:handleRequest(request, feather)
   -- Do something with the request and feather
 end
 
+function FeatherPlugin:handleActionRequest(request, feather)
+  --- Do something with the request and feather
+end
+
+function FeatherPlugin:handleParamsUpdate(request, feather)
+  --- Do something with the request and feather
+  return {}
+end
+
+
 function MyPlugin:finish(feather)
   -- Do something with the feather
 end
@@ -54,6 +66,33 @@ end
 return MyPlugin
 ```
 
+### Plugin lifecycle
+
+The FeatherPluginManager will handle the lifecycle of the plugin and call the appropriate functions. Here's a breakdown of the plugin lifecycle:
+
+#### Initialization
+
+- `init(config)`: This function is called when the plugin is initialized.
+- `getConfig()`: This function returns the configuration for the plugin when the Feather app is initialized. Sent to the client app.
+
+#### Request Handling
+
+- `handleRequest(request, feather)`: This function is called when a request is received. (GET)
+- `handleActionRequest(request, feather)`: This function is called when an action request is received. (POST)
+- `handleParamsUpdate(request, feather)`: This function is called when a params update request is received. (PUT)
+
+#### Update
+
+- `update(dt, feather)`: This function is called every frame. (Called after the request handling)
+
+#### Error Handling
+
+- `onerror(msg, feather)`: This function is called when an error occurs. Errors in this function will close the game abruptly. No frame is rendered after this function is called.
+
+#### finish
+
+- `finish(feather)`: This function is called when the server is closed.
+
 ## Registering a plugin
 
 To register a plugin, you need to create an instance of it and pass it to the FeatherPluginManager. The FeatherPluginManager will handle the lifecycle of the plugin and call the appropriate functions.
@@ -65,33 +104,6 @@ local plugin = FeatherPluginManager.createPlugin(MyPlugin, "my-plugin", {
   -- Plugin options
 })
 ```
-
-## Plugin lifecycle
-
-The FeatherPluginManager will handle the lifecycle of the plugin and call the appropriate functions. Here's a breakdown of the plugin lifecycle:
-
-### Initialization
-
-- `init(config)`: This function is called when the plugin is initialized.
-- `getConfig()`: This function returns the configuration for the plugin when the Feather app is initialized. Sent to the client app.
-
-### Request Handling
-
-- `handleRequest(request, feather)`: This function is called when a request is received. (GET)
-- `handleActionRequest(request, feather)`: This function is called when an action request is received. (POST)
-- `handleParamsUpdate(request, feather)`: This function is called when a params update request is received. (PUT)
-
-### Update
-
-- `update(dt, feather)`: This function is called every frame. (Called after the request handling)
-
-### Error Handling
-
-- `onerror(msg, feather)`: This function is called when an error occurs. Errors in this function will close the game abruptly. No frame is rendered after this function is called.
-
-### finish
-
-- `finish(feather)`: This function is called when the server is closed.
 
 ## Plugin options
 
@@ -162,6 +174,7 @@ Here are some examples of Feather plugins:
 
 - [Hump's Signal Plugin](../src-lua/plugins/hump/signal/README.md)
 - [Lua State Machine Plugin](../src-lua/plugins/lua-state-machine/README.md)
+- [Screenshot Plugin](../src-lua/plugins/screenshots/README.md)
 
 ## Plugin documentation
 

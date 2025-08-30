@@ -14,7 +14,7 @@ local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
 local serverUtils = require(PATH .. ".server_utils")
 
-local FEATHER_VERSION = "0.3.0"
+local FEATHER_VERSION = "0.4.0"
 
 ---@class Feather: FeatherConfig
 ---@field lastDelivery number
