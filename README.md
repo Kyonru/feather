@@ -80,6 +80,7 @@ end
 | `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                                                         |
 | `plugins`                  | `table`    | `{}`                | List of plugin modules to load. (Support Coming soon)                                                |
 | `captureScreenshot`        | `boolean`  | `false`             | Capture screenshots on error. WARNING: This impact performance and may cause lags. Use with caution. |
+| `apiKey`                   | `string`   | `""`                | API key to use for remote debugging.                                                                 |
 
 ---
 
@@ -157,6 +158,24 @@ Feather will automatically capture and log errors in real-time. You can also man
 Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Check out the [Feather Plugins](docs/plugins.md) repository for more information.
 
 ## Recommendations
+
+### Security
+
+the `apiKey` option is used to protect your game from unauthorized access. You can use it to remotely connect to your game and debug it. To use it, you need to set the `apiKey` option to a string value and then pass it to the debugger constructor. For example:
+
+```lua
+local debugger = FeatherDebugger({
+  apiKey = "your-api-key",
+})
+```
+
+In the feather app, you will need to set the `apiKey` option to the same value as the one you set in the game. This option is highly recommended.
+
+### Performance
+
+Feather is not meant to be used in production / final builds. It is meant to be used during development and debugging. To improve performance, you can set the `debug` option to `false` in the game.
+
+### In game observability
 
 - [OverlayStats](https://github.com/Oval-Tutu/bootstrap-love2d-project/blob/main/game/lib/overlayStats.lua) by [Oval-Tutu](https://github.com/Oval-Tutu) is a great way to visualize your game's performance in real-time on the game, the performance plugin is inspired by it.
 

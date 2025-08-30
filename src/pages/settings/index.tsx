@@ -106,6 +106,28 @@ const TextEditorInput = () => {
   );
 };
 
+const ApiKeyInput = () => {
+  const apiKey = useSettingsStore((state) => state.apiKey);
+  const setApiKey = useSettingsStore((state) => state.setApiKey);
+
+  return (
+    <div className="grid gap-3">
+      <Label htmlFor="api-key-1">API Key</Label>
+      <Input
+        id="api-key-1"
+        name="api-key"
+        value={apiKey}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (value) {
+            setApiKey(value);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
 export function SettingsModal() {
   const open = useSettingsStore((state) => state.open);
   const setOpen = useSettingsStore((state) => state.setOpen);
@@ -122,6 +144,7 @@ export function SettingsModal() {
           <ToggleTheme />
           <PortInput />
           <TextEditorInput />
+          <ApiKeyInput />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={reset}>

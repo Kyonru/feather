@@ -42,14 +42,21 @@ export const useLogs = (): {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
-  const { url: serverUrl } = useServer();
+  const { url: serverUrl, apiKey } = useServer();
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['logs'],
     queryFn: async (): Promise<Log[]> => {
       try {
-        const response = await timeout<Response>(3000, fetch(`${serverUrl}${ServerRoute.LOG}`));
+        const response = await timeout<Response>(
+          3000,
+          fetch(`${serverUrl}${ServerRoute.LOG}`, {
+            headers: {
+              'x-api-key': apiKey,
+            },
+          }),
+        );
 
         const raw = await response.json();
 
@@ -75,6 +82,9 @@ export const useLogs = (): {
           3000,
           fetch(`${serverUrl}${ServerRoute.LOG}?action=clear`, {
             method: 'POST',
+            headers: {
+              'x-api-key': apiKey,
+            },
           }),
         );
 
@@ -96,6 +106,9 @@ export const useLogs = (): {
           3000,
           fetch(`${serverUrl}${ServerRoute.LOG}?action=toggle-screenshots`, {
             method: 'POST',
+            headers: {
+              'x-api-key': apiKey,
+            },
           }),
         );
 

@@ -13,13 +13,20 @@ export function useConfig(): {
 } {
   const setConfig = useConfigStore((state) => state.setConfig);
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
-  const { url: serverUrl } = useServer();
+  const { url: serverUrl, apiKey } = useServer();
 
   const { isFetching, error, data, refetch } = useQuery({
     queryKey: ['config'],
     queryFn: async () => {
       try {
-        const response = await timeout<Response>(3000, fetch(`${serverUrl}${ServerRoute.CONFIG}?p=feather`));
+        const response = await timeout<Response>(
+          3000,
+          fetch(`${serverUrl}${ServerRoute.CONFIG}?p=feather`, {
+            headers: {
+              'x-api-key': apiKey,
+            },
+          }),
+        );
         const config = await response.json();
 
         setConfig(config);

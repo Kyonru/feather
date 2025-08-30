@@ -10,7 +10,7 @@ local wrapWith = require(PATH .. ".utils").wrapWith
 ---@field debug boolean
 ---@field wrapPrint boolean
 ---@field captureScreenshot boolean
----@field lastScreenshot string|love.ByteData
+---@field lastScreenshot any
 ---@field maxTempLogs number
 ---@field log fun(self: FeatherLogger, line: FeatherLine, screenshot?: boolean) Logs a line
 ---@field logger fun(...: any)
@@ -56,12 +56,7 @@ function FeatherLogger:update()
   self.lastScreenshot = nil
 
   love.graphics.captureScreenshot(function(img)
-    local fileData = img:encode("png")
-    local pngBytes = fileData:getString()
-
-    local b64 = love.data.encode("string", "base64", pngBytes)
-
-    self.lastScreenshot = b64
+    self.lastScreenshot = img
   end)
 end
 
@@ -102,7 +97,12 @@ function FeatherLogger:log(line, screenshot)
   end
 
   if screenshot then
-    line.screenshot = self.lastScreenshot
+    local fileData = self.lastScreenshot:encode("png")
+    local pngBytes = fileData:getString()
+
+    local b64 = love.data.encode("string", "base64", pngBytes)
+
+    line.screenshot = b64
   end
 
   line.id = tostring(os.time()) .. "-" .. tostring(#self.logs + 1)

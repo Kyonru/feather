@@ -9,7 +9,6 @@ export function createGif(images: string[], fps: number, width: number, height: 
   const cached = cache.get<string>(`gif:${images.join(',')}`);
 
   if (cached) {
-    console.log('Cache hit');
     return Promise.resolve(cached);
   }
 

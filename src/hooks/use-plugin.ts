@@ -36,7 +36,7 @@ export interface PluginContentProps {
 }
 
 export const usePluginAction = (url: string) => {
-  const { url: serverUrl } = useServer();
+  const { url: serverUrl, apiKey } = useServer();
   const [params, setParams] = useState<Record<string, string | boolean>>({});
 
   const mutation = useMutation({
@@ -52,6 +52,9 @@ export const usePluginAction = (url: string) => {
           3000,
           fetch(`${serverUrl}${urlWithParams}`, {
             method: 'POST',
+            headers: {
+              'x-api-key': apiKey,
+            },
           }),
         );
 
@@ -76,6 +79,9 @@ export const usePluginAction = (url: string) => {
           3000,
           fetch(`${serverUrl}${urlWithParams}`, {
             method: 'PUT',
+            headers: {
+              'x-api-key': apiKey,
+            },
           }),
         );
 
@@ -118,12 +124,12 @@ export const usePluginAction = (url: string) => {
 
 export function usePlugin(url: string) {
   const disconnected = useConfigStore((state) => state.disconnected);
-  const { url: serverUrl } = useServer();
+  const { url: serverUrl, apiKey } = useServer();
 
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: [serverUrl, url],
+    queryKey: [serverUrl, url, apiKey],
     queryFn: async (): Promise<PluginContentProps> => {
-      const response = await timeout<Response>(3000, fetch(`${serverUrl}${url}`));
+      const response = await timeout<Response>(3000, fetch(`${serverUrl}${url}`, { headers: { 'x-api-key': apiKey } }));
 
       const pluginData = (await response.json()) as PluginContentProps;
 
@@ -142,8 +148,6 @@ export function usePlugin(url: string) {
     refetchInterval: 1000,
     enabled: !disconnected,
   });
-
-  console.log(data);
 
   return {
     data: data || ({} as PluginContentProps),

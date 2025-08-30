@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.3.0] - 2025-08-25 - The one with global logs
+## [v0.3.0] - 2025-08-29 - The one with global logs
 
 ### Added
 
@@ -18,10 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add basic UI support for plugins
 - Add action support for plugins
 - Add screenshot option for error capture
+- Add api key support
 
 ### Changed
 
 - Logs should be fetched globally not in tab
+- Improve readme documentation
+- Improve request handling from server
 
 ---
 

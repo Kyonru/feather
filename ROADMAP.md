@@ -4,11 +4,9 @@
 
 - [ ] Editable observed variables
 - [ ] Add observed type, metadata
-- [ ] SPIKE: Explore gif creation
 - [ ] SPIKE: Asset viewer (textures, audio list)
 - [ ] Asset viewer (textures, audio list)
 - [ ] Table diffing in observed variables
-- [ ] Add Security Information section to README
 
 ---
 

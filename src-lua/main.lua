@@ -153,6 +153,7 @@ local debugger = FeatherDebugger({
   defaultObservers = true,
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
+  apiKey = "debugger",
   captureScreenshot = true,
   debug = true,
   plugins = {

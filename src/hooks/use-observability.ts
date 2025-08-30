@@ -13,13 +13,20 @@ export const useObservability = (): {
 } => {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
-  const { url: serverUrl } = useServer();
+  const { url: serverUrl, apiKey } = useServer();
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['observers'],
     queryFn: async (): Promise<Record<string, any>[]> => {
       try {
-        const response = await timeout<Response>(3000, fetch(`${serverUrl}${ServerRoute.OBSERVERS}`));
+        const response = await timeout<Response>(
+          3000,
+          fetch(`${serverUrl}${ServerRoute.OBSERVERS}`, {
+            headers: {
+              'x-api-key': apiKey,
+            },
+          }),
+        );
 
         const observers = (await response.json()) as Record<string, any>;
         return observers as Record<string, any>[];

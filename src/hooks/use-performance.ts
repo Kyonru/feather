@@ -84,13 +84,20 @@ export const usePerformance = (): {
 } => {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
-  const { url: serverUrl } = useServer();
+  const { url: serverUrl, apiKey } = useServer();
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['performance'],
     queryFn: async (): Promise<PerformanceMetrics[]> => {
       try {
-        const response = await timeout<Response>(3000, fetch(`${serverUrl}${ServerRoute.PERFORMANCE}`));
+        const response = await timeout<Response>(
+          3000,
+          fetch(`${serverUrl}${ServerRoute.PERFORMANCE}`, {
+            headers: {
+              'x-api-key': apiKey,
+            },
+          }),
+        );
 
         const performance = (await response.json()) as PerformanceMetrics;
 

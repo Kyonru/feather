@@ -7,16 +7,12 @@ local PATH = (...):gsub("%.init$", "")
 
 local Class = require(PATH .. ".lib.class")
 local errorhandler = require(PATH .. ".error_handler")
-local Performance = require(PATH .. ".plugins.performance")
 local FeatherPluginManager = require(PATH .. ".plugin_manager")
 local FeatherLogger = require(PATH .. ".plugins.logger")
 local FeatherObserver = require(PATH .. ".plugins.observer")
 local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
-local startsWith = require(PATH .. ".utils").startsWith
 local serverUtils = require(PATH .. ".server_utils")
-
-local performance = Performance()
 
 local FEATHER_VERSION = "0.3.0"
 
@@ -47,6 +43,7 @@ local customErrorHandler = errorhandler
 ---@field whitelist? table
 ---@field maxTempLogs? number
 ---@field updateInterval? number
+---@field apiKey? string
 ---@field defaultObservers? boolean
 ---@field captureScreenshot? boolean
 ---@field errorWait? number
@@ -67,6 +64,7 @@ function Feather:init(config)
   self.updateInterval = conf.updateInterval or 0.1
   self.defaultObservers = conf.defaultObservers or false
   self.captureScreenshot = conf.captureScreenshot or false
+  self.apiKey = conf.apiKey or ""
   ---TODO: find a better way to ensure that the error handler is called, maybe a thread?
   self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
@@ -223,81 +221,10 @@ function Feather:update(dt)
   end
 
   local client = self.server:accept()
-  if client then
-    client:settimeout(1)
 
-    local rawRequest = client:receive()
-    local request = serverUtils.buildRequest(rawRequest)
+  serverUtils.handleRequest(client, self, dt)
 
-    local addr = client:getsockname()
-    if not serverUtils.isInWhitelist(addr, self.whitelist) then
-      self:trace("non-whitelisted connection attempt: ", addr)
-      client:close()
-    end
-    if request then
-      local response = {}
-      if request.method == "GET" then
-        if request.path == "/config" then
-          response.data = self:__getConfig()
-        end
-
-        if request.path == "/logs" then
-          local bodyData = {
-            data = self.featherLogger.logs,
-            screenshotEnabled = self.captureScreenshot,
-          }
-          response.data = bodyData
-          self.lastDelivery = os.time()
-        end
-
-        if request.path == "/performance" then
-          response.data = performance:getResponseBody(dt)
-        end
-
-        if request.path == "/observers" then
-          response.data = self.featherObserver:getResponseBody()
-        end
-
-        if request.path ~= nil and startsWith(request.path, "/plugins") then
-          local pluginResponse = self.pluginManager:handleRequest(request, self)
-
-          response.data = pluginResponse
-        end
-      end
-
-      if request.method == "OPTIONS" then
-        if request.path ~= nil and startsWith(request.path, "/plugins") then
-          self.featherLogger.logger(request.path, request.params.action, request.params.duration, request.params.fps)
-          local pluginResponse = self.pluginManager:handleParamsUpdate(request, self)
-
-          response.data = pluginResponse
-        end
-      end
-
-      if request.method == "POST" then
-        if request.path == "/logs" then
-          if request.params.action == "clear" then
-            self.featherLogger:clear()
-          end
-
-          if request.params.action == "toggle-screenshots" then
-            self:toggleScreenshots(not self.captureScreenshot)
-          end
-        end
-
-        if request.path ~= nil and startsWith(request.path, "/plugins") then
-          local pluginResponse = self.pluginManager:handleActionRequest(request, self)
-
-          response.data = pluginResponse
-        end
-      end
-
-      client:send(serverUtils.createResponse(response.data or {}))
-    end
-
-    client:close()
-  end
-  self.featherLogger:update(dt)
+  self.featherLogger:update()
   self.pluginManager:update(dt, self)
 end
 
