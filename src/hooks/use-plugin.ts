@@ -14,15 +14,18 @@ export type ScreenshotType = {
 
 export type GifType = {
   type: 'gif';
+  name: string;
   src: string[];
   width: number;
   height: number;
+  downloadable: boolean;
   fps: number;
 };
 
 export interface PluginContentImageType {
   type: 'image';
   name: string;
+  downloadable: boolean;
   metadata: ScreenshotType | GifType;
 }
 

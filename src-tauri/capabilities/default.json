@@ -32,6 +32,9 @@
           "url": "https://github.com/Kyonru/feather/releases/*"
         }
       ]
-    }
+    },
+    "fs:default",
+    "fs:allow-download-write",
+    "fs:allow-download-write-recursive"
   ]
 }

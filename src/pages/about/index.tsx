@@ -103,6 +103,8 @@ export function AboutModal() {
               </div>
             </Label>
           )}
+        </DialogFooter>
+        <DialogFooter className="sm:justify-start">
           {!isLatestVersion && (
             <Label className="w-full hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 border-cyan-600 bg-cyan-50 dark:border-cyan-900 dark:bg-cyan-950">
               <div className="grid gap-1.5 font-normal">
@@ -118,7 +120,8 @@ export function AboutModal() {
               </div>
             </Label>
           )}
-
+        </DialogFooter>
+        <DialogFooter className="justify-start">
           <div className="flex flex-row gap-1">
             <Tooltip>
               <TooltipTrigger>

@@ -5,11 +5,29 @@ const ONE_DAY = 24 * 60 * 60 * 1000;
 
 const cache = new LocalCache('gif', ONE_DAY);
 
-export function createGif(images: string[], fps: number, width: number, height: number): Promise<string> {
-  const cached = cache.get<string>(`gif:${images.join(',')}`);
+export async function createGif({
+  name,
+  images,
+  fps,
+  width,
+  height,
+}: {
+  name: string;
+  images: string[];
+  fps: number;
+  width: number;
+  height: number;
+}): Promise<string> {
+  const cached = cache.get<string>(name);
 
   if (cached) {
-    return Promise.resolve(cached);
+    try {
+      await fetch(cached).then((res) => res.ok);
+
+      return Promise.resolve(cached);
+    } catch {
+      // Do nothing
+    }
   }
 
   return new Promise((resolve, reject) => {
@@ -45,7 +63,7 @@ export function createGif(images: string[], fps: number, width: number, height: 
             const url = URL.createObjectURL(blob);
 
             // Cache for 3 days
-            cache.set(`gif:${images.join(',')}`, url, 3);
+            cache.set(name, url, 3);
             resolve(url);
           });
           gif.render();
@@ -59,4 +77,11 @@ export function createGif(images: string[], fps: number, width: number, height: 
       img.src = src.startsWith('data:image') ? src : `data:image/png;base64,${src}`;
     });
   });
+}
+
+export async function fetchBlobAsUint8Array(url: string): Promise<Uint8Array> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  const arrayBuffer = await blob.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }

@@ -102,6 +102,9 @@ export const useLogs = (): {
   const enableScreenshotsMutation = useMutation({
     mutationFn: async () => {
       try {
+        // Optimistic update
+        setScreenshotEnabled((prev) => !prev);
+
         await timeout<Response>(
           3000,
           fetch(`${serverUrl}${ServerRoute.LOG}?action=toggle-screenshots`, {

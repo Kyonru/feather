@@ -9,6 +9,7 @@ local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
 local Signal = require("demo.lib.hump.signal")
 local machine = require("demo.lib.statemachine")
+local Game = require("demo.tetris")
 
 local function error_printer(msg, layer)
   print((debug.traceback("Error: " .. tostring(msg), 1 + (layer or 1)):gsub("\n[^\n]+$", "")))
@@ -210,15 +211,11 @@ function love.load()
       { name = "clear", from = "yellow", to = "green" },
     },
   })
+  Game.load()
 end
 
 function love.draw()
-  love.graphics.circle(
-    "fill",
-    love.graphics.getHeight() / 2 + 100 * math.sin(time),
-    love.graphics.getHeight() / 2 + 100 * math.cos(time),
-    10
-  )
+  Game.draw()
 end
 
 function love.update(dt)
@@ -245,6 +242,7 @@ function love.update(dt)
   else
     counter = 0
   end
+  Game.update(dt)
 end
 
 function love.keypressed(key)
@@ -267,4 +265,5 @@ function love.keypressed(key)
   elseif key == "f2" then
     debugger:action("screenshots", "gif", { duration = 3, fps = 60 })
   end
+  Game.keypressed(key)
 end

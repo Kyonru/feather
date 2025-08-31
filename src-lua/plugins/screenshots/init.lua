@@ -157,6 +157,7 @@ function ScreenshotPlugin:getResponseBody()
         height = self.height,
         fps = item.fps,
       },
+      downloadable = true,
       name = item.name,
     })
   end
