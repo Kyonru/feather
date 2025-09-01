@@ -5,21 +5,32 @@ import onDark from '@/assets/theme/dark';
 
 import { cn } from '@/utils/styles';
 import { useTheme } from '@/hooks/use-theme';
+import { useLanguage } from '@/hooks/use-config';
 
-export function LuaBlock({ code, className }: { code: string; className?: string }) {
+export function LuaBlock({
+  code,
+  className,
+  showLineNumbers = true,
+}: {
+  code: string;
+  className?: string;
+  showLineNumbers?: boolean;
+}) {
   const theme = useTheme();
   const style = theme === 'dark' ? onDark : oneLight;
+
+  const language = useLanguage();
 
   return (
     <ScrollArea className="mt-2 w-full rounded border bg-muted p-2 font-mono text-xs">
       <div className={cn('max-h-64', className)}>
         <SyntaxHighlighter
           wrapLines
-          language="lua"
+          language={language}
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-expect-error
           style={style}
-          showLineNumbers
+          showLineNumbers={showLineNumbers}
         >
           {code}
         </SyntaxHighlighter>

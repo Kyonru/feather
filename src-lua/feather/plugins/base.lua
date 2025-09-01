@@ -12,6 +12,7 @@ local Class = require(PATH .. ".lib.class")
 ---@field handleRequest fun(self: FeatherPlugin, request: table, feather: Feather): ...
 ---@field handleActionRequest fun(self: FeatherPlugin, request: table, feather: Feather): ...
 ---@field handleParamsUpdate fun(self: FeatherPlugin, request: table, feather: Feather): ...
+---@field isSupported fun(self: FeatherPlugin, version: number): boolean
 ---@field finish fun(self: FeatherPlugin, feather: Feather): ...
 ---@field getConfig fun(self: FeatherPlugin): table
 local FeatherPlugin = Class({})
@@ -40,6 +41,13 @@ end
 
 function FeatherPlugin:handleParamsUpdate()
   return {}
+end
+
+--- Verify if the plugin is supported by the current plugin api version of Feather
+---@param version number
+function FeatherPlugin:isSupported(version)
+  -- By default, all api versions are supported
+  return version > 0
 end
 
 function FeatherPlugin:finish()

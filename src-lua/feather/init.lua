@@ -14,7 +14,13 @@ local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
 local serverUtils = require(PATH .. ".server_utils")
 
-local FEATHER_VERSION = "0.4.0"
+local FEATHER_VERSION_NAME = "0.4.0"
+local FEATHER_API = 1
+
+local FEATHER_VERSION = {
+  name = FEATHER_VERSION_NAME,
+  api = FEATHER_API,
+}
 
 ---@class Feather: FeatherConfig
 ---@field lastDelivery number
@@ -29,6 +35,7 @@ local FEATHER_VERSION = "0.4.0"
 ---@field update fun(self: Feather, dt: number) Updates the Feather instance
 ---@field protected __onerror fun(self: Feather, msg: string, finish: boolean)
 ---@field protected __getConfig fun(self: Feather): FeatherConfig
+---@field protected __setConfig fun(self: Feather, params: table): FeatherConfig
 ---@field protected __errorTraceback fun(self: Feather, msg: string): string
 local Feather = Class({})
 
@@ -43,6 +50,9 @@ local customErrorHandler = errorhandler
 ---@field whitelist? table
 ---@field maxTempLogs? number
 ---@field updateInterval? number
+---@field sampleRate? number
+---@field version? number
+---@field versionName? string
 ---@field apiKey? string
 ---@field defaultObservers? boolean
 ---@field captureScreenshot? boolean
@@ -62,6 +72,7 @@ function Feather:init(config)
   self.whitelist = conf.whitelist or { "127.0.0.1" }
   self.maxTempLogs = conf.maxTempLogs or 200
   self.updateInterval = conf.updateInterval or 0.1
+  self.sampleRate = conf.sampleRate or 1
   self.defaultObservers = conf.defaultObservers or false
   self.captureScreenshot = conf.captureScreenshot or false
   self.apiKey = conf.apiKey or ""
@@ -71,6 +82,8 @@ function Feather:init(config)
   self.plugins = conf.plugins or {}
   self.lastDelivery = 0
   self.lastError = 0
+  self.version = FEATHER_VERSION.api
+  self.versionName = FEATHER_VERSION.name
 
   if not self.debug then
     return
@@ -128,10 +141,21 @@ function Feather:__getConfig()
   local config = {
     plugins = self.pluginManager:getConfig(),
     root_path = root_path,
-    version = FEATHER_VERSION,
+    version = FEATHER_VERSION.name,
+    API = FEATHER_VERSION.api,
+    sampleRate = self.sampleRate,
+    language = "lua",
   }
 
   return config
+end
+
+function Feather:__setConfig(params)
+  self.sampleRate = params.sampleRate or 1
+  self.updateInterval = params.updateInterval or 0.1
+  self.maxTempLogs = params.maxTempLogs or 200
+
+  return self:__getConfig()
 end
 
 function Feather:__errorTraceback(msg)

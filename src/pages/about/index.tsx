@@ -61,7 +61,7 @@ export function AboutModal() {
           <DialogDescription>Information about the current client and server versions.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-y-6 gap-x-8 py-4">
+        <div className="grid grid-cols-3 gap-y-6 gap-x-8 py-4">
           <div className="flex flex-col gap-1">
             <span className="font-medium text-muted-foreground">Current Version</span>
             <span className="text-chart-1">v{version}</span>
@@ -70,6 +70,11 @@ export function AboutModal() {
           <div className="flex flex-col gap-1">
             <span className="font-medium text-muted-foreground">Server Version</span>
             <span className="text-chart-3">{config?.version ? `v${config.version}` : 'Unknown'}</span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="font-medium text-muted-foreground">Plugins API</span>
+            <span className="text-chart-4">{config?.API ? `${config.API}` : 'Unknown'}</span>
           </div>
 
           <div className="flex flex-col gap-1">

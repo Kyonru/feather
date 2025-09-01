@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/store/settings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useConfig } from '@/hooks/use-config';
+import { useConfigStore } from '@/store/config';
 
 const ToggleTheme = () => {
   const theme = useSettingsStore((state) => state.theme);
@@ -128,6 +130,31 @@ const ApiKeyInput = () => {
   );
 };
 
+const SampleRateInput = () => {
+  const apiKey = useConfigStore((state) => state.config?.sampleRate);
+  const { updateSampleRate } = useConfig();
+
+  return (
+    <div className="grid gap-3">
+      <Label htmlFor="api-key-1">Sample Rate (seconds)</Label>
+      <Input
+        id="api-key-1"
+        name="api-key"
+        type="number"
+        min={1}
+        max={100}
+        value={apiKey}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (value) {
+            updateSampleRate(value as unknown as number);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
 export function SettingsModal() {
   const open = useSettingsStore((state) => state.open);
   const setOpen = useSettingsStore((state) => state.setOpen);
@@ -145,6 +172,7 @@ export function SettingsModal() {
           <PortInput />
           <TextEditorInput />
           <ApiKeyInput />
+          <SampleRateInput />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={reset}>

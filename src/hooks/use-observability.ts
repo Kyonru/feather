@@ -4,6 +4,7 @@ import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
 import { useQuery } from '@tanstack/react-query';
 import { useServer } from './use-server';
+import { useSampleRate } from './use-config';
 
 export const useObservability = (): {
   data: Record<string, any>[];
@@ -13,6 +14,7 @@ export const useObservability = (): {
 } => {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
+  const sampleRate = useSampleRate();
   const { url: serverUrl, apiKey } = useServer();
 
   const { isPending, error, data, refetch } = useQuery({
@@ -35,8 +37,7 @@ export const useObservability = (): {
         return [];
       }
     },
-    // TODO: use config
-    refetchInterval: 1000,
+    refetchInterval: sampleRate * 1000,
     enabled: !disconnected,
   });
 

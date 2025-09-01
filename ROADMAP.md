@@ -3,19 +3,17 @@
 ## 0.4.0 – Performance & Assets
 
 - [ ] Editable observed variables
-- [ ] Add observed type, metadata
 - [ ] SPIKE: Asset viewer (textures, audio list)
 - [ ] Asset viewer (textures, audio list)
 - [ ] Table diffing in observed variables
+- [ ] Versioned plugin compatibility
 
 ---
 
 ## 0.5.0 – Community Release
 
-- [ ] Plugin API improvements
 - [ ] Expression evaluator (`eval` in game)
 - [ ] Entity/component list
-- [ ] Bounding box overlay toggle
 - [ ] Remote connect to other devices
 - [ ] Polish, branding, and onboarding docs
 
@@ -24,9 +22,6 @@
 ## 0.6.0 – Stability & Compatibility
 
 - [ ] Full OS & Love2D version testing (Windows/macOS/Linux)
-- [ ] Add remote debugging with WebSockets
-- [ ] Fix edge cases for large log/variable data
-- [ ] Configurable performance sampling interval
 - [ ] Low-overhead mode for production builds, scripts and plugins to disable code in production
 
 ---
@@ -35,10 +30,7 @@
 
 - [ ] Add Tests
 - [ ] Connect to multiple servers / games
-- [ ] Stable public plugin API documentation
 - [ ] Runtime load/unload plugins
-- [ ] Versioned plugin compatibility
-- [ ] Example plugin repository for community use
 
 ---
 
@@ -67,5 +59,7 @@
 - [ ] Public plugin library launch
 - [ ] Announce to broader gamedev communities
 - [ ] Add i18n support
+- [ ] Add remote debugging with WebSockets
+- [ ] Add multiple engine support
 
 ---

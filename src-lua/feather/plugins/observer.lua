@@ -35,7 +35,7 @@ function FeatherObserver:observe(key, value)
     end
   end
 
-  table.insert(self.observers, { key = key, value = curr })
+  table.insert(self.observers, { key = key, value = curr, type = type(value) })
 end
 
 function FeatherObserver:__defaultObservers()

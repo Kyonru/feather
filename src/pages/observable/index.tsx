@@ -36,7 +36,17 @@ export function ObserveSidePanel({
 
             <CopyButton value={data.value} />
           </div>
-          <LuaBlock className="max-h-[100%]" code={data.value} />
+          <LuaBlock className="max-h-[100%]" code={data.value} showLineNumbers={false} />
+        </div>
+
+        <Separator />
+      </CardContent>
+      <CardContent className="space-y-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Type</span>
+          </div>
+          <LuaBlock className="max-h-[100%]" code={data.type} showLineNumbers={false} />
         </div>
 
         <Separator />

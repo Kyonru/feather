@@ -3,6 +3,7 @@ import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
 import { useQuery } from '@tanstack/react-query';
 import { useServer } from './use-server';
+import { useSampleRate } from './use-config';
 
 type SystemInfo = {
   arch: string;
@@ -85,6 +86,7 @@ export const usePerformance = (): {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
   const { url: serverUrl, apiKey } = useServer();
+  const sampleRate = useSampleRate();
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['performance'],
@@ -109,8 +111,7 @@ export const usePerformance = (): {
         return (data || []) as PerformanceMetrics[];
       }
     },
-    // TODO: use config
-    refetchInterval: 1000,
+    refetchInterval: sampleRate * 1000,
     enabled: !disconnected,
   });
 

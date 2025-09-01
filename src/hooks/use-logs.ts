@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useServer } from './use-server';
 import { useSettingsStore } from '@/store/settings';
 import { useState } from 'react';
+import { useSampleRate } from './use-config';
 
 export enum LogType {
   OUTPUT = 'output',
@@ -44,6 +45,7 @@ export const useLogs = (): {
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const { url: serverUrl, apiKey } = useServer();
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
+  const sampleRate = useSampleRate();
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['logs'],
@@ -70,8 +72,7 @@ export const useLogs = (): {
         return (data || []) as Log[];
       }
     },
-    // TODO: use config
-    refetchInterval: 1000,
+    refetchInterval: sampleRate * 1000,
     enabled: !disconnected && !pausedLogs,
   });
 

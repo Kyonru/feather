@@ -37,6 +37,13 @@ function FeatherPluginManager:init(feather, logger, observer)
         instance = pluginInstance,
         identifier = plugin.identifier,
       })
+
+      if not pluginInstance:isSupported(feather.version) then
+        self.logger:log({
+          type = "error",
+          str = "Plugin <" .. plugin.identifier .. "> is not supported by the current version of Feather",
+        })
+      end
     else
       self.logger:log({ type = "error", str = debug.traceback(pluginInstance) })
     end

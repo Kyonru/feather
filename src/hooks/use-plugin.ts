@@ -4,6 +4,7 @@ import { useConfigStore } from '@/store/config';
 import { useServer } from './use-server';
 import { debounce, timeout } from '@/utils/timers';
 import { unionBy } from '@/utils/arrays';
+import { useSampleRate } from './use-config';
 
 export type ScreenshotType = {
   type: 'png';
@@ -127,6 +128,7 @@ export const usePluginAction = (url: string) => {
 
 export function usePlugin(url: string) {
   const disconnected = useConfigStore((state) => state.disconnected);
+  const sampleRate = useSampleRate();
   const { url: serverUrl, apiKey } = useServer();
 
   const { isPending, error, data, refetch } = useQuery({
@@ -147,8 +149,7 @@ export function usePlugin(url: string) {
 
       return pluginData;
     },
-    // TODO: use config
-    refetchInterval: 1000,
+    refetchInterval: sampleRate * 1000,
     enabled: !disconnected,
   });
 

@@ -116,6 +116,79 @@ function server.createResponse(body)
   return server.buildResponse(json.encode(body))
 end
 
+--- Handle get request
+local function handleGetRequest(request, feather, dt)
+  local data = {}
+
+  if request.path == "/config" then
+    data = feather:__getConfig()
+  end
+
+  if request.path == "/logs" then
+    local bodyData = {
+      data = feather.featherLogger.logs,
+      screenshotEnabled = feather.captureScreenshot,
+    }
+    data = bodyData
+    feather.lastDelivery = os.time()
+  end
+
+  if request.path == "/performance" then
+    data = performance:getResponseBody(dt)
+  end
+
+  if request.path == "/observers" then
+    data = feather.featherObserver:getResponseBody()
+  end
+
+  if request.path ~= nil and startsWith(request.path, "/plugins") then
+    local pluginResponse = feather.pluginManager:handleRequest(request, feather)
+
+    data = pluginResponse
+  end
+
+  return data
+end
+
+--- Handle params update request
+local function handlePutRequest(request, feather)
+  local data = {}
+
+  if request.path == "/config" then
+    feather:__setConfig(request.params)
+  end
+
+  if request.path ~= nil and startsWith(request.path, "/plugins") then
+    local pluginResponse = feather.pluginManager:handleParamsUpdate(request, feather)
+
+    data = pluginResponse
+  end
+
+  return data
+end
+
+--- Handle actions request
+local function handlePostRequest(request, feather)
+  local data = {}
+  if request.path == "/logs" then
+    if request.params.action == "clear" then
+      feather.featherLogger:clear()
+    end
+
+    if request.params.action == "toggle-screenshots" then
+      feather:toggleScreenshots(not feather.captureScreenshot)
+    end
+  end
+
+  if request.path ~= nil and startsWith(request.path, "/plugins") then
+    local pluginResponse = feather.pluginManager:handleActionRequest(request, feather)
+
+    data = pluginResponse
+  end
+
+  return data
+end
+
 -- Handle a request from a client
 ---@param client table
 ---@param feather Feather
@@ -151,58 +224,15 @@ function server.handleRequest(client, feather, dt)
       end
 
       if request.method == "GET" then
-        if request.path == "/config" then
-          response.data = feather:__getConfig()
-        end
-
-        if request.path == "/logs" then
-          local bodyData = {
-            data = feather.featherLogger.logs,
-            screenshotEnabled = feather.captureScreenshot,
-          }
-          response.data = bodyData
-          feather.lastDelivery = os.time()
-        end
-
-        if request.path == "/performance" then
-          response.data = performance:getResponseBody(dt)
-        end
-
-        if request.path == "/observers" then
-          response.data = feather.featherObserver:getResponseBody()
-        end
-
-        if request.path ~= nil and startsWith(request.path, "/plugins") then
-          local pluginResponse = feather.pluginManager:handleRequest(request, feather)
-
-          response.data = pluginResponse
-        end
+        response.data = handleGetRequest(request, feather, dt)
       end
 
       if request.method == "PUT" then
-        if request.path ~= nil and startsWith(request.path, "/plugins") then
-          local pluginResponse = feather.pluginManager:handleParamsUpdate(request, feather)
-
-          response.data = pluginResponse
-        end
+        response.data = handlePutRequest(request, feather)
       end
 
       if request.method == "POST" then
-        if request.path == "/logs" then
-          if request.params.action == "clear" then
-            feather.featherLogger:clear()
-          end
-
-          if request.params.action == "toggle-screenshots" then
-            feather:toggleScreenshots(not feather.captureScreenshot)
-          end
-        end
-
-        if request.path ~= nil and startsWith(request.path, "/plugins") then
-          local pluginResponse = feather.pluginManager:handleActionRequest(request, feather)
-
-          response.data = pluginResponse
-        end
+        response.data = handlePostRequest(request, feather)
       end
 
       client:send(server.createResponse(response.data or {}))
