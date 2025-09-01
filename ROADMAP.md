@@ -1,17 +1,11 @@
 # Feather Roadmap
 
-## 0.4.0 – Performance & Assets
+## 0.5.0 – Community Release
 
 - [ ] Editable observed variables
 - [ ] SPIKE: Asset viewer (textures, audio list)
 - [ ] Asset viewer (textures, audio list)
 - [ ] Table diffing in observed variables
-- [ ] Versioned plugin compatibility
-
----
-
-## 0.5.0 – Community Release
-
 - [ ] Expression evaluator (`eval` in game)
 - [ ] Entity/component list
 - [ ] Remote connect to other devices

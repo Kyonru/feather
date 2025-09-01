@@ -40,13 +40,18 @@ function MyPlugin:handleRequest(request, feather)
   -- Do something with the request and feather
 end
 
-function FeatherPlugin:handleActionRequest(request, feather)
+function MyPlugin:handleActionRequest(request, feather)
   --- Do something with the request and feather
 end
 
-function FeatherPlugin:handleParamsUpdate(request, feather)
+function MyPlugin:handleParamsUpdate(request, feather)
   --- Do something with the request and feather
   return {}
+end
+
+function MyPlugin:isSupported(version)
+  -- Return true if the plugin is supported by the current version of teh Plugin API
+  return version > 0
 end
 
 function MyPlugin:finish(feather)
