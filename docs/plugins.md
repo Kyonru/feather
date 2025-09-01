@@ -49,7 +49,6 @@ function FeatherPlugin:handleParamsUpdate(request, feather)
   return {}
 end
 
-
 function MyPlugin:finish(feather)
   -- Do something with the feather
 end

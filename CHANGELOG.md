@@ -5,13 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.4.0]
+## [v0.4.0] - 2025-09-01 - The one with screenshots download
 
 ### Added
 
-- Configurable sampling interval
+- Add Configurable sampling interval
+- Add download button for screenshots
+- Add plugin `isSupported` function
+- Add set config endpoint
+- Add server language initial support (needs more changes to fully support other languages than Lua)
 
 ### Changed
+
+- Update roadmap
+- Refact server utils
+- Update Demo App
+- Fix bug with cache keys
 
 ## [v0.3.0] - 2025-08-29 - The one with global logs
 
