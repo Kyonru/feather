@@ -25,6 +25,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 1. **Download Feather**
 
 - Download the latest release from the [releases page](https://github.com/Kyonru/feather/releases)
+- Copy the `feather/` folder and put it in your project folder
 - Or install it via [Luarocks](https://luarocks.org/modules/kyonru/feather)
 
   ```bash
@@ -34,7 +35,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 1. **Require Feather**
 
    ```lua
-   local Feather = require "feather"
+   local Feather = require "feather" -- or the location of the feather folder
    ```
 
 ---
@@ -156,6 +157,64 @@ Feather will automatically capture and log errors in real-time. You can also man
 ## Plugins
 
 Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Check out the [Feather Plugins](docs/plugins.md) repository for more information.
+
+### TL;DR
+
+Minimal example of a debugger file to load feather
+
+```lua
+-- debugger.lua
+local FeatherDebugger = require("lib.feather")
+local FeatherPluginManager = require("lib.feather.plugin_manager")
+local LuaStateMachinePlugin = require("lib.feather.plugins.state-machine")
+local HumpSignalPlugin = require("lib.feather.plugins.signal")
+local ScreenshotPlugin = require("lib.feather.plugins.screenshots")
+
+local debugger = {}
+
+function debugger:load()
+  debugger.feather = FeatherDebugger({
+    debug = true, -- Make sure to only run while on development
+    apiKey = "debugger",
+    wrapPrint = true,
+    defaultObservers = true,
+    captureScreenshot = true,
+    autoRegisterErrorHandler = true,
+    errorWait = 10,
+    baseDir = "game",
+    plugins = {
+      FeatherPluginManager.createPlugin(LuaStateMachinePlugin, "lua-state-machine", {
+        --- https://github.com/kyleconroy/lua-state-machine
+        machine = StateMachine,
+      }),
+      FeatherPluginManager.createPlugin(HumpSignalPlugin, "hump.signal", {
+        -- https://hump.readthedocs.io/en/latest/signal.html
+        signal = Signal,
+        register = {
+          "emit",
+          "register",
+          "remove",
+          "emitPattern",
+          "registerPattern",
+          "removePattern",
+          "clearPattern",
+        },
+      }),
+      FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
+        screenshotDirectory = "screenshots", -- output folder for captures
+        fps = 60, -- frames per second for GIFs
+        gifDuration = 5, -- default duration of GIFs in seconds
+      }),
+    },
+  })
+end
+
+function debugger:update(dt)
+  debugger.feather:update(dt)
+end
+
+return debugger
+```
 
 ## Recommendations
 

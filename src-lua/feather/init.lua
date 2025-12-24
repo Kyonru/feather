@@ -109,6 +109,10 @@ function Feather:init(config)
     local selfRef = self -- capture `self` to avoid upvalue issues
 
     function love.errorhandler(msg)
+      if not msg then
+        msg = "Unknown error"
+      end
+
       selfRef:__onerror(msg, true) -- Log the error first
 
       local function isDelivered()

@@ -96,13 +96,23 @@ function FeatherLogger:log(line, screenshot)
     return
   end
 
-  if screenshot then
-    local fileData = self.lastScreenshot:encode("png")
-    local pngBytes = fileData:getString()
+  if screenshot and self.captureScreenshot then
+    local takeScreenshot = function()
+      if not self.lastScreenshot then
+        return
+      end
 
-    local b64 = love.data.encode("string", "base64", pngBytes)
+      local fileData = self.lastScreenshot:encode("png")
+      local pngBytes = fileData:getString()
 
-    line.screenshot = b64
+      local b64 = love.data.encode("string", "base64", pngBytes)
+      line.screenshot = b64
+    end
+
+    local result, err = pcall(takeScreenshot)
+    if not result then
+      print("Error capturing screenshot: " .. tostring(err))
+    end
   end
 
   line.id = tostring(os.time()) .. "-" .. tostring(#self.logs + 1)
