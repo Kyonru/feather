@@ -14,7 +14,7 @@ local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
 local serverUtils = require(PATH .. ".server_utils")
 
-local FEATHER_VERSION_NAME = "0.5.0"
+local FEATHER_VERSION_NAME = "0.4.1"
 local FEATHER_API = 2
 
 local FEATHER_VERSION = {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Feather",
-  "version": "0.5.0",
+  "version": "0.4.1",
   "identifier": "com.kyonru.love.feather",
   "build": {
     "beforeDevCommand": "npm run dev",
