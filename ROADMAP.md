@@ -2,14 +2,17 @@
 
 ## 0.5.0 – Community Release
 
-- [ ] Editable observed variables
-- [ ] SPIKE: Asset viewer (textures, audio list)
-- [ ] Asset viewer (textures, audio list)
-- [ ] Table diffing in observed variables
-- [ ] Expression evaluator (`eval` in game)
-- [ ] Entity/component list
-- [ ] Remote connect to other devices
-- [ ] Polish, branding, and onboarding docs
+- [ ] Add sentry for crash reporting
+- [ ] Add optional opt in telemetry
+- [ ] Add privacy policy
+- [ ] Fix layout bugs
+  - [ ] Large names
+  - [ ] Scrolling issues
+  - [ ] Performance graph curve
+- New Plugins
+  - [ ] SPIKE: Asset viewer (textures, audio list)
+    - [ ] Asset viewer (textures, audio list)
+  - File Logger: https://github.com/Saturn91/LoveLogger
 
 ---
 
@@ -17,6 +20,12 @@
 
 - [ ] Full OS & Love2D version testing (Windows/macOS/Linux)
 - [ ] Low-overhead mode for production builds, scripts and plugins to disable code in production
+- [ ] Editable observed variables
+- [ ] Table diffing in observed variables
+- [ ] Expression evaluator (`eval` in game)
+- [ ] Entity/component list
+- [ ] Remote connect to other devices
+- [ ] Polish, branding, and onboarding docs
 
 ---
 
