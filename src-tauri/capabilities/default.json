@@ -35,6 +35,13 @@
     },
     "fs:default",
     "fs:allow-download-write",
-    "fs:allow-download-write-recursive"
+    "fs:allow-download-write-recursive",
+    "fs:read-all",
+    "fs:allow-read",
+    "fs:allow-read-file",
+    "fs:allow-data-read",
+    "fs:allow-data-read-recursive",
+    "fs:allow-applocaldata-read-recursive",
+    "fs:allow-app-read-recursive"
   ]
 }

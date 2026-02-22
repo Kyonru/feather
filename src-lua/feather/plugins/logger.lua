@@ -4,16 +4,33 @@ local Class = require(PATH .. ".lib.class")
 local Base = require(PATH .. ".plugins.base")
 local format = require(PATH .. ".utils").format
 local wrapWith = require(PATH .. ".utils").wrapWith
+local json = require(PATH .. ".lib.json")
+local log = require(PATH .. ".lib.log")
+
+--- "output" | "trace" | "error" | "feather:finish" | "feather:start" | "output" | "error"
+---
+--- trace | debug | info | warn | error | fatal
+
+local types = {
+  output = "debug",
+  trace = "trace",
+  error = "error",
+  warn = "warn",
+  fatal = "fatal",
+  ["feather:finish"] = "info",
+  ["feather:start"] = "info",
+}
 
 ---@class FeatherLogger: FeatherPlugin
----@field logs FeatherLine[]
 ---@field debug boolean
 ---@field wrapPrint boolean
 ---@field captureScreenshot boolean
 ---@field lastScreenshot any
+---@field outfile string
+---@field last_log FeatherLine
 ---@field maxTempLogs number
 ---@field log fun(self: FeatherLogger, line: FeatherLine, screenshot?: boolean) Logs a line
----@field logger fun(...: any)
+---@field logger fun(self: FeatherLogger, ...: any)
 ---@field print fun(self: FeatherLogger, ...: any)
 ---@field clear fun(self: FeatherLogger)
 ---@field protected __countOnRepeat fun(self: FeatherLogger, type: LogType, ...: any)
@@ -21,23 +38,31 @@ local wrapWith = require(PATH .. ".utils").wrapWith
 local FeatherLogger = Class({
   __includes = Base,
   init = function(self, config)
-    self.logs = {}
     self.debug = config.debug
     self.wrapPrint = config.wrapPrint
     self.maxTempLogs = config.maxTempLogs
     self.captureScreenshot = config.captureScreenshot
     self.lastScreenshot = nil
+    self.last_log = nil
+
+    local cwd = love.filesystem.getSaveDirectory()
+
+    love.filesystem.createDirectory("logs")
+
+    local logdir = cwd .. "/logs"
+
+    local logfile = logdir .. "/" .. os.date("%Y-%m-%d_%H:%M:%S") .. "_" .. config.outfile
+
+    log.outfile = logfile
+    log.usecolor = false
+
+    self.outfile = logfile
 
     -- Wrap print
-    self.logger = print
     if self.wrapPrint then
-      local logger = print
-
       local selfRef = self -- capture `self` to avoid upvalue issues
 
-      --
       print = function(...)
-        logger(...)
         selfRef.print(self, ...)
       end
     end
@@ -70,7 +95,7 @@ function FeatherLogger:__countOnRepeat(type, ...)
   end
 
   local str = format(...)
-  local last = self.logs[#self.logs]
+  local last = self.last_log
   if last and str == last.str then
     -- Update last line if this line is a duplicate of it
     last.time = os.time()
@@ -96,6 +121,10 @@ function FeatherLogger:log(line, screenshot)
     return
   end
 
+  if self.last_log and self.last_log.str == line.str then
+    return
+  end
+
   if screenshot and self.captureScreenshot then
     local takeScreenshot = function()
       if not self.lastScreenshot then
@@ -115,21 +144,24 @@ function FeatherLogger:log(line, screenshot)
     end
   end
 
-  line.id = tostring(os.time()) .. "-" .. tostring(#self.logs + 1)
+  line.id = tostring(os.time())
   line.time = os.time()
   line.count = 1
   line.trace = debug.traceback()
 
-  table.insert(self.logs, line)
+  self.last_log = line
 
-  --- Find a way to avoid deleting incoming logs
-  if #self.logs > self.maxTempLogs then
-    table.remove(self.logs, 1)
-  end
+  local logType = types[line.type] or "debug"
+
+  log[logType](json.encode(line))
 end
 
 function FeatherLogger:clear()
   self.logs = {}
+end
+
+function FeatherLogger:logger(...)
+  log.debug(format(...))
 end
 
 -- helper to wrap methods with logging

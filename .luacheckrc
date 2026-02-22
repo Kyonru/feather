@@ -10,7 +10,8 @@ globals = {
 
 exclude_files = {
     './lua_install/*',
-    './src-lua/feather/lib/*'
+    './src-lua/feather/lib/*',
+    "./src-lua/demo/lib/*"
 }
 
 ignore = {

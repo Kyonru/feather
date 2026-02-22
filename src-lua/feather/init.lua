@@ -43,6 +43,7 @@ local customErrorHandler = errorhandler
 
 ---@class FeatherConfig
 ---@field debug boolean
+---@field outfile? string
 ---@field host? string
 ---@field port? number
 ---@field baseDir? string
@@ -67,6 +68,7 @@ function Feather:init(config)
   self.debug = conf.debug or false
   self.host = conf.host or "*"
   self.baseDir = conf.baseDir or ""
+  self.outfile = conf.outfile or "feather.log"
   self.port = conf.port or 4004
   self.wrapPrint = conf.wrapPrint or false
   self.whitelist = conf.whitelist or { "127.0.0.1" }
@@ -149,6 +151,7 @@ function Feather:__getConfig()
     API = FEATHER_VERSION.api,
     sampleRate = self.sampleRate,
     language = "lua",
+    outfile = self.featherLogger.outfile,
   }
 
   return config
@@ -205,7 +208,7 @@ function Feather:__onerror(msg, finish)
   local err = self:__errorTraceback(msg)
   self.featherLogger:log({ type = "error", str = self:__errorTraceback(msg) }, true)
   if self.wrapPrint then
-    self.featherLogger.logger("[Feather] ERROR: " .. err)
+    self.featherLogger:logger("[Feather] ERROR: " .. err)
   end
   self.lastError = os.time()
   self.pluginManager:onerror(msg, self)
@@ -265,7 +268,6 @@ function Feather:trace(...)
 
   local str = "[Feather] " .. format(...)
 
-  self.featherLogger.logger(str)
   self.featherLogger:print("trace", str)
 end
 

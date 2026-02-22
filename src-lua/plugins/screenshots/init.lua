@@ -82,7 +82,7 @@ function ScreenshotPlugin:captureScreenshot()
       fps = 1,
     })
     if self.logger then
-      self.logger.logger("[ScreenshotPlugin] Saved screenshot: " .. filename)
+      self.logger:logger("[ScreenshotPlugin] Saved screenshot: " .. filename)
     end
   end)
 
@@ -112,7 +112,7 @@ function ScreenshotPlugin:startGifRecording()
   self.lastFrameCaptured = 0
 
   if self.logger then
-    self.logger.logger(string.format("[ScreenshotPlugin] Started GIF recording (max %ds)", self.gifDuration))
+    self.logger:logger(string.format("[ScreenshotPlugin] Started GIF recording (max %ds)", self.gifDuration))
   end
 end
 
@@ -135,10 +135,10 @@ function ScreenshotPlugin:stopGifRecording()
   self.tempScreenshots = {}
 
   if self.logger then
-    self.logger.logger(
+    self.logger:logger(
       string.format("[ScreenshotPlugin] Stopped GIF recording, %d frames saved", #self.tempScreenshots)
     )
-    self.logger.logger("[ScreenshotPlugin] Run ffmpeg/gifski to encode: " .. gifName)
+    self.logger:logger("[ScreenshotPlugin] Run ffmpeg/gifski to encode: " .. gifName)
   end
 
   return gifName

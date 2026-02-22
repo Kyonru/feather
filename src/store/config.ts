@@ -7,6 +7,7 @@ export interface Config {
   version: string;
   API: number;
   sampleRate: number;
+  outfile: string;
   language: 'lua';
 }
 

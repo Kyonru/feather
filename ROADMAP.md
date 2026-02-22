@@ -5,10 +5,17 @@
 - [ ] Add sentry for crash reporting
 - [ ] Add optional opt in telemetry
 - [ ] Add privacy policy
-- [ ] Fix layout bugs
-  - [ ] Large names
-  - [ ] Scrolling issues
-  - [ ] Performance graph curve
+- [ ] Being able to activate or deactivate plugins from feather to improve performance
+- [ ] Fix Bugs
+  - [ ] layout bugs
+    - [ ] Large names
+    - [ ] Scrolling issues
+    - [ ] Performance graph curve
+  - [ ] Observable bugs
+    - [ ] Large names
+    - [ ] Large responses
+    - [ ] App crashes on large responses
+    - [ ] Printing more than one parameter
 - New Plugins
   - [ ] SPIKE: Asset viewer (textures, audio list)
     - [ ] Asset viewer (textures, audio list)

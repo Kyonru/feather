@@ -1,8 +1,9 @@
+import { readTextFileLines } from '@tauri-apps/plugin-fs';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
 import { unionBy } from '@/utils/arrays';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useServer } from './use-server';
 import { useSettingsStore } from '@/store/settings';
@@ -28,6 +29,23 @@ export const schema = z.object({
 
 export type Log = z.infer<typeof schema>;
 
+function parseLogLine(line: string): Log | null {
+  const jsonStart = line.indexOf('{');
+
+  if (jsonStart === -1) {
+    return null; // no JSON in this line
+  }
+
+  const jsonPart = line.slice(jsonStart);
+
+  try {
+    return JSON.parse(jsonPart);
+  } catch (err) {
+    console.error('Failed to parse log JSON:', err);
+    return null;
+  }
+}
+
 export const useLogs = (): {
   data: {
     logs: Log[];
@@ -42,6 +60,7 @@ export const useLogs = (): {
   const queryClient = useQueryClient();
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
+  const logFile = useConfigStore((state) => state.config?.outfile || '');
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const { url: serverUrl, apiKey } = useServer();
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
@@ -51,23 +70,23 @@ export const useLogs = (): {
     queryKey: ['logs'],
     queryFn: async (): Promise<Log[]> => {
       try {
-        const response = await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${ServerRoute.LOG}`, {
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
+        const lines = await readTextFileLines(logFile);
 
-        const raw = await response.json();
+        const dataLogs: Log[] = [];
 
-        setScreenshotEnabled(raw.screenshotEnabled);
-        const dataLogs = raw.data as Log[];
+        for await (const line of lines) {
+          const log = parseLogLine(line);
+          if (log) {
+            dataLogs.push(log);
+          }
+        }
+
+        // setScreenshotEnabled(raw.screenshotEnabled);
 
         const logs = unionBy<Log, string>(data || [], dataLogs, (item) => item.id) as Log[];
         return logs;
-      } catch {
+      } catch (e) {
+        console.log('error', e);
         setDisconnected(true);
         return (data || []) as Log[];
       }
