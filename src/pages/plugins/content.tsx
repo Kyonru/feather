@@ -10,7 +10,9 @@ import {
 import { useGif } from '@/hooks/use-gif';
 import { GifType, PluginContentImageType, PluginContentProps, PluginDataType } from '@/hooks/use-plugin';
 import { downloadFile } from '@/utils/file';
+import { readFile } from '@tauri-apps/plugin-fs';
 import { DownloadIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const DownloadButton = ({ url, extension }: { url?: string; extension: '.png' | '.gif' }) => {
   return (
@@ -49,6 +51,46 @@ export function PluginContentTypeGifImage({ name, width, fps, height, src, downl
 }
 
 export function PluginContentTypeImage({ name, metadata, downloadable }: PluginContentImageType) {
+  const [src, setSrc] = useState<string | string[] | null>(null);
+
+  useEffect(() => {
+    if (!metadata.src) {
+      return;
+    }
+
+    if (metadata.type === 'gif') {
+      const readImage = async () => {
+        const urls: string[] = [];
+        for (let i = 0; i < metadata.src.length; i++) {
+          const uint8 = await readFile(metadata.src[i]);
+          const blob = new Blob([uint8], { type: 'image/png' });
+          const url = URL.createObjectURL(blob);
+          urls.push(url);
+          console.log({ url, index: i, src: metadata.src[i] });
+        }
+        setSrc(urls);
+      };
+      readImage();
+      return;
+    }
+
+    if (metadata.type === 'png') {
+      const readImage = async () => {
+        const uint8 = await readFile(metadata.src);
+        const blob = new Blob([uint8], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+
+        setSrc(url);
+      };
+
+      readImage();
+    }
+  }, [metadata.src, metadata.type]);
+
+  if (!src) {
+    return null;
+  }
+
   if (metadata.type === 'gif') {
     return (
       <PluginContentTypeGifImage
@@ -57,17 +99,17 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
         width={metadata.width}
         height={metadata.height}
         downloadable={downloadable}
-        src={metadata.src}
+        src={src as string[]}
         fps={metadata.fps}
       />
     );
   }
-  const data = `data:image/png;base64,${metadata.src}`;
 
+  const url = src as string;
   return (
     <>
-      <img className="object-scale-down max-h-full drop-shadow-md rounded-md m-auto" src={data} alt={name} />
-      {downloadable && <DownloadButton url={data} extension=".png" />}
+      <img className="object-scale-down max-h-full drop-shadow-md rounded-md m-auto" src={url} alt={name} />
+      {downloadable && <DownloadButton url={url} extension=".png" />}
     </>
   );
 }

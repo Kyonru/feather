@@ -73,6 +73,11 @@ export async function createGif({
         reject(`Failed to load image at index ${index}`);
       };
 
+      if (src.startsWith('blob:')) {
+        img.src = src;
+        return;
+      }
+
       // Ensure it's a valid data URL
       img.src = src.startsWith('data:image') ? src : `data:image/png;base64,${src}`;
     });

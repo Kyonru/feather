@@ -31,6 +31,7 @@ local ScreenshotPlugin = Class({
 
     self.isRecordingGif = false
     self.lastFrameCaptured = 0
+    self.currentGif = nil
     self.tempScreenshots = {}
     self.images = {}
     self.gifTime = 0
@@ -69,36 +70,35 @@ function ScreenshotPlugin:captureScreenshot()
   local timestamp = os.date("%Y%m%d-%H%M%S")
   local filename = string.format("%s/screenshot-%s.png", self.screenshotDirectory, timestamp)
 
-  love.graphics.captureScreenshot(function(img)
-    local fileData = img:encode("png")
-    local pngBytes = fileData:getString()
+  love.graphics.captureScreenshot(filename)
 
-    local b64 = love.data.encode("string", "base64", pngBytes)
+  local cwd = love.filesystem.getSaveDirectory()
 
-    table.insert(self.images, {
-      type = "png",
-      data = b64,
-      name = filename,
-      fps = 1,
-    })
-    if self.logger then
-      self.logger:logger("[ScreenshotPlugin] Saved screenshot: " .. filename)
-    end
-  end)
+  local path = cwd .. "/" .. filename
+
+  table.insert(self.images, {
+    type = "png",
+    name = filename,
+    data = path,
+    fps = 1,
+  })
+
+  self.logger:logger("[ScreenshotPlugin] Saved screenshot: " .. filename)
 
   return filename
 end
 
 --- Capture one frame for GIF
 function ScreenshotPlugin:captureFrame()
-  love.graphics.captureScreenshot(function(img)
-    local fileData = img:encode("png")
-
-    local pngBytes = fileData:getString()
-
-    local b64 = love.data.encode("string", "base64", pngBytes)
-    table.insert(self.tempScreenshots, b64)
-  end)
+  local cwd = love.filesystem.getSaveDirectory()
+  local path = self.screenshotDirectory
+    .. "/"
+    .. self.currentGif
+    .. "/"
+    .. tostring(#self.tempScreenshots + 1)
+    .. ".png"
+  love.graphics.captureScreenshot(path)
+  table.insert(self.tempScreenshots, cwd .. "/" .. path)
 end
 
 --- Start recording GIF
@@ -106,6 +106,8 @@ function ScreenshotPlugin:startGifRecording()
   if self.isRecordingGif then
     return
   end
+  self.currentGif = tostring(os.time())
+  love.filesystem.createDirectory(self.screenshotDirectory .. "/" .. self.currentGif)
   self.isRecordingGif = true
   self.tempScreenshots = {}
   self.gifTime = 0
@@ -123,7 +125,7 @@ function ScreenshotPlugin:stopGifRecording()
   end
   self.isRecordingGif = false
 
-  local gifName = string.format("%s/recording-%s.gif", self.screenshotDirectory, os.date("%Y%m%d-%H%M%S"))
+  local gifName = self.screenshotDirectory .. "/" .. self.currentGif .. ".gif"
 
   table.insert(self.images, {
     name = gifName,
@@ -133,6 +135,7 @@ function ScreenshotPlugin:stopGifRecording()
   })
 
   self.tempScreenshots = {}
+  self.currentGif = nil
 
   if self.logger then
     self.logger:logger(

@@ -1,5 +1,5 @@
 import { readTextFileLines } from '@tauri-apps/plugin-fs';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
@@ -58,7 +58,6 @@ export const useLogs = (): {
   clear: () => void;
   onScreenshotChange: () => void;
 } => {
-  const queryClient = useQueryClient();
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
   const logFile = useConfigStore((state) => state.config?.outfile || '');
@@ -67,6 +66,7 @@ export const useLogs = (): {
   const { url: serverUrl, apiKey } = useServer();
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
   const sampleRate = useSampleRate();
+  const [clearTime, setClearTime] = useState(0);
 
   const enabled = useMemo(() => {
     if (overrideLogFile) {
@@ -79,13 +79,13 @@ export const useLogs = (): {
   const logFilePathname = overrideLogFile || logFile;
 
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: ['logs', logFilePathname],
+    queryKey: ['logs', logFilePathname, clearTime],
     queryFn: async (): Promise<Log[]> => {
       try {
         const dataLogs: Log[] = [];
 
         if (isWeb()) {
-          const response = await fetch(`/public/example.log`);
+          const response = await fetch(logFilePathname);
           const raw = await response.text();
           const lines = raw.split('\n');
           for (const line of lines) {
@@ -108,7 +108,8 @@ export const useLogs = (): {
         console.log({ dataLogs });
 
         const logs = unionBy<Log, string>(data || [], dataLogs, (item) => item.id) as Log[];
-        return logs;
+
+        return logs.filter((log) => log.time > clearTime);
       } catch (e) {
         console.log('error', e);
         setDisconnected(true);
@@ -117,30 +118,6 @@ export const useLogs = (): {
     },
     refetchInterval: sampleRate * 1000,
     enabled: enabled,
-  });
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      try {
-        await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${ServerRoute.LOG}?action=clear`, {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
-
-        return [];
-      } catch {
-        setDisconnected(true);
-        return [];
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['logs'] });
-    },
   });
 
   const enableScreenshotsMutation = useMutation({
@@ -169,14 +146,9 @@ export const useLogs = (): {
   });
 
   const clear = () => {
-    mutation.mutate();
+    const lastNow = data?.[data.length - 1]?.time || 0;
 
-    queryClient.cancelQueries({
-      queryKey: ['logs'],
-      exact: true,
-    });
-
-    queryClient.setQueryData(['logs'], []);
+    setClearTime(lastNow);
   };
 
   const onScreenshotChange = () => {
