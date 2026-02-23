@@ -213,7 +213,6 @@ export default function Page() {
         }}
         data={logs}
         onUpload={(filename) => {
-          console.log(filename);
           if (filename) {
             setFilePath(filename);
             setPausedLogs(true);

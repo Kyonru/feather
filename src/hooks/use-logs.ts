@@ -1,5 +1,5 @@
 import { readTextFileLines } from '@tauri-apps/plugin-fs';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
@@ -10,10 +10,12 @@ import { useSettingsStore } from '@/store/settings';
 import { useMemo, useState } from 'react';
 import { useSampleRate } from './use-config';
 import { isWeb } from '@/utils/platform';
+import { toast } from 'sonner';
 
 export enum LogType {
   OUTPUT = 'output',
   ERROR = 'error',
+  FATAL = 'fatal',
   FEATHER_START = 'feather:start',
   FEATHER_FINISH = 'feather:finish',
 }
@@ -58,8 +60,7 @@ export const useLogs = (): {
   clear: () => void;
   onScreenshotChange: () => void;
 } => {
-  const setDisconnected = useConfigStore((state) => state.setDisconnected);
-  const disconnected = useConfigStore((state) => state.disconnected);
+  const queryClient = useQueryClient();
   const logFile = useConfigStore((state) => state.config?.outfile || '');
   const overrideLogFile = useConfigStore((state) => state.overrideConfig?.outfile || '');
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
@@ -73,51 +74,47 @@ export const useLogs = (): {
       return true;
     }
 
-    return !disconnected && !pausedLogs;
-  }, [disconnected, pausedLogs, overrideLogFile]);
+    return !pausedLogs;
+  }, [pausedLogs, overrideLogFile]);
 
   const logFilePathname = overrideLogFile || logFile;
+  const queryKey = [serverUrl, apiKey, 'logs', logFilePathname, clearTime];
 
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: ['logs', logFilePathname, clearTime],
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    queryKey: queryKey,
     queryFn: async (): Promise<Log[]> => {
-      try {
-        const dataLogs: Log[] = [];
+      const dataLogs: Log[] = [];
 
-        if (isWeb()) {
-          const response = await fetch(logFilePathname);
-          const raw = await response.text();
-          const lines = raw.split('\n');
-          for (const line of lines) {
-            const log = parseLogLine(line);
-            if (log) {
-              dataLogs.push(log);
-            }
-          }
-        } else {
-          const lines = await readTextFileLines(logFilePathname);
-
-          for await (const line of lines) {
-            const log = parseLogLine(line);
-            if (log) {
-              dataLogs.push(log);
-            }
+      if (isWeb()) {
+        const response = await fetch(logFilePathname);
+        const raw = await response.text();
+        const lines = raw.split('\n');
+        for (const line of lines) {
+          const log = parseLogLine(line);
+          if (log) {
+            dataLogs.push(log);
           }
         }
+      } else {
+        const lines = await readTextFileLines(logFilePathname);
 
-        console.log({ dataLogs });
-
-        const logs = unionBy<Log, string>(data || [], dataLogs, (item) => item.id) as Log[];
-
-        return logs.filter((log) => log.time > clearTime);
-      } catch (e) {
-        console.log('error', e);
-        setDisconnected(true);
-        return (data || []) as Log[];
+        for await (const line of lines) {
+          const log = parseLogLine(line);
+          if (log) {
+            dataLogs.push(log);
+          }
+        }
       }
+      const existing = queryClient.getQueryData<Log[]>(queryKey) || [];
+
+      const logs = unionBy<Log, string>(existing, dataLogs, (item) => item.id) as Log[];
+
+      return logs.filter((log) => log.time > clearTime);
     },
     refetchInterval: sampleRate * 1000,
     enabled: enabled,
+    placeholderData: (previousData) => previousData,
   });
 
   const enableScreenshotsMutation = useMutation({
@@ -137,8 +134,8 @@ export const useLogs = (): {
         );
 
         return [];
-      } catch {
-        setDisconnected(true);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Failed to toggle screenshots');
         return [];
       }
     },

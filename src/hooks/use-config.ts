@@ -1,7 +1,7 @@
 import { ServerRoute } from '@/constants/server';
 import { debounce, timeout } from '@/utils/timers';
 import { Config, useConfigStore } from '@/store/config';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServer } from './use-server';
 import { version } from '../../package.json';
 import { useMemo } from 'react';
@@ -13,14 +13,17 @@ export function useConfig(): {
   refetch: () => void;
   updateSampleRate: (...[value]: [number]) => void;
 } {
+  const queryClient = useQueryClient();
   const setConfig = useConfigStore((state) => state.setConfig);
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const setSampleRate = useConfigStore((state) => state.setSampleRate);
   const { url: serverUrl, apiKey } = useServer();
 
+  const queryKey = [serverUrl, apiKey, 'config'];
+
   const { isFetching, error, data, refetch } = useQuery({
-    queryKey: ['config'],
-    queryFn: async () => {
+    queryKey: queryKey,
+    queryFn: async (): Promise<Config | undefined> => {
       try {
         const response = await timeout<Response>(
           3000,
@@ -36,9 +39,8 @@ export function useConfig(): {
         setDisconnected(false);
         return config;
       } catch {
-        setConfig(null);
         setDisconnected(true);
-        return null;
+        return queryClient.getQueryData(queryKey);
       }
     },
   });

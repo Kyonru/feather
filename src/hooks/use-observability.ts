@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/utils/timers';
-import { useConfigStore } from '@/store/config';
 import { useQuery } from '@tanstack/react-query';
 import { useServer } from './use-server';
 import { useSampleRate } from './use-config';
@@ -12,33 +11,27 @@ export const useObservability = (): {
   error: unknown;
   refetch: () => void;
 } => {
-  const setDisconnected = useConfigStore((state) => state.setDisconnected);
-  const disconnected = useConfigStore((state) => state.disconnected);
   const sampleRate = useSampleRate();
   const { url: serverUrl, apiKey } = useServer();
+  const queryKey = [serverUrl, apiKey, 'observers'];
 
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: ['observers'],
+    queryKey: queryKey,
     queryFn: async (): Promise<Record<string, any>[]> => {
-      try {
-        const response = await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${ServerRoute.OBSERVERS}`, {
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
+      const response = await timeout<Response>(
+        3000,
+        fetch(`${serverUrl}${ServerRoute.OBSERVERS}`, {
+          headers: {
+            'x-api-key': apiKey,
+          },
+        }),
+      );
 
-        const observers = (await response.json()) as Record<string, any>;
-        return observers as Record<string, any>[];
-      } catch {
-        setDisconnected(true);
-        return [];
-      }
+      const observers = (await response.json()) as Record<string, any>;
+      return observers as Record<string, any>[];
     },
     refetchInterval: sampleRate * 1000,
-    enabled: !disconnected,
+    placeholderData: (previousData) => previousData,
   });
 
   return {

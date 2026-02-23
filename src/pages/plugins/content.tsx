@@ -66,7 +66,6 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
           const blob = new Blob([uint8], { type: 'image/png' });
           const url = URL.createObjectURL(blob);
           urls.push(url);
-          console.log({ url, index: i, src: metadata.src[i] });
         }
         setSrc(urls);
       };

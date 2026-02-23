@@ -71,7 +71,7 @@ export const BadgeType = ({ type }: { type: string }) => {
     Icon = <FileClockIcon className={color} />;
   }
 
-  if (type === 'error') {
+  if (type === 'error' || type === 'fatal') {
     color = 'bg-red-700 dark:bg-red-400';
     Icon = <CircleXIcon className={color} />;
   }

@@ -128,7 +128,7 @@ function FeatherLogger:__countOnRepeat(type, ...)
   end
 end
 
----@alias LogType "output" | "trace" | "error" | "feather:finish" | "feather:start" | "output" | "error"
+---@alias LogType "output" | "trace" | "error" | "feather:finish" | "feather:start" | "fatal"
 ---@class FeatherLine
 ---@field type LogType
 ---@field str? string
@@ -176,7 +176,7 @@ function FeatherLogger:clear()
 end
 
 function FeatherLogger:logger(...)
-  log.debug(format(...))
+  self:log({ type = "output", str = format(...) })
 end
 
 -- helper to wrap methods with logging

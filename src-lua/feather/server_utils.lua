@@ -124,15 +124,6 @@ local function handleGetRequest(request, feather, dt)
     data = feather:__getConfig()
   end
 
-  if request.path == "/logs" then
-    local bodyData = {
-      data = feather.featherLogger.logs,
-      screenshotEnabled = feather.captureScreenshot,
-    }
-    data = bodyData
-    feather.lastDelivery = os.time()
-  end
-
   if request.path == "/performance" then
     data = performance:getResponseBody(dt)
   end
@@ -171,10 +162,6 @@ end
 local function handlePostRequest(request, feather)
   local data = {}
   if request.path == "/logs" then
-    if request.params.action == "clear" then
-      feather.featherLogger:clear()
-    end
-
     if request.params.action == "toggle-screenshots" then
       feather:toggleScreenshots(not feather.captureScreenshot)
     end

@@ -1,7 +1,6 @@
 import { ServerRoute } from '@/constants/server';
 import { timeout } from '@/utils/timers';
-import { useConfigStore } from '@/store/config';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServer } from './use-server';
 import { useSampleRate } from './use-config';
 
@@ -83,36 +82,33 @@ export const usePerformance = (): {
   error: unknown;
   refetch: () => void;
 } => {
-  const setDisconnected = useConfigStore((state) => state.setDisconnected);
-  const disconnected = useConfigStore((state) => state.disconnected);
+  const queryClient = useQueryClient();
   const { url: serverUrl, apiKey } = useServer();
   const sampleRate = useSampleRate();
+  const queryKey = [serverUrl, apiKey, 'performance'];
 
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: ['performance'],
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    queryKey: queryKey,
     queryFn: async (): Promise<PerformanceMetrics[]> => {
-      try {
-        const response = await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${ServerRoute.PERFORMANCE}`, {
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
+      const response = await timeout<Response>(
+        3000,
+        fetch(`${serverUrl}${ServerRoute.PERFORMANCE}`, {
+          headers: {
+            'x-api-key': apiKey,
+          },
+        }),
+      );
 
-        const performance = (await response.json()) as PerformanceMetrics;
+      const performance = (await response.json()) as PerformanceMetrics;
+      const existing = queryClient.getQueryData<PerformanceMetrics[]>(queryKey) || [];
 
-        const metrics = ((data || []).concat(performance) || []) as PerformanceMetrics[];
+      const metrics = (existing.concat(performance) || []) as PerformanceMetrics[];
 
-        return metrics;
-      } catch {
-        setDisconnected(true);
-        return (data || []) as PerformanceMetrics[];
-      }
+      return metrics;
     },
     refetchInterval: sampleRate * 1000,
-    enabled: !disconnected,
+    placeholderData: (previousData) => previousData,
   });
 
   return {

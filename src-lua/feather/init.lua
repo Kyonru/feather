@@ -23,7 +23,6 @@ local FEATHER_VERSION = {
 }
 
 ---@class Feather: FeatherConfig
----@field lastDelivery number
 ---@field lastError number
 ---@field debug boolean
 ---@field featherLogger FeatherLogger
@@ -82,7 +81,6 @@ function Feather:init(config)
   self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
   self.plugins = conf.plugins or {}
-  self.lastDelivery = 0
   self.lastError = 0
   self.version = FEATHER_VERSION.api
   self.versionName = FEATHER_VERSION.name
@@ -115,20 +113,7 @@ function Feather:init(config)
         msg = "Unknown error"
       end
 
-      selfRef:__onerror(msg, true) -- Log the error first
-
-      local function isDelivered()
-        return selfRef.lastDelivery > selfRef.lastError
-      end
-
-      local delivered = isDelivered()
-
-      local start = love.timer.getTime()
-      while not delivered and (love.timer.getTime() - start) < selfRef.errorWait do
-        selfRef:update(0)
-        delivered = isDelivered()
-        love.timer.sleep(self.updateInterval)
-      end
+      selfRef:__onerror(msg, true)
 
       return customErrorHandler(msg)
     end
@@ -205,8 +190,10 @@ function Feather:__onerror(msg, finish)
     return
   end
 
+  local type = finish and "error" or "fatal"
+
   local err = self:__errorTraceback(msg)
-  self.featherLogger:log({ type = "error", str = self:__errorTraceback(msg) }, true)
+  self.featherLogger:log({ type = type, str = self:__errorTraceback(msg) }, true)
   if self.wrapPrint then
     self.featherLogger:logger("[Feather] ERROR: " .. err)
   end

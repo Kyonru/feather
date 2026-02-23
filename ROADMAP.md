@@ -1,6 +1,19 @@
 # Feather Roadmap
 
-## 0.5.0 – Community Release
+## 0.5.0 - Log file based
+
+- [x] Improve logging performance for large amounts of logs
+- [x] Add log file based logging
+- [x] Improve screenshot management and avoid unnecessary casting to base64
+- [x] Fix scrolling bug in logs
+- [x] Add ability to see existing log files
+- [x] Add ability to clear logs
+- [x] Web version support dropped
+- [x] Add confirmation to download screenshots
+- [x] Improve error feedback
+- [x] Keep existing data after disconnect
+
+## 0.5.1 – Community Release
 
 - [ ] Add sentry for crash reporting
 - [ ] Add optional opt in telemetry
@@ -9,7 +22,6 @@
 - [ ] Fix Bugs
   - [ ] layout bugs
     - [ ] Large names
-    - [ ] Scrolling issues
     - [ ] Performance graph curve
   - [ ] Observable bugs
     - [ ] Large names
@@ -19,7 +31,6 @@
 - New Plugins
   - [ ] SPIKE: Asset viewer (textures, audio list)
     - [ ] Asset viewer (textures, audio list)
-  - File Logger: https://github.com/Saturn91/LoveLogger
 
 ---
 

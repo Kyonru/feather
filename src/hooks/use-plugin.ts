@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useConfigStore } from '@/store/config';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServer } from './use-server';
 import { debounce, timeout } from '@/utils/timers';
 import { unionBy } from '@/utils/arrays';
 import { useSampleRate } from './use-config';
+import { toast } from 'sonner';
 
 export type ScreenshotType = {
   type: 'png';
@@ -64,7 +64,7 @@ export const usePluginAction = (url: string) => {
 
         return [];
       } catch (e) {
-        console.log('error', e);
+        toast.error(e instanceof Error ? e.message : 'Failed to execute action');
         return [];
       }
     },
@@ -91,7 +91,7 @@ export const usePluginAction = (url: string) => {
 
         return [];
       } catch (e) {
-        console.log('error', e);
+        toast.error(e instanceof Error ? e.message : 'Failed to update plugin');
         return [];
       }
     },
@@ -127,19 +127,21 @@ export const usePluginAction = (url: string) => {
 };
 
 export function usePlugin(url: string) {
-  const disconnected = useConfigStore((state) => state.disconnected);
   const sampleRate = useSampleRate();
+  const queryClient = useQueryClient();
   const { url: serverUrl, apiKey } = useServer();
 
+  const queryKey = [serverUrl, url, apiKey];
+
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: [serverUrl, url, apiKey],
+    queryKey: queryKey,
     queryFn: async (): Promise<PluginContentProps> => {
       const response = await timeout<Response>(3000, fetch(`${serverUrl}${url}`, { headers: { 'x-api-key': apiKey } }));
 
       const pluginData = (await response.json()) as PluginContentProps;
 
       if (pluginData.persist) {
-        const prevData: PluginContentProps = data as PluginContentProps;
+        const prevData: PluginContentProps = queryClient.getQueryData(queryKey) as PluginContentProps;
         const newData = unionBy<PluginDataType, string>(prevData?.data || [], pluginData.data, (item) => item.name);
         return {
           ...pluginData,
@@ -150,7 +152,7 @@ export function usePlugin(url: string) {
       return pluginData;
     },
     refetchInterval: sampleRate * 1000,
-    enabled: !disconnected,
+    placeholderData: (previousData) => previousData,
   });
 
   return {
