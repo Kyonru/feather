@@ -9,6 +9,7 @@ export interface Config {
   sampleRate: number;
   outfile: string;
   language: 'lua';
+  captureScreenshot: boolean;
 }
 
 interface ConfigState {

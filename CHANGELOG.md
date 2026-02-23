@@ -5,11 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.5.0]
+## [v0.5.0] - 2026-02-23 - The one with log files
 
 ### Added
 
+- Log file based logging
+- Ability to see existing log files
+- Improve error feedback
+- Confirmation to download screenshots
+
+### Fixed
+
+- Keep existing data after disconnect
+- Scrolling bug in logs details
+
 ### Changed
+
+- Update roadmap
+- Refact server utils
+- Update Demo App
+- Fix bug with cache keys
+- Improve error handling
+- Improve performance
+- Clearing logs now filters from last timestamp
+- Improve screenshot management and avoid unnecessary casting to base64
+- Screenshots are now stored and managed by folder
+
+### Removed
+
+- Remove web version
 
 ## [v0.4.1] - 2025-12-24 - The one with screenshots fixed
 

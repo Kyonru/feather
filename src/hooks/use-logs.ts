@@ -62,6 +62,7 @@ export const useLogs = (): {
 } => {
   const queryClient = useQueryClient();
   const logFile = useConfigStore((state) => state.config?.outfile || '');
+  const captureScreenshot = useConfigStore((state) => state.config?.captureScreenshot || false);
   const overrideLogFile = useConfigStore((state) => state.overrideConfig?.outfile || '');
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const { url: serverUrl, apiKey } = useServer();
@@ -78,7 +79,7 @@ export const useLogs = (): {
   }, [pausedLogs, overrideLogFile]);
 
   const logFilePathname = overrideLogFile || logFile;
-  const queryKey = [serverUrl, apiKey, 'logs', logFilePathname, clearTime];
+  const queryKey = [serverUrl, apiKey, 'logs', logFilePathname, clearTime, { captureScreenshot }];
 
   const { isPending, error, data, refetch } = useQuery({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
@@ -109,6 +110,8 @@ export const useLogs = (): {
       const existing = queryClient.getQueryData<Log[]>(queryKey) || [];
 
       const logs = unionBy<Log, string>(existing, dataLogs, (item) => item.id) as Log[];
+
+      setScreenshotEnabled(captureScreenshot);
 
       return logs.filter((log) => log.time > clearTime);
     },

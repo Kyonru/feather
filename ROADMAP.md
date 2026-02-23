@@ -1,19 +1,12 @@
 # Feather Roadmap
 
-## 0.5.0 - Log file based
+## 0.5.1 – Disk Usage & Performance
 
-- [x] Improve logging performance for large amounts of logs
-- [x] Add log file based logging
-- [x] Improve screenshot management and avoid unnecessary casting to base64
-- [x] Fix scrolling bug in logs
-- [x] Add ability to see existing log files
-- [x] Add ability to clear logs
-- [x] Web version support dropped
-- [x] Add confirmation to download screenshots
-- [x] Improve error feedback
-- [x] Keep existing data after disconnect
+- [ ] Add app disk usage
+- [ ] Add option to clear unused screenshots
+- [ ] Add option to navigate to logs folder
 
-## 0.5.1 – Community Release
+## 0.5.2 – Community Release
 
 - [ ] Add sentry for crash reporting
 - [ ] Add optional opt in telemetry

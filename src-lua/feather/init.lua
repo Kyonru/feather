@@ -14,8 +14,8 @@ local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
 local serverUtils = require(PATH .. ".server_utils")
 
-local FEATHER_VERSION_NAME = "0.4.1"
-local FEATHER_API = 2
+local FEATHER_VERSION_NAME = "0.5.0"
+local FEATHER_API = 3
 
 local FEATHER_VERSION = {
   name = FEATHER_VERSION_NAME,
@@ -137,6 +137,7 @@ function Feather:__getConfig()
     sampleRate = self.sampleRate,
     language = "lua",
     outfile = self.featherLogger.outfile,
+    captureScreenshot = self.featherLogger.captureScreenshot,
   }
 
   return config
