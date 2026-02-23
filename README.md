@@ -138,14 +138,6 @@ All log entries, errors, and traces will be available for review — just not in
 
 ---
 
-## 📦 Dependencies
-
-- [Hump Class](https://github.com/vrld/hump/blob/master/class.lua)
-- [Inspect](https://github.com/kikito/inspect.lua)
-- [json.lua](https://github.com/rxi/json.lua)
-
----
-
 ## Documentation
 
 ### Observers
@@ -270,6 +262,15 @@ Feather is not meant to be used in production / final builds. It is meant to be 
 ### In game observability
 
 - [OverlayStats](https://github.com/Oval-Tutu/bootstrap-love2d-project/blob/main/game/lib/overlayStats.lua) by [Oval-Tutu](https://github.com/Oval-Tutu) is a great way to visualize your game's performance in real-time on the game, the performance plugin is inspired by it.
+
+---
+
+## 📦 Built-in Lua Dependencies
+
+- [Hump Class](https://github.com/vrld/hump/blob/master/class.lua)
+- [Inspect](https://github.com/kikito/inspect.lua)
+- [json.lua](https://github.com/rxi/json.lua)
+- [log.lua](https://github.com/rxi/log.lua)
 
 ---
 
