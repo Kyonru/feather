@@ -2,9 +2,7 @@
 
 ## 0.5.1 – Disk Usage & Performance
 
-- [ ] Add app disk usage
-- [ ] Add option to clear unused screenshots
-- [ ] Add option to navigate to logs folder
+- [x] Add option to navigate to logs folder
 
 ## 0.5.2 – Community Release
 
@@ -37,6 +35,10 @@
 - [ ] Table diffing in observed variables
 - [ ] Expression evaluator (`eval` in game)
 - [ ] Entity/component list
+- [ ] Add app disk usage
+- [ ] Improve security (commands, folders, os scripts)
+  - [ ] [https://github.com/tauri-apps/tauri/issues/13971#issuecomment-3758890117]
+  - [ ] Add option to clear unused screenshots
 
 ---
 

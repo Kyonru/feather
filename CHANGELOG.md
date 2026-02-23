@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.5.1]
+## [v0.5.2]
+
+## [v0.5.1] - 2026-02-23 - The one with log folders
+
+### Added
+
+- Add option to navigate to logs folder
+- Improve readme documentation
+- Add ready to use zip file to release
 
 ## [v0.5.0] - 2026-02-23 - The one with log files
 
@@ -133,7 +141,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
-[v0.5.1]: https://github.com/Kyonru/feather/compare/v0.5.0...HEAD
+[v0.5.2]: https://github.com/Kyonru/feather/compare/v0.5.1...HEAD
+[v0.5.1]: https://github.com/Kyonru/feather/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/Kyonru/feather/compare/v0.4.1...v0.5.0
 [v0.4.1]: https://github.com/Kyonru/feather/compare/v0.4.0...v0.4.1
 [v0.4.0]: https://github.com/Kyonru/feather/compare/v0.3.0...v0.4.0

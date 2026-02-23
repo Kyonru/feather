@@ -14,7 +14,7 @@ local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
 local serverUtils = require(PATH .. ".server_utils")
 
-local FEATHER_VERSION_NAME = "0.5.0"
+local FEATHER_VERSION_NAME = "0.5.1"
 local FEATHER_API = 3
 
 local FEATHER_VERSION = {
@@ -138,6 +138,7 @@ function Feather:__getConfig()
     language = "lua",
     outfile = self.featherLogger.outfile,
     captureScreenshot = self.featherLogger.captureScreenshot,
+    location = love.filesystem.getSaveDirectory(),
   }
 
   return config

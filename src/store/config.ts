@@ -10,6 +10,7 @@ export interface Config {
   outfile: string;
   language: 'lua';
   captureScreenshot: boolean;
+  location: string;
 }
 
 interface ConfigState {

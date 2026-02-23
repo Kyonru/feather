@@ -2,14 +2,16 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Badge } from './ui/badge';
-import { LoaderPinwheelIcon, WifiIcon, WifiOff } from 'lucide-react';
+import { FolderOpenIcon, LoaderPinwheelIcon, WifiIcon, WifiOff } from 'lucide-react';
 import { cn } from '@/utils/styles';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
+import { openFolder } from '@/utils/linking';
 
 export function SiteHeader() {
   const disconnected = useConfigStore((store) => store.disconnected);
   const { isFetching, refetch } = useConfig();
+  const location = useConfigStore((state) => state.config?.location);
 
   const isConnected = !disconnected;
   return (
@@ -18,6 +20,22 @@ export function SiteHeader() {
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
         <div className="ml-auto flex items-center gap-2">
+          {location && (
+            <Button
+              onClick={() => {
+                console.log(location);
+                openFolder(location);
+              }}
+              variant="ghost"
+              asChild
+              size="sm"
+              className="hidden sm:flex"
+            >
+              <Badge variant="secondary" className={'text-black'}>
+                <FolderOpenIcon className="text-primary" />
+              </Badge>
+            </Button>
+          )}
           <Button onClick={() => refetch()} variant="ghost" asChild size="sm" className="hidden sm:flex">
             {isFetching ? (
               <Badge variant="secondary" className={'text-black'}>

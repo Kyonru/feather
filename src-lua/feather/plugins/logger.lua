@@ -29,6 +29,7 @@ local SCREENSHOTS_DIR = LOGS_DIR .. "/" .. "screenshots"
 ---@field captureScreenshot boolean
 ---@field lastScreenshot any
 ---@field outfile string
+---@field outputFolder string
 ---@field last_screenshot_taken_at number
 ---@field screenshotIndex number
 ---@field screenshotRate number
@@ -63,6 +64,7 @@ local FeatherLogger = Class({
     love.filesystem.createDirectory(SCREENSHOTS_DIR)
 
     local logdir = cwd .. "/" .. LOGS_DIR
+    self.outputFolder = logdir
 
     local logfile = logdir .. "/" .. os.date("%Y-%m-%d_%H:%M:%S") .. "_" .. config.outfile .. ".featherlog"
 
