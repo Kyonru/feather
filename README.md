@@ -1,17 +1,15 @@
 # Feather 🪶 — Debug & Inspect Tool for LÖVE (love2d)
 
 Feather is an extensible debug tool for [LÖVE](https://love2d.org) projects, inspired by [LoveBird](https://github.com/rxi/lovebird).
-It lets you **inspect logs, variables, performance metrics, and errors in real-time** over a network connection — perfect for debugging on desktop or mobile without stopping the game.
+It lets you **inspect logs, variables, performance metrics, and errors in real-time** over a network connection and local log files, perfect for debugging games.
 
 ---
 
 ## ✨ Features
 
-- 📜 **Live log viewer** — See `print()` output instantly in your browser.
+- 📜 **Live log viewer** — See `print()` output instantly in the app.
 - 🔍 **Variable inspection** — Watch values update in real-time.
 - 🚨 **Error capturing** — Automatically catch and display errors with optional delivery delay.
-- 🌐 **Remote access** — Connect via a browser from localhost or whitelisted IPs.
-- ⚡ **Performance-friendly** — Configurable update interval to avoid frame drops.
 - 🔌 **Plugin support** — Extend with custom data inspectors and views using React (Lua support for custom views coming soon).
 
 ---
@@ -22,21 +20,45 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 
 ## 📦 Installation
 
-1. **Download Feather**
+### Option 1: Direct Download (Recommended)
 
-- Download the latest release from the [releases page](https://github.com/Kyonru/feather/releases)
-- Copy the `feather/` folder and put it in your project folder
-- Or install it via [Luarocks](https://luarocks.org/modules/kyonru/feather)
+This is the simplest approach, no package manager required.
 
-  ```bash
-  luarocks install feather
-  ```
+1. Go to the [releases page](https://github.com/Kyonru/feather/releases) and download `feather-x.x.x.zip`
+2. Unzip it and copy the `feather/` folder into your project, e.g. `lib/feather/`
+3. Require it by path:
 
-1. **Require Feather**
+```lua
+local Feather = require "lib.feather"
+```
 
-   ```lua
-   local Feather = require "feather" -- or the location of the feather folder
-   ```
+### Option 2: LuaRocks
+
+Install globally and use `luarocks-loader` to resolve the path automatically:
+
+```bash
+luarocks install feather
+```
+
+Then at the top of your `main.lua`, before any `require` calls:
+
+```lua
+require("luarocks.loader")
+local Feather = require("feather")
+```
+
+Or install into a local tree to keep dependencies project-scoped:
+
+```bash
+luarocks install feather --tree ./lua_modules
+```
+
+Then add the local tree to your path:
+
+```lua
+package.path = package.path .. ";./lua_modules/share/lua/5.1/?.lua"
+local Feather = require("feather")
+```
 
 ---
 
@@ -61,6 +83,29 @@ end
 
 ---
 
+### 🔗 Connecting
+
+When running your game with Feather enabled, you'll see:
+
+```text
+Listening on 127.0.0.1:4004
+```
+
+Install the feather app from the [releases page](https://github.com/Kyonru/feather/releases), it will automatically connect to your game.
+
+### 📱 iOS, Android & Remote Devices
+
+Feather's live connection relies on a local network socket and log files between the game and the desktop app. This works great on desktop, but **on iOS, Android, or any device that can't be reached over the network**, live inspection is not available.
+
+For those platforms, Feather writes logs to a `.featherlog` file on disk. You can load that file manually in the desktop app:
+
+1. Transfer the `.featherlog` file from the device to your computer (via ADB, Xcode, or any file transfer method)
+2. Open the Feather app and use **Open Log File** to load it for inspection
+
+All log entries, errors, and traces will be available for review — just not in real-time.
+
+---
+
 ## ⚙️ Configuration
 
 `Feather:init(config)` accepts the following options:
@@ -82,18 +127,6 @@ end
 | `plugins`                  | `table`    | `{}`                | List of plugin modules to load. (Support Coming soon)                                                |
 | `captureScreenshot`        | `boolean`  | `false`             | Capture screenshots on error. WARNING: This impact performance and may cause lags. Use with caution. |
 | `apiKey`                   | `string`   | `""`                | API key to use for remote debugging.                                                                 |
-
----
-
-## 🔗 Connecting
-
-When running your game with Feather enabled, you'll see:
-
-```text
-Listening on 127.0.0.1:4004
-```
-
-Install the feather app from the [releases page](https://github.com/Kyonru/feather/releases), it will automatically connect to your game.
 
 ---
 
@@ -237,6 +270,20 @@ Feather is not meant to be used in production / final builds. It is meant to be 
 ### In game observability
 
 - [OverlayStats](https://github.com/Oval-Tutu/bootstrap-love2d-project/blob/main/game/lib/overlayStats.lua) by [Oval-Tutu](https://github.com/Oval-Tutu) is a great way to visualize your game's performance in real-time on the game, the performance plugin is inspired by it.
+
+---
+
+## 📋 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+
+**Latest — [v0.5.0](https://github.com/Kyonru/feather/releases/tag/v0.5.0) — The one with log files**
+
+- Log file based logging and the ability to open existing log files in the app
+- Manual log inspection for iOS, Android, and other remote devices
+- Improved error feedback, screenshot management, and performance
+
+---
 
 ## 📜 License
 

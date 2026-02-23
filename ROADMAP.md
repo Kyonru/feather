@@ -21,22 +21,22 @@
     - [ ] Large responses
     - [ ] App crashes on large responses
     - [ ] Printing more than one parameter
-- New Plugins
-  - [ ] SPIKE: Asset viewer (textures, audio list)
-    - [ ] Asset viewer (textures, audio list)
 
 ---
 
 ## 0.6.0 – Stability & Compatibility
 
+- [ ] Remote connect to other devices
+- [ ] Ability to debug android and ios apps automatically in real-time
+  - [ ] remote option in feather lib
+    - [ ] fetch logs instead of readTextFileLines when remote
+  - [ ] add Developer signature to app to avoid installation warnings
 - [ ] Full OS & Love2D version testing (Windows/macOS/Linux)
 - [ ] Low-overhead mode for production builds, scripts and plugins to disable code in production
 - [ ] Editable observed variables
 - [ ] Table diffing in observed variables
 - [ ] Expression evaluator (`eval` in game)
 - [ ] Entity/component list
-- [ ] Remote connect to other devices
-- [ ] Polish, branding, and onboarding docs
 
 ---
 
@@ -45,6 +45,10 @@
 - [ ] Add Tests
 - [ ] Connect to multiple servers / games
 - [ ] Runtime load/unload plugins
+- New Plugins
+  - [ ] SPIKE: Asset viewer (textures, audio list)
+    - [ ] Asset viewer (textures, audio list)
+- [ ] Polish, branding, and onboarding docs
 
 ---
 

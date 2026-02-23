@@ -2,7 +2,7 @@ name: Feather release
 on:
   push:
     tags: # Will upload to luarocks.org when a tag is pushed
-      - '*'
+      - "*"
   pull_request: # Will test a local install without uploading to luarocks.org
 
 jobs:
@@ -37,10 +37,18 @@ jobs:
           fail_on_duplicate: true
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+      - name: Zip feather folder
+        run: |
+          cd src-lua
+          zip -r ../feather-${{ steps.get_version.outputs.version }}.zip feather/
+
       - name: GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: feather-${{ steps.get_version.outputs.version }}-1.rockspec, feather-${{ steps.get_version.outputs.version }}-1.src.rock
+          artifacts: |
+            feather-${{ steps.get_version.outputs.version }}-1.rockspec
+            feather-${{ steps.get_version.outputs.version }}-1.src.rock
+            feather-${{ steps.get_version.outputs.version }}.zip
           allowUpdates: true
 
   tauri-release:
@@ -50,14 +58,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest' # for Intel based macs.
-            args: '--target x86_64-apple-darwin'
-          - platform: 'ubuntu-22.04' # for Tauri v1 you could replace this with ubuntu-20.04.
-            args: ''
-          - platform: 'windows-latest'
-            args: ''
+          - platform: "macos-latest" # for Arm based macs (M1 and above).
+            args: "--target aarch64-apple-darwin"
+          - platform: "macos-latest" # for Intel based macs.
+            args: "--target x86_64-apple-darwin"
+          - platform: "ubuntu-22.04" # for Tauri v1 you could replace this with ubuntu-20.04.
+            args: ""
+          - platform: "windows-latest"
+            args: ""
 
     runs-on: ${{ matrix.platform }}
     steps:
