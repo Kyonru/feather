@@ -5,7 +5,8 @@ max_line_length = false
 globals = {
     'love',
     'getVersion',
-    'getTitle'
+    'getTitle',
+    'DEBUGGER'
 }
 
 exclude_files = {

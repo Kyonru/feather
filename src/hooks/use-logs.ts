@@ -7,8 +7,9 @@ import { unionBy } from '@/utils/arrays';
 import { z } from 'zod';
 import { useServer } from './use-server';
 import { useSettingsStore } from '@/store/settings';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSampleRate } from './use-config';
+import { isWeb } from '@/utils/platform';
 
 export enum LogType {
   OUTPUT = 'output',
@@ -61,27 +62,50 @@ export const useLogs = (): {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const disconnected = useConfigStore((state) => state.disconnected);
   const logFile = useConfigStore((state) => state.config?.outfile || '');
+  const overrideLogFile = useConfigStore((state) => state.overrideConfig?.outfile || '');
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const { url: serverUrl, apiKey } = useServer();
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
   const sampleRate = useSampleRate();
 
+  const enabled = useMemo(() => {
+    if (overrideLogFile) {
+      return true;
+    }
+
+    return !disconnected && !pausedLogs;
+  }, [disconnected, pausedLogs, overrideLogFile]);
+
+  const logFilePathname = overrideLogFile || logFile;
+
   const { isPending, error, data, refetch } = useQuery({
-    queryKey: ['logs'],
+    queryKey: ['logs', logFilePathname],
     queryFn: async (): Promise<Log[]> => {
       try {
-        const lines = await readTextFileLines(logFile);
-
         const dataLogs: Log[] = [];
 
-        for await (const line of lines) {
-          const log = parseLogLine(line);
-          if (log) {
-            dataLogs.push(log);
+        if (isWeb()) {
+          const response = await fetch(`/public/example.log`);
+          const raw = await response.text();
+          const lines = raw.split('\n');
+          for (const line of lines) {
+            const log = parseLogLine(line);
+            if (log) {
+              dataLogs.push(log);
+            }
+          }
+        } else {
+          const lines = await readTextFileLines(logFilePathname);
+
+          for await (const line of lines) {
+            const log = parseLogLine(line);
+            if (log) {
+              dataLogs.push(log);
+            }
           }
         }
 
-        // setScreenshotEnabled(raw.screenshotEnabled);
+        console.log({ dataLogs });
 
         const logs = unionBy<Log, string>(data || [], dataLogs, (item) => item.id) as Log[];
         return logs;
@@ -92,7 +116,7 @@ export const useLogs = (): {
       }
     },
     refetchInterval: sampleRate * 1000,
-    enabled: !disconnected && !pausedLogs,
+    enabled: enabled,
   });
 
   const mutation = useMutation({

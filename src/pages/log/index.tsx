@@ -1,9 +1,10 @@
 import { ColumnDef } from '@tanstack/react-table';
+import { readFile } from '@tauri-apps/plugin-fs';
 import { BadgeType, DataTable } from '@/components/data-table';
 import { PageLayout } from '@/components/page-layout';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button, CopyButton } from '@/components/ui/button';
 import { useConfig } from '@/hooks/use-config';
@@ -13,12 +14,9 @@ import { isWeb } from '@/utils/platform';
 import { Command } from '@tauri-apps/plugin-shell';
 import { useSettingsStore } from '@/store/settings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useConfigStore } from '@/store/config';
 
 export const columns: ColumnDef<Log>[] = [
-  {
-    accessorKey: 'count',
-    header: 'Count',
-  },
   {
     accessorKey: 'type',
     header: 'Type',
@@ -62,6 +60,47 @@ export function TraceBlock({ code, basePath }: { code: string; basePath: string 
   );
 }
 
+export function LogImage({ src }: { src?: string }) {
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (src) {
+      const readImage = async () => {
+        const uint8 = await readFile(src);
+        const blob = new Blob([uint8], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+        setScreenshot(url);
+      };
+
+      readImage();
+    }
+  }, [src]);
+
+  if (!screenshot) {
+    return null;
+  }
+
+  return (
+    <CardFooter className="flex-col items-start gap-1.5 text-sm">
+      <span className="text-sm font-medium">Screenshot</span>
+
+      <Dialog>
+        <DialogTrigger>
+          <img src={screenshot} className="h-full w-full" />
+        </DialogTrigger>
+        <DialogContent className="h-[90vh] w-full sm:max-w-1/2">
+          <DialogHeader>
+            <DialogTitle>Screenshot</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center sm:px-12 p-8 h-[90vh]">
+            <img src={screenshot} className="object-scale-down max-h-full drop-shadow-md rounded-md m-auto" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </CardFooter>
+  );
+}
+
 export function LogSidePanel({
   data,
   basePath,
@@ -76,7 +115,7 @@ export function LogSidePanel({
   const isFeatherEvent = data.type === LogType.FEATHER_FINISH || data.type === LogType.FEATHER_START;
 
   return (
-    <Card className="w-[420px] rounded-none rounded-br-xl">
+    <Card className="w-[420px] overflow-y-scroll rounded-none h-[90vh]">
       <CardHeader className="flex items-center justify-between">
         <div>
           <CardTitle>Log Details</CardTitle>
@@ -93,11 +132,6 @@ export function LogSidePanel({
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Type</span>
           <BadgeType type={data.type} />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Count</span>
-          <span>{data.count}</span>
         </div>
 
         <div className="flex items-center justify-between">
@@ -132,28 +166,7 @@ export function LogSidePanel({
           <CopyButton value={trace} />
         </CardFooter>
       ) : null}
-      {screenshot ? (
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <span className="text-sm font-medium">Screenshot</span>
-
-          <Dialog>
-            <DialogTrigger>
-              <img src={`data:image/png;base64,${screenshot}`} className="h-full w-full" />
-            </DialogTrigger>
-            <DialogContent className="h-[90vh] w-full sm:max-w-1/2">
-              <DialogHeader>
-                <DialogTitle>Screenshot</DialogTitle>
-              </DialogHeader>
-              <div className="flex justify-center sm:px-12 p-8 h-[90vh]">
-                <img
-                  src={`data:image/png;base64,${screenshot}`}
-                  className="object-scale-down max-h-full drop-shadow-md rounded-md m-auto"
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-        </CardFooter>
-      ) : null}
+      <LogImage src={screenshot} />
     </Card>
   );
 }
@@ -163,6 +176,7 @@ export default function Page() {
   const { data: logsData, clear, onScreenshotChange } = useLogs();
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const setPausedLogs = useSettingsStore((state) => state.setPausedLogs);
+  const setFilePath = useConfigStore((state) => state.setLogOverride);
 
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
 
@@ -186,6 +200,10 @@ export default function Page() {
         onScreenshotChange={onScreenshotChange}
         isPaused={pausedLogs}
         onPlayPause={() => {
+          if (pausedLogs) {
+            setFilePath(undefined);
+          }
+
           setPausedLogs(!pausedLogs);
         }}
         onClear={onClear}
@@ -194,6 +212,13 @@ export default function Page() {
           setSelectedLog(logs.find((item) => item.id === id) || null);
         }}
         data={logs}
+        onUpload={(filename) => {
+          console.log(filename);
+          if (filename) {
+            setFilePath(filename);
+            setPausedLogs(true);
+          }
+        }}
       />
     </PageLayout>
   );

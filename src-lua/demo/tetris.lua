@@ -215,7 +215,11 @@ end
 function Game.update(dt)
   timer = timer + dt
 
-  print(timer)
+  DEBUGGER.featherLogger:log({
+    type = "output",
+    str = "test",
+  }, true)
+
   -- Removed local timerLimit = 0.5
   if timer >= timerLimit then
     timer = 0

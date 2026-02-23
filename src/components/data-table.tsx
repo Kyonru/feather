@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -14,12 +14,14 @@ import {
   useReactTable,
   VisibilityState,
 } from '@tanstack/react-table';
+import { open } from '@tauri-apps/plugin-dialog';
 import { TableVirtuoso } from 'react-virtuoso';
 import { Badge } from '@/components/ui/badge';
 import { TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/utils/styles';
 import { Log, LogType } from '@/hooks/use-logs';
+import { isWeb } from '@/utils/platform';
 import { Input } from './ui/input';
 import { useConfigStore } from '@/store/config';
 import { DynamicIcon } from 'lucide-react/dynamic';
@@ -33,9 +35,21 @@ import {
   ScreenShareIcon,
   ScreenShareOffIcon,
   Trash2Icon,
+  UploadIcon,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog';
+import { Label } from './ui/label';
 
 // Original Table is wrapped with a <div> (see https://ui.shadcn.com/docs/components/table#radix-:r24:-content-manual),
 // but here we don't want it, so let's use a new component with only <table> tag
@@ -109,12 +123,6 @@ export const BadgeType = ({ type }: { type: string }) => {
 
 export const columns: ColumnDef<Log>[] = [
   {
-    accessorKey: 'count',
-    header: () => <div className="text-left">Count</div>,
-    size: 50,
-    enableColumnFilter: true,
-  },
-  {
     accessorKey: 'type',
     header: 'Type',
     cell: ({ row }) => <BadgeType type={row.original.type} />,
@@ -130,7 +138,7 @@ export const columns: ColumnDef<Log>[] = [
   {
     accessorKey: 'time',
     header: () => <div className="w-full text-left">Time</div>,
-    cell: ({ row }) => <span>{new Date(row.original.time * 1000).toLocaleString()}</span>,
+    cell: ({ row }) => <span>{new Date(row.original.time * 1000).toLocaleTimeString()}</span>,
     enableColumnFilter: true,
   },
 ];
@@ -160,6 +168,8 @@ const TableRowComponent = <TData,>(rows: Row<TData>[]) =>
     );
   };
 
+export const ACCEPTED_LOG_FILE_TYPES: string[] = ['featherlog'] as const;
+
 export function DataTable({
   data,
   onRowSelection,
@@ -169,6 +179,7 @@ export function DataTable({
   showSearch,
   screenshotEnabled,
   onScreenshotChange,
+  onUpload,
 }: {
   data: Log[];
   onRowSelection?: (id: string) => void;
@@ -179,6 +190,7 @@ export function DataTable({
   showSearch?: boolean;
   screenshotEnabled?: boolean;
   onScreenshotChange?: () => void;
+  onUpload?: (pathname: string) => void;
 }) {
   const [globalFilter, setGlobalFilter] = useState<unknown>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -222,6 +234,32 @@ export function DataTable({
   });
 
   const rows = table.getRowModel().rows;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const pathname = e.target.value;
+
+    if (pathname) {
+      onUpload?.(pathname);
+    }
+  };
+
+  const onSelectFile = async () => {
+    if (isWeb()) {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    const file = await open({
+      multiple: false,
+      directory: false,
+      filters: [{ name: 'Log Files', extensions: ACCEPTED_LOG_FILE_TYPES }],
+    });
+
+    if (file) {
+      onUpload?.(file);
+    }
+  };
 
   useEffect(() => {
     if (rowSelection) {
@@ -236,7 +274,6 @@ export function DataTable({
         {showSearch && (
           <div className="flex items-center gap-2 mt-2">
             <Input placeholder="Search..." onChange={(e) => table.setGlobalFilter(String(e.target.value))} />
-
             <Tooltip>
               <TooltipTrigger>
                 <Button variant="secondary" size="icon" onClick={onPlayPause}>
@@ -245,11 +282,11 @@ export function DataTable({
                   ) : (
                     <PauseIcon className="text-blue-500 cursor-pointer" />
                   )}
-                  <span className="sr-only">Pause</span>
+                  <span className="sr-only">{isPaused ? 'Paused' : 'Playing'}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Pause</p>
+                <p>{isPaused ? 'Paused' : 'Playing'}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -278,6 +315,43 @@ export function DataTable({
               </TooltipTrigger>
               <TooltipContent>
                 <p>{screenshotEnabled ? 'Disable Screenshots' : 'Enable Screenshots'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger>
+                {isWeb() ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="secondary" size="icon">
+                        <UploadIcon className=" text-yellow-500 cursor-pointer" />
+                        <span className="sr-only">Upload logs</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-sm">
+                      <DialogHeader>
+                        <DialogTitle>Use log file</DialogTitle>
+                        <DialogDescription>Upload a log file to use instead of the default one.</DialogDescription>
+                      </DialogHeader>
+
+                      <Label htmlFor="name-1">pathname</Label>
+                      <Input id="name-1" name="name" onChange={onFileChange} />
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Save</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <Button variant="secondary" size="icon" onClick={onSelectFile}>
+                    <UploadIcon className=" text-yellow-500 cursor-pointer" />
+                    <span className="sr-only">Upload logs</span>
+                  </Button>
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Upload logs</p>
               </TooltipContent>
             </Tooltip>
           </div>

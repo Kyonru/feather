@@ -20,6 +20,8 @@ local types = {
   ["feather:finish"] = "info",
   ["feather:start"] = "info",
 }
+local LOGS_DIR = "logs"
+local SCREENSHOTS_DIR = LOGS_DIR .. "/" .. "screenshots"
 
 ---@class FeatherLogger: FeatherPlugin
 ---@field debug boolean
@@ -27,6 +29,10 @@ local types = {
 ---@field captureScreenshot boolean
 ---@field lastScreenshot any
 ---@field outfile string
+---@field last_screenshot_taken_at number
+---@field screenshotIndex number
+---@field screenshotRate number
+---@field screenshotPoolSize number
 ---@field last_log FeatherLine
 ---@field maxTempLogs number
 ---@field log fun(self: FeatherLogger, line: FeatherLine, screenshot?: boolean) Logs a line
@@ -44,14 +50,23 @@ local FeatherLogger = Class({
     self.captureScreenshot = config.captureScreenshot
     self.lastScreenshot = nil
     self.last_log = nil
+    self.last_screenshot_taken_at = nil
+    self.screenshotIndex = 1
+    self.screenshotRate = config.screenshotRate or 1
+    self.screenshotPoolSize = config.screenshotPoolSize or 60
+    self.lastId = 0
 
     local cwd = love.filesystem.getSaveDirectory()
 
-    love.filesystem.createDirectory("logs")
+    love.filesystem.createDirectory(LOGS_DIR)
 
-    local logdir = cwd .. "/logs"
+    love.filesystem.createDirectory(SCREENSHOTS_DIR)
 
-    local logfile = logdir .. "/" .. os.date("%Y-%m-%d_%H:%M:%S") .. "_" .. config.outfile
+    local logdir = cwd .. "/" .. LOGS_DIR
+
+    local logfile = logdir .. "/" .. os.date("%Y-%m-%d_%H:%M:%S") .. "_" .. config.outfile .. ".featherlog"
+
+    log.info("Saving logs to " .. logfile)
 
     log.outfile = logfile
     log.usecolor = false
@@ -75,14 +90,22 @@ end
 
 function FeatherLogger:update()
   if not self.captureScreenshot then
+    self.lastScreenshot = nil
     return
   end
 
-  self.lastScreenshot = nil
+  local now = love.timer.getTime()
 
-  love.graphics.captureScreenshot(function(img)
-    self.lastScreenshot = img
-  end)
+  if self.last_screenshot_taken_at and now - self.last_screenshot_taken_at < self.screenshotRate then
+    return -- short throttle so spammy errors don't melt disk
+  end
+
+  self.last_screenshot_taken_at = now
+
+  self.screenshotIndex = (self.screenshotIndex or 0) % self.screenshotPoolSize + 1
+  self.lastScreenshot = SCREENSHOTS_DIR .. "/debug_" .. self.screenshotIndex .. ".png"
+
+  love.graphics.captureScreenshot(self.lastScreenshot)
 end
 
 --- Manages the print function internally
@@ -126,25 +149,17 @@ function FeatherLogger:log(line, screenshot)
   end
 
   if screenshot and self.captureScreenshot then
-    local takeScreenshot = function()
-      if not self.lastScreenshot then
-        return
-      end
-
-      local fileData = self.lastScreenshot:encode("png")
-      local pngBytes = fileData:getString()
-
-      local b64 = love.data.encode("string", "base64", pngBytes)
-      line.screenshot = b64
+    if not self.lastScreenshot then
+      return
     end
 
-    local result, err = pcall(takeScreenshot)
-    if not result then
-      print("Error capturing screenshot: " .. tostring(err))
-    end
+    local cwd = love.filesystem.getSaveDirectory()
+
+    line.screenshot = cwd .. "/" .. self.lastScreenshot
   end
 
-  line.id = tostring(os.time())
+  self.lastId = self.lastId + 1
+  line.id = tostring(self.lastId)
   line.time = os.time()
   line.count = 1
   line.trace = debug.traceback()

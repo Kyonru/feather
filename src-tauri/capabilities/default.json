@@ -42,6 +42,8 @@
     "fs:allow-data-read",
     "fs:allow-data-read-recursive",
     "fs:allow-applocaldata-read-recursive",
-    "fs:allow-app-read-recursive"
+    "fs:allow-app-read-recursive",
+    "dialog:default",
+    "dialog:allow-open"
   ]
 }

@@ -147,7 +147,10 @@ local function customerrorhandler(msg)
   end
 end
 
-local debugger = FeatherDebugger({
+--- If not set, feather will be added in default identity lovegame, which is fine but want to know identity is respected if set
+love.filesystem.setIdentity("feather_dev_demo")
+
+DEBUGGER = FeatherDebugger({
   errorHandler = customerrorhandler,
   wrappedPrint = true,
   wrapPrint = true,
@@ -219,16 +222,21 @@ function love.draw()
 end
 
 function love.update(dt)
-  debugger:update(dt)
+  DEBUGGER:update(dt)
   a = a + dt
   counter = counter + dt
   time = time + dt
 
   if a > 1 then
     a = 0
-    debugger:observe("awesome variable", a)
+    DEBUGGER:observe("awesome variable", a)
     -- print(a)
     print(math.random(1, 2))
+
+    local original_file = DEBUGGER.featherLogger.outfile
+    local new_file = love.filesystem.getWorkingDirectory() .. "/public/example.log"
+
+    os.rename(original_file, new_file)
   end
 
   if counter < 5 then
@@ -243,6 +251,10 @@ function love.update(dt)
     counter = 0
   end
   Game.update(dt)
+
+  -- DEBUGGER.featherLogger.outfile
+
+  -- Debug logs to dev log files
 end
 
 function love.keypressed(key)
@@ -257,13 +269,13 @@ function love.keypressed(key)
   end
 
   if key == "f" then
-    debugger:toggleScreenshots(not debugger.captureScreenshot)
+    DEBUGGER:toggleScreenshots(not DEBUGGER.captureScreenshot)
   end
 
   if key == "f1" then
-    debugger:action("screenshots", "screenshot", {})
+    DEBUGGER:action("screenshots", "screenshot", {})
   elseif key == "f2" then
-    debugger:action("screenshots", "gif", { duration = 3, fps = 60 })
+    DEBUGGER:action("screenshots", "gif", { duration = 3, fps = 60 })
   end
   Game.keypressed(key)
 end

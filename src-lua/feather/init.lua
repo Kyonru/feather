@@ -68,7 +68,7 @@ function Feather:init(config)
   self.debug = conf.debug or false
   self.host = conf.host or "*"
   self.baseDir = conf.baseDir or ""
-  self.outfile = conf.outfile or "feather.log"
+  self.outfile = conf.outfile or "feather"
   self.port = conf.port or 4004
   self.wrapPrint = conf.wrapPrint or false
   self.whitelist = conf.whitelist or { "127.0.0.1" }

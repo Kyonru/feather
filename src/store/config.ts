@@ -13,6 +13,7 @@ export interface Config {
 
 interface ConfigState {
   config: Config | null;
+  overrideConfig?: Config | null;
   disconnected: boolean;
 }
 
@@ -20,6 +21,7 @@ interface ConfigAction {
   setConfig: (config: Config | null) => void;
   setDisconnected: (disconnected: boolean) => void;
   setSampleRate: (sampleRate: number) => void;
+  setLogOverride: (filePath?: string) => void;
 }
 
 type ConfigStore = ConfigState & ConfigAction;
@@ -31,4 +33,13 @@ export const useConfigStore = create<ConfigStore>((set) => ({
   setConfig: (config: Config | null) => set({ config }),
   setSampleRate: (sampleRate: number) =>
     set((state) => ({ ...state, config: state.config ? { ...state.config, sampleRate } : null })),
+  setLogOverride: (filePath?: string) =>
+    set((state) => ({
+      ...state,
+      overrideConfig: {
+        ...state.config,
+        ...state.overrideConfig,
+        outfile: filePath,
+      } as Config,
+    })),
 }));
