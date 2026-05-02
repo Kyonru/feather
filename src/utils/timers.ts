@@ -21,13 +21,22 @@ export function timeout<T>(ms: number, promise: Promise<any>): Promise<T> {
  * Debounce (trailing only).
  * Runs `fn` only after no calls have happened for `wait` ms.
  */
-export function debounce<T extends (...args: unknown[]) => void>(fn: T, wait: number = 300) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function debounce<T extends (...args: any[]) => void>(fn: T, wait: number = 300) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
+  let lastArgs: Parameters<T> | null = null;
 
-  const debounced = (...args: Parameters<T>): void => {
+  const debounced = (...args: Parameters<T>) => {
+    lastArgs = args;
+
     if (timeout) clearTimeout(timeout);
+
     timeout = setTimeout(() => {
-      fn(...args);
+      timeout = null;
+      if (lastArgs) {
+        fn(...lastArgs);
+        lastArgs = null;
+      }
     }, wait);
   };
 
@@ -36,7 +45,20 @@ export function debounce<T extends (...args: unknown[]) => void>(fn: T, wait: nu
       clearTimeout(timeout);
       timeout = null;
     }
+    lastArgs = null;
   };
 
-  return debounced as T & { cancel: () => void };
+  debounced.flush = () => {
+    if (timeout && lastArgs) {
+      clearTimeout(timeout);
+      timeout = null;
+      fn(...lastArgs);
+      lastArgs = null;
+    }
+  };
+
+  return debounced as T & {
+    cancel: () => void;
+    flush: () => void;
+  };
 }

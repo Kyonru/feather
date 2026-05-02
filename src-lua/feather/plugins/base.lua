@@ -31,12 +31,12 @@ function FeatherPlugin:onerror(msg)
   return self, msg
 end
 
-function FeatherPlugin:handleRequest(request)
-  return self, request
+function FeatherPlugin:handleRequest()
+  return nil
 end
 
-function FeatherPlugin:handleActionRequest(request)
-  return self, request
+function FeatherPlugin:handleActionRequest()
+  return nil
 end
 
 function FeatherPlugin:handleParamsUpdate()

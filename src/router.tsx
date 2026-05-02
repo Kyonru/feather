@@ -12,11 +12,11 @@ import Plugins from './pages/plugins';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
-import { useLogs } from './hooks/use-logs';
+import { useWsConnection } from './hooks/use-ws-connection';
 
 const Modals = () => {
   const disconnected = useConfigStore((state) => state.disconnected);
-  useLogs();
+  useWsConnection();
 
   useEffect(() => {
     if (disconnected) {

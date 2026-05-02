@@ -158,8 +158,7 @@ DEBUGGER = FeatherDebugger({
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
   apiKey = "debugger",
-  mode = "disk",
-  captureScreenshot = true,
+  captureScreenshot = false,
   debug = true,
   plugins = {
     FeatherPluginManager.createPlugin(TestPlugin, "test", {
@@ -230,7 +229,7 @@ function love.update(dt)
 
   if a > 1 then
     a = 0
-    DEBUGGER:observe("awesome variable", a)
+    -- DEBUGGER:observe("awesome variable", a)
     -- print(a)
     print(math.random(1, 2))
 

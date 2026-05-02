@@ -48,41 +48,25 @@ const ToggleTheme = () => {
 const PortInput = () => {
   const port = useSettingsStore((state) => state.port);
   const setPort = useSettingsStore((state) => state.setPort);
-  const host = useSettingsStore((state) => state.host);
-  const setHost = useSettingsStore((state) => state.setHost);
 
   return (
-    <>
-      <div className="grid gap-3">
-        <Label htmlFor="host-1">Host</Label>
-        <Input
-          id="host-1"
-          name="host"
-          value={host}
-          onChange={(e) => {
-            const value = e.target.value;
-            setHost(value);
-          }}
-        />
-      </div>
-      <div className="grid gap-3">
-        <Label htmlFor="port-1">Port</Label>
-        <Input
-          id="port-1"
-          name="port"
-          type="number"
-          min="1"
-          max="65535"
-          value={port}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value) {
-              setPort(parseInt(value));
-            }
-          }}
-        />
-      </div>
-    </>
+    <div className="grid gap-3">
+      <Label htmlFor="port-1">Server Port</Label>
+      <Input
+        id="port-1"
+        name="port"
+        type="number"
+        min="1"
+        max="65535"
+        value={port}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (value) {
+            setPort(parseInt(value));
+          }
+        }}
+      />
+    </div>
   );
 };
 
@@ -130,46 +114,20 @@ const ApiKeyInput = () => {
   );
 };
 
-const RemoteLogsToggle = () => {
-  const remoteLogs = useSettingsStore((state) => state.remoteLogs);
-  const setRemoteLogs = useSettingsStore((state) => state.setRemoteLogs);
-
-  return (
-    <div className="grid gap-3">
-      <Label htmlFor="remote-logs-1">Remote Logs (Android / iOS)</Label>
-      <ToggleGroup
-        id="remote-logs-1"
-        type="single"
-        value={remoteLogs ? 'on' : 'off'}
-        onValueChange={(value) => {
-          if (value) setRemoteLogs(value === 'on');
-        }}
-      >
-        <ToggleGroupItem value="on" aria-label="Enable remote logs">
-          <Label className="h-4">On</Label>
-        </ToggleGroupItem>
-        <ToggleGroupItem value="off" aria-label="Disable remote logs">
-          <Label className="h-4">Off</Label>
-        </ToggleGroupItem>
-      </ToggleGroup>
-    </div>
-  );
-};
-
 const SampleRateInput = () => {
-  const apiKey = useConfigStore((state) => state.config?.sampleRate);
+  const sampleRate = useConfigStore((state) => state.config?.sampleRate);
   const { updateSampleRate } = useConfig();
 
   return (
     <div className="grid gap-3">
-      <Label htmlFor="api-key-1">Sample Rate (seconds)</Label>
+      <Label htmlFor="sample-rate-1">Sample Rate (seconds)</Label>
       <Input
-        id="api-key-1"
-        name="api-key"
+        id="sample-rate-1"
+        name="sample-rate"
         type="number"
         min={1}
         max={100}
-        value={apiKey}
+        value={sampleRate}
         onChange={(e) => {
           const value = e.target.value;
           if (value) {
@@ -198,7 +156,6 @@ export function SettingsModal() {
           <PortInput />
           <TextEditorInput />
           <ApiKeyInput />
-          <RemoteLogsToggle />
           <SampleRateInput />
         </div>
         <DialogFooter>

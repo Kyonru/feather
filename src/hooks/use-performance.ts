@@ -1,10 +1,8 @@
-import { ServerRoute } from '@/constants/server';
-import { timeout } from '@/utils/timers';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useServer } from './use-server';
-import { useSampleRate } from './use-config';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSessionStore } from '@/store/session';
+import { sessionQueryKey } from './use-ws-connection';
 
-type SystemInfo = {
+export type SystemInfo = {
   arch: string;
   cpuCount: number;
   os: string;
@@ -69,52 +67,18 @@ export const DEFAULT_METRIC: PerformanceMetrics = {
   },
   fps: 0,
   frameTime: 0,
-  sysInfo: {
-    arch: '',
-    cpuCount: 0,
-    os: '',
-  },
+  sysInfo: { arch: '', cpuCount: 0, os: '' },
 };
 
-export const usePerformance = (): {
-  data: PerformanceMetrics[];
-  isPending: boolean;
-  error: unknown;
-  refetch: () => void;
-} => {
+export const usePerformance = (): { data: PerformanceMetrics[] } => {
   const queryClient = useQueryClient();
-  const { url: serverUrl, apiKey } = useServer();
-  const sampleRate = useSampleRate();
-  const queryKey = [serverUrl, apiKey, 'performance'];
+  const sessionId = useSessionStore((state) => state.sessionId);
 
-  const { isPending, error, data, refetch } = useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: queryKey,
-    queryFn: async (): Promise<PerformanceMetrics[]> => {
-      const response = await timeout<Response>(
-        3000,
-        fetch(`${serverUrl}${ServerRoute.PERFORMANCE}`, {
-          headers: {
-            'x-api-key': apiKey,
-          },
-        }),
-      );
+  if (!sessionId) return { data: [] };
 
-      const performance = (await response.json()) as PerformanceMetrics;
-      const existing = queryClient.getQueryData<PerformanceMetrics[]>(queryKey) || [];
+  const data = queryClient.getQueryData<PerformanceMetrics[]>(
+    sessionQueryKey.performance(sessionId),
+  );
 
-      const metrics = (existing.concat(performance) || []) as PerformanceMetrics[];
-
-      return metrics;
-    },
-    refetchInterval: sampleRate * 1000,
-    placeholderData: (previousData) => previousData,
-  });
-
-  return {
-    data: data || [],
-    isPending,
-    error,
-    refetch,
-  };
+  return { data: data ?? [] };
 };

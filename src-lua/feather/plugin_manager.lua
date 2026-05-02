@@ -116,6 +116,21 @@ function FeatherPluginManager:handleParamsUpdate(request, feather)
   end
 end
 
+--- Push current data for every plugin to the desktop over WS.
+--- Called at the throttled updateInterval cadence from Feather:update().
+function FeatherPluginManager:pushAll(feather)
+  local fakeRequest = { method = "GET", params = {}, headers = {} }
+
+  for _, plugin in ipairs(self.plugins) do
+    fakeRequest.path = "/plugins/" .. plugin.identifier
+
+    local ok, data = pcall(plugin.instance.handleRequest, plugin.instance, fakeRequest, feather)
+    if ok and data then
+      pcall(feather.pushPlugin, feather, plugin.identifier, data)
+    end
+  end
+end
+
 function FeatherPluginManager:finish(feather)
   for _, plugin in ipairs(self.plugins) do
     pcall(plugin.instance.finish, plugin.instance, feather)

@@ -1,113 +1,48 @@
-import { ServerRoute } from '@/constants/server';
-import { debounce, timeout } from '@/utils/timers';
-import { Config, useConfigStore } from '@/store/config';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useServer } from './use-server';
-import { version } from '../../package.json';
 import { useMemo } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { debounce } from '@/utils/timers';
+import { Config, useConfigStore } from '@/store/config';
+import { useSessionStore } from '@/store/session';
+import { version } from '../../package.json';
 
 export function useConfig(): {
   data: Config | undefined;
-  isFetching: boolean;
-  error: unknown;
-  refetch: () => void;
-  updateSampleRate: (...[value]: [number]) => void;
+  updateSampleRate: (value: number) => void;
 } {
-  const queryClient = useQueryClient();
-  const setConfig = useConfigStore((state) => state.setConfig);
-  const setDisconnected = useConfigStore((state) => state.setDisconnected);
-  const setSampleRate = useConfigStore((state) => state.setSampleRate);
-  const { url: serverUrl, apiKey } = useServer();
+  const config = useConfigStore((state) => state.config);
+  const sessionId = useSessionStore((state) => state.sessionId);
 
-  const queryKey = [serverUrl, apiKey, 'config'];
+  const updateSampleRate = useMemo(() => {
+    return debounce((value: number) => {
+      if (!sessionId) return;
 
-  const { isFetching, error, data, refetch } = useQuery({
-    queryKey: queryKey,
-    queryFn: async (): Promise<Config | undefined> => {
-      try {
-        const response = await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${ServerRoute.CONFIG}?p=feather`, {
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
-        const config = await response.json();
-
-        setConfig(config);
-        setDisconnected(false);
-        return config;
-      } catch {
-        setDisconnected(true);
-        return queryClient.getQueryData(queryKey);
-      }
-    },
-  });
-
-  const update = useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: string | number | boolean }) => {
-      try {
-        await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${ServerRoute.CONFIG}?${key}=${value}`, {
-            method: 'PUT',
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
-
-        return [];
-      } catch (e) {
-        console.log('error', e);
-        return [];
-      }
-    },
-  });
-
-  const updateSampleRate = useMemo(
-    () =>
-      debounce((...[value]) => {
-        update.mutate({
-          key: 'sampleRate',
-          value: value as number,
-        });
-      }, 1000),
-    [],
-  );
-
-  const onUpdateSampleRate = (value: number) => {
-    setSampleRate(value as number);
-    updateSampleRate(value);
-  };
+      invoke('send_command', {
+        sessionId,
+        message: JSON.stringify({
+          type: 'cmd:config',
+          data: { sampleRate: value },
+        }),
+      }).catch(console.error);
+    }, 1000);
+  }, [sessionId]);
 
   return {
-    data,
-    isFetching,
-    error,
-    refetch,
-    updateSampleRate: onUpdateSampleRate,
+    data: config ?? undefined,
+    updateSampleRate,
   };
 }
 
 export const useVersionMismatch = () => {
   const config = useConfigStore((state) => state.config);
-  const isVersionMismatch = config?.version !== version;
-
-  return isVersionMismatch;
+  return config?.version !== version;
 };
 
 export const useSampleRate = () => {
   const config = useConfigStore((state) => state.config);
-  const sampleRate = config?.sampleRate;
-
-  return sampleRate || 1;
+  return config?.sampleRate ?? 1;
 };
 
 export const useLanguage = () => {
   const config = useConfigStore((state) => state.config);
-  const language = config?.language;
-
-  return language || 'lua';
+  return config?.language ?? 'lua';
 };

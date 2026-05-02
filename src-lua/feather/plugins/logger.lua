@@ -24,6 +24,7 @@ local LOGS_DIR = "logs"
 local SCREENSHOTS_DIR = LOGS_DIR .. "/" .. "screenshots"
 
 ---@class FeatherLogger: FeatherPlugin
+---@field feather table
 ---@field debug boolean
 ---@field wrapPrint boolean
 ---@field captureScreenshot boolean
@@ -45,6 +46,7 @@ local SCREENSHOTS_DIR = LOGS_DIR .. "/" .. "screenshots"
 local FeatherLogger = Class({
   __includes = Base,
   init = function(self, config)
+    self.feather = config
     self.debug = config.debug
     self.wrapPrint = config.wrapPrint
     self.maxTempLogs = config.maxTempLogs
@@ -169,8 +171,16 @@ function FeatherLogger:log(line, screenshot)
   self.last_log = line
 
   local logType = types[line.type] or "debug"
-
   log[logType](json.encode(line))
+
+  -- Non-blocking channel push; __sendWs is a no-op when not connected
+  if self.feather then
+    self.feather:__sendWs(json.encode({
+      type = "log",
+      session = self.feather.sessionId,
+      data = line,
+    }))
+  end
 end
 
 function FeatherLogger:clear()

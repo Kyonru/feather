@@ -2,18 +2,19 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Badge } from './ui/badge';
-import { FolderOpenIcon, LoaderPinwheelIcon, WifiIcon, WifiOff } from 'lucide-react';
-import { cn } from '@/utils/styles';
-import { useConfig } from '@/hooks/use-config';
+// import { FolderOpenIcon, LoaderPinwheelIcon, WifiIcon, WifiOff } from 'lucide-react';
+import { FolderOpenIcon } from 'lucide-react';
+// import { cn } from '@/utils/styles';
+// import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
 import { openFolder } from '@/utils/linking';
 
 export function SiteHeader() {
-  const disconnected = useConfigStore((store) => store.disconnected);
-  const { isFetching, refetch } = useConfig();
+  // const disconnected = useConfigStore((store) => store.disconnected);
+  // const { isFetching, refetch } = useConfig();
   const location = useConfigStore((state) => state.config?.location);
 
-  const isConnected = !disconnected;
+  // const isConnected = !disconnected;
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
@@ -36,7 +37,7 @@ export function SiteHeader() {
               </Badge>
             </Button>
           )}
-          <Button onClick={() => refetch()} variant="ghost" asChild size="sm" className="hidden sm:flex">
+          {/* <Button onClick={() => refetch()} variant="ghost" asChild size="sm" className="hidden sm:flex">
             {isFetching ? (
               <Badge variant="secondary" className={'text-black'}>
                 <LoaderPinwheelIcon className="text-yellow-700 animate-spin" />
@@ -54,7 +55,7 @@ export function SiteHeader() {
                 {isConnected ? 'Connected' : 'Tap to connect'}
               </Badge>
             )}
-          </Button>
+          </Button> */}
         </div>
       </div>
     </header>

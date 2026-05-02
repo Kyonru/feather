@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useServer } from './use-server';
-import { debounce, timeout } from '@/utils/timers';
+import { useQueryClient } from '@tanstack/react-query';
+import { invoke } from '@tauri-apps/api/core';
+import { debounce } from '@/utils/timers';
 import { unionBy } from '@/utils/arrays';
-import { useSampleRate } from './use-config';
+import { useSessionStore } from '@/store/session';
+import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
 
 export type ScreenshotType = {
@@ -39,126 +40,58 @@ export interface PluginContentProps {
   persist?: boolean;
 }
 
-export const usePluginAction = (url: string) => {
-  const { url: serverUrl, apiKey } = useServer();
+export const usePluginAction = (pluginId: string) => {
+  const sessionId = useSessionStore((state) => state.sessionId);
   const [params, setParams] = useState<Record<string, string | boolean>>({});
 
-  const mutation = useMutation({
-    mutationFn: async (action: string) => {
-      try {
-        const formattedParams = Object.entries(params)
-          .filter(([key, value]) => value && key)
-          .map(([key, value]) => `${key}=${value}`)
-          .join('&');
-        const urlWithParams = `${url}?action=${action}${formattedParams ? `&${formattedParams}` : ''}`;
-
-        await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${urlWithParams}`, {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
-
-        return [];
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to execute action');
-        return [];
-      }
-    },
-  });
-
-  const update = useMutation({
-    mutationFn: async () => {
-      try {
-        const formattedParams = Object.entries(params)
-          .filter(([key, value]) => value && key)
-          .map(([key, value]) => `${key}=${value}`)
-          .join('&');
-        const urlWithParams = `${url}?${formattedParams ? `${formattedParams}` : ''}`;
-
-        await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${urlWithParams}`, {
-            method: 'PUT',
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
-
-        return [];
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to update plugin');
-        return [];
-      }
-    },
-  });
+  const sendCommand = (message: object) => {
+    if (!sessionId) return Promise.resolve();
+    return invoke('send_command', { sessionId, message: JSON.stringify(message) }).catch((e: unknown) => {
+      toast.error(e instanceof Error ? e.message : 'Failed to send command');
+    });
+  };
 
   const onAction = (action: string) => {
-    mutation.mutate(action);
+    sendCommand({ type: 'cmd:plugin:action', plugin: pluginId, action, params });
   };
 
   const updateOptions = useMemo(
     () =>
       debounce(() => {
-        update.mutate();
+        sendCommand({ type: 'cmd:plugin:params', plugin: pluginId, params });
       }, 1000),
-    [],
+    [sessionId, pluginId, params],
   );
 
   const onActionChange = (action: string, value: string | boolean) => {
-    setParams((prev) => {
-      return {
-        ...prev,
-        [action]: value,
-      };
-    });
+    setParams((prev) => ({ ...prev, [action]: value }));
     updateOptions();
   };
 
-  return {
-    onAction,
-    onActionChange,
-    params: params.current,
-  };
+  return { onAction, onActionChange };
 };
 
-export function usePlugin(url: string) {
-  const sampleRate = useSampleRate();
+export function usePlugin(pluginId: string) {
   const queryClient = useQueryClient();
-  const { url: serverUrl, apiKey } = useServer();
+  const sessionId = useSessionStore((state) => state.sessionId);
 
-  const queryKey = [serverUrl, url, apiKey];
+  const data = useMemo<PluginContentProps>(() => {
+    if (!sessionId) return { data: [], type: 'gallery', loading: false };
 
-  const { isPending, error, data, refetch } = useQuery({
-    queryKey: queryKey,
-    queryFn: async (): Promise<PluginContentProps> => {
-      const response = await timeout<Response>(3000, fetch(`${serverUrl}${url}`, { headers: { 'x-api-key': apiKey } }));
+    const cached = queryClient.getQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId));
 
-      const pluginData = (await response.json()) as PluginContentProps;
+    if (!cached) return { data: [], type: 'gallery', loading: false };
 
-      if (pluginData.persist) {
-        const prevData: PluginContentProps = queryClient.getQueryData(queryKey) as PluginContentProps;
-        const newData = unionBy<PluginDataType, string>(prevData?.data || [], pluginData.data, (item) => item.name);
-        return {
-          ...pluginData,
-          data: newData,
-        };
-      }
+    if (cached.persist) {
+      const prev = queryClient.getQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId));
+      return {
+        ...cached,
+        data: unionBy<PluginDataType, string>(prev?.data ?? [], cached.data, (item) => item.name),
+      };
+    }
 
-      return pluginData;
-    },
-    refetchInterval: sampleRate * 1000,
-    placeholderData: (previousData) => previousData,
-  });
+    return cached;
+  }, [queryClient, sessionId, pluginId]);
 
-  return {
-    data: data || ({} as PluginContentProps),
-    isPending,
-    error,
-    refetch,
-  };
+  return { data, isPending: false };
 }
