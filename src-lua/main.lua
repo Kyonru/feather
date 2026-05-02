@@ -158,6 +158,7 @@ DEBUGGER = FeatherDebugger({
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
   apiKey = "debugger",
+  mode = "disk",
   captureScreenshot = true,
   debug = true,
   plugins = {

@@ -10,6 +10,7 @@ type SettingsStoreState = {
   isLatestVersion: boolean;
   apiKey: string;
   pausedLogs: boolean;
+  remoteLogs: boolean;
 };
 
 type SettingsStoreActions = {
@@ -20,6 +21,7 @@ type SettingsStoreActions = {
   setPort: (port: number) => void;
   setTextEditorPath: (textEditorPath: string) => void;
   setPausedLogs: (pausedLogs: boolean) => void;
+  setRemoteLogs: (remoteLogs: boolean) => void;
   setApiKey: (apiKey: string) => void;
   reset: () => void;
 };
@@ -35,6 +37,7 @@ const defaultSettings: SettingsStoreState = {
   port: 4004,
   textEditorPath: '/usr/local/bin/code',
   pausedLogs: false,
+  remoteLogs: false,
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -49,6 +52,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setTextEditorPath: (textEditorPath: string) => set({ textEditorPath }),
       reset: () => set((state) => ({ ...state, ...defaultSettings, open: state.open })),
       setPausedLogs: (pausedLogs: boolean) => set({ pausedLogs }),
+      setRemoteLogs: (remoteLogs: boolean) => set({ remoteLogs }),
       setApiKey: (apiKey: string) => set({ apiKey }),
     }),
     { name: 'settings-storage' },

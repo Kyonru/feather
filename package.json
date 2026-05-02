@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
     "web": "vite",
+    "native": "npm run tauri build -- --debug",
     "lua": "sh ./scripts/watch-lua.sh",
     "build": "tsc && vite build",
     "preview": "vite preview",

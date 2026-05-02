@@ -130,6 +130,32 @@ const ApiKeyInput = () => {
   );
 };
 
+const RemoteLogsToggle = () => {
+  const remoteLogs = useSettingsStore((state) => state.remoteLogs);
+  const setRemoteLogs = useSettingsStore((state) => state.setRemoteLogs);
+
+  return (
+    <div className="grid gap-3">
+      <Label htmlFor="remote-logs-1">Remote Logs (Android / iOS)</Label>
+      <ToggleGroup
+        id="remote-logs-1"
+        type="single"
+        value={remoteLogs ? 'on' : 'off'}
+        onValueChange={(value) => {
+          if (value) setRemoteLogs(value === 'on');
+        }}
+      >
+        <ToggleGroupItem value="on" aria-label="Enable remote logs">
+          <Label className="h-4">On</Label>
+        </ToggleGroupItem>
+        <ToggleGroupItem value="off" aria-label="Disable remote logs">
+          <Label className="h-4">Off</Label>
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </div>
+  );
+};
+
 const SampleRateInput = () => {
   const apiKey = useConfigStore((state) => state.config?.sampleRate);
   const { updateSampleRate } = useConfig();
@@ -172,6 +198,7 @@ export function SettingsModal() {
           <PortInput />
           <TextEditorInput />
           <ApiKeyInput />
+          <RemoteLogsToggle />
           <SampleRateInput />
         </div>
         <DialogFooter>

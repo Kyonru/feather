@@ -1,5 +1,5 @@
 ---@diagnostic disable: invisible
-local socket = require("socket")
+local socket -- required lazily in socket mode only
 local utf8 = require("utf8")
 
 -- lib Path
@@ -60,6 +60,7 @@ local customErrorHandler = errorhandler
 ---@field autoRegisterErrorHandler? boolean
 ---@field errorHandler? function
 ---@field plugins? table
+---@field mode? "socket" | "disk"
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -81,6 +82,7 @@ function Feather:init(config)
   self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
   self.plugins = conf.plugins or {}
+  self.mode = conf.mode or "socket"
   self.lastError = 0
   self.version = FEATHER_VERSION.api
   self.versionName = FEATHER_VERSION.name
@@ -90,13 +92,6 @@ function Feather:init(config)
   end
 
   customErrorHandler = conf.errorHandler or errorhandler
-
-  local server = assert(socket.bind(self.host, self.port))
-  self.server = server
-
-  self.addr, self.port = self.server:getsockname()
-  print("Listening on " .. self.addr .. ":" .. self.port)
-  self.server:settimeout(0)
 
   ---@type FeatherLogger
   self.featherLogger = FeatherLogger(self)
@@ -120,6 +115,18 @@ function Feather:init(config)
   end
 
   self.pluginManager = FeatherPluginManager(self, self.featherLogger, self.featherObserver)
+
+  if self.mode == "disk" then
+    return
+  end
+
+  socket = require("socket")
+  local server = assert(socket.bind(self.host, self.port))
+  self.server = server
+
+  self.addr, self.port = self.server:getsockname()
+  print("Listening on " .. self.addr .. ":" .. self.port)
+  self.server:settimeout(0)
 end
 
 function Feather:__getConfig()
@@ -237,6 +244,12 @@ end
 ---@param dt number
 function Feather:update(dt)
   if not self.debug then
+    return
+  end
+
+  if self.mode == "disk" then
+    self.featherLogger:update()
+    self.pluginManager:update(dt, self)
     return
   end
 

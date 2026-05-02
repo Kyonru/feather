@@ -22,20 +22,29 @@ Content-Length: 0
   return response
 end
 
+---@param contentType string
 ---@param body string
-function server.buildResponse(body)
-  local response = table.concat({
+local function buildHttpResponse(contentType, body)
+  return table.concat({
     "HTTP/1.1 200 OK",
-    "Content-Type: application/json",
+    "Content-Type: " .. contentType,
     "Access-Control-Allow-Origin: *",
-    "Access-Control-Allow-Headers: Content-Type,  x-api-key, X-Requested-With, Access-Control-Request-Headers",
+    "Access-Control-Allow-Headers: Content-Type, x-api-key, X-Requested-With, Access-Control-Request-Headers",
     "Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS",
     "Content-Length: " .. #body,
     "",
     body,
   }, "\r\n")
+end
 
-  return response
+---@param body string
+function server.buildResponse(body)
+  return buildHttpResponse("application/json", body)
+end
+
+---@param body string
+function server.buildTextResponse(body)
+  return buildHttpResponse("text/plain; charset=utf-8", body)
 end
 
 --- @class FeatherRequest
@@ -201,6 +210,15 @@ function server.handleRequest(client, feather, dt)
 
     if request and canProcess then
       local response = {}
+
+      if request.method == "GET" and request.path == "/logs" then
+        local fp = io.open(feather.featherLogger.outfile, "r")
+        local content = fp and fp:read("*a") or ""
+        if fp then fp:close() end
+        client:send(server.buildTextResponse(content))
+        client:close()
+        return
+      end
 
       if request.method == "OPTIONS" then
         local optionsResponse = server.allowedHeaders()
