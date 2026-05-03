@@ -7,6 +7,7 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PerformanceMetrics } from '@/hooks/use-performance';
+import { formatMemory } from '@/lib/utils';
 
 export const description = 'An interactive area chart';
 
@@ -154,7 +155,7 @@ export function ChartAreaInteractive({
                   return `${value} FPS`;
                 }
 
-                return `${value} MB`;
+                return formatMemory(value, 1);
               }}
             />
             <ChartTooltip

@@ -36,6 +36,7 @@ export const columns: ColumnDef<Log>[] = [
 
 export function TraceBlock({ code, basePath }: { code: string; basePath: string }) {
   const textEditorPath = useSettingsStore((state) => state.textEditorPath);
+
   return (
     <ScrollArea className="mt-2 h-52 rounded border bg-muted p-2 font-mono text-xs">
       <TraceViewer
@@ -154,19 +155,19 @@ export function LogSidePanel({
           </>
         ) : null}
 
-        {!isFeatherEvent ? (
+        {!isFeatherEvent && trace ? (
           <div>
             <span className="text-sm font-medium">Trace</span>
             <TraceBlock basePath={basePath} code={trace} />
           </div>
         ) : null}
       </CardContent>
-      {!isFeatherEvent ? (
+      {!isFeatherEvent && trace ? (
         <CardFooter className="justify-end">
           <CopyButton value={trace} />
         </CardFooter>
       ) : null}
-      <LogImage src={screenshot} />
+     {screenshot ? <LogImage src={screenshot} /> : null}
     </Card>
   );
 }

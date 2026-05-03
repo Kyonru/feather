@@ -28,3 +28,16 @@ export function timeout<T>(ms: number, promise: Promise<any>): Promise<T> {
 export function isWeb() {
   return !isTauri();
 }
+
+/**
+ * Format a value in megabytes to the most appropriate unit (B, KB, MB, GB).
+ * Input is assumed to be in MB.
+ */
+export function formatMemory(mb: number, decimals = 2): string {
+  if (mb === 0) return '0 B';
+  const bytes = mb * 1024 * 1024;
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const index = Math.min(i, units.length - 1);
+  return `${(bytes / Math.pow(1024, index)).toFixed(decimals)} ${units[index]}`;
+}

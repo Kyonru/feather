@@ -137,6 +137,12 @@ export const useWsConnection = () => {
 
           case 'performance': {
             const metric = data as PerformanceMetrics;
+            // Lua sends memory in KB (collectgarbage("count")), normalize to MB
+            metric.memory = metric.memory / 1024;
+            // Lua sends texturememory in bytes, normalize to MB
+            if (metric.stats?.texturememory) {
+              metric.stats.texturememory = metric.stats.texturememory / 1024 / 1024;
+            }
             queryClient.setQueryData<PerformanceMetrics[]>(sessionQueryKey.performance(sessionId), (prev) => [
               ...(prev ?? []),
               metric,

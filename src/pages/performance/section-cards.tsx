@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DEFAULT_METRIC, PerformanceMetrics } from '@/hooks/use-performance';
 import { cn } from '@/utils/styles';
+import { formatMemory } from '@/lib/utils';
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -84,7 +85,7 @@ export function SectionCards({
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">Frame Time</div>
-          <div className="text-muted-foreground">{metric.frameTime.toFixed(2)} ms</div>
+          <div className="text-muted-foreground">{(metric.frameTime * 1000).toFixed(2)} ms</div>
         </CardFooter>
       </Card>
       <Card
@@ -103,7 +104,7 @@ export function SectionCards({
         <CardHeader>
           <CardDescription>Memory</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {metric.memory.toFixed(2)} MB
+            {formatMemory(metric.memory)}
           </CardTitle>
           <CardAction>
             <TrendingBadge value={MemoryIncrease} />
@@ -111,7 +112,7 @@ export function SectionCards({
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">Texture Memory</div>
-          <div className="text-muted-foreground">{metric.stats.texturememory} MB</div>
+          <div className="text-muted-foreground">{formatMemory(metric.stats.texturememory)}</div>
         </CardFooter>
       </Card>
       <Card className="@container/card justify-between">

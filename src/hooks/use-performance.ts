@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey } from './use-ws-connection';
 
@@ -71,14 +71,12 @@ export const DEFAULT_METRIC: PerformanceMetrics = {
 };
 
 export const usePerformance = (): { data: PerformanceMetrics[] } => {
-  const queryClient = useQueryClient();
   const sessionId = useSessionStore((state) => state.sessionId);
 
-  if (!sessionId) return { data: [] };
-
-  const data = queryClient.getQueryData<PerformanceMetrics[]>(
-    sessionQueryKey.performance(sessionId),
-  );
+  const { data } = useQuery<PerformanceMetrics[]>({
+    queryKey: sessionQueryKey.performance(sessionId ?? ''),
+    enabled: false, // data is pushed via WS, not fetched
+  });
 
   return { data: data ?? [] };
 };

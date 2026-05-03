@@ -169,34 +169,34 @@ DEBUGGER = FeatherDebugger({
   captureScreenshot = false,
   debug = true,
   plugins = {
-    -- FeatherPluginManager.createPlugin(TestPlugin, "test", {
-    --   test = true,
-    -- }),
-    -- --- Should handle error gracefully
-    -- ---@diagnostic disable-next-line: missing-fields
-    -- FeatherPluginManager.createPlugin({ 2 }, "test2", {
-    --   test = true,
-    -- }),
-    -- FeatherPluginManager.createPlugin(HumpSignalPlugin, "hump.signal", {
-    --   signal = Signal,
-    --   register = {
-    --     "emit",
-    --     "register",
-    --     "remove",
-    --     "emitPattern",
-    --     "registerPattern",
-    --     "removePattern",
-    --     "clearPattern",
-    --   },
-    -- }),
-    -- FeatherPluginManager.createPlugin(LuaStateMachinePlugin, "lua-state-machine", {
-    --   machine = machine,
-    -- }),
-    -- FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
-    --   screenshotDirectory = "screenshots",
-    --   fps = 30,
-    --   gifDuration = 5,
-    -- }),
+    FeatherPluginManager.createPlugin(TestPlugin, "test", {
+      test = true,
+    }),
+    --- Should handle error gracefully
+    ---@diagnostic disable-next-line: missing-fields
+    FeatherPluginManager.createPlugin({ 2 }, "test2", {
+      test = true,
+    }),
+    FeatherPluginManager.createPlugin(HumpSignalPlugin, "hump.signal", {
+      signal = Signal,
+      register = {
+        "emit",
+        "register",
+        "remove",
+        "emitPattern",
+        "registerPattern",
+        "removePattern",
+        "clearPattern",
+      },
+    }),
+    FeatherPluginManager.createPlugin(LuaStateMachinePlugin, "lua-state-machine", {
+      machine = machine,
+    }),
+    FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
+      screenshotDirectory = "screenshots",
+      fps = 30,
+      gifDuration = 5,
+    }),
   },
 })
 
