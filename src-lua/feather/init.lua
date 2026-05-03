@@ -57,6 +57,8 @@ local customErrorHandler = errorhandler
 ---@field maxTempLogs? number
 ---@field updateInterval? number
 ---@field sampleRate? number
+---@field sessionName? string  Custom display name shown in desktop session tabs (e.g. "My RPG")
+---@field deviceId? string  Override persistent device ID (auto-generated and saved to disk if not set)
 ---@field apiKey? string
 ---@field defaultObservers? boolean
 ---@field captureScreenshot? boolean
@@ -90,12 +92,33 @@ function Feather:init(config)
   self.mode = conf.mode or "socket"
   self.retryInterval = conf.retryInterval or 5
   self.connectTimeout = conf.connectTimeout or 2
+  self.sessionName = conf.sessionName or ""
   self.lastError = 0
-  self.lastPushTime = 0
   self.wsConnected = false
   self.version = FEATHER_VERSION.api
   self.versionName = FEATHER_VERSION.name
-  self.sessionId = string.format("%08x%08x", math.random(0, 0x7FFFFFFF), math.random(0, 0x7FFFFFFF))
+
+  -- Persistent device ID: saved to disk so the same device keeps its identity across launches.
+  -- Can be overridden via config for custom identification.
+  if conf.deviceId then
+    self.deviceId = conf.deviceId
+  else
+    local DEVICE_ID_FILE = ".feather_device_id"
+    local contents = love.filesystem.read(DEVICE_ID_FILE)
+    if contents and #contents > 0 then
+      self.deviceId = contents:match("^%s*(.-)%s*$") -- trim
+    else
+      self.deviceId = string.format(
+        "%08x%08x%08x%08x",
+        math.random(0, 0x7FFFFFFF),
+        math.random(0, 0x7FFFFFFF),
+        math.random(0, 0x7FFFFFFF),
+        math.random(0, 0x7FFFFFFF)
+      )
+      love.filesystem.write(DEVICE_ID_FILE, self.deviceId)
+    end
+  end
+  self.sessionId = self.deviceId
 
   if not self.debug then
     return
@@ -171,6 +194,8 @@ function Feather:__sendHello()
     session = self.sessionId,
     data = self:__getConfig(),
   }))
+
+  self.featherLogger:log({ type = "feather:start" })
 end
 
 function Feather:__getConfig()
@@ -188,6 +213,9 @@ function Feather:__getConfig()
     outfile = self.featherLogger.outfile,
     captureScreenshot = self.featherLogger.captureScreenshot,
     location = love.filesystem.getSaveDirectory(),
+    sysInfo = self.performance.sysInfo,
+    deviceId = self.deviceId,
+    sessionName = self.sessionName,
   }
 end
 
@@ -215,6 +243,15 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:plugin:params" and msg.plugin then
     local request = { method = "PUT", path = "/plugins/" .. msg.plugin, params = msg.params or {}, headers = {} }
     self.pluginManager:handleParamsUpdate(request, self)
+  -- Server-driven data requests: Feather desktop asks, Lua responds
+  elseif msg.type == "req:config" then
+    self:__sendHello()
+  elseif msg.type == "req:performance" then
+    self:__pushPerformance(love.timer.getDelta())
+  elseif msg.type == "req:observers" then
+    self:__pushObservers()
+  elseif msg.type == "req:plugins" then
+    self.pluginManager:pushAll(self)
   end
 end
 
@@ -346,8 +383,8 @@ function Feather:update(dt)
     while raw and processed < 10 do
       if raw == "__connected__" then
         self.wsConnected = true
+        -- Send hello immediately on connect; server will then request data as needed
         self:__sendHello()
-        self.lastPushTime = love.timer.getTime()
         print("[Feather] Connected to " .. self.host .. ":" .. self.port)
       elseif raw == "__disconnected__" then
         self.wsConnected = false
@@ -360,20 +397,6 @@ function Feather:update(dt)
       end
       processed = processed + 1
       raw = self.wsRx:pop()
-    end
-  end
-
-  -- ⏱ Stable interval push (only when connected)
-  if self.wsConnected then
-    local now = love.timer.getTime()
-    if now - self.lastPushTime >= self.updateInterval then
-      -- Reset to current time — never try to "catch up" missed intervals.
-      -- The old pattern (lastPushTime += interval) caused cascading frame drops
-      -- when a single frame lagged, as it would push multiple times in subsequent frames.
-      self.lastPushTime = now
-      self:__pushPerformance(dt)
-      self:__pushObservers()
-      self.pluginManager:pushAll(self)
     end
   end
 end
@@ -406,7 +429,7 @@ function Feather:pushPlugin(pluginId, data)
     type = "plugin",
     session = self.sessionId,
     plugin = pluginId,
-    -- data = data,
+    data = data,
   }))
 end
 

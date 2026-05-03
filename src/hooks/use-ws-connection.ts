@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
+import { useSettingsStore } from '@/store/settings';
 import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
@@ -38,21 +39,42 @@ export const useWsConnection = () => {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const setSession = useSessionStore((state) => state.setSession);
   const clearSession = useSessionStore((state) => state.clearSession);
+  const addSession = useSessionStore((state) => state.addSession);
+  const connectionTimeout = useSettingsStore((state) => state.connectionTimeout);
+  const lastMessageRef = useRef<number>(Date.now());
+
+  // Connection health monitor: if no message within timeout, mark disconnected
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      const sessionId = useSessionStore.getState().sessionId;
+      if (!sessionId) return;
+      const elapsed = (Date.now() - lastMessageRef.current) / 1000;
+      if (elapsed >= connectionTimeout) {
+        setDisconnected(true);
+      }
+    }, 1000);
+
+    return () => clearInterval(checkInterval);
+  }, [connectionTimeout, setDisconnected]);
 
   useEffect(() => {
+    let cancelled = false;
     const unlisteners: Array<() => void> = [];
 
     const setup = async () => {
       // Game → desktop messages
       const unlistenMessage = await listen<string>('feather://message', (event) => {
+        if (cancelled) return;
         let msg: WsMessage;
 
         try {
           msg = JSON.parse(event.payload) as WsMessage;
-          console.log('magic', msg);
         } catch {
           return;
         }
+
+        // Any message from the game resets the health timer
+        lastMessageRef.current = Date.now();
 
         const { _session: sessionId, type, data } = msg;
 
@@ -61,10 +83,49 @@ export const useWsConnection = () => {
             // Config handshake — sets up the session and stores game config
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const config = data as any;
+
+            // Migrate cached data from previous session of the same device
+            const deviceId = config.deviceId;
+            if (deviceId) {
+              const sessions = useSessionStore.getState().sessions;
+              const oldSession = Object.values(sessions).find(
+                (s) => s.deviceId === deviceId && s.id !== sessionId,
+              );
+              if (oldSession) {
+                // Carry over logs, performance, observers from old session
+                const oldLogs = queryClient.getQueryData<Log[]>(sessionQueryKey.logs(oldSession.id));
+                if (oldLogs?.length) {
+                  queryClient.setQueryData(sessionQueryKey.logs(sessionId), oldLogs);
+                }
+                const oldPerf = queryClient.getQueryData<PerformanceMetrics[]>(
+                  sessionQueryKey.performance(oldSession.id),
+                );
+                if (oldPerf?.length) {
+                  queryClient.setQueryData(sessionQueryKey.performance(sessionId), oldPerf);
+                }
+                const oldObs = queryClient.getQueryData(sessionQueryKey.observers(oldSession.id));
+                if (oldObs) {
+                  queryClient.setQueryData(sessionQueryKey.observers(sessionId), oldObs);
+                }
+                // Clean up old session cache
+                queryClient.removeQueries({ queryKey: [oldSession.id] });
+              }
+            }
+
             setSession(sessionId);
             setConfig(config);
             setDisconnected(false);
             queryClient.setQueryData(sessionQueryKey.config(sessionId), config);
+
+            // Register session with OS info for the session tabs
+            addSession({
+              id: sessionId,
+              os: config.sysInfo?.os,
+              name: config.sessionName || config.root_path?.split('/').pop() || 'Game',
+              connected: true,
+              connectedAt: Date.now(),
+              deviceId: config.deviceId,
+            });
             break;
           }
 
@@ -116,12 +177,24 @@ export const useWsConnection = () => {
         }
       });
 
+      if (cancelled) {
+        unlistenMessage();
+        return;
+      }
+
       // TCP-level disconnect (no feather:bye was sent)
       // Preserve cached data — the game may reconnect momentarily (e.g. lag spike)
       const unlistenEnd = await listen<string>('feather://session-end', () => {
+        if (cancelled) return;
         setDisconnected(true);
         clearSession();
       });
+
+      if (cancelled) {
+        unlistenMessage();
+        unlistenEnd();
+        return;
+      }
 
       unlisteners.push(unlistenMessage, unlistenEnd);
     };
@@ -129,7 +202,8 @@ export const useWsConnection = () => {
     setup();
 
     return () => {
+      cancelled = true;
       unlisteners.forEach((fn) => fn());
     };
-  }, [queryClient, setConfig, setDisconnected, setSession, clearSession]);
+  }, [queryClient, setConfig, setDisconnected, setSession, clearSession, addSession]);
 };

@@ -6,7 +6,7 @@ import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { z } from 'zod';
 import { useSettingsStore } from '@/store/settings';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
 
@@ -54,13 +54,30 @@ export const useLogs = (): {
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
   const [clearTime, setClearTime] = useState(0);
   const lineOffsetRef = useRef<number>(0);
+  const emptyLogsRef = useRef<Log[]>([]);
 
-  // --- Live session path: read logs pushed into cache by useWsConnection ---
-  const liveLogs = useMemo<Log[]>(() => {
-    if (!sessionId || overrideLogFile) return [];
-    const all = queryClient.getQueryData<Log[]>(sessionQueryKey.logs(sessionId)) ?? [];
-    return all.filter((log) => log.time > clearTime);
-  }, [sessionId, overrideLogFile, queryClient, clearTime]);
+  // --- Live session path: subscribe to query cache updates from useWsConnection ---
+  // useSyncExternalStore ensures we re-render whenever setQueryData is called on this key.
+  const queryKey = sessionId ? sessionQueryKey.logs(sessionId) : ['noop-logs'];
+  const queryCache = queryClient.getQueryCache();
+  const liveLogs = useSyncExternalStore(
+    (onStoreChange) => {
+      const unsubscribe = queryCache.subscribe((event) => {
+        if (event.query.queryKey[0] === queryKey[0] && event.query.queryKey[1] === queryKey[1]) {
+          onStoreChange();
+        }
+      });
+      return unsubscribe;
+    },
+    () => queryClient.getQueryData<Log[]>(queryKey) ?? emptyLogsRef.current,
+  );
+
+  const filteredLiveLogs = useMemo(
+    () => (clearTime > 0 ? liveLogs.filter((log) => log.time > clearTime) : liveLogs),
+    [liveLogs, clearTime],
+  );
+
+  console.log({ liveLogs });
 
   // --- Override file path: incremental file read (disk mode / manual open) ---
   const fileQueryKey = ['file', overrideLogFile, clearTime];
@@ -98,7 +115,7 @@ export const useLogs = (): {
     placeholderData: (prev) => prev,
   });
 
-  const logs = overrideLogFile ? (fileData ?? []) : liveLogs;
+  const logs = overrideLogFile ? (fileData ?? []) : filteredLiveLogs;
 
   const toggleScreenshotsMutation = useMutation({
     mutationFn: async () => {

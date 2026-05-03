@@ -13,10 +13,12 @@ import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
 import { useWsConnection } from './hooks/use-ws-connection';
+import { useServerPolling } from './hooks/use-server-polling';
 
 const Modals = () => {
   const disconnected = useConfigStore((state) => state.disconnected);
   useWsConnection();
+  useServerPolling();
 
   useEffect(() => {
     if (disconnected) {
@@ -52,17 +54,19 @@ export const Router = () => {
         }
       >
         <AppSidebar variant="inset" />
-        <SidebarInset>
+        <SidebarInset className="min-w-0 overflow-hidden">
           <SiteHeader />
-          <Routes>
-            <Route path="/" element={<Logs />} />
-            <Route path="/performance" element={<Performance />} />
-            <Route path="/observability" element={<Observability />} />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Routes>
+              <Route path="/" element={<Logs />} />
+              <Route path="/performance" element={<Performance />} />
+              <Route path="/observability" element={<Observability />} />
 
-            <Route path="/plugins">
-              <Route path=":plugin" element={<Plugins />} />
-            </Route>
-          </Routes>
+              <Route path="/plugins">
+                <Route path=":plugin" element={<Plugins />} />
+              </Route>
+            </Routes>
+          </div>
         </SidebarInset>
       </SidebarProvider>
       <Modals />

@@ -269,8 +269,8 @@ export function DataTable({
   }, [rowSelection]);
 
   return (
-    <Tabs defaultValue="outline" className="w-full flex-col justify-start gap-6">
-      <TabsContent value="outline" className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+    <Tabs defaultValue="outline" className="flex min-h-0 w-full flex-1 flex-col justify-start gap-6">
+      <TabsContent value="outline" className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-4 lg:px-6">
         {showSearch && (
           <div className="flex items-center gap-2 mt-2">
             <Input placeholder="Search..." onChange={(e) => table.setGlobalFilter(String(e.target.value))} />
@@ -356,9 +356,9 @@ export function DataTable({
             </Tooltip>
           </div>
         )}
-        <div className="overflow-hidden rounded-lg border">
+        <div className="min-h-0 flex-1 overflow-hidden rounded-lg border">
           <TableVirtuoso
-            style={{ height: window.innerHeight - 180 }}
+            style={{ height: '100%' }}
             totalCount={rows.length}
             components={{
               Table: TableComponent,

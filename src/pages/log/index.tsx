@@ -115,7 +115,7 @@ export function LogSidePanel({
   const isFeatherEvent = data.type === LogType.FEATHER_FINISH || data.type === LogType.FEATHER_START;
 
   return (
-    <Card className="w-[420px] overflow-y-scroll rounded-none h-[90vh]">
+    <Card className="w-[420px] shrink-0 overflow-y-auto rounded-none">
       <CardHeader className="flex items-center justify-between">
         <div>
           <CardTitle>Log Details</CardTitle>
