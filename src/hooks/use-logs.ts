@@ -77,7 +77,6 @@ export const useLogs = (): {
     [liveLogs, clearTime],
   );
 
-  console.log({ liveLogs });
 
   // --- Override file path: incremental file read (disk mode / manual open) ---
   const fileQueryKey = ['file', overrideLogFile, clearTime];

@@ -4,7 +4,8 @@
   "version": "0.6.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
+    "dev": "vite",
+    "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
     "web": "vite",
     "native": "npm run tauri build -- --debug",
     "lua": "sh ./scripts/watch-lua.sh",

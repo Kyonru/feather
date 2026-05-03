@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -69,6 +70,7 @@ export const useWsConnection = () => {
 
         try {
           msg = JSON.parse(event.payload) as WsMessage;
+          console.log('Received message', msg);
         } catch {
           return;
         }
@@ -77,6 +79,18 @@ export const useWsConnection = () => {
         lastMessageRef.current = Date.now();
 
         const { _session: sessionId, type, data } = msg;
+
+        // If we receive a message from an unknown session (game connected before desktop),
+        // ask it to send its hello so we can set up the session properly.
+        if (type !== 'feather:hello') {
+          const sessions = useSessionStore.getState().sessions;
+          if (!sessions[sessionId]) {
+            invoke('send_command', {
+              sessionId,
+              message: JSON.stringify({ type: 'req:config' }),
+            }).catch(() => { });
+          }
+        }
 
         switch (type) {
           case 'feather:hello': {
