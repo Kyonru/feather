@@ -9,6 +9,7 @@ import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
 import { unionBy } from '@/utils/arrays';
+import { toast } from 'sonner';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -184,6 +185,15 @@ export const useWsConnection = () => {
               }
               return pluginData;
             });
+            break;
+          }
+
+          case 'plugin:action:response': {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const response = msg as any;
+            if (response.status === 'error') {
+              toast.error(`Plugin action failed: ${response.message || 'Unknown error'}`);
+            }
             break;
           }
 

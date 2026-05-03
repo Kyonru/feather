@@ -60,6 +60,10 @@ export const usePluginAction = (pluginId: string) => {
     sendCommand({ type: 'cmd:plugin:action', plugin: normalized, action, params });
   };
 
+  const onCancel = (action: string) => {
+    sendCommand({ type: 'cmd:plugin:action:cancel', plugin: normalized, action });
+  };
+
   const updateOptions = useMemo(
     () =>
       debounce(() => {
@@ -73,7 +77,7 @@ export const usePluginAction = (pluginId: string) => {
     updateOptions();
   };
 
-  return { onAction, onActionChange };
+  return { onAction, onCancel, onActionChange };
 };
 
 export function usePlugin(pluginId: string) {

@@ -59,7 +59,7 @@ export default function PluginPage() {
   const { data } = usePlugin(currentUrl);
   const plugins = useConfigStore((state) => state.config?.plugins);
   const pluginKey = currentUrl.slice('/plugins/'.length);
-  const { onActionChange, onAction: onPluginAction } = usePluginAction(currentUrl);
+  const { onActionChange, onAction: onPluginAction, onCancel } = usePluginAction(currentUrl);
 
   const plugin = plugins?.[pluginKey];
 
@@ -97,6 +97,11 @@ export default function PluginPage() {
               props={action.props}
             />
           ))}
+          {data.loading && (
+            <Button variant="destructive" size="sm" onClick={() => onCancel('gif')}>
+              Cancel
+            </Button>
+          )}
         </div>
         <PluginContent data={data.data} type={data.type} loading={data.loading} />
       </div>

@@ -233,6 +233,31 @@ function ScreenshotPlugin:handleActionRequest(request)
   end
 end
 
+function ScreenshotPlugin:handleActionCancel()
+  if self.isRecordingGif then
+    self.isRecordingGif = false
+    -- Clean up temp frame files
+    for _, path in ipairs(self.tempScreenshots) do
+      love.filesystem.remove(path)
+    end
+    self.tempScreenshots = {}
+    self.currentGif = nil
+    if self.logger then
+      self.logger:logger("[ScreenshotPlugin] GIF recording cancelled")
+    end
+  end
+  -- Also cancel any in-progress encoding
+  if self._encodingFrames then
+    for i = self._encodeIndex, #self._encodingFrames do
+      love.filesystem.remove(self._encodingFrames[i])
+    end
+    self._encodingFrames = nil
+    self._encodedFrames = nil
+    self._encodeIndex = nil
+    self._encodingGifName = nil
+  end
+end
+
 function ScreenshotPlugin:handleParamsUpdate(request)
   local params = request.params or {}
 

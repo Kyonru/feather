@@ -253,7 +253,30 @@ function Feather:__handleCommand(msg)
     params.action = msg.action
     local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
     local request = { method = "POST", path = path, params = params, headers = {} }
-    self.pluginManager:handleActionRequest(request, self)
+    local result, err = self.pluginManager:handleActionRequest(request, self)
+    -- Send action response back to desktop
+    if err then
+      self:__sendWs(json.encode({
+        type = "plugin:action:response",
+        session = self.sessionId,
+        plugin = msg.plugin,
+        action = msg.action,
+        status = "error",
+        message = tostring(err),
+      }))
+    else
+      self:__sendWs(json.encode({
+        type = "plugin:action:response",
+        session = self.sessionId,
+        plugin = msg.plugin,
+        action = msg.action,
+        status = "success",
+      }))
+    end
+  elseif msg.type == "cmd:plugin:action:cancel" and msg.plugin then
+    local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
+    local request = { method = "DELETE", path = path, params = msg.params or {}, headers = {} }
+    self.pluginManager:handleActionCancel(request, self)
   elseif msg.type == "cmd:plugin:params" and msg.plugin then
     local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
     local request = { method = "PUT", path = path, params = msg.params or {}, headers = {} }
