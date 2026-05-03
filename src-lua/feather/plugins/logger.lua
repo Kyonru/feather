@@ -6,6 +6,7 @@ local format = require(PATH .. ".utils").format
 local wrapWith = require(PATH .. ".utils").wrapWith
 local json = require(PATH .. ".lib.json")
 local log = require(PATH .. ".lib.log")
+local base64encode = require(PATH .. ".lib.base64").encode
 
 --- "output" | "trace" | "error" | "feather:finish" | "feather:start" | "output" | "error"
 ---
@@ -51,38 +52,38 @@ local FeatherLogger = Class({
     self.wrapPrint = config.wrapPrint
     self.maxTempLogs = config.maxTempLogs
     self.captureScreenshot = config.captureScreenshot
-  self.writeToDisk = config.writeToDisk ~= false
-  self.lastScreenshot = nil
-  self.last_log = nil
-  self.last_screenshot_taken_at = nil
-  self.screenshotIndex = 1
-  self.screenshotRate = config.screenshotRate or 1
-  self.screenshotPoolSize = config.screenshotPoolSize or 60
-  self.lastId = 0
+    self.writeToDisk = config.writeToDisk ~= false
+    self.lastScreenshot = nil
+    self.last_log = nil
+    self.last_screenshot_taken_at = nil
+    self.screenshotIndex = 1
+    self.screenshotRate = config.screenshotRate or 1
+    self.screenshotPoolSize = config.screenshotPoolSize or 60
+    self.lastId = 0
 
-  if self.writeToDisk then
-    local cwd = love.filesystem.getSaveDirectory()
+    if self.writeToDisk then
+      local cwd = love.filesystem.getSaveDirectory()
 
-    love.filesystem.createDirectory(LOGS_DIR)
+      love.filesystem.createDirectory(LOGS_DIR)
 
-    love.filesystem.createDirectory(SCREENSHOTS_DIR)
+      love.filesystem.createDirectory(SCREENSHOTS_DIR)
 
-    local logdir = cwd .. "/" .. LOGS_DIR
-    self.outputFolder = logdir
+      local logdir = cwd .. "/" .. LOGS_DIR
+      self.outputFolder = logdir
 
-    local logfile = logdir .. "/" .. os.date("%Y-%m-%d_%H:%M:%S") .. "_" .. config.outfile .. ".featherlog"
+      local logfile = logdir .. "/" .. os.date("%Y-%m-%d_%H:%M:%S") .. "_" .. config.outfile .. ".featherlog"
 
-    log.info("Saving logs to " .. logfile)
+      log.info("Saving logs to " .. logfile)
 
-    log.outfile = logfile
-    log.usecolor = false
+      log.outfile = logfile
+      log.usecolor = false
 
-    self.outfile = logfile
-  else
-    self.outputFolder = ""
-    self.outfile = ""
-    log.outfile = nil
-  end
+      self.outfile = logfile
+    else
+      self.outputFolder = ""
+      self.outfile = ""
+      log.outfile = nil
+    end
 
     -- Wrap print
     if self.wrapPrint then
@@ -108,15 +109,17 @@ function FeatherLogger:update()
   local now = love.timer.getTime()
 
   if self.last_screenshot_taken_at and now - self.last_screenshot_taken_at < self.screenshotRate then
-    return -- short throttle so spammy errors don't melt disk
+    return
   end
 
   self.last_screenshot_taken_at = now
 
-  self.screenshotIndex = (self.screenshotIndex or 0) % self.screenshotPoolSize + 1
-  self.lastScreenshot = SCREENSHOTS_DIR .. "/debug_" .. self.screenshotIndex .. ".png"
-
-  love.graphics.captureScreenshot(self.lastScreenshot)
+  local selfRef = self
+  love.graphics.captureScreenshot(function(imageData)
+    local fileData = imageData:encode("png")
+    local pngBytes = fileData:getString()
+    selfRef.lastScreenshot = "data:image/png;base64," .. base64encode(pngBytes)
+  end)
 end
 
 --- Manages the print function internally
@@ -164,9 +167,7 @@ function FeatherLogger:log(line, screenshot)
       return
     end
 
-    local cwd = love.filesystem.getSaveDirectory()
-
-    line.screenshot = cwd .. "/" .. self.lastScreenshot
+    line.screenshot = self.lastScreenshot
   end
 
   self.lastId = self.lastId + 1

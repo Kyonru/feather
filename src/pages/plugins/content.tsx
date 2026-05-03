@@ -59,30 +59,46 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
     }
 
     if (metadata.type === 'gif') {
-      const readImage = async () => {
-        const urls: string[] = [];
-        for (let i = 0; i < metadata.src.length; i++) {
-          const uint8 = await readFile(metadata.src[i]);
-          const blob = new Blob([uint8], { type: 'image/png' });
-          const url = URL.createObjectURL(blob);
-          urls.push(url);
-        }
-        setSrc(urls);
-      };
-      readImage();
+      // GIF frames: array of data URIs or file paths
+      if (Array.isArray(metadata.src) && metadata.src.length > 0 && metadata.src[0].startsWith('data:')) {
+        // Data URIs from WS — use directly
+        setSrc(metadata.src);
+      } else {
+        // Legacy: file paths — read from disk
+        const readImage = async () => {
+          const urls: string[] = [];
+          for (let i = 0; i < metadata.src.length; i++) {
+            try {
+              const uint8 = await readFile(metadata.src[i]);
+              const blob = new Blob([uint8], { type: 'image/png' });
+              urls.push(URL.createObjectURL(blob));
+            } catch {
+              // Skip unreadable frames
+            }
+          }
+          setSrc(urls);
+        };
+        readImage();
+      }
       return;
     }
 
     if (metadata.type === 'png') {
-      const readImage = async () => {
-        const uint8 = await readFile(metadata.src);
-        const blob = new Blob([uint8], { type: 'image/png' });
-        const url = URL.createObjectURL(blob);
-
-        setSrc(url);
-      };
-
-      readImage();
+      // Single image: data URI or file path
+      if (typeof metadata.src === 'string' && metadata.src.startsWith('data:')) {
+        setSrc(metadata.src);
+      } else {
+        const readImage = async () => {
+          try {
+            const uint8 = await readFile(metadata.src);
+            const blob = new Blob([uint8], { type: 'image/png' });
+            setSrc(URL.createObjectURL(blob));
+          } catch {
+            // File not available
+          }
+        };
+        readImage();
+      }
     }
   }, [metadata.src, metadata.type]);
 

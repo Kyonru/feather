@@ -61,7 +61,10 @@ export const useSessionStore = create<SessionStore>()(
     {
       name: 'session-storage',
       partialize: (state) => ({
-        sessions: state.sessions,
+        // Only persist real device sessions, not ephemeral file sessions
+        sessions: Object.fromEntries(
+          Object.entries(state.sessions).filter(([id]) => !id.startsWith('file:')),
+        ),
       }),
     },
   ),

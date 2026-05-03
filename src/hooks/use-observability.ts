@@ -8,6 +8,7 @@ export const useObservability = (): { data: Record<string, any>[] } => {
 
   const { data } = useQuery<Record<string, any>[]>({
     queryKey: sessionQueryKey.observers(sessionId ?? ''),
+    queryFn: () => [],
     enabled: false, // data is pushed via WS, not fetched
   });
 

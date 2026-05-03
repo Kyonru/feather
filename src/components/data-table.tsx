@@ -346,12 +346,12 @@ export function DataTable({
                 ) : (
                   <Button variant="secondary" size="icon" onClick={onSelectFile}>
                     <UploadIcon className=" text-yellow-500 cursor-pointer" />
-                    <span className="sr-only">Upload logs</span>
+                    <span className="sr-only">Use log file</span>
                   </Button>
                 )}
               </TooltipTrigger>
               <TooltipContent>
-                <p>Upload logs</p>
+                <p>Use log file</p>
               </TooltipContent>
             </Tooltip>
           </div>

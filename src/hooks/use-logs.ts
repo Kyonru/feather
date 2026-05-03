@@ -6,7 +6,7 @@ import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { z } from 'zod';
 import { useSettingsStore } from '@/store/settings';
-import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
 
@@ -54,38 +54,37 @@ export const useLogs = (): {
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
   const [clearTime, setClearTime] = useState(0);
   const lineOffsetRef = useRef<number>(0);
-  const emptyLogsRef = useRef<Log[]>([]);
 
-  // --- Live session path: subscribe to query cache updates from useWsConnection ---
-  // useSyncExternalStore ensures we re-render whenever setQueryData is called on this key.
+  // --- Live session path: reactive subscription to query cache ---
   const queryKey = sessionId ? sessionQueryKey.logs(sessionId) : ['noop-logs'];
-  const queryCache = queryClient.getQueryCache();
-  const liveLogs = useSyncExternalStore(
-    (onStoreChange) => {
-      const unsubscribe = queryCache.subscribe((event) => {
-        if (event.query.queryKey[0] === queryKey[0] && event.query.queryKey[1] === queryKey[1]) {
-          onStoreChange();
-        }
-      });
-      return unsubscribe;
-    },
-    () => queryClient.getQueryData<Log[]>(queryKey) ?? emptyLogsRef.current,
-  );
+
+  const { data: liveLogs } = useQuery<Log[]>({
+    queryKey,
+    queryFn: () => [],
+    enabled: false, // data is pushed via WS or file reader, not fetched
+  });
 
   const filteredLiveLogs = useMemo(
-    () => (clearTime > 0 ? liveLogs.filter((log) => log.time > clearTime) : liveLogs),
+    () => {
+      const logs = liveLogs ?? [];
+      return clearTime > 0 ? logs.filter((log) => log.time > clearTime) : logs;
+    },
     [liveLogs, clearTime],
   );
 
 
   // --- Override file path: incremental file read (disk mode / manual open) ---
-  const fileQueryKey = ['file', overrideLogFile, clearTime];
+  // Reads the file and pushes parsed logs into the active session's query cache,
+  // so the useSyncExternalStore live path picks them up naturally.
+  const fileQueryKey = ['file-reader', overrideLogFile];
 
-  const { isPending, data: fileData } = useQuery({
+  const { isPending } = useQuery({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: fileQueryKey,
-    queryFn: async (): Promise<Log[]> => {
-      const existing = queryClient.getQueryData<Log[]>(fileQueryKey) ?? [];
+    queryFn: async (): Promise<null> => {
+      if (!sessionId) return null;
+
+      const existing = queryClient.getQueryData<Log[]>(queryKey) ?? [];
       if (existing.length === 0) lineOffsetRef.current = 0;
 
       const newLines: Log[] = [];
@@ -105,16 +104,19 @@ export const useLogs = (): {
       lineOffsetRef.current = lineIndex;
       setScreenshotEnabled(captureScreenshot);
 
-      const combined = [...existing, ...newLines];
-      return combined.filter((log) => log.time > clearTime);
+      if (newLines.length > 0) {
+        queryClient.setQueryData<Log[]>(queryKey, [...existing, ...newLines]);
+      }
+
+      return null;
     },
-    // Poll override file at 1s — game may still be writing to it (disk mode)
-    refetchInterval: 1000,
-    enabled: !!overrideLogFile && !pausedLogs,
-    placeholderData: (prev) => prev,
+    // Poll override file at 1s — game may still be writing to it (disk mode).
+    // When paused, still do the initial read but stop polling.
+    refetchInterval: pausedLogs ? false : 1000,
+    enabled: !!overrideLogFile && !!sessionId,
   });
 
-  const logs = overrideLogFile ? (fileData ?? []) : filteredLiveLogs;
+  const logs = filteredLiveLogs;
 
   const toggleScreenshotsMutation = useMutation({
     mutationFn: async () => {
@@ -139,6 +141,10 @@ export const useLogs = (): {
     setClearTime(lastNow);
     if (sessionId) {
       queryClient.setQueryData(sessionQueryKey.logs(sessionId), []);
+    }
+    // Reset file reader offset so re-read starts fresh if override is active
+    if (overrideLogFile) {
+      lineOffsetRef.current = 0;
     }
   };
 

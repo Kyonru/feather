@@ -15,7 +15,7 @@ local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
 
 local FEATHER_VERSION_NAME = "0.6.0"
-local FEATHER_API = 4
+local FEATHER_API = 5
 
 local FEATHER_VERSION = {
   name = FEATHER_VERSION_NAME,
@@ -249,10 +249,14 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:log" and msg.action == "toggle-screenshots" then
     self:toggleScreenshots(not self.featherLogger.captureScreenshot)
   elseif msg.type == "cmd:plugin:action" and msg.plugin then
-    local request = { method = "POST", path = "/plugins/" .. msg.plugin, params = msg.params or {}, headers = {} }
+    local params = msg.params or {}
+    params.action = msg.action
+    local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
+    local request = { method = "POST", path = path, params = params, headers = {} }
     self.pluginManager:handleActionRequest(request, self)
   elseif msg.type == "cmd:plugin:params" and msg.plugin then
-    local request = { method = "PUT", path = "/plugins/" .. msg.plugin, params = msg.params or {}, headers = {} }
+    local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
+    local request = { method = "PUT", path = path, params = msg.params or {}, headers = {} }
     self.pluginManager:handleParamsUpdate(request, self)
   -- Server-driven data requests: Feather desktop asks, Lua responds
   elseif msg.type == "req:config" then

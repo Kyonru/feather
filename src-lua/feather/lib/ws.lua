@@ -18,29 +18,7 @@ local bit = require("bit")
 local band, bor, bxor = bit.band, bit.bor, bit.bxor
 local shl, shr = bit.lshift, bit.rshift
 
--- Base64 encoder (needed for the Sec-WebSocket-Key handshake header)
-local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-
-local function base64(data)
-  local result = {}
-  local padding = (3 - #data % 3) % 3
-  data = data .. string.rep("\0", padding)
-  for i = 1, #data, 3 do
-    local a, b, c = data:byte(i, i + 2)
-    local n = a * 65536 + b * 256 + c
-    result[#result + 1] = b64chars:sub(shr(n, 18) + 1, shr(n, 18) + 1)
-    result[#result + 1] = b64chars:sub(band(shr(n, 12), 63) + 1, band(shr(n, 12), 63) + 1)
-    result[#result + 1] = b64chars:sub(band(shr(n, 6), 63) + 1, band(shr(n, 6), 63) + 1)
-    result[#result + 1] = b64chars:sub(band(n, 63) + 1, band(n, 63) + 1)
-  end
-  if padding == 1 then
-    result[#result] = "="
-  elseif padding == 2 then
-    result[#result - 1] = "="
-    result[#result] = "="
-  end
-  return table.concat(result)
-end
+local base64 = require("feather.lib.base64").encode
 
 local function randomKey()
   local bytes = {}

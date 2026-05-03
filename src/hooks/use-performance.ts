@@ -75,6 +75,7 @@ export const usePerformance = (): { data: PerformanceMetrics[] } => {
 
   const { data } = useQuery<PerformanceMetrics[]>({
     queryKey: sessionQueryKey.performance(sessionId ?? ''),
+    queryFn: () => [],
     enabled: false, // data is pushed via WS, not fetched
   });
 

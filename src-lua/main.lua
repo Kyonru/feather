@@ -166,7 +166,7 @@ DEBUGGER = FeatherDebugger({
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
   apiKey = "debugger",
-  captureScreenshot = false,
+  captureScreenshot = true,
   debug = true,
   plugins = {
     FeatherPluginManager.createPlugin(TestPlugin, "test", {

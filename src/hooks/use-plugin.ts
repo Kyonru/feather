@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { debounce } from '@/utils/timers';
-import { unionBy } from '@/utils/arrays';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
+
+/** Strip the /plugins/ prefix so the ID matches what Lua uses as plugin.identifier */
+function normalizePluginId(pluginId: string): string {
+  return pluginId.replace(/^\/plugins\//, '');
+}
 
 export type ScreenshotType = {
   type: 'png';
@@ -42,6 +46,7 @@ export interface PluginContentProps {
 
 export const usePluginAction = (pluginId: string) => {
   const sessionId = useSessionStore((state) => state.sessionId);
+  const normalized = normalizePluginId(pluginId);
   const [params, setParams] = useState<Record<string, string | boolean>>({});
 
   const sendCommand = (message: object) => {
@@ -52,15 +57,15 @@ export const usePluginAction = (pluginId: string) => {
   };
 
   const onAction = (action: string) => {
-    sendCommand({ type: 'cmd:plugin:action', plugin: pluginId, action, params });
+    sendCommand({ type: 'cmd:plugin:action', plugin: normalized, action, params });
   };
 
   const updateOptions = useMemo(
     () =>
       debounce(() => {
-        sendCommand({ type: 'cmd:plugin:params', plugin: pluginId, params });
+        sendCommand({ type: 'cmd:plugin:params', plugin: normalized, params });
       }, 1000),
-    [sessionId, pluginId, params],
+    [sessionId, normalized, params],
   );
 
   const onActionChange = (action: string, value: string | boolean) => {
@@ -72,26 +77,14 @@ export const usePluginAction = (pluginId: string) => {
 };
 
 export function usePlugin(pluginId: string) {
-  const queryClient = useQueryClient();
   const sessionId = useSessionStore((state) => state.sessionId);
+  const normalized = normalizePluginId(pluginId);
 
-  const data = useMemo<PluginContentProps>(() => {
-    if (!sessionId) return { data: [], type: 'gallery', loading: false };
+  const { data } = useQuery<PluginContentProps>({
+    queryKey: sessionQueryKey.plugin(sessionId ?? '', normalized),
+    queryFn: () => ({ data: [], type: 'gallery' as const, loading: false }),
+    enabled: false,
+  });
 
-    const cached = queryClient.getQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId));
-
-    if (!cached) return { data: [], type: 'gallery', loading: false };
-
-    if (cached.persist) {
-      const prev = queryClient.getQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId));
-      return {
-        ...cached,
-        data: unionBy<PluginDataType, string>(prev?.data ?? [], cached.data, (item) => item.name),
-      };
-    }
-
-    return cached;
-  }, [queryClient, sessionId, pluginId]);
-
-  return { data, isPending: false };
+  return { data: data ?? { data: [], type: 'gallery' as const, loading: false }, isPending: false };
 }
