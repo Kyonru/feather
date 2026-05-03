@@ -26,7 +26,6 @@ export function SiteHeader() {
           {location && (
             <Button
               onClick={() => {
-                console.log(location);
                 openFolder(location);
               }}
               variant="ghost"

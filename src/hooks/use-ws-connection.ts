@@ -71,7 +71,6 @@ export const useWsConnection = () => {
 
         try {
           msg = JSON.parse(event.payload) as WsMessage;
-          console.log('Received message', msg);
         } catch {
           return;
         }
