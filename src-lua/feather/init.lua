@@ -65,6 +65,7 @@ local customErrorHandler = errorhandler
 ---@field errorHandler? function
 ---@field plugins? table
 ---@field mode? string
+---@field writeToDisk? boolean  Whether to write logs to .featherlog files (default true)
 ---@field retryInterval? number
 ---@field connectTimeout? number
 --- Feather constructor
@@ -88,6 +89,7 @@ function Feather:init(config)
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
   self.plugins = conf.plugins or {}
   self.mode = conf.mode or "socket"
+  self.writeToDisk = conf.writeToDisk ~= false
   self.retryInterval = conf.retryInterval or 5
   self.connectTimeout = conf.connectTimeout or 2
   self.sessionName = conf.sessionName or ""

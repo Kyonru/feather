@@ -51,14 +51,16 @@ local FeatherLogger = Class({
     self.wrapPrint = config.wrapPrint
     self.maxTempLogs = config.maxTempLogs
     self.captureScreenshot = config.captureScreenshot
-    self.lastScreenshot = nil
-    self.last_log = nil
-    self.last_screenshot_taken_at = nil
-    self.screenshotIndex = 1
-    self.screenshotRate = config.screenshotRate or 1
-    self.screenshotPoolSize = config.screenshotPoolSize or 60
-    self.lastId = 0
+  self.writeToDisk = config.writeToDisk ~= false
+  self.lastScreenshot = nil
+  self.last_log = nil
+  self.last_screenshot_taken_at = nil
+  self.screenshotIndex = 1
+  self.screenshotRate = config.screenshotRate or 1
+  self.screenshotPoolSize = config.screenshotPoolSize or 60
+  self.lastId = 0
 
+  if self.writeToDisk then
     local cwd = love.filesystem.getSaveDirectory()
 
     love.filesystem.createDirectory(LOGS_DIR)
@@ -76,6 +78,11 @@ local FeatherLogger = Class({
     log.usecolor = false
 
     self.outfile = logfile
+  else
+    self.outputFolder = ""
+    self.outfile = ""
+    log.outfile = nil
+  end
 
     -- Wrap print
     if self.wrapPrint then
