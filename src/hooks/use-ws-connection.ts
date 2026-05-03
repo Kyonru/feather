@@ -18,6 +18,7 @@ export const sessionQueryKey = {
   performance: (sessionId: string) => [sessionId, 'performance'],
   observers: (sessionId: string) => [sessionId, 'observers'],
   plugin: (sessionId: string, pluginId: string) => [sessionId, 'plugin', pluginId],
+  console: (sessionId: string) => [sessionId, 'console'],
 };
 
 type WsMessage = {
@@ -25,6 +26,13 @@ type WsMessage = {
   type: string;
   data?: unknown;
   plugin?: string;
+};
+
+export type EvalResponse = {
+  id: string;
+  status: 'success' | 'error';
+  result: string | null;
+  prints: string[];
 };
 
 /**
@@ -193,6 +201,21 @@ export const useWsConnection = () => {
             if (response.status === 'error') {
               toast.error(`Plugin action failed: ${response.message || 'Unknown error'}`);
             }
+            break;
+          }
+
+          case 'eval:response': {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const evalMsg = msg as any;
+            queryClient.setQueryData<EvalResponse[]>(sessionQueryKey.console(sessionId), (prev) => [
+              ...(prev ?? []),
+              {
+                id: evalMsg.id,
+                status: evalMsg.status,
+                result: evalMsg.result ?? null,
+                prints: evalMsg.prints ?? [],
+              },
+            ]);
             break;
           }
 

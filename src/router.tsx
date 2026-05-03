@@ -9,6 +9,7 @@ import Logs from './pages/log';
 import Performance from './pages/performance';
 import Observability from './pages/observable';
 import Plugins from './pages/plugins';
+import Console from './pages/console';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
@@ -61,6 +62,7 @@ export const Router = () => {
               <Route path="/" element={<Logs />} />
               <Route path="/performance" element={<Performance />} />
               <Route path="/observability" element={<Observability />} />
+              <Route path="/console" element={<Console />} />
 
               <Route path="/plugins">
                 <Route path=":plugin" element={<Plugins />} />
