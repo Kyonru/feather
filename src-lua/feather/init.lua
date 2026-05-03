@@ -152,9 +152,15 @@ function Feather:init(config)
 end
 
 --- Push a JSON string to the WS thread's outbox. Non-blocking — main thread never waits.
+--- Applies backpressure: drops message if the channel is too full to prevent memory growth.
 function Feather:__sendWs(payload)
   if self.wsConnected and self.wsTx then
-    self.wsTx:push(payload)
+    -- Backpressure: if channel exceeds limit, skip this message.
+    -- The WS thread drains at most MAX_DRAIN_PER_TICK (50) per iteration at 1ms sleep,
+    -- so ~50k msgs/s throughput. 500 limit = ~10ms of buffer at full throughput.
+    if self.wsTx:getCount() < 500 then
+      self.wsTx:push(payload)
+    end
   end
 end
 
@@ -333,9 +339,11 @@ function Feather:update(dt)
   end
 
   -- Poll the WS thread's inbox (non-blocking channel pops — zero wait time)
+  -- Cap at 10 messages per frame to prevent spikes from batched commands
   if self.wsRx then
+    local processed = 0
     local raw = self.wsRx:pop()
-    while raw do
+    while raw and processed < 10 do
       if raw == "__connected__" then
         self.wsConnected = true
         self:__sendHello()
@@ -350,6 +358,7 @@ function Feather:update(dt)
           self:__handleCommand(msg)
         end
       end
+      processed = processed + 1
       raw = self.wsRx:pop()
     end
   end
@@ -358,7 +367,10 @@ function Feather:update(dt)
   if self.wsConnected then
     local now = love.timer.getTime()
     if now - self.lastPushTime >= self.updateInterval then
-      self.lastPushTime = self.lastPushTime + self.updateInterval
+      -- Reset to current time — never try to "catch up" missed intervals.
+      -- The old pattern (lastPushTime += interval) caused cascading frame drops
+      -- when a single frame lagged, as it would push multiple times in subsequent frames.
+      self.lastPushTime = now
       self:__pushPerformance(dt)
       self:__pushObservers()
       self.pluginManager:pushAll(self)
@@ -394,7 +406,7 @@ function Feather:pushPlugin(pluginId, data)
     type = "plugin",
     session = self.sessionId,
     plugin = pluginId,
-    data = data,
+    -- data = data,
   }))
 end
 

@@ -12,6 +12,7 @@ use std::{
     collections::HashMap,
     net::SocketAddr,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
@@ -86,30 +87,61 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
         .app_handle
         .emit("feather://session-start", session_id.clone());
 
-    // Forward desktop→game commands to the WS socket
+    // Forward desktop→game commands to the WS socket, with periodic pings to keep alive
+    let forward_session_id = session_id.clone();
+    let forward_sessions = state.sessions.clone();
     let forward_task = tauri::async_runtime::spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            if ws_tx.send(msg).await.is_err() {
-                break;
+        let mut ping_interval = tokio::time::interval(Duration::from_secs(20));
+        ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+        loop {
+            tokio::select! {
+                msg = rx.recv() => {
+                    match msg {
+                        Some(m) => {
+                            if ws_tx.send(m).await.is_err() {
+                                break;
+                            }
+                        }
+                        None => break,
+                    }
+                }
+                _ = ping_interval.tick() => {
+                    if ws_tx.send(Message::Ping(vec![].into())).await.is_err() {
+                        break;
+                    }
+                }
             }
         }
+
+        // Clean up on forward task exit
+        forward_sessions.lock().unwrap().remove(&forward_session_id);
     });
 
     // Read game→desktop messages, emit as Tauri events wrapped with the Rust session ID
     // so the frontend can route multi-session messages without trusting the game's own UUID.
-    while let Some(Ok(msg)) = ws_rx.next().await {
-        match msg {
-            Message::Text(text) => {
-                // Inject _session into the JSON so the frontend can key caches on it
-                if let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&text) {
-                    value["_session"] = serde_json::Value::String(session_id.clone());
-                    let _ = state
-                        .app_handle
-                        .emit("feather://message", value.to_string());
+    while let Some(result) = ws_rx.next().await {
+        match result {
+            Ok(msg) => match msg {
+                Message::Text(text) => {
+                    // Inject _session into the JSON so the frontend can key caches on it
+                    if let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&text) {
+                        value["_session"] = serde_json::Value::String(session_id.clone());
+                        let _ = state
+                            .app_handle
+                            .emit("feather://message", value.to_string());
+                    }
                 }
+                Message::Pong(_) => {
+                    // Keepalive response — connection is healthy, nothing to do
+                }
+                Message::Close(_) => break,
+                _ => {}
+            },
+            Err(_) => {
+                // Transient error — break and clean up rather than spinning
+                break;
             }
-            Message::Close(_) => break,
-            _ => {}
         }
     }
 

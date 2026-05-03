@@ -20,6 +20,10 @@ local RX = love.thread.getChannel("feather_rx")
 
 local conn = nil
 local lastAttempt = -retryInterval -- trigger connect on first loop iteration
+local lastPing = 0
+local PING_INTERVAL = 15 -- send ping every 15s to keep connection alive
+local MAX_DRAIN_PER_TICK = 50 -- cap messages sent per iteration to prevent flooding
+local MAX_QUEUE_SIZE = 500 -- drop old messages if queue grows beyond this
 
 while true do
   -- ── Quit signal ───────────────────────────────────────────────────────────
@@ -36,6 +40,20 @@ while true do
       local c = ws.connect(host, port, connectTimeout)
       if c then
         conn = c
+        lastPing = now
+        -- Flush stale messages that accumulated during disconnect
+        local queueSize = TX:getCount()
+        if queueSize > MAX_QUEUE_SIZE then
+          local toDrop = queueSize - MAX_QUEUE_SIZE
+          for _ = 1, toDrop do
+            local dropped = TX:pop()
+            if dropped == "__quit__" then
+              -- Put quit back and exit
+              TX:push("__quit__")
+              break
+            end
+          end
+        end
         RX:push("__connected__")
       end
     end
@@ -43,29 +61,53 @@ while true do
 
   -- ── Connected: send + receive ─────────────────────────────────────────────
   else
-    -- Drain all queued outgoing messages
-    local quitting = false
-    local payload = TX:pop()
-    while payload do
-      if payload == "__quit__" then
-        quitting = true
-        break
-      end
+    local now = socket.gettime()
+    local alive = true
+
+    -- Send periodic ping to keep connection alive
+    if now - lastPing >= PING_INTERVAL then
+      lastPing = now
       local ok = pcall(function()
-        conn:send(payload)
+        conn:ping()
       end)
       if not ok then
-        conn.sock = nil -- mark dead; reconnect on next iteration
-        break
+        conn.sock = nil
+        conn = nil
+        RX:push("__disconnected__")
+        alive = false
       end
-      payload = TX:pop()
-    end
-    if quitting then
-      break
     end
 
-    -- Receive one incoming WS frame (non-blocking — socket timeout is 0)
-    if conn and conn.sock then
+    -- Drain queued outgoing messages (capped per iteration to prevent blocking)
+    if alive then
+      local quitting = false
+      local sent = 0
+      local payload = TX:pop()
+      while payload and sent < MAX_DRAIN_PER_TICK do
+        if payload == "__quit__" then
+          quitting = true
+          break
+        end
+        local ok = pcall(function()
+          conn:send(payload)
+        end)
+        if not ok then
+          conn.sock = nil -- mark dead; reconnect on next iteration
+          conn = nil
+          RX:push("__disconnected__")
+          alive = false
+          break
+        end
+        sent = sent + 1
+        payload = TX:pop()
+      end
+      if quitting then
+        break
+      end
+    end
+
+    -- Receive incoming WS frames (non-blocking — socket timeout is 0)
+    if alive and conn and conn.sock then
       local msg = conn:receive()
       if msg then
         RX:push(msg)
@@ -74,8 +116,6 @@ while true do
         conn = nil
         RX:push("__disconnected__")
       end
-    else
-      conn = nil
     end
 
     socket.sleep(0.001) -- 1 ms yield while connected

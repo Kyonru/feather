@@ -28,6 +28,9 @@ type WsMessage = {
  * Mounts at the root of the app (in <Modals>). Listens for Tauri events emitted by the
  * Rust WS server and routes each message type into the React Query cache so all pages
  * read live data without any polling.
+ *
+ * On disconnect: preserves existing cached data (logs, performance history) so the user
+ * doesn't lose context. On reconnect, new data appends to the existing cache.
  */
 export const useWsConnection = () => {
   const queryClient = useQueryClient();
@@ -92,7 +95,7 @@ export const useWsConnection = () => {
             const pluginData = data as PluginContentProps;
 
             queryClient.setQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId), (prev) => {
-              if (pluginData.persist && prev) {
+              if (pluginData?.persist && prev) {
                 return {
                   ...pluginData,
                   data: unionBy<PluginDataType, string>(prev.data, pluginData.data, (item) => item.name),
@@ -104,7 +107,8 @@ export const useWsConnection = () => {
           }
 
           case 'feather:bye': {
-            queryClient.removeQueries({ queryKey: [sessionId] });
+            // Graceful disconnect — preserve cached data (logs, perf history) so user
+            // doesn't lose context. Only mark as disconnected and clear session routing.
             setDisconnected(true);
             clearSession();
             break;
@@ -113,6 +117,7 @@ export const useWsConnection = () => {
       });
 
       // TCP-level disconnect (no feather:bye was sent)
+      // Preserve cached data — the game may reconnect momentarily (e.g. lag spike)
       const unlistenEnd = await listen<string>('feather://session-end', () => {
         setDisconnected(true);
         clearSession();

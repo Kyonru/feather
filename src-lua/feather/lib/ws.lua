@@ -178,6 +178,15 @@ function Conn:receive()
   return nil
 end
 
+--- Send a WebSocket ping frame to keep the connection alive.
+function Conn:ping()
+  if not self.sock then
+    return
+  end
+  -- Ping frame: FIN + ping opcode (0x89), MASK bit, zero payload length
+  self.sock:send(string.char(0x89, 0x80, 0, 0, 0, 0))
+end
+
 --- Send a WebSocket close frame and close the socket.
 function Conn:close()
   if not self.sock then
