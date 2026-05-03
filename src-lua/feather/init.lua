@@ -27,9 +27,7 @@ local FEATHER_VERSION = {
 ---@field debug boolean
 ---@field featherLogger FeatherLogger
 ---@field wsConnected boolean
----@field wsThread table|nil
----@field wsTx table|nil
----@field wsRx table|nil
+---@field wsClient table|nil
 ---@field sessionId string
 ---@field observe fun(self: Feather, key: string, value: table | string | number | boolean) Updates value in the observers tab
 ---@field finish fun(self: Feather) Logs a finish line
@@ -153,37 +151,48 @@ function Feather:init(config)
     return
   end
 
-  -- Spawn the WS background thread — all network I/O lives there, main thread never blocks
-  local threadPath = PATH:gsub("%.", "/") .. "/lib/ws_thread.lua"
-  self.wsThread = love.thread.newThread(threadPath)
-  self.wsTx = love.thread.getChannel("feather_tx")
-  self.wsRx = love.thread.getChannel("feather_rx")
-  self.wsTx:clear()
-  self.wsRx:clear()
-  -- Thread reads init args via demand() on feather_init channel
-  local initChan = love.thread.getChannel("feather_init")
-  initChan:clear()
-  initChan:push(PATH)
-  initChan:push(self.host)
-  initChan:push(self.port)
-  initChan:push(self.connectTimeout)
-  initChan:push(self.retryInterval)
-  self.wsThread:start()
-  print("[Feather] WS thread started — connecting to " .. self.host .. ":" .. self.port)
+  self:__createWsClient()
+  self._wsLastAttempt = -self.retryInterval
+  print("[Feather] WS client created — connecting to " .. self.host .. ":" .. self.port)
 
   self.featherLogger:log({ type = "feather:start" })
 end
 
---- Push a JSON string to the WS thread's outbox. Non-blocking — main thread never waits.
---- Applies backpressure: drops message if the channel is too full to prevent memory growth.
-function Feather:__sendWs(payload)
-  if self.wsConnected and self.wsTx then
-    -- Backpressure: if channel exceeds limit, skip this message.
-    -- The WS thread drains at most MAX_DRAIN_PER_TICK (50) per iteration at 1ms sleep,
-    -- so ~50k msgs/s throughput. 500 limit = ~10ms of buffer at full throughput.
-    if self.wsTx:getCount() < 500 then
-      self.wsTx:push(payload)
+--- Create (or recreate) the WS client with event handlers.
+function Feather:__createWsClient()
+  local websocket = require(PATH .. ".lib.ws")
+  local selfRef = self
+  self.wsClient = websocket.new(self.host, self.port, "/")
+
+  function self.wsClient:onopen()
+    selfRef.wsConnected = true
+    selfRef:__sendHello()
+    print("[Feather] Connected to " .. selfRef.host .. ":" .. selfRef.port)
+  end
+
+  function self.wsClient:onmessage(raw)
+    local ok, msg = pcall(json.decode, raw)
+    if ok and msg then
+      selfRef:__handleCommand(msg)
     end
+  end
+
+  function self.wsClient:onclose(_code, _reason)
+    if selfRef.wsConnected then
+      selfRef.wsConnected = false
+      print("[Feather] Disconnected")
+    end
+  end
+
+  function self.wsClient:onerror(_err) end
+end
+
+--- Send a JSON string directly over the WS client.
+function Feather:__sendWs(payload)
+  if self.wsConnected and self.wsClient then
+    pcall(function()
+      self.wsClient:send(payload)
+    end)
   end
 end
 
@@ -345,15 +354,12 @@ function Feather:finish()
   if self.wsConnected then
     self:__sendWs(json.encode({ type = "feather:bye", session = self.sessionId }))
   end
-  if self.wsTx then
-    self.wsTx:push("__quit__")
+  if self.wsClient then
+    pcall(function()
+      self.wsClient:close()
+    end)
+    self.wsClient = nil
   end
-  if self.wsThread then
-    self.wsThread:wait()
-    self.wsThread = nil
-  end
-  self.wsTx = nil
-  self.wsRx = nil
   self.wsConnected = false
   self.pluginManager:finish(self)
 end
@@ -375,28 +381,34 @@ function Feather:update(dt)
     return
   end
 
-  -- Poll the WS thread's inbox (non-blocking channel pops — zero wait time)
-  -- Cap at 10 messages per frame to prevent spikes from batched commands
-  if self.wsRx then
-    local processed = 0
-    local raw = self.wsRx:pop()
-    while raw and processed < 10 do
-      if raw == "__connected__" then
-        self.wsConnected = true
-        -- Send hello immediately on connect; server will then request data as needed
-        self:__sendHello()
-        print("[Feather] Connected to " .. self.host .. ":" .. self.port)
-      elseif raw == "__disconnected__" then
+  -- Drive WS client I/O
+  if self.wsClient then
+    local STATUS = require(PATH .. ".lib.ws").STATUS
+    if self.wsClient.status == STATUS.CLOSED then
+      if self.wsConnected then
         self.wsConnected = false
-        print("[Feather] Disconnected — WS thread will retry")
-      else
-        local ok, msg = pcall(json.decode, raw)
-        if ok and msg then
-          self:__handleCommand(msg)
-        end
+        print("[Feather] Disconnected")
       end
-      processed = processed + 1
-      raw = self.wsRx:pop()
+      local socket = require("socket")
+      local now = socket.gettime()
+      if now - self._wsLastAttempt >= self.retryInterval then
+        self._wsLastAttempt = now
+        self:__createWsClient()
+      end
+    else
+      self.wsClient:update()
+    end
+  end
+
+  -- Push-based data delivery: Lua sends performance/observers/plugins on its own schedule
+  if self.wsConnected then
+    self._wsElapsed = (self._wsElapsed or 0) + dt
+    if self._wsElapsed >= self.sampleRate then
+      self._wsElapsed = 0
+      self:__pushPerformance(dt)
+      self:__pushObservers()
+      self.pluginManager:pushAll(self)
+      collectgarbage("step", 200)
     end
   end
 end

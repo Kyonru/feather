@@ -166,7 +166,11 @@ function FeatherLogger:log(line, screenshot)
   line.id = tostring(self.lastId)
   line.time = os.time()
   line.count = 1
-  line.trace = debug.traceback()
+
+  -- Only capture traceback for errors (expensive)
+  if line.type == "error" or line.type == "fatal" then
+    line.trace = debug.traceback()
+  end
 
   self.last_log = line
 

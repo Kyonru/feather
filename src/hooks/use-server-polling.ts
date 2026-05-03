@@ -1,61 +1,42 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useSessionStore } from '@/store/session';
 import { useConfigStore } from '@/store/config';
 
 /**
- * Server-driven polling: the desktop app requests data from the game at a controlled interval.
- * Lua only responds — it never pushes performance/observers/plugins on its own.
- * Logs are still pushed in real-time by Lua since they are event-driven.
- *
- * This approach minimizes game-side CPU usage (no constant JSON encoding unless asked)
- * and gives the desktop full control over refresh rate.
+ * Requests data from the game only on manual triggers (reconnect button, etc.).
+ * Lua pushes performance/observers/plugins on its own schedule — the desktop
+ * never polls periodically.
  */
 export const useServerPolling = () => {
   const sessionId = useSessionStore((state) => state.sessionId);
-  const sampleRate = useConfigStore((state) => state.config?.sampleRate ?? 1);
   const disconnected = useConfigStore((state) => state.disconnected);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // When a new session connects, the Lua side sends feather:hello automatically.
+  // This hook is kept for manual refresh scenarios.
   useEffect(() => {
-    if (!sessionId || disconnected) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
+    // No-op: Lua pushes data on its own sampleRate timer.
+    // If we ever need a manual "refresh all" button, call requestData() here.
+  }, [sessionId, disconnected]);
+};
 
-    const pollInterval = sampleRate * 1000; // sampleRate is in seconds
+/**
+ * Send a one-shot request to the game for all data.
+ * Use this for manual reconnect / refresh buttons only.
+ */
+export const requestAllData = (sessionId: string) => {
+  invoke('send_command', {
+    sessionId,
+    message: JSON.stringify({ type: 'req:performance' }),
+  }).catch(() => { });
 
-    const requestData = () => {
-      // Request performance, observers, and plugin data from the game
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({ type: 'req:performance' }),
-      }).catch(() => {});
+  invoke('send_command', {
+    sessionId,
+    message: JSON.stringify({ type: 'req:observers' }),
+  }).catch(() => { });
 
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({ type: 'req:observers' }),
-      }).catch(() => {});
-
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({ type: 'req:plugins' }),
-      }).catch(() => {});
-    };
-
-    // Initial request immediately after connection
-    requestData();
-
-    intervalRef.current = setInterval(requestData, pollInterval);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [sessionId, sampleRate, disconnected]);
+  invoke('send_command', {
+    sessionId,
+    message: JSON.stringify({ type: 'req:plugins' }),
+  }).catch(() => { });
 };

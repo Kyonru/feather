@@ -39,8 +39,8 @@ function FeatherObserver:observe(key, value)
 end
 
 function FeatherObserver:__defaultObservers()
-  self:observe("Global", _G)
   self:observe("Lua Version", _VERSION)
+  self:observe("Memory (KB)", string.format("%.1f", collectgarbage("count")))
 end
 
 function FeatherObserver:getResponseBody()
