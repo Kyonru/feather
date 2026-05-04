@@ -18,6 +18,7 @@ local EntityInspectorPlugin = require("plugins.entity-inspector")
 local InputReplayPlugin = require("plugins.input-replay")
 local ConfigTweakerPlugin = require("plugins.config-tweaker")
 local BookmarkPlugin = require("plugins.bookmark")
+local NetworkInspectorPlugin = require("plugins.network-inspector")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -286,10 +287,10 @@ DEBUGGER = FeatherDebugger({
         {
           name = "Game Objects",
           entities = function()
-  return gameEntities
+            return gameEntities
           end,
           getChildren = function(entity)
-  return entity.children
+            return entity.children
           end,
         },
       },
@@ -299,55 +300,72 @@ DEBUGGER = FeatherDebugger({
       hotkey = "f3",
       categories = { "general", "bug", "lag", "note", "important" },
     }),
+    FeatherPluginManager.createPlugin(NetworkInspectorPlugin, "network-inspector", {}),
     FeatherPluginManager.createPlugin(ConfigTweakerPlugin, "config-tweaker", {
       fields = {
         {
           key = "gravity",
           label = "Gravity",
           type = "number",
-          min = 0, max = 2000, step = 10,
-          get = function()   return gameConfig.gravity
-end,
-          set = function(v)   gameConfig.gravity = v
-end,
+          min = 0,
+          max = 2000,
+          step = 10,
+          get = function()
+            return gameConfig.gravity
+          end,
+          set = function(v)
+            gameConfig.gravity = v
+          end,
         },
         {
           key = "playerSpeed",
           label = "Player Speed",
           type = "number",
-          min = 0, max = 1000, step = 5,
-          get = function()   return gameConfig.playerSpeed
-end,
-          set = function(v)   gameConfig.playerSpeed = v
-end,
+          min = 0,
+          max = 1000,
+          step = 5,
+          get = function()
+            return gameConfig.playerSpeed
+          end,
+          set = function(v)
+            gameConfig.playerSpeed = v
+          end,
         },
         {
           key = "spawnRate",
           label = "Spawn Rate",
           type = "number",
-          min = 0.1, max = 10, step = 0.1,
-          get = function()   return gameConfig.spawnRate
-end,
-          set = function(v)   gameConfig.spawnRate = v
-end,
+          min = 0.1,
+          max = 10,
+          step = 0.1,
+          get = function()
+            return gameConfig.spawnRate
+          end,
+          set = function(v)
+            gameConfig.spawnRate = v
+          end,
         },
         {
           key = "godMode",
           label = "God Mode",
           type = "boolean",
-          get = function()   return gameConfig.godMode
-end,
-          set = function(v)   gameConfig.godMode = v
-end,
+          get = function()
+            return gameConfig.godMode
+          end,
+          set = function(v)
+            gameConfig.godMode = v
+          end,
         },
         {
           key = "debugDraw",
           label = "Debug Draw",
           type = "boolean",
-          get = function()   return gameConfig.debugDraw
-end,
-          set = function(v)   gameConfig.debugDraw = v
-end,
+          get = function()
+            return gameConfig.debugDraw
+          end,
+          set = function(v)
+            gameConfig.debugDraw = v
+          end,
         },
       },
     }),
@@ -367,6 +385,10 @@ if profiler then
   Game.draw = profiler.instance:wrap("Game.draw", Game.draw)
   Game.load = profiler.instance:wrap("Game.load", Game.load)
 end
+
+-- Demo: simulate network traffic for the network inspector
+local netInspector = DEBUGGER.pluginManager:getPlugin("network-inspector")
+local netDemoTimer = 0
 
 function love.load()
   Signal.register("shoot", function(x, y, dx, dy)
@@ -431,6 +453,29 @@ function love.update(dt)
   if gameEntities[2] then
     gameEntities[2].x = 400 + math.sin(time) * 30
     gameEntities[2].health = math.max(0, 30 - math.floor(time) % 31)
+  end
+
+  -- Simulate network traffic every 2 seconds
+  if netInspector then
+    netDemoTimer = netDemoTimer + dt
+    if netDemoTimer >= 2 then
+      netDemoTimer = 0
+      local msgs = {
+        {
+          dir = "out",
+          ep = "game-server",
+          data = '{"action":"move","x":'
+            .. math.floor(gameEntities[1].x)
+            .. ',"y":'
+            .. math.floor(gameEntities[1].y)
+            .. "}",
+        },
+        { dir = "in", ep = "game-server", data = '{"ack":true,"tick":' .. math.floor(time) .. "}" },
+        { dir = "out", ep = "lobby", data = '{"type":"heartbeat"}' },
+      }
+      local pick = msgs[math.random(#msgs)]
+      netInspector.instance:_record(pick.dir, pick.ep, pick.data, "ok")
+    end
   end
 
   -- DEBUGGER.featherLogger.outfile
