@@ -458,6 +458,7 @@ Here are some examples of Feather plugins:
 - [Lua State Machine Plugin](../src-lua/plugins/lua-state-machine/README.md)
 - [Screenshot Plugin](../src-lua/plugins/screenshots/README.md)
 - [Particle Editor Plugin](../src-lua/plugins/particle-editor/README.md)
+- [Audio Debug Plugin](../src-lua/plugins/audio-debug/README.md)
 
 ## Plugin documentation
 
