@@ -61,6 +61,12 @@ export default function PluginPage() {
   const pluginKey = currentUrl.slice('/plugins/'.length);
   const { onActionChange, onAction: onPluginAction, onCancel } = usePluginAction(currentUrl);
 
+  const onParamsChange = (params: Record<string, string>) => {
+    for (const [key, value] of Object.entries(params)) {
+      onActionChange(key, value);
+    }
+  };
+
   const plugin = plugins?.[pluginKey];
 
   if (!plugin) {
@@ -103,7 +109,7 @@ export default function PluginPage() {
             </Button>
           )}
         </div>
-        <PluginContent {...data} />
+        <PluginContent {...data} onParamsChange={onParamsChange} />
       </div>
     </PageLayout>
   );

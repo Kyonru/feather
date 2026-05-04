@@ -60,7 +60,29 @@ export interface PluginContentTableProps {
   loading: boolean;
 }
 
-export type PluginContentProps = PluginContentGalleryProps | PluginContentTableProps;
+export interface PluginTreeNodeProperty {
+  key: string;
+  value: string;
+}
+
+export interface PluginTreeNode {
+  name: string;
+  properties: PluginTreeNodeProperty[];
+  children?: PluginTreeNode[];
+}
+
+export interface PluginContentTreeProps {
+  type: 'tree';
+  nodes: PluginTreeNode[];
+  sources: string[];
+  selectedSource: number;
+  searchFilter: string;
+  loading: boolean;
+  total?: number;
+  shown?: number;
+}
+
+export type PluginContentProps = PluginContentGalleryProps | PluginContentTableProps | PluginContentTreeProps;
 
 export const usePluginAction = (pluginId: string) => {
   const sessionId = useSessionStore((state) => state.sessionId);

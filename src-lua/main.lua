@@ -14,6 +14,7 @@ local LuaStateMachinePlugin = require("plugins.lua-state-machine")
 local ScreenshotPlugin = require("plugins.screenshots")
 local ConsolePlugin = require("plugins.console")
 local ProfilerPlugin = require("plugins.profiler")
+local EntityInspectorPlugin = require("plugins.entity-inspector")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -160,6 +161,71 @@ end
 --- If not set, feather will be added in default identity lovegame, which is fine but want to know identity is respected if set
 love.filesystem.setIdentity("feather_dev_demo")
 
+-- Demo entity list for the entity inspector plugin
+local gameEntities = {
+  {
+    name = "Player",
+    x = 100,
+    y = 200,
+    width = 32,
+    height = 48,
+    rotation = 0,
+    speed = 150,
+    health = 100,
+    active = true,
+    children = {
+      { name = "Sword", x = 16, y = 0, type = "weapon", active = true },
+      { name = "Shield", x = -8, y = 4, type = "armor", active = true },
+    },
+  },
+  {
+    name = "Enemy Goblin",
+    x = 400,
+    y = 180,
+    width = 24,
+    height = 32,
+    rotation = 0,
+    speed = 80,
+    health = 30,
+    active = true,
+    tag = "enemy",
+  },
+  {
+    name = "Enemy Skeleton",
+    x = 550,
+    y = 220,
+    width = 28,
+    height = 40,
+    rotation = 0,
+    speed = 60,
+    health = 50,
+    active = true,
+    tag = "enemy",
+  },
+  {
+    name = "Tree",
+    x = 300,
+    y = 100,
+    width = 48,
+    height = 64,
+    active = true,
+    tag = "scenery",
+  },
+  {
+    name = "Chest",
+    x = 350,
+    y = 300,
+    width = 20,
+    height = 16,
+    active = false,
+    tag = "pickup",
+    children = {
+      { name = "Gold (x50)", type = "loot" },
+      { name = "Potion", type = "loot", health = 25 },
+    },
+  },
+}
+
 DEBUGGER = FeatherDebugger({
   errorHandler = customerrorhandler,
   wrappedPrint = true,
@@ -203,6 +269,19 @@ DEBUGGER = FeatherDebugger({
       evalEnabled = true,
     }),
     FeatherPluginManager.createPlugin(ProfilerPlugin, "profiler", {}),
+    FeatherPluginManager.createPlugin(EntityInspectorPlugin, "entity-inspector", {
+      sources = {
+        {
+          name = "Game Objects",
+          entities = function()
+            return gameEntities
+          end,
+          getChildren = function(entity)
+            return entity.children
+          end,
+        },
+      },
+    }),
   },
 })
 
@@ -273,6 +352,17 @@ function love.update(dt)
     counter = 0
   end
   Game.update(dt)
+
+  -- Animate demo entities so the inspector shows changing values
+  if gameEntities[1] then
+    gameEntities[1].x = 100 + math.sin(time * 2) * 50
+    gameEntities[1].y = 200 + math.cos(time * 1.5) * 20
+    gameEntities[1].rotation = time * 0.5
+  end
+  if gameEntities[2] then
+    gameEntities[2].x = 400 + math.sin(time) * 30
+    gameEntities[2].health = math.max(0, 30 - math.floor(time) % 31)
+  end
 
   -- DEBUGGER.featherLogger.outfile
 

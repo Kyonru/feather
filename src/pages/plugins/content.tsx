@@ -23,11 +23,12 @@ import {
   PluginDataType,
   PluginTableColumn,
   PluginTableRow,
+  PluginTreeNode,
 } from '@/hooks/use-plugin';
 import { downloadFile } from '@/utils/file';
 import { readFile } from '@tauri-apps/plugin-fs';
-import { DownloadIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ChevronRight, DownloadIcon } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 const DownloadButton = ({ url, extension }: { url?: string; extension: '.png' | '.gif' }) => {
   return (
@@ -216,10 +217,202 @@ export function PluginContentTable({
   );
 }
 
-export function PluginContent(props: PluginContentProps) {
+function TreeNodeRow({
+  node,
+  depth,
+  expandedNodes,
+  toggleNode,
+  path,
+}: {
+  node: PluginTreeNode;
+  depth: number;
+  expandedNodes: Set<string>;
+  toggleNode: (path: string) => void;
+  path: string;
+}) {
+  const hasChildren = node.children && node.children.length > 0;
+  const isExpanded = expandedNodes.has(path);
+  const indent = depth * 20;
+
+  return (
+    <>
+      <TableRow
+        className={hasChildren ? 'cursor-pointer hover:bg-muted/50' : undefined}
+        onClick={hasChildren ? () => toggleNode(path) : undefined}
+      >
+        <TableCell className="font-medium whitespace-nowrap" style={{ paddingLeft: indent + 12 }}>
+          <div className="flex items-center gap-1">
+            {hasChildren && (
+              <ChevronRight
+                className={`size-4 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              />
+            )}
+            {!hasChildren && <span className="inline-block w-4" />}
+            <span className="font-mono text-sm">{node.name}</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {node.properties.map((prop) => (
+              <span key={prop.key} className="text-sm">
+                <span className="text-muted-foreground">{prop.key}</span>
+                <span className="text-muted-foreground mx-1">=</span>
+                <span className="font-mono">{prop.value}</span>
+              </span>
+            ))}
+            {node.properties.length === 0 && (
+              <span className="text-sm text-muted-foreground">—</span>
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+      {isExpanded &&
+        node.children?.map((child, i) => {
+          const childPath = `${path}/${i}`;
+          return (
+            <TreeNodeRow
+              key={childPath}
+              node={child}
+              depth={depth + 1}
+              expandedNodes={expandedNodes}
+              toggleNode={toggleNode}
+              path={childPath}
+            />
+          );
+        })}
+    </>
+  );
+}
+
+export function PluginContentTree({
+  nodes,
+  sources,
+  selectedSource,
+  searchFilter,
+  loading,
+  total,
+  shown,
+  onParamsChange,
+}: {
+  nodes: PluginTreeNode[];
+  sources: string[];
+  selectedSource: number;
+  searchFilter: string;
+  loading: boolean;
+  total?: number;
+  shown?: number;
+  onParamsChange?: (params: Record<string, string>) => void;
+}) {
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  const toggleNode = useCallback((path: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        {sources.length > 1 && (
+          <select
+            className="rounded-md border bg-background px-3 py-1.5 text-sm"
+            value={selectedSource}
+            onChange={(e) =>
+              onParamsChange?.({ selectedSource: e.target.value })
+            }
+          >
+            {sources.map((name, i) => (
+              <option key={i} value={i + 1}>
+                {name}
+              </option>
+            ))}
+          </select>
+        )}
+        <input
+          className="rounded-md border bg-background px-3 py-1.5 text-sm w-48"
+          placeholder="Filter entities…"
+          defaultValue={searchFilter}
+          onChange={(e) =>
+            onParamsChange?.({ searchFilter: e.target.value })
+          }
+        />
+        {total != null && shown != null && (
+          <span className="text-sm text-muted-foreground">
+            {shown} / {total} entities
+          </span>
+        )}
+      </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">Entity</TableHead>
+              <TableHead>Properties</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {nodes.length === 0 && !loading ? (
+              <TableRow>
+                <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                  {sources.length === 0
+                    ? 'No entity sources registered'
+                    : 'No entities found'}
+                </TableCell>
+              </TableRow>
+            ) : (
+              nodes.map((node, i) => (
+                <TreeNodeRow
+                  key={`${i}`}
+                  node={node}
+                  depth={0}
+                  expandedNodes={expandedNodes}
+                  toggleNode={toggleNode}
+                  path={`${i}`}
+                />
+              ))
+            )}
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={2} className="text-center py-4">
+                  <div className="h-6 w-6 inline-block animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+export function PluginContent(
+  props: PluginContentProps & { onParamsChange?: (params: Record<string, string>) => void },
+) {
   if (props.type === 'table') {
     return (
       <PluginContentTable columns={props.columns} data={props.data} loading={props.loading} />
+    );
+  }
+
+  if (props.type === 'tree') {
+    return (
+      <PluginContentTree
+        nodes={props.nodes}
+        sources={props.sources}
+        selectedSource={props.selectedSource}
+        searchFilter={props.searchFilter}
+        loading={props.loading}
+        total={props.total}
+        shown={props.shown}
+        onParamsChange={props.onParamsChange}
+      />
     );
   }
 
