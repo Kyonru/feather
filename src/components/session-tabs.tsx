@@ -3,7 +3,9 @@ import { Config, useConfigStore } from '@/store/config';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import { cn } from '@/utils/styles';
-import { MonitorIcon, CircleIcon } from 'lucide-react';
+import { MonitorIcon, CircleIcon, TriangleAlertIcon } from 'lucide-react';
+import { version } from '../../package.json';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const osIcons: Record<string, string> = {
   Windows: '🪟',
@@ -14,10 +16,20 @@ const osIcons: Record<string, string> = {
   iOS: '📱',
 };
 
-function SessionTab({ session, isActive, onClick }: { session: SessionInfo; isActive: boolean; onClick: () => void }) {
+function SessionTab({
+  session,
+  isActive,
+  onClick,
+  versionMismatch,
+}: {
+  session: SessionInfo;
+  isActive: boolean;
+  onClick: () => void;
+  versionMismatch: boolean;
+}) {
   const osIcon = session.os ? osIcons[session.os] : undefined;
 
-  return (
+  const tab = (
     <button
       onClick={onClick}
       className={cn(
@@ -32,8 +44,22 @@ function SessionTab({ session, isActive, onClick }: { session: SessionInfo; isAc
       />
       {osIcon ? <span className="text-xs">{osIcon}</span> : <MonitorIcon className="size-3" />}
       <span className="max-w-[100px] truncate">{session.name || session.id.slice(0, 8)}</span>
+      {versionMismatch && <TriangleAlertIcon className="size-3 text-yellow-500" />}
     </button>
   );
+
+  if (versionMismatch) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{tab}</TooltipTrigger>
+        <TooltipContent>
+          <p>Version mismatch — game library differs from desktop app (v{version})</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return tab;
 }
 
 export function SessionTabs() {
@@ -60,14 +86,19 @@ export function SessionTabs() {
 
   return (
     <div className="bg-muted flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto rounded-lg p-1 scrollbar-none no-scrollbar">
-      {sessionList.map((session) => (
-          <SessionTab
-            key={session.id}
-            session={session}
-            isActive={session.id === activeSessionId}
-            onClick={() => handleSessionClick(session)}
-          />
-        ))}
+      {sessionList.map((session) => {
+          const cachedSessionConfig = queryClient.getQueryData<Config>(sessionQueryKey.config(session.id));
+          const hasVersionMismatch = !!cachedSessionConfig?.version && cachedSessionConfig.version !== version;
+          return (
+            <SessionTab
+              key={session.id}
+              session={session}
+              isActive={session.id === activeSessionId}
+              onClick={() => handleSessionClick(session)}
+              versionMismatch={hasVersionMismatch}
+            />
+          );
+        })}
     </div>
   );
 }

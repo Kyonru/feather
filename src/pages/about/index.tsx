@@ -13,7 +13,6 @@ import { openUrl } from '@/utils/linking';
 import { version } from '../../../package.json';
 import { useConfigStore } from '@/store/config';
 import { Label } from '@/components/ui/label';
-import { useVersionMismatch } from '@/hooks/use-config';
 import { useSettingsStore } from '@/store/settings';
 import { BookOpenIcon, HandCoinsIcon, HistoryIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -48,8 +47,6 @@ export function AboutModal() {
     const url = `https://github.com/sponsors/Kyonru`;
     openUrl(url);
   };
-
-  const isVersionMismatch = useVersionMismatch();
 
   const developer = 'Kyonru';
 
@@ -92,23 +89,6 @@ export function AboutModal() {
           </div>
         </div>
 
-        <DialogFooter className="sm:justify-start">
-          {isVersionMismatch && (
-            <Label className="w-full hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 border-yellow-600 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
-              <div className="grid gap-1.5 font-normal">
-                <p className="text-sm leading-none font-medium">Version mismatch</p>
-                <p className="text-muted-foreground text-sm">
-                  The current version of Feather App does not match the server version (feather.lua). Please make sure
-                  you are using the same version on both ends to ensure compatibility.
-                </p>
-
-                <Button variant="ghost" onClick={onLatestVersion} className="w-fit">
-                  Latest Version
-                </Button>
-              </div>
-            </Label>
-          )}
-        </DialogFooter>
         <DialogFooter className="sm:justify-start">
           {!isLatestVersion && (
             <Label className="w-full hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 border-cyan-600 bg-cyan-50 dark:border-cyan-900 dark:bg-cyan-950">

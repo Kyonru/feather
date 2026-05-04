@@ -3,7 +3,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { debounce } from '@/utils/timers';
 import { Config, useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
-import { version } from '../../package.json';
 
 export function useConfig(): {
   data: Config | undefined;
@@ -31,11 +30,6 @@ export function useConfig(): {
     updateSampleRate,
   };
 }
-
-export const useVersionMismatch = () => {
-  const config = useConfigStore((state) => state.config);
-  return config?.version !== version;
-};
 
 export const useSampleRate = () => {
   const config = useConfigStore((state) => state.config);
