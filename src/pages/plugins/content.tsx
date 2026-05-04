@@ -1,5 +1,13 @@
 import { Button } from '@/components/ui/button';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -8,7 +16,14 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useGif } from '@/hooks/use-gif';
-import { GifType, PluginContentImageType, PluginContentProps, PluginDataType } from '@/hooks/use-plugin';
+import {
+  GifType,
+  PluginContentImageType,
+  PluginContentProps,
+  PluginDataType,
+  PluginTableColumn,
+  PluginTableRow,
+} from '@/hooks/use-plugin';
 import { downloadFile } from '@/utils/file';
 import { readFile } from '@tauri-apps/plugin-fs';
 import { DownloadIcon } from 'lucide-react';
@@ -151,12 +166,68 @@ export function PluginContentType({ type, name, metadata, downloadable }: Plugin
   }
 }
 
-export function PluginContent({ data, type, loading }: PluginContentProps) {
-  if (type === 'gallery') {
+export function PluginContentTable({
+  columns,
+  data,
+  loading,
+}: {
+  columns: PluginTableColumn[];
+  data: PluginTableRow[];
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((col) => (
+              <TableHead key={col.key}>{col.label}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.length === 0 && !loading ? (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="text-center text-muted-foreground py-8">
+                No data collected yet
+              </TableCell>
+            </TableRow>
+          ) : (
+            data.map((row, i) => (
+              <TableRow key={row.name ?? i}>
+                {columns.map((col) => (
+                  <TableCell key={col.key} className="font-mono text-sm">
+                    {row[col.key] ?? '-'}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
+          {loading && (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="text-center py-4">
+                <div className="h-6 w-6 inline-block animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+export function PluginContent(props: PluginContentProps) {
+  if (props.type === 'table') {
+    return (
+      <PluginContentTable columns={props.columns} data={props.data} loading={props.loading} />
+    );
+  }
+
+  if (props.type === 'gallery') {
     return (
       <div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {data.map((item) => {
+          {props.data.map((item) => {
             return (
               <PluginContentType
                 key={item.name}
@@ -167,7 +238,7 @@ export function PluginContent({ data, type, loading }: PluginContentProps) {
               />
             );
           })}
-          {loading && (
+          {props.loading && (
             <div className="h-12 w-12 self-center justify-self-center animate-spin rounded-full border-4 border-solid border-gray-200 border-t-transparent" />
           )}
         </div>

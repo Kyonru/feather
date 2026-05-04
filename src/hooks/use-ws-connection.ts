@@ -184,7 +184,11 @@ export const useWsConnection = () => {
             const pluginData = data as PluginContentProps;
 
             queryClient.setQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId), (prev) => {
-              if (pluginData?.persist && prev) {
+              if (
+                pluginData?.type === 'gallery' &&
+                pluginData.persist &&
+                prev?.type === 'gallery'
+              ) {
                 return {
                   ...pluginData,
                   data: unionBy<PluginDataType, string>(prev.data, pluginData.data, (item) => item.name),

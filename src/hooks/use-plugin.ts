@@ -35,14 +35,32 @@ export interface PluginContentImageType {
   metadata: ScreenshotType | GifType;
 }
 
+export interface PluginTableColumn {
+  key: string;
+  label: string;
+}
+
+export interface PluginTableRow {
+  [key: string]: string;
+}
+
 export type PluginDataType = PluginContentImageType;
 
-export interface PluginContentProps {
+export interface PluginContentGalleryProps {
   data: Array<PluginDataType>;
   type: 'gallery';
   loading: boolean;
   persist?: boolean;
 }
+
+export interface PluginContentTableProps {
+  type: 'table';
+  columns: PluginTableColumn[];
+  data: PluginTableRow[];
+  loading: boolean;
+}
+
+export type PluginContentProps = PluginContentGalleryProps | PluginContentTableProps;
 
 export const usePluginAction = (pluginId: string) => {
   const sessionId = useSessionStore((state) => state.sessionId);

@@ -12,7 +12,8 @@ local FeatherPluginManager = require("feather.plugin_manager")
 local HumpSignalPlugin = require("plugins.hump.signal")
 local LuaStateMachinePlugin = require("plugins.lua-state-machine")
 local ScreenshotPlugin = require("plugins.screenshots")
-local ConsolePlugin = require("feather.plugins.console")
+local ConsolePlugin = require("plugins.console")
+local ProfilerPlugin = require("plugins.profiler")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -199,8 +200,9 @@ DEBUGGER = FeatherDebugger({
       gifDuration = 5,
     }),
     FeatherPluginManager.createPlugin(ConsolePlugin, "console", {
-      evalEnabled = true
+      evalEnabled = true,
     }),
+    FeatherPluginManager.createPlugin(ProfilerPlugin, "profiler", {}),
   },
 })
 
@@ -209,6 +211,14 @@ local counter = 0
 local state
 
 local time = 0
+
+-- Wrap demo functions with the profiler
+local profiler = DEBUGGER.pluginManager:getPlugin("profiler")
+if profiler then
+  Game.update = profiler.instance:wrap("Game.update", Game.update)
+  Game.draw = profiler.instance:wrap("Game.draw", Game.draw)
+  Game.load = profiler.instance:wrap("Game.load", Game.load)
+end
 
 function love.load()
   Signal.register("shoot", function(x, y, dx, dy)

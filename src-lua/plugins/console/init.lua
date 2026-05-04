@@ -1,9 +1,7 @@
-local PATH = string.sub(..., 1, string.len(...) - string.len("plugins.console"))
-
-local Class = require(PATH .. ".lib.class")
-local Base = require(PATH .. ".plugins.base")
-local json = require(PATH .. ".lib.json")
-local inspect = require(PATH .. ".lib.inspect")
+local Class = require("feather.lib.class")
+local json = require("feather.lib.json")
+local inspect = require("feather.lib.inspect")
+local Base = require("feather.plugins.base")
 
 ---@class ConsolePlugin: FeatherPlugin
 ---@field maxCodeSize number

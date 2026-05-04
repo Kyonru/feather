@@ -103,7 +103,7 @@ export default function PluginPage() {
             </Button>
           )}
         </div>
-        <PluginContent data={data.data} type={data.type} loading={data.loading} />
+        <PluginContent {...data} />
       </div>
     </PageLayout>
   );
