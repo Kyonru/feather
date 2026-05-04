@@ -74,14 +74,31 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
 - **`lib/base64.lua`** — Optimized base64 encoder with pre-computed lookup table (4-char chunks per iteration). Used for screenshot/GIF frame encoding.
 - **`plugins/logger.lua`** — Wraps `print()`, writes JSON-per-line to `.featherlog` via `lib/log.lua` (`io.open` append). Deduplicates consecutive identical messages. Supports optional screenshot capture per log.
 - **`plugins/performance.lua`**, **`plugins/observer.lua`** — Thin plugins; return data on push cycle.
-- **`plugin_manager.lua`** — Manages plugin lifecycle: `init → getConfig → update → handleRequest / handleActionRequest / handleActionCancel / handleParamsUpdate → onerror → finish`. Features error isolation (per-plugin `pcall` in `update()`), auto-disable after 10 consecutive errors, and `enablePlugin()` for recovery.
+- **`plugin_manager.lua`** — Manages plugin lifecycle: `init → getConfig → update → handleRequest / handleActionRequest / handleActionCancel / handleParamsUpdate → onerror → finish`. Features error isolation (per-plugin `pcall` in `update()`), auto-disable after 10 consecutive errors, and `enablePlugin()` for recovery. Supports `disablePlugin()`, `togglePlugin()`, and reports `disabled` state in `getConfig()`.
 - **`error_handler.lua`** — Replaces `love.errorhandler` when `autoRegisterErrorHandler = true`.
+- **`auto.lua`** — Zero-config entry point. `require("feather.auto")` auto-discovers and registers all built-in plugins with sensible defaults. Supports `exclude`, `include`, and `pluginOptions` config. Creates a global `DEBUGGER` instance. Plugins marked `optIn = true` (e.g. console) are excluded unless explicitly included.
 
 **`mode` config option:** `"socket"` (default) connects via WebSocket; `"disk"` skips WS entirely and only writes log files — useful for Android/iOS or when LuaSocket is unavailable.
+
+### Built-in plugins (`src-lua/plugins/`)
+
+- **`screenshots/`** — Capture screenshots and record GIFs. Gallery content type with download. Incremental push to avoid re-sending.
+- **`console/`** — Remote REPL. Execute Lua code in the game context. Sandbox mode available. Opt-in only (excluded from auto.lua by default).
+- **`profiler/`** — Function-level CPU profiling with start/stop actions.
+- **`input-replay/`** — Record and replay input sequences (keyboard, mouse, touch).
+- **`entity-inspector/`** — ECS entity browser. Register entity sources, browse and inspect live.
+- **`config-tweaker/`** — Live game config editing. Register config tables, edit values from desktop.
+- **`bookmark/`** — Mark and navigate to points of interest in game state.
+- **`network-inspector/`** — HTTP/WS traffic monitor. Wraps `socket.http` to intercept requests.
+- **`memory-snapshot/`** — Heap snapshots via `collectgarbage("count")`, table size tracking, diff between snapshots for leak detection.
+- **`physics-debug/`** — Auto-renders `love.physics` World debug overlay (bodies, joints, contacts, AABBs). Color-coded by body type. `addWorld(name, getter)` to register worlds, `hookDraw()` for automatic overlay.
+- **`hump/`** — [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html) integration.
+- **`lua-state-machine/`** — [lua-state-machine](https://github.com/kyleconroy/lua-state-machine) integration.
 
 ### Message types
 
 **Game → Desktop (push):**
+
 - `feather:hello` — config payload on connect (plugins, sampleRate, sysInfo, deviceId, sessionName)
 - `feather:bye` — graceful disconnect
 - `performance` — FPS, memory, dt stats
@@ -91,11 +108,13 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
 - `logs` — log entries (when pushed over WS)
 
 **Desktop → Game (commands):**
+
 - `cmd:config` — update sampleRate, updateInterval, etc.
 - `cmd:log` — toggle screenshots
 - `cmd:plugin:action` — trigger a plugin action (screenshot, GIF, etc.)
 - `cmd:plugin:action:cancel` — cancel an in-flight action
 - `cmd:plugin:params` — update plugin parameters
+- `cmd:plugin:toggle` — enable/disable a plugin at runtime
 - `req:config`, `req:performance`, `req:observers`, `req:plugins` — request-response style pulls
 
 ### Desktop app (`src/`)
@@ -113,14 +132,14 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
 
 - **Session management**: Multiple games can connect simultaneously. Each gets a UUID session. The site header shows a session switcher. File-based sessions (`file:<path>` IDs) are created when opening `.featherlog` files manually and are excluded from localStorage persistence.
 
-- **Plugin pages** (`pages/plugins/`) — server-driven UI. The Lua plugin declares actions (buttons, inputs, checkboxes) in `getConfig()` and the desktop renders them generically. Plugin content types: `gallery` (image grid with download). Action responses show error toasts via sonner.
+- **Plugin pages** (`pages/plugins/`) — server-driven UI. The Lua plugin declares actions (buttons, inputs, checkboxes) in `getConfig()` and the desktop renders them generically. Plugin content types: `gallery` (image grid with download), `table`, `tree`, `timeline`. Action types: `button`, `input`, `checkbox`, `select`, `file`. Plugins can be enabled/disabled from the desktop. Action responses show error toasts via sonner.
 
 - **Providers** (`providers.tsx`) — `QueryClientProvider` with 1-hour in-memory `gcTime`. No persistence to localStorage (avoids `QuotaExceededError` from large screenshot/GIF data).
 
 ### Tauri backend (`src-tauri/`)
 
 - **`ws_server.rs`** — Axum WebSocket server on port 4004. Manages session lifecycle (UUID assignment, `HashMap<String, WsSender>`). Injects `_session` into game messages via string splice. 64MB `max_message_size` for large GIF payloads. Exposes `send_command` Tauri command for desktop → game messaging.
-- **`lib.rs`** — Registers Tauri plugins (`fs`, `dialog`, `opener`, `shell`) and starts the WS server during setup.
+- **`lib.rs`** — Registers Tauri plugins (`fs`, `dialog`, `opener`, `shell`) and starts the WS server during setup. Exposes `get_local_ips` Tauri command for mobile connection discovery (uses `if-addrs` crate to list non-loopback IPv4 network interfaces).
 
 ### Screenshots plugin (`src-lua/plugins/screenshots/`)
 
@@ -170,3 +189,15 @@ getConfig() → {
 - React Query keys are session-scoped: `sessionQueryKey.logs(sessionId)`, `sessionQueryKey.plugin(sessionId, pluginId)`, etc. (defined in `use-ws-connection.ts`).
 - Data hooks use `useQuery({ enabled: false, queryFn: () => [] })` — data is pushed into the cache externally, not fetched.
 - Plugin IDs are normalized: strip `/plugins/` prefix when sending commands, add it when routing on Lua side.
+
+### Mobile connection
+
+The Settings modal includes a "Mobile Connection" section (`src/components/mobile-connection.tsx`) that auto-detects local network IPs via the `get_local_ips` Tauri command and displays a copyable `ws://<ip>:<port>` connection string plus a ready-to-paste Lua snippet. For web-only mode (no Tauri), falls back to manual IP input.
+
+### Install script
+
+`scripts/install-feather.sh` — curl-pipe-sh installer for the Lua library. Downloads core files + plugins from GitHub. Bash 3 compatible (macOS default). Configurable via env vars: `FEATHER_DIR`, `FEATHER_BRANCH`, `FEATHER_PLUGINS`, `FEATHER_SKIP_PLUGINS`.
+
+### Version mismatch
+
+Per-session version mismatch is shown as a warning icon (yellow triangle) on individual session tabs in the header, with a tooltip. Each session's cached config is compared against the desktop app version. This replaces the previous global sidebar warning.

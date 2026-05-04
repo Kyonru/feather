@@ -5,7 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.5.2]
+## [v0.6.0] - 2026-05-04 - The one with the plugin ecosystem
+
+### Added
+
+- Improve plugin system with server-driven UI (actions, params, toggle)
+- Add built-in plugins:
+  - Console / REPL — execute Lua code remotely
+  - Profiler — function-level CPU profiling
+  - Input Replay — record and replay input sequences
+  - Entity Inspector — ECS entity browser
+  - Config Tweaker — live game config editing
+  - Bookmark — mark and navigate to points of interest
+  - Network Inspector — HTTP/WS traffic monitor
+  - Memory Snapshot — heap snapshots and leak detection
+  - Physics Debug Draw — love.physics overlay renderer
+- Add plugin enable/disable toggle from desktop
+- Add `auto.lua` zero-config entry point (`require("feather.auto")`)
+- Add `install-feather.sh` curl-pipe-sh installer script
+- Add mobile connection info in settings (auto-detect local IP, copyable config)
+- Add multiple sessions connection
+  - Add per-session version mismatch warning on session tabs
+  - Add session persistence across reconnects
+- Add disk mode for logging without WebSocket (Android/iOS)
+- Add late connection support (game starts before desktop app)
+- Add sandbox option for console plugin
+- Add option to disable log file writing
+
+### Changed
+
+- Change architecture from REST to WebSocket
+- Improve plugin documentation
+- Improve screenshots plugin
+- Move version mismatch from global sidebar to per-session tab indicator
+
+### Fixed
+
+- Broken app layout
 
 ## [v0.5.1] - 2026-02-23 - The one with log folders
 
@@ -141,7 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
-[v0.5.2]: https://github.com/Kyonru/feather/compare/v0.5.1...HEAD
+[v0.6.0]: https://github.com/Kyonru/feather/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/Kyonru/feather/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/Kyonru/feather/compare/v0.4.1...v0.5.0
 [v0.4.1]: https://github.com/Kyonru/feather/compare/v0.4.0...v0.4.1

@@ -11,10 +11,13 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 - 🔍 **Variable inspection** — Watch values update in real-time.
 - 🚨 **Error capturing** — Automatically catch and display errors with optional delivery delay.
 - 📸 **Screenshots & GIF capture** — Capture screenshots and record GIFs from your game via the built-in plugin.
-- 🔌 **Plugin system** — Extend with custom data inspectors and views. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
+- 🔌 **Plugin system** — 12 built-in plugins + custom ones. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
 - 📱 **Multi-session support** — Connect multiple games simultaneously, each gets its own session tab.
-- 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly registered and guarded by `apiKey`.
-- �📁 **Log file viewer** — Open `.featherlog` files manually for offline inspection (great for mobile devices).
+- 📲 **Mobile debugging** — Auto-detected local IP in Settings with copyable connection string for WiFi debugging.
+- 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly included and guarded by `apiKey`.
+- 📁 **Log file viewer** — Open `.featherlog` files manually for offline inspection (great for mobile devices).
+- ⚡ **Zero-config setup** — `require("feather.auto")` registers all plugins with sensible defaults.
+- 📦 **One-line installer** — `curl | bash` script to download core + plugins.
 
 ---
 
@@ -186,11 +189,11 @@ If the device is on the same Wi-Fi network, point `host` to your computer's loca
 ```lua
 local debugger = FeatherDebugger({
   debug = true,
-  host = "192.168.1.42", -- Your computer's local IP (find via `ifconfig` or `ipconfig`)
+  host = "192.168.1.42", -- Your computer's local IP
 })
 ```
 
-> **Tip:** On macOS, find your IP with `ipconfig getifaddr en0`. On Linux, use `hostname -I`.
+> **Tip:** Open the Feather desktop app → **Settings** → scroll to **Mobile Connection**. Your local IP is auto-detected with a copyable `ws://` connection string and ready-to-paste Lua snippet.
 
 #### Offline mode (disk only)
 
@@ -338,9 +341,26 @@ Plugin options:
 
 ## Plugins
 
-Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Plugins use a **server-driven UI** approach: the Lua plugin declares its actions (buttons, inputs, checkboxes) in `getConfig()`, and the desktop app renders them automatically — no TypeScript code needed.
+Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Plugins use a **server-driven UI** approach: the Lua plugin declares its actions (buttons, inputs, checkboxes) in `getConfig()`, and the desktop app renders them automatically — no TypeScript code needed. Plugins can be enabled/disabled at runtime from the desktop.
 
 Check out the [Feather Plugins](docs/plugins.md) documentation for more information.
+
+### Built-in Plugins
+
+| Plugin                | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| **Screenshots**       | Capture screenshots and record GIFs. Gallery view with download.                       |
+| **Console / REPL**    | Remote Lua code execution (opt-in, requires `apiKey`).                                 |
+| **Profiler**          | Function-level CPU profiling with start/stop.                                          |
+| **Input Replay**      | Record and replay input sequences (keyboard, mouse, touch).                            |
+| **Entity Inspector**  | ECS entity browser — register sources, browse and inspect live.                        |
+| **Config Tweaker**    | Live game config editing from the desktop.                                             |
+| **Bookmark**          | Mark and navigate to points of interest in game state.                                 |
+| **Network Inspector** | HTTP/WS traffic monitor — wraps `socket.http` to intercept requests.                   |
+| **Memory Snapshot**   | Heap snapshots, table size tracking, diff between snapshots for leak detection.        |
+| **Physics Debug**     | Auto-render `love.physics` World overlay (bodies, joints, contacts, AABBs).            |
+| **HUMP Signal**       | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).     |
+| **Lua State Machine** | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine). |
 
 ### TL;DR
 
@@ -416,16 +436,18 @@ Feather is not meant to be used in production / final builds. It is meant to be 
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
-**Latest — [v0.6.0](https://github.com/Kyonru/feather/releases/tag/v0.6.0) — The one with WebSockets & plugins**
+**Latest — [v0.6.0](https://github.com/Kyonru/feather/releases/tag/v0.6.0) — The one with the plugin ecosystem**
 
-- WebSocket push-based architecture (game connects to desktop as client)
-- Multi-session support — connect multiple games simultaneously
-- Full plugin system with server-driven UI (buttons, inputs, checkboxes)
-- Screenshots & GIF capture plugin with batch encoding
-- Action cancel support for in-flight plugin operations
+- 12 built-in plugins: screenshots, console, profiler, input replay, entity inspector, config tweaker, bookmark, network inspector, memory snapshot, physics debug, HUMP signal, lua-state-machine
+- Plugin enable/disable toggle from desktop
+- Zero-config `auto.lua` entry point with `exclude`/`include`/`pluginOptions`
+- curl-pipe-sh installer script (`install-feather.sh`)
+- Mobile connection discovery — auto-detected local IP in Settings
+- Per-session version mismatch warning on session tabs
+- Disk mode for log-only debugging on Android/iOS
+- Console / REPL with sandbox and instruction limit
+- WebSocket push-based architecture with multi-session support
 - Plugin error isolation and auto-disable after repeated failures
-- File-based log viewer for offline/mobile device debugging
-- Console / REPL — execute Lua code in the running game from the desktop app
 
 ---
 
