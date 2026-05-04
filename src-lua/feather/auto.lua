@@ -30,6 +30,7 @@ local NetworkInspectorPlugin = tryRequire("plugins.network-inspector")
 local InputReplayPlugin = tryRequire("plugins.input-replay")
 local EntityInspectorPlugin = tryRequire("plugins.entity-inspector")
 local ConfigTweakerPlugin = tryRequire("plugins.config-tweaker")
+local PhysicsDebugPlugin = tryRequire("plugins.physics-debug")
 
 local auto = {}
 
@@ -45,6 +46,7 @@ local DEFAULT_PLUGINS = {
   { mod = InputReplayPlugin, id = "input-replay", opts = {} },
   { mod = EntityInspectorPlugin, id = "entity-inspector", opts = { sources = {} } },
   { mod = ConfigTweakerPlugin, id = "config-tweaker", opts = { fields = {} } },
+  { mod = PhysicsDebugPlugin, id = "physics-debug", opts = {} },
 }
 
 --- Set up Feather with all built-in plugins.

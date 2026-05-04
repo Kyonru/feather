@@ -20,6 +20,7 @@ local ConfigTweakerPlugin = require("plugins.config-tweaker")
 local BookmarkPlugin = require("plugins.bookmark")
 local NetworkInspectorPlugin = require("plugins.network-inspector")
 local MemorySnapshotPlugin = require("plugins.memory-snapshot")
+local PhysicsDebugPlugin = require("plugins.physics-debug")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -305,6 +306,9 @@ DEBUGGER = FeatherDebugger({
     FeatherPluginManager.createPlugin(MemorySnapshotPlugin, "memory-snapshot", {
       autoInterval = 0,
     }),
+    FeatherPluginManager.createPlugin(PhysicsDebugPlugin, "physics-debug", {
+      autoHook = false, -- We'll call draw() manually in the demo
+    }),
     FeatherPluginManager.createPlugin(ConfigTweakerPlugin, "config-tweaker", {
       fields = {
         {
@@ -405,6 +409,31 @@ end
 local netInspector = DEBUGGER.pluginManager:getPlugin("network-inspector")
 local netDemoTimer = 0
 
+-- Demo: physics world for the physics debug plugin
+local physicsWorld
+local physicsDebug = DEBUGGER.pluginManager:getPlugin("physics-debug")
+if physicsDebug and love.physics then
+  love.physics.setMeter(64)
+  physicsWorld = love.physics.newWorld(0, 9.81 * 64, true)
+
+  -- Ground
+  local ground = love.physics.newBody(physicsWorld, 400, 550, "static")
+  love.physics.newFixture(ground, love.physics.newRectangleShape(600, 20))
+
+  -- A few dynamic bodies
+  local ball = love.physics.newBody(physicsWorld, 300, 100, "dynamic")
+  love.physics.newFixture(ball, love.physics.newCircleShape(20), 1)
+  ball:setLinearVelocity(50, 0)
+
+  local box = love.physics.newBody(physicsWorld, 400, 200, "dynamic")
+  love.physics.newFixture(box, love.physics.newRectangleShape(40, 40), 1)
+
+  -- Register with the plugin
+  physicsDebug.instance:addWorld("demo", function()
+    return physicsWorld
+  end)
+end
+
 function love.load()
   Signal.register("shoot", function(x, y, dx, dy)
     -- for every critter in the path of the bullet:
@@ -426,6 +455,10 @@ end
 
 function love.draw()
   Game.draw()
+  -- Draw physics debug overlay
+  if physicsDebug then
+    physicsDebug.instance:draw()
+  end
 end
 
 function love.update(dt)
@@ -433,6 +466,11 @@ function love.update(dt)
   a = a + dt
   counter = counter + dt
   time = time + dt
+
+  -- Update physics world
+  if physicsWorld then
+    physicsWorld:update(dt)
+  end
 
   if a > 1 then
     a = 0

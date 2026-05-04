@@ -86,6 +86,7 @@ PLUGIN_DIRS=(
   "input-replay"
   "entity-inspector"
   "config-tweaker"
+  "physics-debug"
   "hump"
   "lua-state-machine"
 )
@@ -102,6 +103,7 @@ plugin_files() {
     input-replay)       echo "init.lua" ;;
     entity-inspector)   echo "init.lua" ;;
     config-tweaker)     echo "init.lua" ;;
+    physics-debug)      echo "init.lua" ;;
     hump)               echo "signal/init.lua" ;;
     lua-state-machine)  echo "init.lua" ;;
     *)                  echo "init.lua" ;;
