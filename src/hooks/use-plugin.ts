@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { debounce } from '@/utils/timers';
@@ -88,6 +88,8 @@ export const usePluginAction = (pluginId: string) => {
   const sessionId = useSessionStore((state) => state.sessionId);
   const normalized = normalizePluginId(pluginId);
   const [params, setParams] = useState<Record<string, string | boolean>>({});
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
 
   const sendCommand = (message: object) => {
     if (!sessionId) return Promise.resolve();
@@ -97,7 +99,7 @@ export const usePluginAction = (pluginId: string) => {
   };
 
   const onAction = (action: string) => {
-    sendCommand({ type: 'cmd:plugin:action', plugin: normalized, action, params });
+    sendCommand({ type: 'cmd:plugin:action', plugin: normalized, action, params: paramsRef.current });
   };
 
   const onCancel = (action: string) => {
@@ -107,9 +109,9 @@ export const usePluginAction = (pluginId: string) => {
   const updateOptions = useMemo(
     () =>
       debounce(() => {
-        sendCommand({ type: 'cmd:plugin:params', plugin: normalized, params });
+        sendCommand({ type: 'cmd:plugin:params', plugin: normalized, params: paramsRef.current });
       }, 1000),
-    [sessionId, normalized, params],
+    [sessionId, normalized],
   );
 
   const onActionChange = (action: string, value: string | boolean) => {

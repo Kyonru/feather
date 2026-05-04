@@ -16,6 +16,7 @@ local ConsolePlugin = require("plugins.console")
 local ProfilerPlugin = require("plugins.profiler")
 local EntityInspectorPlugin = require("plugins.entity-inspector")
 local InputReplayPlugin = require("plugins.input-replay")
+local ConfigTweakerPlugin = require("plugins.config-tweaker")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -162,6 +163,15 @@ end
 --- If not set, feather will be added in default identity lovegame, which is fine but want to know identity is respected if set
 love.filesystem.setIdentity("feather_dev_demo")
 
+-- Demo config values for the config tweaker plugin
+local gameConfig = {
+  gravity = 800,
+  playerSpeed = 150,
+  spawnRate = 1.0,
+  godMode = false,
+  debugDraw = false,
+}
+
 -- Demo entity list for the entity inspector plugin
 local gameEntities = {
   {
@@ -275,15 +285,67 @@ DEBUGGER = FeatherDebugger({
         {
           name = "Game Objects",
           entities = function()
-            return gameEntities
+  return gameEntities
           end,
           getChildren = function(entity)
-            return entity.children
+  return entity.children
           end,
         },
       },
     }),
     FeatherPluginManager.createPlugin(InputReplayPlugin, "input-replay", {}),
+    FeatherPluginManager.createPlugin(ConfigTweakerPlugin, "config-tweaker", {
+      fields = {
+        {
+          key = "gravity",
+          label = "Gravity",
+          type = "number",
+          min = 0, max = 2000, step = 10,
+          get = function()   return gameConfig.gravity
+end,
+          set = function(v)   gameConfig.gravity = v
+end,
+        },
+        {
+          key = "playerSpeed",
+          label = "Player Speed",
+          type = "number",
+          min = 0, max = 1000, step = 5,
+          get = function()   return gameConfig.playerSpeed
+end,
+          set = function(v)   gameConfig.playerSpeed = v
+end,
+        },
+        {
+          key = "spawnRate",
+          label = "Spawn Rate",
+          type = "number",
+          min = 0.1, max = 10, step = 0.1,
+          get = function()   return gameConfig.spawnRate
+end,
+          set = function(v)   gameConfig.spawnRate = v
+end,
+        },
+        {
+          key = "godMode",
+          label = "God Mode",
+          type = "boolean",
+          get = function()   return gameConfig.godMode
+end,
+          set = function(v)   gameConfig.godMode = v
+end,
+        },
+        {
+          key = "debugDraw",
+          label = "Debug Draw",
+          type = "boolean",
+          get = function()   return gameConfig.debugDraw
+end,
+          set = function(v)   gameConfig.debugDraw = v
+end,
+        },
+      },
+    }),
   },
 })
 
