@@ -1,9 +1,9 @@
 [package]
 name = "feather"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-edition = "2021"
+version = "0.6.0"
+description = "Feather is a Love2D devtool to debug and inspect your game in real-time. It provides a web-based interface to view and manipulate game state, visualize physics, and more."
+authors = ["kyonru"]
+edition = "2026"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Network Inspector — HTTP/WS traffic monitor
   - Memory Snapshot — heap snapshots and leak detection
   - Physics Debug Draw — love.physics overlay renderer
+  - Particle Editor — live ParticleSystem editor
+  - Audio Debug — inspect love.audio state and sources
+  - Coroutine Monitor — track active coroutines with stats
+  - Collision Debug — visualize bump.lua AABB worlds
+  - Animation Inspector — inspect anim8 sprite animations
+  - Timer Inspector — monitor HUMP timers and flux tweens
 - Add plugin enable/disable toggle from desktop
 - Add `auto.lua` zero-config entry point (`require("feather.auto")`)
 - Add `install-feather.sh` curl-pipe-sh installer script

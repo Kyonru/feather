@@ -214,29 +214,29 @@ Then transfer the `.featherlog` file from the device and open it in the Feather 
 
 `Feather:init(config)` accepts the following options:
 
-| Option                     | Type       | Default             | Description                                                                                          |
-| -------------------------- | ---------- | ------------------- | ---------------------------------------------------------------------------------------------------- |
-| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                                                  |
-| `host`                     | `string`   | `"127.0.0.1"`       | Desktop IP or hostname the game connects to.                                                         |
-| `port`                     | `number`   | `4004`              | Feather desktop WS server port.                                                                      |
-| `mode`                     | `string`   | `"socket"`          | `"socket"` for live WS connection, `"disk"` for log-file-only mode (no network).                     |
-| `baseDir`                  | `string`   | `""`                | Base directory path for file references and deeplinking to VS Code.                                  |
-| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.                                                |
-| `maxTempLogs`              | `number`   | `200`               | Max number of temporary logs stored before rotation.                                                 |
-| `sampleRate`               | `number`   | `1`                 | Seconds between push cycles (performance, observers, plugins).                                       |
-| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                                                         |
-| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                                                                 |
-| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.                                    |
-| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                                     |
-| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                                                         |
-| `plugins`                  | `table`    | `{}`                | List of plugin modules to load.                                                                      |
-| `captureScreenshot`        | `boolean`  | `false`             | Capture screenshots on error. WARNING: This impacts performance. Use with caution.                   |
-| `sessionName`              | `string`   | `""`                | Custom display name shown in desktop session tabs (e.g. "My RPG").                                   |
-| `deviceId`                 | `string`   | auto-generated      | Persistent device ID. Auto-generated and saved to disk if not set.                                   |
-| `writeToDisk`              | `boolean`  | `true`              | Whether to write logs to `.featherlog` files.                                                        |
-| `retryInterval`            | `number`   | `5`                 | Seconds between WebSocket reconnection attempts.                                                     |
-| `connectTimeout`           | `number`   | `2`                 | Seconds to wait for initial WS connection.                                                           |
-| `apiKey`                   | `string`   | `""`                | API key for authenticated connections.                                                               |
+| Option                     | Type       | Default             | Description                                                                        |
+| -------------------------- | ---------- | ------------------- | ---------------------------------------------------------------------------------- |
+| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                                |
+| `host`                     | `string`   | `"127.0.0.1"`       | Desktop IP or hostname the game connects to.                                       |
+| `port`                     | `number`   | `4004`              | Feather desktop WS server port.                                                    |
+| `mode`                     | `string`   | `"socket"`          | `"socket"` for live WS connection, `"disk"` for log-file-only mode (no network).   |
+| `baseDir`                  | `string`   | `""`                | Base directory path for file references and deeplinking to VS Code.                |
+| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.                              |
+| `maxTempLogs`              | `number`   | `200`               | Max number of temporary logs stored before rotation.                               |
+| `sampleRate`               | `number`   | `1`                 | Seconds between push cycles (performance, observers, plugins).                     |
+| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                                       |
+| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                                               |
+| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.                  |
+| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                   |
+| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                                       |
+| `plugins`                  | `table`    | `{}`                | List of plugin modules to load.                                                    |
+| `captureScreenshot`        | `boolean`  | `false`             | Capture screenshots on error. WARNING: This impacts performance. Use with caution. |
+| `sessionName`              | `string`   | `""`                | Custom display name shown in desktop session tabs (e.g. "My RPG").                 |
+| `deviceId`                 | `string`   | auto-generated      | Persistent device ID. Auto-generated and saved to disk if not set.                 |
+| `writeToDisk`              | `boolean`  | `true`              | Whether to write logs to `.featherlog` files.                                      |
+| `retryInterval`            | `number`   | `5`                 | Seconds between WebSocket reconnection attempts.                                   |
+| `connectTimeout`           | `number`   | `2`                 | Seconds to wait for initial WS connection.                                         |
+| `apiKey`                   | `string`   | `""`                | API key for authenticated connections.                                             |
 
 ---
 
@@ -347,26 +347,26 @@ Check out the [Feather Plugins](docs/plugins.md) documentation for more informat
 
 ### Built-in Plugins
 
-| Plugin                | Description                                                                            |
-| --------------------- | -------------------------------------------------------------------------------------- |
-| **Screenshots**       | Capture screenshots and record GIFs. Gallery view with download.                       |
-| **Console / REPL**    | Remote Lua code execution (opt-in, requires `apiKey`).                                 |
-| **Profiler**          | Function-level CPU profiling with start/stop.                                          |
-| **Input Replay**      | Record and replay input sequences (keyboard, mouse, touch).                            |
-| **Entity Inspector**  | ECS entity browser — register sources, browse and inspect live.                        |
-| **Config Tweaker**    | Live game config editing from the desktop.                                             |
-| **Bookmark**          | Mark and navigate to points of interest in game state.                                 |
-| **Network Inspector** | HTTP/WS traffic monitor — wraps `socket.http` to intercept requests.                   |
-| **Memory Snapshot**   | Heap snapshots, table size tracking, diff between snapshots for leak detection.        |
-| **Physics Debug**     | Auto-render `love.physics` World overlay (bodies, joints, contacts, AABBs).            |
-| **Particle Editor**   | Live ParticleSystem editor — tweak 30+ properties in real-time, export to Lua code.    |
-| **Audio Debug**       | Inspect `love.audio` state — track sources, volumes, listener position, source limits. |
-| **Coroutine Monitor** | Track active coroutines — status (running/suspended/dead), yields per frame, lifetime stats. |
-| **Collision Debug**   | Visualize [bump.lua](https://github.com/kikito/bump.lua) AABB worlds — bounding boxes, cell grid, collision logging. |
-| **Animation Inspector** | Inspect [anim8](https://github.com/kikito/anim8) sprite animations — current frame, speed, status, flip state. |
-| **Timer Inspector** | Inspect [HUMP timer](https://hump.readthedocs.io/en/latest/timer.html) and [flux](https://github.com/rxi/flux) — progress bars, remaining time, cancel from desktop. |
-| **HUMP Signal**       | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).     |
-| **Lua State Machine** | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine). |
+| Plugin                  | Description                                                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Screenshots**         | Capture screenshots and record GIFs. Gallery view with download.                                                                                                     |
+| **Console / REPL**      | Remote Lua code execution (opt-in, requires `apiKey`).                                                                                                               |
+| **Profiler**            | Function-level CPU profiling with start/stop.                                                                                                                        |
+| **Input Replay**        | Record and replay input sequences (keyboard, mouse, touch).                                                                                                          |
+| **Entity Inspector**    | ECS entity browser — register sources, browse and inspect live.                                                                                                      |
+| **Config Tweaker**      | Live game config editing from the desktop.                                                                                                                           |
+| **Bookmark**            | Mark and navigate to points of interest in game state.                                                                                                               |
+| **Network Inspector**   | HTTP/WS traffic monitor — wraps `socket.http` to intercept requests.                                                                                                 |
+| **Memory Snapshot**     | Heap snapshots, table size tracking, diff between snapshots for leak detection.                                                                                      |
+| **Physics Debug**       | Auto-render `love.physics` World overlay (bodies, joints, contacts, AABBs).                                                                                          |
+| **Particle Editor**     | Live ParticleSystem editor — tweak 30+ properties in real-time, export to Lua code.                                                                                  |
+| **Audio Debug**         | Inspect `love.audio` state — track sources, volumes, listener position, source limits.                                                                               |
+| **Coroutine Monitor**   | Track active coroutines — status (running/suspended/dead), yields per frame, lifetime stats.                                                                         |
+| **Collision Debug**     | Visualize [bump.lua](https://github.com/kikito/bump.lua) AABB worlds — bounding boxes, cell grid, collision logging.                                                 |
+| **Animation Inspector** | Inspect [anim8](https://github.com/kikito/anim8) sprite animations — current frame, speed, status, flip state.                                                       |
+| **Timer Inspector**     | Inspect [HUMP timer](https://hump.readthedocs.io/en/latest/timer.html) and [flux](https://github.com/rxi/flux) — progress bars, remaining time, cancel from desktop. |
+| **HUMP Signal**         | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).                                                                                   |
+| **Lua State Machine**   | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine).                                                                               |
 
 ### TL;DR
 
@@ -435,6 +435,7 @@ Feather is not meant to be used in production / final builds. It is meant to be 
 - [Inspect](https://github.com/kikito/inspect.lua)
 - [json.lua](https://github.com/rxi/json.lua)
 - [log.lua](https://github.com/rxi/log.lua)
+- [ws.lua](https://github.com/flaribbit/love2d-lua-websocket)
 
 ---
 
@@ -470,4 +471,16 @@ Full license: See [LICENSE.md](LICENSE.md)
 
 ## 🙏 Credits
 
-Inspired by [LoveBird](https://github.com/rxi/lovebird) by rxi, with added flexibility, plugin support, and modern LÖVE integration.
+### Inspiration & Architecture
+
+- [LoveBird](https://github.com/rxi/lovebird) by [rxi](https://github.com/rxi) — the original LÖVE debugger that inspired Feather's core concept
+- [Love-Dialogue](https://github.com/Miisan-png/Love-Dialogue) by [Miisan-png](https://github.com/Miisan-png) — plugin system architecture reference
+- [Flipper](https://github.com/facebook/flipper) by Facebook — UI/tooling patterns for desktop debugging apps
+
+### Lua Libraries & Tools
+
+- [HUMP](https://github.com/vrld/hump) by [vrld](https://github.com/vrld) — Class system, Timer, Signal
+- [anim8](https://github.com/kikito/anim8) by [kikito](https://github.com/kikito) — sprite animation library
+- [flux](https://github.com/rxi/flux) by [rxi](https://github.com/rxi) — tweening library
+- [bump.lua](https://github.com/kikito/bump.lua) by [kikito](https://github.com/kikito) — collision detection library
+- [lua-state-machine](https://github.com/kyleconroy/lua-state-machine) by [Kyle Conroy](https://github.com/kyleconroy) — state machine for Lua
