@@ -12,6 +12,7 @@ local FeatherPluginManager = require("feather.plugin_manager")
 local HumpSignalPlugin = require("plugins.hump.signal")
 local LuaStateMachinePlugin = require("plugins.lua-state-machine")
 local ScreenshotPlugin = require("plugins.screenshots")
+local ConsolePlugin = require("feather.plugins.console")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -196,6 +197,9 @@ DEBUGGER = FeatherDebugger({
       screenshotDirectory = "screenshots",
       fps = 30,
       gifDuration = 5,
+    }),
+    FeatherPluginManager.createPlugin(ConsolePlugin, "console", {
+      evalEnabled = true
     }),
   },
 })

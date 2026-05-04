@@ -13,7 +13,8 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 - 📸 **Screenshots & GIF capture** — Capture screenshots and record GIFs from your game via the built-in plugin.
 - 🔌 **Plugin system** — Extend with custom data inspectors and views. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
 - 📱 **Multi-session support** — Connect multiple games simultaneously, each gets its own session tab.
-- 📁 **Log file viewer** — Open `.featherlog` files manually for offline inspection (great for mobile devices).
+- 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly registered and guarded by `apiKey`.
+- �📁 **Log file viewer** — Open `.featherlog` files manually for offline inspection (great for mobile devices).
 
 ---
 
@@ -228,6 +229,56 @@ Feather will automatically capture and log errors in real-time. You can also man
   debugger:error("Something went wrong")
 ```
 
+### Console / REPL
+
+The Console is an **optional plugin** that lets you execute Lua code directly in the running game from the Feather desktop app. It is **not included by default** — you must explicitly register it and enable eval:
+
+```lua
+local ConsolePlugin = require("lib.feather.plugins.console")
+
+local debugger = FeatherDebugger({
+  debug = true,
+  apiKey = "your-secret-key", -- required for console to work
+  plugins = {
+    FeatherPluginManager.createPlugin(ConsolePlugin, "console", {
+      evalEnabled = true, -- must be explicitly enabled
+    }),
+  },
+})
+```
+
+If the plugin is not registered, `cmd:eval` commands from the desktop are rejected with a clear error message. No eval code is loaded into your game unless you opt in.
+
+Once enabled, type any Lua expression in the Console tab and see the result immediately — great for tweaking values, inspecting state, or testing functions without restarting.
+
+- **Enter** to execute, **Shift+Enter** for multiline input
+- **Arrow Up/Down** to recall previous commands
+- `print()` output during execution is captured and displayed inline
+- Return values are serialized with `inspect()` for readable table output
+- Code runs in a sandbox with an instruction limit to prevent infinite loops from freezing the game
+
+Examples:
+
+```lua
+return player.health              -- inspect a value
+player.speed = 500                 -- tweak a variable live
+return love.graphics.getStats()    -- check draw calls, texture memory
+print("hello"); return 1 + 1      -- print + return both captured
+```
+
+Plugin options:
+
+| Option             | Type      | Default  | Description                                 |
+| ------------------ | --------- | -------- | ------------------------------------------- |
+| `evalEnabled`      | `boolean` | `false`  | Must be `true` to allow code execution.     |
+| `maxCodeSize`      | `number`  | `20000`  | Max characters per eval payload.            |
+| `instructionLimit` | `number`  | `100000` | Lua instruction count before auto-abort.    |
+| `maxOutputSize`    | `number`  | `100000` | Max characters in serialized return values. |
+
+> **Security:** `apiKey` must be configured and non-empty in both the game and Feather desktop settings. The Console will refuse to execute code without a matching key.
+
+> **Warning:** DO NOT ENABLE THIS IN PRODUCTION. This is intended for local development only.
+
 ## Plugins
 
 Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Plugins use a **server-driven UI** approach: the Lua plugin declares its actions (buttons, inputs, checkboxes) in `getConfig()`, and the desktop app renders them automatically — no TypeScript code needed.
@@ -317,6 +368,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 - Action cancel support for in-flight plugin operations
 - Plugin error isolation and auto-disable after repeated failures
 - File-based log viewer for offline/mobile device debugging
+- Console / REPL — execute Lua code in the running game from the desktop app
 
 ---
 

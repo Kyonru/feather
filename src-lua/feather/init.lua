@@ -13,7 +13,6 @@ local FeatherObserver = require(PATH .. ".plugins.observer")
 local FeatherPerformance = require(PATH .. ".plugins.performance")
 local get_current_dir = require(PATH .. ".utils").get_current_dir
 local format = require(PATH .. ".utils").format
-local inspect = require(PATH .. ".lib.inspect")
 
 local FEATHER_VERSION_NAME = "0.6.0"
 local FEATHER_API = 5
@@ -292,7 +291,19 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "req:plugins" then
     self.pluginManager:pushAll(self)
   elseif msg.type == "cmd:eval" and msg.code then
-    self:__handleEval(msg)
+    local consolePlugin = self.pluginManager:getPlugin("console")
+    if consolePlugin then
+      consolePlugin.instance:handleEval(msg, self)
+    else
+      self:__sendWs(json.encode({
+        type = "eval:response",
+        session = self.sessionId,
+        id = msg.id,
+        status = "error",
+        result = "Console plugin not registered. Add it to your plugins list.",
+        prints = {},
+      }))
+    end
   end
 end
 
@@ -316,91 +327,6 @@ function Feather:__pushObservers()
       data = values,
     }))
   end
-end
-
---- Execute a Lua string from the desktop console.
---- Guarded by apiKey when configured.
----@param msg table { code: string, id: string, apiKey?: string }
-function Feather:__handleEval(msg)
-  -- apiKey guard: if configured, require it to match
-  if self.apiKey ~= "" and msg.apiKey ~= self.apiKey then
-    self:__sendWs(json.encode({
-      type = "eval:response",
-      session = self.sessionId,
-      id = msg.id,
-      status = "error",
-      result = "Unauthorized: invalid apiKey",
-      prints = {},
-    }))
-    return
-  end
-
-  -- Capture print() output during execution
-  local prints = {}
-  local originalPrint = print
-  print = function(...)
-    local args = { ... }
-    for i = 1, #args do
-      args[i] = tostring(args[i])
-    end
-    table.insert(prints, table.concat(args, "\t"))
-    originalPrint(...)
-  end
-
-  -- Compile
-  local fn, compileErr = loadstring(msg.code)
-  if not fn then
-    print = originalPrint
-    self:__sendWs(json.encode({
-      type = "eval:response",
-      session = self.sessionId,
-      id = msg.id,
-      status = "error",
-      result = tostring(compileErr),
-      prints = prints,
-    }))
-    return
-  end
-
-  -- Execute
-  local results = { pcall(fn) }
-  print = originalPrint
-
-  local ok = table.remove(results, 1)
-  if not ok then
-    self:__sendWs(json.encode({
-      type = "eval:response",
-      session = self.sessionId,
-      id = msg.id,
-      status = "error",
-      result = tostring(results[1]),
-      prints = prints,
-    }))
-    return
-  end
-
-  -- Serialize return values
-  local resultStr
-  if #results == 0 then
-    resultStr = nil
-  elseif #results == 1 then
-    resultStr = inspect(results[1])
-  else
-    local parts = {}
-    for i = 1, #results do
-      parts[i] = inspect(results[i])
-    end
-    resultStr = table.concat(parts, ", ")
-  end
-
-  self:__sendWs(json.encode({
-    type = "eval:response",
-    session = self.sessionId,
-    id = msg.id,
-    status = "success",
-    result = resultStr,
-    prints = prints,
-  }))
 end
 
 function Feather:__errorTraceback(msg)

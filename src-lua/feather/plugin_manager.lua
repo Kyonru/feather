@@ -89,6 +89,17 @@ function FeatherPluginManager:getPluginByUrl(url)
   end
 end
 
+--- Look up a registered plugin by its identifier string.
+---@param identifier string
+---@return FeatherPluginInstance|nil
+function FeatherPluginManager:getPlugin(identifier)
+  for _, plugin in ipairs(self.plugins) do
+    if plugin.identifier == identifier then
+      return plugin
+    end
+  end
+end
+
 function FeatherPluginManager:handleRequest(request, feather)
   local plugin = self:getPluginByUrl(request.path)
 
