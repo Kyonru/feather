@@ -23,6 +23,7 @@ local MemorySnapshotPlugin = require("plugins.memory-snapshot")
 local PhysicsDebugPlugin = require("plugins.physics-debug")
 local ParticleEditorPlugin = require("plugins.particle-editor")
 local AudioDebugPlugin = require("plugins.audio-debug")
+local CoroutineMonitorPlugin = require("plugins.coroutine-monitor")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -291,10 +292,10 @@ DEBUGGER = FeatherDebugger({
         {
           name = "Game Objects",
           entities = function()
-  return gameEntities
+            return gameEntities
           end,
           getChildren = function(entity)
-  return entity.children
+            return entity.children
           end,
         },
       },
@@ -321,10 +322,10 @@ DEBUGGER = FeatherDebugger({
           max = 2000,
           step = 10,
           get = function()
-  return gameConfig.gravity
+            return gameConfig.gravity
           end,
           set = function(v)
-  gameConfig.gravity = v
+            gameConfig.gravity = v
           end,
         },
         {
@@ -335,10 +336,10 @@ DEBUGGER = FeatherDebugger({
           max = 1000,
           step = 5,
           get = function()
-  return gameConfig.playerSpeed
+            return gameConfig.playerSpeed
           end,
           set = function(v)
-  gameConfig.playerSpeed = v
+            gameConfig.playerSpeed = v
           end,
         },
         {
@@ -349,10 +350,10 @@ DEBUGGER = FeatherDebugger({
           max = 10,
           step = 0.1,
           get = function()
-  return gameConfig.spawnRate
+            return gameConfig.spawnRate
           end,
           set = function(v)
-  gameConfig.spawnRate = v
+            gameConfig.spawnRate = v
           end,
         },
         {
@@ -360,10 +361,10 @@ DEBUGGER = FeatherDebugger({
           label = "God Mode",
           type = "boolean",
           get = function()
-  return gameConfig.godMode
+            return gameConfig.godMode
           end,
           set = function(v)
-  gameConfig.godMode = v
+            gameConfig.godMode = v
           end,
         },
         {
@@ -371,16 +372,17 @@ DEBUGGER = FeatherDebugger({
           label = "Debug Draw",
           type = "boolean",
           get = function()
-  return gameConfig.debugDraw
+            return gameConfig.debugDraw
           end,
           set = function(v)
-  gameConfig.debugDraw = v
+            gameConfig.debugDraw = v
           end,
         },
       },
     }),
     FeatherPluginManager.createPlugin(ParticleEditorPlugin, "particle-editor", {}),
     FeatherPluginManager.createPlugin(AudioDebugPlugin, "audio-debug", {}),
+    FeatherPluginManager.createPlugin(CoroutineMonitorPlugin, "coroutine-monitor", {}),
   },
 })
 
@@ -484,6 +486,35 @@ if particleEditor then
   end, 'love.graphics.newImage("particle.png")')
 end
 
+-- Demo: coroutines for the coroutine monitor plugin
+local demoCoroutines = {}
+local coMonitor = DEBUGGER.pluginManager:getPlugin("coroutine-monitor")
+
+-- A "cutscene" coroutine that yields periodically
+local cutsceneCo = coroutine.create(function()
+  while true do
+    coroutine.yield("waiting")
+  end
+end)
+table.insert(demoCoroutines, cutsceneCo)
+if coMonitor then
+  coMonitor.instance:addCoroutine(cutsceneCo, "demo-cutscene")
+end
+
+-- An async loader that finishes after a few resumes
+local loaderCo = coroutine.create(function()
+  for i = 1, 5 do
+    coroutine.yield("loading " .. i .. "/5")
+  end
+  return "done"
+end)
+table.insert(demoCoroutines, loaderCo)
+if coMonitor then
+  coMonitor.instance:addCoroutine(loaderCo, "asset-loader")
+end
+
+local coResumeTimer = 0
+
 function love.load()
   Signal.register("shoot", function(x, y, dx, dy)
     -- for every critter in the path of the bullet:
@@ -520,6 +551,17 @@ function love.update(dt)
   a = a + dt
   counter = counter + dt
   time = time + dt
+
+  -- Resume demo coroutines periodically
+  coResumeTimer = coResumeTimer + dt
+  if coResumeTimer >= 0.5 then
+    coResumeTimer = 0
+    for _, co in ipairs(demoCoroutines) do
+      if coroutine.status(co) == "suspended" then
+        coroutine.resume(co)
+      end
+    end
+  end
 
   -- Update physics world
   if physicsWorld then

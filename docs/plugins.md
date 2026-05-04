@@ -459,6 +459,7 @@ Here are some examples of Feather plugins:
 - [Screenshot Plugin](../src-lua/plugins/screenshots/README.md)
 - [Particle Editor Plugin](../src-lua/plugins/particle-editor/README.md)
 - [Audio Debug Plugin](../src-lua/plugins/audio-debug/README.md)
+- [Coroutine Monitor Plugin](../src-lua/plugins/coroutine-monitor/README.md)
 
 ## Plugin documentation
 

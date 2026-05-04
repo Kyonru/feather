@@ -33,6 +33,7 @@ local ConfigTweakerPlugin = tryRequire("plugins.config-tweaker")
 local PhysicsDebugPlugin = tryRequire("plugins.physics-debug")
 local ParticleEditorPlugin = tryRequire("plugins.particle-editor")
 local AudioDebugPlugin = tryRequire("plugins.audio-debug")
+local CoroutineMonitorPlugin = tryRequire("plugins.coroutine-monitor")
 
 local auto = {}
 
@@ -51,6 +52,7 @@ local DEFAULT_PLUGINS = {
   { mod = PhysicsDebugPlugin, id = "physics-debug", opts = {} },
   { mod = ParticleEditorPlugin, id = "particle-editor", opts = {} },
   { mod = AudioDebugPlugin, id = "audio-debug", opts = {} },
+  { mod = CoroutineMonitorPlugin, id = "coroutine-monitor", opts = {} },
 }
 
 --- Set up Feather with all built-in plugins.

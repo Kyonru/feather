@@ -11,7 +11,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 - 🔍 **Variable inspection** — Watch values update in real-time.
 - 🚨 **Error capturing** — Automatically catch and display errors with optional delivery delay.
 - 📸 **Screenshots & GIF capture** — Capture screenshots and record GIFs from your game via the built-in plugin.
-- 🔌 **Plugin system** — 14 built-in plugins + custom ones. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
+- 🔌 **Plugin system** — 15 built-in plugins + custom ones. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
 - 📱 **Multi-session support** — Connect multiple games simultaneously, each gets its own session tab.
 - 📲 **Mobile debugging** — Auto-detected local IP in Settings with copyable connection string for WiFi debugging.
 - 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly included and guarded by `apiKey`.
@@ -361,6 +361,7 @@ Check out the [Feather Plugins](docs/plugins.md) documentation for more informat
 | **Physics Debug**     | Auto-render `love.physics` World overlay (bodies, joints, contacts, AABBs).            |
 | **Particle Editor**   | Live ParticleSystem editor — tweak 30+ properties in real-time, export to Lua code.    |
 | **Audio Debug**       | Inspect `love.audio` state — track sources, volumes, listener position, source limits. |
+| **Coroutine Monitor** | Track active coroutines — status (running/suspended/dead), yields per frame, lifetime stats. |
 | **HUMP Signal**       | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).     |
 | **Lua State Machine** | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine). |
 
@@ -440,7 +441,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 **Latest — [v0.6.0](https://github.com/Kyonru/feather/releases/tag/v0.6.0) — The one with the plugin ecosystem**
 
-- 14 built-in plugins: screenshots, console, profiler, input replay, entity inspector, config tweaker, bookmark, network inspector, memory snapshot, physics debug, particle editor, audio debug, HUMP signal, lua-state-machine
+- 15 built-in plugins: screenshots, console, profiler, input replay, entity inspector, config tweaker, bookmark, network inspector, memory snapshot, physics debug, particle editor, audio debug, coroutine monitor, HUMP signal, lua-state-machine
 - Grouped card layout for plugins with many inputs (server-driven UI)
 - Plugin enable/disable toggle from desktop
 - Zero-config `auto.lua` entry point with `exclude`/`include`/`pluginOptions`
