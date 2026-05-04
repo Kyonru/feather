@@ -462,6 +462,7 @@ Here are some examples of Feather plugins:
 - [Coroutine Monitor Plugin](../src-lua/plugins/coroutine-monitor/README.md)
 - [Collision Debug Plugin](../src-lua/plugins/collision-debug/README.md)
 - [Animation Inspector Plugin](../src-lua/plugins/animation-inspector/README.md)
+- [Timer Inspector Plugin](../src-lua/plugins/timer-inspector/README.md)
 
 ## Plugin documentation
 

@@ -11,7 +11,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 - 🔍 **Variable inspection** — Watch values update in real-time.
 - 🚨 **Error capturing** — Automatically catch and display errors with optional delivery delay.
 - 📸 **Screenshots & GIF capture** — Capture screenshots and record GIFs from your game via the built-in plugin.
-- 🔌 **Plugin system** — 17 built-in plugins + custom ones. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
+- 🔌 **Plugin system** — 18 built-in plugins + custom ones. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
 - 📱 **Multi-session support** — Connect multiple games simultaneously, each gets its own session tab.
 - 📲 **Mobile debugging** — Auto-detected local IP in Settings with copyable connection string for WiFi debugging.
 - 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly included and guarded by `apiKey`.
@@ -364,6 +364,7 @@ Check out the [Feather Plugins](docs/plugins.md) documentation for more informat
 | **Coroutine Monitor** | Track active coroutines — status (running/suspended/dead), yields per frame, lifetime stats. |
 | **Collision Debug**   | Visualize [bump.lua](https://github.com/kikito/bump.lua) AABB worlds — bounding boxes, cell grid, collision logging. |
 | **Animation Inspector** | Inspect [anim8](https://github.com/kikito/anim8) sprite animations — current frame, speed, status, flip state. |
+| **Timer Inspector** | Inspect [HUMP timer](https://hump.readthedocs.io/en/latest/timer.html) and [flux](https://github.com/rxi/flux) — progress bars, remaining time, cancel from desktop. |
 | **HUMP Signal**       | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).     |
 | **Lua State Machine** | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine). |
 
@@ -443,7 +444,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 **Latest — [v0.6.0](https://github.com/Kyonru/feather/releases/tag/v0.6.0) — The one with the plugin ecosystem**
 
-- 17 built-in plugins: screenshots, console, profiler, input replay, entity inspector, config tweaker, bookmark, network inspector, memory snapshot, physics debug, particle editor, audio debug, coroutine monitor, collision debug, animation inspector, HUMP signal, lua-state-machine
+- 18 built-in plugins: screenshots, console, profiler, input replay, entity inspector, config tweaker, bookmark, network inspector, memory snapshot, physics debug, particle editor, audio debug, coroutine monitor, collision debug, animation inspector, timer inspector, HUMP signal, lua-state-machine
 - Grouped card layout for plugins with many inputs (server-driven UI)
 - Plugin enable/disable toggle from desktop
 - Zero-config `auto.lua` entry point with `exclude`/`include`/`pluginOptions`

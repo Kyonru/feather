@@ -40,6 +40,7 @@ local CollisionDebugPlugin = tryRequire("plugins.collision-debug")
 local HumpSignalPlugin = tryRequire("plugins.hump.signal")
 local LuaStateMachinePlugin = tryRequire("plugins.lua-state-machine")
 local AnimationInspectorPlugin = tryRequire("plugins.animation-inspector")
+local TimerInspectorPlugin = tryRequire("plugins.timer-inspector")
 
 local auto = {}
 
@@ -64,6 +65,7 @@ local DEFAULT_PLUGINS = {
   { mod = HumpSignalPlugin, id = "hump.signal", opts = {}, optIn = true, disabled = true },
   { mod = LuaStateMachinePlugin, id = "lua-state-machine", opts = {}, optIn = true, disabled = true },
   { mod = AnimationInspectorPlugin, id = "animation-inspector", opts = {}, optIn = true, disabled = true },
+  { mod = TimerInspectorPlugin, id = "timer-inspector", opts = {}, optIn = true, disabled = true },
 }
 
 --- Set up Feather with all built-in plugins.

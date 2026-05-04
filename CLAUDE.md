@@ -97,6 +97,7 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
 - **`coroutine-monitor/`** — Track active coroutines. Auto-hooks `coroutine.create`, `coroutine.wrap`, `coroutine.resume` to discover and monitor all coroutines. Shows status (running/suspended/dead), yield counts per frame, lifetime stats.
 - **`collision-debug/`** — Visualize bump.lua AABB collision worlds. Draws bounding boxes for all items, optional cell grid, per-item colors/labels via callbacks. `addWorld(name, getter, colorFn, labelFn)` to register worlds. `logCollision()` to track collision events.
 - **`animation-inspector/`** — Inspect anim8 sprite animation states. Register animations via `addAnimation(name, getter)`. Shows current frame, timer, per-frame duration, flip state, dimensions. Pause/resume/reset all from desktop.
+- **`timer-inspector/`** — Inspect HUMP timer and flux tweens. Shows active timers with progress bars, remaining time, easing, repeat status. `addHumpTimer(name, getter)` and `addFluxGroup(name, getter)` to register instances. Cancel/clear from desktop.
 - **`hump/`** — [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html) integration.
 - **`lua-state-machine/`** — [lua-state-machine](https://github.com/kyleconroy/lua-state-machine) integration.
 
