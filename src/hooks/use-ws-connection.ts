@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
+import { save as saveFileDialog } from '@tauri-apps/plugin-dialog';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -10,6 +12,7 @@ import type { PerformanceMetrics } from './use-performance';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
 import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
+import { isWeb } from '@/utils/platform';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -204,6 +207,19 @@ export const useWsConnection = () => {
             const response = msg as any;
             if (response.status === 'error') {
               toast.error(`Plugin action failed: ${response.message || 'Unknown error'}`);
+            } else if (response.download && !isWeb()) {
+              // Generic file download: plugin returned data to save
+              const { filename, content, extension } = response.download;
+              saveFileDialog({
+                defaultPath: filename,
+                filters: [{ name: 'All Files', extensions: [extension] }],
+              }).then(async (path) => {
+                if (!path) return;
+                await writeTextFile(path, content);
+                toast.success(`Saved to ${path}`);
+              }).catch(() => {
+                toast.error('Failed to save file');
+              });
             }
             break;
           }

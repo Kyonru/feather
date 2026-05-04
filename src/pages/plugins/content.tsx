@@ -24,11 +24,13 @@ import {
   PluginTableColumn,
   PluginTableRow,
   PluginTreeNode,
+  PluginTimelineItem,
 } from '@/hooks/use-plugin';
 import { downloadFile } from '@/utils/file';
 import { readFile } from '@tauri-apps/plugin-fs';
-import { ChevronRight, DownloadIcon } from 'lucide-react';
+import { Bookmark, ChevronRight, DownloadIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 
 const DownloadButton = ({ url, extension }: { url?: string; extension: '.png' | '.gif' }) => {
   return (
@@ -392,6 +394,93 @@ export function PluginContentTree({
   );
 }
 
+const categoryColors: Record<string, string> = {
+  info: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20',
+  error: 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20',
+  warning: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20',
+  success: 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20',
+  accent: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20',
+};
+
+function formatRelativeTime(timestamp: number): string {
+  const now = Date.now() / 1000;
+  const diff = now - timestamp;
+  if (diff < 60) return `${Math.round(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return new Date(timestamp * 1000).toLocaleTimeString();
+}
+
+export function PluginContentTimeline({
+  items,
+  loading,
+}: {
+  items: PluginTimelineItem[];
+  categories: string[];
+  loading: boolean;
+}) {
+  if (items.length === 0 && !loading) {
+    return (
+      <div className="rounded-md border p-8 text-center text-muted-foreground">
+        <Bookmark className="size-8 mx-auto mb-2 opacity-50" />
+        <p>No bookmarks yet</p>
+        <p className="text-xs mt-1">Add a bookmark from the controls above or press the hotkey in-game</p>
+      </div>
+    );
+  }
+
+  // Show newest first
+  const sorted = [...items].reverse();
+
+  return (
+    <div className="space-y-1">
+      <div className="text-sm text-muted-foreground mb-3">
+        {items.length} bookmark{items.length !== 1 ? 's' : ''}
+      </div>
+      <div className="relative">
+        {/* Timeline line */}
+        <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
+        <div className="space-y-0">
+          {sorted.map((item) => (
+            <div key={item.id} className="relative flex items-start gap-3 py-2 pl-8 pr-2 group">
+              {/* Timeline dot */}
+              <div className="absolute left-[13px] top-[14px] size-[7px] rounded-full bg-foreground/50 ring-2 ring-background group-hover:bg-foreground transition-colors" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm truncate">{item.label}</span>
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] px-1.5 py-0 ${categoryColors[item.color ?? ''] ?? ''}`}
+                  >
+                    {item.category}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-muted-foreground">{formatRelativeTime(item.time)}</span>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  <span className="text-xs text-muted-foreground font-mono">{item.gameTime}s</span>
+                </div>
+                {item.screenshot && (
+                  <img
+                    src={item.screenshot}
+                    alt={item.label}
+                    className="mt-2 rounded-md border max-w-[240px] max-h-[135px] object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {loading && (
+        <div className="flex justify-center py-4">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PluginContent(
   props: PluginContentProps & { onParamsChange?: (params: Record<string, string>) => void },
 ) {
@@ -412,6 +501,16 @@ export function PluginContent(
         total={props.total}
         shown={props.shown}
         onParamsChange={props.onParamsChange}
+      />
+    );
+  }
+
+  if (props.type === 'timeline') {
+    return (
+      <PluginContentTimeline
+        items={props.items}
+        categories={props.categories}
+        loading={props.loading}
       />
     );
   }

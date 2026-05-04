@@ -17,6 +17,7 @@ local ProfilerPlugin = require("plugins.profiler")
 local EntityInspectorPlugin = require("plugins.entity-inspector")
 local InputReplayPlugin = require("plugins.input-replay")
 local ConfigTweakerPlugin = require("plugins.config-tweaker")
+local BookmarkPlugin = require("plugins.bookmark")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -294,6 +295,10 @@ DEBUGGER = FeatherDebugger({
       },
     }),
     FeatherPluginManager.createPlugin(InputReplayPlugin, "input-replay", {}),
+    FeatherPluginManager.createPlugin(BookmarkPlugin, "bookmark", {
+      hotkey = "f3",
+      categories = { "general", "bug", "lag", "note", "important" },
+    }),
     FeatherPluginManager.createPlugin(ConfigTweakerPlugin, "config-tweaker", {
       fields = {
         {

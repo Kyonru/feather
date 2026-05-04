@@ -1,10 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
+import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { debounce } from '@/utils/timers';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
+import { isWeb } from '@/utils/platform';
 
 /** Strip the /plugins/ prefix so the ID matches what Lua uses as plugin.identifier */
 function normalizePluginId(pluginId: string): string {
@@ -82,7 +85,24 @@ export interface PluginContentTreeProps {
   shown?: number;
 }
 
-export type PluginContentProps = PluginContentGalleryProps | PluginContentTableProps | PluginContentTreeProps;
+export interface PluginTimelineItem {
+  id: number;
+  label: string;
+  category: string;
+  color?: string;
+  time: number;
+  gameTime: string;
+  screenshot?: string;
+}
+
+export interface PluginContentTimelineProps {
+  type: 'timeline';
+  items: PluginTimelineItem[];
+  categories: string[];
+  loading: boolean;
+}
+
+export type PluginContentProps = PluginContentGalleryProps | PluginContentTableProps | PluginContentTreeProps | PluginContentTimelineProps;
 
 export const usePluginAction = (pluginId: string) => {
   const sessionId = useSessionStore((state) => state.sessionId);
@@ -102,6 +122,29 @@ export const usePluginAction = (pluginId: string) => {
     sendCommand({ type: 'cmd:plugin:action', plugin: normalized, action, params: paramsRef.current });
   };
 
+  const onFileAction = async (action: string, filters?: { name: string; extensions: string[] }[]) => {
+    try {
+      if (isWeb()) {
+        toast.error('File actions are not supported in the web version');
+        return;
+      }
+      const path = await openFileDialog({
+        multiple: false,
+        filters: filters ?? [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (!path) return;
+      const content = await readTextFile(path);
+      sendCommand({
+        type: 'cmd:plugin:action',
+        plugin: normalized,
+        action,
+        params: { ...paramsRef.current, fileContent: content, fileName: typeof path === 'string' ? path : '' },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to read file');
+    }
+  };
+
   const onCancel = (action: string) => {
     sendCommand({ type: 'cmd:plugin:action:cancel', plugin: normalized, action });
   };
@@ -119,7 +162,7 @@ export const usePluginAction = (pluginId: string) => {
     updateOptions();
   };
 
-  return { onAction, onCancel, onActionChange };
+  return { onAction, onFileAction, onCancel, onActionChange };
 };
 
 export function usePlugin(pluginId: string) {

@@ -1,6 +1,7 @@
 import { PageLayout } from '@/components/page-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePlugin, usePluginAction } from '@/hooks/use-plugin';
 import { useConfigStore } from '@/store/config';
 import { DynamicIcon, IconName } from 'lucide-react/dynamic';
@@ -12,17 +13,28 @@ type PluginActionProps = {
   label: string;
   action: string;
   icon: IconName;
-  type: 'button' | 'input' | 'checkbox';
+  type: 'button' | 'input' | 'checkbox' | 'select' | 'file';
   value?: string;
   onClick?: (action: string) => void;
+  onFileClick?: (action: string, filters?: { name: string; extensions: string[] }[]) => void;
   onChange?: (action: string, value: string | boolean) => void;
   props?: Record<string, unknown>;
 };
 
-const PluginAction = ({ label, action, icon, type, value, onClick, onChange, props }: PluginActionProps) => {
+const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, onChange, props }: PluginActionProps) => {
   if (type === 'button') {
     return (
       <Button {...props} variant="outline" onClick={() => onClick && onClick(action)}>
+        <DynamicIcon className="size-4" name={icon} />
+        <div>{label}</div>
+      </Button>
+    );
+  }
+
+  if (type === 'file') {
+    const filters = props?.filters as { name: string; extensions: string[] }[] | undefined;
+    return (
+      <Button {...props} variant="outline" onClick={() => onFileClick && onFileClick(action, filters)}>
         <DynamicIcon className="size-4" name={icon} />
         <div>{label}</div>
       </Button>
@@ -39,6 +51,25 @@ const PluginAction = ({ label, action, icon, type, value, onClick, onChange, pro
         />
         <div>{label}</div>
       </div>
+    );
+  }
+
+  if (type === 'select') {
+    const options = ((props?.options as string[]) ?? []);
+    return (
+      <Select defaultValue={value} onValueChange={(v) => onChange && onChange(action, v)}>
+        <SelectTrigger className="w-[140px]">
+          <DynamicIcon className="size-4" name={icon} />
+          <SelectValue placeholder={label} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((opt) => (
+            <SelectItem key={opt} value={opt}>
+              {opt}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
 
@@ -59,7 +90,7 @@ export default function PluginPage() {
   const { data } = usePlugin(currentUrl);
   const plugins = useConfigStore((state) => state.config?.plugins);
   const pluginKey = currentUrl.slice('/plugins/'.length);
-  const { onActionChange, onAction: onPluginAction, onCancel } = usePluginAction(currentUrl);
+  const { onActionChange, onAction: onPluginAction, onFileAction, onCancel } = usePluginAction(currentUrl);
 
   const onParamsChange = (params: Record<string, string>) => {
     for (const [key, value] of Object.entries(params)) {
@@ -99,6 +130,7 @@ export default function PluginPage() {
               type={action.type}
               value={action.value}
               onClick={onPluginAction}
+              onFileClick={onFileAction}
               onChange={onActionChange}
               props={action.props}
             />

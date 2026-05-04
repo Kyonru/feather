@@ -265,13 +265,18 @@ function Feather:__handleCommand(msg)
         message = tostring(err),
       }))
     else
-      self:__sendWs(json.encode({
+      local response = {
         type = "plugin:action:response",
         session = self.sessionId,
         plugin = msg.plugin,
         action = msg.action,
         status = "success",
-      }))
+      }
+      -- Pass through download directive if the plugin returned one
+      if type(result) == "table" and result.download then
+        response.download = result.download
+      end
+      self:__sendWs(json.encode(response))
     end
     -- Re-send config so desktop picks up dynamic label changes
     self:__sendHello()
