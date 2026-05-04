@@ -92,6 +92,7 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
 - **`network-inspector/`** — HTTP/WS traffic monitor. Wraps `socket.http` to intercept requests.
 - **`memory-snapshot/`** — Heap snapshots via `collectgarbage("count")`, table size tracking, diff between snapshots for leak detection.
 - **`physics-debug/`** — Auto-renders `love.physics` World debug overlay (bodies, joints, contacts, AABBs). Color-coded by body type. `addWorld(name, getter)` to register worlds, `hookDraw()` for automatic overlay.
+- **`particle-editor/`** — Live ParticleSystem editor. `addSystem(name, getter, imageRef)` to register systems. Edits all 30+ properties in real-time from the desktop. Export to Lua code via save dialog.
 - **`hump/`** — [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html) integration.
 - **`lua-state-machine/`** — [lua-state-machine](https://github.com/kyleconroy/lua-state-machine) integration.
 

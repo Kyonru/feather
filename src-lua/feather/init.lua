@@ -276,6 +276,10 @@ function Feather:__handleCommand(msg)
       if type(result) == "table" and result.download then
         response.download = result.download
       end
+      -- Pass through clipboard directive if the plugin returned one
+      if type(result) == "table" and result.clipboard then
+        response.clipboard = result.clipboard
+      end
       self:__sendWs(json.encode(response))
     end
     -- Re-send config so desktop picks up dynamic label changes

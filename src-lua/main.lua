@@ -21,6 +21,7 @@ local BookmarkPlugin = require("plugins.bookmark")
 local NetworkInspectorPlugin = require("plugins.network-inspector")
 local MemorySnapshotPlugin = require("plugins.memory-snapshot")
 local PhysicsDebugPlugin = require("plugins.physics-debug")
+local ParticleEditorPlugin = require("plugins.particle-editor")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -377,6 +378,7 @@ DEBUGGER = FeatherDebugger({
         },
       },
     }),
+    FeatherPluginManager.createPlugin(ParticleEditorPlugin, "particle-editor", {}),
   },
 })
 
@@ -434,6 +436,52 @@ if physicsDebug and love.physics then
   end)
 end
 
+-- Demo: particle system for the particle editor plugin
+local particleImage
+local firePS
+local particleEditor = DEBUGGER.pluginManager:getPlugin("particle-editor")
+if particleEditor then
+  -- Create a small white pixel as the particle texture
+  local imageData = love.image.newImageData(4, 4)
+  for y = 0, 3 do
+    for x = 0, 3 do
+      imageData:setPixel(x, y, 1, 1, 1, 1)
+    end
+  end
+  particleImage = love.graphics.newImage(imageData)
+
+  -- Fire-like particle system
+  firePS = love.graphics.newParticleSystem(particleImage, 500)
+  firePS:setEmissionRate(80)
+  firePS:setParticleLifetime(0.3, 0.8)
+  firePS:setSpeed(20, 60)
+  firePS:setDirection(-math.pi / 2) -- upward
+  firePS:setSpread(0.4)
+  firePS:setLinearAcceleration(-10, -80, 10, -20)
+  firePS:setSizes(1.5, 1.0, 0.3)
+  firePS:setSizeVariation(0.5)
+  firePS:setColors(
+    1,
+    0.6,
+    0,
+    1, -- orange start
+    1,
+    0.2,
+    0,
+    0.8, -- red middle
+    0.3,
+    0.1,
+    0,
+    0 -- dark fade out
+  )
+  firePS:setSpinVariation(0.5)
+  firePS:start()
+
+  particleEditor.instance:addSystem("Fire", function()
+    return firePS
+  end, 'love.graphics.newImage("particle.png")')
+end
+
 function love.load()
   Signal.register("shoot", function(x, y, dx, dy)
     -- for every critter in the path of the bullet:
@@ -459,6 +507,10 @@ function love.draw()
   if physicsDebug then
     physicsDebug.instance:draw()
   end
+  -- Draw demo particle system
+  if firePS then
+    love.graphics.draw(firePS, 600, 400)
+  end
 end
 
 function love.update(dt)
@@ -470,6 +522,11 @@ function love.update(dt)
   -- Update physics world
   if physicsWorld then
     physicsWorld:update(dt)
+  end
+
+  -- Update demo particle system
+  if firePS then
+    firePS:update(dt)
   end
 
   if a > 1 then

@@ -220,6 +220,12 @@ export const useWsConnection = () => {
               }).catch(() => {
                 toast.error('Failed to save file');
               });
+            } else if (response.clipboard) {
+              navigator.clipboard.writeText(response.clipboard).then(() => {
+                toast.success('Copied to clipboard');
+              }).catch(() => {
+                toast.error('Failed to copy to clipboard');
+              });
             }
             break;
           }

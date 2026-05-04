@@ -87,6 +87,7 @@ PLUGIN_DIRS=(
   "entity-inspector"
   "config-tweaker"
   "physics-debug"
+  "particle-editor"
   "hump"
   "lua-state-machine"
 )
@@ -104,6 +105,7 @@ plugin_files() {
     entity-inspector)   echo "init.lua" ;;
     config-tweaker)     echo "init.lua" ;;
     physics-debug)      echo "init.lua" ;;
+    particle-editor)    echo "init.lua" ;;
     hump)               echo "signal/init.lua" ;;
     lua-state-machine)  echo "init.lua" ;;
     *)                  echo "init.lua" ;;

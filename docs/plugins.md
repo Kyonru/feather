@@ -220,6 +220,7 @@ Here are some examples of Feather plugins:
 - [Hump's Signal Plugin](../src-lua/plugins/hump/signal/README.md)
 - [Lua State Machine Plugin](../src-lua/plugins/lua-state-machine/README.md)
 - [Screenshot Plugin](../src-lua/plugins/screenshots/README.md)
+- [Particle Editor Plugin](../src-lua/plugins/particle-editor/README.md)
 
 ## Plugin documentation
 
