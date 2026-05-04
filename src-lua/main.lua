@@ -19,6 +19,7 @@ local InputReplayPlugin = require("plugins.input-replay")
 local ConfigTweakerPlugin = require("plugins.config-tweaker")
 local BookmarkPlugin = require("plugins.bookmark")
 local NetworkInspectorPlugin = require("plugins.network-inspector")
+local MemorySnapshotPlugin = require("plugins.memory-snapshot")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -301,6 +302,9 @@ DEBUGGER = FeatherDebugger({
       categories = { "general", "bug", "lag", "note", "important" },
     }),
     FeatherPluginManager.createPlugin(NetworkInspectorPlugin, "network-inspector", {}),
+    FeatherPluginManager.createPlugin(MemorySnapshotPlugin, "memory-snapshot", {
+      autoInterval = 0,
+    }),
     FeatherPluginManager.createPlugin(ConfigTweakerPlugin, "config-tweaker", {
       fields = {
         {
@@ -384,6 +388,17 @@ if profiler then
   Game.update = profiler.instance:wrap("Game.update", Game.update)
   Game.draw = profiler.instance:wrap("Game.draw", Game.draw)
   Game.load = profiler.instance:wrap("Game.load", Game.load)
+end
+
+-- Demo: track tables for the memory snapshot plugin
+local memSnapshot = DEBUGGER.pluginManager:getPlugin("memory-snapshot")
+if memSnapshot then
+  memSnapshot.instance:trackTable("gameEntities", function()
+    return gameEntities
+  end)
+  memSnapshot.instance:trackTable("gameConfig", function()
+    return gameConfig
+  end)
 end
 
 -- Demo: simulate network traffic for the network inspector
