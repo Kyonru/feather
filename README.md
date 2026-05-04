@@ -64,11 +64,68 @@ package.path = package.path .. ";./lua_modules/share/lua/5.1/?.lua"
 local Feather = require("feather")
 ```
 
+### Option 3: Install Script
+
+Download the Feather library and all plugins with a single command:
+
+```bash
+curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh | bash
+```
+
+This creates a `feather/` directory (core library) and a `plugins/` directory (all built-in plugins) in your current folder.
+
+**Customize with environment variables:**
+
+```bash
+# Install into a custom directory
+FEATHER_DIR=lib/feather bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Download from a specific branch or tag
+FEATHER_BRANCH=v0.6.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Skip certain plugins
+FEATHER_SKIP_PLUGINS="network-inspector,memory-snapshot" bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Skip all plugins (core only)
+FEATHER_PLUGINS=0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+```
+
 ---
 
 ## 🚀 Usage
 
-### Basic Setup
+### Quick Start (Zero Config)
+
+The fastest way to get started — one line, all built-in plugins, sensible defaults:
+
+```lua
+require("feather.auto")
+
+function love.update(dt)
+  DEBUGGER:update(dt)
+  -- ...your game code...
+end
+```
+
+That's it. `DEBUGGER` is a global variable created automatically with all plugins registered.
+
+**Customize auto setup:**
+
+```lua
+require("feather.auto").setup({
+  sessionName = "My RPG",
+  host = "192.168.1.50",           -- for mobile debugging
+  exclude = { "network-inspector" }, -- skip specific plugins
+  include = { "console" },          -- opt-in plugins (console requires explicit inclusion)
+  pluginOptions = {                  -- override default plugin options
+    bookmark = { hotkey = "f5", categories = { "bug", "note", "todo" } },
+  },
+})
+```
+
+> **Note:** The Console plugin is opt-in for safety (it allows remote code execution). Pass `include = { "console" }` to enable it.
+
+### Manual Setup
 
 ```lua
 local FeatherDebugger = require "feather"
