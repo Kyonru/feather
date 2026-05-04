@@ -90,7 +90,7 @@ export default function PluginPage() {
   const { data } = usePlugin(currentUrl);
   const plugins = useConfigStore((state) => state.config?.plugins);
   const pluginKey = currentUrl.slice('/plugins/'.length);
-  const { onActionChange, onAction: onPluginAction, onFileAction, onCancel } = usePluginAction(currentUrl);
+  const { onActionChange, onAction: onPluginAction, onFileAction, onCancel, onToggle } = usePluginAction(currentUrl);
 
   const onParamsChange = (params: Record<string, string>) => {
     for (const [key, value] of Object.entries(params)) {
@@ -121,6 +121,13 @@ export default function PluginPage() {
     <PageLayout>
       <div className="px-4">
         <div className="flex flex-row gap-x-2 mb-4">
+          <Button
+            variant={plugin.disabled ? 'default' : 'outline'}
+            onClick={onToggle}
+          >
+            <DynamicIcon className="size-4" name={plugin.disabled ? 'play' : 'pause'} />
+            <div>{plugin.disabled ? 'Enable' : 'Disable'}</div>
+          </Button>
           {actions.map((action) => (
             <PluginAction
               key={action.key}
@@ -141,7 +148,12 @@ export default function PluginPage() {
             </Button>
           )}
         </div>
-        <PluginContent {...data} onParamsChange={onParamsChange} />
+        {plugin.disabled && (
+          <div className="text-muted-foreground text-sm mb-4">
+            This plugin is disabled and execution is paused. Enable it to resume.
+          </div>
+        )}
+        {!plugin.disabled && <PluginContent {...data} onParamsChange={onParamsChange} />}
       </div>
     </PageLayout>
   );

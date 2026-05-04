@@ -188,7 +188,7 @@ function FeatherPluginManager:getConfig()
 
   for _, plugin in ipairs(self.plugins) do
     local config = plugin.instance:getConfig()
-
+    config.disabled = plugin.disabled or false
     pluginsConfig[plugin.identifier] = config
   end
 
@@ -227,7 +227,7 @@ function FeatherPluginManager:handleActionCancel(request, feather)
   end
 end
 
---- Re-enable a disabled plugin (after error threshold)
+--- Re-enable a disabled plugin (after error threshold or manual disable)
 function FeatherPluginManager:enablePlugin(pluginId)
   for _, plugin in ipairs(self.plugins) do
     if plugin.identifier == pluginId then
@@ -238,6 +238,35 @@ function FeatherPluginManager:enablePlugin(pluginId)
     end
   end
   return false
+end
+
+--- Disable a plugin so it stops consuming resources
+function FeatherPluginManager:disablePlugin(pluginId)
+  for _, plugin in ipairs(self.plugins) do
+    if plugin.identifier == pluginId then
+      plugin.disabled = true
+      self.logger:logger("[FeatherPluginManager] Disabled plugin: " .. pluginId)
+      return true
+    end
+  end
+  return false
+end
+
+--- Toggle a plugin's enabled/disabled state
+---@param pluginId string
+---@return boolean|nil enabled  New state, or nil if plugin not found
+function FeatherPluginManager:togglePlugin(pluginId)
+  for _, plugin in ipairs(self.plugins) do
+    if plugin.identifier == pluginId then
+      plugin.disabled = not plugin.disabled
+      plugin.errorCount = 0
+      self.logger:logger(
+        "[FeatherPluginManager] " .. (plugin.disabled and "Disabled" or "Enabled") .. " plugin: " .. pluginId
+      )
+      return not plugin.disabled
+    end
+  end
+  return nil
 end
 
 return FeatherPluginManager

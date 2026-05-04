@@ -159,6 +159,52 @@ end
 
 Each config field also appears as an interactive input or checkbox.
 
+### Debug Render Overlay
+
+Instead of a dedicated plugin, use the Config Tweaker to expose debug draw toggles. The game already owns the rendering logic — the tweaker just provides desktop UI controls:
+
+```lua
+{
+  fields = {
+    { key = "wireframe", label = "Wireframe", type = "boolean",
+      get = function() return love.graphics.isWireframe() end,
+      set = function(v) love.graphics.setWireframe(v) end },
+    { key = "showColliders", label = "Show Colliders", type = "boolean",
+      get = function() return gameConfig.showColliders end,
+      set = function(v) gameConfig.showColliders = v end },
+    { key = "showSpriteBounds", label = "Show Sprite Bounds", type = "boolean",
+      get = function() return gameConfig.showSpriteBounds end,
+      set = function(v) gameConfig.showSpriteBounds = v end },
+  },
+}
+```
+
+Then in your `love.draw()`:
+
+```lua
+if gameConfig.showColliders then
+  love.graphics.setColor(0, 1, 0, 0.5)
+  for _, body in ipairs(world:getBodies()) do
+    for _, fixture in ipairs(body:getFixtures()) do
+      local shape = fixture:getShape()
+      if shape:typeOf("CircleShape") then
+        local x, y = body:getWorldPoint(shape:getPoint())
+        love.graphics.circle("line", x, y, shape:getRadius())
+      elseif shape:typeOf("PolygonShape") then
+        love.graphics.polygon("line", body:getWorldPoints(shape:getPoints()))
+      end
+    end
+  end
+end
+
+if gameConfig.showSpriteBounds then
+  love.graphics.setColor(1, 1, 0, 0.5)
+  for _, entity in ipairs(entities) do
+    love.graphics.rectangle("line", entity.x, entity.y, entity.width, entity.height)
+  end
+end
+```
+
 ## Desktop Display
 
 The plugin pushes a table with all current values:

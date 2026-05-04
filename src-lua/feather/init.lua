@@ -288,6 +288,9 @@ function Feather:__handleCommand(msg)
     local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
     local request = { method = "PUT", path = path, params = msg.params or {}, headers = {} }
     self.pluginManager:handleParamsUpdate(request, self)
+  elseif msg.type == "cmd:plugin:toggle" and msg.plugin then
+    self.pluginManager:togglePlugin(msg.plugin)
+    self:__sendHello()
   -- Server-driven data requests: Feather desktop asks, Lua responds
   elseif msg.type == "req:config" then
     self:__sendHello()

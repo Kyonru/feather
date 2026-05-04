@@ -162,7 +162,11 @@ export const usePluginAction = (pluginId: string) => {
     updateOptions();
   };
 
-  return { onAction, onFileAction, onCancel, onActionChange };
+  const onToggle = () => {
+    sendCommand({ type: 'cmd:plugin:toggle', plugin: normalized });
+  };
+
+  return { onAction, onFileAction, onCancel, onActionChange, onToggle };
 };
 
 export function usePlugin(pluginId: string) {
