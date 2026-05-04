@@ -90,6 +90,7 @@ PLUGIN_DIRS=(
   "particle-editor"
   "audio-debug"
   "coroutine-monitor"
+  "collision-debug"
   "hump"
   "lua-state-machine"
 )
@@ -110,6 +111,7 @@ plugin_files() {
     particle-editor)    echo "init.lua" ;;
     audio-debug)        echo "init.lua" ;;
     coroutine-monitor)  echo "init.lua" ;;
+    collision-debug)    echo "init.lua" ;;
     hump)               echo "signal/init.lua" ;;
     lua-state-machine)  echo "init.lua" ;;
     *)                  echo "init.lua" ;;

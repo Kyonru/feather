@@ -95,6 +95,7 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
 - **`particle-editor/`** — Live ParticleSystem editor. `addSystem(name, getter, imageRef)` to register systems. Edits all 30+ properties in real-time from the desktop. Export to Lua code via save dialog.
 - **`audio-debug/`** — Inspect `love.audio` state. Auto-hooks `love.audio.newSource` to track all sources. Shows source table (status, volume, pitch, looping, channels), listener position, master volume, distance model, effects support.
 - **`coroutine-monitor/`** — Track active coroutines. Auto-hooks `coroutine.create`, `coroutine.wrap`, `coroutine.resume` to discover and monitor all coroutines. Shows status (running/suspended/dead), yield counts per frame, lifetime stats.
+- **`collision-debug/`** — Visualize bump.lua AABB collision worlds. Draws bounding boxes for all items, optional cell grid, per-item colors/labels via callbacks. `addWorld(name, getter, colorFn, labelFn)` to register worlds. `logCollision()` to track collision events.
 - **`hump/`** — [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html) integration.
 - **`lua-state-machine/`** — [lua-state-machine](https://github.com/kyleconroy/lua-state-machine) integration.
 
