@@ -14,6 +14,7 @@ import { useSettingsStore } from '@/store/settings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
+import { MobileConnection } from '@/components/mobile-connection';
 
 const ToggleTheme = () => {
   const theme = useSettingsStore((state) => state.theme);
@@ -146,7 +147,7 @@ export function SettingsModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>All settings are saved on update and will be instantly applied.</DialogDescription>
@@ -157,6 +158,7 @@ export function SettingsModal() {
           <TextEditorInput />
           <ApiKeyInput />
           <SampleRateInput />
+          <MobileConnection />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={reset}>
