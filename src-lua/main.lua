@@ -15,6 +15,7 @@ local ScreenshotPlugin = require("plugins.screenshots")
 local ConsolePlugin = require("plugins.console")
 local ProfilerPlugin = require("plugins.profiler")
 local EntityInspectorPlugin = require("plugins.entity-inspector")
+local InputReplayPlugin = require("plugins.input-replay")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -282,6 +283,7 @@ DEBUGGER = FeatherDebugger({
         },
       },
     }),
+    FeatherPluginManager.createPlugin(InputReplayPlugin, "input-replay", {}),
   },
 })
 

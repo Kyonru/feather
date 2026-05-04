@@ -273,6 +273,8 @@ function Feather:__handleCommand(msg)
         status = "success",
       }))
     end
+    -- Re-send config so desktop picks up dynamic label changes
+    self:__sendHello()
   elseif msg.type == "cmd:plugin:action:cancel" and msg.plugin then
     local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
     local request = { method = "DELETE", path = path, params = msg.params or {}, headers = {} }
