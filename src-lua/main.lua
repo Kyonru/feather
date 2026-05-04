@@ -25,6 +25,7 @@ local ParticleEditorPlugin = require("plugins.particle-editor")
 local AudioDebugPlugin = require("plugins.audio-debug")
 local CoroutineMonitorPlugin = require("plugins.coroutine-monitor")
 local CollisionDebugPlugin = require("plugins.collision-debug")
+local AnimationInspectorPlugin = require("plugins.animation-inspector")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -387,6 +388,7 @@ DEBUGGER = FeatherDebugger({
     FeatherPluginManager.createPlugin(CollisionDebugPlugin, "collision-debug", {
       autoHook = false,
     }),
+    FeatherPluginManager.createPlugin(AnimationInspectorPlugin, "animation-inspector", {}),
   },
 })
 

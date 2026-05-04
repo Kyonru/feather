@@ -91,6 +91,7 @@ PLUGIN_DIRS=(
   "audio-debug"
   "coroutine-monitor"
   "collision-debug"
+  "animation-inspector"
   "hump"
   "lua-state-machine"
 )
@@ -112,6 +113,7 @@ plugin_files() {
     audio-debug)        echo "init.lua" ;;
     coroutine-monitor)  echo "init.lua" ;;
     collision-debug)    echo "init.lua" ;;
+    animation-inspector) echo "init.lua" ;;
     hump)               echo "signal/init.lua" ;;
     lua-state-machine)  echo "init.lua" ;;
     *)                  echo "init.lua" ;;
