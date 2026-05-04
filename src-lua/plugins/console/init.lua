@@ -8,6 +8,7 @@ local Base = require("feather.plugins.base")
 ---@field instructionLimit number
 ---@field maxOutputSize number
 ---@field evalEnabled boolean
+---@field sandbox boolean
 local ConsolePlugin = Class({
   __includes = Base,
   init = function(self, config)
@@ -18,6 +19,7 @@ local ConsolePlugin = Class({
     self.instructionLimit = self.options.instructionLimit or 100000
     self.maxOutputSize = self.options.maxOutputSize or 100000
     self.evalEnabled = self.options.evalEnabled == true
+    self.sandbox = self.options.sandbox ~= false -- default true
   end,
 })
 
@@ -107,8 +109,24 @@ function ConsolePlugin:handleEval(msg, feather)
   end
 
   -- Sandbox: inherit _G but capture print()
-  local sandboxEnv = makeSandboxEnv(prints)
-  setfenv(fn, sandboxEnv)
+  local origPrint
+  if self.sandbox then
+    local sandboxEnv = makeSandboxEnv(prints)
+    setfenv(fn, sandboxEnv)
+  else
+    -- No sandbox: run in the game's real _G
+    -- Still capture print() by temporarily replacing it
+    origPrint = _G.print
+    _G.print = function(...)
+      local args = {}
+      for i = 1, select("#", ...) do
+        args[i] = tostring(select(i, ...))
+      end
+      table.insert(prints, table.concat(args, "\t"))
+      origPrint(...)
+    end
+    setfenv(fn, _G)
+  end
 
   -- Instruction-count hook to prevent infinite loops
   local limit = self.instructionLimit
@@ -123,6 +141,11 @@ function ConsolePlugin:handleEval(msg, feather)
   debug.sethook(hook, "", limit)
   local packedResults = pack(xpcall(fn, traceback))
   debug.sethook()
+
+  -- Restore original print if we replaced it
+  if origPrint then
+    _G.print = origPrint
+  end
 
   local ok = packedResults[1]
   if not ok then

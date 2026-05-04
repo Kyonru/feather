@@ -19,6 +19,7 @@ Register the plugin using `FeatherPluginManager.createPlugin`:
 ```lua
 FeatherPluginManager.createPlugin(ConsolePlugin, "console", {
   evalEnabled = true,                -- must be explicitly true to allow eval
+  sandbox = false,                   -- false = use game's real _G context
   apiKey = "my-secret-key",          -- set on FeatherDebugger, must match
   maxCodeSize = 20000,               -- max input code length (chars)
   instructionLimit = 100000,         -- max Lua instructions per eval
@@ -44,6 +45,7 @@ local debugger = FeatherDebugger({
 | Option             | Type    | Default  | Description                                                      |
 | ------------------ | ------- | -------- | ---------------------------------------------------------------- |
 | `evalEnabled`      | boolean | `false`  | Must be `true` to allow code execution.                          |
+| `sandbox`          | boolean | `true`   | Run code in a sandbox. Set to `false` to use the game's real `_G` context. |
 | `maxCodeSize`      | number  | `20000`  | Maximum character length of incoming code.                       |
 | `instructionLimit` | number  | `100000` | Lua instruction limit per eval to prevent infinite loops.        |
 | `maxOutputSize`    | number  | `100000` | Maximum character length of the result string before truncation. |
@@ -57,7 +59,7 @@ The console plugin enforces multiple layers of protection:
 3. **Code size limit** — Incoming code exceeding `maxCodeSize` is rejected before compilation.
 4. **Instruction limit** — A `debug.sethook` instruction counter aborts execution if the limit is exceeded, preventing infinite loops and runaway code.
 5. **Output truncation** — Return values larger than `maxOutputSize` are truncated.
-6. **Sandboxed environment** — Code runs in a sandbox that inherits `_G` but overrides `print()` to capture output.
+6. **Sandboxed environment** — By default, code runs in a sandbox that inherits `_G` but overrides `print()` to capture output. Set `sandbox = false` to run code directly in the game's `_G` context (allows reading and modifying game state). Even with sandboxing disabled, `print()` output is still captured and the instruction limit still applies.
 
 If the plugin is not registered, `cmd:eval` commands from the desktop are rejected with a clear error message.
 
