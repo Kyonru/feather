@@ -88,6 +88,8 @@ PLUGIN_DIRS=(
   "config-tweaker"
   "physics-debug"
   "particle-editor"
+  "audio-debug"
+  "coroutine-monitor"
   "hump"
   "lua-state-machine"
 )
@@ -106,6 +108,8 @@ plugin_files() {
     config-tweaker)     echo "init.lua" ;;
     physics-debug)      echo "init.lua" ;;
     particle-editor)    echo "init.lua" ;;
+    audio-debug)        echo "init.lua" ;;
+    coroutine-monitor)  echo "init.lua" ;;
     hump)               echo "signal/init.lua" ;;
     lua-state-machine)  echo "init.lua" ;;
     *)                  echo "init.lua" ;;
@@ -152,7 +156,7 @@ if [ "$INSTALL_PLUGINS" = "1" ]; then
 
   PLUGIN_COUNT=0
   PLUGIN_SKIP_COUNT=0
-  PLUGINS_DIR="plugins"
+  PLUGINS_DIR="${INSTALL_DIR}/plugins"
   mkdir -p "${PLUGINS_DIR}"
 
   for plugin in "${PLUGIN_DIRS[@]}"; do

@@ -7,6 +7,8 @@
 ---   require("feather.auto").setup({ sessionName = "My Game", host = "192.168.1.50" })
 ---
 --- This creates a global DEBUGGER with all built-in plugins registered.
+--- Plugins marked as disabled start inactive but appear in the UI for toggling.
+--- Use config.include to force-enable specific plugins, config.exclude to remove them entirely.
 --- Call DEBUGGER:update(dt) in love.update().
 
 local FeatherDebugger = require("feather")
@@ -37,22 +39,23 @@ local CoroutineMonitorPlugin = tryRequire("plugins.coroutine-monitor")
 
 local auto = {}
 
---- Default plugin set. Each entry: { module, id, defaultOptions, optIn }
---- Plugins with optIn = true are excluded unless explicitly listed in config.include.
+--- Default plugin set. Each entry: { module, id, defaultOptions, optIn, disabled }
+--- optIn = true: plugin is NOT registered unless explicitly listed in config.include (code excluded entirely).
+--- disabled = true: plugin IS registered (visible in UI) but starts inactive. Users can enable from desktop.
 local DEFAULT_PLUGINS = {
-  { mod = ScreenshotPlugin, id = "screenshots", opts = {} },
-  { mod = ConsolePlugin, id = "console", opts = { evalEnabled = true }, optIn = true },
-  { mod = ProfilerPlugin, id = "profiler", opts = {} },
-  { mod = BookmarkPlugin, id = "bookmark", opts = {} },
-  { mod = MemorySnapshotPlugin, id = "memory-snapshot", opts = {} },
-  { mod = NetworkInspectorPlugin, id = "network-inspector", opts = {} },
-  { mod = InputReplayPlugin, id = "input-replay", opts = {} },
-  { mod = EntityInspectorPlugin, id = "entity-inspector", opts = { sources = {} } },
-  { mod = ConfigTweakerPlugin, id = "config-tweaker", opts = { fields = {} } },
-  { mod = PhysicsDebugPlugin, id = "physics-debug", opts = {} },
-  { mod = ParticleEditorPlugin, id = "particle-editor", opts = {} },
-  { mod = AudioDebugPlugin, id = "audio-debug", opts = {} },
-  { mod = CoroutineMonitorPlugin, id = "coroutine-monitor", opts = {} },
+  { mod = ScreenshotPlugin, id = "screenshots", opts = {}, disabled = true },
+  { mod = ConsolePlugin, id = "console", opts = { evalEnabled = true }, optIn = true, disabled = true },
+  { mod = ProfilerPlugin, id = "profiler", opts = {}, disabled = true },
+  { mod = BookmarkPlugin, id = "bookmark", opts = {}, disabled = true },
+  { mod = MemorySnapshotPlugin, id = "memory-snapshot", opts = {}, disabled = true },
+  { mod = NetworkInspectorPlugin, id = "network-inspector", opts = {}, disabled = true },
+  { mod = InputReplayPlugin, id = "input-replay", opts = {}, disabled = true },
+  { mod = EntityInspectorPlugin, id = "entity-inspector", opts = { sources = {} }, disabled = true },
+  { mod = ConfigTweakerPlugin, id = "config-tweaker", opts = { fields = {} }, disabled = true },
+  { mod = PhysicsDebugPlugin, id = "physics-debug", opts = {}, disabled = true },
+  { mod = ParticleEditorPlugin, id = "particle-editor", opts = {}, disabled = true },
+  { mod = AudioDebugPlugin, id = "audio-debug", opts = {}, disabled = true },
+  { mod = CoroutineMonitorPlugin, id = "coroutine-monitor", opts = {}, disabled = true },
 }
 
 --- Set up Feather with all built-in plugins.
@@ -71,7 +74,7 @@ function auto.setup(config)
     config.exclude = nil
   end
 
-  -- Opt-in plugins require explicit inclusion
+  -- Plugins in config.include: force-include optIn plugins AND force-enable disabled plugins
   local include = {}
   if config.include then
     for _, id in ipairs(config.include) do
@@ -86,7 +89,7 @@ function auto.setup(config)
 
   for _, entry in ipairs(DEFAULT_PLUGINS) do
     if entry.mod and not exclude[entry.id] then
-      -- Skip opt-in plugins unless explicitly included
+      -- optIn plugins are completely skipped unless explicitly included
       if entry.optIn and not include[entry.id] then
         goto continue
       end
@@ -101,7 +104,9 @@ function auto.setup(config)
           opts[k] = v
         end
       end
-      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(entry.mod, entry.id, opts)
+      -- Determine disabled state: config.include overrides default disabled flag
+      local disabled = entry.disabled and not include[entry.id]
+      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(entry.mod, entry.id, opts, disabled)
     end
     ::continue::
   end

@@ -36,6 +36,7 @@ function FeatherPluginManager:init(feather, logger, observer)
       table.insert(self.plugins, {
         instance = pluginInstance,
         identifier = plugin.identifier,
+        disabled = plugin.disabled or false,
       })
 
       if not pluginInstance:isSupported(feather.version) then
@@ -175,11 +176,13 @@ end
 ---@param plugin FeatherPlugin
 ---@param identifier string
 ---@param options table
-function FeatherPluginManager.createPlugin(plugin, identifier, options)
+---@param disabled? boolean  Start the plugin in disabled state (visible in UI but not running)
+function FeatherPluginManager.createPlugin(plugin, identifier, options, disabled)
   return {
     plugin = plugin,
     identifier = identifier,
     options = options,
+    disabled = disabled or false,
   }
 end
 
