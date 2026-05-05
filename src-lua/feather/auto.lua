@@ -43,6 +43,7 @@ local HumpSignalPlugin = tryRequire(PATH .. "plugins.hump.signal")
 local LuaStateMachinePlugin = tryRequire(PATH .. "plugins.lua-state-machine")
 local AnimationInspectorPlugin = tryRequire(PATH .. "plugins.animation-inspector")
 local TimerInspectorPlugin = tryRequire(PATH .. "plugins.timer-inspector")
+local FilesystemPlugin = tryRequire(PATH .. "plugins.filesystem")
 
 local auto = {}
 
@@ -68,6 +69,7 @@ local DEFAULT_PLUGINS = {
   { mod = LuaStateMachinePlugin, id = "lua-state-machine", opts = {}, optIn = true, disabled = true },
   { mod = AnimationInspectorPlugin, id = "animation-inspector", opts = {}, optIn = true, disabled = true },
   { mod = TimerInspectorPlugin, id = "timer-inspector", opts = {}, optIn = true, disabled = true },
+  { mod = FilesystemPlugin, id = "filesystem", opts = {}, disabled = true },
 }
 
 --- @class AutoConfig: FeatherConfig

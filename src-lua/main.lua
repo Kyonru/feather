@@ -27,6 +27,7 @@ local CoroutineMonitorPlugin = require("plugins.coroutine-monitor")
 local CollisionDebugPlugin = require("plugins.collision-debug")
 local AnimationInspectorPlugin = require("plugins.animation-inspector")
 local TimerInspectorPlugin = require("plugins.timer-inspector")
+local FilesystemPlugin = require("plugins.filesystem")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -393,6 +394,7 @@ DEBUGGER = FeatherDebugger({
     }),
     FeatherPluginManager.createPlugin(AnimationInspectorPlugin, "animation-inspector", {}),
     FeatherPluginManager.createPlugin(TimerInspectorPlugin, "timer-inspector", {}),
+    FeatherPluginManager.createPlugin(FilesystemPlugin, "filesystem", {}),
   },
 })
 

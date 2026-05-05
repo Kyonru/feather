@@ -487,6 +487,7 @@ Check out the [Feather Plugins](docs/plugins.md) documentation for more informat
 | [**Timer Inspector**](src-lua/plugins/timer-inspector/README.md)         | Inspect [HUMP timer](https://hump.readthedocs.io/en/latest/timer.html) and [flux](https://github.com/rxi/flux) — progress bars, remaining time, cancel from desktop. |
 | [**HUMP Signal**](src-lua/plugins/hump/signal/README.md)                 | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).                                                                                   |
 | [**Lua State Machine**](src-lua/plugins/lua-state-machine/README.md)     | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine).                                                                               |
+| [**Filesystem**](src-lua/plugins/filesystem/README.md)                   | Browse and inspect files written by the game — save data, configs, logs. Navigate directories, preview text file contents, delete files.                             |
 
 ### Install Plugin Script
 
