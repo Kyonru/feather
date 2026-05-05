@@ -463,6 +463,8 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 ## 📜 License
 
+DISCLAIMER: The license only meant to apply to products that directly replicate the logic/purpose of this tool. It doesn't not apply to games created using this tool. Feel free to disregard if the tool is used only as a devtool to ship games.
+
 Full license: See [LICENSE.md](LICENSE.md)
 
 ---
