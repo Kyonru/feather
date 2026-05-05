@@ -315,7 +315,7 @@ export default function PluginPage() {
                 <CardContent className="px-4 space-y-3">
                   {group.actions.map((action) => (
                     <PluginAction
-                      key={action.key}
+                      key={`${action.key}:${action.value ?? ''}`}
                       action={action.key}
                       label={action.label}
                       icon={action.icon}

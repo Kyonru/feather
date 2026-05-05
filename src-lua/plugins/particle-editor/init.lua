@@ -546,19 +546,21 @@ local PROPERTIES = {
 }
 
 --- Handle param updates from the desktop (live editing).
-function ParticleEditorPlugin:handleParamsUpdate(request, _feather)
-  local ps = self:_getActivePS()
-  if not ps then
-    return
-  end
-
+function ParticleEditorPlugin:handleParamsUpdate(request, feather)
   local params = request.params or {}
 
-  -- Handle system selection
+  -- Handle system selection before resolving the active PS so property updates
+  -- in the same message target the correct system.
   if params.system then
-    if self.systemMap[params.system] then
+    if self.systemMap[params.system] and params.system ~= self.activeSystem then
       self.activeSystem = params.system
+      -- Push fresh config so desktop inputs reflect the new system's values.
+      feather:__sendHello()
     end
+  end
+
+  local ps = self:_getActivePS()
+  if not ps then
     return
   end
 
