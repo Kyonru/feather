@@ -1,5 +1,5 @@
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
 
 ---@class PhysicsDebugPlugin: FeatherPlugin
 ---@field worlds table[]           Array of { name, getter } entries

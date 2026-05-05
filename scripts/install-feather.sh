@@ -133,6 +133,9 @@ info "Install dir: ${INSTALL_DIR}/"
 info "Plugins: $([ "$INSTALL_PLUGINS" = "1" ] && echo "yes" || echo "no")"
 echo ""
 
+# Lua require path: convert slashes to dots (e.g. lib/feather → lib.feather)
+LUA_MODULE="${INSTALL_DIR//\//.}"
+
 # --- Download core ---
 info "Downloading core library..."
 CORE_COUNT=0
@@ -199,7 +202,7 @@ echo ""
 info "Quick start — add to your main.lua:"
 echo ""
 printf "  ${CYAN}-- One-line setup (all plugins, sensible defaults)${NC}\n"
-printf "  ${GREEN}require(\"feather.auto\")${NC}\n"
+printf "  ${GREEN}require(\"${LUA_MODULE}.auto\")${NC}\n"
 echo ""
 printf "  ${CYAN}-- Then in love.update:${NC}\n"
 printf "  ${GREEN}function love.update(dt)${NC}\n"
@@ -209,7 +212,7 @@ printf "  ${GREEN}end${NC}\n"
 echo ""
 info "Or with options:"
 echo ""
-printf "  ${GREEN}require(\"feather.auto\").setup({${NC}\n"
+printf "  ${GREEN}require(\"${LUA_MODULE}.auto\").setup({${NC}\n"
 printf "  ${GREEN}  sessionName = \"My Game\",${NC}\n"
 printf "  ${GREEN}  host = \"192.168.1.50\",  -- for mobile debugging${NC}\n"
 printf "  ${GREEN}  exclude = { \"network-inspector\" },${NC}\n"

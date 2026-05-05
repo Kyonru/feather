@@ -11,8 +11,10 @@
 --- Use config.include to force-enable specific plugins, config.exclude to remove them entirely.
 --- Call DEBUGGER:update(dt) in love.update().
 
-local FeatherDebugger = require("feather")
-local FeatherPluginManager = require("feather.plugin_manager")
+local PATH = string.sub(..., 1, string.len(...) - string.len("auto"))
+
+local FeatherDebugger = require(PATH .. "init")
+local FeatherPluginManager = require(PATH .. "plugin_manager")
 
 -- Built-in plugins (safe-require each so missing ones don't break everything)
 local function tryRequire(mod)
@@ -23,24 +25,24 @@ local function tryRequire(mod)
   return nil
 end
 
-local ScreenshotPlugin = tryRequire("plugins.screenshots")
-local ConsolePlugin = tryRequire("plugins.console")
-local ProfilerPlugin = tryRequire("plugins.profiler")
-local BookmarkPlugin = tryRequire("plugins.bookmark")
-local MemorySnapshotPlugin = tryRequire("plugins.memory-snapshot")
-local NetworkInspectorPlugin = tryRequire("plugins.network-inspector")
-local InputReplayPlugin = tryRequire("plugins.input-replay")
-local EntityInspectorPlugin = tryRequire("plugins.entity-inspector")
-local ConfigTweakerPlugin = tryRequire("plugins.config-tweaker")
-local PhysicsDebugPlugin = tryRequire("plugins.physics-debug")
-local ParticleEditorPlugin = tryRequire("plugins.particle-editor")
-local AudioDebugPlugin = tryRequire("plugins.audio-debug")
-local CoroutineMonitorPlugin = tryRequire("plugins.coroutine-monitor")
-local CollisionDebugPlugin = tryRequire("plugins.collision-debug")
-local HumpSignalPlugin = tryRequire("plugins.hump.signal")
-local LuaStateMachinePlugin = tryRequire("plugins.lua-state-machine")
-local AnimationInspectorPlugin = tryRequire("plugins.animation-inspector")
-local TimerInspectorPlugin = tryRequire("plugins.timer-inspector")
+local ScreenshotPlugin = tryRequire(PATH .. "plugins.screenshots")
+local ConsolePlugin = tryRequire(PATH .. "plugins.console")
+local ProfilerPlugin = tryRequire(PATH .. "plugins.profiler")
+local BookmarkPlugin = tryRequire(PATH .. "plugins.bookmark")
+local MemorySnapshotPlugin = tryRequire(PATH .. "plugins.memory-snapshot")
+local NetworkInspectorPlugin = tryRequire(PATH .. "plugins.network-inspector")
+local InputReplayPlugin = tryRequire(PATH .. "plugins.input-replay")
+local EntityInspectorPlugin = tryRequire(PATH .. "plugins.entity-inspector")
+local ConfigTweakerPlugin = tryRequire(PATH .. "plugins.config-tweaker")
+local PhysicsDebugPlugin = tryRequire(PATH .. "plugins.physics-debug")
+local ParticleEditorPlugin = tryRequire(PATH .. "plugins.particle-editor")
+local AudioDebugPlugin = tryRequire(PATH .. "plugins.audio-debug")
+local CoroutineMonitorPlugin = tryRequire(PATH .. "plugins.coroutine-monitor")
+local CollisionDebugPlugin = tryRequire(PATH .. "plugins.collision-debug")
+local HumpSignalPlugin = tryRequire(PATH .. "plugins.hump.signal")
+local LuaStateMachinePlugin = tryRequire(PATH .. "plugins.lua-state-machine")
+local AnimationInspectorPlugin = tryRequire(PATH .. "plugins.animation-inspector")
+local TimerInspectorPlugin = tryRequire(PATH .. "plugins.timer-inspector")
 
 local auto = {}
 
@@ -68,8 +70,14 @@ local DEFAULT_PLUGINS = {
   { mod = TimerInspectorPlugin, id = "timer-inspector", opts = {}, optIn = true, disabled = true },
 }
 
+--- @class AutoConfig: FeatherConfig
+--- @field debug boolean|nil Enable debug mode (default: true)
+--- @field include string[]|nil List of plugin IDs to force-include (register and enable even if optIn or disabled)
+--- @field exclude string[]|nil List of plugin IDs to exclude entirely (not registered at all)
+--- @field pluginOptions table<string, table>|nil Optional per-plugin options, keyed by plugin ID
+
 --- Set up Feather with all built-in plugins.
----@param config table|nil  Optional Feather config overrides (host, port, sessionName, etc.)
+---@param config AutoConfig|nil  Optional AutoConfig overrides (host, port, sessionName, etc.)
 ---@return Feather
 function auto.setup(config)
   config = config or {}

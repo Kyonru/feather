@@ -1,8 +1,8 @@
 --- Depends on bump.lua for collision world management.
 --- https://github.com/kikito/bump.lua
 
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
 
 --- Collision Debug Plugin — visualize bump.lua AABB collision worlds.
 --- Draws bounding boxes for all items, optional cell grid, and tracks collision stats.

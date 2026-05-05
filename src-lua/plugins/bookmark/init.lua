@@ -1,7 +1,7 @@
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
-local json = require("feather.lib.json")
-local base64encode = require("feather.lib.base64").encode
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
+local json = require(FEATHER_PATH .. ".lib.json")
+local base64encode = require(FEATHER_PATH .. ".lib.base64").encode
 
 local gettime
 do

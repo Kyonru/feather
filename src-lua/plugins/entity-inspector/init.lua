@@ -1,6 +1,6 @@
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
-local inspect = require("feather.lib.inspect")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
+local inspect = require(FEATHER_PATH .. ".lib.inspect")
 
 --- Resolve a value: if it's a function, call it; otherwise return as-is.
 ---@param v any

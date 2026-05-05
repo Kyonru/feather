@@ -1,6 +1,6 @@
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
-local json = require("feather.lib.json")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
+local json = require(FEATHER_PATH .. ".lib.json")
 
 local gettime
 do

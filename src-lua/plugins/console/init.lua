@@ -1,7 +1,7 @@
-local Class = require("feather.lib.class")
-local json = require("feather.lib.json")
-local inspect = require("feather.lib.inspect")
-local Base = require("feather.plugins.base")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local json = require(FEATHER_PATH .. ".lib.json")
+local inspect = require(FEATHER_PATH .. ".lib.inspect")
+local Base = require(FEATHER_PATH .. ".plugins.base")
 
 ---@class ConsolePlugin: FeatherPlugin
 ---@field maxCodeSize number

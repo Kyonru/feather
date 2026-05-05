@@ -1,7 +1,6 @@
-local FeatherPlugin = require("feather.plugins.base")
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
-local base64encode = require("feather.lib.base64").encode
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
+local base64encode = require(FEATHER_PATH .. ".lib.base64").encode
 
 ---@class ScreenshotPlugin: FeatherPlugin
 ---@field type string
@@ -42,15 +41,15 @@ local ScreenshotPlugin = Class({
     self.width = love.graphics.getWidth()
     self.height = love.graphics.getHeight()
     self._pendingCapture = false
-  self._lastSentIndex = 0
+    self._lastSentIndex = 0
 
-  love.filesystem.createDirectory(self.screenshotDirectory)
+    love.filesystem.createDirectory(self.screenshotDirectory)
   end,
 })
 
 --- Called each frame
 function ScreenshotPlugin:update(dt, feather)
-  FeatherPlugin.update(self, dt, feather)
+  Base.update(self, dt, feather)
 
   -- Batch-encode GIF frames after recording stops (N frames per update to stay smooth)
   if self._encodingFrames then

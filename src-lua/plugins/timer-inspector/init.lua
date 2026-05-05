@@ -1,5 +1,5 @@
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
 
 --- Timer/Tween Inspector Plugin — show active timers, tweens, progress, remaining time.
 --- Supports HUMP timer and flux out of the box. Register timer instances and the plugin

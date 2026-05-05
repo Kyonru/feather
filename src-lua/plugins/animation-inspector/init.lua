@@ -1,5 +1,5 @@
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
 
 --- Animation Inspector Plugin — inspect anim8 sprite animation states.
 --- Register animations with addAnimation(name, getter), view current frame, speed,

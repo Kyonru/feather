@@ -1,6 +1,4 @@
-local PATH = string.sub(..., 1, string.len(...) - string.len("plugins.base"))
-
-local Class = require(PATH .. ".lib.class")
+local Class = require(FEATHER_PATH .. ".lib.class")
 
 ---@class FeatherPlugin
 ---@field options table

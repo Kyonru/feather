@@ -1,5 +1,5 @@
-local Class = require("feather.lib.class")
-local Base = require("feather.plugins.base")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
 
 --- Audio Debug Plugin — inspect love.audio state, track sources, diagnose playback issues.
 --- Hooks love.audio.newSource to automatically track all created sources.

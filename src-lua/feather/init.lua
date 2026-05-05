@@ -3,16 +3,18 @@ local utf8 = require("utf8")
 
 -- lib Path
 local PATH = (...):gsub("%.init$", "")
+---@type string Global so plugins can locate the library regardless of install directory. Users may pre-set this before requiring feather; auto-detection is the fallback.
+FEATHER_PATH = FEATHER_PATH or PATH
 
-local Class = require(PATH .. ".lib.class")
-local json = require(PATH .. ".lib.json")
-local errorhandler = require(PATH .. ".error_handler")
-local FeatherPluginManager = require(PATH .. ".plugin_manager")
-local FeatherLogger = require(PATH .. ".plugins.logger")
-local FeatherObserver = require(PATH .. ".plugins.observer")
-local FeatherPerformance = require(PATH .. ".plugins.performance")
-local get_current_dir = require(PATH .. ".utils").get_current_dir
-local format = require(PATH .. ".utils").format
+local Class = require(FEATHER_PATH .. ".lib.class")
+local json = require(FEATHER_PATH .. ".lib.json")
+local errorhandler = require(FEATHER_PATH .. ".error_handler")
+local FeatherPluginManager = require(FEATHER_PATH .. ".plugin_manager")
+local FeatherLogger = require(FEATHER_PATH .. ".plugins.logger")
+local FeatherObserver = require(FEATHER_PATH .. ".plugins.observer")
+local FeatherPerformance = require(FEATHER_PATH .. ".plugins.performance")
+local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
+local format = require(FEATHER_PATH .. ".utils").format
 
 local FEATHER_VERSION_NAME = "0.6.0"
 local FEATHER_API = 5

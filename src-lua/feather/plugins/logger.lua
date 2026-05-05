@@ -1,12 +1,10 @@
-local PATH = string.sub(..., 1, string.len(...) - string.len("plugins.logger"))
-
-local Class = require(PATH .. ".lib.class")
-local Base = require(PATH .. ".plugins.base")
-local format = require(PATH .. ".utils").format
-local wrapWith = require(PATH .. ".utils").wrapWith
-local json = require(PATH .. ".lib.json")
-local log = require(PATH .. ".lib.log")
-local base64encode = require(PATH .. ".lib.base64").encode
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
+local format = require(FEATHER_PATH .. ".utils").format
+local wrapWith = require(FEATHER_PATH .. ".utils").wrapWith
+local json = require(FEATHER_PATH .. ".lib.json")
+local log = require(FEATHER_PATH .. ".lib.log")
+local base64encode = require(FEATHER_PATH .. ".lib.base64").encode
 
 --- "output" | "trace" | "error" | "feather:finish" | "feather:start" | "output" | "error"
 ---

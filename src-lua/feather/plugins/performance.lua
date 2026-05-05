@@ -1,7 +1,5 @@
-local PATH = string.sub(..., 1, string.len(...) - string.len("plugins.performance"))
-
-local Class = require(PATH .. ".lib.class")
-local Base = require(PATH .. ".plugins.base")
+local Class = require(FEATHER_PATH .. ".lib.class")
+local Base = require(FEATHER_PATH .. ".plugins.base")
 
 local FeatherPerformance = Class({
   __includes = Base,

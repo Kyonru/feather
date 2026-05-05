@@ -1,6 +1,4 @@
-local PATH = (...):gsub("%.utils$", "")
-
-local inspect = require(PATH .. ".lib.inspect")
+local inspect = require(FEATHER_PATH .. ".lib.inspect")
 
 local function get_current_dir()
   local is_windows = package.config:sub(1, 1) == "\\"

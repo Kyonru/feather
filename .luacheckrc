@@ -6,7 +6,8 @@ globals = {
     'love',
     'getVersion',
     'getTitle',
-    'DEBUGGER'
+    'DEBUGGER',
+    'FEATHER_PATH'
 }
 
 exclude_files = {
