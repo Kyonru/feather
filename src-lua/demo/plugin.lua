@@ -1,5 +1,5 @@
-local FeatherPlugin = require("feather.plugins.base")
-local Class = require("feather.lib.class")
+local FeatherPlugin = require(FEATHER_PATH .. ".plugins.base")
+local Class = require(FEATHER_PATH .. ".lib.class")
 
 ---@type FeatherPlugin
 local TestPlugin = Class({

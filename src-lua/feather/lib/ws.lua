@@ -18,7 +18,7 @@ local bit = require("bit")
 local band, bor, bxor = bit.band, bit.bor, bit.bxor
 local shl, shr = bit.lshift, bit.rshift
 
-local base64 = require("feather.lib.base64").encode
+local base64 = require(FEATHER_PATH .. ".lib.base64").encode
 
 local function randomKey()
   local bytes = {}

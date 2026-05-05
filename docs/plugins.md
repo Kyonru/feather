@@ -19,7 +19,7 @@ To create a plugin, extend the `FeatherPlugin` base class and implement the life
 To help with the implementation, Feather provides the `FeatherPlugin` class, which you can extend to create your plugin.
 
 ```lua
-local FeatherPlugin = require("feather.plugins.base")
+local FeatherPlugin = require(FEATHER_PATH .. ".plugins.base")
 
 local MyPlugin = Class({
   __includes = FeatherPlugin,
@@ -156,12 +156,12 @@ Plugins return configuration via `getConfig()` that drives the desktop UI. This 
 
 ### Config fields
 
-| Field     | Type     | Description                                                |
-| --------- | -------- | ---------------------------------------------------------- |
-| `type`    | `string` | Unique plugin type identifier.                             |
-| `color`   | `string` | Hex color for the plugin's sidebar icon.                   |
-| `icon`    | `string` | [Lucide](https://lucide.dev/icons) icon name.              |
-| `tabName` | `string` | Display name shown in the sidebar navigation.              |
+| Field     | Type     | Description                                                      |
+| --------- | -------- | ---------------------------------------------------------------- |
+| `type`    | `string` | Unique plugin type identifier.                                   |
+| `color`   | `string` | Hex color for the plugin's sidebar icon.                         |
+| `icon`    | `string` | [Lucide](https://lucide.dev/icons) icon name.                    |
+| `tabName` | `string` | Display name shown in the sidebar navigation.                    |
 | `actions` | `table`  | Array of action definitions (see [Action types](#action-types)). |
 
 ### Action types

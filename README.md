@@ -95,6 +95,22 @@ local Feather = require("feather")
 
 ---
 
+### `FEATHER_PATH` — Custom Install Location
+
+Feather uses the global `FEATHER_PATH` variable to resolve its internal `require` calls (libs, plugins, etc.). When you load the library via `require "feather"` or `require "lib.feather"`, `FEATHER_PATH` is set automatically from the module path.
+
+You only need to set it manually if Feather's files live somewhere Lua's module system can't discover automatically — for example, if the `feather/` folder is outside your game's `package.path`, or if you're loading the library with a custom loader.
+
+```lua
+-- Set BEFORE requiring feather:
+FEATHER_PATH = "lib.feather"
+local Feather = require "lib.feather"
+```
+
+If you use `require("feather.auto")`, `FEATHER_PATH` is set for you — no manual step needed.
+
+---
+
 ## 🚀 Usage
 
 ### Quick Start (Zero Config)
