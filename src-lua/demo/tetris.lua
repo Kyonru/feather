@@ -220,6 +220,8 @@ function Game.update(dt)
     str = "test",
   }, true)
 
+  DEBUGGER:observe("timer", timer)
+
   -- Removed local timerLimit = 0.5
   if timer >= timerLimit then
     timer = 0
