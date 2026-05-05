@@ -4,23 +4,25 @@ import { persist } from 'zustand/middleware';
 type SettingsStoreState = {
   open: boolean;
   theme: 'system' | 'light' | 'dark';
-  host: string;
+  // Port the Feather desktop WS server listens on (games connect to this)
   port: number;
   textEditorPath: string;
   isLatestVersion: boolean;
   apiKey: string;
   pausedLogs: boolean;
+  // Seconds without a message before considering a session disconnected (default 15)
+  connectionTimeout: number;
 };
 
 type SettingsStoreActions = {
   setIsLatestVersion: (isLatestVersion: boolean) => void;
   setOpen: (open: boolean) => void;
   setTheme: (theme: 'system' | 'light' | 'dark') => void;
-  setHost: (host: string) => void;
   setPort: (port: number) => void;
   setTextEditorPath: (textEditorPath: string) => void;
   setPausedLogs: (pausedLogs: boolean) => void;
   setApiKey: (apiKey: string) => void;
+  setConnectionTimeout: (timeout: number) => void;
   reset: () => void;
 };
 
@@ -31,10 +33,10 @@ const defaultSettings: SettingsStoreState = {
   open: false,
   theme: 'system',
   apiKey: '',
-  host: 'http://localhost',
   port: 4004,
   textEditorPath: '/usr/local/bin/code',
   pausedLogs: false,
+  connectionTimeout: 15,
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -44,12 +46,12 @@ export const useSettingsStore = create<SettingsStore>()(
       setIsLatestVersion: (isLatestVersion: boolean) => set({ isLatestVersion }),
       setOpen: (open: boolean) => set({ open }),
       setTheme: (theme: 'system' | 'light' | 'dark') => set({ theme }),
-      setHost: (host: string) => set({ host }),
       setPort: (port: number) => set({ port }),
       setTextEditorPath: (textEditorPath: string) => set({ textEditorPath }),
       reset: () => set((state) => ({ ...state, ...defaultSettings, open: state.open })),
       setPausedLogs: (pausedLogs: boolean) => set({ pausedLogs }),
       setApiKey: (apiKey: string) => set({ apiKey }),
+      setConnectionTimeout: (connectionTimeout: number) => set({ connectionTimeout }),
     }),
     { name: 'settings-storage' },
   ),

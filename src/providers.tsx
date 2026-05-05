@@ -1,24 +1,25 @@
-import { QueryClient } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './components/theme';
+
+// Clean up stale react-query offline cache from previous versions
+try {
+  localStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
+} catch {
+  // ignore
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days of caching
+      gcTime: 1000 * 60 * 60, // 1 hour in-memory cache
     },
   },
 });
 
-const persister = createAsyncStoragePersister({
-  storage: window.localStorage,
-});
-
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+    <QueryClientProvider client={queryClient}>
       <ThemeProvider>{children}</ThemeProvider>
-    </PersistQueryClientProvider>
+    </QueryClientProvider>
   );
 };

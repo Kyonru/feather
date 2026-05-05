@@ -14,6 +14,7 @@ import { useSettingsStore } from '@/store/settings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
+import { MobileConnection } from '@/components/mobile-connection';
 
 const ToggleTheme = () => {
   const theme = useSettingsStore((state) => state.theme);
@@ -48,41 +49,25 @@ const ToggleTheme = () => {
 const PortInput = () => {
   const port = useSettingsStore((state) => state.port);
   const setPort = useSettingsStore((state) => state.setPort);
-  const host = useSettingsStore((state) => state.host);
-  const setHost = useSettingsStore((state) => state.setHost);
 
   return (
-    <>
-      <div className="grid gap-3">
-        <Label htmlFor="host-1">Host</Label>
-        <Input
-          id="host-1"
-          name="host"
-          value={host}
-          onChange={(e) => {
-            const value = e.target.value;
-            setHost(value);
-          }}
-        />
-      </div>
-      <div className="grid gap-3">
-        <Label htmlFor="port-1">Port</Label>
-        <Input
-          id="port-1"
-          name="port"
-          type="number"
-          min="1"
-          max="65535"
-          value={port}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value) {
-              setPort(parseInt(value));
-            }
-          }}
-        />
-      </div>
-    </>
+    <div className="grid gap-3">
+      <Label htmlFor="port-1">Server Port</Label>
+      <Input
+        id="port-1"
+        name="port"
+        type="number"
+        min="1"
+        max="65535"
+        value={port}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (value) {
+            setPort(parseInt(value));
+          }
+        }}
+      />
+    </div>
   );
 };
 
@@ -131,19 +116,19 @@ const ApiKeyInput = () => {
 };
 
 const SampleRateInput = () => {
-  const apiKey = useConfigStore((state) => state.config?.sampleRate);
+  const sampleRate = useConfigStore((state) => state.config?.sampleRate);
   const { updateSampleRate } = useConfig();
 
   return (
     <div className="grid gap-3">
-      <Label htmlFor="api-key-1">Sample Rate (seconds)</Label>
+      <Label htmlFor="sample-rate-1">Sample Rate (seconds)</Label>
       <Input
-        id="api-key-1"
-        name="api-key"
+        id="sample-rate-1"
+        name="sample-rate"
         type="number"
         min={1}
         max={100}
-        value={apiKey}
+        value={sampleRate}
         onChange={(e) => {
           const value = e.target.value;
           if (value) {
@@ -162,7 +147,7 @@ export function SettingsModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>All settings are saved on update and will be instantly applied.</DialogDescription>
@@ -173,6 +158,7 @@ export function SettingsModal() {
           <TextEditorInput />
           <ApiKeyInput />
           <SampleRateInput />
+          <MobileConnection />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={reset}>

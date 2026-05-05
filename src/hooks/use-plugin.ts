@@ -1,10 +1,18 @@
-import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useServer } from './use-server';
-import { debounce, timeout } from '@/utils/timers';
-import { unionBy } from '@/utils/arrays';
-import { useSampleRate } from './use-config';
+import { useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { invoke } from '@tauri-apps/api/core';
+import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
+import { readTextFile } from '@tauri-apps/plugin-fs';
+import { debounce } from '@/utils/timers';
+import { useSessionStore } from '@/store/session';
+import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
+import { isWeb } from '@/utils/platform';
+
+/** Strip the /plugins/ prefix so the ID matches what Lua uses as plugin.identifier */
+function normalizePluginId(pluginId: string): string {
+  return pluginId.replace(/^\/plugins\//, '');
+}
 
 export type ScreenshotType = {
   type: 'png';
@@ -30,135 +38,146 @@ export interface PluginContentImageType {
   metadata: ScreenshotType | GifType;
 }
 
+export interface PluginTableColumn {
+  key: string;
+  label: string;
+}
+
+export interface PluginTableRow {
+  [key: string]: string;
+}
+
 export type PluginDataType = PluginContentImageType;
 
-export interface PluginContentProps {
+export interface PluginContentGalleryProps {
   data: Array<PluginDataType>;
   type: 'gallery';
   loading: boolean;
   persist?: boolean;
 }
 
-export const usePluginAction = (url: string) => {
-  const { url: serverUrl, apiKey } = useServer();
+export interface PluginContentTableProps {
+  type: 'table';
+  columns: PluginTableColumn[];
+  data: PluginTableRow[];
+  loading: boolean;
+}
+
+export interface PluginTreeNodeProperty {
+  key: string;
+  value: string;
+}
+
+export interface PluginTreeNode {
+  name: string;
+  properties: PluginTreeNodeProperty[];
+  children?: PluginTreeNode[];
+}
+
+export interface PluginContentTreeProps {
+  type: 'tree';
+  nodes: PluginTreeNode[];
+  sources: string[];
+  selectedSource: number;
+  searchFilter: string;
+  loading: boolean;
+  total?: number;
+  shown?: number;
+}
+
+export interface PluginTimelineItem {
+  id: number;
+  label: string;
+  category: string;
+  color?: string;
+  time: number;
+  gameTime: string;
+  screenshot?: string;
+}
+
+export interface PluginContentTimelineProps {
+  type: 'timeline';
+  items: PluginTimelineItem[];
+  categories: string[];
+  loading: boolean;
+}
+
+export type PluginContentProps = PluginContentGalleryProps | PluginContentTableProps | PluginContentTreeProps | PluginContentTimelineProps;
+
+export const usePluginAction = (pluginId: string) => {
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const normalized = normalizePluginId(pluginId);
   const [params, setParams] = useState<Record<string, string | boolean>>({});
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
 
-  const mutation = useMutation({
-    mutationFn: async (action: string) => {
-      try {
-        const formattedParams = Object.entries(params)
-          .filter(([key, value]) => value && key)
-          .map(([key, value]) => `${key}=${value}`)
-          .join('&');
-        const urlWithParams = `${url}?action=${action}${formattedParams ? `&${formattedParams}` : ''}`;
-
-        await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${urlWithParams}`, {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
-
-        return [];
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to execute action');
-        return [];
-      }
-    },
-  });
-
-  const update = useMutation({
-    mutationFn: async () => {
-      try {
-        const formattedParams = Object.entries(params)
-          .filter(([key, value]) => value && key)
-          .map(([key, value]) => `${key}=${value}`)
-          .join('&');
-        const urlWithParams = `${url}?${formattedParams ? `${formattedParams}` : ''}`;
-
-        await timeout<Response>(
-          3000,
-          fetch(`${serverUrl}${urlWithParams}`, {
-            method: 'PUT',
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }),
-        );
-
-        return [];
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to update plugin');
-        return [];
-      }
-    },
-  });
+  const sendCommand = (message: object) => {
+    if (!sessionId) return Promise.resolve();
+    return invoke('send_command', { sessionId, message: JSON.stringify(message) }).catch((e: unknown) => {
+      toast.error(e instanceof Error ? e.message : 'Failed to send command');
+    });
+  };
 
   const onAction = (action: string) => {
-    mutation.mutate(action);
+    sendCommand({ type: 'cmd:plugin:action', plugin: normalized, action, params: paramsRef.current });
+  };
+
+  const onFileAction = async (action: string, filters?: { name: string; extensions: string[] }[]) => {
+    try {
+      if (isWeb()) {
+        toast.error('File actions are not supported in the web version');
+        return;
+      }
+      const path = await openFileDialog({
+        multiple: false,
+        filters: filters ?? [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (!path) return;
+      const content = await readTextFile(path);
+      sendCommand({
+        type: 'cmd:plugin:action',
+        plugin: normalized,
+        action,
+        params: { ...paramsRef.current, fileContent: content, fileName: typeof path === 'string' ? path : '' },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to read file');
+    }
+  };
+
+  const onCancel = (action: string) => {
+    sendCommand({ type: 'cmd:plugin:action:cancel', plugin: normalized, action });
   };
 
   const updateOptions = useMemo(
     () =>
       debounce(() => {
-        update.mutate();
+        sendCommand({ type: 'cmd:plugin:params', plugin: normalized, params: paramsRef.current });
       }, 1000),
-    [],
+    [sessionId, normalized],
   );
 
   const onActionChange = (action: string, value: string | boolean) => {
-    setParams((prev) => {
-      return {
-        ...prev,
-        [action]: value,
-      };
-    });
+    setParams((prev) => ({ ...prev, [action]: value }));
     updateOptions();
   };
 
-  return {
-    onAction,
-    onActionChange,
-    params: params.current,
+  const onToggle = () => {
+    sendCommand({ type: 'cmd:plugin:toggle', plugin: normalized });
   };
+
+  return { onAction, onFileAction, onCancel, onActionChange, onToggle };
 };
 
-export function usePlugin(url: string) {
-  const sampleRate = useSampleRate();
-  const queryClient = useQueryClient();
-  const { url: serverUrl, apiKey } = useServer();
+export function usePlugin(pluginId: string) {
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const normalized = normalizePluginId(pluginId);
 
-  const queryKey = [serverUrl, url, apiKey];
-
-  const { isPending, error, data, refetch } = useQuery({
-    queryKey: queryKey,
-    queryFn: async (): Promise<PluginContentProps> => {
-      const response = await timeout<Response>(3000, fetch(`${serverUrl}${url}`, { headers: { 'x-api-key': apiKey } }));
-
-      const pluginData = (await response.json()) as PluginContentProps;
-
-      if (pluginData.persist) {
-        const prevData: PluginContentProps = queryClient.getQueryData(queryKey) as PluginContentProps;
-        const newData = unionBy<PluginDataType, string>(prevData?.data || [], pluginData.data, (item) => item.name);
-        return {
-          ...pluginData,
-          data: newData,
-        };
-      }
-
-      return pluginData;
-    },
-    refetchInterval: sampleRate * 1000,
-    placeholderData: (previousData) => previousData,
+  const { data } = useQuery<PluginContentProps>({
+    queryKey: sessionQueryKey.plugin(sessionId ?? '', normalized),
+    queryFn: () => ({ data: [], type: 'gallery' as const, loading: false }),
+    enabled: false,
   });
 
-  return {
-    data: data || ({} as PluginContentProps),
-    isPending,
-    error,
-    refetch,
-  };
+  return { data: data ?? { data: [], type: 'gallery' as const, loading: false }, isPending: false };
 }

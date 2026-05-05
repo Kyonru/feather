@@ -1,10 +1,8 @@
-import { ServerRoute } from '@/constants/server';
-import { timeout } from '@/utils/timers';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useServer } from './use-server';
-import { useSampleRate } from './use-config';
+import { useQuery } from '@tanstack/react-query';
+import { useSessionStore } from '@/store/session';
+import { sessionQueryKey } from './use-ws-connection';
 
-type SystemInfo = {
+export type SystemInfo = {
   arch: string;
   cpuCount: number;
   os: string;
@@ -69,52 +67,17 @@ export const DEFAULT_METRIC: PerformanceMetrics = {
   },
   fps: 0,
   frameTime: 0,
-  sysInfo: {
-    arch: '',
-    cpuCount: 0,
-    os: '',
-  },
+  sysInfo: { arch: '', cpuCount: 0, os: '' },
 };
 
-export const usePerformance = (): {
-  data: PerformanceMetrics[];
-  isPending: boolean;
-  error: unknown;
-  refetch: () => void;
-} => {
-  const queryClient = useQueryClient();
-  const { url: serverUrl, apiKey } = useServer();
-  const sampleRate = useSampleRate();
-  const queryKey = [serverUrl, apiKey, 'performance'];
+export const usePerformance = (): { data: PerformanceMetrics[] } => {
+  const sessionId = useSessionStore((state) => state.sessionId);
 
-  const { isPending, error, data, refetch } = useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: queryKey,
-    queryFn: async (): Promise<PerformanceMetrics[]> => {
-      const response = await timeout<Response>(
-        3000,
-        fetch(`${serverUrl}${ServerRoute.PERFORMANCE}`, {
-          headers: {
-            'x-api-key': apiKey,
-          },
-        }),
-      );
-
-      const performance = (await response.json()) as PerformanceMetrics;
-      const existing = queryClient.getQueryData<PerformanceMetrics[]>(queryKey) || [];
-
-      const metrics = (existing.concat(performance) || []) as PerformanceMetrics[];
-
-      return metrics;
-    },
-    refetchInterval: sampleRate * 1000,
-    placeholderData: (previousData) => previousData,
+  const { data } = useQuery<PerformanceMetrics[]>({
+    queryKey: sessionQueryKey.performance(sessionId ?? ''),
+    queryFn: () => [],
+    enabled: false, // data is pushed via WS, not fetched
   });
 
-  return {
-    data: data || [],
-    isPending,
-    error,
-    refetch,
-  };
+  return { data: data ?? [] };
 };

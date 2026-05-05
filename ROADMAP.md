@@ -1,61 +1,29 @@
 # Feather Roadmap
 
-## 0.5.1 – Disk Usage & Performance
+## 0.7.0 – Stability & Bug Fixes
 
-- [x] Add option to navigate to logs folder
-
-## 0.5.2 – Community Release
-
-- [ ] Add sentry for crash reporting
-- [ ] Add optional opt in telemetry
-- [ ] Add privacy policy
-- [ ] Being able to activate or deactivate plugins from feather to improve performance
-- [ ] Fix Bugs
-  - [ ] layout bugs
-    - [ ] Large names
-    - [ ] Performance graph curve
-  - [ ] Observable bugs
-    - [ ] Large names
-    - [ ] Large responses
-    - [ ] App crashes on large responses
-    - [ ] Printing more than one parameter
-
----
-
-## 0.6.0 – Stability & Compatibility
-
-- [ ] Remote connect to other devices
-- [ ] Ability to debug android and ios apps automatically in real-time
-  - [ ] remote option in feather lib
-    - [ ] fetch logs instead of readTextFileLines when remote
-  - [ ] add Developer signature to app to avoid installation warnings
+- [ ] Fix observable bugs
+  - [ ] Large names overflow
+  - [ ] Large responses crash the app
+  - [ ] Printing more than one parameter
 - [ ] Full OS & Love2D version testing (Windows/macOS/Linux)
-- [ ] Low-overhead mode for production builds, scripts and plugins to disable code in production
-- [ ] Editable observed variables
+- [ ] Smooth UI under heavy load spikes
+- [ ] Add tests
+
+---
+
+## 0.8.0 – Observability & Data
+
 - [ ] Table diffing in observed variables
-- [ ] Expression evaluator (`eval` in game)
-- [ ] Entity/component list
 - [ ] Add app disk usage
-- [ ] Improve security (commands, folders, os scripts)
-  - [ ] [https://github.com/tauri-apps/tauri/issues/13971#issuecomment-3758890117]
-  - [ ] Add option to clear unused screenshots
+- [ ] Add option to clear unused screenshots
+- [ ] Low-overhead mode for production builds
 
 ---
 
-## 0.7.0 – Plugin System Maturity
+## 0.9.0 – Assets & Resources
 
-- [ ] Add Tests
-- [ ] Connect to multiple servers / games
-- [ ] Runtime load/unload plugins
-- New Plugins
-  - [ ] SPIKE: Asset viewer (textures, audio list)
-    - [ ] Asset viewer (textures, audio list)
-- [ ] Polish, branding, and onboarding docs
-
----
-
-## 0.8.0 – Asset/Resource Expansion
-
+- [ ] Asset viewer (textures, audio list)
 - [ ] Shader viewer
 - [ ] Font inspector
 - [ ] Sprite atlas explorer
@@ -63,23 +31,24 @@
 
 ---
 
-## 0.9.0 – UX & Developer Experience Polish
+## 0.10.0 – Developer Experience & Polish
 
 - [ ] Hot-reload Lua modules
-- [ ] Expression evaluator safe mode
 - [ ] Persistent filtered views & layout settings
-- [ ] Smooth UI under heavy load spikes
 - [ ] Documentation site + short demo videos
+- [ ] Polish, branding, and onboarding docs
 
 ---
 
 ## 1.0.0 – Trust Release
 
 - [ ] Security pass (remote debugging encryption, safe eval defaults)
+- [ ] Improve security (commands, folders, os scripts)
+- [ ] Add Developer signature to app to avoid installation warnings
+- [ ] Add privacy policy
 - [ ] Public plugin library launch
-- [ ] Announce to broader gamedev communities
 - [ ] Add i18n support
-- [ ] Add remote debugging with WebSockets
-- [ ] Add multiple engine support
+- [ ] Add multiple engine support - TBD
+- [ ] Announce to broader gamedev communities
 
 ---

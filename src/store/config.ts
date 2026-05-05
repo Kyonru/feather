@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 
+export interface SysInfo {
+  arch: string;
+  os: string;
+  cpuCount: number;
+}
+
 export interface Config {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins: Record<string, any>;
@@ -11,6 +17,9 @@ export interface Config {
   language: 'lua';
   captureScreenshot: boolean;
   location: string;
+  sysInfo?: SysInfo;
+  deviceId?: string;
+  sessionName?: string;
 }
 
 interface ConfigState {

@@ -1,8 +1,8 @@
 [package]
 name = "feather"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "0.6.0"
+description = "Feather is a Love2D devtool to debug and inspect your game in real-time. It provides a web-based interface to view and manipulate game state, visualize physics, and more."
+authors = ["kyonru"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -25,4 +25,9 @@ tauri-plugin-shell = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
+axum = { version = "0.8", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1", features = ["v4"] }
+futures-util = "0.3"
+if-addrs = "0.13"
 

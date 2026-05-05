@@ -1,6 +1,7 @@
 local FeatherPlugin = require("feather.plugins.base")
 local Class = require("feather.lib.class")
 local Base = require("feather.plugins.base")
+local base64encode = require("feather.lib.base64").encode
 
 ---@class ScreenshotPlugin: FeatherPlugin
 ---@field type string
@@ -40,14 +41,52 @@ local ScreenshotPlugin = Class({
 
     self.width = love.graphics.getWidth()
     self.height = love.graphics.getHeight()
+    self._pendingCapture = false
+  self._lastSentIndex = 0
 
-    love.filesystem.createDirectory(self.screenshotDirectory)
+  love.filesystem.createDirectory(self.screenshotDirectory)
   end,
 })
 
 --- Called each frame
 function ScreenshotPlugin:update(dt, feather)
   FeatherPlugin.update(self, dt, feather)
+
+  -- Batch-encode GIF frames after recording stops (N frames per update to stay smooth)
+  if self._encodingFrames then
+    local BATCH = 3
+    for _ = 1, BATCH do
+      local idx = self._encodeIndex
+      if idx > #self._encodingFrames then
+        -- All frames encoded — add completed GIF to images
+        local frameCount = #self._encodedFrames
+        table.insert(self.images, {
+          name = self._encodingGifName,
+          data = self._encodedFrames,
+          type = "gif",
+          fps = self.fps,
+        })
+        self._encodingFrames = nil
+        self._encodedFrames = nil
+        self._encodeIndex = nil
+        self._encodingGifName = nil
+        if self.logger then
+          self.logger:logger(string.format("[ScreenshotPlugin] GIF ready, %d frames encoded", frameCount))
+        end
+        break
+      end
+
+      local path = self._encodingFrames[idx]
+      local contents = love.filesystem.read(path)
+      if contents then
+        self._encodedFrames[idx] = "data:image/png;base64," .. base64encode(contents)
+      end
+      -- Free file now that it's encoded
+      love.filesystem.remove(path)
+      self._encodeIndex = idx + 1
+    end
+    return -- skip recording logic while encoding
+  end
 
   if self.isRecordingGif then
     self.lastFrameCaptured = self.lastFrameCaptured + dt
@@ -68,37 +107,37 @@ end
 --- Capture a single screenshot
 function ScreenshotPlugin:captureScreenshot()
   local timestamp = os.date("%Y%m%d-%H%M%S")
-  local filename = string.format("%s/screenshot-%s.png", self.screenshotDirectory, timestamp)
+  local filename = string.format("screenshot-%s.png", timestamp)
 
-  love.graphics.captureScreenshot(filename)
+  self._pendingCapture = true
+  local selfRef = self
+  love.graphics.captureScreenshot(function(imageData)
+    local fileData = imageData:encode("png")
+    local pngBytes = fileData:getString()
+    local dataUri = "data:image/png;base64," .. base64encode(pngBytes)
 
-  local cwd = love.filesystem.getSaveDirectory()
+    table.insert(selfRef.images, {
+      type = "png",
+      name = filename,
+      data = dataUri,
+      fps = 1,
+    })
 
-  local path = cwd .. "/" .. filename
-
-  table.insert(self.images, {
-    type = "png",
-    name = filename,
-    data = path,
-    fps = 1,
-  })
-
-  self.logger:logger("[ScreenshotPlugin] Saved screenshot: " .. filename)
+    selfRef._pendingCapture = false
+    if selfRef.logger then
+      selfRef.logger:logger("[ScreenshotPlugin] Captured screenshot: " .. filename)
+    end
+  end)
 
   return filename
 end
 
---- Capture one frame for GIF
+--- Capture one frame for GIF — uses fast file-based path (C-side I/O, no Lua encoding)
 function ScreenshotPlugin:captureFrame()
-  local cwd = love.filesystem.getSaveDirectory()
-  local path = self.screenshotDirectory
-    .. "/"
-    .. self.currentGif
-    .. "/"
-    .. tostring(#self.tempScreenshots + 1)
-    .. ".png"
+  local idx = #self.tempScreenshots + 1
+  local path = self.screenshotDirectory .. "/" .. self.currentGif .. "/" .. tostring(idx) .. ".png"
   love.graphics.captureScreenshot(path)
-  table.insert(self.tempScreenshots, cwd .. "/" .. path)
+  table.insert(self.tempScreenshots, path)
 end
 
 --- Start recording GIF
@@ -118,30 +157,27 @@ function ScreenshotPlugin:startGifRecording()
   end
 end
 
---- Stop recording GIF and export
+--- Stop recording GIF — kicks off gradual base64 encoding across subsequent update() calls
 function ScreenshotPlugin:stopGifRecording()
   if not self.isRecordingGif then
     return
   end
   self.isRecordingGif = false
 
+  local frameCount = #self.tempScreenshots
   local gifName = self.screenshotDirectory .. "/" .. self.currentGif .. ".gif"
 
-  table.insert(self.images, {
-    name = gifName,
-    data = self.tempScreenshots,
-    type = "gif",
-    fps = self.fps,
-  })
+  -- Start batch encoding: update() will process N frames per tick
+  self._encodingFrames = self.tempScreenshots -- file paths
+  self._encodedFrames = {} -- will hold base64 data URIs
+  self._encodeIndex = 1
+  self._encodingGifName = gifName
 
   self.tempScreenshots = {}
   self.currentGif = nil
 
   if self.logger then
-    self.logger:logger(
-      string.format("[ScreenshotPlugin] Stopped GIF recording, %d frames saved", #self.tempScreenshots)
-    )
-    self.logger:logger("[ScreenshotPlugin] Run ffmpeg/gifski to encode: " .. gifName)
+    self.logger:logger(string.format("[ScreenshotPlugin] Stopped GIF recording, encoding %d frames...", frameCount))
   end
 
   return gifName
@@ -150,7 +186,10 @@ end
 function ScreenshotPlugin:getResponseBody()
   local items = {}
 
-  for _, item in ipairs(self.images) do
+  -- Only return images that haven't been sent yet to avoid
+  -- re-sending massive GIF payloads every push cycle
+  for i = self._lastSentIndex + 1, #self.images do
+    local item = self.images[i]
     table.insert(items, {
       type = "image",
       metadata = {
@@ -165,6 +204,8 @@ function ScreenshotPlugin:getResponseBody()
     })
   end
 
+  self._lastSentIndex = #self.images
+
   return items
 end
 
@@ -172,7 +213,7 @@ function ScreenshotPlugin:handleRequest()
   return {
     type = "gallery",
     data = self:getResponseBody(),
-    loading = self.isRecordingGif,
+    loading = self.isRecordingGif or (self._encodingFrames ~= nil),
     persist = self.persist,
   }
 end
@@ -189,6 +230,31 @@ function ScreenshotPlugin:handleActionRequest(request)
 
   if params.action == "screenshot" then
     return self:captureScreenshot()
+  end
+end
+
+function ScreenshotPlugin:handleActionCancel()
+  if self.isRecordingGif then
+    self.isRecordingGif = false
+    -- Clean up temp frame files
+    for _, path in ipairs(self.tempScreenshots) do
+      love.filesystem.remove(path)
+    end
+    self.tempScreenshots = {}
+    self.currentGif = nil
+    if self.logger then
+      self.logger:logger("[ScreenshotPlugin] GIF recording cancelled")
+    end
+  end
+  -- Also cancel any in-progress encoding
+  if self._encodingFrames then
+    for i = self._encodeIndex, #self._encodingFrames do
+      love.filesystem.remove(self._encodingFrames[i])
+    end
+    self._encodingFrames = nil
+    self._encodedFrames = nil
+    self._encodeIndex = nil
+    self._encodingGifName = nil
   end
 end
 

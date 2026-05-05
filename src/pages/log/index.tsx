@@ -15,6 +15,9 @@ import { Command } from '@tauri-apps/plugin-shell';
 import { useSettingsStore } from '@/store/settings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useConfigStore } from '@/store/config';
+import { useSessionStore } from '@/store/session';
+import { useQueryClient } from '@tanstack/react-query';
+import { sessionQueryKey } from '@/hooks/use-ws-connection';
 
 export const columns: ColumnDef<Log>[] = [
   {
@@ -36,6 +39,7 @@ export const columns: ColumnDef<Log>[] = [
 
 export function TraceBlock({ code, basePath }: { code: string; basePath: string }) {
   const textEditorPath = useSettingsStore((state) => state.textEditorPath);
+
   return (
     <ScrollArea className="mt-2 h-52 rounded border bg-muted p-2 font-mono text-xs">
       <TraceViewer
@@ -64,16 +68,27 @@ export function LogImage({ src }: { src?: string }) {
   const [screenshot, setScreenshot] = useState<string | null>(null);
 
   useEffect(() => {
-    if (src) {
-      const readImage = async () => {
+    if (!src) return;
+
+    // Data URI from WS (base64-encoded PNG) — use directly
+    if (src.startsWith('data:')) {
+      setScreenshot(src);
+      return;
+    }
+
+    // Legacy: file path — read from disk via Tauri FS
+    const readImage = async () => {
+      try {
         const uint8 = await readFile(src);
         const blob = new Blob([uint8], { type: 'image/png' });
         const url = URL.createObjectURL(blob);
         setScreenshot(url);
-      };
+      } catch {
+        // File not available (remote device, etc.)
+      }
+    };
 
-      readImage();
-    }
+    readImage();
   }, [src]);
 
   if (!screenshot) {
@@ -115,7 +130,7 @@ export function LogSidePanel({
   const isFeatherEvent = data.type === LogType.FEATHER_FINISH || data.type === LogType.FEATHER_START;
 
   return (
-    <Card className="w-[420px] overflow-y-scroll rounded-none h-[90vh]">
+    <Card className="w-[420px] shrink-0 overflow-y-auto rounded-none">
       <CardHeader className="flex items-center justify-between">
         <div>
           <CardTitle>Log Details</CardTitle>
@@ -154,19 +169,19 @@ export function LogSidePanel({
           </>
         ) : null}
 
-        {!isFeatherEvent ? (
+        {!isFeatherEvent && trace ? (
           <div>
             <span className="text-sm font-medium">Trace</span>
             <TraceBlock basePath={basePath} code={trace} />
           </div>
         ) : null}
       </CardContent>
-      {!isFeatherEvent ? (
+      {!isFeatherEvent && trace ? (
         <CardFooter className="justify-end">
           <CopyButton value={trace} />
         </CardFooter>
       ) : null}
-      <LogImage src={screenshot} />
+     {screenshot ? <LogImage src={screenshot} /> : null}
     </Card>
   );
 }
@@ -177,6 +192,9 @@ export default function Page() {
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const setPausedLogs = useSettingsStore((state) => state.setPausedLogs);
   const setFilePath = useConfigStore((state) => state.setLogOverride);
+  const addSession = useSessionStore((state) => state.addSession);
+  const setActiveSession = useSessionStore((state) => state.setActiveSession);
+  const queryClient = useQueryClient();
 
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
 
@@ -214,8 +232,22 @@ export default function Page() {
         data={logs}
         onUpload={(filename) => {
           if (filename) {
+            // Create a file-based session using the filename
+            const name = filename.split('/').pop()?.replace('.featherlog', '') || filename;
+            const fileSessionId = `file:${filename}`;
+
+            addSession({
+              id: fileSessionId,
+              name: `📄 ${name}`,
+              connected: false,
+              connectedAt: Date.now(),
+            });
+
+            setActiveSession(fileSessionId);
             setFilePath(filename);
-            setPausedLogs(true);
+
+            // Seed empty logs cache so useLogs live path has a key to subscribe to
+            queryClient.setQueryData(sessionQueryKey.logs(fileSessionId), []);
           }
         }}
       />

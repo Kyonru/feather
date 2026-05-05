@@ -1,7 +1,7 @@
 # Feather 🪶 — Debug & Inspect Tool for LÖVE (love2d)
 
 Feather is an extensible debug tool for [LÖVE](https://love2d.org) projects, inspired by [LoveBird](https://github.com/rxi/lovebird).
-It lets you **inspect logs, variables, performance metrics, and errors in real-time** over a network connection and local log files, perfect for debugging games.
+It lets you **inspect logs, variables, performance metrics, and errors in real-time** over a WebSocket connection and local log files, perfect for debugging games.
 
 ---
 
@@ -10,7 +10,14 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 - 📜 **Live log viewer** — See `print()` output instantly in the app.
 - 🔍 **Variable inspection** — Watch values update in real-time.
 - 🚨 **Error capturing** — Automatically catch and display errors with optional delivery delay.
-- 🔌 **Plugin support** — Extend with custom data inspectors and views using React (Lua support for custom views coming soon).
+- 📸 **Screenshots & GIF capture** — Capture screenshots and record GIFs from your game via the built-in plugin.
+- 🔌 **Plugin system** — 18 built-in plugins + custom ones. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
+- 📱 **Multi-session support** — Connect multiple games simultaneously, each gets its own session tab.
+- 📲 **Mobile debugging** — Auto-detected local IP in Settings with copyable connection string for WiFi debugging.
+- 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly included and guarded by `apiKey`.
+- 📁 **Log file viewer** — Open `.featherlog` files manually for offline inspection (great for testing and later verification).
+- ⚡ **Zero-config setup** — `require("feather.auto")` registers all available plugins with sensible defaults.
+- 📦 **One-line installer** — `curl | bash` script to download core + plugins or later download plugins on demand.
 
 ---
 
@@ -32,7 +39,33 @@ This is the simplest approach, no package manager required.
 local Feather = require "lib.feather"
 ```
 
-### Option 2: LuaRocks
+### Option 2: Install Script
+
+Download the Feather library and all plugins with a single command:
+
+```bash
+curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh | bash
+```
+
+This creates a `feather/` directory (core library) and a `plugins/` directory (all built-in plugins) in your current folder.
+
+**Customize with environment variables:**
+
+```bash
+# Install into a custom directory
+FEATHER_DIR=lib/feather bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Download from a specific branch or tag
+FEATHER_BRANCH=v0.6.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Skip certain plugins
+FEATHER_SKIP_PLUGINS="network-inspector,memory-snapshot" bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Skip all plugins (core only)
+FEATHER_PLUGINS=0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+```
+
+### Option 3: LuaRocks
 
 Install globally and use `luarocks-loader` to resolve the path automatically:
 
@@ -64,20 +97,60 @@ local Feather = require("feather")
 
 ## 🚀 Usage
 
-### Basic Setup
+### Quick Start (Zero Config)
+
+The fastest way to get started — one line, all built-in plugins, sensible defaults:
+
+```lua
+require("feather.auto")
+
+function love.update(dt)
+  DEBUGGER:update(dt)
+  -- ...your game code...
+end
+```
+
+That's it. `DEBUGGER` is a global variable created automatically with all plugins registered.
+
+**Customize auto setup:**
+
+```lua
+require("feather.auto").setup({
+  sessionName = "My RPG",
+  host = "192.168.1.50",           -- for mobile debugging
+  exclude = { "network-inspector" }, -- skip specific plugins
+  include = { "console" },          -- opt-in plugins (console requires explicit inclusion)
+  pluginOptions = {                  -- override default plugin options
+    bookmark = { hotkey = "f5", categories = { "bug", "note", "todo" } },
+  },
+})
+```
+
+> **Note:** The Console plugin is opt-in for safety (it allows remote code execution). Pass `include = { "console" }` to enable it.
+
+### Manual Setup
 
 ```lua
 local FeatherDebugger = require "feather"
+local FeatherPluginManager = require "feather.plugin_manager"
+local ScreenshotPlugin = require "feather.plugins.screenshots"
 
 local debugger = FeatherDebugger({
   debug = Config.__IS_DEBUG, -- Make sure to only run in debug mode
   wrapPrint = true,
   defaultObservers = true,
   autoRegisterErrorHandler = true,
+  plugins = {
+    FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
+      screenshotDirectory = "screenshots", -- output folder for captures
+      fps = 30, -- frames per second for GIFs
+      gifDuration = 5, -- default duration of GIFs in seconds
+    }),
+  },
 })
 
 function love.update(dt)
-  debugger:update(dt) -- Required for processing requests
+  debugger:update(dt) -- Required: drives WS I/O and plugin updates
 end
 ```
 
@@ -85,24 +158,64 @@ end
 
 ### 🔗 Connecting
 
-When running your game with Feather enabled, you'll see:
+Feather uses a **push-based WebSocket architecture**. The desktop app runs a WebSocket server (port 4004 by default), and your game connects to it as a client.
+
+1. Start the Feather desktop app from the [releases page](https://github.com/Kyonru/feather/releases)
+2. Run your game with Feather enabled — you'll see:
 
 ```text
-Listening on 127.0.0.1:4004
+[Feather] WS client created — connecting to 127.0.0.1:4004
+[Feather] Connected to 127.0.0.1:4004
 ```
 
-Install the feather app from the [releases page](https://github.com/Kyonru/feather/releases), it will automatically connect to your game.
+The game automatically reconnects if the desktop app is restarted.
 
 ### 📱 iOS, Android & Remote Devices
 
-Feather's live connection relies on a local network socket and log files between the game and the desktop app. This works great on desktop, but **on iOS, Android, or any device that can't be reached over the network**, live inspection is not available.
+Feather's live WebSocket connection works on mobile too — you just need the device to reach your computer's port 4004.
 
-For those platforms, Feather writes logs to a `.featherlog` file on disk. You can load that file manually in the desktop app:
+#### Android (USB via ADB reverse)
 
-1. Transfer the `.featherlog` file from the device to your computer (via ADB, Xcode, or any file transfer method)
-2. Open the Feather app and use **Open Log File** to load it for inspection
+Similar to React Native's `adb reverse`, you can forward the device's `localhost:4004` to your computer:
 
-All log entries, errors, and traces will be available for review — just not in real-time.
+```bash
+adb reverse tcp:4004 tcp:4004
+```
+
+Then use the default config — the game connects to `127.0.0.1:4004`, which ADB routes to your computer:
+
+```lua
+local debugger = FeatherDebugger({
+  debug = true,
+  -- host defaults to "127.0.0.1", port defaults to 4004
+})
+```
+
+#### Android / iOS (Wi-Fi)
+
+If the device is on the same Wi-Fi network, point `host` to your computer's local IP:
+
+```lua
+local debugger = FeatherDebugger({
+  debug = true,
+  host = "192.168.1.42", -- Your computer's local IP
+})
+```
+
+> **Tip:** Open the Feather desktop app → **Settings** → scroll to **Mobile Connection**. Your local IP is auto-detected with a copyable `ws://` connection string and ready-to-paste Lua snippet.
+
+#### Offline mode (disk only)
+
+If live connection isn't practical (no USB, no shared network), use `mode = "disk"` to skip WebSocket entirely and only write log files:
+
+```lua
+local debugger = FeatherDebugger({
+  debug = true,
+  mode = "disk", -- No WebSocket, just log files
+})
+```
+
+Then transfer the `.featherlog` file from the device and open it in the Feather app using **Open Log File**.
 
 ---
 
@@ -110,23 +223,29 @@ All log entries, errors, and traces will be available for review — just not in
 
 `Feather:init(config)` accepts the following options:
 
-| Option                     | Type       | Default             | Description                                                                                          |
-| -------------------------- | ---------- | ------------------- | ---------------------------------------------------------------------------------------------------- |
-| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                                                  |
-| `host`                     | `string`   | `"*"`               | Host address to bind the server to.                                                                  |
-| `port`                     | `number`   | `4004`              | Port to listen on.                                                                                   |
-| `baseDir`                  | `string`   | `""`                | Base directory path for file references and deeplinking to vs code, useful for multi-project setups  |
-| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.                                                |
-| `whitelist`                | `table`    | `{ "127.0.0.1" }`   | List of IPs allowed to connect.                                                                      |
-| `maxTempLogs`              | `number`   | `200`               | Max number of temporary logs stored before rotation.                                                 |
-| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                                                         |
-| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                                                                 |
-| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.                                    |
-| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                                     |
-| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                                                         |
-| `plugins`                  | `table`    | `{}`                | List of plugin modules to load. (Support Coming soon)                                                |
-| `captureScreenshot`        | `boolean`  | `false`             | Capture screenshots on error. WARNING: This impact performance and may cause lags. Use with caution. |
-| `apiKey`                   | `string`   | `""`                | API key to use for remote debugging.                                                                 |
+| Option                     | Type       | Default             | Description                                                                        |
+| -------------------------- | ---------- | ------------------- | ---------------------------------------------------------------------------------- |
+| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                                |
+| `host`                     | `string`   | `"127.0.0.1"`       | Desktop IP or hostname the game connects to.                                       |
+| `port`                     | `number`   | `4004`              | Feather desktop WS server port.                                                    |
+| `mode`                     | `string`   | `"socket"`          | `"socket"` for live WS connection, `"disk"` for log-file-only mode (no network).   |
+| `baseDir`                  | `string`   | `""`                | Base directory path for file references and deeplinking to VS Code.                |
+| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.                              |
+| `maxTempLogs`              | `number`   | `200`               | Max number of temporary logs stored before rotation.                               |
+| `sampleRate`               | `number`   | `1`                 | Seconds between push cycles (performance, observers, plugins).                     |
+| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                                       |
+| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                                               |
+| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.                  |
+| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                   |
+| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                                       |
+| `plugins`                  | `table`    | `{}`                | List of plugin modules to load.                                                    |
+| `captureScreenshot`        | `boolean`  | `false`             | Capture screenshots on error. WARNING: This impacts performance. Use with caution. |
+| `sessionName`              | `string`   | `""`                | Custom display name shown in desktop session tabs (e.g. "My RPG").                 |
+| `deviceId`                 | `string`   | auto-generated      | Persistent device ID. Auto-generated and saved to disk if not set.                 |
+| `writeToDisk`              | `boolean`  | `true`              | Whether to write logs to `.featherlog` files.                                      |
+| `retryInterval`            | `number`   | `5`                 | Seconds between WebSocket reconnection attempts.                                   |
+| `connectTimeout`           | `number`   | `2`                 | Seconds to wait for initial WS connection.                                         |
+| `apiKey`                   | `string`   | `""`                | API key for authenticated connections.                                             |
 
 ---
 
@@ -179,81 +298,128 @@ Feather will automatically capture and log errors in real-time. You can also man
   debugger:error("Something went wrong")
 ```
 
-## Plugins
+### Console / REPL
 
-Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Check out the [Feather Plugins](docs/plugins.md) repository for more information.
-
-### TL;DR
-
-Minimal example of a debugger file to load feather
+The Console is an **optional plugin** that lets you execute Lua code directly in the running game from the Feather desktop app. It is **not included by default** — you must explicitly register it and enable eval:
 
 ```lua
--- debugger.lua
-local FeatherDebugger = require("lib.feather")
-local FeatherPluginManager = require("lib.feather.plugin_manager")
-local LuaStateMachinePlugin = require("lib.feather.plugins.state-machine")
-local HumpSignalPlugin = require("lib.feather.plugins.signal")
-local ScreenshotPlugin = require("lib.feather.plugins.screenshots")
+local ConsolePlugin = require("lib.feather.plugins.console")
 
-local debugger = {}
+local debugger = FeatherDebugger({
+  debug = true,
+  apiKey = "your-secret-key", -- required for console to work
+  plugins = {
+    FeatherPluginManager.createPlugin(ConsolePlugin, "console", {
+      evalEnabled = true, -- must be explicitly enabled
+    }),
+  },
+})
+```
 
-function debugger:load()
-  debugger.feather = FeatherDebugger({
-    debug = true, -- Make sure to only run while on development
-    apiKey = "debugger",
-    wrapPrint = true,
-    defaultObservers = true,
-    captureScreenshot = true,
-    autoRegisterErrorHandler = true,
-    errorWait = 10,
-    baseDir = "game",
-    plugins = {
-      FeatherPluginManager.createPlugin(LuaStateMachinePlugin, "lua-state-machine", {
-        --- https://github.com/kyleconroy/lua-state-machine
-        machine = StateMachine,
-      }),
-      FeatherPluginManager.createPlugin(HumpSignalPlugin, "hump.signal", {
-        -- https://hump.readthedocs.io/en/latest/signal.html
-        signal = Signal,
-        register = {
-          "emit",
-          "register",
-          "remove",
-          "emitPattern",
-          "registerPattern",
-          "removePattern",
-          "clearPattern",
-        },
-      }),
-      FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
-        screenshotDirectory = "screenshots", -- output folder for captures
-        fps = 60, -- frames per second for GIFs
-        gifDuration = 5, -- default duration of GIFs in seconds
-      }),
-    },
-  })
-end
+If the plugin is not registered, `cmd:eval` commands from the desktop are rejected with a clear error message. No eval code is loaded into your game unless you opt in.
 
-function debugger:update(dt)
-  debugger.feather:update(dt)
-end
+Once enabled, type any Lua expression in the Console tab and see the result immediately — great for tweaking values, inspecting state, or testing functions without restarting.
 
-return debugger
+- **Enter** to execute, **Shift+Enter** for multiline input
+- **Arrow Up/Down** to recall previous commands
+- `print()` output during execution is captured and displayed inline
+- Return values are serialized with `inspect()` for readable table output
+- Code runs in a sandbox with an instruction limit to prevent infinite loops from freezing the game
+
+Examples:
+
+```lua
+return player.health              -- inspect a value
+player.speed = 500                 -- tweak a variable live
+return love.graphics.getStats()    -- check draw calls, texture memory
+print("hello"); return 1 + 1      -- print + return both captured
+```
+
+Plugin options:
+
+| Option             | Type      | Default  | Description                                 |
+| ------------------ | --------- | -------- | ------------------------------------------- |
+| `evalEnabled`      | `boolean` | `false`  | Must be `true` to allow code execution.     |
+| `maxCodeSize`      | `number`  | `20000`  | Max characters per eval payload.            |
+| `instructionLimit` | `number`  | `100000` | Lua instruction count before auto-abort.    |
+| `maxOutputSize`    | `number`  | `100000` | Max characters in serialized return values. |
+
+> **Security:** `apiKey` must be configured and non-empty in both the game and Feather desktop settings. The Console will refuse to execute code without a matching key.
+
+> **Warning:** DO NOT ENABLE THIS IN PRODUCTION. This is intended for local development only.
+
+## Plugins
+
+Feather comes with a plugin system that allows you to extend its functionality with custom data inspectors. Plugins use a **server-driven UI** approach: the Lua plugin declares its actions (buttons, inputs, checkboxes) in `getConfig()`, and the desktop app renders them automatically — no TypeScript code needed. Plugins can be enabled/disabled at runtime from the desktop.
+
+Check out the [Feather Plugins](docs/plugins.md) documentation for more information.
+
+### Built-in Plugins
+
+| Plugin                  | Description                                                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Screenshots**         | Capture screenshots and record GIFs. Gallery view with download.                                                                                                     |
+| **Console / REPL**      | Remote Lua code execution (opt-in, requires `apiKey`).                                                                                                               |
+| **Profiler**            | Function-level CPU profiling with start/stop.                                                                                                                        |
+| **Input Replay**        | Record and replay input sequences (keyboard, mouse, touch).                                                                                                          |
+| **Entity Inspector**    | ECS entity browser — register sources, browse and inspect live.                                                                                                      |
+| **Config Tweaker**      | Live game config editing from the desktop.                                                                                                                           |
+| **Bookmark**            | Mark and navigate to points of interest in game state.                                                                                                               |
+| **Network Inspector**   | HTTP/WS traffic monitor — wraps `socket.http` to intercept requests.                                                                                                 |
+| **Memory Snapshot**     | Heap snapshots, table size tracking, diff between snapshots for leak detection.                                                                                      |
+| **Physics Debug**       | Auto-render `love.physics` World overlay (bodies, joints, contacts, AABBs).                                                                                          |
+| **Particle Editor**     | Live ParticleSystem editor — tweak 30+ properties in real-time, export to Lua code.                                                                                  |
+| **Audio Debug**         | Inspect `love.audio` state — track sources, volumes, listener position, source limits.                                                                               |
+| **Coroutine Monitor**   | Track active coroutines — status (running/suspended/dead), yields per frame, lifetime stats.                                                                         |
+| **Collision Debug**     | Visualize [bump.lua](https://github.com/kikito/bump.lua) AABB worlds — bounding boxes, cell grid, collision logging.                                                 |
+| **Animation Inspector** | Inspect [anim8](https://github.com/kikito/anim8) sprite animations — current frame, speed, status, flip state.                                                       |
+| **Timer Inspector**     | Inspect [HUMP timer](https://hump.readthedocs.io/en/latest/timer.html) and [flux](https://github.com/rxi/flux) — progress bars, remaining time, cancel from desktop. |
+| **HUMP Signal**         | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).                                                                                   |
+| **Lua State Machine**   | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine).                                                                               |
+
+### Install Plugin Script
+
+Add plugins to an existing Feather installation without re-running the full installer.
+
+```bash
+# Install one plugin
+bash install-plugin.sh screenshots
+
+# Install several at once
+bash install-plugin.sh screenshots profiler console
+
+# Install from a specific branch into a custom directory
+FEATHER_DIR=lib/feather FEATHER_BRANCH=dev bash install-plugin.sh entity-inspector config-tweaker
+
+# Pipe directly from GitHub
+curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-plugin.sh | bash -s -- screenshots profiler
+```
+
+Run without arguments to see the full list of available plugins:
+
+```bash
+bash install-plugin.sh
+```
+
+After installing, register the plugins in your setup:
+
+```lua
+require("feather.auto").setup({
+  include = { "screenshots", "profiler" },
+})
 ```
 
 ## Recommendations
 
 ### Security
 
-the `apiKey` option is used to protect your game from unauthorized access. You can use it to remotely connect to your game and debug it. To use it, you need to set the `apiKey` option to a string value and then pass it to the debugger constructor. For example:
+The `apiKey` option is used to protect your game from unauthorized access. Set it in the game config and match it in the Feather desktop app:
 
 ```lua
 local debugger = FeatherDebugger({
   apiKey = "your-api-key",
 })
 ```
-
-In the feather app, you will need to set the `apiKey` option to the same value as the one you set in the game. This option is highly recommended.
 
 ### Performance
 
@@ -271,6 +437,7 @@ Feather is not meant to be used in production / final builds. It is meant to be 
 - [Inspect](https://github.com/kikito/inspect.lua)
 - [json.lua](https://github.com/rxi/json.lua)
 - [log.lua](https://github.com/rxi/log.lua)
+- [ws.lua](https://github.com/flaribbit/love2d-lua-websocket)
 
 ---
 
@@ -278,19 +445,23 @@ Feather is not meant to be used in production / final builds. It is meant to be 
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
-**Latest — [v0.5.0](https://github.com/Kyonru/feather/releases/tag/v0.5.0) — The one with log files**
+**Latest — [v0.6.0](https://github.com/Kyonru/feather/releases/tag/v0.6.0) — The one with the plugin ecosystem**
 
-- Log file based logging and the ability to open existing log files in the app
-- Manual log inspection for iOS, Android, and other remote devices
-- Improved error feedback, screenshot management, and performance
+- 18 built-in plugins: screenshots, console, profiler, input replay, entity inspector, config tweaker, bookmark, network inspector, memory snapshot, physics debug, particle editor, audio debug, coroutine monitor, collision debug, animation inspector, timer inspector, HUMP signal, lua-state-machine
+- Grouped card layout for plugins with many inputs (server-driven UI)
+- Plugin enable/disable toggle from desktop
+- Zero-config `auto.lua` entry point with `exclude`/`include`/`pluginOptions`
+- curl-pipe-sh installer script (`install-feather.sh`)
+- Mobile connection discovery — auto-detected local IP in Settings
+- Per-session version mismatch warning on session tabs
+- Disk mode for log-only debugging on Android/iOS
+- Console / REPL with sandbox and instruction limit
+- WebSocket push-based architecture with multi-session support
+- Plugin error isolation and auto-disable after repeated failures
 
 ---
 
 ## 📜 License
-
-Feel free to use and remix this project for personal, educational, or non-commercial fun.
-
-Just don’t sell it, don’t make forks that let others sell it, and don’t use it for AI training — unless I say it’s okay.
 
 Full license: See [LICENSE.md](LICENSE.md)
 
@@ -298,4 +469,16 @@ Full license: See [LICENSE.md](LICENSE.md)
 
 ## 🙏 Credits
 
-Inspired by [LoveBird](https://github.com/rxi/lovebird) by rxi, with added flexibility, plugin support, and modern LÖVE integration.
+### Inspiration & Architecture
+
+- [LoveBird](https://github.com/rxi/lovebird) by [rxi](https://github.com/rxi) — the original LÖVE debugger that inspired Feather's core concept
+- [Love-Dialogue](https://github.com/Miisan-png/Love-Dialogue) by [Miisan-png](https://github.com/Miisan-png) — plugin system architecture reference
+- [Flipper](https://github.com/facebook/flipper) by Facebook — UI/tooling patterns for desktop debugging apps
+
+### Lua Libraries & Tools
+
+- [HUMP](https://github.com/vrld/hump) by [vrld](https://github.com/vrld) — Class system, Timer, Signal
+- [anim8](https://github.com/kikito/anim8) by [kikito](https://github.com/kikito) — sprite animation library
+- [flux](https://github.com/rxi/flux) by [rxi](https://github.com/rxi) — tweening library
+- [bump.lua](https://github.com/kikito/bump.lua) by [kikito](https://github.com/kikito) — collision detection library
+- [lua-state-machine](https://github.com/kyleconroy/lua-state-machine) by [Kyle Conroy](https://github.com/kyleconroy) — state machine for Lua

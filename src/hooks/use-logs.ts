@@ -1,15 +1,13 @@
 import { readTextFileLines } from '@tauri-apps/plugin-fs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ServerRoute } from '@/constants/server';
+import { invoke } from '@tauri-apps/api/core';
 import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
-import { unionBy } from '@/utils/arrays';
+import { useSessionStore } from '@/store/session';
 import { z } from 'zod';
-import { useServer } from './use-server';
 import { useSettingsStore } from '@/store/settings';
-import { useMemo, useState } from 'react';
-import { useSampleRate } from './use-config';
-import { isWeb } from '@/utils/platform';
+import { useMemo, useRef, useState } from 'react';
+import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
 
 export enum LogType {
@@ -34,136 +32,126 @@ export type Log = z.infer<typeof schema>;
 
 function parseLogLine(line: string): Log | null {
   const jsonStart = line.indexOf('{');
-
-  if (jsonStart === -1) {
-    return null; // no JSON in this line
-  }
-
-  const jsonPart = line.slice(jsonStart);
-
+  if (jsonStart === -1) return null;
   try {
-    return JSON.parse(jsonPart);
-  } catch (err) {
-    console.error('Failed to parse log JSON:', err);
+    return JSON.parse(line.slice(jsonStart));
+  } catch {
     return null;
   }
 }
 
 export const useLogs = (): {
-  data: {
-    logs: Log[];
-    screenshotEnabled: boolean;
-  };
+  data: { logs: Log[]; screenshotEnabled: boolean };
   isPending: boolean;
-  error: unknown;
-  refetch: () => void;
   clear: () => void;
   onScreenshotChange: () => void;
 } => {
   const queryClient = useQueryClient();
-  const logFile = useConfigStore((state) => state.config?.outfile || '');
-  const captureScreenshot = useConfigStore((state) => state.config?.captureScreenshot || false);
+  const sessionId = useSessionStore((state) => state.sessionId);
   const overrideLogFile = useConfigStore((state) => state.overrideConfig?.outfile || '');
+  const captureScreenshot = useConfigStore((state) => state.config?.captureScreenshot || false);
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
-  const { url: serverUrl, apiKey } = useServer();
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
-  const sampleRate = useSampleRate();
   const [clearTime, setClearTime] = useState(0);
+  const lineOffsetRef = useRef<number>(0);
 
-  const enabled = useMemo(() => {
-    if (overrideLogFile) {
-      return true;
-    }
+  // --- Live session path: reactive subscription to query cache ---
+  const queryKey = sessionId ? sessionQueryKey.logs(sessionId) : ['noop-logs'];
 
-    return !pausedLogs;
-  }, [pausedLogs, overrideLogFile]);
-
-  const logFilePathname = overrideLogFile || logFile;
-  const queryKey = [serverUrl, apiKey, 'logs', logFilePathname, clearTime, { captureScreenshot }];
-
-  const { isPending, error, data, refetch } = useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: queryKey,
-    queryFn: async (): Promise<Log[]> => {
-      const dataLogs: Log[] = [];
-
-      if (isWeb()) {
-        const response = await fetch(logFilePathname);
-        const raw = await response.text();
-        const lines = raw.split('\n');
-        for (const line of lines) {
-          const log = parseLogLine(line);
-          if (log) {
-            dataLogs.push(log);
-          }
-        }
-      } else {
-        const lines = await readTextFileLines(logFilePathname);
-
-        for await (const line of lines) {
-          const log = parseLogLine(line);
-          if (log) {
-            dataLogs.push(log);
-          }
-        }
-      }
-      const existing = queryClient.getQueryData<Log[]>(queryKey) || [];
-
-      const logs = unionBy<Log, string>(existing, dataLogs, (item) => item.id) as Log[];
-
-      setScreenshotEnabled(captureScreenshot);
-
-      return logs.filter((log) => log.time > clearTime);
-    },
-    refetchInterval: sampleRate * 1000,
-    enabled: enabled,
-    placeholderData: (previousData) => previousData,
+  const { data: liveLogs } = useQuery<Log[]>({
+    queryKey,
+    queryFn: () => [],
+    enabled: false, // data is pushed via WS or file reader, not fetched
   });
 
-  const enableScreenshotsMutation = useMutation({
-    mutationFn: async () => {
-      try {
-        // Optimistic update
-        setScreenshotEnabled((prev) => !prev);
+  const filteredLiveLogs = useMemo(
+    () => {
+      const logs = liveLogs ?? [];
+      return clearTime > 0 ? logs.filter((log) => log.time > clearTime) : logs;
+    },
+    [liveLogs, clearTime],
+  );
 
-        await timeout<Response>(
+
+  // --- Override file path: incremental file read (disk mode / manual open) ---
+  // Reads the file and pushes parsed logs into the active session's query cache,
+  // so the useSyncExternalStore live path picks them up naturally.
+  const fileQueryKey = ['file-reader', overrideLogFile];
+
+  const { isPending } = useQuery({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    queryKey: fileQueryKey,
+    queryFn: async (): Promise<null> => {
+      if (!sessionId) return null;
+
+      const existing = queryClient.getQueryData<Log[]>(queryKey) ?? [];
+      if (existing.length === 0) lineOffsetRef.current = 0;
+
+      const newLines: Log[] = [];
+      const lines = await readTextFileLines(overrideLogFile);
+      let lineIndex = 0;
+
+      for await (const line of lines) {
+        if (lineIndex < lineOffsetRef.current) {
+          lineIndex++;
+          continue;
+        }
+        lineIndex++;
+        const log = parseLogLine(line);
+        if (log) newLines.push(log);
+      }
+
+      lineOffsetRef.current = lineIndex;
+      setScreenshotEnabled(captureScreenshot);
+
+      if (newLines.length > 0) {
+        queryClient.setQueryData<Log[]>(queryKey, [...existing, ...newLines]);
+      }
+
+      return null;
+    },
+    // Poll override file at 1s — game may still be writing to it (disk mode).
+    // When paused, still do the initial read but stop polling.
+    refetchInterval: pausedLogs ? false : 1000,
+    enabled: !!overrideLogFile && !!sessionId,
+  });
+
+  const logs = filteredLiveLogs;
+
+  const toggleScreenshotsMutation = useMutation({
+    mutationFn: async () => {
+      if (!sessionId) return;
+      setScreenshotEnabled((prev) => !prev);
+      try {
+        await timeout(
           3000,
-          fetch(`${serverUrl}${ServerRoute.LOG}?action=toggle-screenshots`, {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-            },
+          invoke('send_command', {
+            sessionId,
+            message: JSON.stringify({ type: 'cmd:log', action: 'toggle-screenshots' }),
           }),
         );
-
-        return [];
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Failed to toggle screenshots');
-        return [];
       }
     },
-    onSuccess: () => {},
   });
 
   const clear = () => {
-    const lastNow = data?.[data.length - 1]?.time || 0;
-
+    const lastNow = logs[logs.length - 1]?.time ?? 0;
     setClearTime(lastNow);
-  };
-
-  const onScreenshotChange = () => {
-    enableScreenshotsMutation.mutate();
+    if (sessionId) {
+      queryClient.setQueryData(sessionQueryKey.logs(sessionId), []);
+    }
+    // Reset file reader offset so re-read starts fresh if override is active
+    if (overrideLogFile) {
+      lineOffsetRef.current = 0;
+    }
   };
 
   return {
-    data: {
-      logs: data || [],
-      screenshotEnabled,
-    },
-    isPending,
-    error,
-    refetch,
+    data: { logs, screenshotEnabled },
+    isPending: overrideLogFile ? isPending : false,
     clear,
-    onScreenshotChange,
+    onScreenshotChange: () => toggleScreenshotsMutation.mutate(),
   };
 };

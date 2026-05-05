@@ -6,6 +6,7 @@ local format = require(PATH .. ".utils").format
 local wrapWith = require(PATH .. ".utils").wrapWith
 local json = require(PATH .. ".lib.json")
 local log = require(PATH .. ".lib.log")
+local base64encode = require(PATH .. ".lib.base64").encode
 
 --- "output" | "trace" | "error" | "feather:finish" | "feather:start" | "output" | "error"
 ---
@@ -24,6 +25,7 @@ local LOGS_DIR = "logs"
 local SCREENSHOTS_DIR = LOGS_DIR .. "/" .. "screenshots"
 
 ---@class FeatherLogger: FeatherPlugin
+---@field feather table
 ---@field debug boolean
 ---@field wrapPrint boolean
 ---@field captureScreenshot boolean
@@ -45,10 +47,12 @@ local SCREENSHOTS_DIR = LOGS_DIR .. "/" .. "screenshots"
 local FeatherLogger = Class({
   __includes = Base,
   init = function(self, config)
+    self.feather = config
     self.debug = config.debug
     self.wrapPrint = config.wrapPrint
     self.maxTempLogs = config.maxTempLogs
     self.captureScreenshot = config.captureScreenshot
+    self.writeToDisk = config.writeToDisk ~= false
     self.lastScreenshot = nil
     self.last_log = nil
     self.last_screenshot_taken_at = nil
@@ -57,23 +61,29 @@ local FeatherLogger = Class({
     self.screenshotPoolSize = config.screenshotPoolSize or 60
     self.lastId = 0
 
-    local cwd = love.filesystem.getSaveDirectory()
+    if self.writeToDisk then
+      local cwd = love.filesystem.getSaveDirectory()
 
-    love.filesystem.createDirectory(LOGS_DIR)
+      love.filesystem.createDirectory(LOGS_DIR)
 
-    love.filesystem.createDirectory(SCREENSHOTS_DIR)
+      love.filesystem.createDirectory(SCREENSHOTS_DIR)
 
-    local logdir = cwd .. "/" .. LOGS_DIR
-    self.outputFolder = logdir
+      local logdir = cwd .. "/" .. LOGS_DIR
+      self.outputFolder = logdir
 
-    local logfile = logdir .. "/" .. os.date("%Y-%m-%d_%H:%M:%S") .. "_" .. config.outfile .. ".featherlog"
+      local logfile = logdir .. "/" .. os.date("%Y-%m-%d_%H:%M:%S") .. "_" .. config.outfile .. ".featherlog"
 
-    log.info("Saving logs to " .. logfile)
+      log.info("Saving logs to " .. logfile)
 
-    log.outfile = logfile
-    log.usecolor = false
+      log.outfile = logfile
+      log.usecolor = false
 
-    self.outfile = logfile
+      self.outfile = logfile
+    else
+      self.outputFolder = ""
+      self.outfile = ""
+      log.outfile = nil
+    end
 
     -- Wrap print
     if self.wrapPrint then
@@ -99,15 +109,17 @@ function FeatherLogger:update()
   local now = love.timer.getTime()
 
   if self.last_screenshot_taken_at and now - self.last_screenshot_taken_at < self.screenshotRate then
-    return -- short throttle so spammy errors don't melt disk
+    return
   end
 
   self.last_screenshot_taken_at = now
 
-  self.screenshotIndex = (self.screenshotIndex or 0) % self.screenshotPoolSize + 1
-  self.lastScreenshot = SCREENSHOTS_DIR .. "/debug_" .. self.screenshotIndex .. ".png"
-
-  love.graphics.captureScreenshot(self.lastScreenshot)
+  local selfRef = self
+  love.graphics.captureScreenshot(function(imageData)
+    local fileData = imageData:encode("png")
+    local pngBytes = fileData:getString()
+    selfRef.lastScreenshot = "data:image/png;base64," .. base64encode(pngBytes)
+  end)
 end
 
 --- Manages the print function internally
@@ -155,22 +167,32 @@ function FeatherLogger:log(line, screenshot)
       return
     end
 
-    local cwd = love.filesystem.getSaveDirectory()
-
-    line.screenshot = cwd .. "/" .. self.lastScreenshot
+    line.screenshot = self.lastScreenshot
   end
 
   self.lastId = self.lastId + 1
   line.id = tostring(self.lastId)
   line.time = os.time()
   line.count = 1
-  line.trace = debug.traceback()
+
+  -- Only capture traceback for errors (expensive)
+  if line.type == "error" or line.type == "fatal" then
+    line.trace = debug.traceback()
+  end
 
   self.last_log = line
 
   local logType = types[line.type] or "debug"
-
   log[logType](json.encode(line))
+
+  -- Non-blocking channel push; __sendWs is a no-op when not connected
+  if self.feather then
+    self.feather:__sendWs(json.encode({
+      type = "log",
+      session = self.feather.sessionId,
+      data = line,
+    }))
+  end
 end
 
 function FeatherLogger:clear()

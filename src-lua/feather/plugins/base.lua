@@ -11,6 +11,7 @@ local Class = require(PATH .. ".lib.class")
 ---@field onerror fun(self: FeatherPlugin, msg: string, feather: Feather): ...
 ---@field handleRequest fun(self: FeatherPlugin, request: table, feather: Feather): ...
 ---@field handleActionRequest fun(self: FeatherPlugin, request: table, feather: Feather): ...
+---@field handleActionCancel fun(self: FeatherPlugin, request: table, feather: Feather): ...
 ---@field handleParamsUpdate fun(self: FeatherPlugin, request: table, feather: Feather): ...
 ---@field isSupported fun(self: FeatherPlugin, version: number): boolean
 ---@field finish fun(self: FeatherPlugin, feather: Feather): ...
@@ -31,12 +32,16 @@ function FeatherPlugin:onerror(msg)
   return self, msg
 end
 
-function FeatherPlugin:handleRequest(request)
-  return self, request
+function FeatherPlugin:handleRequest()
+  return nil
 end
 
-function FeatherPlugin:handleActionRequest(request)
-  return self, request
+function FeatherPlugin:handleActionRequest()
+  return nil
+end
+
+function FeatherPlugin:handleActionCancel()
+  return nil
 end
 
 function FeatherPlugin:handleParamsUpdate()
