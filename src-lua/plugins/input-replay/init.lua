@@ -30,6 +30,10 @@ end
 ---@field captureKeys boolean
 ---@field captureMouse boolean
 ---@field captureMouseMove boolean
+---@field captureTouch boolean
+---@field captureTouchMove boolean
+---@field captureJoystick boolean
+---@field captureJoystickAxis boolean
 ---@field _originals table  Original love callbacks saved for restoration
 ---@field _hooked boolean
 local InputReplayPlugin = Class({
@@ -48,6 +52,10 @@ local InputReplayPlugin = Class({
     self.captureKeys = self.options.captureKeys ~= false
     self.captureMouse = self.options.captureMouse ~= false
     self.captureMouseMove = self.options.captureMouseMove == true -- off by default (noisy)
+    self.captureTouch = self.options.captureTouch ~= false
+    self.captureTouchMove = self.options.captureTouchMove == true -- off by default (noisy)
+    self.captureJoystick = self.options.captureJoystick ~= false
+    self.captureJoystickAxis = self.options.captureJoystickAxis == true -- off by default (noisy)
     self._originals = {}
     self._hooked = false
   end,
@@ -64,7 +72,7 @@ function InputReplayPlugin:_installHooks()
   local selfRef = self
 
   -- Helper: wrap a love callback, recording events when active
-  local function hookCallback(name)
+  local function hookCallback(name, argsTransform)
     local original = love[name]
     selfRef._originals[name] = original
 
@@ -73,10 +81,11 @@ function InputReplayPlugin:_installHooks()
       if selfRef.recording then
         local elapsed = gettime() - selfRef.recordStart
         if #selfRef.events < selfRef.maxEvents then
+          local args = argsTransform and argsTransform(...) or { ... }
           selfRef.events[#selfRef.events + 1] = {
             time = elapsed,
             type = name,
-            args = { ... },
+            args = args,
           }
         end
       end
@@ -85,6 +94,19 @@ function InputReplayPlugin:_installHooks()
         return original(...)
       end
     end
+  end
+
+  -- Touch id is light userdata — store as string so events are JSON-serializable
+  -- and can be replayed consistently across save/load sessions.
+  local function touchArgs(id, x, y, dx, dy, pressure)
+    return { tostring(id), x, y, dx, dy, pressure }
+  end
+
+  -- Joystick userdata is stored as its numeric ID so events are JSON-serializable.
+  -- The ID is resolved back to the live object at replay time via REPLAY_RESOLVERS.
+  local function joystickArgs(joystick, ...)
+    local id = joystick:getID() -- returns id, instanceid; we keep only id
+    return { id, ... }
   end
 
   if self.captureKeys then
@@ -99,6 +121,28 @@ function InputReplayPlugin:_installHooks()
 
   if self.captureMouseMove then
     hookCallback("mousemoved")
+  end
+
+  if self.captureTouch then
+    hookCallback("touchpressed", touchArgs)
+    hookCallback("touchreleased", touchArgs)
+  end
+
+  if self.captureTouchMove then
+    hookCallback("touchmoved", touchArgs)
+  end
+
+  if self.captureJoystick then
+    hookCallback("joystickpressed", joystickArgs)
+    hookCallback("joystickreleased", joystickArgs)
+    hookCallback("joystickhat", joystickArgs)
+    hookCallback("gamepadpressed", joystickArgs)
+    hookCallback("gamepadreleased", joystickArgs)
+  end
+
+  if self.captureJoystickAxis then
+    hookCallback("joystickaxis", joystickArgs)
+    hookCallback("gamepadaxis", joystickArgs)
   end
 end
 
@@ -161,6 +205,54 @@ function InputReplayPlugin:stopReplay()
   end
 end
 
+--- Resolve a stored joystick ID back to the live Joystick object.
+---@param id number
+---@return userdata|nil
+local function resolveJoystick(id)
+  if not (love.joystick and love.joystick.getJoysticks) then
+    return nil
+  end
+  for _, js in ipairs(love.joystick.getJoysticks()) do
+    if js:getID() == id then
+      return js
+    end
+  end
+  return nil
+end
+
+--- Per-type resolvers that reconstruct the original callback args from stored data.
+--- Returns nil if the required resource (e.g. joystick) is no longer available.
+local REPLAY_RESOLVERS = {
+  joystickpressed = function(a)
+    local js = resolveJoystick(a[1])
+    return js and { js, a[2] }
+  end,
+  joystickreleased = function(a)
+    local js = resolveJoystick(a[1])
+    return js and { js, a[2] }
+  end,
+  joystickhat = function(a)
+    local js = resolveJoystick(a[1])
+    return js and { js, a[2], a[3] }
+  end,
+  joystickaxis = function(a)
+    local js = resolveJoystick(a[1])
+    return js and { js, a[2], a[3] }
+  end,
+  gamepadpressed = function(a)
+    local js = resolveJoystick(a[1])
+    return js and { js, a[2] }
+  end,
+  gamepadreleased = function(a)
+    local js = resolveJoystick(a[1])
+    return js and { js, a[2] }
+  end,
+  gamepadaxis = function(a)
+    local js = resolveJoystick(a[1])
+    return js and { js, a[2], a[3] }
+  end,
+}
+
 --- Called every frame by the plugin manager.
 function InputReplayPlugin:update()
   if not self.replaying then
@@ -176,10 +268,16 @@ function InputReplayPlugin:update()
       break -- not yet
     end
 
-    -- Fire the original callback (not our hook, to avoid re-recording)
+    -- Fire the original callback (not our hook, to avoid re-recording).
+    -- For joystick events the stored args use a numeric ID; resolve back to the
+    -- live Joystick object before firing.
     local original = self._originals[event.type]
     if original then
-      pcall(original, unpack(event.args))
+      local resolver = REPLAY_RESOLVERS[event.type]
+      local replayArgs = resolver and resolver(event.args) or event.args
+      if replayArgs then
+        pcall(original, unpack(replayArgs))
+      end
     end
 
     self.replayIndex = self.replayIndex + 1
@@ -224,6 +322,31 @@ local function formatDetails(event)
     local x = args[1] or 0
     local y = args[2] or 0
     return string.format("%d,%d", x, y)
+  elseif event.type == "touchpressed" or event.type == "touchreleased" then
+    -- args: id, x, y, dx, dy, pressure
+    local x = args[2] or 0
+    local y = args[3] or 0
+    local pressure = args[6] or 0
+    return string.format("@ %d,%d p=%.2f", x, y, pressure)
+  elseif event.type == "touchmoved" then
+    -- args: id, x, y, dx, dy, pressure
+    local x = args[2] or 0
+    local y = args[3] or 0
+    return string.format("%d,%d", x, y)
+  elseif
+    event.type == "joystickpressed"
+    or event.type == "joystickreleased"
+    or event.type == "gamepadpressed"
+    or event.type == "gamepadreleased"
+  then
+    -- args: joystick_id, button
+    return tostring(args[2] or "?")
+  elseif event.type == "joystickaxis" or event.type == "gamepadaxis" then
+    -- args: joystick_id, axis, value
+    return string.format("%s=%.3f", tostring(args[2] or "?"), args[3] or 0)
+  elseif event.type == "joystickhat" then
+    -- args: joystick_id, hat, direction
+    return string.format("hat%s %s", tostring(args[2] or "?"), tostring(args[3] or "?"))
   end
   return ""
 end
@@ -232,9 +355,23 @@ end
 local TYPE_LABELS = {
   keypressed = "Key ↓",
   keyreleased = "Key ↑",
+
   mousepressed = "Mouse ↓",
   mousereleased = "Mouse ↑",
-  mousemoved = "Mouse →",
+  mousemoved = "Mouse Δ",
+
+  touchpressed = "Touch ↓",
+  touchreleased = "Touch ↑",
+  touchmoved = "Touch Δ",
+
+  joystickpressed = "Joy ↓",
+  joystickreleased = "Joy ↑",
+  joystickaxis = "Joy Axis ~",
+  joystickhat = "Joy Hat ⊕",
+
+  gamepadpressed = "Pad ↓",
+  gamepadreleased = "Pad ↑",
+  gamepadaxis = "Pad Axis ~",
 }
 
 --- Return data for the desktop plugin table.
@@ -371,14 +508,29 @@ end
 
 function InputReplayPlugin:handleParamsUpdate(request, _feather)
   local params = request.params or {}
+  local function asBool(v)
+    return v == "true" or v == true
+  end
   if params.captureKeys ~= nil then
-    self.captureKeys = params.captureKeys == "true" or params.captureKeys == true
+    self.captureKeys = asBool(params.captureKeys)
   end
   if params.captureMouse ~= nil then
-    self.captureMouse = params.captureMouse == "true" or params.captureMouse == true
+    self.captureMouse = asBool(params.captureMouse)
   end
   if params.captureMouseMove ~= nil then
-    self.captureMouseMove = params.captureMouseMove == "true" or params.captureMouseMove == true
+    self.captureMouseMove = asBool(params.captureMouseMove)
+  end
+  if params.captureTouch ~= nil then
+    self.captureTouch = asBool(params.captureTouch)
+  end
+  if params.captureTouchMove ~= nil then
+    self.captureTouchMove = asBool(params.captureTouchMove)
+  end
+  if params.captureJoystick ~= nil then
+    self.captureJoystick = asBool(params.captureJoystick)
+  end
+  if params.captureJoystickAxis ~= nil then
+    self.captureJoystickAxis = asBool(params.captureJoystickAxis)
   end
 end
 
@@ -404,9 +556,37 @@ function InputReplayPlugin:getConfig()
       { label = "Clear", key = "clear", icon = "trash-2", type = "button" },
       { label = "Save", key = "save", icon = "save", type = "button" },
       { label = "Load", key = "load", icon = "folder-open", type = "button" },
-      { label = "Keys", key = "captureKeys", icon = "keyboard", type = "checkbox", value = true },
-      { label = "Mouse", key = "captureMouse", icon = "mouse", type = "checkbox", value = true },
-      { label = "Mouse Move", key = "captureMouseMove", icon = "move", type = "checkbox", value = false },
+      { label = "Keys", key = "captureKeys", icon = "keyboard", type = "checkbox", value = self.captureKeys },
+      { label = "Mouse", key = "captureMouse", icon = "mouse", type = "checkbox", value = self.captureMouse },
+      {
+        label = "Mouse Move",
+        key = "captureMouseMove",
+        icon = "move",
+        type = "checkbox",
+        value = self.captureMouseMove,
+      },
+      { label = "Touch", key = "captureTouch", icon = "hand", type = "checkbox", value = self.captureTouch },
+      {
+        label = "Touch Move",
+        key = "captureTouchMove",
+        icon = "hand",
+        type = "checkbox",
+        value = self.captureTouchMove,
+      },
+      {
+        label = "Joystick",
+        key = "captureJoystick",
+        icon = "gamepad-2",
+        type = "checkbox",
+        value = self.captureJoystick,
+      },
+      {
+        label = "Joystick Axis",
+        key = "captureJoystickAxis",
+        icon = "gamepad-2",
+        type = "checkbox",
+        value = self.captureJoystickAxis,
+      },
     },
   }
 end
