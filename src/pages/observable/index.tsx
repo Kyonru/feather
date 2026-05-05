@@ -69,6 +69,33 @@ export default function Page() {
 
   useConfig();
 
+  if (data.length === 0) {
+    return (
+      <PageLayout>
+        <div className="flex flex-col items-center justify-center h-full gap-6 px-4 py-16 text-center">
+          <div className="grid gap-1">
+            <p className="text-lg font-semibold">No observers yet</p>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Call <code className="font-mono">DEBUGGER:observe()</code> anywhere in your game loop to watch values in
+              real time.
+            </p>
+          </div>
+          <LuaBlock
+            className="w-full max-w-lg text-left"
+            showLineNumbers={false}
+            code={`-- Call this each frame (or whenever the value changes)
+function love.update(dt)
+  DEBUGGER:observe("player.x", player.x)
+  DEBUGGER:observe("player.y", player.y)
+  DEBUGGER:observe("health", player.health)
+  DEBUGGER:observe("state", player.state)
+end`}
+          />
+        </div>
+      </PageLayout>
+    );
+  }
+
   return (
     <PageLayout
       right={selected && <ObserveSidePanel data={data.find((item) => item.key === selected) || {}} onClose={onClose} />}

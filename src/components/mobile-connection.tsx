@@ -2,13 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useSettingsStore } from '@/store/settings';
 import { CheckIcon, CopyIcon, SmartphoneIcon } from 'lucide-react';
@@ -50,9 +44,7 @@ export function MobileConnection() {
     setTimeout(() => setCopied(false), 2000);
   }, [wsUrl]);
 
-  const luaSnippet = activeIp
-    ? `require("feather.auto").setup({\n  host = "${activeIp}",\n  port = ${port},\n})`
-    : '';
+  const luaSnippet = activeIp ? `require("feather.auto").setup({\n  host = "${activeIp}",\n  port = ${port},\n})` : '';
 
   return (
     <>
@@ -62,10 +54,7 @@ export function MobileConnection() {
           <SmartphoneIcon className="h-4 w-4" />
           <Label className="text-base font-semibold">Mobile Connection</Label>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Scan this QR code from your mobile device or use the connection string in your game&apos;s
-          Feather config.
-        </p>
+        <p className="text-sm text-muted-foreground">Use the connection string in your game&apos;s Feather config.</p>
 
         {isTauri && ips.length > 1 && (
           <div className="grid gap-1.5">
@@ -109,15 +98,9 @@ export function MobileConnection() {
         {wsUrl && (
           <div className="flex flex-col items-center gap-3 rounded-md border p-4">
             <div className="flex items-center gap-2 w-full">
-              <code className="flex-1 rounded bg-muted px-2 py-1 text-xs font-mono text-center truncate">
-                {wsUrl}
-              </code>
+              <code className="flex-1 rounded bg-muted px-2 py-1 text-xs font-mono text-center truncate">{wsUrl}</code>
               <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCopy}>
-                {copied ? (
-                  <CheckIcon className="h-3.5 w-3.5 text-green-600" />
-                ) : (
-                  <CopyIcon className="h-3.5 w-3.5" />
-                )}
+                {copied ? <CheckIcon className="h-3.5 w-3.5 text-green-600" /> : <CopyIcon className="h-3.5 w-3.5" />}
               </Button>
             </div>
           </div>

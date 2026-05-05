@@ -6,11 +6,16 @@ import { formatMemory } from '@/lib/utils';
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
-const TrendingBadge = ({ value }: { value: number }) => {
+const TrendingBadge = ({ value }: { value?: number }) => {
+  const formatted = value ? value : 0;
+  let trend = formatted < 0 ? <TrendingDownIcon /> : null;
+  if (formatted > 0) {
+    trend = <TrendingUpIcon />;
+  }
   return (
     <Badge variant="outline">
-      {value > 0 ? <TrendingUpIcon /> : value < 0 ? <TrendingDownIcon /> : null}
-      {value.toFixed(2)}%
+      {trend}
+      {formatted.toFixed(2)}%
     </Badge>
   );
 };
