@@ -1,7 +1,58 @@
 # Feather 🪶 — Debug & Inspect Tool for LÖVE (love2d)
 
-Feather is an extensible debug tool for [LÖVE](https://love2d.org) projects, inspired by [LoveBird](https://github.com/rxi/lovebird).
+Feather is a real-time debugging and inspection tool for [LÖVE](https://love2d.org)—like Flipper or React DevTools, but for your game. Inspired by [LoveBird](https://github.com/rxi/lovebird).
+
 It lets you **inspect logs, variables, performance metrics, and errors in real-time** over a WebSocket connection and local log files, perfect for debugging games.
+
+---
+
+## 📋 Table of Contents
+
+- [Feather 🪶 — Debug \& Inspect Tool for LÖVE (love2d)](#feather---debug--inspect-tool-for-löve-love2d)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [✨ Features](#-features)
+  - [📦 Installation](#-installation)
+    - [Option 1: Direct Download (Recommended)](#option-1-direct-download-recommended)
+    - [Option 2: Install Script](#option-2-install-script)
+    - [Option 3: LuaRocks](#option-3-luarocks)
+    - [`FEATHER_PATH` — Custom Install Location](#feather_path--custom-install-location)
+  - [🔄 Updating the Embedded Lua Library](#-updating-the-embedded-lua-library)
+    - [Using the install script (recommended)](#using-the-install-script-recommended)
+    - [Pinning to a version tag](#pinning-to-a-version-tag)
+    - [Manual update](#manual-update)
+  - [🚀 Usage](#-usage)
+    - [Quick Start (Zero Config)](#quick-start-zero-config)
+    - [Manual Setup](#manual-setup)
+    - [🔗 Connecting](#-connecting)
+    - [📱 iOS, Android \& Remote Devices](#-ios-android--remote-devices)
+      - [Android (USB via ADB reverse)](#android-usb-via-adb-reverse)
+      - [Android / iOS (Wi-Fi)](#android--ios-wi-fi)
+      - [Offline mode (disk only)](#offline-mode-disk-only)
+  - [⚙️ Configuration](#️-configuration)
+  - [🛠 Development Tips](#-development-tips)
+  - [Documentation](#documentation)
+    - [Observers](#observers)
+    - [Log](#log)
+    - [Trace](#trace)
+    - [Error Logging](#error-logging)
+    - [Console / REPL](#console--repl)
+  - [Plugins](#plugins)
+    - [Built-in Plugins](#built-in-plugins)
+    - [Install Plugin Script](#install-plugin-script)
+  - [Recommendations](#recommendations)
+    - [Security](#security)
+      - [Console](#console)
+    - [Performance](#performance)
+      - [Level 1 — Disable at runtime (`debug = false`)](#level-1--disable-at-runtime-debug--false)
+      - [Level 2 — Guard the require](#level-2--guard-the-require)
+      - [Level 3 — Exclude from the release build (recommended)](#level-3--exclude-from-the-release-build-recommended)
+    - [In game observability](#in-game-observability)
+  - [📦 Built-in Lua Dependencies](#-built-in-lua-dependencies)
+  - [📋 Changelog](#-changelog)
+  - [📜 License](#-license)
+  - [🙏 Credits](#-credits)
+    - [Inspiration \& Architecture](#inspiration--architecture)
+    - [Lua Libraries \& Tools](#lua-libraries--tools)
 
 ---
 
@@ -108,6 +159,50 @@ local Feather = require "lib.feather"
 ```
 
 If you use `require("feather.auto")`, `FEATHER_PATH` is set for you — no manual step needed.
+
+---
+
+## 🔄 Updating the Embedded Lua Library
+
+When the Feather Lua library lives inside your game project. Updating it means replacing those files with a newer version.
+
+### Using the install script (recommended)
+
+Re-run the install script pointed at the target version tag. It overwrites existing files in place, so your game code that calls `require("feather")` keeps working without any changes:
+
+> NOTE: It does not delete unused files from previous versions.
+
+```bash
+# Update to a specific release
+FEATHER_BRANCH=v0.7.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Update to the latest commit on main
+bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Update into a custom directory
+FEATHER_DIR=lib/feather FEATHER_BRANCH=v0.7.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+```
+
+`FEATHER_BRANCH` accepts any Git ref — a tag (`v0.7.0`), a branch (`main`, `next`), or a full commit SHA.
+
+### Pinning to a version tag
+
+To stay on a known-good release and update deliberately, pin `FEATHER_BRANCH` to a release tag. Check the [releases page](https://github.com/Kyonru/feather/releases) for available tags:
+
+```bash
+# Pin to v0.6.0
+FEATHER_BRANCH=v0.6.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+```
+
+When you are ready to upgrade, change the tag and re-run.
+
+### Manual update
+
+1. Go to the [releases page](https://github.com/Kyonru/feather/releases) and download the zip for the target version.
+2. Unzip it and copy the `feather/` folder over your existing one (e.g. `lib/feather/`).
+3. If you also use standalone plugins from `plugins/`, copy those over separately.
+
+> **Tip:** Check the [CHANGELOG](CHANGELOG.md) before upgrading — breaking changes are listed there so you know what to adjust.
 
 ---
 
@@ -437,9 +532,71 @@ local debugger = FeatherDebugger({
 })
 ```
 
+#### Console
+
+This plugin should not be included in the final builds shipped to users, since it can lead to security breaches.
+
 ### Performance
 
-Feather is not meant to be used in production / final builds. It is meant to be used during development and debugging. To improve performance, you can set the `debug` option to `false` in the game.
+Feather is not meant to be used in production / final builds. There are three levels of removal, depending on how thoroughly you want to strip it:
+
+#### Level 1 — Disable at runtime (`debug = false`)
+
+The `debug` flag makes Feather a no-op: no WebSocket connection, no hooks, `update()` returns immediately. The library files are still packaged in the `.love` bundle but consume no CPU at runtime.
+
+```lua
+local debugger = FeatherDebugger({
+  debug = Config.IS_DEBUG, -- false in release builds
+})
+```
+
+This is the minimum requirement for shipping. The files are dormant but present.
+
+#### Level 2 — Guard the require
+
+Wrap the entire Feather setup in a conditional so the library is never loaded or required in production. Since `DEBUGGER` won't exist, guard `update()` too:
+
+```lua
+if Config.IS_DEBUG then
+  require("feather.auto").setup({ sessionName = "My Game" })
+end
+
+function love.update(dt)
+  if DEBUGGER then DEBUGGER:update(dt) end
+  -- rest of game update
+end
+```
+
+The files are still in the bundle but no Lua code runs and no globals are created.
+
+#### Level 3 — Exclude from the release build (recommended)
+
+Because Feather installs into a single directory (`feather/`), excluding it from the packaged `.love` file is a single glob. This is the cleanest option — the files are not shipped at all.
+
+**Manual zip:**
+
+```bash
+# Build a .love without feather
+zip -r MyGame.love . \
+  -x "*.git*" \
+  -x "lib/feather/*" # Or the location of your feather embedded installation
+```
+
+**[love-release](https://github.com/MisterDA/love-release)** — add to `.love-release.yml`:
+
+```yaml
+exclude:
+  - feather/
+```
+
+**[makelove](https://github.com/pfirsich/makelove)** — add to `makelove.toml`:
+
+```toml
+[love_files]
+exclude = ["feather/**"]
+```
+
+With this approach, no Feather code or assets are present in your release build, which also eliminates the Console plugin as a surface entirely.
 
 ### In game observability
 
