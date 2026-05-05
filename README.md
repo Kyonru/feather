@@ -372,26 +372,26 @@ Check out the [Feather Plugins](docs/plugins.md) documentation for more informat
 
 ### Built-in Plugins
 
-| Plugin                  | Description                                                                                                                                                          |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Screenshots**         | Capture screenshots and record GIFs. Gallery view with download.                                                                                                     |
-| **Console / REPL**      | Remote Lua code execution (opt-in, requires `apiKey`).                                                                                                               |
-| **Profiler**            | Function-level CPU profiling with start/stop.                                                                                                                        |
-| **Input Replay**        | Record and replay input sequences (keyboard, mouse, touch).                                                                                                          |
-| **Entity Inspector**    | ECS entity browser — register sources, browse and inspect live.                                                                                                      |
-| **Config Tweaker**      | Live game config editing from the desktop.                                                                                                                           |
-| **Bookmark**            | Mark and navigate to points of interest in game state.                                                                                                               |
-| **Network Inspector**   | HTTP/WS traffic monitor — wraps `socket.http` to intercept requests.                                                                                                 |
-| **Memory Snapshot**     | Heap snapshots, table size tracking, diff between snapshots for leak detection.                                                                                      |
-| **Physics Debug**       | Auto-render `love.physics` World overlay (bodies, joints, contacts, AABBs).                                                                                          |
-| **Particle Editor**     | Live ParticleSystem editor — tweak 30+ properties in real-time, export to Lua code.                                                                                  |
-| **Audio Debug**         | Inspect `love.audio` state — track sources, volumes, listener position, source limits.                                                                               |
-| **Coroutine Monitor**   | Track active coroutines — status (running/suspended/dead), yields per frame, lifetime stats.                                                                         |
-| **Collision Debug**     | Visualize [bump.lua](https://github.com/kikito/bump.lua) AABB worlds — bounding boxes, cell grid, collision logging.                                                 |
-| **Animation Inspector** | Inspect [anim8](https://github.com/kikito/anim8) sprite animations — current frame, speed, status, flip state.                                                       |
-| **Timer Inspector**     | Inspect [HUMP timer](https://hump.readthedocs.io/en/latest/timer.html) and [flux](https://github.com/rxi/flux) — progress bars, remaining time, cancel from desktop. |
-| **HUMP Signal**         | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).                                                                                   |
-| **Lua State Machine**   | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine).                                                                               |
+| Plugin                                                                   | Description                                                                                                                                                          |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [**Screenshots**](src-lua/plugins/screenshots/README.md)                 | Capture screenshots and record GIFs. Gallery view with download.                                                                                                     |
+| [**Console / REPL**](src-lua/plugins/console/README.md)                  | Remote Lua code execution (opt-in, requires `apiKey`).                                                                                                               |
+| [**Profiler**](src-lua/plugins/profiler/README.md)                       | Function-level CPU profiling with start/stop.                                                                                                                        |
+| [**Input Replay**](src-lua/plugins/input-replay/README.md)               | Record and replay input sequences (keyboard, mouse, touch).                                                                                                          |
+| [**Entity Inspector**](src-lua/plugins/entity-inspector/README.md)       | ECS entity browser — register sources, browse and inspect live.                                                                                                      |
+| [**Config Tweaker**](src-lua/plugins/config-tweaker/README.md)           | Live game config editing from the desktop.                                                                                                                           |
+| [**Bookmark**](src-lua/plugins/bookmark/README.md)                       | Mark and navigate to points of interest in game state.                                                                                                               |
+| [**Network Inspector**](src-lua/plugins/network-inspector/README.md)     | HTTP/WS traffic monitor — wraps `socket.http` to intercept requests.                                                                                                 |
+| [**Memory Snapshot**](src-lua/plugins/memory-snapshot/README.md)         | Heap snapshots, table size tracking, diff between snapshots for leak detection.                                                                                      |
+| [**Physics Debug**](src-lua/plugins/physics-debug/README.md)             | Auto-render `love.physics` World overlay (bodies, joints, contacts, AABBs).                                                                                          |
+| [**Particle Editor**](src-lua/plugins/particle-editor/README.md)         | Live ParticleSystem editor — tweak 30+ properties in real-time, export to Lua code.                                                                                  |
+| [**Audio Debug**](src-lua/plugins/audio-debug/README.md)                 | Inspect `love.audio` state — track sources, volumes, listener position, source limits.                                                                               |
+| [**Coroutine Monitor**](src-lua/plugins/coroutine-monitor/README.md)     | Track active coroutines — status (running/suspended/dead), yields per frame, lifetime stats.                                                                         |
+| [**Collision Debug**](src-lua/plugins/collision-debug/README.md)         | Visualize [bump.lua](https://github.com/kikito/bump.lua) AABB worlds — bounding boxes, cell grid, collision logging.                                                 |
+| [**Animation Inspector**](src-lua/plugins/animation-inspector/README.md) | Inspect [anim8](https://github.com/kikito/anim8) sprite animations — current frame, speed, status, flip state.                                                       |
+| [**Timer Inspector**](src-lua/plugins/timer-inspector/README.md)         | Inspect [HUMP timer](https://hump.readthedocs.io/en/latest/timer.html) and [flux](https://github.com/rxi/flux) — progress bars, remaining time, cancel from desktop. |
+| [**HUMP Signal**](src-lua/plugins/hump/signal/README.md)                 | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).                                                                                   |
+| [**Lua State Machine**](src-lua/plugins/lua-state-machine/README.md)     | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine).                                                                               |
 
 ### Install Plugin Script
 

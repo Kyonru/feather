@@ -3,17 +3,28 @@ import { Config, useConfigStore } from '@/store/config';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import { cn } from '@/utils/styles';
-import { MonitorIcon, CircleIcon, TriangleAlertIcon } from 'lucide-react';
+import {
+  MonitorIcon,
+  CircleIcon,
+  TriangleAlertIcon,
+  AppWindowIcon,
+  BotIcon,
+  GlobeIcon,
+  AppWindowMacIcon,
+  Smartphone,
+  BirdIcon,
+} from 'lucide-react';
 import { version } from '../../package.json';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-const osIcons: Record<string, string> = {
-  Windows: '🪟',
-  Linux: '🐧',
-  MacOS: '🍎',
-  Web: '🌐',
-  Android: '🤖',
-  iOS: '📱',
+const osIcons: Record<string, React.ReactNode> = {
+  Windows: <AppWindowIcon className="size-3" />,
+  Linux: <BirdIcon className="size-3" />,
+  MacOS: <AppWindowMacIcon className="size-3" />,
+  'OS X': <AppWindowMacIcon className="size-3" />,
+  Web: <GlobeIcon className="size-3" />,
+  Android: <BotIcon className="size-3" />,
+  iOS: <Smartphone className="size-3" />,
 };
 
 function SessionTab({
@@ -87,18 +98,18 @@ export function SessionTabs() {
   return (
     <div className="bg-muted flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto rounded-lg p-1 scrollbar-none no-scrollbar">
       {sessionList.map((session) => {
-          const cachedSessionConfig = queryClient.getQueryData<Config>(sessionQueryKey.config(session.id));
-          const hasVersionMismatch = !!cachedSessionConfig?.version && cachedSessionConfig.version !== version;
-          return (
-            <SessionTab
-              key={session.id}
-              session={session}
-              isActive={session.id === activeSessionId}
-              onClick={() => handleSessionClick(session)}
-              versionMismatch={hasVersionMismatch}
-            />
-          );
-        })}
+        const cachedSessionConfig = queryClient.getQueryData<Config>(sessionQueryKey.config(session.id));
+        const hasVersionMismatch = !!cachedSessionConfig?.version && cachedSessionConfig.version !== version;
+        return (
+          <SessionTab
+            key={session.id}
+            session={session}
+            isActive={session.id === activeSessionId}
+            onClick={() => handleSessionClick(session)}
+            versionMismatch={hasVersionMismatch}
+          />
+        );
+      })}
     </div>
   );
 }

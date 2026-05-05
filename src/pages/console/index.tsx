@@ -40,9 +40,7 @@ function ConsoleOutput({ entry, response }: { entry: ConsoleEntry; response?: Ev
         <div className="pl-4 text-muted-foreground italic">nil</div>
       )}
 
-      {!response && (
-        <div className="pl-4 text-muted-foreground italic">waiting...</div>
-      )}
+      {!response && <div className="pl-4 text-muted-foreground italic">waiting...</div>}
     </div>
   );
 }
@@ -130,7 +128,7 @@ export default function ConsolePage() {
 
   return (
     <PageLayout>
-      <div className="flex h-full flex-col px-4">
+      <div className="flex flex-1 flex-col min-h-0 px-4">
         {/* Toolbar */}
         <div className="mb-2 flex items-center gap-2">
           <h2 className="text-lg font-semibold">Console</h2>
@@ -142,17 +140,17 @@ export default function ConsolePage() {
         </div>
 
         {/* Output area */}
-        <ScrollArea className="flex-1 rounded-md border bg-muted/30 p-3" ref={scrollRef}>
+        <ScrollArea className="flex-1 rounded-md border bg-muted/30 p-3 min-h-0" ref={scrollRef}>
           {history.length === 0 ? (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <p className="text-sm">
-                {sessionId ? 'Type Lua code below and press Enter to execute.' : 'No active session. Connect a game to use the console.'}
+                {sessionId
+                  ? 'Type Lua code below and press Enter to execute.'
+                  : 'No active session. Connect a game to use the console.'}
               </p>
             </div>
           ) : (
-            history.map((entry) => (
-              <ConsoleOutput key={entry.id} entry={entry} response={responseMap.get(entry.id)} />
-            ))
+            history.map((entry) => <ConsoleOutput key={entry.id} entry={entry} response={responseMap.get(entry.id)} />)
           )}
         </ScrollArea>
 

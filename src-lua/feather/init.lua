@@ -112,10 +112,10 @@ function Feather:init(config)
     else
       self.deviceId = string.format(
         "%08x%08x%08x%08x",
-        math.random(0, 0x7FFFFFFF),
-        math.random(0, 0x7FFFFFFF),
-        math.random(0, 0x7FFFFFFF),
-        math.random(0, 0x7FFFFFFF)
+        love.math.random(0, 0x7FFFFFFF),
+        love.math.random(0, 0x7FFFFFFF),
+        love.math.random(0, 0x7FFFFFFF),
+        love.math.random(0, 0x7FFFFFFF)
       )
       love.filesystem.write(DEVICE_ID_FILE, self.deviceId)
     end
