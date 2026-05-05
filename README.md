@@ -15,9 +15,9 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 - 📱 **Multi-session support** — Connect multiple games simultaneously, each gets its own session tab.
 - 📲 **Mobile debugging** — Auto-detected local IP in Settings with copyable connection string for WiFi debugging.
 - 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly included and guarded by `apiKey`.
-- 📁 **Log file viewer** — Open `.featherlog` files manually for offline inspection (great for mobile devices).
-- ⚡ **Zero-config setup** — `require("feather.auto")` registers all plugins with sensible defaults.
-- 📦 **One-line installer** — `curl | bash` script to download core + plugins.
+- 📁 **Log file viewer** — Open `.featherlog` files manually for offline inspection (great for testing and later verification).
+- ⚡ **Zero-config setup** — `require("feather.auto")` registers all available plugins with sensible defaults.
+- 📦 **One-line installer** — `curl | bash` script to download core + plugins or later download plugins on demand.
 
 ---
 
@@ -39,7 +39,33 @@ This is the simplest approach, no package manager required.
 local Feather = require "lib.feather"
 ```
 
-### Option 2: LuaRocks
+### Option 2: Install Script
+
+Download the Feather library and all plugins with a single command:
+
+```bash
+curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh | bash
+```
+
+This creates a `feather/` directory (core library) and a `plugins/` directory (all built-in plugins) in your current folder.
+
+**Customize with environment variables:**
+
+```bash
+# Install into a custom directory
+FEATHER_DIR=lib/feather bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Download from a specific branch or tag
+FEATHER_BRANCH=v0.6.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Skip certain plugins
+FEATHER_SKIP_PLUGINS="network-inspector,memory-snapshot" bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Skip all plugins (core only)
+FEATHER_PLUGINS=0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+```
+
+### Option 3: LuaRocks
 
 Install globally and use `luarocks-loader` to resolve the path automatically:
 
@@ -65,32 +91,6 @@ Then add the local tree to your path:
 ```lua
 package.path = package.path .. ";./lua_modules/share/lua/5.1/?.lua"
 local Feather = require("feather")
-```
-
-### Option 3: Install Script
-
-Download the Feather library and all plugins with a single command:
-
-```bash
-curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh | bash
-```
-
-This creates a `feather/` directory (core library) and a `plugins/` directory (all built-in plugins) in your current folder.
-
-**Customize with environment variables:**
-
-```bash
-# Install into a custom directory
-FEATHER_DIR=lib/feather bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
-
-# Download from a specific branch or tag
-FEATHER_BRANCH=v0.6.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
-
-# Skip certain plugins
-FEATHER_SKIP_PLUGINS="network-inspector,memory-snapshot" bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
-
-# Skip all plugins (core only)
-FEATHER_PLUGINS=0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
 ```
 
 ---
@@ -132,12 +132,21 @@ require("feather.auto").setup({
 
 ```lua
 local FeatherDebugger = require "feather"
+local FeatherPluginManager = require "feather.plugin_manager"
+local ScreenshotPlugin = require "feather.plugins.screenshots"
 
 local debugger = FeatherDebugger({
   debug = Config.__IS_DEBUG, -- Make sure to only run in debug mode
   wrapPrint = true,
   defaultObservers = true,
   autoRegisterErrorHandler = true,
+  plugins = {
+    FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
+      screenshotDirectory = "screenshots", -- output folder for captures
+      fps = 30, -- frames per second for GIFs
+      gifDuration = 5, -- default duration of GIFs in seconds
+    }),
+  },
 })
 
 function love.update(dt)
@@ -368,43 +377,36 @@ Check out the [Feather Plugins](docs/plugins.md) documentation for more informat
 | **HUMP Signal**         | Integration with [HUMP signal](https://hump.readthedocs.io/en/latest/signal.html).                                                                                   |
 | **Lua State Machine**   | Integration with [lua-state-machine](https://github.com/kyleconroy/lua-state-machine).                                                                               |
 
-### TL;DR
+### Install Plugin Script
 
-Minimal example of a debugger file to load feather
+Add plugins to an existing Feather installation without re-running the full installer.
+
+```bash
+# Install one plugin
+bash install-plugin.sh screenshots
+
+# Install several at once
+bash install-plugin.sh screenshots profiler console
+
+# Install from a specific branch into a custom directory
+FEATHER_DIR=lib/feather FEATHER_BRANCH=dev bash install-plugin.sh entity-inspector config-tweaker
+
+# Pipe directly from GitHub
+curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-plugin.sh | bash -s -- screenshots profiler
+```
+
+Run without arguments to see the full list of available plugins:
+
+```bash
+bash install-plugin.sh
+```
+
+After installing, register the plugins in your setup:
 
 ```lua
--- debugger.lua
-local FeatherDebugger = require("lib.feather")
-local FeatherPluginManager = require("lib.feather.plugin_manager")
-local ScreenshotPlugin = require("lib.feather.plugins.screenshots")
-
-local debugger = {}
-
-function debugger:load()
-  debugger.feather = FeatherDebugger({
-    debug = true, -- Make sure to only run while on development
-    wrapPrint = true,
-    defaultObservers = true,
-    captureScreenshot = true,
-    autoRegisterErrorHandler = true,
-    errorWait = 10,
-    baseDir = "game",
-    sessionName = "My Game",
-    plugins = {
-      FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
-        screenshotDirectory = "screenshots", -- output folder for captures
-        fps = 30, -- frames per second for GIFs
-        gifDuration = 5, -- default duration of GIFs in seconds
-      }),
-    },
-  })
-end
-
-function debugger:update(dt)
-  debugger.feather:update(dt)
-end
-
-return debugger
+require("feather.auto").setup({
+  include = { "screenshots", "profiler" },
+})
 ```
 
 ## Recommendations
@@ -460,10 +462,6 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 ---
 
 ## 📜 License
-
-Feel free to use and remix this project for personal, educational, or non-commercial fun.
-
-Just don’t sell it, don’t make forks that let others sell it, and don’t use it for AI training — unless I say it’s okay.
 
 Full license: See [LICENSE.md](LICENSE.md)
 
