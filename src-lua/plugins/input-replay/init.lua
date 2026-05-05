@@ -550,6 +550,7 @@ function InputReplayPlugin:getConfig()
     type = "input-replay",
     icon = "play",
     tabName = "Input Replay",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/input-replay",
     actions = {
       { label = recordLabel, key = "record", icon = recordIcon, type = "button" },
       { label = replayLabel, key = "replay", icon = replayIcon, type = "button" },

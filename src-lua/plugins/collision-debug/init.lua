@@ -279,6 +279,7 @@ function CollisionDebugPlugin:getConfig()
     color = "#f97316",
     icon = "grid-3x3",
     tabName = "Collision",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/collision-debug",
     actions = {
       -- Toolbar
       {

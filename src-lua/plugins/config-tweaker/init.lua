@@ -174,6 +174,7 @@ function ConfigTweakerPlugin:getConfig()
     type = "config-tweaker",
     icon = "sliders-horizontal",
     tabName = "Config",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/config-tweaker",
     actions = actions,
   }
 end

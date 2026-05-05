@@ -292,6 +292,7 @@ function TimerInspectorPlugin:getConfig()
     color = "#06b6d4",
     icon = "timer",
     tabName = "Timers",
+    docs = "https://github.com/Kyonru/feather/blob/main/src-lua/plugins/timer-inspector",
     actions = {
       -- Toolbar
       { label = "Clear HUMP", key = "clear-hump", icon = "trash-2", type = "button" },

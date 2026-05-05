@@ -41,6 +41,7 @@ function HumpSignalPlugin:getConfig()
     type = self.type,
     color = "#FEA405",
     icon = "radio-tower",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/hump/signal",
   }
 end
 

@@ -327,6 +327,7 @@ function PhysicsDebugPlugin:getConfig()
     type = "physics",
     icon = "box",
     tabName = "Physics",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/physics-debug",
     actions = {
       {
         label = self.enabled and "Disable Overlay" or "Enable Overlay",

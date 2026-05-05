@@ -236,6 +236,7 @@ function AnimationInspectorPlugin:getConfig()
     color = "#ec4899",
     icon = "clapperboard",
     tabName = "Animations",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/animation-inspector",
     actions = {
       -- Toolbar
       { label = "Pause All", key = "pause-all", icon = "pause", type = "button" },

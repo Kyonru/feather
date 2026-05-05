@@ -76,7 +76,9 @@ end
 
 --- Convert a user-visible relative path to the love.filesystem path under the mount.
 local function mountedPath(relativePath)
-  if relativePath == "" then return SAVE_MOUNT end
+  if relativePath == "" then
+    return SAVE_MOUNT
+  end
   return SAVE_MOUNT .. "/" .. relativePath
 end
 
@@ -266,6 +268,7 @@ function FilesystemPlugin:getConfig()
     type = "filesystem",
     icon = "folder",
     tabName = "Filesystem",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/filesystem",
     actions = {
       -- Navigation bar
       { label = "Up", key = "up", icon = "folder-up", type = "button" },

@@ -913,6 +913,7 @@ function ParticleEditorPlugin:getConfig()
     type = "particle-editor",
     icon = "sparkles",
     tabName = "Particles",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/particle-editor",
     actions = actions,
   }
 end

@@ -45,6 +45,7 @@ function LuaStateMachinePlugin:getConfig()
     type = self.type,
     color = "#253900",
     icon = "workflow",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/lua-state-machine",
   }
 end
 

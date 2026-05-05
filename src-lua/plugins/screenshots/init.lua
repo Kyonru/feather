@@ -279,6 +279,7 @@ function ScreenshotPlugin:getConfig()
     type = self.type,
     color = "#003366",
     icon = "camera",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/screenshots",
     tabName = "Screenshots",
     actions = {
       {

@@ -440,6 +440,7 @@ function MemorySnapshotPlugin:getConfig()
     type = "memory",
     icon = "hard-drive",
     tabName = "Memory",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/memory-snapshot",
     actions = {
       {
         label = "Take Snapshot",

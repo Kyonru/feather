@@ -212,6 +212,7 @@ function ProfilerPlugin:getConfig()
     type = "profiler",
     icon = "timer",
     tabName = "Profiler",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/profiler",
     actions = {
       { label = "Reset", key = "reset", icon = "rotate-ccw", type = "button" },
     },

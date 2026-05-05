@@ -289,6 +289,7 @@ function CoroutineMonitorPlugin:getConfig()
     color = "#f59e0b",
     icon = "repeat",
     tabName = "Coroutines",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/coroutine-monitor",
     actions = {
       -- Toolbar
       { label = "Clear Dead", key = "clear-dead", icon = "trash-2", type = "button" },

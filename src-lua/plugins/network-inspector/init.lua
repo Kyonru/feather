@@ -347,6 +347,7 @@ function NetworkInspectorPlugin:getConfig()
     type = "network",
     icon = "wifi",
     tabName = "Network",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/network-inspector",
     actions = {
       {
         label = "Filter",

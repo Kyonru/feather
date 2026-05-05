@@ -247,6 +247,7 @@ function BookmarkPlugin:getConfig()
     type = "bookmark",
     icon = "bookmark",
     tabName = "Bookmarks",
+    docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/bookmark",
     actions = {
       {
         label = "Label",

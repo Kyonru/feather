@@ -11,6 +11,7 @@ import { useCallback, useRef } from 'react';
 import { useHref } from 'react-router';
 import { PluginContent } from './content';
 import { Checkbox } from '@/components/ui/checkbox';
+import { openUrl } from '@/utils/linking';
 
 const VectorInput = ({
   label,
@@ -285,6 +286,12 @@ export default function PluginPage() {
             <DynamicIcon className="size-4" name={plugin.disabled ? 'play' : 'pause'} />
             <div>{plugin.disabled ? 'Enable' : 'Disable'}</div>
           </Button>
+          {plugin.docs && (
+            <Button variant="outline" onClick={() => openUrl(plugin.docs)}>
+              <DynamicIcon className="size-4" name="book-open" />
+              <div>Docs</div>
+            </Button>
+          )}
           {toolbarActions.map((action) => (
             <PluginAction
               key={action.key}
