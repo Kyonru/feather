@@ -162,7 +162,7 @@ function InputReplayPlugin:stopReplay()
 end
 
 --- Called every frame by the plugin manager.
-function InputReplayPlugin:update(dt, feather)
+function InputReplayPlugin:update()
   if not self.replaying then
     return
   end

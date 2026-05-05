@@ -175,7 +175,6 @@ end
 
 function AnimationInspectorPlugin:handleActionRequest(request)
   local action = request.params and request.params.action
-  local target = request.params and request.params.target
 
   if action == "pause-all" then
     for _, entry in ipairs(self.animations) do

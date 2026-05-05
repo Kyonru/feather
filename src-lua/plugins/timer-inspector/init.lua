@@ -158,14 +158,6 @@ function TimerInspectorPlugin:handleRequest()
           local duration = t.rate > 0 and (1 / t.rate) or 0
           local remaining = duration * (1 - progress)
 
-          -- Get target field names
-          local fields = {}
-          if t.vars then
-            for k in pairs(t.vars) do
-              fields[#fields + 1] = k
-            end
-          end
-
           rows[#rows + 1] = {
             source = "flux",
             group = fluxEntry.name,

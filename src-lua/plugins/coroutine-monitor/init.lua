@@ -1,3 +1,4 @@
+---@diagnostic disable: duplicate-set-field
 local Class = require("feather.lib.class")
 local Base = require("feather.plugins.base")
 
@@ -90,6 +91,8 @@ function CoroutineMonitorPlugin:hook()
   end
   local plugin = self
 
+  -- luacheck: push
+  -- luacheck: ignore 122
   -- Hook coroutine.create
   self._origCreate = coroutine.create
   coroutine.create = function(f)
@@ -130,6 +133,7 @@ function CoroutineMonitorPlugin:hook()
     end
     return unpack(results)
   end
+  -- luacheck: pop
 
   self._hooked = true
 end
@@ -139,6 +143,8 @@ function CoroutineMonitorPlugin:unhook()
   if not self._hooked then
     return
   end
+  -- luacheck: push
+  -- luacheck: ignore 122
   if self._origCreate then
     coroutine.create = self._origCreate
     self._origCreate = nil
@@ -151,6 +157,7 @@ function CoroutineMonitorPlugin:unhook()
     coroutine.resume = self._origResume
     self._origResume = nil
   end
+  -- luacheck: pop
   self._hooked = false
 end
 
@@ -195,9 +202,7 @@ function CoroutineMonitorPlugin:handleRequest()
     end
 
     local age = now - entry.created
-    local lastYield = entry.lastYieldTime > 0
-        and string.format("%.1fs ago", now - entry.lastYieldTime)
-      or "—"
+    local lastYield = entry.lastYieldTime > 0 and string.format("%.1fs ago", now - entry.lastYieldTime) or "—"
 
     rows[#rows + 1] = {
       name = entry.label,
@@ -257,7 +262,7 @@ function CoroutineMonitorPlugin:handleParamsUpdate(request)
 end
 
 function CoroutineMonitorPlugin:getConfig()
-  local activeCount = 0
+  local activeCount
   local suspendedCount = 0
   local deadCount = 0
   local runningCount = 0
@@ -291,29 +296,71 @@ function CoroutineMonitorPlugin:getConfig()
       { label = "Show Dead", key = "showDead", icon = "eye", type = "checkbox", value = tostring(self.showDead) },
 
       -- Summary card
-      { label = "Tracked", key = "tracked", icon = "list", type = "input",
+      {
+        label = "Tracked",
+        key = "tracked",
+        icon = "list",
+        type = "input",
         value = tostring(#self.tracked),
-        props = { disabled = true }, group = "Summary" },
-      { label = "Active", key = "active", icon = "play", type = "input",
+        props = { disabled = true },
+        group = "Summary",
+      },
+      {
+        label = "Active",
+        key = "active",
+        icon = "play",
+        type = "input",
         value = tostring(activeCount),
-        props = { disabled = true }, group = "Summary" },
-      { label = "Suspended", key = "suspended", icon = "pause", type = "input",
+        props = { disabled = true },
+        group = "Summary",
+      },
+      {
+        label = "Suspended",
+        key = "suspended",
+        icon = "pause",
+        type = "input",
         value = tostring(suspendedCount),
-        props = { disabled = true }, group = "Summary" },
-      { label = "Running", key = "running", icon = "zap", type = "input",
+        props = { disabled = true },
+        group = "Summary",
+      },
+      {
+        label = "Running",
+        key = "running",
+        icon = "zap",
+        type = "input",
         value = tostring(runningCount),
-        props = { disabled = true }, group = "Summary" },
-      { label = "Dead", key = "dead", icon = "x-circle", type = "input",
+        props = { disabled = true },
+        group = "Summary",
+      },
+      {
+        label = "Dead",
+        key = "dead",
+        icon = "x-circle",
+        type = "input",
         value = tostring(deadCount),
-        props = { disabled = true }, group = "Summary" },
+        props = { disabled = true },
+        group = "Summary",
+      },
 
       -- Lifetime card
-      { label = "Total Created", key = "totalCreated", icon = "plus-circle", type = "input",
+      {
+        label = "Total Created",
+        key = "totalCreated",
+        icon = "plus-circle",
+        type = "input",
         value = tostring(self.totalCreated),
-        props = { disabled = true }, group = "Lifetime" },
-      { label = "Total Dead", key = "totalDead", icon = "minus-circle", type = "input",
+        props = { disabled = true },
+        group = "Lifetime",
+      },
+      {
+        label = "Total Dead",
+        key = "totalDead",
+        icon = "minus-circle",
+        type = "input",
         value = tostring(self.totalDead),
-        props = { disabled = true }, group = "Lifetime" },
+        props = { disabled = true },
+        group = "Lifetime",
+      },
     },
   }
 end

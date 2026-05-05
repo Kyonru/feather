@@ -2,18 +2,6 @@ local Class = require("feather.lib.class")
 local Base = require("feather.plugins.base")
 local inspect = require("feather.lib.inspect")
 
-local gettime
-do
-  local ok, socket = pcall(require, "socket")
-  if ok and socket and socket.gettime then
-    gettime = socket.gettime
-  elseif love and love.timer then
-    gettime = love.timer.getTime
-  else
-    gettime = os.clock
-  end
-end
-
 --- Resolve a value: if it's a function, call it; otherwise return as-is.
 ---@param v any
 ---@return any
@@ -60,12 +48,6 @@ local KNOWN_PROPS = {
   "vx", "vy",
   "layer", "zIndex", "order",
 }
-
---- Build a lookup set for fast checks.
-local KNOWN_SET = {}
-for _, k in ipairs(KNOWN_PROPS) do
-  KNOWN_SET[k] = true
-end
 
 ---@class EntitySource
 ---@field name string Display name for this source

@@ -61,7 +61,6 @@ CORE_FILES=(
   "feather/plugin_manager.lua"
   "feather/error_handler.lua"
   "feather/utils.lua"
-  "feather/server_utils.lua"
   "feather/auto.lua"
   "feather/lib/class.lua"
   "feather/lib/json.lua"
