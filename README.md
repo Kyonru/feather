@@ -16,6 +16,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
     - [Option 2: Install Script](#option-2-install-script)
     - [Option 3: LuaRocks](#option-3-luarocks)
     - [`FEATHER_PATH` — Custom Install Location](#feather_path--custom-install-location)
+    - [`FEATHER_PLUGIN_PATH` — Plugins in a Different Location](#feather_plugin_path--plugins-in-a-different-location)
   - [🔄 Updating the Embedded Lua Library](#-updating-the-embedded-lua-library)
     - [Using the install script (recommended)](#using-the-install-script-recommended)
     - [Pinning to a version tag](#pinning-to-a-version-tag)
@@ -62,7 +63,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 - 🔍 **Variable inspection** — Watch values update in real-time.
 - 🚨 **Error capturing** — Automatically catch and display errors with optional delivery delay.
 - 📸 **Screenshots & GIF capture** — Capture screenshots and record GIFs from your game via the built-in plugin.
-- 🔌 **Plugin system** — 18 built-in plugins + custom ones. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
+- 🔌 **Plugin system** — +18 built-in plugins + custom ones. Server-driven UI: plugins define their actions in Lua, the desktop renders them automatically.
 - 📱 **Multi-session support** — Connect multiple games simultaneously, each gets its own session tab.
 - 📲 **Mobile debugging** — Auto-detected local IP in Settings with copyable connection string for WiFi debugging.
 - 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly included and guarded by `apiKey`.
@@ -174,50 +175,6 @@ require("lib.feather.auto")
 ```
 
 Both variables must end with a `.` (dot) when set manually, and must be set **before** `require("feather.auto")` is called.
-
----
-
-## 🔄 Updating the Embedded Lua Library
-
-When the Feather Lua library lives inside your game project. Updating it means replacing those files with a newer version.
-
-### Using the install script (recommended)
-
-Re-run the install script pointed at the target version tag. It overwrites existing files in place, so your game code that calls `require("feather")` keeps working without any changes:
-
-> NOTE: It does not delete unused files from previous versions.
-
-```bash
-# Update to a specific release
-FEATHER_BRANCH=v0.7.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
-
-# Update to the latest commit on main
-bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
-
-# Update into a custom directory
-FEATHER_DIR=lib/feather FEATHER_BRANCH=v0.7.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
-```
-
-`FEATHER_BRANCH` accepts any Git ref — a tag (`v0.7.0`), a branch (`main`, `next`), or a full commit SHA.
-
-### Pinning to a version tag
-
-To stay on a known-good release and update deliberately, pin `FEATHER_BRANCH` to a release tag. Check the [releases page](https://github.com/Kyonru/feather/releases) for available tags:
-
-```bash
-# Pin to v0.6.0
-FEATHER_BRANCH=v0.6.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
-```
-
-When you are ready to upgrade, change the tag and re-run.
-
-### Manual update
-
-1. Go to the [releases page](https://github.com/Kyonru/feather/releases) and download the zip for the target version.
-2. Unzip it and copy the `feather/` folder over your existing one (e.g. `lib/feather/`).
-3. If you also use standalone plugins from `plugins/`, copy those over separately.
-
-> **Tip:** Check the [CHANGELOG](CHANGELOG.md) before upgrading — breaking changes are listed there so you know what to adjust.
 
 ---
 
@@ -680,7 +637,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 **Latest — [v0.6.0](https://github.com/Kyonru/feather/releases/tag/v0.6.0) — The one with the plugin ecosystem**
 
-- 18 built-in plugins: screenshots, console, profiler, input replay, entity inspector, config tweaker, bookmark, network inspector, memory snapshot, physics debug, particle editor, audio debug, coroutine monitor, collision debug, animation inspector, timer inspector, HUMP signal, lua-state-machine
+- +18 built-in plugins: screenshots, console, profiler, input replay, entity inspector, config tweaker, bookmark, network inspector, memory snapshot, physics debug, particle editor, audio debug, coroutine monitor, collision debug, animation inspector, timer inspector, HUMP signal, lua-state-machine, filesystem
 - Grouped card layout for plugins with many inputs (server-driven UI)
 - Plugin enable/disable toggle from desktop
 - Zero-config `auto.lua` entry point with `exclude`/`include`/`pluginOptions`
