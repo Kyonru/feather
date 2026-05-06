@@ -15,7 +15,7 @@ const TrendingBadge = ({ value }: { value?: number }) => {
   return (
     <Badge variant="outline">
       {trend}
-      {formatted.toFixed(2)}%
+      {(formatted * 100).toFixed(2)}%
     </Badge>
   );
 };
@@ -43,26 +43,21 @@ export function SectionCards({
   }, [data]);
 
   const FPSIncrease = useMemo(() => {
+    if (!FPSAverage) return 0;
     const last = data[data.length - 1] || DEFAULT_METRIC;
-    const first = data[0] || DEFAULT_METRIC;
-
-    return (last.fps - first.fps) / first.fps;
-  }, [FPSAverage]);
+    return (last.fps - FPSAverage) / FPSAverage;
+  }, [data, FPSAverage]);
 
   const MemoryAverage = useMemo(() => {
-    const sum = data.reduce((acc, item) => {
-      return acc + item.memory;
-    }, 0);
-
-    return sum / data.length;
+    if (!data.length) return 0;
+    return data.reduce((acc, item) => acc + item.memory, 0) / data.length;
   }, [data]);
 
   const MemoryIncrease = useMemo(() => {
+    if (!MemoryAverage) return 0;
     const last = data[data.length - 1] || DEFAULT_METRIC;
-    const first = data[0] || DEFAULT_METRIC;
-
-    return (last.memory - first.memory) / first.memory;
-  }, [MemoryAverage]);
+    return (last.memory - MemoryAverage) / MemoryAverage;
+  }, [data, MemoryAverage]);
 
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-3 @5xl/main:grid-cols-5">
