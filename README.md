@@ -160,6 +160,21 @@ local Feather = require "lib.feather"
 
 If you use `require("feather.auto")`, `FEATHER_PATH` is set for you — no manual step needed.
 
+### `FEATHER_PLUGIN_PATH` — Plugins in a Different Location
+
+`FEATHER_PLUGIN_PATH` tells `feather.auto` where to find the built-in plugins. By default it mirrors `FEATHER_PATH`, so if your plugins live alongside the core library you don't need to set it.
+
+Set it manually when the `plugins/` folder is installed somewhere different from the `feather/` core — for example, if your project separates vendor libraries from game-specific code:
+
+```lua
+-- Core library is at lib/feather/, plugins are at lib/feather-plugins/
+FEATHER_PATH        = "lib.feather."
+FEATHER_PLUGIN_PATH = "lib.feather-plugins."
+require("lib.feather.auto")
+```
+
+Both variables must end with a `.` (dot) when set manually, and must be set **before** `require("feather.auto")` is called.
+
 ---
 
 ## 🔄 Updating the Embedded Lua Library

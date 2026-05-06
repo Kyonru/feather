@@ -423,6 +423,97 @@ return {
 }
 ```
 
+## Adding plugins to `feather.auto`
+
+`feather.auto` registers all built-in plugins for you. You can extend it with your own plugins through the `plugins` key in `setup()`, without giving up the zero-config defaults.
+
+### Append a custom plugin
+
+Pass additional plugins via `config.plugins`. They are appended after all built-in plugins:
+
+```lua
+local FeatherPluginManager = require("feather.plugin_manager")
+local MyPlugin = require("my-plugin")
+
+require("feather.auto").setup({
+  plugins = {
+    FeatherPluginManager.createPlugin(MyPlugin, "my-plugin", {
+      option1 = "value1",
+    }),
+  },
+})
+```
+
+`DEBUGGER` is created as usual, and your plugin appears in the sidebar alongside the built-in ones.
+
+### Start a custom plugin disabled
+
+Pass `true` as the fourth argument to `createPlugin`. The plugin is registered and visible in the desktop UI, but starts inactive — users can enable it from the desktop without restarting.
+
+```lua
+FeatherPluginManager.createPlugin(MyPlugin, "my-plugin", { option1 = "value1" }, true)
+```
+
+### Force-enable a built-in plugin
+
+Built-in plugins that are `optIn` (like `console`) or start `disabled` are not active by default. Add their IDs to `config.include` to force-enable them:
+
+```lua
+require("feather.auto").setup({
+  include = { "console", "physics-debug" },
+})
+```
+
+`include` both registers `optIn` plugins (which would otherwise be skipped entirely) and activates `disabled` ones.
+
+### Exclude a built-in plugin
+
+Remove a built-in plugin entirely with `config.exclude`. It won't be registered at all:
+
+```lua
+require("feather.auto").setup({
+  exclude = { "network-inspector", "memory-snapshot" },
+})
+```
+
+### Override built-in plugin options
+
+Pass per-plugin option overrides via `config.pluginOptions`, keyed by plugin ID. Options are merged over the built-in defaults:
+
+```lua
+require("feather.auto").setup({
+  pluginOptions = {
+    screenshots = { fps = 60, gifDuration = 10 },
+    ["memory-snapshot"] = { autoInterval = 5 },
+  },
+})
+```
+
+### Full example
+
+```lua
+local FeatherPluginManager = require("feather.plugin_manager")
+local MyPlugin = require("my-plugin")
+local AnotherPlugin = require("another-plugin")
+
+require("feather.auto").setup({
+  sessionName = "My Game",
+  -- Force-enable built-in opt-in plugins
+  include = { "console" },
+  -- Remove plugins you don't need
+  exclude = { "hump.signal", "lua-state-machine" },
+  -- Override options for specific built-in plugins
+  pluginOptions = {
+    screenshots = { fps = 60 },
+  },
+  -- Append your own plugins
+  plugins = {
+    FeatherPluginManager.createPlugin(MyPlugin, "my-plugin", { debug = true }),
+    FeatherPluginManager.createPlugin(AnotherPlugin, "another-plugin", {}, true), -- starts disabled
+  },
+})
+```
+
 ## Using Plugin Actions
 
 Plugins can be triggered from game code at runtime using `debugger:action()`:
