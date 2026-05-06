@@ -13,6 +13,7 @@ import {
   AppWindowMacIcon,
   Smartphone,
   BirdIcon,
+  XIcon,
 } from 'lucide-react';
 import { version } from '../../package.json';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,32 +32,42 @@ function SessionTab({
   session,
   isActive,
   onClick,
+  onRemove,
   versionMismatch,
 }: {
   session: SessionInfo;
   isActive: boolean;
   onClick: () => void;
+  onRemove: () => void;
   versionMismatch: boolean;
 }) {
   const osIcon = session.os ? osIcons[session.os] : undefined;
 
   const tab = (
-    <button
-      onClick={onClick}
+    <div
       className={cn(
-        'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors',
+        'group relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors',
         'hover:bg-accent hover:text-accent-foreground',
         isActive && 'bg-background text-foreground shadow-sm border border-border',
         !isActive && 'text-muted-foreground',
       )}
     >
-      <CircleIcon
-        className={cn('size-2 fill-current', session.connected ? 'text-green-500' : 'text-muted-foreground/50')}
-      />
-      {osIcon ? <span className="text-xs">{osIcon}</span> : <MonitorIcon className="size-3" />}
-      <span className="max-w-[100px] truncate">{session.name || session.id.slice(0, 8)}</span>
-      {versionMismatch && <TriangleAlertIcon className="size-3 text-yellow-500" />}
-    </button>
+      <button onClick={onClick} className="flex items-center gap-1.5">
+        <CircleIcon
+          className={cn('size-2 fill-current', session.connected ? 'text-green-500' : 'text-muted-foreground/50')}
+        />
+        {osIcon ? <span className="text-xs">{osIcon}</span> : <MonitorIcon className="size-3" />}
+        <span className="max-w-[100px] truncate">{session.name || session.id.slice(0, 8)}</span>
+        {versionMismatch && <TriangleAlertIcon className="size-3 text-yellow-500" />}
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        className="opacity-0 group-hover:opacity-100 -mr-1 rounded hover:text-foreground transition-opacity"
+        aria-label="Remove session"
+      >
+        <XIcon className="size-3" />
+      </button>
+    </div>
   );
 
   if (versionMismatch) {
@@ -78,6 +89,7 @@ export function SessionTabs() {
   const sessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.sessionId);
   const setActiveSession = useSessionStore((state) => state.setActiveSession);
+  const removeSession = useSessionStore((state) => state.removeSession);
   const setConfig = useConfigStore((state) => state.setConfig);
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
 
@@ -106,6 +118,10 @@ export function SessionTabs() {
             session={session}
             isActive={session.id === activeSessionId}
             onClick={() => handleSessionClick(session)}
+            onRemove={() => {
+              queryClient.removeQueries({ queryKey: [session.id] });
+              removeSession(session.id);
+            }}
             versionMismatch={hasVersionMismatch}
           />
         );
