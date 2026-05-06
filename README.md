@@ -221,6 +221,50 @@ When you are ready to upgrade, change the tag and re-run.
 
 ---
 
+## 🔄 Updating the Embedded Lua Library
+
+When the Feather Lua library lives inside your game project. Updating it means replacing those files with a newer version.
+
+### Using the install script (recommended)
+
+Re-run the install script pointed at the target version tag. It overwrites existing files in place, so your game code that calls `require("feather")` keeps working without any changes:
+
+> NOTE: It does not delete unused files from previous versions.
+
+```bash
+# Update to a specific release
+FEATHER_BRANCH=v0.7.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Update to the latest commit on main
+bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Update into a custom directory
+FEATHER_DIR=lib/feather FEATHER_BRANCH=v0.7.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+```
+
+`FEATHER_BRANCH` accepts any Git ref — a tag (`v0.7.0`), a branch (`main`, `next`), or a full commit SHA.
+
+### Pinning to a version tag
+
+To stay on a known-good release and update deliberately, pin `FEATHER_BRANCH` to a release tag. Check the [releases page](https://github.com/Kyonru/feather/releases) for available tags:
+
+```bash
+# Pin to v0.6.0
+FEATHER_BRANCH=v0.6.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+```
+
+When you are ready to upgrade, change the tag and re-run.
+
+### Manual update
+
+1. Go to the [releases page](https://github.com/Kyonru/feather/releases) and download the zip for the target version.
+2. Unzip it and copy the `feather/` folder over your existing one (e.g. `lib/feather/`).
+3. If you also use standalone plugins from `plugins/`, copy those over separately.
+
+> **Tip:** Check the [CHANGELOG](CHANGELOG.md) before upgrading — breaking changes are listed there so you know what to adjust.
+
+---
+
 ## 🚀 Usage
 
 ### Quick Start (Zero Config)
