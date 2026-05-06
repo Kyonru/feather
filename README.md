@@ -37,6 +37,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
     - [Trace](#trace)
     - [Error Logging](#error-logging)
     - [Console / REPL](#console--repl)
+    - [Step Debugger](#step-debugger)
   - [Plugins](#plugins)
     - [Built-in Plugins](#built-in-plugins)
     - [Install Plugin Script](#install-plugin-script)
@@ -67,6 +68,7 @@ It lets you **inspect logs, variables, performance metrics, and errors in real-t
 - 📱 **Multi-session support** — Connect multiple games simultaneously, each gets its own session tab.
 - 📲 **Mobile debugging** — Auto-detected local IP in Settings with copyable connection string for WiFi debugging.
 - 💻 **Console / REPL** — Optional plugin to execute Lua code in the running game. Must be explicitly included and guarded by `apiKey`.
+- 🐛 **Step Debugger** — Breakpoints, step over/into/out, call stack, and local variable inspection. Pauses the game loop and resumes from the desktop.
 - 📁 **Log file viewer** — Open `.featherlog` files manually for offline inspection (great for testing and later verification).
 - ⚡ **Zero-config setup** — `require("feather.auto")` registers all available plugins with sensible defaults.
 - 📦 **One-line installer** — `curl | bash` script to download core + plugins or later download plugins on demand.
@@ -377,6 +379,7 @@ Then transfer the `.featherlog` file from the device and open it in the Feather 
 | `retryInterval`            | `number`   | `5`                 | Seconds between WebSocket reconnection attempts.                                   |
 | `connectTimeout`           | `number`   | `2`                 | Seconds to wait for initial WS connection.                                         |
 | `apiKey`                   | `string`   | `""`                | API key for authenticated connections.                                             |
+| `debugger`                 | `boolean`  | `false`             | Enable the step debugger (breakpoints, step over/into/out, locals inspection).     |
 
 ---
 
@@ -478,6 +481,44 @@ Plugin options:
 > **Security:** `apiKey` must be configured and non-empty in both the game and Feather desktop settings. The Console will refuse to execute code without a matching key.
 
 > **Warning:** DO NOT ENABLE THIS IN PRODUCTION. This is intended for local development only.
+
+### Step Debugger
+
+The step debugger lets you pause game execution at any line, inspect local variables and the call stack, and resume with continue, step over, step into, or step out — all from the **Debugger** tab in the Feather desktop app.
+
+**Enable in config:**
+
+```lua
+local debugger = FeatherDebugger({
+  debug = true,
+  debugger = true, -- enable step debugger
+})
+```
+
+Or leave `debugger = false` and toggle it on at runtime from the desktop without restarting the game.
+
+**Setting breakpoints:**
+
+Breakpoints are managed from the Debugger tab. Enter a file path and line number, or toggle individual breakpoints on/off. Breakpoints persist across desktop restarts (stored in `localStorage`). They are synced to the game whenever the debugger is enabled or a breakpoint is added/removed.
+
+```text
+src-lua/main.lua   line 42   ● (active)
+src-lua/player.lua line 87   ○ (disabled)
+```
+
+Conditional breakpoints are supported — enter a Lua expression in the condition field; the game only pauses when it evaluates to true.
+
+**While paused:**
+
+- **Call Stack** — full stack trace showing file, line, and function name for each frame.
+- **Variables** — locals and upvalues of the paused frame, expanded one level deep for tables.
+- **Controls** — Continue (resume freely), Step Over (next line, same depth), Step Into (follow function calls), Step Out (run until caller returns).
+
+**How it works:**
+
+The Lua `debug.sethook` line hook fires on every executed line. When a breakpoint is hit (or a step condition is met), the game's `love.update` loop blocks in a tight poll while the WS client keeps running, so the desktop stays connected and commands arrive normally. Resuming any step command unblocks the loop and reinstalls the hook for the next pause.
+
+> **Note:** The step debugger uses `debug.sethook` which adds overhead to every executed line. Enable it only during active debugging sessions and disable it when not in use for best performance.
 
 ## Plugins
 

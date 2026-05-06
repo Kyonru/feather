@@ -47,10 +47,17 @@
     "fs:read-all",
     "fs:allow-read",
     "fs:allow-read-file",
+    "fs:allow-read-dir",
     "fs:allow-data-read",
     "fs:allow-data-read-recursive",
     "fs:allow-applocaldata-read-recursive",
     "fs:allow-app-read-recursive",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$HOME/**" }
+      ]
+    },
     "dialog:default",
     "dialog:allow-open",
     "dialog:allow-save",

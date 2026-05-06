@@ -263,7 +263,8 @@ DEBUGGER = FeatherDebugger({
   autoRegisterErrorHandler = true,
   baseDir = "src-lua",
   apiKey = "debugger",
-  captureScreenshot = true,
+  captureScreenshot = false,
+  debugger = true,
   debug = true,
   plugins = {
     FeatherPluginManager.createPlugin(TestPlugin, "test", {
@@ -417,10 +418,6 @@ if profiler then
   Game.load = profiler.instance:wrap("Game.load", Game.load)
 end
 
-print("Feather Debugger initialized with plugins:")
-print(#DEBUGGER.pluginManager:getPlugins())
-
-love.event.quit()
 -- Demo: track tables for the memory snapshot plugin
 local memSnapshot = DEBUGGER.pluginManager:getPlugin("memory-snapshot")
 if memSnapshot then

@@ -13,6 +13,7 @@ local FeatherPluginManager = require(FEATHER_PATH .. ".plugin_manager")
 local FeatherLogger = require(FEATHER_PATH .. ".plugins.logger")
 local FeatherObserver = require(FEATHER_PATH .. ".plugins.observer")
 local FeatherPerformance = require(FEATHER_PATH .. ".plugins.performance")
+local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
 
@@ -70,6 +71,7 @@ local customErrorHandler = errorhandler
 ---@field writeToDisk? boolean  Whether to write logs to .featherlog files (default true)
 ---@field retryInterval? number
 ---@field connectTimeout? number
+---@field debugger? boolean  Enable the step debugger (default false)
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -91,6 +93,7 @@ function Feather:init(config)
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
   self.plugins = conf.plugins or {}
   self.mode = conf.mode or "socket"
+  self.debuggerEnabled = conf.debugger or false
   self.writeToDisk = conf.writeToDisk ~= false
   self.retryInterval = conf.retryInterval or 5
   self.connectTimeout = conf.connectTimeout or 2
@@ -149,6 +152,12 @@ function Feather:init(config)
   end
 
   self.pluginManager = FeatherPluginManager(self, self.featherLogger, self.featherObserver)
+
+  ---@type FeatherDebugger
+  self.featherDebugger = FeatherDebugger(self)
+  if self.debuggerEnabled then
+    self.featherDebugger:enable()
+  end
 
   if self.mode == "disk" then
     self.featherLogger:log({ type = "feather:start" })
@@ -229,6 +238,7 @@ function Feather:__getConfig()
     sysInfo = self.performance.sysInfo,
     deviceId = self.deviceId,
     sessionName = self.sessionName,
+    debugger = { enabled = self.debuggerEnabled },
   }
 end
 
@@ -297,6 +307,22 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:plugin:toggle" and msg.plugin then
     self.pluginManager:togglePlugin(msg.plugin)
     self:__sendHello()
+  elseif msg.type == "cmd:debugger:enable" then
+    self.debuggerEnabled = true
+    self.featherDebugger:enable()
+  elseif msg.type == "cmd:debugger:disable" then
+    self.debuggerEnabled = false
+    self.featherDebugger:disable()
+  elseif msg.type == "cmd:debugger:set_breakpoints" and msg.data then
+    self.featherDebugger:setBreakpoints(msg.data.breakpoints or {})
+  elseif msg.type == "cmd:debugger:continue" then
+    self.featherDebugger:resume(nil)
+  elseif msg.type == "cmd:debugger:step_over" then
+    self.featherDebugger:resume("over")
+  elseif msg.type == "cmd:debugger:step_into" then
+    self.featherDebugger:resume("into")
+  elseif msg.type == "cmd:debugger:step_out" then
+    self.featherDebugger:resume("out")
   -- Server-driven data requests: Feather desktop asks, Lua responds
   elseif msg.type == "req:config" then
     self:__sendHello()

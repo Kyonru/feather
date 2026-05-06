@@ -13,6 +13,7 @@ import type { PluginContentProps, PluginDataType } from './use-plugin';
 import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
+import { useDebuggerStore, type PausedState } from '@/store/debugger';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -54,6 +55,8 @@ export const useWsConnection = () => {
   const clearSession = useSessionStore((state) => state.clearSession);
   const addSession = useSessionStore((state) => state.addSession);
   const connectionTimeout = useSettingsStore((state) => state.connectionTimeout);
+  const setPausedState = useDebuggerStore((state) => state.setPausedState);
+  const setDebuggerEnabled = useDebuggerStore((state) => state.setEnabled);
   const lastMessageRef = useRef<number>(Date.now());
 
   // Connection health monitor: if no message within timeout, mark disconnected
@@ -99,7 +102,7 @@ export const useWsConnection = () => {
             invoke('send_command', {
               sessionId,
               message: JSON.stringify({ type: 'req:config' }),
-            }).catch(() => { });
+            }).catch(() => {});
           }
         }
 
@@ -113,9 +116,7 @@ export const useWsConnection = () => {
             const deviceId = config.deviceId;
             if (deviceId) {
               const sessions = useSessionStore.getState().sessions;
-              const oldSession = Object.values(sessions).find(
-                (s) => s.deviceId === deviceId && s.id !== sessionId,
-              );
+              const oldSession = Object.values(sessions).find((s) => s.deviceId === deviceId && s.id !== sessionId);
               if (oldSession) {
                 // Carry over logs, performance, observers from old session
                 const oldLogs = queryClient.getQueryData<Log[]>(sessionQueryKey.logs(oldSession.id));
@@ -141,6 +142,26 @@ export const useWsConnection = () => {
             setConfig(config);
             setDisconnected(false);
             queryClient.setQueryData(sessionQueryKey.config(sessionId), config);
+            const debuggerState = useDebuggerStore.getState();
+            const shouldEnable = config.debugger?.enabled || debuggerState.defaultEnabled;
+            console.log('Debugger enabled for session', sessionId);
+            if (shouldEnable) {
+              setDebuggerEnabled(sessionId, true);
+              invoke('send_command', {
+                sessionId,
+                message: JSON.stringify({ type: 'cmd:debugger:enable' }),
+              }).catch(() => {});
+              const stored = debuggerState.breakpoints.filter((b) => b.enabled);
+              if (stored.length > 0) {
+                invoke('send_command', {
+                  sessionId,
+                  message: JSON.stringify({
+                    type: 'cmd:debugger:set_breakpoints',
+                    data: { breakpoints: stored.map(({ file, line, condition }) => ({ file, line, condition })) },
+                  }),
+                }).catch(() => {});
+              }
+            }
 
             // Register session with OS info for the session tabs
             addSession({
@@ -187,11 +208,7 @@ export const useWsConnection = () => {
             const pluginData = data as PluginContentProps;
 
             queryClient.setQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId), (prev) => {
-              if (
-                pluginData?.type === 'gallery' &&
-                pluginData.persist &&
-                prev?.type === 'gallery'
-              ) {
+              if (pluginData?.type === 'gallery' && pluginData.persist && prev?.type === 'gallery') {
                 return {
                   ...pluginData,
                   data: unionBy<PluginDataType, string>(prev.data, pluginData.data, (item) => item.name),
@@ -213,19 +230,24 @@ export const useWsConnection = () => {
               saveFileDialog({
                 defaultPath: filename,
                 filters: [{ name: 'All Files', extensions: [extension] }],
-              }).then(async (path) => {
-                if (!path) return;
-                await writeTextFile(path, content);
-                toast.success(`Saved to ${path}`);
-              }).catch(() => {
-                toast.error('Failed to save file');
-              });
+              })
+                .then(async (path) => {
+                  if (!path) return;
+                  await writeTextFile(path, content);
+                  toast.success(`Saved to ${path}`);
+                })
+                .catch(() => {
+                  toast.error('Failed to save file');
+                });
             } else if (response.clipboard) {
-              navigator.clipboard.writeText(response.clipboard).then(() => {
-                toast.success('Copied to clipboard');
-              }).catch(() => {
-                toast.error('Failed to copy to clipboard');
-              });
+              navigator.clipboard
+                .writeText(response.clipboard)
+                .then(() => {
+                  toast.success('Copied to clipboard');
+                })
+                .catch(() => {
+                  toast.error('Failed to copy to clipboard');
+                });
             }
             break;
           }
@@ -245,9 +267,20 @@ export const useWsConnection = () => {
             break;
           }
 
+          case 'debugger:paused': {
+            setPausedState(sessionId, data as PausedState);
+            break;
+          }
+
+          case 'debugger:resumed': {
+            setPausedState(sessionId, null);
+            break;
+          }
+
           case 'feather:bye': {
             // Graceful disconnect — preserve cached data (logs, perf history) so user
             // doesn't lose context. Only mark as disconnected and clear session routing.
+            setPausedState(sessionId, null);
             setDisconnected(true);
             clearSession();
             break;
