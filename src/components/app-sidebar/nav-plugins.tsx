@@ -33,7 +33,7 @@ export function NavPlugins() {
       }
     }
 
-    return pluginItems;
+    return pluginItems.sort((a, b) => a.name.localeCompare(b.name));
   }, [plugins]);
 
   const filtered = useMemo(() => {

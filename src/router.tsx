@@ -14,12 +14,10 @@ import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
 import { useWsConnection } from './hooks/use-ws-connection';
-import { useServerPolling } from './hooks/use-server-polling';
 
 const Modals = () => {
   const disconnected = useConfigStore((state) => state.disconnected);
   useWsConnection();
-  useServerPolling();
 
   useEffect(() => {
     if (disconnected) {
