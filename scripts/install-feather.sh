@@ -9,6 +9,7 @@
 #   FEATHER_BRANCH=main        Git branch/tag to download from
 #   FEATHER_PLUGINS=1          Also install all built-in plugins (default: 1)
 #   FEATHER_SKIP_PLUGINS="hump,lua-state-machine"  Comma-separated plugins to skip
+#   FEATHER_INCLUDE_CONSOLE=1  Also install the console (remote REPL) plugin (default: 0)
 
 set -euo pipefail
 
@@ -16,7 +17,12 @@ REPO="Kyonru/feather"
 BRANCH="${FEATHER_BRANCH:-main}"
 INSTALL_DIR="${FEATHER_DIR:-feather}"
 INSTALL_PLUGINS="${FEATHER_PLUGINS:-1}"
-SKIP_PLUGINS="${FEATHER_SKIP_PLUGINS:-hump,lua-state-machine}"
+INCLUDE_CONSOLE="${FEATHER_INCLUDE_CONSOLE:-0}"
+_DEFAULT_SKIP="hump,lua-state-machine"
+if [ "$INCLUDE_CONSOLE" != "1" ]; then
+  _DEFAULT_SKIP="console,${_DEFAULT_SKIP}"
+fi
+SKIP_PLUGINS="${FEATHER_SKIP_PLUGINS:-${_DEFAULT_SKIP}}"
 BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/src-lua"
 
 # Colors
@@ -130,7 +136,7 @@ echo ""
 
 info "Branch: ${BRANCH}"
 info "Install dir: ${INSTALL_DIR}/"
-info "Plugins: $([ "$INSTALL_PLUGINS" = "1" ] && echo "yes" || echo "no")"
+info "Plugins: $([ "$INSTALL_PLUGINS" = "1" ] && echo "yes" || echo "no") (console: $([ "$INCLUDE_CONSOLE" = "1" ] && echo "yes" || echo "no"))"
 echo ""
 
 # Lua require path: convert slashes to dots (e.g. lib/feather → lib.feather)
