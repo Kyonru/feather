@@ -7,7 +7,8 @@ globals = {
     'getVersion',
     'getTitle',
     'DEBUGGER',
-    'FEATHER_PATH'
+    'FEATHER_PATH',
+    'FEATHER_PLUGIN_PATH'
 }
 
 exclude_files = {

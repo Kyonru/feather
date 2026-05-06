@@ -1,7 +1,12 @@
 -- Minimal WS test mode: love src-lua --test-ws
+-- Auto-setup test mode: love src-lua --test-auto
 for _, arg in ipairs(arg or {}) do
   if arg == "--test-ws" then
     require("test_ws")
+    return
+  end
+  if arg == "--test-auto" then
+    require("test_auto")
     return
   end
 end
@@ -412,6 +417,10 @@ if profiler then
   Game.load = profiler.instance:wrap("Game.load", Game.load)
 end
 
+print("Feather Debugger initialized with plugins:")
+print(#DEBUGGER.pluginManager:getPlugins())
+
+love.event.quit()
 -- Demo: track tables for the memory snapshot plugin
 local memSnapshot = DEBUGGER.pluginManager:getPlugin("memory-snapshot")
 if memSnapshot then

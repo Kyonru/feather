@@ -99,6 +99,12 @@ function FeatherPluginManager:getPlugin(identifier)
   end
 end
 
+--- Get plugins
+--- @return FeatherPluginInstance[]
+function FeatherPluginManager:getPlugins()
+  return self.plugins
+end
+
 function FeatherPluginManager:handleRequest(request, feather)
   local plugin = self:getPluginByUrl(request.path)
 
