@@ -5,49 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.6.0] - 2026-05-04 - The one with the plugin ecosystem
+## [v0.6.0] - 2026-05-05 - The one with android and ios support
 
 ### Added
 
-- Improve plugin system with server-driven UI (actions, params, toggle)
-- Add built-in plugins:
-  - Console / REPL — execute Lua code remotely
-  - Profiler — function-level CPU profiling
-  - Input Replay — record and replay input sequences
-  - Entity Inspector — ECS entity browser
-  - Config Tweaker — live game config editing
-  - Bookmark — mark and navigate to points of interest
-  - Network Inspector — HTTP/WS traffic monitor
-  - Memory Snapshot — heap snapshots and leak detection
-  - Physics Debug Draw — love.physics overlay renderer
-  - Particle Editor — live ParticleSystem editor
-  - Audio Debug — inspect love.audio state and sources
-  - Coroutine Monitor — track active coroutines with stats
-  - Collision Debug — visualize bump.lua AABB worlds
-  - Animation Inspector — inspect anim8 sprite animations
-  - Timer Inspector — monitor HUMP timers and flux tweens
-- Add plugin enable/disable toggle from desktop
-- Add `auto.lua` zero-config entry point (`require("feather.auto")`)
-- Add `install-feather.sh` curl-pipe-sh installer script
-- Add mobile connection info in settings (auto-detect local IP, copyable config)
-- Add multiple sessions connection
-  - Add per-session version mismatch warning on session tabs
-  - Add session persistence across reconnects
-- Add disk mode for logging without WebSocket (Android/iOS)
-- Add late connection support (game starts before desktop app)
-- Add sandbox option for console plugin
-- Add option to disable log file writing
+- **Plugin system** — more server-driven UI: new action, new layout options
+- **15 built-in plugins:**
+  - Console / REPL — execute Lua code in the running game (opt-in, requires `apiKey`)
+  - Profiler — function-level CPU profiling with start/stop
+  - Input Replay — record and replay keyboard, mouse, touch, and joystick input
+  - Entity Inspector — browse and inspect live ECS entities and their properties
+  - Config Tweaker — edit game config values at runtime without restarting
+  - Bookmark — mark points of interest in game state with hotkey support
+  - Network Inspector — monitor HTTP/WS traffic by wrapping `socket.http`
+  - Memory Snapshot — heap snapshots, table size tracking, diff between snapshots
+  - Physics Debug — color-coded love.physics overlay (bodies, joints, contacts, AABBs)
+  - Particle Editor — live edit all 30+ ParticleSystem properties, export to Lua
+  - Audio Debug — inspect love.audio sources, listener state, and effects
+  - Coroutine Monitor — track coroutines auto-discovered via hook, yield counts per frame
+  - Collision Debug — visualize bump.lua AABB worlds with per-item colors and labels
+  - Animation Inspector — inspect anim8 animation state, pause/resume/reset from desktop
+  - Timer Inspector — monitor HUMP timer and flux tween progress with cancel support
+  - Filesystem — browse the game's save directory, preview file contents, delete files
+- **`feather.auto`** — `require("feather.auto")` registers all plugins with sensible defaults; `setup()` for include/exclude/option overrides
+- **`install-feather.sh`** — curl-pipe-sh installer; also usable to update or pin to a version tag
+- **Multiple simultaneous sessions** — each connected game gets its own tab; sessions persist across reconnects
+- **Per-session version mismatch indicator** — warning icon on the session tab when game library and desktop differ
+- **Android and iOS support** — android and ios projects can communicate to feather
+- **Disk mode** — skip WebSocket entirely, write `.featherlog` files only; useful for Android/iOS or when LuaSocket is unavailable
+- **Late connection** — game can start before the desktop app; reconnects automatically
+- **Mobile connection helper** — Settings auto-detects local network IPs and shows a copyable `ws://` connection string and Lua snippet
+- **Session delete** — remove a disconnected session from the tab bar
+- **Plugin docs link** — plugins can expose a `docs` URL in `getConfig()`; a Docs button opens it in the system browser
+- **Plugin sidebar filter** — search box to filter plugins by name
+- **`FEATHER_PLUGIN_PATH`** — allows plugins to be installed in a different directory from the core library
 
 ### Changed
 
-- Change architecture from REST to WebSocket
-- Improve plugin documentation
-- Improve screenshots plugin
-- Move version mismatch from global sidebar to per-session tab indicator
+- Switched from REST polling to WebSocket push — game drives the data cadence at a configurable `sampleRate`
+- Settings page reorganized into sections (Appearance, Connection, Security, Editor) with descriptions
+- Version mismatch warning moved from global sidebar to individual session tabs
+- Particle editor correctly applies property changes when multiple systems are registered
 
 ### Fixed
 
-- Broken app layout
+- Console page input always visible regardless of log volume
+- Particle editor selection not updating grouped inputs when switching systems
+- `auto.lua` plugin resolution when `FEATHER_PLUGIN_PATH` differs from `FEATHER_PATH`
 
 ## [v0.5.1] - 2026-02-23 - The one with log folders
 
