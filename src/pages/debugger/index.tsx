@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { readDir, readTextFile } from '@tauri-apps/plugin-fs';
+import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { useDebugger } from '@/hooks/use-debugger';
 import { useConfigStore } from '@/store/config';
 import { Button } from '@/components/ui/button';
@@ -268,7 +269,14 @@ function VariablesPanel({ title, vars }: { title: string; vars: Record<string, s
 
 export default function DebuggerPage() {
   const dbg = useDebugger();
-  const rootPath = useConfigStore((state) => state.config?.root_path ?? '');
+  const configRootPath = useConfigStore((state) => state.config?.root_path ?? '');
+  const [manualRootPath, setManualRootPath] = useState('');
+  const rootPath = configRootPath || manualRootPath;
+
+  const pickFolder = async () => {
+    const selected = await openFolderDialog({ directory: true, multiple: false });
+    if (typeof selected === 'string') setManualRootPath(selected);
+  };
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -384,7 +392,14 @@ export default function DebuggerPage() {
         {/* Col 1 — File tree */}
         <ResizablePanel defaultSize={'20%'} minSize={'10%'} maxSize={'30%'} className="flex flex-col">
           <div className="border-b px-3 py-2">
-            <span className="text-sm font-semibold">Files</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold">Files</span>
+              {!isWeb() && !configRootPath && (
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={pickFolder}>
+                  Open folder
+                </Button>
+              )}
+            </div>
             {rootPath && (
               <div className="text-muted-foreground mt-0.5 truncate text-xs" title={rootPath}>
                 {rootPath.split('/').pop()}
@@ -401,7 +416,7 @@ export default function DebuggerPage() {
               />
             ) : (
               <div className="text-muted-foreground px-3 py-3 text-xs">
-                {isWeb() ? 'Requires desktop app' : 'No game connected'}
+                {isWeb() ? 'Requires desktop app' : 'No game connected — open a folder to browse files'}
               </div>
             )}
           </ScrollArea>
