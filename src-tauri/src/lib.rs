@@ -61,6 +61,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             ws_server::send_command,
+            ws_server::get_active_sessions,
             get_local_ips
         ])
         .run(tauri::generate_context!())

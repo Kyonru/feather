@@ -47,6 +47,17 @@ pub fn start(app_handle: AppHandle, port: u16, sessions: Sessions) {
     });
 }
 
+/// Tauri command: return all currently connected session IDs.
+#[tauri::command]
+pub fn get_active_sessions(state: tauri::State<Sessions>) -> Vec<String> {
+    state
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .keys()
+        .cloned()
+        .collect()
+}
+
 /// Tauri command: send a JSON command string to a specific game session.
 #[tauri::command]
 pub fn send_command(

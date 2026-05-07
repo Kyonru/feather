@@ -307,7 +307,41 @@ export const useWsConnection = () => {
         return;
       }
 
-      unlisteners.push(unlistenMessage, unlistenEnd);
+      // When a new game session opens, immediately request its config.
+      // This handles the race where feather:hello fires before the message listener is ready.
+      const unlistenStart = await listen<string>('feather://session-start', (event) => {
+        if (cancelled) return;
+        invoke('send_command', {
+          sessionId: event.payload,
+          message: JSON.stringify({ type: 'req:config' }),
+        }).catch(() => {});
+      });
+
+      if (cancelled) {
+        unlistenMessage();
+        unlistenEnd();
+        unlistenStart();
+        return;
+      }
+
+      // On mount, probe any sessions already connected (e.g. after a hot reload).
+      // The game won't resend feather:hello unprompted, so we ask.
+      invoke<string[]>('get_active_sessions')
+        .then((sessionIds) => {
+          if (cancelled) return;
+          const knownSessions = useSessionStore.getState().sessions;
+          sessionIds.forEach((sessionId) => {
+            if (!knownSessions[sessionId]) {
+              invoke('send_command', {
+                sessionId,
+                message: JSON.stringify({ type: 'req:config' }),
+              }).catch(() => {});
+            }
+          });
+        })
+        .catch(() => {});
+
+      unlisteners.push(unlistenMessage, unlistenEnd, unlistenStart);
     };
 
     setup();
