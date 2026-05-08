@@ -7,14 +7,13 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
-import { BugIcon, ClockIcon, GaugeIcon, LogsIcon, TelescopeIcon, TerminalIcon } from 'lucide-react';
+import { BugIcon, ClockIcon, GaugeIcon, GitCompareArrowsIcon, LogsIcon, TelescopeIcon, TerminalIcon } from 'lucide-react';
 import { useDebuggerStore } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
 
 export function NavMain() {
   const sessionId = useSessionStore((state) => state.sessionId);
-  const pausedState = useDebuggerStore((state) => state.pausedState);
-  const isPaused = sessionId ? !!pausedState[sessionId] : false;
+  const isPaused = useDebuggerStore((state) => sessionId ? !!state.pausedState[sessionId] : false);
 
   const items = [
     {
@@ -46,6 +45,11 @@ export function NavMain() {
       title: 'Time Travel',
       url: '/time-travel',
       icon: ClockIcon,
+    },
+    {
+      title: 'Compare',
+      url: '/compare',
+      icon: GitCompareArrowsIcon,
     },
   ];
   const location = useLocation();
