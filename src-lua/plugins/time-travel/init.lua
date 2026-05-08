@@ -143,7 +143,6 @@ end
 function TimeTravelPlugin:getConfig()
   return {
     id = "time-travel",
-    tabName = "Time Travel",
     icon = "clock",
     recording = self.recording,
     bufferSize = self.bufferSize,

@@ -6,6 +6,7 @@ import { NavBottom } from '@/components/app-sidebar/nav-bottom';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -45,8 +46,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain />
         <NavPlugins />
-        <NavBottom className="mt-auto" />
       </SidebarContent>
+      <SidebarFooter>
+        <NavBottom />
+      </SidebarFooter>
     </Sidebar>
   );
 }

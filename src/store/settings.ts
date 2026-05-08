@@ -12,6 +12,7 @@ type SettingsStoreState = {
   pausedLogs: boolean;
   // Seconds without a message before considering a session disconnected (default 15)
   connectionTimeout: number;
+  hiddenPlugins: string[];
 };
 
 type SettingsStoreActions = {
@@ -23,6 +24,7 @@ type SettingsStoreActions = {
   setPausedLogs: (pausedLogs: boolean) => void;
   setApiKey: (apiKey: string) => void;
   setConnectionTimeout: (timeout: number) => void;
+  toggleHiddenPlugin: (pluginId: string) => void;
   reset: () => void;
 };
 
@@ -37,6 +39,7 @@ const defaultSettings: SettingsStoreState = {
   textEditorPath: '/usr/local/bin/code',
   pausedLogs: false,
   connectionTimeout: 15,
+  hiddenPlugins: [],
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -52,6 +55,12 @@ export const useSettingsStore = create<SettingsStore>()(
       setPausedLogs: (pausedLogs: boolean) => set({ pausedLogs }),
       setApiKey: (apiKey: string) => set({ apiKey }),
       setConnectionTimeout: (connectionTimeout: number) => set({ connectionTimeout }),
+      toggleHiddenPlugin: (pluginId: string) =>
+        set((state) => ({
+          hiddenPlugins: state.hiddenPlugins.includes(pluginId)
+            ? state.hiddenPlugins.filter((id) => id !== pluginId)
+            : [...state.hiddenPlugins, pluginId],
+        })),
     }),
     { name: 'settings-storage' },
   ),

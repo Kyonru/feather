@@ -1,20 +1,34 @@
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
 import { useConfigStore } from '@/store/config';
+import { useSettingsStore } from '@/store/settings';
 import { useMemo, useState } from 'react';
 import { DynamicIcon } from 'lucide-react/dynamic';
-import { SearchIcon } from 'lucide-react';
+import { ChevronRight, PuzzleIcon, SearchIcon, SlidersHorizontalIcon } from 'lucide-react';
 
 export function NavPlugins() {
   const location = useLocation();
   const plugins = useConfigStore((state) => state.config?.plugins);
+  const hiddenPlugins = useSettingsStore((state) => state.hiddenPlugins);
+  const toggleHiddenPlugin = useSettingsStore((state) => state.toggleHiddenPlugin);
   const [search, setSearch] = useState('');
 
   const items = useMemo(() => {
@@ -24,6 +38,7 @@ export function NavPlugins() {
       for (const [key, value] of Object.entries(plugins)) {
         if (value.tabName) {
           pluginItems.push({
+            id: key,
             name: value.tabName,
             url: `/plugins/${key}`,
             icon: value.icon,
@@ -36,49 +51,106 @@ export function NavPlugins() {
     return pluginItems.sort((a, b) => a.name.localeCompare(b.name));
   }, [plugins]);
 
+  const disabledItems = useMemo(() => items.filter((item) => item.disabled), [items]);
+
+  // Active plugins are always visible; disabled plugins can be hidden
+  const visible = useMemo(
+    () => items.filter((item) => !item.disabled || !hiddenPlugins.includes(item.id)),
+    [items, hiddenPlugins],
+  );
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return items;
+    if (!search.trim()) return visible;
     const q = search.toLowerCase();
-    return items.filter((item) => item.name.toLowerCase().includes(q));
-  }, [items, search]);
+    return visible.filter((item) => item.name.toLowerCase().includes(q));
+  }, [visible, search]);
+
+  if (items.length === 0) return null;
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Plugins</SidebarGroupLabel>
-      {items.length > 0 && (
-        <div className="relative mb-1 px-2">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter plugins…"
-            className="w-full rounded-md border bg-background pl-7 pr-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-        </div>
-      )}
       <SidebarMenu>
-        {filtered.map((item) => (
-          <NavLink key={item.name} to={item.url} end>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className={cn(
-                  {
-                    'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear':
-                      item.url === location.pathname,
-                  },
-                  item.disabled && 'opacity-50',
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarMenuItem>
+            <div className="flex items-center">
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton tooltip="Plugins" className="flex-1">
+                  <PuzzleIcon />
+                  <span>Plugins</span>
+                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              {disabledItems.length > 0 && (<DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    title="Manage visible plugins"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <SlidersHorizontalIcon className="size-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" className="w-48">
+                  <DropdownMenuLabel className="text-xs">Disabled plugins</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {disabledItems.length === 0 && (
+                    <p className="px-2 py-1.5 text-xs text-muted-foreground">No disabled plugins.</p>
+                  )}
+                  {disabledItems.map((item) => (
+                    <DropdownMenuCheckboxItem
+                      key={item.id}
+                      checked={!hiddenPlugins.includes(item.id)}
+                      onCheckedChange={() => toggleHiddenPlugin(item.id)}
+                      className="text-xs"
+                    >
+                      {item.name}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>)}
+            </div>
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                {visible.length > 4 && (
+                  <div className="relative mb-1 px-2 pt-1">
+                    <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Filter plugins…"
+                      className="w-full rounded-md border bg-background pl-7 pr-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
                 )}
-                tooltip={item.name}
-              >
-                {item.icon && <DynamicIcon className="size-4" name={item.icon} />}
-                <span>{item.name}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </NavLink>
-        ))}
-        {filtered.length === 0 && search.trim() && (
-          <p className="px-2 py-1 text-xs text-muted-foreground">No plugins match.</p>
-        )}
+                {filtered.map((item) => (
+                  <SidebarMenuSubItem key={item.name}>
+                    <SidebarMenuSubButton
+                      asChild
+                      className={cn(
+                        {
+                          'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground':
+                            item.url === location.pathname,
+                        },
+                        item.disabled && 'opacity-50',
+                      )}
+                    >
+                      <NavLink to={item.url} end>
+                        {item.icon && <DynamicIcon className="size-4" name={item.icon} />}
+                        <span>{item.name}</span>
+                      </NavLink>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                ))}
+                {filtered.length === 0 && visible.length > 0 && search.trim() && (
+                  <p className="px-2 py-1 text-xs text-muted-foreground">No plugins match.</p>
+                )}
+                {visible.length === 0 && (
+                  <p className="px-2 py-1 text-xs text-muted-foreground">All plugins hidden.</p>
+                )}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </SidebarMenuItem>
+        </Collapsible>
       </SidebarMenu>
     </SidebarGroup>
   );
