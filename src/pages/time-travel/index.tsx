@@ -1,5 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon, CircleIcon, Loader2Icon, RefreshCwIcon, SquareIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CircleIcon,
+  DownloadIcon,
+  FolderOpenIcon,
+  Loader2Icon,
+  RefreshCwIcon,
+  SquareIcon,
+  XIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +18,60 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/utils/styles';
 import { useTimeTravel } from '@/hooks/use-time-travel';
 import type { TimeTravelFrame } from '@/hooks/use-ws-connection';
+import { isWeb } from '@/utils/platform';
+import { save, open as openDialog } from '@tauri-apps/plugin-dialog';
+import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
+
+const FILE_VERSION = 1;
+
+interface FeathertravelFile {
+  version: number;
+  exportedAt: string;
+  frameCount: number;
+  frames: TimeTravelFrame[];
+}
+
+async function exportFrames(frames: TimeTravelFrame[], filename = 'recording.feathertravel') {
+  const payload: FeathertravelFile = {
+    version: FILE_VERSION,
+    exportedAt: new Date().toISOString(),
+    frameCount: frames.length,
+    frames,
+  };
+  const json = JSON.stringify(payload, null, 2);
+
+  if (isWeb()) {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  const path = await save({
+    defaultPath: filename,
+    filters: [{ name: 'Feather Time Travel', extensions: ['feathertravel'] }],
+  });
+  if (path) await writeTextFile(path, json);
+}
+
+async function importFrames(): Promise<TimeTravelFrame[] | null> {
+  if (isWeb()) return null; // handled via <input type="file"> instead
+
+  const path = await openDialog({
+    filters: [{ name: 'Feather Time Travel', extensions: ['feathertravel'] }],
+    multiple: false,
+  });
+  if (!path || typeof path !== 'string') return null;
+
+  const raw = await readTextFile(path);
+  const parsed: FeathertravelFile = JSON.parse(raw);
+  if (parsed.version !== FILE_VERSION || !Array.isArray(parsed.frames)) throw new Error('Unsupported file format');
+  return parsed.frames;
+}
 
 type DiffKind = 'changed' | 'added' | 'removed' | 'same';
 
@@ -154,9 +219,15 @@ function FrameSnapshot({ current, prev }: { current: TimeTravelFrame; prev: Time
 export default function TimeTravelPage() {
   const { status, frames, framesUpdatedAt, startRecording, stopRecording, requestFrames } = useTimeTravel();
   const [scrubIndex, setScrubIndex] = useState(0);
-
   const [starting, setStarting] = useState(false);
   const [loadingFrames, setLoadingFrames] = useState(false);
+  const [offlineFrames, setOfflineFrames] = useState<TimeTravelFrame[] | null>(null);
+  const [offlineError, setOfflineError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Frames to display: offline file takes precedence over live frames
+  const displayFrames = offlineFrames ?? frames;
+  const isOffline = offlineFrames !== null;
 
   // Clear 'starting' once Lua confirms recording has begun
   useEffect(() => {
@@ -172,10 +243,10 @@ export default function TimeTravelPage() {
   }, [loadingFrames, framesUpdatedAt]);
 
   const isRecording = status.recording;
-  const hasFrames = frames.length > 0;
-  const clampedIndex = Math.min(scrubIndex, Math.max(0, frames.length - 1));
-  const currentFrame = hasFrames ? frames[clampedIndex] : null;
-  const prevFrame = clampedIndex > 0 ? frames[clampedIndex - 1] : undefined;
+  const hasFrames = displayFrames.length > 0;
+  const clampedIndex = Math.min(scrubIndex, Math.max(0, displayFrames.length - 1));
+  const currentFrame = hasFrames ? displayFrames[clampedIndex] : null;
+  const prevFrame = clampedIndex > 0 ? displayFrames[clampedIndex - 1] : undefined;
 
   const handleStart = () => {
     setStarting(true);
@@ -195,36 +266,77 @@ export default function TimeTravelPage() {
     requestFrames();
   };
 
+  const handleExport = () => {
+    exportFrames(displayFrames).catch(console.error);
+  };
+
+  const handleImport = async () => {
+    try {
+      setOfflineError(null);
+      if (isWeb()) {
+        fileInputRef.current?.click();
+        return;
+      }
+      const loaded = await importFrames();
+      if (loaded) {
+        setOfflineFrames(loaded);
+        setScrubIndex(loaded.length - 1);
+      }
+    } catch (e) {
+      setOfflineError(String(e));
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed: FeathertravelFile = JSON.parse(ev.target?.result as string);
+        setOfflineFrames(parsed.frames);
+        setScrubIndex(parsed.frames.length - 1);
+      } catch {
+        setOfflineError('Invalid file');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b px-6 py-2.5">
-        {isRecording ? (
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={handleStopAndFetch}
-            disabled={loadingFrames}
-            className="gap-1.5"
-          >
-            {loadingFrames ? (
-              <Loader2Icon className="size-3 animate-spin" />
-            ) : (
-              <SquareIcon className="size-3 fill-current" />
-            )}
-            {loadingFrames ? 'Loading…' : 'Stop & Load'}
-          </Button>
-        ) : (
-          <Button size="sm" onClick={handleStart} disabled={starting} className="gap-1.5">
-            {starting ? (
-              <Loader2Icon className="size-3 animate-spin" />
-            ) : (
-              <CircleIcon className="size-3 fill-current" />
-            )}
-            {starting ? 'Starting…' : 'Start Recording'}
-          </Button>
-        )}
+      <input ref={fileInputRef} type="file" accept=".feathertravel" className="hidden" onChange={handleFileInput} />
 
-        {!isRecording && hasFrames && (
+      <div className="flex shrink-0 items-center gap-2 border-b px-6 py-2.5">
+        {!isOffline &&
+          (isRecording ? (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleStopAndFetch}
+              disabled={loadingFrames}
+              className="gap-1.5"
+            >
+              {loadingFrames ? (
+                <Loader2Icon className="size-3 animate-spin" />
+              ) : (
+                <SquareIcon className="size-3 fill-current" />
+              )}
+              {loadingFrames ? 'Loading…' : 'Stop & Load'}
+            </Button>
+          ) : (
+            <Button size="sm" onClick={handleStart} disabled={starting} className="gap-1.5">
+              {starting ? (
+                <Loader2Icon className="size-3 animate-spin" />
+              ) : (
+                <CircleIcon className="size-3 fill-current" />
+              )}
+              {starting ? 'Starting…' : 'Start Recording'}
+            </Button>
+          ))}
+
+        {!isOffline && !isRecording && hasFrames && (
           <>
             <Separator orientation="vertical" className="h-5" />
             <Button
@@ -241,40 +353,87 @@ export default function TimeTravelPage() {
           </>
         )}
 
+        {hasFrames && !isRecording && (
+          <>
+            <Separator orientation="vertical" className="h-5" />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 px-2 text-xs"
+              onClick={handleExport}
+              title="Export to .feathertravel file"
+            >
+              <DownloadIcon className="size-3" /> Export
+            </Button>
+          </>
+        )}
+
+        <Separator orientation="vertical" className="h-5" />
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 gap-1 px-2 text-xs"
+          onClick={handleImport}
+          title="Open a .feathertravel file"
+        >
+          <FolderOpenIcon className="size-3" /> Open file
+        </Button>
+
+        {isOffline && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1 px-2 text-xs text-muted-foreground"
+            onClick={() => setOfflineFrames(null)}
+            title="Close file and return to live mode"
+          >
+            <XIcon className="size-3" /> Close file
+          </Button>
+        )}
+
         <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-          {isRecording && (
+          {offlineError && (
+            <span className="flex items-center gap-1 text-destructive" title={offlineError}>
+              Failed to open file
+              <button className="underline" onClick={() => setOfflineError(null)}>dismiss</button>
+            </span>
+          )}
+          {isOffline && <Badge variant="secondary">Offline</Badge>}
+          {!isOffline && isRecording && (
             <Badge variant="destructive" className="gap-1">
               <span className="size-1.5 animate-pulse rounded-full bg-white" /> REC
             </Badge>
           )}
-          {hasFrames && !isRecording && !loadingFrames && <span>{frames.length.toLocaleString()} frames loaded</span>}
+          {hasFrames && !isRecording && !loadingFrames && <span>{displayFrames.length.toLocaleString()} frames</span>}
           {loadingFrames && (
             <span className="flex items-center gap-1">
-              <Loader2Icon className="size-3 animate-spin" /> Fetching frames…
+              <Loader2Icon className="size-3 animate-spin" /> Fetching…
             </span>
           )}
         </div>
       </div>
 
-      {!isRecording && !hasFrames && !loadingFrames && <EmptyState onStart={handleStart} loading={starting} />}
-      {!isRecording && !hasFrames && loadingFrames && (
+      {!isOffline && !isRecording && !hasFrames && !loadingFrames && (
+        <EmptyState onStart={handleStart} loading={starting} />
+      )}
+      {!isOffline && !isRecording && !hasFrames && loadingFrames && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2">
           <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Fetching frames from game…</p>
         </div>
       )}
-      {isRecording && <RecordingState frameCount={status.frame_count} bufferSize={status.buffer_size} />}
+      {!isOffline && isRecording && <RecordingState frameCount={status.frame_count} bufferSize={status.buffer_size} />}
 
-      {!isRecording && hasFrames && (
+      {hasFrames && (
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-6 py-4">
           <div className="space-y-1.5">
             <div className="flex justify-between text-[11px] text-muted-foreground">
-              <span>Frame {frames[0]?.id}</span>
+              <span>Frame {displayFrames[0]?.id}</span>
               <span className="font-medium text-foreground">
-                Frame #{currentFrame?.id}&nbsp;·&nbsp;t={currentFrame?.time.toFixed(3)}s&nbsp;·&nbsp; dt=
+                Frame #{currentFrame?.id}&nbsp;·&nbsp;t={currentFrame?.time.toFixed(3)}s&nbsp;·&nbsp;dt=
                 {(currentFrame ? currentFrame.dt * 1000 : 0).toFixed(1)}ms
               </span>
-              <span>Frame {frames[frames.length - 1]?.id}</span>
+              <span>Frame {displayFrames[displayFrames.length - 1]?.id}</span>
             </div>
             <div className="flex items-center gap-2">
               <Button
