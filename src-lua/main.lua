@@ -33,6 +33,7 @@ local CollisionDebugPlugin = require("plugins.collision-debug")
 local AnimationInspectorPlugin = require("plugins.animation-inspector")
 local TimerInspectorPlugin = require("plugins.timer-inspector")
 local FilesystemPlugin = require("plugins.filesystem")
+local TimeTravelPlugin = require("plugins.time-travel")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -401,6 +402,9 @@ DEBUGGER = FeatherDebugger({
     FeatherPluginManager.createPlugin(AnimationInspectorPlugin, "animation-inspector", {}),
     FeatherPluginManager.createPlugin(TimerInspectorPlugin, "timer-inspector", {}),
     FeatherPluginManager.createPlugin(FilesystemPlugin, "filesystem", {}),
+    FeatherPluginManager.createPlugin(TimeTravelPlugin, "time-travel", {
+      bufferSize = 500, -- max frames to keep (oldest are dropped when full)
+    }),
   },
 })
 

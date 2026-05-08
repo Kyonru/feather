@@ -144,24 +144,21 @@
     scrollbar-width: none; /* Firefox */
   }
 
-  /* width */
   ::-webkit-scrollbar {
-    width: 10px;
+    width: 4px;
+    height: 4px;
   }
 
-  /* Track */
   ::-webkit-scrollbar-track {
-    border-radius: 5px;
+    background: transparent;
   }
 
-  /* Handle */
   ::-webkit-scrollbar-thumb {
-    background: var(--popover-foreground);
-    border-radius: 5px;
+    background: var(--border);
+    border-radius: 9999px;
   }
 
-  /* Handle on hover */
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--chart-3);
+    background: var(--muted-foreground);
   }
 }

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { useDebugger } from '@/hooks/use-debugger';
+import { useTimeTravel } from '@/hooks/use-time-travel';
 import { useConfigStore } from '@/store/config';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,6 +21,7 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   CircleDotIcon,
+  ClockIcon,
   ChevronRightIcon,
   ChevronDownIcon,
   FileIcon,
@@ -269,6 +272,8 @@ function VariablesPanel({ title, vars }: { title: string; vars: Record<string, s
 
 export default function DebuggerPage() {
   const dbg = useDebugger();
+  const navigate = useNavigate();
+  const { frames } = useTimeTravel();
   const configRootPath = useConfigStore((state) => state.config?.root_path ?? '');
   const [manualRootPath, setManualRootPath] = useState('');
   const rootPath = configRootPath || manualRootPath;
@@ -382,6 +387,21 @@ export default function DebuggerPage() {
               title="Clear all breakpoints"
             >
               <CircleDotIcon className="size-3" /> Clear breakpoints
+            </Button>
+          </>
+        )}
+
+        {dbg.isPaused && frames.length > 0 && (
+          <>
+            <Separator orientation="vertical" className="h-5" />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => navigate('/time-travel')}
+              title="View frame history leading up to this breakpoint"
+            >
+              <ClockIcon className="size-3" /> Time Travel ({frames.length} frames)
             </Button>
           </>
         )}

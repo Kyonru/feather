@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
-import { BugIcon, GaugeIcon, LogsIcon, TelescopeIcon, TerminalIcon } from 'lucide-react';
+import { BugIcon, ClockIcon, GaugeIcon, LogsIcon, TelescopeIcon, TerminalIcon } from 'lucide-react';
 
 export function NavMain() {
   const items = [
@@ -35,6 +35,11 @@ export function NavMain() {
       title: 'Debugger',
       url: '/debugger',
       icon: BugIcon,
+    },
+    {
+      title: 'Time Travel',
+      url: '/time-travel',
+      icon: ClockIcon,
     },
   ];
   const location = useLocation();

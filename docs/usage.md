@@ -70,81 +70,49 @@ debugger:error("Something went wrong")
 
 ## Console / REPL
 
-The Console is an **optional, opt-in plugin** for executing Lua code directly in the running game. It is **not included by default**.
+The Console is an **opt-in plugin** for evaluating Lua code directly inside the running game. It is not included by default.
 
 ```lua
-local ConsolePlugin = require("lib.feather.plugins.console")
-
-local debugger = FeatherDebugger({
-  debug  = true,
-  apiKey = "your-secret-key",
-  plugins = {
-    FeatherPluginManager.createPlugin(ConsolePlugin, "console", {
-      evalEnabled = true,
-    }),
-  },
+require("feather.auto").setup({
+  include = { "console" },
+  pluginOptions = { console = { evalEnabled = true } },
 })
 ```
 
-Once enabled, type any Lua expression in the Console tab:
-
-- **Enter** to execute, **Shift+Enter** for multiline
-- **Arrow Up/Down** to recall previous commands
-- `print()` output is captured and displayed inline
-- Return values are serialized with `inspect()` for readable table output
-- A sandbox instruction limit prevents infinite loops from freezing the game
+Once enabled, open the **Console** tab in the desktop app and type any Lua expression. Return values are shown inline; `print()` output is captured automatically.
 
 ```lua
-return player.health              -- inspect a value
-player.speed = 500                -- tweak a variable live
-return love.graphics.getStats()   -- check draw calls
-print("hello"); return 1 + 1      -- print + return both captured
+return player.health          -- inspect a value
+player.speed = 500            -- tweak live
+return love.graphics.getStats()
 ```
 
-**Plugin options:**
-
-| Option             | Type      | Default   | Description                              |
-| ------------------ | --------- | --------- | ---------------------------------------- |
-| `evalEnabled`      | `boolean` | `false`   | Must be `true` to allow code execution.  |
-| `maxCodeSize`      | `number`  | `20000`   | Max characters per eval payload.         |
-| `instructionLimit` | `number`  | `100000`  | Lua instructions before auto-abort.      |
-| `maxOutputSize`    | `number`  | `100000`  | Max characters in serialized return values. |
-
-> **Security:** `apiKey` must be set and non-empty in both the game config and Feather desktop settings. The Console refuses to execute code without a matching key.
->
-> **Warning:** Do not enable this in production or in builds shipped to users.
+→ [Full Console documentation](console.md)
 
 ---
 
 ## Step Debugger
 
-The step debugger lets you pause game execution at any line, inspect local variables and the call stack, and resume with continue, step over, step into, or step out — all from the **Debugger** tab in the Feather desktop app.
-
-### Enable
+The step debugger pauses game execution at any line and lets you inspect local variables, closure values, and the call stack from the **Debugger** tab.
 
 ```lua
-local debugger = FeatherDebugger({
-  debug    = true,
-  debugger = true,
-})
+require("feather.auto").setup({ debugger = true })
 ```
 
-Or leave `debugger = false` and toggle it on at runtime from the desktop without restarting the game.
+Click any line number in the source view to add a breakpoint. While paused, use **Continue**, **Step Over**, **Step Into**, and **Step Out** to navigate execution.
 
-### Setting breakpoints
+→ [Full Debugger documentation](debugger.md)
 
-Click any line number in the Debugger tab's source view to add a breakpoint. Breakpoints persist across desktop restarts and are synced to the game whenever the debugger is enabled or a breakpoint changes.
+---
 
-Conditional breakpoints are supported — enter a Lua expression in the condition field; the game only pauses when it evaluates to truthy.
+## Time Travel
 
-### While paused
+Time Travel records per-frame observer snapshots into a ring buffer and lets you scrub backwards through history to find exactly when a value changed.
 
-- **Call Stack** — full stack trace: file, line, and function name per frame. Click a frame to navigate to it in the source view.
-- **Variables** — locals and upvalues of the paused frame, expanded one level deep for tables.
-- **Controls** — Continue (resume freely), Step Over (next line, same depth), Step Into (follow function calls), Step Out (run until caller returns).
+```lua
+require("feather.auto").setup({ include = { "time-travel" } })
+```
 
-### How it works
+Open the **Time Travel** tab, click **Start Recording**, reproduce the bug, then click **Stop & Load** to fetch and scrub through the captured frames.
 
-Lua's `debug.sethook` line hook fires on every executed line. When a breakpoint or step condition is met, `love.update` blocks in a tight poll while the WS client keeps running — so the desktop stays connected and commands arrive. Resuming any step command unblocks the loop and reinstalls the hook for the next pause.
-
-> **Note:** `debug.sethook` adds overhead to every executed line. Enable the debugger only during active debugging sessions for best performance.
+→ [Full Time Travel documentation](time-travel.md)

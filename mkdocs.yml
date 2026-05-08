@@ -31,8 +31,30 @@ nav:
   - Installation: installation.md
   - Configuration: configuration.md
   - Usage: usage.md
-  - Plugins: plugins.md
+  - Debugger: debugger.md
+  - Time Travel: time-travel.md
+  - Console: console.md
   - Recommendations: recommendations.md
+  - Plugins:
+      - Overview: plugins.md
+      - Animation Inspector: plugins/animation-inspector.md
+      - Audio Debug: plugins/audio-debug.md
+      - Bookmark: plugins/bookmark.md
+      - Collision Debug: plugins/collision-debug.md
+      - Config Tweaker: plugins/config-tweaker.md
+      - Coroutine Monitor: plugins/coroutine-monitor.md
+      - Entity Inspector: plugins/entity-inspector.md
+      - Filesystem: plugins/filesystem.md
+      - HUMP Signal: plugins/hump-signal.md
+      - Input Replay: plugins/input-replay.md
+      - Lua State Machine: plugins/lua-state-machine.md
+      - Memory Snapshot: plugins/memory-snapshot.md
+      - Network Inspector: plugins/network-inspector.md
+      - Particle Editor: plugins/particle-editor.md
+      - Physics Debug: plugins/physics-debug.md
+      - Profiler: plugins/profiler.md
+      - Screenshots: plugins/screenshots.md
+      - Timer Inspector: plugins/timer-inspector.md
 
 markdown_extensions:
   - admonition

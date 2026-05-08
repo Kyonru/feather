@@ -46,6 +46,7 @@ local LuaStateMachinePlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.lua-sta
 local AnimationInspectorPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.animation-inspector")
 local TimerInspectorPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.timer-inspector")
 local FilesystemPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.filesystem")
+local TimeTravelPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.time-travel")
 
 local auto = {}
 
@@ -72,6 +73,7 @@ local DEFAULT_PLUGINS = {
   { mod = AnimationInspectorPlugin, id = "animation-inspector", opts = {}, optIn = true, disabled = true },
   { mod = TimerInspectorPlugin, id = "timer-inspector", opts = {}, optIn = true, disabled = true },
   { mod = FilesystemPlugin, id = "filesystem", opts = {}, disabled = true },
+  { mod = TimeTravelPlugin, id = "time-travel", opts = { bufferSize = 1000 }, disabled = true },
 }
 
 --- @class AutoConfig: FeatherConfig

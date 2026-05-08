@@ -332,6 +332,24 @@ function Feather:__handleCommand(msg)
     self:__pushObservers()
   elseif msg.type == "req:plugins" then
     self.pluginManager:pushAll(self)
+  elseif msg.type == "cmd:time_travel:start" then
+    local plugin = self.pluginManager:getPlugin("time-travel")
+    if plugin then
+      plugin.disabled = false  -- enable update() so frames are recorded each tick
+      plugin.instance:startRecording()
+      self:__sendHello()
+    end
+  elseif msg.type == "cmd:time_travel:stop" then
+    local plugin = self.pluginManager:getPlugin("time-travel")
+    if plugin then
+      plugin.instance:stopRecording()
+      self:__sendHello()
+    end
+  elseif msg.type == "cmd:time_travel:request_frames" and msg.data then
+    local plugin = self.pluginManager:getPlugin("time-travel")
+    if plugin then
+      plugin.instance:sendFrames(msg.data, self)
+    end
   elseif msg.type == "cmd:eval" and msg.code then
     local consolePlugin = self.pluginManager:getPlugin("console")
     if consolePlugin then

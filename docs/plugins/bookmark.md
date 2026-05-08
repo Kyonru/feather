@@ -1,0 +1,1 @@
+../../src-lua/plugins/bookmark/README.md

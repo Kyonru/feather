@@ -1,0 +1,1 @@
+../../src-lua/plugins/entity-inspector/README.md

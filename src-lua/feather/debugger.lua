@@ -247,6 +247,13 @@ function FeatherDebugger:_installHook()
 end
 
 function FeatherDebugger:_doPause(info, line, reason)
+  -- Push time-travel frames to the desktop so the user can scrub the history
+  -- leading up to this breakpoint without having to manually request them.
+  local ttPlugin = self.feather.pluginManager:getPlugin("time-travel")
+  if ttPlugin and ttPlugin.instance._bufCount > 0 then
+    ttPlugin.instance:sendFrames({}, self.feather)
+  end
+
   -- Snapshot call depth for step-over / step-out calculations on resume
   self._pauseDepth = self:_countDepth()
 

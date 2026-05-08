@@ -23,6 +23,8 @@ export const sessionQueryKey = {
   observers: (sessionId: string) => [sessionId, 'observers'],
   plugin: (sessionId: string, pluginId: string) => [sessionId, 'plugin', pluginId],
   console: (sessionId: string) => [sessionId, 'console'],
+  timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
+  timeTravelFrames: (sessionId: string) => [sessionId, 'time-travel-frames'],
 };
 
 type WsMessage = {
@@ -37,6 +39,21 @@ export type EvalResponse = {
   status: 'success' | 'error';
   result: string | null;
   prints: string[];
+};
+
+export type TimeTravelStatus = {
+  recording: boolean;
+  frame_count: number;
+  buffer_size: number;
+  first_frame_id: number;
+  last_frame_id: number;
+};
+
+export type TimeTravelFrame = {
+  id: number;
+  time: number;
+  dt: number;
+  observers: Record<string, string>;
 };
 
 /**
@@ -274,6 +291,17 @@ export const useWsConnection = () => {
 
           case 'debugger:resumed': {
             setPausedState(sessionId, null);
+            break;
+          }
+
+          case 'time_travel:status': {
+            queryClient.setQueryData(sessionQueryKey.timeTravel(sessionId), data as TimeTravelStatus);
+            break;
+          }
+
+          case 'time_travel:frames': {
+            const framesMsg = data as { frames: TimeTravelFrame[] };
+            queryClient.setQueryData(sessionQueryKey.timeTravelFrames(sessionId), framesMsg.frames);
             break;
           }
 
