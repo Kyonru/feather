@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
@@ -32,6 +32,8 @@ import {
   CopyIcon,
   CheckIcon,
   SearchIcon,
+  XIcon,
+  ChevronUpIcon,
 } from 'lucide-react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useLanguage } from '@/hooks/use-config';
@@ -162,6 +164,14 @@ function FileTree({
   return <div className="flex flex-col py-1">{renderEntries(rootEntries, 0)}</div>;
 }
 
+function scrollViewportToTarget(viewport: HTMLElement, target: HTMLElement) {
+  const targetRect = target.getBoundingClientRect();
+  const viewportRect = viewport.getBoundingClientRect();
+  const newTop =
+    viewport.scrollTop + (targetRect.top - viewportRect.top) - viewport.clientHeight / 2 + targetRect.height / 2;
+  viewport.scrollTo({ top: Math.max(0, newTop), behavior: 'smooth' });
+}
+
 function SourceView({
   content,
   currentLine,
@@ -181,31 +191,73 @@ function SourceView({
 }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollTargetRef = useRef<HTMLDivElement>(null);
+  const matchTargetRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
   const style = theme === 'dark' ? onDark : oneLight;
   const language = useLanguage();
 
+  const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [matchIndex, setMatchIndex] = useState(0);
+
   const activeScrollLine = scrollToLine ?? currentLine;
 
+  const matchLines = useMemo(() => {
+    if (!search.trim() || !content) return [];
+    const q = search.toLowerCase();
+    return content.split('\n').reduce<number[]>((acc, line, i) => {
+      if (line.toLowerCase().includes(q)) acc.push(i + 1);
+      return acc;
+    }, []);
+  }, [search, content]);
+
+  const safeIndex =
+    matchLines.length > 0 ? ((matchIndex % matchLines.length) + matchLines.length) % matchLines.length : 0;
+  const currentMatchLine = matchLines[safeIndex] ?? null;
+
+  // Cmd/Ctrl+F → open search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault();
+        setSearchOpen(true);
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }, 0);
+      }
+      if (e.key === 'Escape' && searchOpen) {
+        setSearchOpen(false);
+        setSearch('');
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [searchOpen]);
+
+  // Scroll to active line (breakpoint hit / callstack click)
   useEffect(() => {
     if (activeScrollLine === null || !scrollTargetRef.current) return;
-
-    // scrollIntoView() walks all scrollable ancestors including the Radix
-    // ScrollArea root (overflow:hidden), which browsers will also scroll,
-    // causing the view to shift incorrectly for large line offsets.
-    // Instead, locate the Radix viewport directly and set scrollTop manually.
     const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null;
     if (viewport) {
-      const targetRect = scrollTargetRef.current.getBoundingClientRect();
-      const viewportRect = viewport.getBoundingClientRect();
-      const newTop =
-        viewport.scrollTop + (targetRect.top - viewportRect.top) - viewport.clientHeight / 2 + targetRect.height / 2;
-      viewport.scrollTo({ top: Math.max(0, newTop), behavior: 'smooth' });
+      scrollViewportToTarget(viewport, scrollTargetRef.current);
     } else {
       scrollTargetRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
     // Re-run when content loads (async file read) so the ref is populated.
   }, [activeScrollLine, content]);
+
+  // Scroll to current search match
+  useEffect(() => {
+    if (currentMatchLine === null || !matchTargetRef.current) return;
+    const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null;
+    if (viewport) {
+      scrollViewportToTarget(viewport, matchTargetRef.current);
+    } else {
+      matchTargetRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [currentMatchLine, safeIndex]);
 
   if (!content) {
     return (
@@ -216,24 +268,102 @@ function SourceView({
   }
 
   const lines = content.split('\n');
+  const goNext = () => setMatchIndex((i) => i + 1);
+  const goPrev = () => setMatchIndex((i) => i - 1);
 
   return (
-    <div ref={scrollAreaRef} className="h-0 flex-1">
+    <div ref={scrollAreaRef} className="relative h-0 flex-1">
+      {/* Floating search bar (Cmd+F) */}
+      {searchOpen && (
+        <div className="absolute right-3 top-2 z-10 flex items-center gap-1 rounded-md border bg-background px-2 py-1 shadow-lg">
+          <SearchIcon className="size-3 shrink-0 text-muted-foreground" />
+          <input
+            ref={searchInputRef}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setMatchIndex(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                  goPrev();
+                } else {
+                  goNext();
+                }
+              }
+              if (e.key === 'Escape') {
+                setSearchOpen(false);
+                setSearch('');
+              }
+            }}
+            placeholder="Find in file…"
+            className="h-5 w-40 bg-transparent text-xs focus:outline-none"
+          />
+          {search.trim() && (
+            <span
+              className={cn(
+                'shrink-0 font-mono text-xs tabular-nums',
+                matchLines.length === 0 ? 'text-destructive' : 'text-muted-foreground',
+              )}
+            >
+              {matchLines.length === 0 ? 'No results' : `${safeIndex + 1}/${matchLines.length}`}
+            </span>
+          )}
+          <button
+            onClick={goPrev}
+            disabled={matchLines.length === 0}
+            className="flex size-5 items-center justify-center rounded hover:bg-accent disabled:opacity-30"
+            title="Previous (Shift+Enter)"
+          >
+            <ChevronUpIcon className="size-3" />
+          </button>
+          <button
+            onClick={goNext}
+            disabled={matchLines.length === 0}
+            className="flex size-5 items-center justify-center rounded hover:bg-accent disabled:opacity-30"
+            title="Next (Enter)"
+          >
+            <ChevronDownIcon className="size-3" />
+          </button>
+          <button
+            onClick={() => {
+              setSearchOpen(false);
+              setSearch('');
+            }}
+            className="flex size-5 items-center justify-center rounded hover:bg-accent"
+            title="Close (Escape)"
+          >
+            <XIcon className="size-3" />
+          </button>
+        </div>
+      )}
+
       <ScrollArea className="size-full">
         <div className="min-w-0 font-mono text-xs">
           {lines.map((line, i) => {
             const lineNum = i + 1;
             const isCurrent = lineNum === currentLine;
             const isScrollTarget = lineNum === scrollToLine && !isCurrent;
+            const isMatch = searchOpen && search.trim() !== '' && matchLines.includes(lineNum);
+            const isCurrentMatch = isMatch && lineNum === currentMatchLine;
             const hasBp = breakpointLines.has(lineNum);
+
+            let lineRef: React.Ref<HTMLDivElement> | undefined;
+            if (lineNum === activeScrollLine) lineRef = scrollTargetRef;
+            else if (isCurrentMatch) lineRef = matchTargetRef;
+
             return (
               <div
                 key={lineNum}
-                ref={lineNum === activeScrollLine ? scrollTargetRef : undefined}
+                ref={lineRef}
                 className={cn(
                   'group flex cursor-pointer items-start hover:bg-accent/50',
                   isCurrent && 'bg-yellow-500/15 hover:bg-yellow-500/20',
-                  isScrollTarget && 'bg-blue-500/10 hover:bg-blue-500/15',
+                  isScrollTarget && !isCurrent && 'bg-blue-500/10 hover:bg-blue-500/15',
+                  isCurrentMatch && !isCurrent && !isScrollTarget && 'bg-orange-500/20 hover:bg-orange-500/25',
+                  isMatch && !isCurrentMatch && !isCurrent && !isScrollTarget && 'bg-orange-500/8',
                 )}
                 onClick={() => onToggleBreakpoint(lineNum)}
                 title={hasBp ? 'Remove breakpoint' : 'Add breakpoint'}
