@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.7.0] - 2026-05-08 - The one with the debugger and time travel
+
+### Added
+
+- **Debugger** - first-iteration Lua debugger: step through code, inspect variables, set conditional breakpoints, and browse the call stack from the desktop, search across selected file, allow selecting a custom folder for code visualization
+- **Time travel** - record and replay game state snapshots; export and import snapshots to/from file
+- **Compare instances** - compare metrics of two instances side-by-side in a dedicated diff tab
+- **Syntax highlighting** - code in the console and debugger panels is now syntax-highlighted
+- **Plugin filter** - option to hide specific plugins from the sidebar
+- **Docs material** - added documentation content for plugins
+
+### Changed
+
+- Console history is now persisted across sessions
+- Console is excluded from the auto-registration script by default (opt-in only)
+- Plugins are now ordered alphabetically in the sidebar
+- Improved variable inspection display in the debugger
+- Improved reconnection reliability and feedback
+- Documentation reorganized under the plugins location
+- Updated dependencies and chart library
+
+### Fixed
+
+- Debugger panel scrolling
+- No-session-active state now handled correctly in the UI
+
 ## [v0.6.0] - 2026-05-05 - The one with android and ios support
 
 ### Added
@@ -187,6 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v0.7.0]: https://github.com/Kyonru/feather/compare/v0.6.0...v0.7.0
 [v0.6.0]: https://github.com/Kyonru/feather/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/Kyonru/feather/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/Kyonru/feather/compare/v0.4.1...v0.5.0
