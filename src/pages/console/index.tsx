@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConsole, type ConsoleEntry } from '@/hooks/use-console';
 import type { EvalResponse } from '@/hooks/use-ws-connection';
 import { useSessionStore } from '@/store/session';
-import { useConsoleHistoryStore } from '@/store/console-history';
+import { useConsoleHistoryStore, type StoredOutput } from '@/store/console-history';
 import { Trash2Icon, SendIcon } from 'lucide-react';
 import { cn } from '@/utils/styles';
 import SyntaxHighlighter from 'react-syntax-highlighter';
@@ -80,13 +80,19 @@ function ConsoleOutput({ entry, response }: { entry: ConsoleEntry; response?: Ev
 export default function ConsolePage() {
   const { responses, execute, clear } = useConsole();
   const sessionId = useSessionStore((state) => state.sessionId);
+  const emptyRef = useRef<StoredOutput[]>([]);
   const [input, setInput] = useState('');
-  // storedHistory: persisted string[], most-recent last, already deduplicated by the store
-  const storedHistory = useConsoleHistoryStore((state) => state.history);
+  const sid = sessionId ?? '__global__';
+  // storedHistory: persisted string[], most-recent last, deduplicated, scoped to the active session
+  const storedHistory = useConsoleHistoryStore((state) => state.historyBySession[sid] ?? []);
+  const persistedOutputs = useConsoleHistoryStore((state) => state.outputBySession[sid] ?? emptyRef.current);
   const pushHistory = useConsoleHistoryStore((state) => state.push);
+  const pushOutput = useConsoleHistoryStore((state) => state.pushOutput);
   const clearHistory = useConsoleHistoryStore((state) => state.clear);
   // sessionEntries: current session only, ConsoleEntry[] for response tracking
   const [sessionEntries, setSessionEntries] = useState<ConsoleEntry[]>([]);
+  // Track which response IDs have already been persisted to avoid duplicates
+  const persistedIds = useRef(new Set<string>());
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -125,6 +131,24 @@ export default function ConsolePage() {
     selected?.scrollIntoView({ block: 'nearest' });
   }, [searchIndex, isSearching]);
 
+  // Persist responses as they arrive so output survives page navigation
+  useEffect(() => {
+    for (const entry of sessionEntries) {
+      if (persistedIds.current.has(entry.id)) continue;
+      const response = responseMap.get(entry.id);
+      if (!response) continue;
+      persistedIds.current.add(entry.id);
+      pushOutput(sid, {
+        id: entry.id,
+        input: entry.input,
+        timestamp: entry.timestamp,
+        status: response.status,
+        result: response.result,
+        prints: response.prints ?? [],
+      });
+    }
+  }, [responseMap, sessionEntries, pushOutput, sid]);
+
   // Auto-scroll output to bottom on new entries or responses
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'instant' });
@@ -152,16 +176,16 @@ export default function ConsolePage() {
     if (!code) return;
     const entry = execute(code);
     setSessionEntries((prev) => [...prev, entry]);
-    pushHistory(code);
+    pushHistory(sid, code);
     setInput('');
     setHistoryIndex(-1);
-  }, [input, execute, pushHistory]);
+  }, [input, execute, pushHistory, sid]);
 
   const handleClear = useCallback(() => {
     setSessionEntries([]);
-    clearHistory();
+    clearHistory(sid);
     clear();
-  }, [clear, clearHistory]);
+  }, [clear, clearHistory, sid]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -209,7 +233,6 @@ export default function ConsolePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Toolbar */}
       <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
         <h2 className="text-sm font-semibold">Console</h2>
         <div className="flex-1" />
@@ -217,16 +240,29 @@ export default function ConsolePage() {
           variant="ghost"
           size="sm"
           onClick={handleClear}
-          disabled={sessionEntries.length === 0 && storedHistory.length === 0}
+          disabled={sessionEntries.length === 0 && storedHistory.length === 0 && persistedOutputs.length === 0}
         >
           <Trash2Icon className="size-3.5" />
           Clear
         </Button>
       </div>
 
-      {/* Output — fills remaining space and scrolls */}
       <ScrollArea className="h-0 flex-1 overflow-y-auto px-4 py-3" ref={scrollRef}>
-        {sessionEntries.length === 0 ? (
+        {/* Persisted outputs from previous page visits for this session */}
+        {persistedOutputs
+          .filter((o) => !sessionEntries.some((e) => e.id === o.id))
+          .map((o) => (
+            <ConsoleOutput
+              key={o.id}
+              entry={{ id: o.id, input: o.input, timestamp: o.timestamp }}
+              response={{ id: o.id, status: o.status, result: o.result, prints: o.prints }}
+            />
+          ))}
+        {/* Live entries for the current page visit */}
+        {sessionEntries.map((entry) => (
+          <ConsoleOutput key={entry.id} entry={entry} response={responseMap.get(entry.id)} />
+        ))}
+        {persistedOutputs.length === 0 && sessionEntries.length === 0 && (
           <div className="flex h-full items-center justify-center text-muted-foreground">
             <p className="text-sm">
               {sessionId
@@ -234,15 +270,10 @@ export default function ConsolePage() {
                 : 'No active session. Connect a game to use the console.'}
             </p>
           </div>
-        ) : (
-          sessionEntries.map((entry) => (
-            <ConsoleOutput key={entry.id} entry={entry} response={responseMap.get(entry.id)} />
-          ))
         )}
         <div ref={bottomRef} />
       </ScrollArea>
 
-      {/* Input — fixed at bottom */}
       <div className="relative shrink-0 border-t px-4 py-3">
         <div className="relative flex items-end gap-2">
           {isSearching && (
