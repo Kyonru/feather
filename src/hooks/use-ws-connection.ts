@@ -215,7 +215,22 @@ export const useWsConnection = () => {
 
           case 'observe': {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            queryClient.setQueryData(sessionQueryKey.observers(sessionId), data as Record<string, any>[]);
+            const incoming = data as Record<string, any>[];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const existing: Record<string, any>[] = queryClient.getQueryData(sessionQueryKey.observers(sessionId)) ?? [];
+            const existingMap = new Map(existing.map((e) => [e.key, e]));
+            const HISTORY_MAX = 50;
+            const merged = incoming.map((entry) => {
+              const prev = existingMap.get(entry.key);
+              const changed = prev !== undefined && prev.value !== entry.value;
+              const history: string[] = prev?.history ?? [];
+              if (changed) {
+                history.push(prev.value);
+                if (history.length > HISTORY_MAX) history.shift();
+              }
+              return { ...entry, previous: prev?.value, changed, history };
+            });
+            queryClient.setQueryData(sessionQueryKey.observers(sessionId), merged);
             break;
           }
 

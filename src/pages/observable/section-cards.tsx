@@ -1,13 +1,13 @@
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/utils/styles';
+import { ObserverEntry } from '@/hooks/use-observability';
 
 export function SectionCards({
   onSelect,
   selected,
   data,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: Record<string, any>[];
+  data: ObserverEntry[];
   selected: string | null;
   onSelect: (key: string) => void;
 }) {
@@ -30,7 +30,12 @@ export function SectionCards({
             onClick={() => onSelect(item.key)}
           >
             <CardHeader>
-              <CardTitle className="text-xl font-semibold tabular-nums @[250px]/card:text-3xl">{item.key}</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-xl font-semibold tabular-nums @[250px]/card:text-3xl">{item.key}</CardTitle>
+                {item.changed && (
+                  <span className="inline-block h-2 w-2 rounded-full bg-yellow-400 shrink-0" title="Value changed" />
+                )}
+              </div>
             </CardHeader>
             <CardFooter>
               <div className="truncate">
