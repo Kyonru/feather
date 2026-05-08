@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LuaCodeInput } from '@/components/ui/lua-code-input';
 import { isWeb } from '@/utils/platform';
 import { cn } from '@/utils/styles';
 import {
@@ -577,12 +578,12 @@ export default function DebuggerPage() {
             Enter a Lua expression. The breakpoint pauses only when it evaluates to true. Locals and upvalues from the
             paused frame are in scope.
           </p>
-          <input
+          <LuaCodeInput
             autoFocus
-            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 font-mono text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
+            singleLine
             placeholder="e.g. player.health < 10"
             value={conditionDialog?.value ?? ''}
-            onChange={(e) => setConditionDialog((prev) => (prev ? { ...prev, value: e.target.value } : null))}
+            onChange={(v) => setConditionDialog((prev) => (prev ? { ...prev, value: v } : null))}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && conditionDialog) {
                 dbg.setCondition(conditionDialog.file, conditionDialog.line, conditionDialog.value || undefined);

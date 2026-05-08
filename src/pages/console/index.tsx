@@ -1,19 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PageLayout } from '@/components/page-layout';
 import { Button } from '@/components/ui/button';
+import { LuaCodeInput } from '@/components/ui/lua-code-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConsole, type ConsoleEntry } from '@/hooks/use-console';
 import type { EvalResponse } from '@/hooks/use-ws-connection';
 import { useSessionStore } from '@/store/session';
 import { Trash2Icon, SendIcon } from 'lucide-react';
 import { cn } from '@/utils/styles';
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { useTheme } from '@/hooks/use-theme';
+import oneLight from '@/assets/theme/light';
+import onDark from '@/assets/theme/dark';
 
 function ConsoleOutput({ entry, response }: { entry: ConsoleEntry; response?: EvalResponse }) {
+  const theme = useTheme();
+  const highlightTheme = theme === 'dark' ? onDark : oneLight;
+
   return (
     <div className="border-b border-border/50 py-2 font-mono text-sm">
       <div className="flex items-start gap-2">
         <span className="select-none text-blue-500">&gt;</span>
-        <pre className="flex-1 whitespace-pre-wrap break-all text-foreground">{entry.input}</pre>
+        <div className="flex-1 min-w-0">
+          <SyntaxHighlighter
+            language="lua"
+            style={{
+              ...highlightTheme,
+              hljs: { ...(highlightTheme as Record<string, React.CSSProperties>).hljs, background: 'transparent', padding: 0 },
+            }}
+            customStyle={{ background: 'transparent', padding: 0, margin: 0, fontSize: 'inherit', fontFamily: 'inherit', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+            showLineNumbers={false}
+          >
+            {entry.input}
+          </SyntaxHighlighter>
+        </div>
       </div>
 
       {response?.prints?.map((line, i) => (
@@ -119,13 +139,6 @@ export default function ConsolePage() {
     }
   };
 
-  // Auto-resize textarea
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
-  };
-
   return (
     <PageLayout>
       <div className="flex flex-1 flex-col min-h-0 px-4">
@@ -156,15 +169,13 @@ export default function ConsolePage() {
 
         {/* Input area */}
         <div className="mt-2 mb-2 flex items-end gap-2">
-          <textarea
-            ref={textareaRef}
+          <LuaCodeInput
+            className="flex-1"
             value={input}
-            onChange={handleInputChange}
+            onChange={setInput}
             onKeyDown={handleKeyDown}
             placeholder={sessionId ? 'return 1 + 1' : 'No session connected...'}
             disabled={!sessionId}
-            rows={1}
-            className="flex-1 resize-none rounded-md border bg-background px-3 py-2 font-mono text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           />
           <Button size="icon" onClick={handleSubmit} disabled={!sessionId || !input.trim()}>
             <SendIcon className="size-4" />
