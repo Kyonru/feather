@@ -23,6 +23,7 @@ export const useDebugger = () => {
   const addBreakpoint = useDebuggerStore((state) => state.addBreakpoint);
   const removeBreakpoint = useDebuggerStore((state) => state.removeBreakpoint);
   const toggleBreakpointStore = useDebuggerStore((state) => state.toggleBreakpoint);
+  const setConditionStore = useDebuggerStore((state) => state.setCondition);
   const clearBreakpoints = useDebuggerStore((state) => state.clearBreakpoints);
   const setEnabled = useDebuggerStore((state) => state.setEnabled);
 
@@ -61,6 +62,16 @@ export const useDebugger = () => {
     }
   };
 
+  const setCondition = (file: string, line: number, condition: string | undefined) => {
+    setConditionStore(file, line, condition);
+    if (sessionId && isEnabled) {
+      const next = breakpoints.map((b) =>
+        b.file === file && b.line === line ? { ...b, condition } : b,
+      );
+      syncBreakpoints(sessionId, next);
+    }
+  };
+
   const clearBps = () => {
     clearBreakpoints();
     if (sessionId && isEnabled) syncBreakpoints(sessionId, []);
@@ -76,6 +87,7 @@ export const useDebugger = () => {
     removeBreakpoint: removeBp,
     toggleBreakpoint: toggleBp,
     clearBreakpoints: clearBps,
+    setCondition,
     continue: () => sessionId && sendCmd(sessionId, 'cmd:debugger:continue'),
     stepOver: () => sessionId && sendCmd(sessionId, 'cmd:debugger:step_over'),
     stepInto: () => sessionId && sendCmd(sessionId, 'cmd:debugger:step_into'),

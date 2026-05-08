@@ -215,7 +215,27 @@ function FeatherDebugger:_installHook()
     if fileBps and fileBps[line] then
       local bp = fileBps[line]
       if bp.condition and #bp.condition > 0 then
-        local fn = load("return " .. bp.condition)
+        -- Build an environment from locals + upvalues of the interrupted frame,
+        -- falling back to _G so globals like math/love are still accessible.
+        local env = setmetatable({}, { __index = _G })
+        local li = 1
+        while true do
+          local name, value = debug.getlocal(2, li)
+          if not name then break end
+          if name:sub(1, 1) ~= "(" then env[name] = value end
+          li = li + 1
+        end
+        local funcInfo = debug.getinfo(2, "f")
+        if funcInfo and funcInfo.func then
+          local ui = 1
+          while true do
+            local uname, uvalue = debug.getupvalue(funcInfo.func, ui)
+            if not uname then break end
+            env[uname] = uvalue
+            ui = ui + 1
+          end
+        end
+        local fn = load("return " .. bp.condition, "=[condition]", "t", env)
         if fn then
           local ok, result = pcall(fn)
           shouldPause = ok and result

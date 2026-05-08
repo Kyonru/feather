@@ -12,6 +12,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { isWeb } from '@/utils/platform';
 import { cn } from '@/utils/styles';
 import {
@@ -161,12 +162,16 @@ function SourceView({
   content,
   currentLine,
   breakpointLines,
+  conditionalLines,
   onToggleBreakpoint,
+  onRightClickBreakpoint,
 }: {
   content: string | null;
   currentLine: number | null;
   breakpointLines: Set<number>;
+  conditionalLines: Set<number>;
   onToggleBreakpoint: (line: number) => void;
+  onRightClickBreakpoint: (line: number, e: React.MouseEvent) => void;
 }) {
   const currentLineRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
@@ -208,9 +213,21 @@ function SourceView({
               title={hasBp ? 'Remove breakpoint' : 'Add breakpoint'}
             >
               {/* Breakpoint gutter */}
-              <div className="flex w-6 shrink-0 items-center justify-center self-center">
+              <div
+                className="flex w-6 shrink-0 items-center justify-center self-center"
+                onContextMenu={
+                  hasBp
+                    ? (e) => {
+                        e.preventDefault();
+                        onRightClickBreakpoint(lineNum, e);
+                      }
+                    : undefined
+                }
+              >
                 {hasBp ? (
-                  <CircleDotIcon className="size-2.5 text-red-500" />
+                  <CircleDotIcon
+                    className={cn('size-2.5', conditionalLines.has(lineNum) ? 'text-orange-400' : 'text-red-500')}
+                  />
                 ) : (
                   <div className="size-2 rounded-full opacity-0 group-hover:bg-red-400 group-hover:opacity-60" />
                 )}
@@ -304,9 +321,14 @@ export default function DebuggerPage() {
       .catch(() => setFileContent(null));
   }, [selectedFile, rootPath]);
 
+  const [conditionDialog, setConditionDialog] = useState<{ file: string; line: number; value: string } | null>(null);
+
   const breakpointFiles = new Set(dbg.breakpoints.map((b) => b.file));
   const breakpointLines = new Set(
     dbg.breakpoints.filter((b) => b.file === selectedFile && b.enabled).map((b) => b.line),
+  );
+  const conditionalLines = new Set(
+    dbg.breakpoints.filter((b) => b.file === selectedFile && b.enabled && !!b.condition).map((b) => b.line),
   );
   const currentLine = dbg.currentPaused?.file === selectedFile ? dbg.currentPaused.line : null;
 
@@ -460,12 +482,17 @@ export default function DebuggerPage() {
                 content={fileContent}
                 currentLine={currentLine}
                 breakpointLines={breakpointLines}
+                conditionalLines={conditionalLines}
                 onToggleBreakpoint={(line) => {
                   if (breakpointLines.has(line)) {
                     dbg.removeBreakpoint(selectedFile, line);
                   } else {
                     dbg.addBreakpoint(selectedFile, line);
                   }
+                }}
+                onRightClickBreakpoint={(line) => {
+                  const bp = dbg.breakpoints.find((b) => b.file === selectedFile && b.line === line);
+                  setConditionDialog({ file: selectedFile, line, value: bp?.condition ?? '' });
                 }}
               />
             </>
@@ -535,6 +562,59 @@ export default function DebuggerPage() {
           </ResizablePanelGroup>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      <Dialog
+        open={conditionDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setConditionDialog(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-sm">Breakpoint condition — line {conditionDialog?.line}</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground text-xs">
+            Enter a Lua expression. The breakpoint pauses only when it evaluates to true. Locals and upvalues from the
+            paused frame are in scope.
+          </p>
+          <input
+            autoFocus
+            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 font-mono text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
+            placeholder="e.g. player.health < 10"
+            value={conditionDialog?.value ?? ''}
+            onChange={(e) => setConditionDialog((prev) => (prev ? { ...prev, value: e.target.value } : null))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && conditionDialog) {
+                dbg.setCondition(conditionDialog.file, conditionDialog.line, conditionDialog.value || undefined);
+                setConditionDialog(null);
+              }
+            }}
+          />
+          <DialogFooter>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-muted-foreground"
+              onClick={() => {
+                if (conditionDialog) dbg.setCondition(conditionDialog.file, conditionDialog.line, undefined);
+                setConditionDialog(null);
+              }}
+            >
+              Clear condition
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (conditionDialog)
+                  dbg.setCondition(conditionDialog.file, conditionDialog.line, conditionDialog.value || undefined);
+                setConditionDialog(null);
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

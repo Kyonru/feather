@@ -35,6 +35,7 @@ interface DebuggerStore {
   addBreakpoint: (bp: Omit<Breakpoint, 'enabled'>) => void;
   removeBreakpoint: (file: string, line: number) => void;
   toggleBreakpoint: (file: string, line: number) => void;
+  setCondition: (file: string, line: number, condition: string | undefined) => void;
   clearBreakpoints: () => void;
   setPausedState: (sessionId: string, state: PausedState | null) => void;
   setEnabled: (sessionId: string, enabled: boolean) => void;
@@ -64,6 +65,13 @@ export const useDebuggerStore = create<DebuggerStore>()(
         set((state) => ({
           breakpoints: state.breakpoints.map((b) =>
             b.file === file && b.line === line ? { ...b, enabled: !b.enabled } : b,
+          ),
+        })),
+
+      setCondition: (file, line, condition) =>
+        set((state) => ({
+          breakpoints: state.breakpoints.map((b) =>
+            b.file === file && b.line === line ? { ...b, condition } : b,
           ),
         })),
 
