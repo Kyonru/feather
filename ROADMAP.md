@@ -46,15 +46,6 @@ Make Feather reliable under real-world debugging workloads before expanding feat
 Focus:
 Build the core runtime inspection experience.
 
-### 0.8.0 – Observability & Data
-
-#### Observer Improvements
-
-- [ ] Table diffing in observed variables
-- [ ] Highlight nested table changes across frames
-- [ ] Observer history snapshots
-- [ ] Search/filter large observed tables
-
 #### Runtime Insights
 
 - [ ] Add app disk usage

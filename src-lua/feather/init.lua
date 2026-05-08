@@ -17,7 +17,7 @@ local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
 
-local FEATHER_VERSION_NAME = "0.6.0"
+local FEATHER_VERSION_NAME = "0.7.0"
 local FEATHER_API = 5
 
 local FEATHER_VERSION = {
