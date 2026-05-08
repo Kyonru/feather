@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConsole, type ConsoleEntry } from '@/hooks/use-console';
 import type { EvalResponse } from '@/hooks/use-ws-connection';
 import { useSessionStore } from '@/store/session';
-import { useConsoleHistoryStore, type StoredOutput } from '@/store/console-history';
+import { useConsoleHistoryStore } from '@/store/console-history';
 import { Trash2Icon, SendIcon } from 'lucide-react';
 import { cn } from '@/utils/styles';
 import SyntaxHighlighter from 'react-syntax-highlighter';
@@ -80,12 +80,15 @@ function ConsoleOutput({ entry, response }: { entry: ConsoleEntry; response?: Ev
 export default function ConsolePage() {
   const { responses, execute, clear } = useConsole();
   const sessionId = useSessionStore((state) => state.sessionId);
-  const emptyRef = useRef<StoredOutput[]>([]);
   const [input, setInput] = useState('');
-  const sid = sessionId ?? '__global__';
+  const emptyRef = useRef([]);
   // storedHistory: persisted string[], most-recent last, deduplicated, scoped to the active session
-  const storedHistory = useConsoleHistoryStore((state) => state.historyBySession[sid] ?? []);
-  const persistedOutputs = useConsoleHistoryStore((state) => state.outputBySession[sid] ?? emptyRef.current);
+  const storedHistory = useConsoleHistoryStore((state) =>
+    sessionId ? (state.historyBySession[sessionId] ?? emptyRef.current) : emptyRef.current,
+  );
+  const persistedOutputs = useConsoleHistoryStore((state) =>
+    sessionId ? (state.outputBySession[sessionId] ?? emptyRef.current) : emptyRef.current,
+  );
   const pushHistory = useConsoleHistoryStore((state) => state.push);
   const pushOutput = useConsoleHistoryStore((state) => state.pushOutput);
   const clearHistory = useConsoleHistoryStore((state) => state.clear);
@@ -138,16 +141,18 @@ export default function ConsolePage() {
       const response = responseMap.get(entry.id);
       if (!response) continue;
       persistedIds.current.add(entry.id);
-      pushOutput(sid, {
-        id: entry.id,
-        input: entry.input,
-        timestamp: entry.timestamp,
-        status: response.status,
-        result: response.result,
-        prints: response.prints ?? [],
-      });
+      if (sessionId) {
+        pushOutput(sessionId, {
+          id: entry.id,
+          input: entry.input,
+          timestamp: entry.timestamp,
+          status: response.status,
+          result: response.result,
+          prints: response.prints ?? [],
+        });
+      }
     }
-  }, [responseMap, sessionEntries, pushOutput, sid]);
+  }, [responseMap, sessionEntries, pushOutput, sessionId]);
 
   // Auto-scroll output to bottom on new entries or responses
   useEffect(() => {
@@ -176,16 +181,16 @@ export default function ConsolePage() {
     if (!code) return;
     const entry = execute(code);
     setSessionEntries((prev) => [...prev, entry]);
-    pushHistory(sid, code);
+    if (sessionId) pushHistory(sessionId, code);
     setInput('');
     setHistoryIndex(-1);
-  }, [input, execute, pushHistory, sid]);
+  }, [input, execute, pushHistory, sessionId]);
 
   const handleClear = useCallback(() => {
     setSessionEntries([]);
-    clearHistory(sid);
+    if (sessionId) clearHistory(sessionId);
     clear();
-  }, [clear, clearHistory, sid]);
+  }, [clear, clearHistory, sessionId]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

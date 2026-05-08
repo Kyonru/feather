@@ -21,6 +21,7 @@ import type { TimeTravelFrame } from '@/hooks/use-ws-connection';
 import { isWeb } from '@/utils/platform';
 import { save, open as openDialog } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { useSessionStore } from '@/store/session';
 
 const FILE_VERSION = 1;
 
@@ -108,7 +109,7 @@ function diffObservers(prev: Record<string, string> | undefined, curr: Record<st
   });
 }
 
-function EmptyState({ onStart, loading }: { onStart: () => void; loading: boolean }) {
+function EmptyState({ onStart, loading, disabled }: { onStart: () => void; loading: boolean; disabled?: boolean }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
       <div className="grid gap-1">
@@ -118,7 +119,7 @@ function EmptyState({ onStart, loading }: { onStart: () => void; loading: boolea
           break.
         </p>
       </div>
-      <Button onClick={onStart} disabled={loading}>
+      <Button onClick={onStart} disabled={loading || disabled}>
         {loading ? <Loader2Icon className="size-3 animate-spin" /> : <CircleIcon className="size-3 fill-current" />}
         {loading ? 'Starting…' : 'Start Recording'}
       </Button>
@@ -218,6 +219,7 @@ function FrameSnapshot({ current, prev }: { current: TimeTravelFrame; prev: Time
 
 export default function TimeTravelPage() {
   const { status, frames, framesUpdatedAt, startRecording, stopRecording, requestFrames } = useTimeTravel();
+  const sessionId = useSessionStore((state) => state.sessionId);
   const [scrubIndex, setScrubIndex] = useState(0);
   const [starting, setStarting] = useState(false);
   const [loadingFrames, setLoadingFrames] = useState(false);
@@ -326,7 +328,7 @@ export default function TimeTravelPage() {
               {loadingFrames ? 'Loading…' : 'Stop & Load'}
             </Button>
           ) : (
-            <Button size="sm" onClick={handleStart} disabled={starting} className="gap-1.5">
+            <Button size="sm" onClick={handleStart} disabled={starting || !sessionId} className="gap-1.5">
               {starting ? (
                 <Loader2Icon className="size-3 animate-spin" />
               ) : (
@@ -395,7 +397,9 @@ export default function TimeTravelPage() {
           {offlineError && (
             <span className="flex items-center gap-1 text-destructive" title={offlineError}>
               Failed to open file
-              <button className="underline" onClick={() => setOfflineError(null)}>dismiss</button>
+              <button className="underline" onClick={() => setOfflineError(null)}>
+                dismiss
+              </button>
             </span>
           )}
           {isOffline && <Badge variant="secondary">Offline</Badge>}
@@ -414,7 +418,7 @@ export default function TimeTravelPage() {
       </div>
 
       {!isOffline && !isRecording && !hasFrames && !loadingFrames && (
-        <EmptyState onStart={handleStart} loading={starting} />
+        <EmptyState onStart={handleStart} loading={starting} disabled={!sessionId} />
       )}
       {!isOffline && !isRecording && !hasFrames && loadingFrames && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2">
