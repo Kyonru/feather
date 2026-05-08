@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/utils/styles';
+import { formatMemory } from '@/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function useSessionObservers(sessionId: string | null): Record<string, any>[] {
@@ -83,7 +84,7 @@ function PerfStrip({ perf, label }: { perf: PerformanceMetrics | null; label: st
       </span>
       <span>
         <span className="text-muted-foreground">Mem </span>
-        {(perf.memory / 1024).toFixed(1)} MB
+        {formatMemory(perf.memory)}
       </span>
       <span>
         <span className="text-muted-foreground">DC </span>

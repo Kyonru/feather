@@ -1,6 +1,10 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
 local json = require(FEATHER_PATH .. ".lib.json")
 
+-- Capture this file's source path at load time so we can strip Feather-internal
+-- frames from stack walks regardless of level arithmetic.
+local _SELF_SRC = debug.getinfo(1, "S").short_src
+
 ---@class FeatherDebugger
 ---@field enabled boolean
 ---@field paused boolean
@@ -88,9 +92,9 @@ function FeatherDebugger:_normalizeFile(path)
   return path
 end
 
-function FeatherDebugger:_countDepth()
+function FeatherDebugger:_countDepth(startAt)
   local depth = 0
-  local l = 3 -- skip getinfo + this function
+  local l = startAt or 3 -- default: called directly from hook (skip _countDepth + hook)
   while debug.getinfo(l, "S") do
     depth = depth + 1
     l = l + 1
@@ -173,13 +177,13 @@ end
 
 function FeatherDebugger:_getStack()
   local stack = {}
-  -- Level 2 inside the hook is the interrupted function; walk up from there
-  -- We build the stack from the hook perspective (+2 for hook internals)
-  local base = 2
-  for i = base, base + 24 do
+  -- Call chain: _getStack(1) → _doPause(2) → hook closure(3) → game code(4)
+  -- Start at 4 to skip all Feather-internal frames; also filter by source as a
+  -- safety net in case the chain depth shifts (e.g. pcall wrapping).
+  for i = 4, 28 do
     local info = debug.getinfo(i, "Sln")
     if not info then break end
-    if info.what ~= "C" then
+    if info.what ~= "C" and info.short_src ~= _SELF_SRC then
       table.insert(stack, {
         file = self:_normalizeFile(info.short_src or "?"),
         line = info.currentline or 0,
@@ -274,13 +278,15 @@ function FeatherDebugger:_doPause(info, line, reason)
     ttPlugin.instance:sendFrames({}, self.feather)
   end
 
-  -- Snapshot call depth for step-over / step-out calculations on resume
-  self._pauseDepth = self:_countDepth()
+  -- Snapshot call depth for step-over / step-out calculations on resume.
+  -- Call chain here: _countDepth(1) → _doPause(2) → hook(3) → game code(4)
+  self._pauseDepth = self:_countDepth(4)
 
-  -- Locals: level 2 is the interrupted function from inside the hook
-  local locals = self:_getLocals(2)
+  -- From _doPause: level 1=_doPause, 2=hook closure, 3=interrupted game function.
+  -- _getLocals adds one more frame, so the game function is at level 4 from inside it.
+  local locals = self:_getLocals(4)
   local upvalues = {}
-  local funcInfo = debug.getinfo(2, "f")
+  local funcInfo = debug.getinfo(3, "f")
   if funcInfo and funcInfo.func then
     upvalues = self:_getUpvalues(funcInfo.func)
   end

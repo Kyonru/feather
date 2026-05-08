@@ -29,6 +29,9 @@ import {
   FileIcon,
   FolderIcon,
   FolderOpenIcon,
+  CopyIcon,
+  CheckIcon,
+  SearchIcon,
 } from 'lucide-react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useLanguage } from '@/hooks/use-config';
@@ -162,6 +165,7 @@ function FileTree({
 function SourceView({
   content,
   currentLine,
+  scrollToLine,
   breakpointLines,
   conditionalLines,
   onToggleBreakpoint,
@@ -169,21 +173,24 @@ function SourceView({
 }: {
   content: string | null;
   currentLine: number | null;
+  scrollToLine: number | null;
   breakpointLines: Set<number>;
   conditionalLines: Set<number>;
   onToggleBreakpoint: (line: number) => void;
   onRightClickBreakpoint: (line: number, e: React.MouseEvent) => void;
 }) {
-  const currentLineRef = useRef<HTMLDivElement>(null);
+  const scrollTargetRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
   const style = theme === 'dark' ? onDark : oneLight;
   const language = useLanguage();
 
+  const activeScrollLine = scrollToLine ?? currentLine;
+
   useEffect(() => {
-    if (currentLine !== null) {
-      currentLineRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (activeScrollLine !== null) {
+      scrollTargetRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-  }, [currentLine]);
+  }, [activeScrollLine]);
 
   if (!content) {
     return (
@@ -201,14 +208,16 @@ function SourceView({
         {lines.map((line, i) => {
           const lineNum = i + 1;
           const isCurrent = lineNum === currentLine;
+          const isScrollTarget = lineNum === scrollToLine && !isCurrent;
           const hasBp = breakpointLines.has(lineNum);
           return (
             <div
               key={lineNum}
-              ref={isCurrent ? currentLineRef : undefined}
+              ref={lineNum === activeScrollLine ? scrollTargetRef : undefined}
               className={cn(
                 'group flex cursor-pointer items-start hover:bg-accent/50',
                 isCurrent && 'bg-yellow-500/15 hover:bg-yellow-500/20',
+                isScrollTarget && 'bg-blue-500/10 hover:bg-blue-500/15',
               )}
               onClick={() => onToggleBreakpoint(lineNum)}
               title={hasBp ? 'Remove breakpoint' : 'Add breakpoint'}
@@ -271,19 +280,184 @@ function SourceView({
   );
 }
 
-function VariablesPanel({ title, vars }: { title: string; vars: Record<string, string> }) {
-  const entries = Object.entries(vars);
-  if (entries.length === 0) return null;
+type LuaValueType = 'nil' | 'boolean' | 'number' | 'table' | 'function' | 'userdata' | 'thread' | 'string';
+
+function detectLuaType(value: string): LuaValueType {
+  if (value === 'nil') return 'nil';
+  if (value === 'true' || value === 'false') return 'boolean';
+  if (/^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$|^-?inf$|^nan$/.test(value)) return 'number';
+  if (/^table: 0x[0-9a-f]+$/.test(value)) return 'table';
+  if (/^function: 0x[0-9a-f]+$/.test(value)) return 'function';
+  if (/^userdata: 0x[0-9a-f]+$/.test(value)) return 'userdata';
+  if (/^thread: 0x[0-9a-f]+$/.test(value)) return 'thread';
+  return 'string';
+}
+
+const typeColor: Record<LuaValueType, string> = {
+  nil:      'text-muted-foreground',
+  boolean:  'text-purple-400',
+  number:   'text-green-400',
+  string:   'text-orange-400',
+  table:    'text-sky-400',
+  function: 'text-muted-foreground italic',
+  userdata: 'text-muted-foreground italic',
+  thread:   'text-muted-foreground italic',
+};
+
+function formatLuaValue(value: string, type: LuaValueType): string {
+  if (type === 'string') return value; // already quoted by Lua: "..."
+  if (type === 'function') return value.replace('function: ', 'fn ');
+  if (type === 'userdata') return value.replace('userdata: ', 'ud ');
+  if (type === 'thread')   return value.replace('thread: ', 'co ');
+  return value;
+}
+
+// Parse a Lua table string like `{x = 1, y = "hi", z = {a = 2}}` into entries.
+// Returns null if the value is not a Lua table literal.
+function parseLuaTable(s: string): Array<{ key: string; value: string }> | null {
+  if (!s.startsWith('{') || !s.endsWith('}')) return null;
+  const inner = s.slice(1, -1).trim();
+  if (!inner) return [];
+
+  const rawParts: string[] = [];
+  let depth = 0;
+  let inStr = false;
+  let start = 0;
+
+  for (let i = 0; i < inner.length; i++) {
+    const c = inner[i];
+    if (inStr) {
+      if (c === '"' && inner[i - 1] !== '\\') inStr = false;
+    } else if (c === '"') {
+      inStr = true;
+    } else if (c === '{') {
+      depth++;
+    } else if (c === '}') {
+      depth--;
+    } else if (c === ',' && depth === 0) {
+      const part = inner.slice(start, i).trim();
+      if (part) rawParts.push(part);
+      start = i + 1;
+    }
+  }
+  const last = inner.slice(start).trim();
+  if (last) rawParts.push(last);
+
+  const isTruncated = rawParts.at(-1) === '…';
+  const parts = isTruncated ? rawParts.slice(0, -1) : rawParts;
+
+  const entries = parts.map((part, idx) => {
+    const eqIdx = part.indexOf(' = ');
+    if (eqIdx === -1) return { key: `[${idx + 1}]`, value: part };
+    return { key: part.slice(0, eqIdx).trim(), value: part.slice(eqIdx + 3).trim() };
+  });
+
+  if (isTruncated) entries.push({ key: '…', value: '' });
+  return entries;
+}
+
+function VarNode({ name, value, indent = 0 }: { name: string; value: string; indent?: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // `table {N}` is Lua's compact form for nested tables (depth ≥ 1) — we have no data to expand.
+  const children = indent < 4 ? parseLuaTable(value) : null;
+  const isExpandable = children !== null && children.length > 0 && !value.startsWith('table {');
+
+  const type = detectLuaType(value);
+  const realChildren = children?.filter((c) => c.key !== '…') ?? [];
+  const isTruncated = children?.at(-1)?.key === '…';
+
+  const display = isExpandable
+    ? `{${realChildren.length}${isTruncated ? '+' : ''} ${realChildren.length === 1 ? 'entry' : 'entries'}}`
+    : formatLuaValue(value, type);
+  const truncated = display.length > 52 ? display.slice(0, 52) + '…' : display;
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(value).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
+  const pl = 12 + indent * 14;
+
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-muted-foreground px-2 text-xs font-semibold uppercase tracking-wider">{title}</span>
-      {entries.map(([name, value]) => (
-        <div key={name} className="flex items-start gap-2 px-2 py-0.5 font-mono text-xs">
-          <span className="text-blue-400 shrink-0">{name}</span>
-          <span className="text-muted-foreground">=</span>
-          <span className="break-all">{value}</span>
+    <div>
+      <div
+        className={cn(
+          'group flex w-full items-baseline gap-1.5 py-0.5 pr-3 font-mono text-xs hover:bg-accent/50',
+          isExpandable && 'cursor-pointer',
+        )}
+        style={{ paddingLeft: `${pl}px` }}
+        onClick={isExpandable ? () => setExpanded((v) => !v) : undefined}
+      >
+        <span className="w-3 shrink-0 text-muted-foreground">
+          {isExpandable && (
+            <ChevronRightIcon className={cn('size-3 transition-transform', expanded && 'rotate-90')} />
+          )}
+        </span>
+        <span className="shrink-0 text-blue-400">{name}</span>
+        <span className="shrink-0 text-muted-foreground">=</span>
+        <span
+          className={cn('min-w-0 flex-1 break-all', isExpandable ? 'text-sky-400' : typeColor[type])}
+          title={display !== truncated ? display : undefined}
+        >
+          {truncated}
+        </span>
+        <button onClick={handleCopy} className="ml-1 shrink-0">
+          {copied
+            ? <CheckIcon className="size-3 text-green-500" />
+            : <CopyIcon className="size-3 text-muted-foreground opacity-0 group-hover:opacity-60" />
+          }
+        </button>
+      </div>
+      {isExpandable && expanded && (
+        <div>
+          {realChildren.map(({ key, value: val }) => (
+            <VarNode key={key} name={key} value={val} indent={indent + 1} />
+          ))}
+          {isTruncated && (
+            <div
+              className="py-0.5 font-mono text-xs text-muted-foreground italic"
+              style={{ paddingLeft: `${pl + 14 + 12}px` }}
+            >
+              … more entries
+            </div>
+          )}
         </div>
-      ))}
+      )}
+    </div>
+  );
+}
+
+function VarsSection({ title, vars, filter }: { title: string; vars: Record<string, string>; filter: string }) {
+  const [open, setOpen] = useState(true);
+  const allEntries = Object.entries(vars);
+  const entries = filter
+    ? allEntries.filter(([name]) => name.toLowerCase().includes(filter.toLowerCase()))
+    : allEntries;
+
+  if (allEntries.length === 0) return null;
+
+  return (
+    <div>
+      <button
+        className="flex w-full items-center gap-1.5 px-2 py-1 text-left hover:bg-accent/30"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <ChevronRightIcon
+          className={cn('size-3 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')}
+        />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</span>
+        <span className="ml-auto font-mono text-xs text-muted-foreground">{allEntries.length}</span>
+      </button>
+      {open &&
+        (entries.length === 0 ? (
+          <p className="px-3 py-1 text-xs text-muted-foreground italic">No matches</p>
+        ) : (
+          entries.map(([name, value]) => <VarNode key={name} name={name} value={value} />)
+        ))}
     </div>
   );
 }
@@ -303,11 +477,18 @@ export default function DebuggerPage() {
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
+  const [scrollToLine, setScrollToLine] = useState<number | null>(null);
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0);
+  const [varFilter, setVarFilter] = useState('');
 
   // Auto-navigate to the paused file when a breakpoint is hit
   const pausedFile = dbg.currentPaused?.file;
   useEffect(() => {
-    if (pausedFile) setSelectedFile(pausedFile);
+    if (pausedFile) {
+      setSelectedFile(pausedFile);
+      setScrollToLine(null);
+      setSelectedFrameIndex(0);
+    }
   }, [pausedFile]);
 
   // Read file content whenever the selection or root changes
@@ -482,6 +663,7 @@ export default function DebuggerPage() {
               <SourceView
                 content={fileContent}
                 currentLine={currentLine}
+                scrollToLine={scrollToLine}
                 breakpointLines={breakpointLines}
                 conditionalLines={conditionalLines}
                 onToggleBreakpoint={(line) => {
@@ -509,7 +691,7 @@ export default function DebuggerPage() {
         {/* Col 3 — Call stack + variables */}
         <ResizablePanel defaultSize={'25%'} minSize={'15%'} maxSize={'40%'} className="flex flex-col">
           <ResizablePanelGroup orientation="vertical">
-            <ResizablePanel defaultSize={40} minSize={20} className="flex flex-col">
+            <ResizablePanel defaultSize={'40%'} minSize={'20%'} className="flex flex-col">
               <div className="border-b px-3 py-2">
                 <span className="text-sm font-semibold">Call Stack</span>
               </div>
@@ -521,13 +703,19 @@ export default function DebuggerPage() {
                         key={i}
                         className={cn(
                           'flex items-start gap-2 px-3 py-1 text-left font-mono text-xs hover:bg-accent',
-                          i === 0 && 'bg-accent',
+                          i === selectedFrameIndex && 'bg-accent',
                         )}
-                        onClick={() => setSelectedFile(frame.file)}
+                        onClick={() => {
+                          setSelectedFile(frame.file);
+                          setScrollToLine(frame.line);
+                          setSelectedFrameIndex(i);
+                        }}
                       >
                         <span className="text-muted-foreground w-3 shrink-0 text-right">{i}</span>
                         <div className="flex min-w-0 flex-col">
-                          <span className={cn('truncate', i === 0 && 'font-semibold')}>{frame.name}</span>
+                          <span className={cn('truncate', i === selectedFrameIndex && 'font-semibold')}>
+                            {frame.name}
+                          </span>
                           <span className="text-muted-foreground truncate">
                             {frame.file.split('/').pop()}:{frame.line}
                           </span>
@@ -546,14 +734,23 @@ export default function DebuggerPage() {
             <ResizableHandle withHandle />
 
             <ResizablePanel defaultSize={'60%'} minSize={'20%'} className="flex flex-col">
-              <div className="border-b px-3 py-2">
+              <div className="flex shrink-0 items-center gap-2 border-b px-3 py-1.5">
                 <span className="text-sm font-semibold">Variables</span>
+                <div className="relative ml-auto">
+                  <SearchIcon className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <input
+                    value={varFilter}
+                    onChange={(e) => setVarFilter(e.target.value)}
+                    placeholder="filter…"
+                    className="h-6 w-28 rounded border bg-background pl-6 pr-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
               </div>
               <ScrollArea className="h-0 flex-1">
                 {dbg.currentPaused ? (
-                  <div className="flex flex-col gap-3 py-2">
-                    <VariablesPanel title="Locals" vars={dbg.currentPaused.locals} />
-                    <VariablesPanel title="Upvalues" vars={dbg.currentPaused.upvalues} />
+                  <div className="flex flex-col py-1">
+                    <VarsSection title="Locals" vars={dbg.currentPaused.locals} filter={varFilter} />
+                    <VarsSection title="Upvalues" vars={dbg.currentPaused.upvalues} filter={varFilter} />
                   </div>
                 ) : (
                   <div className="text-muted-foreground px-3 py-3 text-xs">No active frame</div>
