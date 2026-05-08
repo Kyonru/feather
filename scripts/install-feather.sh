@@ -61,72 +61,6 @@ download_file() {
   fi
 }
 
-# --- Core library files ---
-CORE_FILES=(
-  "feather/init.lua"
-  "feather/plugin_manager.lua"
-  "feather/error_handler.lua"
-  "feather/utils.lua"
-  "feather/auto.lua"
-  "feather/lib/class.lua"
-  "feather/lib/json.lua"
-  "feather/lib/log.lua"
-  "feather/lib/ws.lua"
-  "feather/lib/base64.lua"
-  "feather/lib/inspect.lua"
-  "feather/plugins/base.lua"
-  "feather/plugins/logger.lua"
-  "feather/plugins/observer.lua"
-  "feather/plugins/performance.lua"
-)
-
-# --- Built-in plugin directories ---
-PLUGIN_DIRS=(
-  "screenshots"
-  "console"
-  "profiler"
-  "bookmark"
-  "memory-snapshot"
-  "network-inspector"
-  "input-replay"
-  "entity-inspector"
-  "config-tweaker"
-  "physics-debug"
-  "particle-editor"
-  "audio-debug"
-  "coroutine-monitor"
-  "collision-debug"
-  "animation-inspector"
-  "timer-inspector"
-  "hump"
-  "lua-state-machine"
-)
-
-# Plugin files per directory (function to avoid bash 4 associative arrays)
-plugin_files() {
-  case "$1" in
-    screenshots)        echo "init.lua" ;;
-    console)            echo "init.lua" ;;
-    profiler)           echo "init.lua" ;;
-    bookmark)           echo "init.lua" ;;
-    memory-snapshot)    echo "init.lua" ;;
-    network-inspector)  echo "init.lua" ;;
-    input-replay)       echo "init.lua" ;;
-    entity-inspector)   echo "init.lua" ;;
-    config-tweaker)     echo "init.lua" ;;
-    physics-debug)      echo "init.lua" ;;
-    particle-editor)    echo "init.lua" ;;
-    audio-debug)        echo "init.lua" ;;
-    coroutine-monitor)  echo "init.lua" ;;
-    collision-debug)    echo "init.lua" ;;
-    animation-inspector) echo "init.lua" ;;
-    timer-inspector)    echo "init.lua" ;;
-    hump)               echo "signal/init.lua" ;;
-    lua-state-machine)  echo "init.lua" ;;
-    *)                  echo "init.lua" ;;
-  esac
-}
-
 echo ""
 printf "${GREEN}┌─────────────────────────────────────┐${NC}\n"
 printf "${GREEN}│    🪶  Feather Installer             │${NC}\n"
@@ -142,22 +76,31 @@ echo ""
 # Lua require path: convert slashes to dots (e.g. lib/feather → lib.feather)
 LUA_MODULE="${INSTALL_DIR//\//.}"
 
+# --- Fetch manifest ---
+MANIFEST_FILE=$(mktemp)
+trap 'rm -f "$MANIFEST_FILE"' EXIT
+
+info "Fetching manifest..."
+if ! fetch "${BASE_URL}/manifest.txt" > "$MANIFEST_FILE" 2>/dev/null; then
+  error "Failed to download manifest from ${BASE_URL}/manifest.txt"
+  exit 1
+fi
+
 # --- Download core ---
 info "Downloading core library..."
 CORE_COUNT=0
 CORE_FAIL=0
 
-for file in "${CORE_FILES[@]}"; do
-  # Map feather/ -> INSTALL_DIR/
-  dest="${INSTALL_DIR}/${file#feather/}"
-
+while IFS= read -r line; do
+  file="${line#core:}"                    # feather/init.lua
+  dest="${INSTALL_DIR}/${file#feather/}"  # strip feather/ prefix, prepend INSTALL_DIR
   if download_file "${BASE_URL}/${file}" "$dest"; then
     CORE_COUNT=$((CORE_COUNT + 1))
   else
     warn "  Failed: ${file}"
     CORE_FAIL=$((CORE_FAIL + 1))
   fi
-done
+done < <(grep '^core:' "$MANIFEST_FILE")
 
 ok "Core: ${CORE_COUNT} files downloaded"
 
@@ -165,7 +108,6 @@ ok "Core: ${CORE_COUNT} files downloaded"
 if [ "$INSTALL_PLUGINS" = "1" ]; then
   info "Downloading plugins..."
 
-  # Parse skip list
   IFS=',' read -ra SKIP_ARR <<< "$SKIP_PLUGINS"
 
   PLUGIN_COUNT=0
@@ -173,8 +115,7 @@ if [ "$INSTALL_PLUGINS" = "1" ]; then
   PLUGINS_DIR="${INSTALL_DIR}/plugins"
   mkdir -p "${PLUGINS_DIR}"
 
-  for plugin in "${PLUGIN_DIRS[@]}"; do
-    # Check if plugin is in skip list
+  while IFS= read -r plugin; do
     SHOULD_SKIP=0
     for s in "${SKIP_ARR[@]}"; do
       trimmed=$(echo "$s" | xargs)
@@ -188,16 +129,16 @@ if [ "$INSTALL_PLUGINS" = "1" ]; then
       continue
     fi
 
-    IFS=' ' read -ra files <<< "$(plugin_files "$plugin")"
-    for file in "${files[@]}"; do
+    while IFS= read -r pline; do
+      file="${pline##*:}"   # strip "plugin:<name>:" prefix
       dest="${PLUGINS_DIR}/${plugin}/${file}"
       if download_file "${BASE_URL}/plugins/${plugin}/${file}" "$dest"; then
         PLUGIN_COUNT=$((PLUGIN_COUNT + 1))
       else
         warn "  Failed: plugins/${plugin}/${file}"
       fi
-    done
-  done
+    done < <(grep "^plugin:${plugin}:" "$MANIFEST_FILE")
+  done < <(grep '^plugin:' "$MANIFEST_FILE" | cut -d: -f2 | sort -u)
 
   ok "Plugins: ${PLUGIN_COUNT} files downloaded (${PLUGIN_SKIP_COUNT} skipped)"
 fi

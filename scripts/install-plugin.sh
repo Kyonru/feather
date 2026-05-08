@@ -52,69 +52,27 @@ download_file() {
   fi
 }
 
-# All known plugins (used for validation and listing)
-ALL_PLUGINS=(
-  "screenshots"
-  "console"
-  "profiler"
-  "bookmark"
-  "memory-snapshot"
-  "network-inspector"
-  "input-replay"
-  "entity-inspector"
-  "config-tweaker"
-  "physics-debug"
-  "particle-editor"
-  "audio-debug"
-  "coroutine-monitor"
-  "collision-debug"
-  "animation-inspector"
-  "timer-inspector"
-  "hump"
-  "lua-state-machine"
-)
-
-# Files per plugin (Bash 3 compatible — no associative arrays)
-plugin_files() {
-  case "$1" in
-    screenshots)         echo "init.lua" ;;
-    console)             echo "init.lua" ;;
-    profiler)            echo "init.lua" ;;
-    bookmark)            echo "init.lua" ;;
-    memory-snapshot)     echo "init.lua" ;;
-    network-inspector)   echo "init.lua" ;;
-    input-replay)        echo "init.lua" ;;
-    entity-inspector)    echo "init.lua" ;;
-    config-tweaker)      echo "init.lua" ;;
-    physics-debug)       echo "init.lua" ;;
-    particle-editor)     echo "init.lua" ;;
-    audio-debug)         echo "init.lua" ;;
-    coroutine-monitor)   echo "init.lua" ;;
-    collision-debug)     echo "init.lua" ;;
-    animation-inspector) echo "init.lua" ;;
-    timer-inspector)     echo "init.lua" ;;
-    hump)                echo "signal/init.lua" ;;
-    lua-state-machine)   echo "init.lua" ;;
-    *)                   echo "" ;;
-  esac
-}
-
-is_known_plugin() {
-  local name="$1"
-  for p in "${ALL_PLUGINS[@]}"; do
-    if [ "$p" = "$name" ]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 echo ""
 printf "${GREEN}┌─────────────────────────────────────┐${NC}\n"
 printf "${GREEN}│    🪶  Feather Plugin Installer      │${NC}\n"
 printf "${GREEN}│    Debug tools for LÖVE games        │${NC}\n"
 printf "${GREEN}└─────────────────────────────────────┘${NC}\n"
 echo ""
+
+# --- Fetch manifest ---
+MANIFEST_FILE=$(mktemp)
+trap 'rm -f "$MANIFEST_FILE"' EXIT
+
+if ! fetch "${BASE_URL}/manifest.txt" > "$MANIFEST_FILE" 2>/dev/null; then
+  error "Failed to download manifest from ${BASE_URL}/manifest.txt"
+  exit 1
+fi
+
+# Build available plugin list from manifest
+ALL_PLUGINS=()
+while IFS= read -r plugin; do
+  ALL_PLUGINS+=("$plugin")
+done < <(grep '^plugin:' "$MANIFEST_FILE" | cut -d: -f2 | sort -u)
 
 # Show available plugins and exit if no arguments given
 if [ "$#" -eq 0 ]; then
@@ -139,7 +97,14 @@ echo ""
 REQUESTED=("$@")
 INVALID=()
 for name in "${REQUESTED[@]}"; do
-  if ! is_known_plugin "$name"; then
+  found=0
+  for p in "${ALL_PLUGINS[@]}"; do
+    if [ "$p" = "$name" ]; then
+      found=1
+      break
+    fi
+  done
+  if [ "$found" = "0" ]; then
     INVALID+=("$name")
   fi
 done
@@ -163,8 +128,8 @@ COUNT=0
 FAIL=0
 
 for name in "${REQUESTED[@]}"; do
-  IFS=' ' read -ra files <<< "$(plugin_files "$name")"
-  for file in "${files[@]}"; do
+  while IFS= read -r pline; do
+    file="${pline##*:}"   # strip "plugin:<name>:" prefix
     dest="${PLUGINS_DIR}/${name}/${file}"
     if download_file "${BASE_URL}/plugins/${name}/${file}" "$dest"; then
       COUNT=$((COUNT + 1))
@@ -173,7 +138,7 @@ for name in "${REQUESTED[@]}"; do
       warn "  ✗ ${name}/${file} (download failed)"
       FAIL=$((FAIL + 1))
     fi
-  done
+  done < <(grep "^plugin:${name}:" "$MANIFEST_FILE")
 done
 
 echo ""

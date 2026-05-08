@@ -1,2 +1,8 @@
 npm run typecheck
 npm run lint
+
+bash scripts/generate-manifest.sh
+if ! git diff --exit-code src-lua/manifest.txt; then
+  echo "[feather] manifest.txt is out of date — it has been updated, please stage it and commit again."
+  exit 1
+fi
