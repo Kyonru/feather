@@ -179,6 +179,7 @@ function SourceView({
   onToggleBreakpoint: (line: number) => void;
   onRightClickBreakpoint: (line: number, e: React.MouseEvent) => void;
 }) {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollTargetRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
   const style = theme === 'dark' ? onDark : oneLight;
@@ -187,10 +188,24 @@ function SourceView({
   const activeScrollLine = scrollToLine ?? currentLine;
 
   useEffect(() => {
-    if (activeScrollLine !== null) {
-      scrollTargetRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (activeScrollLine === null || !scrollTargetRef.current) return;
+
+    // scrollIntoView() walks all scrollable ancestors including the Radix
+    // ScrollArea root (overflow:hidden), which browsers will also scroll,
+    // causing the view to shift incorrectly for large line offsets.
+    // Instead, locate the Radix viewport directly and set scrollTop manually.
+    const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null;
+    if (viewport) {
+      const targetRect = scrollTargetRef.current.getBoundingClientRect();
+      const viewportRect = viewport.getBoundingClientRect();
+      const newTop =
+        viewport.scrollTop + (targetRect.top - viewportRect.top) - viewport.clientHeight / 2 + targetRect.height / 2;
+      viewport.scrollTo({ top: Math.max(0, newTop), behavior: 'smooth' });
+    } else {
+      scrollTargetRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-  }, [activeScrollLine]);
+    // Re-run when content loads (async file read) so the ref is populated.
+  }, [activeScrollLine, content]);
 
   if (!content) {
     return (
@@ -203,80 +218,82 @@ function SourceView({
   const lines = content.split('\n');
 
   return (
-    <ScrollArea className="h-0 flex-1">
-      <div className="min-w-0 font-mono text-xs">
-        {lines.map((line, i) => {
-          const lineNum = i + 1;
-          const isCurrent = lineNum === currentLine;
-          const isScrollTarget = lineNum === scrollToLine && !isCurrent;
-          const hasBp = breakpointLines.has(lineNum);
-          return (
-            <div
-              key={lineNum}
-              ref={lineNum === activeScrollLine ? scrollTargetRef : undefined}
-              className={cn(
-                'group flex cursor-pointer items-start hover:bg-accent/50',
-                isCurrent && 'bg-yellow-500/15 hover:bg-yellow-500/20',
-                isScrollTarget && 'bg-blue-500/10 hover:bg-blue-500/15',
-              )}
-              onClick={() => onToggleBreakpoint(lineNum)}
-              title={hasBp ? 'Remove breakpoint' : 'Add breakpoint'}
-            >
-              {/* Breakpoint gutter */}
+    <div ref={scrollAreaRef} className="h-0 flex-1">
+      <ScrollArea className="size-full">
+        <div className="min-w-0 font-mono text-xs">
+          {lines.map((line, i) => {
+            const lineNum = i + 1;
+            const isCurrent = lineNum === currentLine;
+            const isScrollTarget = lineNum === scrollToLine && !isCurrent;
+            const hasBp = breakpointLines.has(lineNum);
+            return (
               <div
-                className="flex w-6 shrink-0 items-center justify-center self-center"
-                onContextMenu={
-                  hasBp
-                    ? (e) => {
-                        e.preventDefault();
-                        onRightClickBreakpoint(lineNum, e);
-                      }
-                    : undefined
-                }
-              >
-                {hasBp ? (
-                  <CircleDotIcon
-                    className={cn('size-2.5', conditionalLines.has(lineNum) ? 'text-orange-400' : 'text-red-500')}
-                  />
-                ) : (
-                  <div className="size-2 rounded-full opacity-0 group-hover:bg-red-400 group-hover:opacity-60" />
-                )}
-              </div>
-              {/* Line number */}
-              <span
+                key={lineNum}
+                ref={lineNum === activeScrollLine ? scrollTargetRef : undefined}
                 className={cn(
-                  'w-9 shrink-0 select-none py-px pr-3 text-right',
-                  isCurrent ? 'text-yellow-400' : 'text-muted-foreground/40',
+                  'group flex cursor-pointer items-start hover:bg-accent/50',
+                  isCurrent && 'bg-yellow-500/15 hover:bg-yellow-500/20',
+                  isScrollTarget && 'bg-blue-500/10 hover:bg-blue-500/15',
                 )}
+                onClick={() => onToggleBreakpoint(lineNum)}
+                title={hasBp ? 'Remove breakpoint' : 'Add breakpoint'}
               >
-                {lineNum}
-              </span>
-              {/* Code */}
-              <pre className={cn('flex-1 py-px pr-4 whitespace-pre', isCurrent && 'font-semibold')}>
-                {isCurrent && <span className="mr-1 text-yellow-400">→</span>}
-
-                <SyntaxHighlighter
-                  wrapLines
-                  language={language}
-                  style={{
-                    ...style,
-                    // @ts-expect-error react-syntax-highlighter's types are incomplete
-                    hljs: {
-                      ...style.hljs,
-                      background: 'transparent',
-                      padding: 0,
-                    },
-                  }}
-                  showLineNumbers={false}
+                {/* Breakpoint gutter */}
+                <div
+                  className="flex w-6 shrink-0 items-center justify-center self-center"
+                  onContextMenu={
+                    hasBp
+                      ? (e) => {
+                          e.preventDefault();
+                          onRightClickBreakpoint(lineNum, e);
+                        }
+                      : undefined
+                  }
                 >
-                  {line}
-                </SyntaxHighlighter>
-              </pre>
-            </div>
-          );
-        })}
-      </div>
-    </ScrollArea>
+                  {hasBp ? (
+                    <CircleDotIcon
+                      className={cn('size-2.5', conditionalLines.has(lineNum) ? 'text-orange-400' : 'text-red-500')}
+                    />
+                  ) : (
+                    <div className="size-2 rounded-full opacity-0 group-hover:bg-red-400 group-hover:opacity-60" />
+                  )}
+                </div>
+                {/* Line number */}
+                <span
+                  className={cn(
+                    'w-9 shrink-0 select-none py-px pr-3 text-right',
+                    isCurrent ? 'text-yellow-400' : 'text-muted-foreground/40',
+                  )}
+                >
+                  {lineNum}
+                </span>
+                {/* Code */}
+                <pre className={cn('flex-1 py-px pr-4 whitespace-pre', isCurrent && 'font-semibold')}>
+                  {isCurrent && <span className="mr-1 text-yellow-400">→</span>}
+
+                  <SyntaxHighlighter
+                    wrapLines
+                    language={language}
+                    style={{
+                      ...style,
+                      // @ts-expect-error react-syntax-highlighter's types are incomplete
+                      hljs: {
+                        ...style.hljs,
+                        background: 'transparent',
+                        padding: 0,
+                      },
+                    }}
+                    showLineNumbers={false}
+                  >
+                    {line}
+                  </SyntaxHighlighter>
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+      </ScrollArea>
+    </div>
   );
 }
 
@@ -294,21 +311,21 @@ function detectLuaType(value: string): LuaValueType {
 }
 
 const typeColor: Record<LuaValueType, string> = {
-  nil:      'text-muted-foreground',
-  boolean:  'text-purple-400',
-  number:   'text-green-400',
-  string:   'text-orange-400',
-  table:    'text-sky-400',
+  nil: 'text-muted-foreground',
+  boolean: 'text-purple-400',
+  number: 'text-green-400',
+  string: 'text-orange-400',
+  table: 'text-sky-400',
   function: 'text-muted-foreground italic',
   userdata: 'text-muted-foreground italic',
-  thread:   'text-muted-foreground italic',
+  thread: 'text-muted-foreground italic',
 };
 
 function formatLuaValue(value: string, type: LuaValueType): string {
   if (type === 'string') return value; // already quoted by Lua: "..."
   if (type === 'function') return value.replace('function: ', 'fn ');
   if (type === 'userdata') return value.replace('userdata: ', 'ud ');
-  if (type === 'thread')   return value.replace('thread: ', 'co ');
+  if (type === 'thread') return value.replace('thread: ', 'co ');
   return value;
 }
 
@@ -393,9 +410,7 @@ function VarNode({ name, value, indent = 0 }: { name: string; value: string; ind
         onClick={isExpandable ? () => setExpanded((v) => !v) : undefined}
       >
         <span className="w-3 shrink-0 text-muted-foreground">
-          {isExpandable && (
-            <ChevronRightIcon className={cn('size-3 transition-transform', expanded && 'rotate-90')} />
-          )}
+          {isExpandable && <ChevronRightIcon className={cn('size-3 transition-transform', expanded && 'rotate-90')} />}
         </span>
         <span className="shrink-0 text-blue-400">{name}</span>
         <span className="shrink-0 text-muted-foreground">=</span>
@@ -406,10 +421,11 @@ function VarNode({ name, value, indent = 0 }: { name: string; value: string; ind
           {truncated}
         </span>
         <button onClick={handleCopy} className="ml-1 shrink-0">
-          {copied
-            ? <CheckIcon className="size-3 text-green-500" />
-            : <CopyIcon className="size-3 text-muted-foreground opacity-0 group-hover:opacity-60" />
-          }
+          {copied ? (
+            <CheckIcon className="size-3 text-green-500" />
+          ) : (
+            <CopyIcon className="size-3 text-muted-foreground opacity-0 group-hover:opacity-60" />
+          )}
         </button>
       </div>
       {isExpandable && expanded && (
