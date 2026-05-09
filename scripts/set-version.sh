@@ -33,8 +33,13 @@ sed -i '' "1,/^version = \"[^\"]*\"/ s/^version = \"[^\"]*\"/version = \"${VERSI
 sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" \
   "${ROOT}/src-tauri/tauri.conf.json"
 
+# cli/package.json
+sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" \
+  "${ROOT}/cli/package.json"
+
 echo "Done. Updated:"
 echo "  package.json"
 echo "  src-lua/feather/init.lua"
 echo "  src-tauri/Cargo.toml"
 echo "  src-tauri/tauri.conf.json"
+echo "  cli/package.json"

@@ -1,14 +1,26 @@
 # Installation
 
-## Option 1: Direct Download (Recommended)
+## Option 1: CLI (Recommended — no game changes needed)
 
-1. Go to the [releases page](https://github.com/Kyonru/feather/releases) and download `feather-x.x.x.zip`.
-2. Unzip and copy the `feather/` folder into your project, e.g. `lib/feather/`.
-3. Require it by path:
+Install the `feather-cli` npm package globally, then use `feather run` to inject Feather into any love2d game without touching its source:
 
-```lua
-local Feather = require "lib.feather"
+```bash
+npm install -g feather-cli
+feather run path/to/my-game
 ```
+
+A new session tab appears in the Feather desktop app automatically. No `require` calls, no `DEBUGGER:update(dt)` — the CLI handles everything.
+
+To add Feather to an existing project permanently (downloads the library, patches `main.lua`):
+
+```bash
+cd path/to/my-game
+feather init
+```
+
+See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
+
+---
 
 ## Option 2: Install Script
 
@@ -39,7 +51,17 @@ FEATHER_PLUGINS=0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/
 FEATHER_INCLUDE_CONSOLE=1 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
 ```
 
-## Option 3: LuaRocks
+## Option 3: Direct Download
+
+1. Go to the [releases page](https://github.com/Kyonru/feather/releases) and download `feather-x.x.x.zip`.
+2. Unzip and copy the `feather/` folder into your project, e.g. `lib/feather/`.
+3. Require it by path:
+
+```lua
+local Feather = require "lib.feather"
+```
+
+## Option 4: LuaRocks
 
 ```bash
 luarocks install feather
@@ -67,7 +89,21 @@ local Feather = require("feather")
 
 ## Updating
 
-### Using the install script (recommended)
+### Using the CLI
+
+If you installed via `feather-cli`, run:
+
+```bash
+feather update
+```
+
+This re-downloads the feather core files from GitHub into your project. To update a specific plugin:
+
+```bash
+feather plugin update screenshots
+```
+
+### Using the install script
 
 Re-run the script with the target version tag — it overwrites existing files in place:
 

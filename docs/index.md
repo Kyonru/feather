@@ -19,11 +19,23 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 - 🐛 **Step Debugger** — Breakpoints, step over/into/out, call stack, and local variable inspection.
 - 📁 **Log file viewer** — Open `.featherlog` files for offline inspection.
 - ⚡ **Zero-config setup** — `require("feather.auto")` registers all plugins with sensible defaults.
-- 📦 **One-line installer** — `curl | bash` script to download core + plugins on demand.
+- 🖥️ **CLI** — `feather run <game>` injects Feather into any love2d game without touching its code.
+- 📦 **One-line installer** — `curl | bash` script or `feather init` to download core + plugins on demand.
 
 ---
 
 ## Quick Start
+
+### Option A — CLI (no game-side changes)
+
+```bash
+npm install -g feather-cli
+feather run path/to/my-game
+```
+
+Feather is injected automatically. No `require` needed in the game. See [CLI](cli.md).
+
+### Option B — In-game require
 
 ```lua
 require("feather.auto")
@@ -33,7 +45,7 @@ function love.update(dt)
 end
 ```
 
-That's it. `DEBUGGER` is a global created automatically with all plugins registered.
+`DEBUGGER` is a global created automatically with all plugins registered.
 
 **Customize:**
 
@@ -53,6 +65,7 @@ require("feather.auto").setup({
 
 ## Documentation
 
+- [CLI](cli.md) — Run games without touching their code, `feather run`, `feather init`, `feather doctor`
 - [Installation](installation.md) — Download, install script, LuaRocks, custom paths
 - [Configuration](configuration.md) — All config options, connecting, mobile debugging
 - [Usage](usage.md) — Observers, logging, console / REPL, step debugger

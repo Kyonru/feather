@@ -13,6 +13,12 @@
 
 local PATH = string.sub(..., 1, string.len(...) - string.len("auto"))
 
+-- When the CLI shim pre-scans the plugins directory it sets FEATHER_PLUGIN_LIST
+-- before requiring this module. Capture it into a local so scanPlugins can use
+-- require() instead of love.filesystem (avoids PhysFS symlink dependency).
+---@type string[]|nil
+local cliPluginList = rawget(_G, "FEATHER_PLUGIN_LIST") --[[@as string[]|nil]]
+
 local FeatherDebugger = require(PATH .. "init")
 local FeatherPluginManager = require(PATH .. "plugin_manager")
 
@@ -52,11 +58,38 @@ end
 
 --- Scan the plugins directory and build an entry list from manifest.lua files.
 --- Falls back to an empty table if the filesystem is unavailable.
+---
+--- When FEATHER_PLUGIN_LIST is set by the CLI shim, the list is used directly and
+--- manifests are loaded via require() instead of love.filesystem, so plugin
+--- discovery works without PhysFS symlink support.
 ---@return table[]
 local function scanPlugins()
-  local fsDir = toFsPath(FEATHER_PLUGIN_PATH .. "plugins")
   local pluginModPath = FEATHER_PLUGIN_PATH .. "plugins."
   local entries = {}
+
+  -- Fast path: CLI shim pre-scanned the plugins directory on the Node side and
+  -- exposed the IDs via FEATHER_PLUGIN_LIST. Use require() so discovery never
+  -- touches PhysFS and works regardless of symlink configuration.
+  if type(cliPluginList) == "table" then
+    for _, id in ipairs(cliPluginList) do
+      local manifest = tryRequire(pluginModPath .. id .. ".manifest")
+      if manifest and manifest.id then
+        local mod = tryRequire(pluginModPath .. manifest.id)
+        entries[#entries + 1] = {
+          mod = mod,
+          id = manifest.id,
+          opts = manifest.opts or {},
+          optIn = manifest.optIn or false,
+          disabled = manifest.disabled ~= false,
+          permissions = manifest.permissions or {},
+        }
+      end
+    end
+    return entries
+  end
+
+  -- Normal path: scan via love.filesystem (works when plugins/ is a real directory, not a symlink).
+  local fsDir = toFsPath(FEATHER_PLUGIN_PATH .. "plugins")
 
   if not love or not love.filesystem then
     return entries

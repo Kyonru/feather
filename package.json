@@ -4,7 +4,13 @@
   "private": true,
   "version": "0.7.0",
   "type": "module",
+  "workspaces": [
+    "cli"
+  ],
   "scripts": {
+    "cli:build": "npm run build --workspace=cli",
+    "cli:dev": "npm run dev --workspace=cli",
+    "feather": "node cli/dist/index.js",
     "dev": "vite",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
     "web": "vite",
