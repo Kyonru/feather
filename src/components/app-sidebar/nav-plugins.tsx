@@ -3,6 +3,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -17,16 +18,20 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
+import { invoke } from '@tauri-apps/api/core';
 import { NavLink, useLocation } from 'react-router';
 import { useConfigStore } from '@/store/config';
 import { useSettingsStore } from '@/store/settings';
+import { useSessionStore } from '@/store/session';
 import { useMemo, useState } from 'react';
 import { DynamicIcon } from 'lucide-react/dynamic';
-import { ChevronRight, PuzzleIcon, SearchIcon, SlidersHorizontalIcon } from 'lucide-react';
+import { ChevronRight, PowerOffIcon, PuzzleIcon, SearchIcon, SlidersHorizontalIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function NavPlugins() {
   const location = useLocation();
   const plugins = useConfigStore((state) => state.config?.plugins);
+  const sessionId = useSessionStore((state) => state.sessionId);
   const hiddenPlugins = useSettingsStore((state) => state.hiddenPlugins);
   const toggleHiddenPlugin = useSettingsStore((state) => state.toggleHiddenPlugin);
   const [search, setSearch] = useState('');
@@ -67,6 +72,16 @@ export function NavPlugins() {
 
   if (items.length === 0) return null;
 
+  const disableAllPlugins = () => {
+    if (!sessionId) return;
+    invoke('send_command', {
+      sessionId,
+      message: JSON.stringify({ type: 'cmd:plugins:disable_all' }),
+    })
+      .then(() => toast.success('Disabled all plugins'))
+      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to disable plugins'));
+  };
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarMenu>
@@ -80,17 +95,22 @@ export function NavPlugins() {
                   <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
-              {disabledItems.length > 0 && (<DropdownMenu>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    title="Manage visible plugins"
+                    title="Manage plugins"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <SlidersHorizontalIcon className="size-3.5" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" className="w-48">
+                  <DropdownMenuItem onSelect={disableAllPlugins} disabled={items.every((item) => item.disabled)}>
+                    <PowerOffIcon className="size-3.5" />
+                    Disable all plugins
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-xs">Disabled plugins</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {disabledItems.length === 0 && (
@@ -107,7 +127,7 @@ export function NavPlugins() {
                     </DropdownMenuCheckboxItem>
                   ))}
                 </DropdownMenuContent>
-              </DropdownMenu>)}
+              </DropdownMenu>
             </div>
             <CollapsibleContent>
               <SidebarMenuSub>

@@ -348,6 +348,9 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:plugin:toggle" and msg.plugin then
     self.pluginManager:togglePlugin(msg.plugin)
     self:__sendHello()
+  elseif msg.type == "cmd:plugins:disable_all" then
+    self.pluginManager:disableAllPlugins()
+    self:__sendHello()
   elseif msg.type == "cmd:assets:toggle" then
     local enabled = not self.assetPreviewEnabled
     if msg.data and msg.data.enabled ~= nil then

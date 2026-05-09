@@ -375,6 +375,20 @@ function FeatherPluginManager:disablePlugin(pluginId)
   return false
 end
 
+--- Disable all plugins so they stop consuming resources.
+---@return number count Number of plugins newly disabled
+function FeatherPluginManager:disableAllPlugins()
+  local count = 0
+  for _, plugin in ipairs(self.plugins) do
+    if not plugin.disabled then
+      plugin.disabled = true
+      count = count + 1
+      self.logger:logger("[FeatherPluginManager] Disabled plugin: " .. plugin.identifier)
+    end
+  end
+  return count
+end
+
 --- Toggle a plugin's enabled/disabled state
 ---@param pluginId string
 ---@return boolean|nil enabled  New state, or nil if plugin not found
