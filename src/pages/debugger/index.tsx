@@ -5,6 +5,8 @@ import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { useDebugger } from '@/hooks/use-debugger';
 import { useTimeTravel } from '@/hooks/use-time-travel';
 import { useConfigStore } from '@/store/config';
+import { useDebuggerStore } from '@/store/debugger';
+import { useSessionStore } from '@/store/session';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -613,12 +615,16 @@ export default function DebuggerPage() {
   const navigate = useNavigate();
   const { frames } = useTimeTravel();
   const configRootPath = useConfigStore((state) => state.config?.root_path ?? '');
-  const [manualRootPath, setManualRootPath] = useState('');
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const rootPaths = useDebuggerStore((state) => state.rootPaths);
+  const setRootPath = useDebuggerStore((state) => state.setRootPath);
+  const clearRootPath = useDebuggerStore((state) => state.clearRootPath);
+  const manualRootPath = sessionId ? (rootPaths[sessionId] ?? '') : '';
   const rootPath = manualRootPath || configRootPath;
 
   const pickFolder = async () => {
     const selected = await openFolderDialog({ directory: true, multiple: false });
-    if (typeof selected === 'string') setManualRootPath(selected);
+    if (typeof selected === 'string' && sessionId) setRootPath(sessionId, selected);
   };
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -765,14 +771,27 @@ export default function DebuggerPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold">Files</span>
               {!isWeb() && (
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={pickFolder}>
-                  Open folder
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={pickFolder}>
+                    Open folder
+                  </Button>
+                </div>
               )}
             </div>
             {rootPath && (
               <div className="text-muted-foreground mt-0.5 truncate text-xs" title={rootPath}>
                 {rootPath.split('/').pop()}
+                {manualRootPath && sessionId && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                    onClick={() => clearRootPath(sessionId)}
+                    title="Remove manual folder"
+                  >
+                    ×
+                  </Button>
+                )}
               </div>
             )}
           </div>
