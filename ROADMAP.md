@@ -18,13 +18,6 @@
 Focus:
 Build the core runtime inspection experience.
 
-#### Runtime Insights
-
-- [ ] Add app disk usage
-- [ ] Add memory usage tracking
-- [ ] Add frame-time/performance metrics
-- [ ] Low-overhead mode for production builds
-
 #### File & State Management
 
 - [ ] Add option to clear unused screenshots
@@ -34,10 +27,6 @@ Build the core runtime inspection experience.
   - [ ] Binary save inspection support
 
 ---
-
-#### CLI
-
-- [CLI.ROADMAP.md](CLI.ROADMAP.md)
 
 ## 0.9.x — Assets & Runtime Inspection
 

@@ -245,11 +245,13 @@ function Feather:__getConfig()
   }
 end
 
----@return nil
 function Feather:__setConfig(params)
   self.sampleRate = params.sampleRate or self.sampleRate
   self.updateInterval = params.updateInterval or self.updateInterval
   self.maxTempLogs = params.maxTempLogs or self.maxTempLogs
+  if params.diskUsage ~= nil then
+    self.performance._diskUsageEnabled = params.diskUsage
+  end
 end
 
 --- Dispatch an incoming desktop → game command message.

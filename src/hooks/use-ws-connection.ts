@@ -200,8 +200,11 @@ export const useWsConnection = () => {
 
           case 'performance': {
             const metric = data as PerformanceMetrics;
-            // Lua sends memory in KB (collectgarbage("count")), normalize to MB
+            // Lua sends memory/peakMemory in KB (collectgarbage("count")), normalize to MB
             metric.memory = metric.memory / 1024;
+            metric.peakMemory = (metric.peakMemory ?? 0) / 1024;
+            // Lua sends diskUsage in bytes, normalize to MB
+            metric.diskUsage = (metric.diskUsage ?? 0) / 1024 / 1024;
             // Lua sends texturememory in bytes, normalize to MB
             if (metric.stats?.texturememory) {
               metric.stats.texturememory = metric.stats.texturememory / 1024 / 1024;
