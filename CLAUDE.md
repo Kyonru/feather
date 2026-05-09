@@ -72,15 +72,24 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
 - **`init.lua`** — Main `Feather` class. Creates a WS client (`lib/ws.lua`), pushes data at `sampleRate` interval, routes incoming commands via `__handleCommand`. `Feather:update(dt)` must be called every frame — it drives the WS I/O and plugin updates.
 - **`lib/ws.lua`** — Minimal non-blocking WebSocket client over LuaSocket. Event-driven: `onopen`, `onmessage`, `onclose`, `onerror`. Handles frame encoding/decoding, ping/pong, auto-reconnect.
 - **`lib/base64.lua`** — Optimized base64 encoder with pre-computed lookup table (4-char chunks per iteration). Used for screenshot/GIF frame encoding.
-- **`plugins/logger.lua`** — Wraps `print()`, writes JSON-per-line to `.featherlog` via `lib/log.lua` (`io.open` append). Deduplicates consecutive identical messages. Supports optional screenshot capture per log.
-- **`plugins/performance.lua`**, **`plugins/observer.lua`** — Thin plugins; return data on push cycle.
-- **`plugin_manager.lua`** — Manages plugin lifecycle: `init → getConfig → update → handleRequest / handleActionRequest / handleActionCancel / handleParamsUpdate → onerror → finish`. Features error isolation (per-plugin `pcall` in `update()`), auto-disable after 10 consecutive errors, and `enablePlugin()` for recovery. Supports `disablePlugin()`, `togglePlugin()`, and reports `disabled` state in `getConfig()`.
+- **`core/`** — Internal modules used by Feather itself and inherited by all plugins. Not scanned by `auto.lua`; required directly by `init.lua` and `plugin_manager.lua`.
+  - **`core/base.lua`** — `FeatherPlugin` base class. All plugins extend this. Defines the full lifecycle interface (`init`, `update`, `getConfig`, `handleRequest`, `handleActionRequest`, `handleActionCancel`, `handleParamsUpdate`, `onerror`, `finish`) plus love-event stubs (`onDraw`, `onKeypressed`, `onMousepressed`, etc.) that plugins override as needed.
+  - **`core/logger.lua`** — Wraps `print()`, writes JSON-per-line to `.featherlog` via `lib/log.lua`. Deduplicates consecutive identical messages. Supports optional screenshot capture per log. Output folder configurable via `outputDir` config option (default: `"logs"`).
+  - **`core/observer.lua`**, **`core/performance.lua`** — Thin internal plugins; push key-value observer data and FPS/memory stats each push cycle.
+- **`plugin_manager.lua`** — Manages plugin lifecycle: `init → getConfig → update → handleRequest / handleActionRequest / handleActionCancel / handleParamsUpdate → onerror → finish`. Features error isolation (per-plugin `pcall` in `update()`), auto-disable after 10 consecutive errors, and `enablePlugin()` for recovery. Supports `disablePlugin()`, `togglePlugin()`, and reports `disabled` state in `getConfig()`. Also owns central love-callback dispatch (`hookLoveCallbacks` / `unhookLoveCallbacks`) so plugins implement `on*` methods instead of patching `love.*` directly. Checks declared plugin permissions against the user's `permissions` config at load time.
 - **`error_handler.lua`** — Replaces `love.errorhandler` when `autoRegisterErrorHandler = true`.
-- **`auto.lua`** — Zero-config entry point. `require("feather.auto")` auto-discovers and registers all built-in plugins with sensible defaults. Supports `exclude`, `include`, and `pluginOptions` config. Creates a global `DEBUGGER` instance. Two opt-out levels: `optIn = true` (e.g. console) means the plugin is not registered at all unless explicitly in `config.include`; `disabled = true` (e.g. entity-inspector, physics-debug) means the plugin is registered and visible in the UI but starts inactive — users can enable from the desktop. `config.include` force-includes optIn plugins and force-enables disabled ones.
+- **`auto.lua`** — Zero-config entry point. `require("feather.auto")` scans `src-lua/plugins/` at runtime using `love.filesystem.getDirectoryItems`, reads each plugin's `manifest.lua`, and registers discovered plugins with sensible defaults. Creates a global `DEBUGGER` instance. Two activation levels controlled by the manifest:
+  - `optIn = true` — plugin is **not registered** unless explicitly listed in `config.include` (e.g. `console`).
+  - `disabled = true` — plugin is registered and visible in the UI but **starts inactive**; user can enable it from the desktop (e.g. `physics-debug`, `entity-inspector`). `config.include` force-enables these.
+  - `config.exclude` removes a plugin entirely. `config.pluginOptions` passes per-plugin option overrides.
 
 **`mode` config option:** `"socket"` (default) connects via WebSocket; `"disk"` skips WS entirely and only writes log files — useful for Android/iOS or when LuaSocket is unavailable.
 
 ### Built-in plugins (`src-lua/plugins/`)
+
+Each subdirectory here is a self-contained plugin. Every plugin must have a `manifest.lua` at its root — `auto.lua` uses this file to discover the plugin at runtime via `love.filesystem.getDirectoryItems`. Without a `manifest.lua` the directory is silently skipped. The manifest declares `id`, `name`, `description`, `version`, `permissions`, `optIn`, `disabled`, and optional default `opts`. The plugin implementation lives in `init.lua` and extends `FeatherPlugin` from `feather/core/base.lua`.
+
+Do **not** put internal Feather modules here — those belong in `feather/core/`. Only user-facing, optionally-installable plugins belong in this directory.
 
 - **`screenshots/`** — Capture screenshots and record GIFs. Gallery content type with download. Incremental push to avoid re-sending.
 - **`console/`** — Remote REPL. Execute Lua code in the game context. Sandbox mode available. Opt-in only (excluded from auto.lua by default).
@@ -160,9 +169,13 @@ The built-in screenshots plugin demonstrates the full plugin lifecycle:
 
 Plugins extend Feather on both sides:
 
-**Lua side** — extend `FeatherPlugin` (base class in `plugins/base.lua`), implement lifecycle methods, register with `FeatherPluginManager.createPlugin(MyPlugin, "id", opts)`.
+**Lua side** — extend `FeatherPlugin` (base class in `feather/core/base.lua`), implement lifecycle methods, add a `manifest.lua`, and drop the directory in `src-lua/plugins/`. `auto.lua` discovers it automatically on next launch.
 
 Key lifecycle methods: `init(config)`, `update(dt, feather)`, `handleRequest(request, feather)` (GET/push), `handleActionRequest(request, feather)` (POST — returns data/err tuple), `handleActionCancel(request, feather)` (cancel in-flight action), `handleParamsUpdate(request, feather)` (PUT), `onerror(msg, feather)`, `finish(feather)`, `getConfig()`.
+
+Love-event hooks: instead of patching `love.*` callbacks directly, plugins override the appropriate `on*` method (`onDraw`, `onKeypressed`, `onKeyreleased`, `onMousepressed`, `onMousereleased`, `onTouchpressed`, `onTouchreleased`, `onJoystickpressed`, `onJoystickreleased`). `plugin_manager` patches each `love.*` callback once and dispatches to all enabled plugins via pcall, preventing conflicts between plugins that hook the same callback. Exception: `input-replay` keeps its own hook system because it simulates love events during replay, which would cause recursion through central dispatch.
+
+Permission model: plugins declare required permissions in `manifest.lua` (`permissions = { "filesystem", "network", ... }`). At load time, `plugin_manager` checks declared permissions against the user's `config.permissions` allowlist (`"all"` by default) and logs a warning for each undeclared permission. Loading is not blocked — this is informational only in v1.
 
 Inside a plugin, `self.logger` and `self.observer` are always available.
 
@@ -203,6 +216,8 @@ The Settings modal includes a "Mobile Connection" section (`src/components/mobil
 ### Install script
 
 `scripts/install-feather.sh` — curl-pipe-sh installer for the Lua library. Downloads core files + plugins from GitHub. Bash 3 compatible (macOS default). Configurable via env vars: `FEATHER_DIR`, `FEATHER_BRANCH`, `FEATHER_PLUGINS`, `FEATHER_SKIP_PLUGINS`.
+
+`src-lua/manifest.txt` — colon-delimited file list used by the install scripts. Format: `core:<path>` for feather core files and `plugin:<id>:<file>` for per-plugin files. Generated by `scripts/generate-manifest.sh` (run automatically by the Husky pre-commit hook). Adding a new plugin only requires a `manifest.lua` in its directory — the manifest regeneration picks it up automatically. `scripts/install-plugin.sh` builds its plugin list from this manifest at install time.
 
 ### Version mismatch
 

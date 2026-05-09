@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Highlight nested table changes across frames
   - Observer history snapshots
   - Search/filter large observed tables
+- Plugin System Foundations
+  - Add manifest for plugins
+  - Add manifest for auto load
+  - Manifest documentation
+- Project Management
+  - Version sync check
+  - Automatic plugin list
+- Reload session option
+
+### Changed
+
+- Fix folder for debugger
 
 ## [v0.7.0] - 2026-05-08 - The one with the debugger and time travel
 

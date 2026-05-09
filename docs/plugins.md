@@ -19,7 +19,7 @@ To create a plugin, extend the `FeatherPlugin` base class and implement the life
 To help with the implementation, Feather provides the `FeatherPlugin` class, which you can extend to create your plugin.
 
 ```lua
-local FeatherPlugin = require(FEATHER_PATH .. ".plugins.base")
+local FeatherPlugin = require(FEATHER_PATH .. ".core.base")
 
 local MyPlugin = Class({
   __includes = FeatherPlugin,
@@ -86,6 +86,87 @@ end
 
 return MyPlugin
 ```
+
+### manifest.lua
+
+Every plugin that should be auto-discovered by `feather.auto` needs a `manifest.lua` at the root of its directory. Without it the directory is silently skipped.
+
+```lua
+-- plugins/my-plugin/manifest.lua
+return {
+  id          = "my-plugin",          -- must match the directory name and createPlugin id
+  name        = "My Plugin",          -- display name (for tooling / future UI)
+  description = "What this plugin does",
+  version     = "1.0.0",
+  permissions = { "filesystem" },     -- tokens this plugin requires (see Permissions)
+  opts        = { speed = 1.0 },      -- default options merged with user pluginOptions
+  optIn       = false,                -- true = not registered unless in config.include
+  disabled    = true,                 -- true = registered but inactive by default
+}
+```
+
+| Field         | Type       | Description                                                                                                                               |
+| ------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | `string`   | Unique plugin identifier. Must match the directory name and the `id` passed to `createPlugin`.                                            |
+| `name`        | `string`   | Human-readable display name.                                                                                                              |
+| `description` | `string`   | Short description shown in tooling.                                                                                                       |
+| `version`     | `string`   | Semver string.                                                                                                                            |
+| `permissions` | `string[]` | Permission tokens this plugin needs (e.g. `"filesystem"`, `"network"`). Checked against the user's `config.permissions` at load time.     |
+| `opts`        | `table`    | Default plugin options. Merged with (and overridden by) the user's `config.pluginOptions[id]`.                                            |
+| `optIn`       | `boolean`  | If `true`, the plugin is not registered at all unless its ID appears in `config.include`.                                                 |
+| `disabled`    | `boolean`  | If `true`, the plugin registers and appears in the UI but starts inactive. Users can enable it from the desktop, or via `config.include`. |
+
+### Love-event hooks
+
+Instead of patching `love.*` callbacks inside `init()`, override the corresponding `on*` method. `FeatherPluginManager` patches each love callback once and dispatches to all enabled plugins — this prevents conflicts when multiple plugins hook the same callback.
+
+```lua
+function MyPlugin:onDraw()
+  -- Runs after love.draw(); use love.graphics here
+end
+
+function MyPlugin:onKeypressed(key, scancode, isrepeat)
+  if key == "f5" then self:doSomething() end
+end
+
+function MyPlugin:onKeyreleased(key, scancode) end
+function MyPlugin:onMousepressed(x, y, button, istouch, presses) end
+function MyPlugin:onMousereleased(x, y, button, istouch, presses) end
+function MyPlugin:onTouchpressed(id, x, y, dx, dy, pressure) end
+function MyPlugin:onTouchreleased(id, x, y, dx, dy, pressure) end
+function MyPlugin:onJoystickpressed(joystick, button) end
+function MyPlugin:onJoystickreleased(joystick, button) end
+```
+
+Only override the methods you need — unused ones default to no-ops in the base class.
+
+> **Exception:** `input-replay` keeps its own hook system because it simulates love events during replay. Routing those through the central dispatcher would cause recursion.
+
+### Permissions
+
+Declare the system access your plugin needs in `manifest.lua`. At load time, `FeatherPluginManager` checks these against the user's `config.permissions` allowlist and logs a warning for any undeclared permission. Loading is not blocked — warnings are informational.
+
+Available permission tokens:
+
+| Token          | Meaning                                      |
+| -------------- | -------------------------------------------- |
+| `"filesystem"` | Reads or writes via `love.filesystem`        |
+| `"network"`    | Uses LuaSocket / HTTP                        |
+| `"audio"`      | Accesses `love.audio`                        |
+| `"physics"`    | Accesses `love.physics`                      |
+| `"input"`      | Hooks input callbacks (`onKeypressed`, etc.) |
+| `"draw"`       | Hooks `onDraw` to render overlays            |
+
+Users can restrict which permissions are allowed:
+
+```lua
+require("feather.auto").setup({
+  -- Only allow filesystem and draw; plugins requesting anything else get a warning
+  permissions = { "filesystem", "draw" },
+})
+```
+
+Pass `"all"` (the default) to skip permission checking entirely.
 
 ### Plugin lifecycle
 

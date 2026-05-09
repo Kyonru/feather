@@ -33,12 +33,6 @@ Build the core runtime inspection experience.
   - [ ] JSON preview/editor
   - [ ] Binary save inspection support
 
-#### Plugin System Foundations
-
-- [ ] Initial plugin API architecture
-- [ ] Plugin sandboxing model
-- [ ] Internal plugin loader
-
 ---
 
 #### CLI
