@@ -278,42 +278,50 @@ export default function PluginPage() {
   return (
     <PageLayout>
       <div className="px-4">
-        <div className="flex flex-row flex-wrap gap-2 mb-4">
-          <Button
-            variant={plugin.disabled ? 'default' : 'outline'}
-            onClick={onToggle}
-          >
-            <DynamicIcon className="size-4" name={plugin.disabled ? 'play' : 'pause'} />
-            <div>{plugin.disabled ? 'Enable' : 'Disable'}</div>
-          </Button>
-          {plugin.docs && (
-            <Button variant="outline" onClick={() => openUrl(plugin.docs)}>
-              <DynamicIcon className="size-4" name="book-open" />
-              <div>Docs</div>
+        <div className="flex items-start justify-between gap-2 mb-4">
+          {/* Plugin-specific toolbar actions */}
+          <div className="flex flex-row flex-wrap gap-2">
+            {toolbarActions.map((action) => (
+              <PluginAction
+                key={action.key}
+                action={action.key}
+                label={action.label}
+                icon={action.icon}
+                type={action.type}
+                value={action.value}
+                onClick={onPluginAction}
+                onFileClick={onFileAction}
+                onChange={onActionChange}
+                props={action.props}
+              />
+            ))}
+            {data.loading && (
+              <Button variant="destructive" size="sm" onClick={() => onCancel('gif')}>
+                <DynamicIcon className="size-4" name="x" />
+                Cancel
+              </Button>
+            )}
+          </div>
+          {/* System controls */}
+          <div className="flex items-center gap-2 shrink-0">
+            {plugin.docs && (
+              <Button variant="ghost" size="sm" onClick={() => openUrl(plugin.docs)}>
+                <DynamicIcon className="size-4" name="book-open" />
+                Docs
+              </Button>
+            )}
+            <Button
+              variant={plugin.disabled ? 'default' : 'outline'}
+              size="sm"
+              onClick={onToggle}
+            >
+              <DynamicIcon className="size-4" name={plugin.disabled ? 'play' : 'pause'} />
+              {plugin.disabled ? 'Enable' : 'Disable'}
             </Button>
-          )}
-          {toolbarActions.map((action) => (
-            <PluginAction
-              key={action.key}
-              action={action.key}
-              label={action.label}
-              icon={action.icon}
-              type={action.type}
-              value={action.value}
-              onClick={onPluginAction}
-              onFileClick={onFileAction}
-              onChange={onActionChange}
-              props={action.props}
-            />
-          ))}
-          {data.loading && (
-            <Button variant="destructive" size="sm" onClick={() => onCancel('gif')}>
-              Cancel
-            </Button>
-          )}
+          </div>
         </div>
         {groups.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             {groups.map((group) => (
               <Card key={group.name} className="py-3 gap-3">
                 <CardHeader className="px-4 pb-0">
