@@ -8,6 +8,7 @@ use axum::{
     Router,
 };
 use futures_util::{SinkExt, StreamExt};
+use serde::Serialize;
 use std::{
     collections::HashMap,
     net::SocketAddr,
@@ -25,6 +26,12 @@ pub type Sessions = Arc<Mutex<HashMap<String, WsSender>>>;
 struct AppState {
     sessions: Sessions,
     app_handle: AppHandle,
+}
+
+#[derive(Clone, Serialize)]
+struct BinaryPayload {
+    _session: String,
+    bytes: Vec<u8>,
 }
 
 /// Start the WebSocket server. Called once during Tauri setup.
@@ -124,6 +131,15 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                         );
                         let _ = state.app_handle.emit("feather://message", injected);
                     }
+                }
+                Message::Binary(bytes) => {
+                    let _ = state.app_handle.emit(
+                        "feather://binary",
+                        BinaryPayload {
+                            _session: session_id.clone(),
+                            bytes: bytes.to_vec(),
+                        },
+                    );
                 }
                 Message::Close(_) => break,
                 _ => {}

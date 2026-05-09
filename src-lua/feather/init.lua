@@ -253,6 +253,7 @@ function Feather:__getConfig()
     captureScreenshot = self.featherLogger.captureScreenshot,
     location = love.filesystem.getSaveDirectory(),
     sourceDir = sourceDir,
+    protocols = { "json", "binary" },
     sysInfo = self.performance.sysInfo,
     deviceId = self.deviceId,
     sessionName = self.sessionName,
@@ -476,11 +477,19 @@ function Feather:__pushAssets()
     }))
     return
   end
+  local body = self.assets:getResponseBody()
+  local binaryData = body.preview and body.preview._binaryData
+  if body.preview then
+    body.preview._binaryData = nil
+  end
   self:__sendWs(json.encode({
     type = "assets",
     session = self.sessionId,
-    data = self.assets:getResponseBody(),
+    data = body,
   }))
+  if binaryData and self.wsClient and self.wsClient.sendBinary then
+    self.wsClient:sendBinary(binaryData)
+  end
 end
 
 function Feather:__errorTraceback(msg)

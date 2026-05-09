@@ -36,6 +36,16 @@ type WsMessage = {
   plugin?: string;
 };
 
+type BinaryEvent = {
+  _session: string;
+  bytes: number[];
+};
+
+type PendingBinary = {
+  id: string;
+  mime: string;
+};
+
 export type EvalResponse = {
   id: string;
   status: 'success' | 'error';
@@ -77,6 +87,7 @@ export const useWsConnection = () => {
   const setPausedState = useDebuggerStore((state) => state.setPausedState);
   const setDebuggerEnabled = useDebuggerStore((state) => state.setEnabled);
   const lastMessageRef = useRef<number>(Date.now());
+  const pendingBinaryRef = useRef<Record<string, PendingBinary[]>>({});
 
   // Connection health monitor: if no message within timeout, mark disconnected
   useEffect(() => {
@@ -97,6 +108,32 @@ export const useWsConnection = () => {
     const unlisteners: Array<() => void> = [];
 
     const setup = async () => {
+      const unlistenBinary = await listen<BinaryEvent>('feather://binary', (event) => {
+        if (cancelled) return;
+        const { _session: sessionId, bytes } = event.payload;
+        const pending = pendingBinaryRef.current[sessionId]?.shift();
+        if (!pending) return;
+
+        const blobUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: pending.mime }));
+        queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) => {
+          const preview = prev?.preview;
+          if (!preview || !preview.binary || preview.binary.id !== pending.id) {
+            URL.revokeObjectURL(blobUrl);
+            return prev;
+          }
+          if (preview.src.startsWith('blob:')) {
+            URL.revokeObjectURL(preview.src);
+          }
+          return {
+            ...prev,
+            preview: {
+              ...preview,
+              src: blobUrl,
+            },
+          };
+        });
+      });
+
       // Game → desktop messages
       const unlistenMessage = await listen<string>('feather://message', (event) => {
         if (cancelled) return;
@@ -245,6 +282,11 @@ export const useWsConnection = () => {
 
           case 'assets': {
             const incoming = data as AssetCatalog;
+            if (incoming.preview && incoming.preview.binary) {
+              const queue = pendingBinaryRef.current[sessionId] ?? [];
+              queue.push(incoming.preview.binary);
+              pendingBinaryRef.current[sessionId] = queue;
+            }
             queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) => ({
               ...incoming,
               preview: incoming.preview === false ? null : (incoming.preview ?? prev?.preview ?? null),
@@ -356,6 +398,7 @@ export const useWsConnection = () => {
       });
 
       if (cancelled) {
+        unlistenBinary();
         unlistenMessage();
         return;
       }
@@ -369,6 +412,7 @@ export const useWsConnection = () => {
       });
 
       if (cancelled) {
+        unlistenBinary();
         unlistenMessage();
         unlistenEnd();
         return;
@@ -385,6 +429,7 @@ export const useWsConnection = () => {
       });
 
       if (cancelled) {
+        unlistenBinary();
         unlistenMessage();
         unlistenEnd();
         unlistenStart();
@@ -408,7 +453,7 @@ export const useWsConnection = () => {
         })
         .catch(() => {});
 
-      unlisteners.push(unlistenMessage, unlistenEnd, unlistenStart);
+      unlisteners.push(unlistenBinary, unlistenMessage, unlistenEnd, unlistenStart);
     };
 
     setup();

@@ -90,6 +90,16 @@ function usePreviewSrc(src?: string): string | null {
       return;
     }
 
+    if (src.startsWith('blob:')) {
+      setPreviewSrc(src);
+      return;
+    }
+
+    if (src.startsWith('feather-binary:')) {
+      setPreviewSrc(null);
+      return;
+    }
+
     if (isWeb()) {
       setPreviewSrc(null);
       return;

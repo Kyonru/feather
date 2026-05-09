@@ -42,6 +42,7 @@ export type AssetPreview = {
   name: string;
   type: 'png';
   src: string;
+  binary?: { id: string; mime: string };
   width: number;
   height: number;
 };

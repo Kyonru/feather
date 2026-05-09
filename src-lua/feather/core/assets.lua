@@ -1,5 +1,4 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local base64encode = require(FEATHER_PATH .. ".lib.base64").encode
 
 ---@class FeatherAssets
 ---@field textures table[]
@@ -13,6 +12,7 @@ function FeatherAssets:init(logger)
   self.fonts = {}
   self.audio = {}
   self._nextId = 1
+  self._nextBinaryId = 1
   self._hooks = {}
   self._drawWrapper = nil
   self._wrappedDrawTarget = nil
@@ -20,6 +20,12 @@ function FeatherAssets:init(logger)
   self._previewReady = nil
 
   self:_hookLove()
+end
+
+function FeatherAssets:_nextPreviewBinaryId()
+  local id = "asset-preview-" .. tostring(self._nextBinaryId)
+  self._nextBinaryId = self._nextBinaryId + 1
+  return id
 end
 
 function FeatherAssets:_nextAssetId()
@@ -177,12 +183,15 @@ function FeatherAssets:onDraw()
       love.graphics.draw(obj, 0, 0, 0, scale, scale)
       love.graphics.pop()
 
-      local fileData = canvas:newImageData():encode("png")
+      local binaryId = self:_nextPreviewBinaryId()
+      local pngBytes = canvas:newImageData():encode("png"):getString()
       self._previewReady = {
         id = pending.id,
         name = pending.name,
         type = "png",
-        src = "data:image/png;base64," .. base64encode(fileData:getString()),
+        src = "feather-binary:" .. binaryId,
+        binary = { id = binaryId, mime = "image/png" },
+        _binaryData = pngBytes,
         width = cw,
         height = ch,
       }
@@ -205,12 +214,15 @@ function FeatherAssets:onDraw()
       love.graphics.print(sample, 8, 8)
       love.graphics.pop()
 
-      local fileData = canvas:newImageData():encode("png")
+      local binaryId = self:_nextPreviewBinaryId()
+      local pngBytes = canvas:newImageData():encode("png"):getString()
       self._previewReady = {
         id = pending.id,
         name = pending.name,
         type = "png",
-        src = "data:image/png;base64," .. base64encode(fileData:getString()),
+        src = "feather-binary:" .. binaryId,
+        binary = { id = binaryId, mime = "image/png" },
+        _binaryData = pngBytes,
         width = tw,
         height = th,
       }

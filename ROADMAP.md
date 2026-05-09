@@ -36,10 +36,6 @@ Inspect and manipulate game resources live.
   - [ ] Entity hierarchy tree
   - [ ] Collapsible runtime tree view
 
-#### Reliability
-
-- [ ] Graceful handling for unloaded/missing assets
-
 ---
 
 ## 0.10.x — Iteration Workflow & Developer Experience

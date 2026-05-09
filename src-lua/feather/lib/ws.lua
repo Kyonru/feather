@@ -62,17 +62,18 @@ end
 local mask_key = { 1, 14, 5, 14 }
 local mask_str = string.char(1, 14, 5, 14)
 
-function _M:send(message)
+function _M:_sendFrame(message, opcode)
   if self.status ~= STATUS.OPEN then
     return
   end
+  opcode = opcode or 0x1
   local length = #message
 
   -- Header
   local header
   if length > 65535 then
     header = string.char(
-      0x81,
+      bor(0x80, opcode),
       bor(127, 0x80),
       0,
       0,
@@ -84,9 +85,9 @@ function _M:send(message)
       band(length, 0xff)
     )
   elseif length > 125 then
-    header = string.char(0x81, bor(126, 0x80), band(shr(length, 8), 0xff), band(length, 0xff))
+    header = string.char(bor(0x80, opcode), bor(126, 0x80), band(shr(length, 8), 0xff), band(length, 0xff))
   else
-    header = string.char(0x81, bor(length, 0x80))
+    header = string.char(bor(0x80, opcode), bor(length, 0x80))
   end
 
   -- Mask payload
@@ -97,6 +98,14 @@ function _M:send(message)
   end)
 
   self.socket:send(header .. mask_str .. masked)
+end
+
+function _M:send(message)
+  return self:_sendFrame(message, 0x1)
+end
+
+function _M:sendBinary(message)
+  return self:_sendFrame(message, 0x2)
 end
 
 function _M:close(code, message)
