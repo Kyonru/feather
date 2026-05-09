@@ -5,7 +5,7 @@ local Class = require(FEATHER_PATH .. ".lib.class")
 --- @field identifier string
 --- @field disabled boolean
 --- @field errorCount number
---- @field permissions string[]
+--- @field capabilities string[]
 
 ---@class FeatherPluginManager
 ---@field plugins FeatherPluginInstance[]
@@ -25,11 +25,13 @@ function FeatherPluginManager:init(feather, logger, observer)
     return
   end
 
-  -- Build allowed-permissions set (nil / "all" = unrestricted)
-  local allowedPerms = feather.permissions
+  -- Build allowed-capabilities set (nil / "all" = unrestricted)
+  local allowedPerms = feather.capabilities
   if type(allowedPerms) == "table" then
     local set = {}
-    for _, p in ipairs(allowedPerms) do set[p] = true end
+    for _, p in ipairs(allowedPerms) do
+      set[p] = true
+    end
     allowedPerms = set
   end
 
@@ -48,7 +50,7 @@ function FeatherPluginManager:init(feather, logger, observer)
         instance = pluginInstance,
         identifier = plugin.identifier,
         disabled = plugin.disabled or false,
-        permissions = plugin.permissions or {},
+        capabilities = plugin.capabilities or {},
       })
 
       if not pluginInstance:isSupported(feather.version) then
@@ -58,13 +60,17 @@ function FeatherPluginManager:init(feather, logger, observer)
         })
       end
 
-      -- Warn if a plugin requests a permission not in the user's allowlist
+      -- Warn if a plugin requests a capability not in the user's allowlist
       if allowedPerms and allowedPerms ~= "all" then
-        for _, perm in ipairs(plugin.permissions or {}) do
+        for _, perm in ipairs(plugin.capabilities or {}) do
           if not allowedPerms[perm] then
             self.logger:log({
               type = "error",
-              str = "[Plugin " .. plugin.identifier .. "] requests permission '" .. perm .. "' which is not in the allowlist",
+              str = "[Plugin "
+                .. plugin.identifier
+                .. "] requests capability '"
+                .. perm
+                .. "' which is not in the allowlist",
             })
           end
         end
@@ -199,8 +205,12 @@ end
 --- Patch love callbacks once so all plugins receive events via their on* methods.
 --- Called once after all plugins are initialised. Safe to call multiple times (no-op if already hooked).
 function FeatherPluginManager:hookLoveCallbacks()
-  if self._hookedCallbacks then return end
-  if not love then return end
+  if self._hookedCallbacks then
+    return
+  end
+  if not love then
+    return
+  end
 
   local mgr = self
 
@@ -215,51 +225,69 @@ function FeatherPluginManager:hookLoveCallbacks()
   -- Snapshot all originals before patching anything
   ---@type table
   local hooks = {
-    draw             = love.draw,
-    keypressed       = love.keypressed,
-    keyreleased      = love.keyreleased,
-    mousepressed     = love.mousepressed,
-    mousereleased    = love.mousereleased,
-    touchpressed     = love.touchpressed,
-    touchreleased    = love.touchreleased,
-    joystickpressed  = love.joystickpressed,
+    draw = love.draw,
+    keypressed = love.keypressed,
+    keyreleased = love.keyreleased,
+    mousepressed = love.mousepressed,
+    mousereleased = love.mousereleased,
+    touchpressed = love.touchpressed,
+    touchreleased = love.touchreleased,
+    joystickpressed = love.joystickpressed,
     joystickreleased = love.joystickreleased,
   }
 
   love.draw = function()
-    if hooks.draw then hooks.draw() end
+    if hooks.draw then
+      hooks.draw()
+    end
     dispatch("onDraw")
   end
   love.keypressed = function(key, scancode, isrepeat)
-    if hooks.keypressed then hooks.keypressed(key, scancode, isrepeat) end
+    if hooks.keypressed then
+      hooks.keypressed(key, scancode, isrepeat)
+    end
     dispatch("onKeypressed", key, scancode, isrepeat)
   end
   love.keyreleased = function(key, scancode)
-    if hooks.keyreleased then hooks.keyreleased(key, scancode) end
+    if hooks.keyreleased then
+      hooks.keyreleased(key, scancode)
+    end
     dispatch("onKeyreleased", key, scancode)
   end
   love.mousepressed = function(x, y, button, istouch, presses)
-    if hooks.mousepressed then hooks.mousepressed(x, y, button, istouch, presses) end
+    if hooks.mousepressed then
+      hooks.mousepressed(x, y, button, istouch, presses)
+    end
     dispatch("onMousepressed", x, y, button, istouch, presses)
   end
   love.mousereleased = function(x, y, button, istouch, presses)
-    if hooks.mousereleased then hooks.mousereleased(x, y, button, istouch, presses) end
+    if hooks.mousereleased then
+      hooks.mousereleased(x, y, button, istouch, presses)
+    end
     dispatch("onMousereleased", x, y, button, istouch, presses)
   end
   love.touchpressed = function(id, x, y, dx, dy, pressure)
-    if hooks.touchpressed then hooks.touchpressed(id, x, y, dx, dy, pressure) end
+    if hooks.touchpressed then
+      hooks.touchpressed(id, x, y, dx, dy, pressure)
+    end
     dispatch("onTouchpressed", id, x, y, dx, dy, pressure)
   end
   love.touchreleased = function(id, x, y, dx, dy, pressure)
-    if hooks.touchreleased then hooks.touchreleased(id, x, y, dx, dy, pressure) end
+    if hooks.touchreleased then
+      hooks.touchreleased(id, x, y, dx, dy, pressure)
+    end
     dispatch("onTouchreleased", id, x, y, dx, dy, pressure)
   end
   love.joystickpressed = function(joystick, button)
-    if hooks.joystickpressed then hooks.joystickpressed(joystick, button) end
+    if hooks.joystickpressed then
+      hooks.joystickpressed(joystick, button)
+    end
     dispatch("onJoystickpressed", joystick, button)
   end
   love.joystickreleased = function(joystick, button)
-    if hooks.joystickreleased then hooks.joystickreleased(joystick, button) end
+    if hooks.joystickreleased then
+      hooks.joystickreleased(joystick, button)
+    end
     dispatch("onJoystickreleased", joystick, button)
   end
 
@@ -268,17 +296,21 @@ end
 
 --- Restore all love callbacks patched by hookLoveCallbacks.
 function FeatherPluginManager:unhookLoveCallbacks()
-  if not self._hookedCallbacks then return end
-  if not love then return end
+  if not self._hookedCallbacks then
+    return
+  end
+  if not love then
+    return
+  end
   local h = self._hookedCallbacks
-  love.draw             = h.draw
-  love.keypressed       = h.keypressed
-  love.keyreleased      = h.keyreleased
-  love.mousepressed     = h.mousepressed
-  love.mousereleased    = h.mousereleased
-  love.touchpressed     = h.touchpressed
-  love.touchreleased    = h.touchreleased
-  love.joystickpressed  = h.joystickpressed
+  love.draw = h.draw
+  love.keypressed = h.keypressed
+  love.keyreleased = h.keyreleased
+  love.mousepressed = h.mousepressed
+  love.mousereleased = h.mousereleased
+  love.touchpressed = h.touchpressed
+  love.touchreleased = h.touchreleased
+  love.joystickpressed = h.joystickpressed
   love.joystickreleased = h.joystickreleased
   self._hookedCallbacks = nil
 end
@@ -295,14 +327,14 @@ end
 ---@param identifier string
 ---@param options table
 ---@param disabled? boolean   Start the plugin in disabled state (visible in UI but not running)
----@param permissions? string[] Permissions declared by this plugin (from its manifest)
-function FeatherPluginManager.createPlugin(plugin, identifier, options, disabled, permissions)
+---@param capabilities? string[] Capabilities declared by this plugin (from its manifest)
+function FeatherPluginManager.createPlugin(plugin, identifier, options, disabled, capabilities)
   return {
     plugin = plugin,
     identifier = identifier,
     options = options,
     disabled = disabled or false,
-    permissions = permissions or {},
+    capabilities = capabilities or {},
   }
 end
 

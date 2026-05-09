@@ -9,6 +9,18 @@ Feather is a debug/inspect tool for [LÖVE (love2d)](https://love2d.org) games. 
 - **`src-lua/`** — Lua library that runs inside the game. Connects to the desktop app via WebSocket, writes `.featherlog` files, and exposes a plugin system.
 - **`src/` + `src-tauri/`** — Tauri v2 desktop app (React + Rust) that runs a WebSocket server, receives push-based data from the game, and displays it.
 
+## Current release focus
+
+This branch is preparing Feather **0.8.0**. The major work areas are:
+
+- CLI foundations (`feather init`, `doctor`, `run`, plugin commands).
+- Plugin manifests and automatic plugin discovery.
+- Observer improvements, including diffs, history, and search.
+- Session reload/version mismatch handling.
+- Documentation and install-script cleanup.
+
+Before merging large release PRs, make sure the PR description includes a user-facing summary, migration notes, and a smoke-test checklist.
+
 ## Commands
 
 ```bash
@@ -76,7 +88,7 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
   - **`core/base.lua`** — `FeatherPlugin` base class. All plugins extend this. Defines the full lifecycle interface (`init`, `update`, `getConfig`, `handleRequest`, `handleActionRequest`, `handleActionCancel`, `handleParamsUpdate`, `onerror`, `finish`) plus love-event stubs (`onDraw`, `onKeypressed`, `onMousepressed`, etc.) that plugins override as needed.
   - **`core/logger.lua`** — Wraps `print()`, writes JSON-per-line to `.featherlog` via `lib/log.lua`. Deduplicates consecutive identical messages. Supports optional screenshot capture per log. Output folder configurable via `outputDir` config option (default: `"logs"`).
   - **`core/observer.lua`**, **`core/performance.lua`** — Thin internal plugins; push key-value observer data and FPS/memory stats each push cycle.
-- **`plugin_manager.lua`** — Manages plugin lifecycle: `init → getConfig → update → handleRequest / handleActionRequest / handleActionCancel / handleParamsUpdate → onerror → finish`. Features error isolation (per-plugin `pcall` in `update()`), auto-disable after 10 consecutive errors, and `enablePlugin()` for recovery. Supports `disablePlugin()`, `togglePlugin()`, and reports `disabled` state in `getConfig()`. Also owns central love-callback dispatch (`hookLoveCallbacks` / `unhookLoveCallbacks`) so plugins implement `on*` methods instead of patching `love.*` directly. Checks declared plugin permissions against the user's `permissions` config at load time.
+- **`plugin_manager.lua`** — Manages plugin lifecycle: `init → getConfig → update → handleRequest / handleActionRequest / handleActionCancel / handleParamsUpdate → onerror → finish`. Features error isolation (per-plugin `pcall` in `update()`), auto-disable after 10 consecutive errors, and `enablePlugin()` for recovery. Supports `disablePlugin()`, `togglePlugin()`, and reports `disabled` state in `getConfig()`. Also owns central love-callback dispatch (`hookLoveCallbacks` / `unhookLoveCallbacks`) so plugins implement `on*` methods instead of patching `love.*` directly. Checks each plugin's declared capabilities against the user's `capabilities` config at load time. In the current implementation this only logs warnings; it does not sandbox or block plugin loading.
 - **`error_handler.lua`** — Replaces `love.errorhandler` when `autoRegisterErrorHandler = true`.
 - **`auto.lua`** — Zero-config entry point. `require("feather.auto")` scans `src-lua/plugins/` at runtime using `love.filesystem.getDirectoryItems`, reads each plugin's `manifest.lua`, and registers discovered plugins with sensible defaults. Creates a global `DEBUGGER` instance. Two activation levels controlled by the manifest:
   - `optIn = true` — plugin is **not registered** unless explicitly listed in `config.include` (e.g. `console`).
@@ -87,7 +99,7 @@ The desktop app is the **server** (Axum WS on port 4004); the game is the **clie
 
 ### Built-in plugins (`src-lua/plugins/`)
 
-Each subdirectory here is a self-contained plugin. Every plugin must have a `manifest.lua` at its root — `auto.lua` uses this file to discover the plugin at runtime via `love.filesystem.getDirectoryItems`. Without a `manifest.lua` the directory is silently skipped. The manifest declares `id`, `name`, `description`, `version`, `permissions`, `optIn`, `disabled`, and optional default `opts`. The plugin implementation lives in `init.lua` and extends `FeatherPlugin` from `feather/core/base.lua`.
+Each subdirectory here is a self-contained plugin. Every plugin must have a `manifest.lua` at its root — `auto.lua` uses this file to discover the plugin at runtime via `love.filesystem.getDirectoryItems`. Without a `manifest.lua` the directory is silently skipped. The manifest declares `id`, `name`, `description`, `version`, `capabilities`, `optIn`, `disabled`, and optional default `opts`. The plugin implementation lives in `init.lua` and extends `FeatherPlugin` from `feather/core/base.lua`.
 
 Do **not** put internal Feather modules here — those belong in `feather/core/`. Only user-facing, optionally-installable plugins belong in this directory.
 
@@ -175,7 +187,7 @@ Key lifecycle methods: `init(config)`, `update(dt, feather)`, `handleRequest(req
 
 Love-event hooks: instead of patching `love.*` callbacks directly, plugins override the appropriate `on*` method (`onDraw`, `onKeypressed`, `onKeyreleased`, `onMousepressed`, `onMousereleased`, `onTouchpressed`, `onTouchreleased`, `onJoystickpressed`, `onJoystickreleased`). `plugin_manager` patches each `love.*` callback once and dispatches to all enabled plugins via pcall, preventing conflicts between plugins that hook the same callback. Exception: `input-replay` keeps its own hook system because it simulates love events during replay, which would cause recursion through central dispatch.
 
-Permission model: plugins declare required permissions in `manifest.lua` (`permissions = { "filesystem", "network", ... }`). At load time, `plugin_manager` checks declared permissions against the user's `config.permissions` allowlist (`"all"` by default) and logs a warning for each undeclared permission. Loading is not blocked — this is informational only in v1.
+Permission model: plugins declare required capabilities in `manifest.lua` (`capabilities = { "filesystem", "network", ... }`). At load time, `plugin_manager` checks each plugin's declared capabilities against the user's `config.capabilities` allowlist (`"all"` by default). Loading is not blocked — this is an informational permission model in v1, not a security sandbox. Use the warnings to surface potentially sensitive plugin behavior to the user.
 
 Inside a plugin, `self.logger` and `self.observer` are always available.
 
@@ -207,7 +219,7 @@ getConfig() → {
 - LuaLS type annotations (`---@class`, `---@field`, `---@param`) are used throughout the Lua source.
 - React Query keys are session-scoped: `sessionQueryKey.logs(sessionId)`, `sessionQueryKey.plugin(sessionId, pluginId)`, etc. (defined in `use-ws-connection.ts`).
 - Data hooks use `useQuery({ enabled: false, queryFn: () => [] })` — data is pushed into the cache externally, not fetched.
-- Plugin IDs are normalized: strip `/plugins/` prefix when sending commands, add it when routing on Lua side.
+- Plugin IDs are normalized at the boundary: the desktop strips the `/plugins/` prefix when sending commands; the Lua side adds it back when routing commands to plugins.
 
 ### Mobile connection
 
@@ -221,4 +233,4 @@ The Settings modal includes a "Mobile Connection" section (`src/components/mobil
 
 ### Version mismatch
 
-Per-session version mismatch is shown as a warning icon (yellow triangle) on individual session tabs in the header, with a tooltip. Each session's cached config is compared against the desktop app version. This replaces the previous global sidebar warning.
+Per-session version mismatch is shown as a warning icon (yellow triangle) on individual session tabs in the header, with a tooltip. Each session's cached config is compared against the desktop app version. This replaces the previous global sidebar warning and makes mismatches easier to diagnose when multiple games are connected.

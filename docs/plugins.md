@@ -98,23 +98,23 @@ return {
   name        = "My Plugin",          -- display name (for tooling / future UI)
   description = "What this plugin does",
   version     = "1.0.0",
-  permissions = { "filesystem" },     -- tokens this plugin requires (see Permissions)
+  capabilities = { "filesystem" },     -- tokens this plugin requires (see Capabilities)
   opts        = { speed = 1.0 },      -- default options merged with user pluginOptions
   optIn       = false,                -- true = not registered unless in config.include
   disabled    = true,                 -- true = registered but inactive by default
 }
 ```
 
-| Field         | Type       | Description                                                                                                                               |
-| ------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | `string`   | Unique plugin identifier. Must match the directory name and the `id` passed to `createPlugin`.                                            |
-| `name`        | `string`   | Human-readable display name.                                                                                                              |
-| `description` | `string`   | Short description shown in tooling.                                                                                                       |
-| `version`     | `string`   | Semver string.                                                                                                                            |
-| `permissions` | `string[]` | Permission tokens this plugin needs (e.g. `"filesystem"`, `"network"`). Checked against the user's `config.permissions` at load time.     |
-| `opts`        | `table`    | Default plugin options. Merged with (and overridden by) the user's `config.pluginOptions[id]`.                                            |
-| `optIn`       | `boolean`  | If `true`, the plugin is not registered at all unless its ID appears in `config.include`.                                                 |
-| `disabled`    | `boolean`  | If `true`, the plugin registers and appears in the UI but starts inactive. Users can enable it from the desktop, or via `config.include`. |
+| Field          | Type       | Description                                                                                                                               |
+| -------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `string`   | Unique plugin identifier. Must match the directory name and the `id` passed to `createPlugin`.                                            |
+| `name`         | `string`   | Human-readable display name.                                                                                                              |
+| `description`  | `string`   | Short description shown in tooling.                                                                                                       |
+| `version`      | `string`   | Semver string.                                                                                                                            |
+| `capabilities` | `string[]` | Capability tokens this plugin needs (e.g. `"filesystem"`, `"network"`). Checked against the user's `config.capabilities` at load time.    |
+| `opts`         | `table`    | Default plugin options. Merged with (and overridden by) the user's `config.pluginOptions[id]`.                                            |
+| `optIn`        | `boolean`  | If `true`, the plugin is not registered at all unless its ID appears in `config.include`.                                                 |
+| `disabled`     | `boolean`  | If `true`, the plugin registers and appears in the UI but starts inactive. Users can enable it from the desktop, or via `config.include`. |
 
 ### Love-event hooks
 
@@ -142,11 +142,11 @@ Only override the methods you need — unused ones default to no-ops in the base
 
 > **Exception:** `input-replay` keeps its own hook system because it simulates love events during replay. Routing those through the central dispatcher would cause recursion.
 
-### Permissions
+### Capabilities
 
-Declare the system access your plugin needs in `manifest.lua`. At load time, `FeatherPluginManager` checks these against the user's `config.permissions` allowlist and logs a warning for any undeclared permission. Loading is not blocked — warnings are informational.
+Declare the system access your plugin needs in `manifest.lua`. At load time, `FeatherPluginManager` checks these against the user's `config.capabilities` allowlist and logs a warning for any undeclared capability. Loading is not blocked — warnings are informational.
 
-Available permission tokens:
+Available capability tokens:
 
 | Token          | Meaning                                      |
 | -------------- | -------------------------------------------- |
@@ -157,16 +157,16 @@ Available permission tokens:
 | `"input"`      | Hooks input callbacks (`onKeypressed`, etc.) |
 | `"draw"`       | Hooks `onDraw` to render overlays            |
 
-Users can restrict which permissions are allowed:
+Users can restrict which capabilities are allowed:
 
 ```lua
 require("feather.auto").setup({
   -- Only allow filesystem and draw; plugins requesting anything else get a warning
-  permissions = { "filesystem", "draw" },
+  capabilities = { "filesystem", "draw" },
 })
 ```
 
-Pass `"all"` (the default) to skip permission checking entirely.
+Pass `"all"` (the default) to skip capability checking entirely.
 
 ### Plugin lifecycle
 

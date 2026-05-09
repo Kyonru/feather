@@ -12,7 +12,7 @@ export type ObserverEntry = {
   history: string[];
 };
 
-export const useObservability = (search?: string): { data: ObserverEntry[] } => {
+export const useObservability = (search?: string): { data: ObserverEntry[]; all: ObserverEntry[] } => {
   const sessionId = useSessionStore((state) => state.sessionId);
 
   const { data } = useQuery<ObserverEntry[]>({
@@ -25,8 +25,8 @@ export const useObservability = (search?: string): { data: ObserverEntry[] } => 
     const entries = data ?? [];
     if (!search?.trim()) return entries;
     const q = search.toLowerCase();
-    return entries.filter((e) => e.key.toLowerCase().includes(q));
+    return entries.filter((e) => e.key.toLowerCase().includes(q) || e.value.toLowerCase().includes(q));
   }, [data, search]);
 
-  return { data: filtered };
+  return { data: filtered, all: data ?? [] };
 };

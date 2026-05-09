@@ -81,7 +81,7 @@ local function scanPlugins()
           opts = manifest.opts or {},
           optIn = manifest.optIn or false,
           disabled = manifest.disabled ~= false,
-          permissions = manifest.permissions or {},
+          capabilities = manifest.capabilities or {},
         }
       end
     end
@@ -109,7 +109,7 @@ local function scanPlugins()
         opts = manifest.opts or {},
         optIn = manifest.optIn or false,
         disabled = manifest.disabled ~= false,
-        permissions = manifest.permissions or {},
+        capabilities = manifest.capabilities or {},
       }
     end
   end
@@ -167,7 +167,7 @@ function auto.setup(config)
         end
       end
       local disabled = entry.disabled and not include[entry.id]
-      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(entry.mod, entry.id, opts, disabled, entry.permissions)
+      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(entry.mod, entry.id, opts, disabled, entry.capabilities)
     end
     ::continue::
   end

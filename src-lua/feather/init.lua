@@ -70,7 +70,7 @@ local customErrorHandler = errorhandler
 ---@field autoRegisterErrorHandler? boolean
 ---@field errorHandler? function
 ---@field plugins? table
----@field permissions? string[]|string  Allowed plugin permissions — array of tokens or "all" (default: "all")
+---@field capabilities? string[]|string  Allowed plugin capabilities — array of tokens or "all" (default: "all")
 ---@field mode? string
 ---@field writeToDisk? boolean  Whether to write logs to .featherlog files (default true)
 ---@field retryInterval? number
@@ -98,7 +98,7 @@ function Feather:init(config)
   self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
   self.plugins = conf.plugins or {}
-  self.permissions = conf.permissions or "all"
+  self.capabilities = conf.capabilities or "all"
   self.mode = conf.mode or "socket"
   self.debuggerEnabled = conf.debugger or false
   self.writeToDisk = conf.writeToDisk ~= false
@@ -461,7 +461,7 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:time_travel:start" then
     local plugin = self.pluginManager:getPlugin("time-travel")
     if plugin then
-      plugin.disabled = false  -- enable update() so frames are recorded each tick
+      plugin.disabled = false -- enable update() so frames are recorded each tick
       plugin.instance:startRecording()
       self:__sendHello()
     end

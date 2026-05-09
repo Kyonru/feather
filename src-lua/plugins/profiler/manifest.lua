@@ -1,9 +1,9 @@
 return {
-  id          = "profiler",
-  name        = "Profiler",
+  id = "profiler",
+  name = "Profiler",
   description = "Function-level CPU profiling with start/stop",
-  version     = "1.0.0",
-  permissions = {},
-  optIn       = false,
-  disabled    = true,
+  version = "1.0.0",
+  capabilities = {},
+  optIn = false,
+  disabled = true,
 }
