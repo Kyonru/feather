@@ -614,7 +614,7 @@ export default function DebuggerPage() {
   const { frames } = useTimeTravel();
   const configRootPath = useConfigStore((state) => state.config?.root_path ?? '');
   const [manualRootPath, setManualRootPath] = useState('');
-  const rootPath = configRootPath || manualRootPath;
+  const rootPath = manualRootPath || configRootPath;
 
   const pickFolder = async () => {
     const selected = await openFolderDialog({ directory: true, multiple: false });
@@ -764,7 +764,7 @@ export default function DebuggerPage() {
           <div className="border-b px-3 py-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold">Files</span>
-              {!isWeb() && !configRootPath && (
+              {!isWeb() && (
                 <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={pickFolder}>
                   Open folder
                 </Button>
