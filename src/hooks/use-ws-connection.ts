@@ -44,6 +44,14 @@ type BinaryEvent = {
 type PendingBinary = {
   id: string;
   mime: string;
+  target: BinaryTarget;
+};
+
+type BinaryTarget = { type: 'assets' } | { type: 'plugin'; pluginId: string };
+
+type BinaryRef = {
+  id: string;
+  mime: string;
 };
 
 export type EvalResponse = {
@@ -66,6 +74,51 @@ export type TimeTravelFrame = {
   time: number;
   dt: number;
   observers: Record<string, string>;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const pushBinaryRef = (value: unknown, refs: BinaryRef[]) => {
+  if (!isRecord(value) || typeof value.id !== 'string') return;
+
+  refs.push({
+    id: value.id,
+    mime: typeof value.mime === 'string' ? value.mime : 'application/octet-stream',
+  });
+};
+
+const collectBinaryRefs = (value: unknown, refs: BinaryRef[] = []): BinaryRef[] => {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectBinaryRefs(item, refs));
+    return refs;
+  }
+
+  if (!isRecord(value)) return refs;
+
+  const binary = value.binary;
+  if (Array.isArray(binary)) {
+    binary.forEach((item) => pushBinaryRef(item, refs));
+  } else {
+    pushBinaryRef(binary, refs);
+  }
+
+  Object.values(value).forEach((item) => collectBinaryRefs(item, refs));
+  return refs;
+};
+
+const replaceBinarySrc = (value: unknown, id: string, blobUrl: string): unknown => {
+  if (typeof value === 'string') {
+    return value === `feather-binary:${id}` ? blobUrl : value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceBinarySrc(item, id, blobUrl));
+  }
+
+  if (!isRecord(value)) return value;
+
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceBinarySrc(item, id, blobUrl)]));
 };
 
 /**
@@ -108,6 +161,15 @@ export const useWsConnection = () => {
     const unlisteners: Array<() => void> = [];
 
     const setup = async () => {
+      const queueBinaryRefs = (sessionId: string, target: BinaryTarget, value: unknown) => {
+        const refs = collectBinaryRefs(value);
+        if (refs.length === 0) return;
+
+        const queue = pendingBinaryRef.current[sessionId] ?? [];
+        refs.forEach((ref) => queue.push({ ...ref, target }));
+        pendingBinaryRef.current[sessionId] = queue;
+      };
+
       const unlistenBinary = await listen<BinaryEvent>('feather://binary', (event) => {
         if (cancelled) return;
         const { _session: sessionId, bytes } = event.payload;
@@ -115,23 +177,17 @@ export const useWsConnection = () => {
         if (!pending) return;
 
         const blobUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: pending.mime }));
-        queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) => {
-          const preview = prev?.preview;
-          if (!preview || !preview.binary || preview.binary.id !== pending.id) {
-            URL.revokeObjectURL(blobUrl);
-            return prev;
-          }
-          if (preview.src.startsWith('blob:')) {
-            URL.revokeObjectURL(preview.src);
-          }
-          return {
-            ...prev,
-            preview: {
-              ...preview,
-              src: blobUrl,
-            },
-          };
-        });
+        if (pending.target.type === 'assets') {
+          queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) =>
+            replaceBinarySrc(prev, pending.id, blobUrl) as AssetCatalog,
+          );
+          return;
+        }
+
+        queryClient.setQueryData<PluginContentProps>(
+          sessionQueryKey.plugin(sessionId, pending.target.pluginId),
+          (prev) => replaceBinarySrc(prev, pending.id, blobUrl) as PluginContentProps,
+        );
       });
 
       // Game → desktop messages
@@ -282,11 +338,7 @@ export const useWsConnection = () => {
 
           case 'assets': {
             const incoming = data as AssetCatalog;
-            if (incoming.preview && incoming.preview.binary) {
-              const queue = pendingBinaryRef.current[sessionId] ?? [];
-              queue.push(incoming.preview.binary);
-              pendingBinaryRef.current[sessionId] = queue;
-            }
+            queueBinaryRefs(sessionId, { type: 'assets' }, incoming);
             queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) => ({
               ...incoming,
               preview: incoming.preview === false ? null : (incoming.preview ?? prev?.preview ?? null),
@@ -304,6 +356,7 @@ export const useWsConnection = () => {
             const pluginId = msg.plugin;
             if (!pluginId) break;
             const pluginData = data as PluginContentProps;
+            queueBinaryRefs(sessionId, { type: 'plugin', pluginId }, pluginData);
 
             queryClient.setQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId), (prev) => {
               if (pluginData?.type === 'gallery' && pluginData.persist && prev?.type === 'gallery') {

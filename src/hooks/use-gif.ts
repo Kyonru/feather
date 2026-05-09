@@ -14,6 +14,7 @@ export const useGif = (name: string, images: string[], fps: number, width: numbe
       });
       return gif;
     },
+    enabled: images.length > 0 && width > 0 && height > 0 && fps > 0,
   });
 
   return {

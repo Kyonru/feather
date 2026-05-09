@@ -35,18 +35,25 @@ import { Bookmark, ChevronRight, DownloadIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 
-const DownloadButton = ({ url, extension }: { url?: string; extension: '.png' | '.gif' }) => {
+const isDirectImageSrc = (src: string) => src.startsWith('data:') || src.startsWith('blob:');
+const downloadName = (name: string, extension: '.png' | '.gif') => {
+  const base = name.split(/[\\/]/).pop() || `${Date.now()}${extension}`;
+  return base.endsWith(extension) ? base : `${base}${extension}`;
+};
+
+const DownloadButton = ({ url, filename }: { url?: string; filename: string }) => {
   return (
     <Button
       variant="secondary"
       onClick={async (e) => {
         e.preventDefault();
+        e.stopPropagation();
 
         if (!url) {
           return;
         }
 
-        await downloadFile(`${Date.now()}${extension}`, url, 'string');
+        await downloadFile(filename, url, 'string');
       }}
     >
       <DownloadIcon className="text-primary" />
@@ -63,10 +70,18 @@ export function PluginContentTypeGifImage({ name, width, fps, height, src, downl
     );
   }
 
+  if (!gifImage.data) {
+    return (
+      <div className="flex min-h-24 items-center justify-center rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+        GIF preview is not available.
+      </div>
+    );
+  }
+
   return (
     <>
       <img src={gifImage.data} className="object-scale-down max-h-full drop-shadow-md rounded-md m-auto" />
-      {downloadable && <DownloadButton url={gifImage.data} extension=".gif" />}
+      {downloadable && <DownloadButton url={gifImage.data} filename={downloadName(name, '.gif')} />}
     </>
   );
 }
@@ -101,9 +116,9 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
     }
 
     if (metadata.type === 'gif') {
-      // GIF frames: array of data URIs or file paths
-      if (Array.isArray(metadata.src) && metadata.src.length > 0 && metadata.src[0].startsWith('data:')) {
-        // Data URIs from WS — use directly
+      // GIF frames: array of data/blob URLs or file paths.
+      if (Array.isArray(metadata.src) && metadata.src.length > 0 && metadata.src.every(isDirectImageSrc)) {
+        // Data/blob URLs from WS — use directly.
         setSrc(metadata.src);
       } else {
         // File paths — resolve to Tauri asset URLs when running locally.
@@ -118,8 +133,8 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
     }
 
     if (metadata.type === 'png') {
-      // Single image: data URI or file path
-      if (typeof metadata.src === 'string' && metadata.src.startsWith('data:')) {
+      // Single image: data/blob URL or file path.
+      if (typeof metadata.src === 'string' && isDirectImageSrc(metadata.src)) {
         setSrc(metadata.src);
       } else if (typeof metadata.src === 'string') {
         if (isWeb() || !canResolveAssetPath(metadata.src, sourceDir)) {
@@ -157,7 +172,7 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
   return (
     <>
       <img className="object-scale-down max-h-full drop-shadow-md rounded-md m-auto" src={url} alt={name} />
-      {downloadable && <DownloadButton url={url} extension=".png" />}
+      {downloadable && <DownloadButton url={url} filename={downloadName(name, '.png')} />}
     </>
   );
 }

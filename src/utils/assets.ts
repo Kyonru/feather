@@ -18,6 +18,10 @@ export async function createGif({
   width: number;
   height: number;
 }): Promise<string> {
+  if (images.length === 0) {
+    return Promise.reject('No frames available');
+  }
+
   const cached = cache.get<string>(name);
 
   if (cached) {
@@ -50,7 +54,8 @@ export async function createGif({
     images.forEach((src, index) => {
       const img = new Image();
       img.onload = () => {
-        ctx.reset();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
         gif.addFrame(ctx, {
           copy: true,

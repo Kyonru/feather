@@ -452,6 +452,47 @@ return {
 }
 ```
 
+For large images or binary payloads, prefer Feather's hybrid protocol instead of embedding base64 in JSON. Call `feather:attachBinary(mime, bytes)` and place the returned `src` and `binary` fields in your normal plugin data. Feather sends the JSON first, then streams the bytes on a binary WebSocket frame; the desktop swaps `feather-binary:<id>` into a local blob URL automatically.
+
+```lua
+function MyPlugin:handleRequest(request, feather)
+  local pngBytes = self:getLatestPreviewPng()
+  local preview = feather:attachBinary("image/png", pngBytes)
+
+  return {
+    type = "gallery",
+    data = {
+      {
+        type = "image",
+        name = "preview.png",
+        downloadable = true,
+        metadata = {
+          type = "png",
+          src = preview.src,
+          binary = preview.binary,
+          width = 800,
+          height = 600,
+        },
+      },
+    },
+    loading = false,
+  }
+end
+```
+
+For GIF-style frame lists, put the placeholder URLs in `src` and the matching binary refs in `binary` using the same order:
+
+```lua
+metadata = {
+  type = "gif",
+  src = { frame1.src, frame2.src },
+  binary = { frame1.binary, frame2.binary },
+  width = 800,
+  height = 600,
+  fps = 30,
+}
+```
+
 #### `table`
 
 ```lua

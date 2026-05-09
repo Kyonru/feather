@@ -17,6 +17,10 @@ function normalizePluginId(pluginId: string): string {
 export type ScreenshotType = {
   type: 'png';
   src: string;
+  binary?: {
+    id: string;
+    mime: string;
+  };
   width: number;
   height: number;
 };
@@ -25,6 +29,10 @@ export type GifType = {
   type: 'gif';
   name: string;
   src: string[];
+  binary?: Array<{
+    id: string;
+    mime: string;
+  }>;
   width: number;
   height: number;
   downloadable: boolean;

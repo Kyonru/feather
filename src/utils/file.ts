@@ -15,11 +15,13 @@ export async function downloadFile(name: string, src: string, type: 'string' | '
 
     if (isWeb()) {
       let url = src;
+      let shouldRevokeUrl = false;
 
       if (type === 'base64') {
         const byteArray = base64ToUint8Array(src);
         const blob = new Blob([byteArray] as BlobPart[], { type: 'application/octet-stream' });
         url = URL.createObjectURL(blob);
+        shouldRevokeUrl = true;
       }
 
       const a = document.createElement('a');
@@ -27,7 +29,9 @@ export async function downloadFile(name: string, src: string, type: 'string' | '
       a.download = name;
       a.click();
 
-      URL.revokeObjectURL(url);
+      if (shouldRevokeUrl) {
+        URL.revokeObjectURL(url);
+      }
       return;
     }
 

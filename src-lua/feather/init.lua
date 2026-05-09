@@ -46,6 +46,7 @@ local FEATHER_VERSION = {
 ---@field protected __pushPerformance fun(self: Feather, dt: number)
 ---@field protected __pushObservers fun(self: Feather)
 ---@field protected __pushAssets fun(self: Feather)
+---@field attachBinary fun(self: Feather, mime: string, bytes: string): table
 local Feather = Class({})
 
 local customErrorHandler = errorhandler
@@ -104,6 +105,8 @@ function Feather:init(config)
   self.connectTimeout = conf.connectTimeout or 2
   self.sessionName = conf.sessionName or ""
   self.assetPreviewEnabled = conf.assetPreview ~= false
+  self._nextBinaryId = 1
+  self._pendingBinaries = {}
   self.lastError = 0
   self.wsConnected = false
   self.version = FEATHER_VERSION.api
@@ -217,6 +220,44 @@ function Feather:__sendWs(payload)
     pcall(function()
       self.wsClient:send(payload)
     end)
+  end
+end
+
+--- Queue bytes to be sent after the current JSON message and return a JSON-safe reference.
+--- Plugins can put the returned table's src/binary fields into normal content payloads.
+---@param mime string
+---@param bytes string
+---@return table
+function Feather:attachBinary(mime, bytes)
+  local binaryId = "binary-" .. tostring(self._nextBinaryId or 1)
+  self._nextBinaryId = (self._nextBinaryId or 1) + 1
+  self._pendingBinaries = self._pendingBinaries or {}
+  table.insert(self._pendingBinaries, {
+    id = binaryId,
+    mime = mime or "application/octet-stream",
+    bytes = bytes,
+  })
+  return {
+    src = "feather-binary:" .. binaryId,
+    binary = {
+      id = binaryId,
+      mime = mime or "application/octet-stream",
+    },
+  }
+end
+
+function Feather:__sendPendingBinaries()
+  if not self.wsConnected or not self.wsClient or not self.wsClient.sendBinary then
+    self._pendingBinaries = {}
+    return
+  end
+
+  local pending = self._pendingBinaries or {}
+  self._pendingBinaries = {}
+  for _, binary in ipairs(pending) do
+    if binary.bytes then
+      self.wsClient:sendBinary(binary.bytes)
+    end
   end
 end
 
@@ -659,6 +700,7 @@ function Feather:pushPlugin(pluginId, data)
     plugin = pluginId,
     data = data,
   }))
+  self:__sendPendingBinaries()
 end
 
 ---@type fun(config: FeatherConfig): Feather
