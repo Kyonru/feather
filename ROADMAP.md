@@ -13,35 +13,12 @@
 
 ---
 
-## 0.8.x — Observability & Runtime Data
-
-Focus:
-Build the core runtime inspection experience.
-
-#### File & State Management
-
-- [x] Add option to clear unused screenshots
-- [x] Save data inspector
-  - [x] Read/write `love.filesystem` save files
-  - [x] JSON preview/editor
-  - [x] Binary save inspection support
-
----
-
 ## 0.9.x — Assets & Runtime Inspection
 
 Focus:
 Inspect and manipulate game resources live.
 
 ### 0.9.0 – Assets & Resources
-
-#### Asset Viewer
-
-- [ ] Asset viewer
-  - [ ] Loaded textures
-  - [ ] Audio sources
-  - [ ] Fonts
-  - [ ] Runtime previews
 
 #### Graphics Tooling
 

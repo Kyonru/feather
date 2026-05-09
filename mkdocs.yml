@@ -32,6 +32,8 @@ nav:
   - Configuration: configuration.md
   - Usage: usage.md
   - Debugger: debugger.md
+  - Assets: assets.md
+  - CLI: cli.md
   - Time Travel: time-travel.md
   - Console: console.md
   - Recommendations: recommendations.md

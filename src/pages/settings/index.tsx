@@ -17,7 +17,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
 import { MobileConnection } from '@/components/mobile-connection';
-import { EyeIcon, EyeOffIcon, MonitorIcon, NetworkIcon, ShieldIcon, CodeIcon, ActivityIcon } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, MonitorIcon, NetworkIcon, ShieldIcon, CodeIcon, ActivityIcon, FolderIcon } from 'lucide-react';
 
 function Section({
   icon: Icon,
@@ -167,6 +167,32 @@ function ApiKeyInput() {
   );
 }
 
+function AssetSourceDirInput() {
+  const assetSourceDir    = useSettingsStore((state) => state.assetSourceDir);
+  const setAssetSourceDir = useSettingsStore((state) => state.setAssetSourceDir);
+  const autoSourceDir     = useConfigStore((state)   => state.config?.sourceDir ?? '');
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="setting-asset-source-dir">Asset Source Directory</Label>
+      <div className="relative">
+        <FolderIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+        <Input
+          id="setting-asset-source-dir"
+          value={assetSourceDir}
+          placeholder={autoSourceDir || '/path/to/game/assets'}
+          onChange={(e) => setAssetSourceDir(e.target.value)}
+          className="font-mono text-sm pl-9"
+        />
+      </div>
+      <FieldDescription>
+        Override where the desktop looks for game asset files when previewing textures and fonts.
+        Leave empty to use the source directory reported by the game ({autoSourceDir || 'not connected'}).
+        Set this manually when the game runs on a different machine.
+      </FieldDescription>
+    </div>
+  );
+}
+
 function TextEditorInput() {
   const textEditorPath = useSettingsStore((state) => state.textEditorPath);
   const setTextEditorPath = useSettingsStore((state) => state.setTextEditorPath);
@@ -227,6 +253,12 @@ export function SettingsModal() {
 
           <Section icon={CodeIcon} title="Editor">
             <TextEditorInput />
+          </Section>
+
+          <Separator />
+
+          <Section icon={FolderIcon} title="Assets">
+            <AssetSourceDirInput />
           </Section>
         </div>
 

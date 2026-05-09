@@ -614,7 +614,7 @@ export default function DebuggerPage() {
   const dbg = useDebugger();
   const navigate = useNavigate();
   const { frames } = useTimeTravel();
-  const configRootPath = useConfigStore((state) => state.config?.root_path ?? '');
+  const configRootPath = useConfigStore((state) => state.config?.sourceDir || state.config?.root_path || '');
   const sessionId = useSessionStore((state) => state.sessionId);
   const rootPaths = useDebuggerStore((state) => state.rootPaths);
   const setRootPath = useDebuggerStore((state) => state.setRootPath);

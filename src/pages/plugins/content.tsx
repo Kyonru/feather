@@ -1,3 +1,5 @@
+import { useConfigStore } from '@/store/config';
+import { useSettingsStore } from '@/store/settings';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -27,7 +29,8 @@ import {
   PluginTimelineItem,
 } from '@/hooks/use-plugin';
 import { downloadFile } from '@/utils/file';
-import { readFile } from '@tauri-apps/plugin-fs';
+import { isWeb } from '@/utils/platform';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { Bookmark, ChevronRight, DownloadIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -68,11 +71,32 @@ export function PluginContentTypeGifImage({ name, width, fps, height, src, downl
   );
 }
 
+/** Resolve a possibly-relative asset path to an absolute one.
+ *  Manual override (settings) wins over auto-detected sourceDir (config). */
+function useAssetSourceDir(): string {
+  const manual = useSettingsStore((s) => s.assetSourceDir);
+  const auto   = useConfigStore((s)   => s.config?.sourceDir ?? '');
+  return manual || auto;
+}
+
+function resolveAssetPath(src: string, sourceDir: string): string {
+  if (!sourceDir || src.startsWith('data:') || src.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(src)) {
+    return src;
+  }
+  return sourceDir.replace(/[/\\]+$/, '') + '/' + src;
+}
+
+function canResolveAssetPath(src: string, sourceDir: string): boolean {
+  return src.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(src) || !!sourceDir;
+}
+
 export function PluginContentTypeImage({ name, metadata, downloadable }: PluginContentImageType) {
   const [src, setSrc] = useState<string | string[] | null>(null);
+  const sourceDir = useAssetSourceDir();
 
   useEffect(() => {
     if (!metadata.src) {
+      setSrc(null);
       return;
     }
 
@@ -82,21 +106,13 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
         // Data URIs from WS — use directly
         setSrc(metadata.src);
       } else {
-        // Legacy: file paths — read from disk
-        const readImage = async () => {
-          const urls: string[] = [];
-          for (let i = 0; i < metadata.src.length; i++) {
-            try {
-              const uint8 = await readFile(metadata.src[i]);
-              const blob = new Blob([uint8], { type: 'image/png' });
-              urls.push(URL.createObjectURL(blob));
-            } catch {
-              // Skip unreadable frames
-            }
-          }
+        // File paths — resolve to Tauri asset URLs when running locally.
+        if (isWeb() || !metadata.src.every((frame) => canResolveAssetPath(frame, sourceDir))) {
+          setSrc(null);
+        } else {
+          const urls = metadata.src.map((frame) => convertFileSrc(resolveAssetPath(frame, sourceDir)));
           setSrc(urls);
-        };
-        readImage();
+        }
       }
       return;
     }
@@ -105,23 +121,22 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
       // Single image: data URI or file path
       if (typeof metadata.src === 'string' && metadata.src.startsWith('data:')) {
         setSrc(metadata.src);
-      } else {
-        const readImage = async () => {
-          try {
-            const uint8 = await readFile(metadata.src);
-            const blob = new Blob([uint8], { type: 'image/png' });
-            setSrc(URL.createObjectURL(blob));
-          } catch {
-            // File not available
-          }
-        };
-        readImage();
+      } else if (typeof metadata.src === 'string') {
+        if (isWeb() || !canResolveAssetPath(metadata.src, sourceDir)) {
+          setSrc(null);
+        } else {
+          setSrc(convertFileSrc(resolveAssetPath(metadata.src, sourceDir)));
+        }
       }
     }
-  }, [metadata.src, metadata.type]);
+  }, [metadata.src, metadata.type, sourceDir]);
 
   if (!src) {
-    return null;
+    return (
+      <div className="flex min-h-24 items-center justify-center rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+        Asset file is not available on this machine.
+      </div>
+    );
   }
 
   if (metadata.type === 'gif') {

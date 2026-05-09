@@ -13,6 +13,7 @@ type SettingsStoreState = {
   // Seconds without a message before considering a session disconnected (default 15)
   connectionTimeout: number;
   hiddenPlugins: string[];
+  assetSourceDir: string;
 };
 
 type SettingsStoreActions = {
@@ -25,6 +26,7 @@ type SettingsStoreActions = {
   setApiKey: (apiKey: string) => void;
   setConnectionTimeout: (timeout: number) => void;
   toggleHiddenPlugin: (pluginId: string) => void;
+  setAssetSourceDir: (dir: string) => void;
   reset: () => void;
 };
 
@@ -40,6 +42,7 @@ const defaultSettings: SettingsStoreState = {
   pausedLogs: false,
   connectionTimeout: 15,
   hiddenPlugins: [],
+  assetSourceDir: '',
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -55,6 +58,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setPausedLogs: (pausedLogs: boolean) => set({ pausedLogs }),
       setApiKey: (apiKey: string) => set({ apiKey }),
       setConnectionTimeout: (connectionTimeout: number) => set({ connectionTimeout }),
+      setAssetSourceDir: (assetSourceDir: string) => set({ assetSourceDir }),
       toggleHiddenPlugin: (pluginId: string) =>
         set((state) => ({
           hiddenPlugins: state.hiddenPlugins.includes(pluginId)

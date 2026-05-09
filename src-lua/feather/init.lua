@@ -13,6 +13,7 @@ local FeatherPluginManager = require(FEATHER_PATH .. ".plugin_manager")
 local FeatherLogger = require(FEATHER_PATH .. ".core.logger")
 local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
 local FeatherPerformance = require(FEATHER_PATH .. ".core.performance")
+local FeatherAssets = require(FEATHER_PATH .. ".core.assets")
 local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
@@ -44,6 +45,7 @@ local FEATHER_VERSION = {
 ---@field protected __handleCommand fun(self: Feather, msg: table)
 ---@field protected __pushPerformance fun(self: Feather, dt: number)
 ---@field protected __pushObservers fun(self: Feather)
+---@field protected __pushAssets fun(self: Feather)
 local Feather = Class({})
 
 local customErrorHandler = errorhandler
@@ -73,6 +75,7 @@ local customErrorHandler = errorhandler
 ---@field retryInterval? number
 ---@field connectTimeout? number
 ---@field debugger? boolean  Enable the step debugger (default false)
+---@field assetPreview? boolean  Enable core asset tracking and previews (default true)
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -100,6 +103,7 @@ function Feather:init(config)
   self.retryInterval = conf.retryInterval or 5
   self.connectTimeout = conf.connectTimeout or 2
   self.sessionName = conf.sessionName or ""
+  self.assetPreviewEnabled = conf.assetPreview ~= false
   self.lastError = 0
   self.wsConnected = false
   self.version = FEATHER_VERSION.api
@@ -151,6 +155,10 @@ function Feather:init(config)
       selfRef:__onerror(msg, true)
       return customErrorHandler(msg)
     end
+  end
+
+  if self.assetPreviewEnabled then
+    self.assets = FeatherAssets(self.featherLogger)
   end
 
   self.pluginManager = FeatherPluginManager(self, self.featherLogger, self.featherObserver)
@@ -228,6 +236,12 @@ function Feather:__getConfig()
   if #self.baseDir > 0 then
     root_path = root_path .. "/" .. self.baseDir
   end
+  local sourceDir = root_path
+  ---@diagnostic disable-next-line: undefined-field
+  if love.filesystem.getSourceDirectory then
+    ---@diagnostic disable-next-line: undefined-field
+    sourceDir = love.filesystem.getSourceDirectory()
+  end
   return {
     plugins = self.pluginManager:getConfig(),
     root_path = root_path,
@@ -238,9 +252,11 @@ function Feather:__getConfig()
     outfile = self.featherLogger.outfile,
     captureScreenshot = self.featherLogger.captureScreenshot,
     location = love.filesystem.getSaveDirectory(),
+    sourceDir = sourceDir,
     sysInfo = self.performance.sysInfo,
     deviceId = self.deviceId,
     sessionName = self.sessionName,
+    assets = { enabled = self.assetPreviewEnabled },
     debugger = { enabled = self.debuggerEnabled },
   }
 end
@@ -252,6 +268,26 @@ function Feather:__setConfig(params)
   if params.diskUsage ~= nil then
     self.performance._diskUsageEnabled = params.diskUsage
   end
+end
+
+function Feather:__setAssetPreviewEnabled(enabled)
+  enabled = enabled ~= false
+  if self.assetPreviewEnabled == enabled then
+    return
+  end
+
+  self.pluginManager:unhookLoveCallbacks()
+  if self.assets then
+    self.assets:finish()
+    self.assets = nil
+  end
+
+  self.assetPreviewEnabled = enabled
+  if enabled then
+    self.assets = FeatherAssets(self.featherLogger)
+  end
+
+  self.pluginManager:hookLoveCallbacks()
 end
 
 --- Dispatch an incoming desktop → game command message.
@@ -312,6 +348,33 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:plugin:toggle" and msg.plugin then
     self.pluginManager:togglePlugin(msg.plugin)
     self:__sendHello()
+  elseif msg.type == "cmd:assets:toggle" then
+    local enabled = not self.assetPreviewEnabled
+    if msg.data and msg.data.enabled ~= nil then
+      enabled = msg.data.enabled
+    end
+    self:__setAssetPreviewEnabled(enabled)
+    self:__sendHello()
+    self:__pushAssets()
+  elseif msg.type == "cmd:assets:preview" and msg.data then
+    if not self.assets then
+      self:__sendWs(json.encode({
+        type = "assets:error",
+        session = self.sessionId,
+        data = { message = "Asset preview is disabled for this session" },
+      }))
+      return
+    end
+    local ok, err = self.assets:preview(msg.data.kind, msg.data.id)
+    if ok then
+      self:__pushAssets()
+    else
+      self:__sendWs(json.encode({
+        type = "assets:error",
+        session = self.sessionId,
+        data = { message = tostring(err) },
+      }))
+    end
   elseif msg.type == "cmd:debugger:enable" then
     self.debuggerEnabled = true
     self.featherDebugger:enable()
@@ -394,6 +457,29 @@ function Feather:__pushObservers()
   end
 end
 
+--- Push current asset catalog to the desktop.
+function Feather:__pushAssets()
+  if not self.assets then
+    self:__sendWs(json.encode({
+      type = "assets",
+      session = self.sessionId,
+      data = {
+        enabled = false,
+        textures = {},
+        fonts = {},
+        audio = {},
+        preview = false,
+      },
+    }))
+    return
+  end
+  self:__sendWs(json.encode({
+    type = "assets",
+    session = self.sessionId,
+    data = self.assets:getResponseBody(),
+  }))
+end
+
 function Feather:__errorTraceback(msg)
   local trace = debug.traceback()
 
@@ -470,6 +556,9 @@ function Feather:finish()
   end
   self.wsConnected = false
   self.pluginManager:finish(self)
+  if self.assets then
+    self.assets:finish()
+  end
 end
 
 function Feather:error(msg)
@@ -483,6 +572,9 @@ function Feather:update(dt)
 
   -- Always update local systems
   self.featherLogger:update()
+  if self.assets then
+    self.assets:update()
+  end
   self.pluginManager:update(dt, self)
 
   if self.mode == "disk" then
@@ -510,11 +602,15 @@ function Feather:update(dt)
 
   -- Push-based data delivery: Lua sends performance/observers/plugins on its own schedule
   if self.wsConnected then
+    if self.assets and self.assets:hasPreview() then
+      self:__pushAssets()
+    end
     self._wsElapsed = (self._wsElapsed or 0) + dt
     if self._wsElapsed >= self.sampleRate then
       self._wsElapsed = 0
       self:__pushPerformance(dt)
       self:__pushObservers()
+      self:__pushAssets()
       self.pluginManager:pushAll(self)
       collectgarbage("step", 200)
     end

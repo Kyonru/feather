@@ -39,7 +39,6 @@ local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
 local Signal = require("demo.lib.hump.signal")
 local machine = require("demo.lib.statemachine")
-local Game = require("demo.tetris")
 
 local function error_printer(msg, layer)
   print((debug.traceback("Error: " .. tostring(msg), 1 + (layer or 1)):gsub("\n[^\n]+$", "")))
@@ -413,6 +412,8 @@ local counter = 0
 local state
 
 local time = 0
+
+local Game = require("demo.tetris")
 
 -- Wrap demo functions with the profiler
 local profiler = DEBUGGER.pluginManager:getPlugin("profiler")

@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
-import { BugIcon, ClockIcon, GaugeIcon, GitCompareArrowsIcon, LogsIcon, TelescopeIcon, TerminalIcon } from 'lucide-react';
+import { BugIcon, ClockIcon, GaugeIcon, GitCompareArrowsIcon, ImagesIcon, LogsIcon, TelescopeIcon, TerminalIcon } from 'lucide-react';
 import { useDebuggerStore } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
 
@@ -45,6 +45,11 @@ export function NavMain() {
       title: 'Time Travel',
       url: '/time-travel',
       icon: ClockIcon,
+    },
+    {
+      title: 'Assets',
+      url: '/assets',
+      icon: ImagesIcon,
     },
     {
       title: 'Compare',

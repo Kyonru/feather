@@ -13,6 +13,7 @@ import Console from './pages/console';
 import Debugger from './pages/debugger';
 import TimeTravel from './pages/time-travel';
 import Compare from './pages/compare';
+import Assets from './pages/assets';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
@@ -66,6 +67,7 @@ export const Router = () => {
               <Route path="/console" element={<Console />} />
               <Route path="/debugger" element={<Debugger />} />
               <Route path="/time-travel" element={<TimeTravel />} />
+              <Route path="/assets" element={<Assets />} />
               <Route path="/compare" element={<Compare />} />
 
               <Route path="/plugins">

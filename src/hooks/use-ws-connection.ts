@@ -10,6 +10,7 @@ import { useSettingsStore } from '@/store/settings';
 import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
+import type { AssetCatalog } from './use-assets';
 import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
@@ -21,6 +22,7 @@ export const sessionQueryKey = {
   logs: (sessionId: string) => [sessionId, 'logs'],
   performance: (sessionId: string) => [sessionId, 'performance'],
   observers: (sessionId: string) => [sessionId, 'observers'],
+  assets: (sessionId: string) => [sessionId, 'assets'],
   plugin: (sessionId: string, pluginId: string) => [sessionId, 'plugin', pluginId],
   console: (sessionId: string) => [sessionId, 'console'],
   timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
@@ -150,6 +152,10 @@ export const useWsConnection = () => {
                 if (oldObs) {
                   queryClient.setQueryData(sessionQueryKey.observers(sessionId), oldObs);
                 }
+                const oldAssets = queryClient.getQueryData(sessionQueryKey.assets(oldSession.id));
+                if (oldAssets) {
+                  queryClient.setQueryData(sessionQueryKey.assets(sessionId), oldAssets);
+                }
                 // Clean up old session cache
                 queryClient.removeQueries({ queryKey: [oldSession.id] });
               }
@@ -234,6 +240,21 @@ export const useWsConnection = () => {
               return { ...entry, previous: prev?.value, changed, history };
             });
             queryClient.setQueryData(sessionQueryKey.observers(sessionId), merged);
+            break;
+          }
+
+          case 'assets': {
+            const incoming = data as AssetCatalog;
+            queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) => ({
+              ...incoming,
+              preview: incoming.preview === false ? null : (incoming.preview ?? prev?.preview ?? null),
+            }));
+            break;
+          }
+
+          case 'assets:error': {
+            const payload = data as { message?: string };
+            toast.error(`Asset preview failed: ${payload?.message || 'Unknown error'}`);
             break;
           }
 

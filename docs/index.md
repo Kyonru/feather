@@ -17,6 +17,7 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 - 📲 **Mobile debugging** — Auto-detected local IP in Settings with copyable connection string.
 - 💻 **Console / REPL** — Execute Lua code in the running game (opt-in, requires `apiKey`).
 - 🐛 **Step Debugger** — Breakpoints, step over/into/out, call stack, and local variable inspection.
+- 🖼️ **Asset inspector** — Browse loaded textures, fonts, and audio sources with previews, zoom, pan, and pixel grid.
 - 📁 **Log file viewer** — Open `.featherlog` files for offline inspection.
 - ⚡ **Zero-config setup** — `require("feather.auto")` registers all plugins with sensible defaults.
 - 🖥️ **CLI** — `feather run <game>` injects Feather into any love2d game without touching its code.
@@ -69,6 +70,7 @@ require("feather.auto").setup({
 - [Installation](installation.md) — Download, install script, LuaRocks, custom paths
 - [Configuration](configuration.md) — All config options, connecting, mobile debugging
 - [Usage](usage.md) — Observers, logging, console / REPL, step debugger
+- [Assets](assets.md) — Inspect loaded textures, fonts, audio, and configure the game root
 - [Plugins](plugins.md) — Built-in plugins, plugin system, custom plugins
 - [Recommendations](recommendations.md) — Security, performance, release builds
 
