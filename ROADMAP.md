@@ -20,11 +20,11 @@ Build the core runtime inspection experience.
 
 #### File & State Management
 
-- [ ] Add option to clear unused screenshots
-- [ ] Save data inspector
-  - [ ] Read/write `love.filesystem` save files
-  - [ ] JSON preview/editor
-  - [ ] Binary save inspection support
+- [x] Add option to clear unused screenshots
+- [x] Save data inspector
+  - [x] Read/write `love.filesystem` save files
+  - [x] JSON preview/editor
+  - [x] Binary save inspection support
 
 ---
 

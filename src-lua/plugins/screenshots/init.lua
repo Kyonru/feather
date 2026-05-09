@@ -230,6 +230,12 @@ function ScreenshotPlugin:handleActionRequest(request)
   if params.action == "screenshot" then
     return self:captureScreenshot()
   end
+
+  if params.action == "clear" then
+    self.images = {}
+    self._lastSentIndex = 0
+    return true
+  end
 end
 
 function ScreenshotPlugin:handleActionCancel()
@@ -324,6 +330,12 @@ function ScreenshotPlugin:getConfig()
         icon = "save",
         type = "checkbox",
         value = self.persist,
+      },
+      {
+        label = "Clear",
+        key = "clear",
+        icon = "trash-2",
+        type = "button",
       },
     },
   }
