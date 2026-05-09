@@ -2,7 +2,7 @@
   "name": "feather",
   "description": "Feather is a Love2D devtool to debug and inspect your game in real-time. It provides a web-based interface to view and manipulate game state, visualize physics, and more.",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "workspaces": [
     "cli"

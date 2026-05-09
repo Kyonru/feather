@@ -1,6 +1,6 @@
 {
   "name": "feather-cli",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "CLI for Feather — run and debug Love2D games without touching your game code",
   "type": "module",
   "bin": {
