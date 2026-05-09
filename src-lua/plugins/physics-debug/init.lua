@@ -10,7 +10,6 @@ local Base = require(FEATHER_PATH .. ".plugins.base")
 ---@field showAABBs boolean
 ---@field alpha number             Overlay transparency
 ---@field _hooked boolean
----@field _origDraw function|nil
 local PhysicsDebugPlugin = Class({
   __includes = Base,
   init = function(self, config)
@@ -25,12 +24,6 @@ local PhysicsDebugPlugin = Class({
     self.showAABBs = self.options.showAABBs == true
     self.alpha = self.options.alpha or 0.7
     self._hooked = false
-    self._origDraw = nil
-
-    -- Auto-hook love.draw if requested
-    if self.options.autoHook ~= false then
-      self:hookDraw()
-    end
   end,
 })
 
@@ -58,36 +51,9 @@ function PhysicsDebugPlugin:removeWorld(name)
   end
 end
 
---- Hook love.draw() to auto-render the debug overlay after the game draws.
-function PhysicsDebugPlugin:hookDraw()
-  if self._hooked then
-    return
-  end
-
-  local plugin = self
-  local origDraw = love.draw
-  self._origDraw = origDraw
-
-  love.draw = function()
-    if origDraw then
-      origDraw()
-    end
-    plugin:draw()
-  end
-
-  self._hooked = true
-end
-
---- Unhook love.draw() and restore the original.
-function PhysicsDebugPlugin:unhookDraw()
-  if not self._hooked then
-    return
-  end
-  if self._origDraw then
-    love.draw = self._origDraw
-  end
-  self._origDraw = nil
-  self._hooked = false
+--- Called by the plugin manager's central love.draw dispatcher.
+function PhysicsDebugPlugin:onDraw()
+  self:draw()
 end
 
 -- Color palette
@@ -367,8 +333,6 @@ function PhysicsDebugPlugin:getConfig()
   }
 end
 
-function PhysicsDebugPlugin:finish()
-  self:unhookDraw()
-end
+function PhysicsDebugPlugin:finish() end
 
 return PhysicsDebugPlugin

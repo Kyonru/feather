@@ -119,18 +119,11 @@ function BookmarkPlugin:init(config)
   self.gameStartTime = gettime()
   self._lastSentCount = 0
 
-  -- Hook love.keypressed if hotkey is set
-  if self.hotkey and love and love.keypressed then
-    local origKeypressed = love.keypressed
-    local plugin = self
-    love.keypressed = function(key, scancode, isrepeat)
-      if key == plugin.hotkey then
-        plugin:add("Quick bookmark")
-      end
-      if origKeypressed then
-        return origKeypressed(key, scancode, isrepeat)
-      end
-    end
+end
+
+function BookmarkPlugin:onKeypressed(key)
+  if key == self.hotkey then
+    self:add("Quick bookmark")
   end
 end
 

@@ -14,6 +14,15 @@ local Class = require(FEATHER_PATH .. ".lib.class")
 ---@field isSupported fun(self: FeatherPlugin, version: number): boolean
 ---@field finish fun(self: FeatherPlugin, feather: Feather): ...
 ---@field getConfig fun(self: FeatherPlugin): table
+---@field onDraw fun(self: FeatherPlugin)
+---@field onKeypressed fun(self: FeatherPlugin, key: string, scancode: string, isrepeat: boolean)
+---@field onKeyreleased fun(self: FeatherPlugin, key: string, scancode: string)
+---@field onMousepressed fun(self: FeatherPlugin, x: number, y: number, button: number, istouch: boolean, presses: number)
+---@field onMousereleased fun(self: FeatherPlugin, x: number, y: number, button: number, istouch: boolean, presses: number)
+---@field onTouchpressed fun(self: FeatherPlugin, id: lightuserdata, x: number, y: number, dx: number, dy: number, pressure: number)
+---@field onTouchreleased fun(self: FeatherPlugin, id: lightuserdata, x: number, y: number, dx: number, dy: number, pressure: number)
+---@field onJoystickpressed fun(self: FeatherPlugin, joystick: table, button: number)
+---@field onJoystickreleased fun(self: FeatherPlugin, joystick: table, button: number)
 local FeatherPlugin = Class({})
 
 function FeatherPlugin:init(config)
@@ -60,5 +69,16 @@ end
 function FeatherPlugin:getConfig()
   return {}
 end
+
+-- Love event hooks — override in subclasses; the plugin manager dispatches these.
+function FeatherPlugin:onDraw() end
+function FeatherPlugin:onKeypressed() end
+function FeatherPlugin:onKeyreleased() end
+function FeatherPlugin:onMousepressed() end
+function FeatherPlugin:onMousereleased() end
+function FeatherPlugin:onTouchpressed() end
+function FeatherPlugin:onTouchreleased() end
+function FeatherPlugin:onJoystickpressed() end
+function FeatherPlugin:onJoystickreleased() end
 
 return FeatherPlugin

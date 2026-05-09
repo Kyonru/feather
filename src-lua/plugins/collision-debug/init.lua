@@ -21,7 +21,6 @@ local Base = require(FEATHER_PATH .. ".plugins.base")
 ---@field showLabels boolean
 ---@field alpha number
 ---@field _hooked boolean
----@field _origDraw function|nil
 ---@field _collisionLog table[]  Recent collisions for the table view
 ---@field _maxLog number
 local CollisionDebugPlugin = Class({
@@ -36,13 +35,8 @@ local CollisionDebugPlugin = Class({
     self.showLabels = self.options.showLabels == true
     self.alpha = self.options.alpha or 0.6
     self._hooked = false
-    self._origDraw = nil
     self._collisionLog = {}
     self._maxLog = self.options.maxLog or 200
-
-    if self.options.autoHook ~= false then
-      self:hookDraw()
-    end
   end,
 })
 
@@ -92,36 +86,9 @@ function CollisionDebugPlugin:logCollision(item, other, colType, normal)
   end
 end
 
---- Hook love.draw() to auto-render the debug overlay.
-function CollisionDebugPlugin:hookDraw()
-  if self._hooked then
-    return
-  end
-
-  local plugin = self
-  local origDraw = love.draw
-  self._origDraw = origDraw
-
-  love.draw = function()
-    if origDraw then
-      origDraw()
-    end
-    plugin:draw()
-  end
-
-  self._hooked = true
-end
-
---- Unhook love.draw() and restore the original.
-function CollisionDebugPlugin:unhookDraw()
-  if not self._hooked then
-    return
-  end
-  if self._origDraw then
-    love.draw = self._origDraw
-  end
-  self._origDraw = nil
-  self._hooked = false
+--- Called by the plugin manager's central love.draw dispatcher.
+function CollisionDebugPlugin:onDraw()
+  self:draw()
 end
 
 -- Default color palette for items without a colorFn
@@ -333,8 +300,6 @@ function CollisionDebugPlugin:getConfig()
   }
 end
 
-function CollisionDebugPlugin:finish()
-  self:unhookDraw()
-end
+function CollisionDebugPlugin:finish() end
 
 return CollisionDebugPlugin
