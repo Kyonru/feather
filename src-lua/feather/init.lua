@@ -77,6 +77,7 @@ local customErrorHandler = errorhandler
 ---@field connectTimeout? number
 ---@field debugger? boolean  Enable the step debugger (default false)
 ---@field assetPreview? boolean  Enable core asset tracking and previews (default true)
+---@field binaryTextThreshold? number  Observer/time-travel strings longer than this are sent as binary text (default 4096)
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -105,6 +106,7 @@ function Feather:init(config)
   self.connectTimeout = conf.connectTimeout or 2
   self.sessionName = conf.sessionName or ""
   self.assetPreviewEnabled = conf.assetPreview ~= false
+  self.binaryTextThreshold = conf.binaryTextThreshold or 4096
   self._nextBinaryId = 1
   self._pendingBinaries = {}
   self.lastError = 0
@@ -259,6 +261,17 @@ function Feather:__sendPendingBinaries()
       self.wsClient:sendBinary(binary.bytes)
     end
   end
+end
+
+---@param value string
+---@return string, table|nil
+function Feather:__maybeAttachText(value)
+  if type(value) ~= "string" or #value <= self.binaryTextThreshold then
+    return value, nil
+  end
+
+  local ref = self:attachBinary("text/plain;charset=utf-8", value)
+  return ref.src, ref.binary
 end
 
 --- Send feather:hello with full config — equivalent to old GET /config response.
@@ -492,13 +505,14 @@ end
 
 --- Push current observer values to the desktop.
 function Feather:__pushObservers()
-  local values = self.featherObserver:getResponseBody()
+  local values = self.featherObserver:getResponseBody(self)
   if values then
     self:__sendWs(json.encode({
       type = "observe",
       session = self.sessionId,
       data = values,
     }))
+    self:__sendPendingBinaries()
   end
 end
 

@@ -45,9 +45,18 @@ type PendingBinary = {
   id: string;
   mime: string;
   target: BinaryTarget;
+  mode: BinaryMode;
 };
 
-type BinaryTarget = { type: 'assets' } | { type: 'plugin'; pluginId: string };
+type BinaryMode = 'url' | 'text';
+
+type BinaryTarget =
+  | { type: 'assets' }
+  | { type: 'plugin'; pluginId: string }
+  | { type: 'observers' }
+  | { type: 'timeTravelFrames' }
+  | { type: 'debuggerPaused' }
+  | { type: 'console' };
 
 type BinaryRef = {
   id: string;
@@ -107,18 +116,18 @@ const collectBinaryRefs = (value: unknown, refs: BinaryRef[] = []): BinaryRef[] 
   return refs;
 };
 
-const replaceBinarySrc = (value: unknown, id: string, blobUrl: string): unknown => {
+const replaceBinaryValue = (value: unknown, id: string, replacement: string): unknown => {
   if (typeof value === 'string') {
-    return value === `feather-binary:${id}` ? blobUrl : value;
+    return value === `feather-binary:${id}` ? replacement : value;
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => replaceBinarySrc(item, id, blobUrl));
+    return value.map((item) => replaceBinaryValue(item, id, replacement));
   }
 
   if (!isRecord(value)) return value;
 
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceBinarySrc(item, id, blobUrl)]));
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceBinaryValue(item, id, replacement)]));
 };
 
 /**
@@ -161,12 +170,17 @@ export const useWsConnection = () => {
     const unlisteners: Array<() => void> = [];
 
     const setup = async () => {
-      const queueBinaryRefs = (sessionId: string, target: BinaryTarget, value: unknown) => {
+      const queueBinaryRefs = (
+        sessionId: string,
+        target: BinaryTarget,
+        value: unknown,
+        mode: BinaryMode = 'url',
+      ) => {
         const refs = collectBinaryRefs(value);
         if (refs.length === 0) return;
 
         const queue = pendingBinaryRef.current[sessionId] ?? [];
-        refs.forEach((ref) => queue.push({ ...ref, target }));
+        refs.forEach((ref) => queue.push({ ...ref, target, mode }));
         pendingBinaryRef.current[sessionId] = queue;
       };
 
@@ -176,17 +190,49 @@ export const useWsConnection = () => {
         const pending = pendingBinaryRef.current[sessionId]?.shift();
         if (!pending) return;
 
-        const blobUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: pending.mime }));
+        const byteArray = new Uint8Array(bytes);
+        const replacement =
+          pending.mode === 'text'
+            ? new TextDecoder().decode(byteArray)
+            : URL.createObjectURL(new Blob([byteArray], { type: pending.mime }));
+
         if (pending.target.type === 'assets') {
           queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) =>
-            replaceBinarySrc(prev, pending.id, blobUrl) as AssetCatalog,
+            replaceBinaryValue(prev, pending.id, replacement) as AssetCatalog,
+          );
+          return;
+        }
+
+        if (pending.target.type === 'observers') {
+          queryClient.setQueryData(sessionQueryKey.observers(sessionId), (prev) =>
+            replaceBinaryValue(prev, pending.id, replacement),
+          );
+          return;
+        }
+
+        if (pending.target.type === 'timeTravelFrames') {
+          queryClient.setQueryData<TimeTravelFrame[]>(sessionQueryKey.timeTravelFrames(sessionId), (prev) =>
+            replaceBinaryValue(prev, pending.id, replacement) as TimeTravelFrame[],
+          );
+          return;
+        }
+
+        if (pending.target.type === 'debuggerPaused') {
+          const current = useDebuggerStore.getState().pausedState[sessionId];
+          setPausedState(sessionId, replaceBinaryValue(current, pending.id, replacement) as PausedState);
+          return;
+        }
+
+        if (pending.target.type === 'console') {
+          queryClient.setQueryData<EvalResponse[]>(sessionQueryKey.console(sessionId), (prev) =>
+            replaceBinaryValue(prev, pending.id, replacement) as EvalResponse[],
           );
           return;
         }
 
         queryClient.setQueryData<PluginContentProps>(
           sessionQueryKey.plugin(sessionId, pending.target.pluginId),
-          (prev) => replaceBinarySrc(prev, pending.id, blobUrl) as PluginContentProps,
+          (prev) => replaceBinaryValue(prev, pending.id, replacement) as PluginContentProps,
         );
       });
 
@@ -318,6 +364,7 @@ export const useWsConnection = () => {
           case 'observe': {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const incoming = data as Record<string, any>[];
+            queueBinaryRefs(sessionId, { type: 'observers' }, incoming, 'text');
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const existing: Record<string, any>[] = queryClient.getQueryData(sessionQueryKey.observers(sessionId)) ?? [];
             const existingMap = new Map(existing.map((e) => [e.key, e]));
@@ -406,6 +453,7 @@ export const useWsConnection = () => {
           case 'eval:response': {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const evalMsg = msg as any;
+            queueBinaryRefs(sessionId, { type: 'console' }, evalMsg, 'text');
             queryClient.setQueryData<EvalResponse[]>(sessionQueryKey.console(sessionId), (prev) => [
               ...(prev ?? []),
               {
@@ -419,6 +467,7 @@ export const useWsConnection = () => {
           }
 
           case 'debugger:paused': {
+            queueBinaryRefs(sessionId, { type: 'debuggerPaused' }, data, 'text');
             setPausedState(sessionId, data as PausedState);
             break;
           }
@@ -435,6 +484,7 @@ export const useWsConnection = () => {
 
           case 'time_travel:frames': {
             const framesMsg = data as { frames: TimeTravelFrame[] };
+            queueBinaryRefs(sessionId, { type: 'timeTravelFrames' }, framesMsg, 'text');
             queryClient.setQueryData(sessionQueryKey.timeTravelFrames(sessionId), framesMsg.frames);
             break;
           }

@@ -493,6 +493,27 @@ metadata = {
 }
 ```
 
+The same works in table rows. The desktop resolves `src` to a blob URL and renders it as a download/open control when that column is visible; the `binary` field can stay hidden metadata if you do not add a matching column.
+
+```lua
+function MyPlugin:handleRequest(request, feather)
+  local file = feather:attachBinary("application/octet-stream", bytes)
+
+  return {
+    type = "table",
+    columns = {
+      { key = "name", label = "Name" },
+      { key = "size", label = "Size" },
+      { key = "src", label = "File" },
+    },
+    data = {
+      { name = "dump.bin", size = tostring(#bytes), src = file.src, binary = file.binary },
+    },
+    loading = false,
+  }
+end
+```
+
 #### `table`
 
 ```lua

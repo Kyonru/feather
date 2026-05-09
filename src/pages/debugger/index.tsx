@@ -435,6 +435,8 @@ function detectLuaType(value: string): LuaValueType {
   if (value === 'nil') return 'nil';
   if (value === 'true' || value === 'false') return 'boolean';
   if (/^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$|^-?inf$|^nan$/.test(value)) return 'number';
+  if (value.startsWith('{') && value.endsWith('}')) return 'table';
+  if (/^table \{\d+\}$/.test(value)) return 'table';
   if (/^table: 0x[0-9a-f]+$/.test(value)) return 'table';
   if (/^function: 0x[0-9a-f]+$/.test(value)) return 'function';
   if (/^userdata: 0x[0-9a-f]+$/.test(value)) return 'userdata';

@@ -133,11 +133,39 @@ end
 ---@param feather Feather
 function TimeTravelPlugin:sendFrames(params, feather)
   local frames = self:getFrames(params.from_frame, params.to_frame)
+  local responseFrames = {}
+
+  for i, frame in ipairs(frames) do
+    local observers = {}
+    local binaries = {}
+
+    for key, value in pairs(frame.observers or {}) do
+      local nextValue = value
+      local binary
+      if feather.__maybeAttachText then
+        nextValue, binary = feather:__maybeAttachText(value)
+      end
+      observers[key] = nextValue
+      if binary then
+        binaries[#binaries + 1] = binary
+      end
+    end
+
+    responseFrames[i] = {
+      id = frame.id,
+      time = frame.time,
+      dt = frame.dt,
+      observers = observers,
+      binary = #binaries > 0 and binaries or nil,
+    }
+  end
+
   feather:__sendWs(json.encode({
     type = "time_travel:frames",
     session = feather.sessionId,
-    data = { frames = frames },
+    data = { frames = responseFrames },
   }))
+  feather:__sendPendingBinaries()
 end
 
 function TimeTravelPlugin:getConfig()

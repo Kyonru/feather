@@ -23,6 +23,7 @@ import {
   PluginContentImageType,
   PluginContentProps,
   PluginDataType,
+  PluginTableCellValue,
   PluginTableColumn,
   PluginTableRow,
   PluginTreeNode,
@@ -31,11 +32,12 @@ import {
 import { downloadFile } from '@/utils/file';
 import { isWeb } from '@/utils/platform';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { Bookmark, ChevronRight, DownloadIcon } from 'lucide-react';
+import { Bookmark, ChevronRight, DownloadIcon, ExternalLink } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 const isDirectImageSrc = (src: string) => src.startsWith('data:') || src.startsWith('blob:');
+const isResolvedBinarySrc = (src: string) => src.startsWith('blob:') || src.startsWith('data:');
 const downloadName = (name: string, extension: '.png' | '.gif') => {
   const base = name.split(/[\\/]/).pop() || `${Date.now()}${extension}`;
   return base.endsWith(extension) ? base : `${base}${extension}`;
@@ -59,6 +61,54 @@ const DownloadButton = ({ url, filename }: { url?: string; filename: string }) =
       <DownloadIcon className="text-primary" />
     </Button>
   );
+};
+
+const tableDownloadName = (row: PluginTableRow, fallback: string) => {
+  const name = row.name;
+  if (typeof name === 'string' && name.length > 0) {
+    return name.split(/[\\/]/).pop() || fallback;
+  }
+  return fallback;
+};
+
+const renderTableValue = (value: PluginTableCellValue, row: PluginTableRow, columnKey: string) => {
+  if (value == null || value === '') return '-';
+
+  if (typeof value === 'string') {
+    if (isResolvedBinarySrc(value)) {
+      const filename = tableDownloadName(row, `${columnKey}.bin`);
+      return (
+        <div className="flex items-center gap-1">
+          <DownloadButton url={value} filename={filename} />
+          <Button variant="ghost" size="icon" asChild>
+            <a href={value} target="_blank" rel="noreferrer">
+              <ExternalLink className="text-primary" />
+            </a>
+          </Button>
+        </div>
+      );
+    }
+
+    if (value.startsWith('feather-binary:')) {
+      return <span className="text-muted-foreground">Loading...</span>;
+    }
+
+    return value;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.every((item) => typeof item === 'string') ? value.join(', ') : `${value.length} items`;
+  }
+
+  if ('id' in value) {
+    return <span className="text-muted-foreground">{value.mime || 'binary'}</span>;
+  }
+
+  return JSON.stringify(value);
 };
 
 export function PluginContentTypeGifImage({ name, width, fps, height, src, downloadable }: GifType) {
@@ -227,10 +277,10 @@ export function PluginContentTable({
             </TableRow>
           ) : (
             data.map((row, i) => (
-              <TableRow key={row.name ?? i}>
+              <TableRow key={typeof row.name === 'string' ? row.name : i}>
                 {columns.map((col) => (
                   <TableCell key={col.key} className="font-mono text-sm">
-                    {row[col.key] ?? '-'}
+                    {renderTableValue(row[col.key], row, col.key)}
                   </TableCell>
                 ))}
               </TableRow>

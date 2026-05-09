@@ -110,7 +110,7 @@ function FeatherDebugger:_getLocals(hookLevel)
     local name, value = debug.getlocal(hookLevel, i)
     if not name then break end
     if name:sub(1, 1) ~= "(" then
-      locals[name] = self:_serializeValue(value, 0)
+      locals[name] = self:_serializeValue(value, 0, {})
     end
     i = i + 1
   end
@@ -124,13 +124,13 @@ function FeatherDebugger:_getUpvalues(fn)
   while true do
     local name, value = debug.getupvalue(fn, i)
     if not name then break end
-    upvalues[name] = self:_serializeValue(value, 0)
+    upvalues[name] = self:_serializeValue(value, 0, {})
     i = i + 1
   end
   return upvalues
 end
 
-function FeatherDebugger:_serializeValue(v, depth)
+function FeatherDebugger:_serializeValue(v, depth, seen)
   local t = type(v)
   if t == "nil" then
     return "nil"
@@ -139,28 +139,31 @@ function FeatherDebugger:_serializeValue(v, depth)
   elseif t == "number" then
     return tostring(v)
   elseif t == "string" then
-    if #v > 80 then
-      return string.format("%q", v:sub(1, 80)) .. "…"
-    end
     return string.format("%q", v)
   elseif t == "table" then
-    if depth >= 1 then
+    seen = seen or {}
+    if seen[v] then
+      return "<cycle>"
+    end
+    if depth >= 3 then
       local count = 0
       for _ in pairs(v) do count = count + 1 end
       return string.format("table {%d}", count)
     end
-    -- Shallow expand one level
+
+    seen[v] = true
     local parts = {}
     local count = 0
     for k, val in pairs(v) do
       count = count + 1
-      if count > 16 then
+      if count > 32 then
         table.insert(parts, "…")
         break
       end
       local ks = type(k) == "string" and k or ("[" .. tostring(k) .. "]")
-      table.insert(parts, ks .. " = " .. self:_serializeValue(val, depth + 1))
+      table.insert(parts, ks .. " = " .. self:_serializeValue(val, depth + 1, seen))
     end
+    seen[v] = nil
     return "{" .. table.concat(parts, ", ") .. "}"
   elseif t == "function" then
     local info = debug.getinfo(v, "S")
@@ -173,6 +176,25 @@ function FeatherDebugger:_serializeValue(v, depth)
   else
     return tostring(v)
   end
+end
+
+function FeatherDebugger:_attachTextValues(values)
+  local attached = {}
+  local binaries = {}
+
+  for key, value in pairs(values or {}) do
+    local nextValue = value
+    local binary
+    if self.feather.__maybeAttachText then
+      nextValue, binary = self.feather:__maybeAttachText(value)
+    end
+    attached[key] = nextValue
+    if binary then
+      binaries[#binaries + 1] = binary
+    end
+  end
+
+  return attached, binaries
 end
 
 function FeatherDebugger:_getStack()
@@ -290,8 +312,19 @@ function FeatherDebugger:_doPause(info, line, reason)
   if funcInfo and funcInfo.func then
     upvalues = self:_getUpvalues(funcInfo.func)
   end
+  local localBinaries
+  local upvalueBinaries
+  locals, localBinaries = self:_attachTextValues(locals)
+  upvalues, upvalueBinaries = self:_attachTextValues(upvalues)
 
   local stack = self:_getStack()
+  local binaries = {}
+  for _, binary in ipairs(localBinaries) do
+    binaries[#binaries + 1] = binary
+  end
+  for _, binary in ipairs(upvalueBinaries) do
+    binaries[#binaries + 1] = binary
+  end
 
   self.paused = true
   self.feather:__sendWs(json.encode({
@@ -304,8 +337,10 @@ function FeatherDebugger:_doPause(info, line, reason)
       stack = stack,
       locals = locals,
       upvalues = upvalues,
+      binary = #binaries > 0 and binaries or nil,
     },
   }))
+  self.feather:__sendPendingBinaries()
 
   -- Block the game loop — keep pumping WS so commands can arrive
   local socket = require("socket")

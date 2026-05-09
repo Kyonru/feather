@@ -51,8 +51,23 @@ export interface PluginTableColumn {
   label: string;
 }
 
+export type PluginBinaryRef = {
+  id: string;
+  mime: string;
+};
+
+export type PluginTableCellValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | string[]
+  | PluginBinaryRef
+  | PluginBinaryRef[];
+
 export interface PluginTableRow {
-  [key: string]: string;
+  [key: string]: PluginTableCellValue;
 }
 
 export type PluginDataType = PluginContentImageType;

@@ -40,11 +40,26 @@ function FeatherObserver:__defaultObservers()
   self:observe("Lua Version", _VERSION)
 end
 
-function FeatherObserver:getResponseBody()
+function FeatherObserver:getResponseBody(feather)
   if self.defaultObservers then
     self:__defaultObservers()
   end
-  return self.observers
+
+  if not feather or not feather.__maybeAttachText then
+    return self.observers
+  end
+
+  local response = {}
+  for i, observer in ipairs(self.observers) do
+    local value, binary = feather:__maybeAttachText(observer.value)
+    response[i] = {
+      key = observer.key,
+      value = value,
+      type = observer.type,
+      binary = binary,
+    }
+  end
+  return response
 end
 
 return FeatherObserver

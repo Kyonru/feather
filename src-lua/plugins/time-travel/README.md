@@ -184,5 +184,6 @@ With this config:
 
 - Snapshots are captured in `update()` — one per frame.
 - Observer values are pre-formatted strings (set by `observe()`), so snapshot cost is a shallow table copy: one string per key.
+- Large observer strings are sent as binary text attachments when frames are transferred, keeping the JSON frame index compact.
 - The ring buffer allocates a fixed table up front; there is no GC pressure during recording.
 - Sending frames over the WebSocket happens only when you click **Stop & Load** or **Refresh** — not during recording.

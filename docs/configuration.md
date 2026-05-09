@@ -31,6 +31,7 @@
 | `apiKey`                   | `string`              | `""`                | API key for authenticated connections.                                                                                                 |
 | `debugger`                 | `boolean`             | `false`             | Enable the step debugger (breakpoints, step over/into/out, locals inspection).                                                         |
 | `assetPreview`             | `boolean`             | `true`              | Enable the core Assets tab tracking and previews. Set to `false` to avoid hooking asset loaders and `love.draw`.                       |
+| `binaryTextThreshold`      | `number`              | `4096`              | Observer, time-travel, debugger, and console text values longer than this many bytes are sent through the hybrid binary protocol instead of JSON. |
 
 ---
 
