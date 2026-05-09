@@ -1,5 +1,5 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 local base64encode = require(FEATHER_PATH .. ".lib.base64").encode
 
 ---@class ScreenshotPlugin: FeatherPlugin

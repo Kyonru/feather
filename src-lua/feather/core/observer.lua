@@ -1,5 +1,5 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 local format = require(FEATHER_PATH .. ".utils").format
 
 ---@class FeatherObserver: FeatherPlugin

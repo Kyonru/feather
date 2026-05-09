@@ -1,4 +1,8 @@
 core:feather/auto.lua
+core:feather/core/base.lua
+core:feather/core/logger.lua
+core:feather/core/observer.lua
+core:feather/core/performance.lua
 core:feather/debugger.lua
 core:feather/error_handler.lua
 core:feather/init.lua
@@ -9,10 +13,6 @@ core:feather/lib/json.lua
 core:feather/lib/log.lua
 core:feather/lib/ws.lua
 core:feather/plugin_manager.lua
-core:feather/plugins/base.lua
-core:feather/plugins/logger.lua
-core:feather/plugins/observer.lua
-core:feather/plugins/performance.lua
 core:feather/utils.lua
 plugin:animation-inspector:init.lua
 plugin:animation-inspector:manifest.lua

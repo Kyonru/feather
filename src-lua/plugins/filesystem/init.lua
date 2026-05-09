@@ -1,5 +1,5 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 
 --- Filesystem Plugin — browse and inspect files the game has written via love.filesystem.
 --- Lets you navigate directories, preview text file contents, and delete files from the desktop.

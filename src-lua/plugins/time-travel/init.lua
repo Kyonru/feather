@@ -1,6 +1,6 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
 local json = require(FEATHER_PATH .. ".lib.json")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 
 ---@class TimeTravelPlugin: FeatherPlugin
 ---@field bufferSize number

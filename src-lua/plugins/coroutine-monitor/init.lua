@@ -1,6 +1,6 @@
 ---@diagnostic disable: duplicate-set-field
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 
 --- Coroutine Monitor Plugin — track active coroutines, status, yields per frame.
 --- Hooks coroutine.create/wrap to automatically discover coroutines.

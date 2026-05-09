@@ -2,7 +2,7 @@
 --- https://github.com/kikito/bump.lua
 
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 
 --- Collision Debug Plugin — visualize bump.lua AABB collision worlds.
 --- Draws bounding boxes for all items, optional cell grid, and tracks collision stats.
