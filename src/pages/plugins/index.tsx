@@ -8,10 +8,11 @@ import { usePlugin, usePluginAction } from '@/hooks/use-plugin';
 import { useConfigStore } from '@/store/config';
 import { DynamicIcon, IconName } from 'lucide-react/dynamic';
 import { useCallback, useRef } from 'react';
-import { useHref } from 'react-router';
+import { Link, useHref } from 'react-router';
 import { PluginContent } from './content';
 import { Checkbox } from '@/components/ui/checkbox';
 import { openUrl } from '@/utils/linking';
+import { PuzzleIcon } from 'lucide-react';
 
 const VectorInput = ({
   label,
@@ -241,9 +242,41 @@ export default function PluginPage() {
   const plugin = plugins?.[pluginKey];
 
   if (!plugin) {
+    const pluginEntries = Object.entries(plugins ?? {})
+      .filter(([, value]) => value.tabName)
+      .sort(([, a], [, b]) => String(a.tabName).localeCompare(String(b.tabName)));
+
     return (
       <PageLayout>
-        <pre className="whitespace-pre-wrap text-4xl p-12">404 Plugin Not Found</pre>
+        <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10 text-center">
+          <div className="flex max-w-lg flex-col items-center gap-4">
+            <div className="flex size-12 items-center justify-center rounded-md border bg-muted/40">
+              <PuzzleIcon className="size-5 text-muted-foreground" />
+            </div>
+            <div className="grid gap-1">
+              <p className="text-lg font-semibold">Plugin not available</p>
+              <p className="text-sm text-muted-foreground">
+                This session does not expose <span className="font-mono text-foreground">{pluginKey}</span>. It may
+                belong to another game session, or the plugin may be disabled or not installed in this run.
+              </p>
+            </div>
+
+            {pluginEntries.length > 0 ? (
+              <div className="flex max-w-full flex-wrap justify-center gap-2">
+                {pluginEntries.slice(0, 6).map(([key, value]) => (
+                  <Button key={key} asChild variant="outline" size="sm">
+                    <Link to={`/plugins/${key}`}>
+                      {value.icon && <DynamicIcon className="size-3.5" name={value.icon} />}
+                      {value.tabName}
+                    </Link>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No plugins are available for the selected session.</p>
+            )}
+          </div>
+        </div>
       </PageLayout>
     );
   }

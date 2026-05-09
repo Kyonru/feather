@@ -70,7 +70,7 @@ export function NavPlugins() {
     return visible.filter((item) => item.name.toLowerCase().includes(q));
   }, [visible, search]);
 
-  if (items.length === 0) return null;
+  if (!sessionId || items.length === 0) return null;
 
   const disableAllPlugins = () => {
     if (!sessionId) return;
