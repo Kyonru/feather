@@ -1,0 +1,33 @@
+#!/usr/bin/env sh
+set -eu
+
+message_file="$1"
+subject="$(sed -n '1p' "$message_file")"
+
+case "$subject" in
+  cli:*|app:*|lua:*|tauri:*|feather:*|docs:*)
+    exit 0
+    ;;
+esac
+
+cat <<'EOF'
+[feather] Invalid commit message.
+
+Commit message must start with one of:
+  cli:
+  app:
+  lua:
+  tauri:
+  feather:
+  docs:
+
+Examples:
+  cli: add interactive plugin workflow
+  app: improve assets panel
+  lua: add debugger binary payloads
+  tauri: update file permissions
+  feather: update repo structure
+  docs: add contribution guidelines
+EOF
+
+exit 1
