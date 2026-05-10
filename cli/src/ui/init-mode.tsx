@@ -63,7 +63,7 @@ const modes: Option<InitMode>[] = [
   {
     value: "manual",
     label: "Manual setup",
-    description: "Install Feather and leave main.lua untouched for custom wiring.",
+    description: "Create feather.debugger.lua and load it from main.lua.",
   },
 ];
 

@@ -100,7 +100,7 @@ By default, `feather init` opens an interactive terminal picker powered by Ink:
 | -------- | ----------------------------------------------------------------------------- |
 | `cli`    | Creates `feather.config.lua` only. Run with `feather run .`.                  |
 | `auto`   | Copies core/plugins and patches `main.lua` with `require("feather.auto")`. |
-| `manual` | Copies core/plugins and leaves `main.lua` untouched for custom setup.      |
+| `manual` | Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua`. |
 
 Install source priority:
 
@@ -141,9 +141,14 @@ If the terminal is non-interactive, or `--yes` is used, Feather defaults to `aut
 
 All modes create a `feather.config.lua` template if one doesn't exist.
 
-Manual mode prints an integration snippet that matches the selected install directory and plugin list. For example, when installing into `lib/feather` with `screenshots` and `runtime-snapshot`:
+Manual mode writes the custom integration into `feather.debugger.lua`, then adds a small marked loader block near the top of `main.lua`. For example, when installing into `lib/feather` with `screenshots` and `runtime-snapshot`, the generated file looks like:
 
 ```lua
+-- feather.debugger.lua
+if DEBUGGER then
+  return DEBUGGER
+end
+
 local FeatherDebugger = require("lib.feather")
 local FeatherPluginManager = require("lib.feather.plugin_manager")
 local ScreenshotsPlugin = require("lib.feather.plugins.screenshots")
@@ -158,10 +163,10 @@ DEBUGGER = FeatherDebugger({
   },
 })
 
-function love.update(dt)
-  if DEBUGGER then DEBUGGER:update(dt) end
-end
+return DEBUGGER
 ```
+
+`main.lua` gets matching `FEATHER-INIT` comments around the loader and update hook. `feather.config.lua` also includes a managed metadata block so a future `feather remove` command can remove generated files and markers before production packaging.
 
 **Options:**
 
