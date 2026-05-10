@@ -13,6 +13,7 @@ export interface RunOptions {
   config?: string;
   featherPath?: string;
   pluginsDir?: string;
+  gameArgs?: string[];
 }
 
 export function runCommand(gamePath: string, opts: RunOptions): void {
@@ -50,10 +51,13 @@ export function runCommand(gamePath: string, opts: RunOptions): void {
 
   console.log(chalk.dim(`[feather] shim → ${shim.dir}`));
   console.log(chalk.cyan(`[feather] running ${absGame}`));
+  if (opts.gameArgs && opts.gameArgs.length > 0) {
+    console.log(chalk.dim(`[feather] args → ${opts.gameArgs.join(" ")}`));
+  }
 
   const env = shimEnv(absGame, sessionName);
 
-  const result = spawnSync(loveBin, [shim.dir], {
+  const result = spawnSync(loveBin, [shim.dir, ...(opts.gameArgs ?? [])], {
     stdio: "inherit",
     env,
   });

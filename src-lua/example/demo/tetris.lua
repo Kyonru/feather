@@ -1,4 +1,4 @@
-local overlayStats = require("demo.lib.overlayStats")
+local overlayStats = require("example.demo.lib.overlayStats")
 
 -- from https://berbasoft.com/simplegametutorials/love/blocks/
 local Game = {}
@@ -7,7 +7,7 @@ local pieceStructures = {}
 local gridXCount, gridYCount, pieceXCount, pieceYCount, timerLimit, timer
 local pieceType, sequence, pieceX, pieceY, pieceRotation, inert
 
-local image = love.graphics.newImage("demo/asset.png")
+local image = love.graphics.newImage("example/demo/asset.png")
 
 local function canPieceMove(testX, testY, testRotation)
   for y = 1, pieceYCount do

@@ -20,7 +20,7 @@ program
 
 // ── feather run ──────────────────────────────────────────────────────────────
 program
-  .command("run <game-path>")
+  .command("run <game-path> [game-args...]")
   .description("Inject Feather into a Love2D game and run it")
   .option("--love <path>", "Path to the love2d binary (overrides auto-detect)")
   .option("--session-name <name>", "Custom session name shown in the desktop app")
@@ -28,7 +28,7 @@ program
   .option("--config <path>", "Path to feather.config.lua")
   .option("--feather-path <path>", "Use a local feather install instead of the bundled one")
   .option("--plugins-dir <path>", "Use a custom plugins directory instead of the bundled one")
-  .action((gamePath: string, opts) => {
+  .action((gamePath: string, gameArgs: string[], opts) => {
     runCommand(gamePath, {
       love: opts.love as string | undefined,
       sessionName: opts.sessionName as string | undefined,
@@ -36,6 +36,7 @@ program
       config: opts.config as string | undefined,
       featherPath: opts.featherPath as string | undefined,
       pluginsDir: opts.pluginsDir as string | undefined,
+      gameArgs,
     });
   });
 

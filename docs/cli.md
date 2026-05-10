@@ -53,6 +53,7 @@ feather run . --session-name "RPG"        # custom name in the desktop session t
 feather run . --no-plugins                # feather core only, no plugins
 feather run . --love /usr/bin/love        # override love2d binary
 feather run . --plugins-dir ./my-plugins  # use a custom plugins directory
+feather run . -- --level dev              # pass args through to the game
 ```
 
 **Options:**
@@ -65,6 +66,8 @@ feather run . --plugins-dir ./my-plugins  # use a custom plugins directory
 | `--config <path>`         | Explicit path to a `feather.config.lua` file.                                                   |
 | `--feather-path <path>`   | Use a local feather install instead of the CLI's bundled copy.                                  |
 | `--plugins-dir <path>`    | Use a custom plugins directory instead of the CLI's bundled plugins.                            |
+
+Use `--` to separate Feather CLI options from arguments intended for the LÖVE game. Everything after `--` is passed to `love` after the generated shim path.
 
 **Project config file:**
 

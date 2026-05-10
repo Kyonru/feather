@@ -16,8 +16,8 @@ function love.load()
   assert(pm, "pluginManager not found on DEBUGGER")
 
   local registered = {}
-  for id in pairs(pm:getPlugins() or {}) do
-    registered[id] = true
+  for _, plugin in ipairs(pm:getPlugins() or {}) do
+    registered[plugin.identifier] = true
   end
 
   -- Verify a core set of plugins are registered
@@ -34,9 +34,7 @@ function love.load()
     "audio-debug",
     "coroutine-monitor",
     "filesystem",
-    -- force-included opt-in plugins
-    "physics-debug",
-    "collision-debug",
+    "runtime-snapshot",
   }
   local missing = {}
   for _, id in ipairs(expected) do
@@ -52,7 +50,7 @@ function love.load()
   end
 
   -- Verify excluded plugins are absent
-  local excluded = { "hump.signal", "lua-state-machine", "animation-inspector", "timer-inspector" }
+  local excluded = { "hump.signal", "lua-state-machine", "animation-inspector", "timer-inspector", "physics-debug", "collision-debug" }
   for _, id in ipairs(excluded) do
     if registered[id] then
       print("[FAIL] Excluded plugin is still registered: " .. id)

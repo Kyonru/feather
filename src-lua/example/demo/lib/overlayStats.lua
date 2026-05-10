@@ -122,7 +122,7 @@ end
 ---@param y number The y-coordinate of the touch
 ---@return boolean inCorner True if touch is in the activation area
 local function isTouchInCorner(x, y)
-  local w, h = love.graphics.getDimensions()
+  local w = love.graphics.getWidth()
   return x >= w - overlayStats.touch.cornerSize and y <= overlayStats.touch.cornerSize
 end
 
@@ -365,7 +365,7 @@ end
 ---@param dy number The vertical component of the touch press
 ---@param pressure number The pressure of the touch
 ---@return nil
-function overlayStats.handleTouch(id, x, y, dx, dy, pressure)
+function overlayStats.handleTouch(_, x, y)
   handleTouch(x, y)
 end
 

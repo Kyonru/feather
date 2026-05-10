@@ -1,8 +1,9 @@
--- test_cli/main.lua
+-- example/test_cli/main.lua
 -- Minimal love2d game with NO feather code.
 -- Run via the CLI to verify auto-injection:
 --
---   npm run feather -- run src-lua/test_cli
+--   npm run feather -- run src-lua/example/test_cli
+--   npm run feather -- run src-lua/example/test_cli --config src-lua/example/test_cli/feather.config.lua
 --
 -- What to verify in the Feather desktop app:
 --   1. A new session appears automatically.
