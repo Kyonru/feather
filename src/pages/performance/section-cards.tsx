@@ -24,10 +24,12 @@ export function SectionCards({
   onSelect,
   selected,
   data,
+  diskUsageEnabled,
 }: {
   data: PerformanceMetrics[];
   selected: string;
-  onSelect: (key: 'fps' | 'memory') => void;
+  onSelect: (key: 'fps' | 'memory' | 'diskUsage') => void;
+  diskUsageEnabled: boolean;
 }) {
   const metric = useMemo(() => {
     const defaultMetric = DEFAULT_METRIC;
@@ -59,8 +61,11 @@ export function SectionCards({
     return (last.memory - MemoryAverage) / MemoryAverage;
   }, [data, MemoryAverage]);
 
+  const ftMinMs = ((metric.frameTimeMin ?? 0) * 1000).toFixed(2);
+  const ftMaxMs = ((metric.frameTimeMax ?? 0) * 1000).toFixed(2);
+
   return (
-    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-3 @5xl/main:grid-cols-5">
+    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-3 @5xl/main:grid-cols-3 @7xl/main:grid-cols-6">
       <Card
         className={cn({
           '@container/card': true,
@@ -111,25 +116,51 @@ export function SectionCards({
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">Texture Memory</div>
-          <div className="text-muted-foreground">{formatMemory(metric.stats.texturememory)}</div>
+          <div className="line-clamp-1 flex gap-2 font-medium">Peak / Texture</div>
+          <div className="text-muted-foreground">
+            {formatMemory(metric.peakMemory ?? 0)} / {formatMemory(metric.stats.texturememory)}
+          </div>
+        </CardFooter>
+      </Card>
+      <Card
+        className={cn({
+          '@container/card': true,
+          'justify-between': true,
+          'hover:bg-sky-500': true,
+          'active:bg-sky-900': true,
+          'bg-sky-700': selected === 'diskUsage',
+          'dark:active:border-sky-900': true,
+          'dark:hover:border-sky-500': true,
+          'dark:border-sky-700': selected === 'diskUsage',
+        })}
+        onClick={() => diskUsageEnabled && onSelect('diskUsage')}
+      >
+        <CardHeader>
+          <CardDescription>Disk Usage</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            {diskUsageEnabled ? formatMemory(metric.diskUsage ?? 0) : '—'}
+          </CardTitle>
+        </CardHeader>
+        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <div className="line-clamp-1 flex gap-2 font-medium">Save directory</div>
+          <div className="text-muted-foreground">{diskUsageEnabled ? 'Updated every 5s' : 'Disabled'}</div>
         </CardFooter>
       </Card>
       <Card className="@container/card justify-between">
         <CardHeader>
-          <CardDescription>Active Canvases</CardDescription>
+          <CardDescription>Frame Time</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {metric.stats.canvases}
+            {((metric.frameTimeAvg ?? 0) * 1000).toFixed(2)} ms
           </CardTitle>
         </CardHeader>
         <div className="grid grid-cols-2 gap-4">
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">Canvas Switches</div>
-            <div className="text-muted-foreground">{metric.stats.canvasswitches}</div>
+            <div className="line-clamp-1 flex gap-2 font-medium">Min</div>
+            <div className="text-muted-foreground">{ftMinMs} ms</div>
           </CardFooter>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">Shader Switches</div>
-            <div className="text-muted-foreground">{metric.stats.shaderswitches}</div>
+            <div className="line-clamp-1 flex gap-2 font-medium">Max</div>
+            <div className="text-muted-foreground">{ftMaxMs} ms</div>
           </CardFooter>
         </div>
       </Card>
@@ -140,10 +171,16 @@ export function SectionCards({
             {metric.stats.drawcalls}
           </CardTitle>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">Draw calls batched</div>
-          <div className="text-muted-foreground">{metric.stats.drawcallsbatched}</div>
-        </CardFooter>
+        <div className="grid grid-cols-2 gap-4">
+          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+            <div className="line-clamp-1 flex gap-2 font-medium">Batched</div>
+            <div className="text-muted-foreground">{metric.stats.drawcallsbatched}</div>
+          </CardFooter>
+          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+            <div className="line-clamp-1 flex gap-2 font-medium">Canvases</div>
+            <div className="text-muted-foreground">{metric.stats.canvases}</div>
+          </CardFooter>
+        </div>
       </Card>
       <Card className="@container/card justify-between">
         <CardHeader>

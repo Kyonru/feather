@@ -1,5 +1,5 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 
 --- Full list of ParticleSystem properties and how to read/write them.
 --- Each entry: { key, label, getter, setter, type, props }

@@ -13,10 +13,15 @@
 
 local PATH = string.sub(..., 1, string.len(...) - string.len("auto"))
 
+-- When the CLI shim pre-scans the plugins directory it sets FEATHER_PLUGIN_LIST
+-- before requiring this module. Capture it into a local so scanPlugins can use
+-- require() instead of love.filesystem (avoids PhysFS symlink dependency).
+---@type string[]|nil
+local cliPluginList = rawget(_G, "FEATHER_PLUGIN_LIST") --[[@as string[]|nil]]
+
 local FeatherDebugger = require(PATH .. "init")
 local FeatherPluginManager = require(PATH .. "plugin_manager")
 
--- Built-in plugins (safe-require each so missing ones don't break everything)
 local function tryRequire(mod)
   local ok, result = pcall(require, mod)
   if ok then
@@ -27,54 +32,92 @@ end
 
 FEATHER_PLUGIN_PATH = FEATHER_PLUGIN_PATH or PATH
 
-local ScreenshotPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.screenshots")
-local ConsolePlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.console")
-local ProfilerPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.profiler")
-local BookmarkPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.bookmark")
-local MemorySnapshotPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.memory-snapshot")
-local NetworkInspectorPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.network-inspector")
-local InputReplayPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.input-replay")
-local EntityInspectorPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.entity-inspector")
-local ConfigTweakerPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.config-tweaker")
-local PhysicsDebugPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.physics-debug")
-local ParticleEditorPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.particle-editor")
-local AudioDebugPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.audio-debug")
-local CoroutineMonitorPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.coroutine-monitor")
-local CollisionDebugPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.collision-debug")
-local HumpSignalPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.hump.signal")
-local LuaStateMachinePlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.lua-state-machine")
-local AnimationInspectorPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.animation-inspector")
-local TimerInspectorPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.timer-inspector")
-local FilesystemPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.filesystem")
-local TimeTravelPlugin = tryRequire(FEATHER_PLUGIN_PATH .. "plugins.time-travel")
+-- Convert a Lua module path (dot-separated) to a filesystem path (slash-separated).
+-- "feather." -> "feather"  |  "feather.plugins" -> "feather/plugins"
+local function toFsPath(modulePath)
+  return modulePath:gsub("%.$", ""):gsub("%.", "/")
+end
+
+--- Load a manifest.lua from a filesystem path.
+---@param fsPath string  Absolute-ish path understood by love.filesystem
+---@return table|nil
+local function loadManifest(fsPath)
+  if not love or not love.filesystem then
+    return nil
+  end
+  local chunk, _ = love.filesystem.load(fsPath)
+  if not chunk then
+    return nil
+  end
+  local ok, result = pcall(chunk)
+  if ok and type(result) == "table" then
+    return result
+  end
+  return nil
+end
+
+--- Scan the plugins directory and build an entry list from manifest.lua files.
+--- Falls back to an empty table if the filesystem is unavailable.
+---
+--- When FEATHER_PLUGIN_LIST is set by the CLI shim, the list is used directly and
+--- manifests are loaded via require() instead of love.filesystem, so plugin
+--- discovery works without PhysFS symlink support.
+---@return table[]
+local function scanPlugins()
+  local pluginModPath = FEATHER_PLUGIN_PATH .. "plugins."
+  local entries = {}
+
+  -- Fast path: CLI shim pre-scanned the plugins directory on the Node side and
+  -- exposed the IDs via FEATHER_PLUGIN_LIST. Use require() so discovery never
+  -- touches PhysFS and works regardless of symlink configuration.
+  if type(cliPluginList) == "table" then
+    for _, id in ipairs(cliPluginList) do
+      local manifest = tryRequire(pluginModPath .. id .. ".manifest")
+      if manifest and manifest.id then
+        local mod = tryRequire(pluginModPath .. manifest.id)
+        entries[#entries + 1] = {
+          mod = mod,
+          id = manifest.id,
+          opts = manifest.opts or {},
+          optIn = manifest.optIn or false,
+          disabled = manifest.disabled ~= false,
+          capabilities = manifest.capabilities or {},
+        }
+      end
+    end
+    return entries
+  end
+
+  -- Normal path: scan via love.filesystem (works when plugins/ is a real directory, not a symlink).
+  local fsDir = toFsPath(FEATHER_PLUGIN_PATH .. "plugins")
+
+  if not love or not love.filesystem then
+    return entries
+  end
+  local items = love.filesystem.getDirectoryItems(fsDir)
+  if not items then
+    return entries
+  end
+
+  for _, dirName in ipairs(items) do
+    local manifest = loadManifest(fsDir .. "/" .. dirName .. "/manifest.lua")
+    if manifest and manifest.id then
+      local mod = tryRequire(pluginModPath .. manifest.id)
+      entries[#entries + 1] = {
+        mod = mod,
+        id = manifest.id,
+        opts = manifest.opts or {},
+        optIn = manifest.optIn or false,
+        disabled = manifest.disabled ~= false,
+        capabilities = manifest.capabilities or {},
+      }
+    end
+  end
+
+  return entries
+end
 
 local auto = {}
-
---- Default plugin set. Each entry: { module, id, defaultOptions, optIn, disabled }
---- optIn = true: plugin is NOT registered unless explicitly listed in config.include (code excluded entirely).
---- disabled = true: plugin IS registered (visible in UI) but starts inactive. Users can enable from desktop.
-local DEFAULT_PLUGINS = {
-  { mod = ScreenshotPlugin, id = "screenshots", opts = {}, disabled = true },
-  { mod = ConsolePlugin, id = "console", opts = { evalEnabled = true }, optIn = true, disabled = true },
-  { mod = ProfilerPlugin, id = "profiler", opts = {}, disabled = true },
-  { mod = BookmarkPlugin, id = "bookmark", opts = {}, disabled = true },
-  { mod = MemorySnapshotPlugin, id = "memory-snapshot", opts = {}, disabled = true },
-  { mod = NetworkInspectorPlugin, id = "network-inspector", opts = {}, disabled = true },
-  { mod = InputReplayPlugin, id = "input-replay", opts = {}, disabled = true },
-  { mod = EntityInspectorPlugin, id = "entity-inspector", opts = { sources = {} }, disabled = true },
-  { mod = ConfigTweakerPlugin, id = "config-tweaker", opts = { fields = {} }, disabled = true },
-  { mod = PhysicsDebugPlugin, id = "physics-debug", opts = {}, optIn = true, disabled = true },
-  { mod = ParticleEditorPlugin, id = "particle-editor", opts = {}, disabled = true },
-  { mod = AudioDebugPlugin, id = "audio-debug", opts = {}, disabled = true },
-  { mod = CoroutineMonitorPlugin, id = "coroutine-monitor", opts = {}, disabled = true },
-  { mod = CollisionDebugPlugin, id = "collision-debug", opts = {}, optIn = true, disabled = true },
-  { mod = HumpSignalPlugin, id = "hump.signal", opts = {}, optIn = true, disabled = true },
-  { mod = LuaStateMachinePlugin, id = "lua-state-machine", opts = {}, optIn = true, disabled = true },
-  { mod = AnimationInspectorPlugin, id = "animation-inspector", opts = {}, optIn = true, disabled = true },
-  { mod = TimerInspectorPlugin, id = "timer-inspector", opts = {}, optIn = true, disabled = true },
-  { mod = FilesystemPlugin, id = "filesystem", opts = {}, disabled = true },
-  { mod = TimeTravelPlugin, id = "time-travel", opts = { bufferSize = 1000 }, disabled = true },
-}
 
 --- @class AutoConfig: FeatherConfig
 --- @field debug boolean|nil Enable debug mode (default: true)
@@ -88,8 +131,6 @@ local DEFAULT_PLUGINS = {
 function auto.setup(config)
   config = config or {}
 
-  -- Build plugin list from defaults, skip any that failed to load
-  local plugins = {}
   local exclude = {}
   if config.exclude then
     for _, id in ipairs(config.exclude) do
@@ -98,7 +139,6 @@ function auto.setup(config)
     config.exclude = nil
   end
 
-  -- Plugins in config.include: force-include optIn plugins AND force-enable disabled plugins
   local include = {}
   if config.include then
     for _, id in ipairs(config.include) do
@@ -107,19 +147,17 @@ function auto.setup(config)
     config.include = nil
   end
 
-  -- Allow user to pass extra plugin options per ID
   local pluginOptions = config.pluginOptions or {}
   config.pluginOptions = nil
 
-  for _, entry in ipairs(DEFAULT_PLUGINS) do
+  local plugins = {}
+  for _, entry in ipairs(scanPlugins()) do
     if entry.mod and not exclude[entry.id] then
-      -- optIn plugins are completely skipped unless explicitly included
       if entry.optIn and not include[entry.id] then
         goto continue
       end
       local opts = entry.opts
       if pluginOptions[entry.id] then
-        -- Merge user options over defaults
         opts = {}
         for k, v in pairs(entry.opts) do
           opts[k] = v
@@ -128,9 +166,8 @@ function auto.setup(config)
           opts[k] = v
         end
       end
-      -- Determine disabled state: config.include overrides default disabled flag
       local disabled = entry.disabled and not include[entry.id]
-      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(entry.mod, entry.id, opts, disabled)
+      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(entry.mod, entry.id, opts, disabled, entry.capabilities)
     end
     ::continue::
   end
@@ -142,7 +179,6 @@ function auto.setup(config)
     end
   end
 
-  -- Merge into final config
   local finalConfig = {
     debug = true,
     wrapPrint = true,
@@ -154,11 +190,9 @@ function auto.setup(config)
   finalConfig.plugins = plugins
 
   DEBUGGER = FeatherDebugger(finalConfig)
-
   return DEBUGGER
 end
 
--- Auto-setup on require if DEBUGGER doesn't exist yet
 if not DEBUGGER then
   auto.setup()
 end

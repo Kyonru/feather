@@ -220,6 +220,7 @@ function FrameSnapshot({ current, prev }: { current: TimeTravelFrame; prev: Time
 export default function TimeTravelPage() {
   const { status, frames, framesUpdatedAt, startRecording, stopRecording, requestFrames } = useTimeTravel();
   const sessionId = useSessionStore((state) => state.sessionId);
+  const currentSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
   const [scrubIndex, setScrubIndex] = useState(0);
   const [starting, setStarting] = useState(false);
   const [loadingFrames, setLoadingFrames] = useState(false);
@@ -229,7 +230,7 @@ export default function TimeTravelPage() {
 
   // Frames to display: offline file takes precedence over live frames
   const displayFrames = offlineFrames ?? frames;
-  const isOffline = offlineFrames !== null;
+  const isOffline = offlineFrames !== null || currentSession?.kind === 'time-travel-file';
 
   // Clear 'starting' once Lua confirms recording has begun
   useEffect(() => {
@@ -381,7 +382,7 @@ export default function TimeTravelPage() {
           <FolderOpenIcon className="size-3" /> Open file
         </Button>
 
-        {isOffline && (
+        {offlineFrames !== null && (
           <Button
             size="sm"
             variant="ghost"

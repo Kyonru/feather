@@ -28,6 +28,7 @@ interface DebuggerStore {
   // Persisted: survive restarts
   breakpoints: Breakpoint[];
   defaultEnabled: boolean; // remembered across sessions
+  rootPaths: Record<string, string>; // per-session manual root paths
   // Per-session transient state (not persisted)
   pausedState: Record<string, PausedState | null>;
   enabled: Record<string, boolean>;
@@ -39,6 +40,8 @@ interface DebuggerStore {
   clearBreakpoints: () => void;
   setPausedState: (sessionId: string, state: PausedState | null) => void;
   setEnabled: (sessionId: string, enabled: boolean) => void;
+  setRootPath: (sessionId: string, path: string) => void;
+  clearRootPath: (sessionId: string) => void;
 }
 
 export const useDebuggerStore = create<DebuggerStore>()(
@@ -46,6 +49,7 @@ export const useDebuggerStore = create<DebuggerStore>()(
     (set) => ({
       breakpoints: [],
       defaultEnabled: false,
+      rootPaths: {},
       pausedState: {},
       enabled: {},
 
@@ -85,10 +89,24 @@ export const useDebuggerStore = create<DebuggerStore>()(
           enabled: { ...s.enabled, [sessionId]: enabled },
           defaultEnabled: enabled,
         })),
+
+      setRootPath: (sessionId, path) =>
+        set((s) => ({ rootPaths: { ...s.rootPaths, [sessionId]: path } })),
+
+      clearRootPath: (sessionId) =>
+        set((s) => {
+          const rootPaths = { ...s.rootPaths };
+          delete rootPaths[sessionId];
+          return { rootPaths };
+        }),
     }),
     {
       name: 'feather-debugger',
-      partialize: (state) => ({ breakpoints: state.breakpoints, defaultEnabled: state.defaultEnabled }),
+      partialize: (state) => ({
+        breakpoints: state.breakpoints,
+        defaultEnabled: state.defaultEnabled,
+        rootPaths: state.rootPaths,
+      }),
     },
   ),
 );

@@ -18,4 +18,9 @@ export const requestAllData = (sessionId: string) => {
     sessionId,
     message: JSON.stringify({ type: 'req:plugins' }),
   }).catch(() => {});
+
+  invoke('send_command', {
+    sessionId,
+    message: JSON.stringify({ type: 'req:config' }),
+  }).catch(() => {});
 };

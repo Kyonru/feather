@@ -16,8 +16,9 @@ import { useSettingsStore } from '@/store/settings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
+import { useSessionStore } from '@/store/session';
 import { MobileConnection } from '@/components/mobile-connection';
-import { EyeIcon, EyeOffIcon, MonitorIcon, NetworkIcon, ShieldIcon, CodeIcon, ActivityIcon } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, MonitorIcon, NetworkIcon, ShieldIcon, CodeIcon, ActivityIcon, FolderIcon } from 'lucide-react';
 
 function Section({
   icon: Icon,
@@ -160,8 +161,75 @@ function ApiKeyInput() {
         </button>
       </div>
       <FieldDescription>
-        Must match the <code className="font-mono">apiKey</code> in your game's Feather config. Required for the Console
-        plugin.
+        Default key used when a session does not have its own override. Must match the{' '}
+        <code className="font-mono">apiKey</code> in your game's Feather config for Console eval.
+      </FieldDescription>
+    </div>
+  );
+}
+
+function SessionApiKeyInput() {
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const session = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
+  const globalApiKey = useSettingsStore((state) => state.apiKey);
+  const sessionApiKeys = useSettingsStore((state) => state.sessionApiKeys);
+  const setSessionApiKey = useSettingsStore((state) => state.setSessionApiKey);
+  const [visible, setVisible] = useState(false);
+  const value = sessionId ? (sessionApiKeys[sessionId] ?? '') : '';
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="setting-session-api-key">Active Session API Key</Label>
+      <div className="relative">
+        <Input
+          id="setting-session-api-key"
+          type={visible ? 'text' : 'password'}
+          value={value}
+          placeholder={globalApiKey ? 'Using default API key' : 'No default API key set'}
+          disabled={!sessionId}
+          onChange={(e) => {
+            if (sessionId) setSessionApiKey(sessionId, e.target.value);
+          }}
+          className="pr-9"
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          disabled={!sessionId}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+          aria-label={visible ? 'Hide session API key' : 'Show session API key'}
+        >
+          {visible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+        </button>
+      </div>
+      <FieldDescription>
+        Optional override for {session?.name ?? 'the selected session'}. Leave empty to use the default API key.
+      </FieldDescription>
+    </div>
+  );
+}
+
+function AssetSourceDirInput() {
+  const assetSourceDir    = useSettingsStore((state) => state.assetSourceDir);
+  const setAssetSourceDir = useSettingsStore((state) => state.setAssetSourceDir);
+  const autoSourceDir     = useConfigStore((state)   => state.config?.sourceDir ?? '');
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="setting-asset-source-dir">Asset Source Directory</Label>
+      <div className="relative">
+        <FolderIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+        <Input
+          id="setting-asset-source-dir"
+          value={assetSourceDir}
+          placeholder={autoSourceDir || '/path/to/game/assets'}
+          onChange={(e) => setAssetSourceDir(e.target.value)}
+          className="font-mono text-sm pl-9"
+        />
+      </div>
+      <FieldDescription>
+        Override where the desktop looks for game asset files when previewing textures and fonts.
+        Leave empty to use the source directory reported by the game ({autoSourceDir || 'not connected'}).
+        Set this manually when the game runs on a different machine.
       </FieldDescription>
     </div>
   );
@@ -221,12 +289,19 @@ export function SettingsModal() {
 
           <Section icon={ShieldIcon} title="Security">
             <ApiKeyInput />
+            <SessionApiKeyInput />
           </Section>
 
           <Separator />
 
           <Section icon={CodeIcon} title="Editor">
             <TextEditorInput />
+          </Section>
+
+          <Separator />
+
+          <Section icon={FolderIcon} title="Assets">
+            <AssetSourceDirInput />
           </Section>
         </div>
 

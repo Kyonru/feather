@@ -19,7 +19,7 @@ To create a plugin, extend the `FeatherPlugin` base class and implement the life
 To help with the implementation, Feather provides the `FeatherPlugin` class, which you can extend to create your plugin.
 
 ```lua
-local FeatherPlugin = require(FEATHER_PATH .. ".plugins.base")
+local FeatherPlugin = require(FEATHER_PATH .. ".core.base")
 
 local MyPlugin = Class({
   __includes = FeatherPlugin,
@@ -86,6 +86,88 @@ end
 
 return MyPlugin
 ```
+
+### manifest.lua
+
+Every plugin that should be auto-discovered by `feather.auto` needs a `manifest.lua` at the root of its directory. Without it the directory is silently skipped.
+
+```lua
+-- plugins/my-plugin/manifest.lua
+return {
+  id          = "my-plugin",          -- must match the directory name and createPlugin id
+  name        = "My Plugin",          -- display name (for tooling / future UI)
+  description = "What this plugin does",
+  version     = "1.0.0",
+  capabilities = { "filesystem" },     -- tokens this plugin requires (see Capabilities)
+  opts        = { speed = 1.0 },      -- default options merged with user pluginOptions
+  optIn       = false,                -- true = not registered unless in config.include
+  disabled    = true,                 -- true = registered but inactive by default
+}
+```
+
+| Field          | Type       | Description                                                                                                                               |
+| -------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `string`   | Unique plugin identifier. Must match the directory name and the `id` passed to `createPlugin`.                                            |
+| `name`         | `string`   | Human-readable display name.                                                                                                              |
+| `description`  | `string`   | Short description shown in tooling.                                                                                                       |
+| `version`      | `string`   | Semver string.                                                                                                                            |
+| `capabilities` | `string[]` | Capability tokens this plugin needs (e.g. `"filesystem"`, `"network"`). Checked against the user's `config.capabilities` at load time.    |
+| `opts`         | `table`    | Default plugin options. Merged with (and overridden by) the user's `config.pluginOptions[id]`.                                            |
+| `optIn`        | `boolean`  | If `true`, the plugin is not registered at all unless its ID appears in `config.include`.                                                 |
+| `disabled`     | `boolean`  | If `true`, the plugin registers and appears in the UI but starts inactive. Users can enable it from the desktop, or via `config.include`. |
+
+### Love-event hooks
+
+Instead of patching `love.*` callbacks inside `init()`, override the corresponding `on*` method. `FeatherPluginManager` patches each love callback once and dispatches to all enabled plugins — this prevents conflicts when multiple plugins hook the same callback.
+
+```lua
+function MyPlugin:onDraw()
+  -- Runs after love.draw(); use love.graphics here
+end
+
+function MyPlugin:onKeypressed(key, scancode, isrepeat)
+  if key == "f5" then self:doSomething() end
+end
+
+function MyPlugin:onKeyreleased(key, scancode) end
+function MyPlugin:onMousepressed(x, y, button, istouch, presses) end
+function MyPlugin:onMousereleased(x, y, button, istouch, presses) end
+function MyPlugin:onTouchpressed(id, x, y, dx, dy, pressure) end
+function MyPlugin:onTouchreleased(id, x, y, dx, dy, pressure) end
+function MyPlugin:onJoystickpressed(joystick, button) end
+function MyPlugin:onJoystickreleased(joystick, button) end
+```
+
+Only override the methods you need — unused ones default to no-ops in the base class.
+
+> [!NOTE]
+> `input-replay` keeps its own hook system because it simulates love events during replay. Routing those through the central dispatcher would cause recursion.
+
+### Capabilities
+
+Declare the system access your plugin needs in `manifest.lua`. At load time, `FeatherPluginManager` checks these against the user's `config.capabilities` allowlist and logs a warning for any undeclared capability. Loading is not blocked — warnings are informational.
+
+Available capability tokens:
+
+| Token          | Meaning                                      |
+| -------------- | -------------------------------------------- |
+| `"filesystem"` | Reads or writes via `love.filesystem`        |
+| `"network"`    | Uses LuaSocket / HTTP                        |
+| `"audio"`      | Accesses `love.audio`                        |
+| `"physics"`    | Accesses `love.physics`                      |
+| `"input"`      | Hooks input callbacks (`onKeypressed`, etc.) |
+| `"draw"`       | Hooks `onDraw` to render overlays            |
+
+Users can restrict which capabilities are allowed:
+
+```lua
+require("feather.auto").setup({
+  -- Only allow filesystem and draw; plugins requesting anything else get a warning
+  capabilities = { "filesystem", "draw" },
+})
+```
+
+Pass `"all"` (the default) to skip capability checking entirely.
 
 ### Plugin lifecycle
 
@@ -353,10 +435,47 @@ The `handleRequest` method returns data that the desktop renders below the actio
 
 | Type       | Description                                                                    |
 | ---------- | ------------------------------------------------------------------------------ |
+| `ui`       | Declarative Feather UI tree rendered by the desktop.                           |
 | `gallery`  | Image grid with download buttons. Supports PNG screenshots and GIF animations. |
 | `table`    | Data table with sortable columns.                                              |
 | `tree`     | Collapsible tree view with properties on each node.                            |
 | `timeline` | Chronological event timeline with categories and optional screenshots.         |
+
+#### `ui`
+
+Lua plugins can describe UI declaratively with `feather.ui` primitives. React is only the renderer; plugins should send stable Feather UI nodes and action keys, not raw React components or JavaScript.
+
+For the full schema, supported nodes, and complete examples, see [Plugin UI](plugin-ui.md).
+
+```lua
+function MyPlugin:handleRequest(request, feather)
+  return feather.ui.render(
+    feather.ui.panel({
+      title = "Player Stats",
+
+      feather.ui.row({
+        feather.ui.badge({ value = "HP" }),
+        feather.ui.text({ value = tostring(player.health) }),
+      }),
+
+      feather.ui.button({
+        label = "Kill Player",
+        action = "kill-player",
+      }),
+    })
+  )
+end
+
+function MyPlugin:handleActionRequest(request)
+  if request.params.action == "kill-player" then
+    player.health = 0
+  end
+end
+```
+
+Supported node types in the first schema pass: `panel`, `row`, `column`, `tabs`, `tab`, `text`, `button`, `input`, `textarea`, `checkbox`, `switch`, `select`, `badge`, `stat`, `progress`, `alert`, `list`, `link`, `separator`, `image`, `code`, `table`, `timeline`, and `inspector`.
+
+Buttons use `action = "some-key"` (or `onClick = "some-key"`) and are routed through the existing `handleActionRequest()` path. Function callbacks are intentionally not serialized.
 
 #### `gallery`
 
@@ -369,6 +488,68 @@ return {
   loading = false,
   persist = true,  -- merge with previous data instead of replacing
 }
+```
+
+For large images or binary payloads, prefer Feather's hybrid protocol instead of embedding base64 in JSON. Call `feather:attachBinary(mime, bytes)` and place the returned `src` and `binary` fields in your normal plugin data. Feather sends the JSON first, then streams the bytes on a binary WebSocket frame; the desktop swaps `feather-binary:<id>` into a local blob URL automatically.
+
+```lua
+function MyPlugin:handleRequest(request, feather)
+  local pngBytes = self:getLatestPreviewPng()
+  local preview = feather:attachBinary("image/png", pngBytes)
+
+  return {
+    type = "gallery",
+    data = {
+      {
+        type = "image",
+        name = "preview.png",
+        downloadable = true,
+        metadata = {
+          type = "png",
+          src = preview.src,
+          binary = preview.binary,
+          width = 800,
+          height = 600,
+        },
+      },
+    },
+    loading = false,
+  }
+end
+```
+
+For GIF-style frame lists, put the placeholder URLs in `src` and the matching binary refs in `binary` using the same order:
+
+```lua
+metadata = {
+  type = "gif",
+  src = { frame1.src, frame2.src },
+  binary = { frame1.binary, frame2.binary },
+  width = 800,
+  height = 600,
+  fps = 30,
+}
+```
+
+The same works in table rows. The desktop resolves `src` to a blob URL and renders it as a download/open control when that column is visible; the `binary` field can stay hidden metadata if you do not add a matching column.
+
+```lua
+function MyPlugin:handleRequest(request, feather)
+  local file = feather:attachBinary("application/octet-stream", bytes)
+
+  return {
+    type = "table",
+    columns = {
+      { key = "name", label = "Name" },
+      { key = "size", label = "Size" },
+      { key = "src", label = "File" },
+    },
+    data = {
+      { name = "dump.bin", size = tostring(#bytes), src = file.src, binary = file.binary },
+    },
+    loading = false,
+  }
+end
 ```
 
 #### `table`

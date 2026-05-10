@@ -4,32 +4,39 @@
 
 `Feather:init(config)` accepts the following options:
 
-| Option                     | Type       | Default             | Description                                                                        |
-| -------------------------- | ---------- | ------------------- | ---------------------------------------------------------------------------------- |
-| `debug`                    | `boolean`  | `false`             | Enable or disable Feather entirely.                                                |
-| `host`                     | `string`   | `"127.0.0.1"`       | Desktop IP or hostname the game connects to.                                       |
-| `port`                     | `number`   | `4004`              | Feather desktop WS server port.                                                    |
-| `mode`                     | `string`   | `"socket"`          | `"socket"` for live WS, `"disk"` for log-file-only (no network).                  |
-| `baseDir`                  | `string`   | `""`                | Base directory path for file references and VS Code deeplinking.                   |
-| `wrapPrint`                | `boolean`  | `false`             | Wrap `print()` calls to send to Feather's log viewer.                              |
-| `maxTempLogs`              | `number`   | `200`               | Max temporary logs stored before rotation.                                         |
-| `sampleRate`               | `number`   | `1`                 | Seconds between push cycles (performance, observers, plugins).                     |
-| `updateInterval`           | `number`   | `0.1`               | Interval between sending updates to clients.                                       |
-| `defaultObservers`         | `boolean`  | `false`             | Register built-in variable watchers.                                               |
-| `errorWait`                | `number`   | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.                  |
-| `autoRegisterErrorHandler` | `boolean`  | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                   |
-| `errorHandler`             | `function` | `love.errorhandler` | Custom error handler to use.                                                       |
-| `plugins`                  | `table`    | `{}`                | List of plugin modules to load.                                                    |
-| `captureScreenshot`        | `boolean`  | `false`             | Capture screenshots on error. WARNING: impacts performance.                        |
-| `sessionName`              | `string`   | `""`                | Custom display name shown in desktop session tabs (e.g. `"My RPG"`).              |
-| `deviceId`                 | `string`   | auto-generated      | Persistent device ID. Auto-generated and saved to disk if not set.                 |
-| `writeToDisk`              | `boolean`  | `true`              | Whether to write logs to `.featherlog` files.                                      |
-| `retryInterval`            | `number`   | `5`                 | Seconds between WebSocket reconnection attempts.                                   |
-| `connectTimeout`           | `number`   | `2`                 | Seconds to wait for initial WS connection.                                         |
-| `apiKey`                   | `string`   | `""`                | API key for authenticated connections.                                             |
-| `debugger`                 | `boolean`  | `false`             | Enable the step debugger (breakpoints, step over/into/out, locals inspection).     |
+| Option                     | Type                  | Default             | Description                                                                                                                                       |
+| -------------------------- | --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `debug`                    | `boolean`             | `false`             | Enable or disable Feather entirely.                                                                                                               |
+| `host`                     | `string`              | `"127.0.0.1"`       | Desktop IP or hostname the game connects to.                                                                                                      |
+| `port`                     | `number`              | `4004`              | Feather desktop WS server port.                                                                                                                   |
+| `mode`                     | `string`              | `"socket"`          | `"socket"` for live WS, `"disk"` for log-file-only (no network).                                                                                  |
+| `baseDir`                  | `string`              | `""`                | Base directory path for file references and VS Code deeplinking.                                                                                  |
+| `wrapPrint`                | `boolean`             | `false`             | Wrap `print()` calls to send to Feather's log viewer.                                                                                             |
+| `maxTempLogs`              | `number`              | `200`               | Max temporary logs stored before rotation.                                                                                                        |
+| `sampleRate`               | `number`              | `1`                 | Seconds between push cycles (performance, observers, plugins).                                                                                    |
+| `updateInterval`           | `number`              | `0.1`               | Interval between sending updates to clients.                                                                                                      |
+| `defaultObservers`         | `boolean`             | `false`             | Register built-in variable watchers.                                                                                                              |
+| `errorWait`                | `number`              | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.                                                                                 |
+| `autoRegisterErrorHandler` | `boolean`             | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                                                                                  |
+| `errorHandler`             | `function`            | `love.errorhandler` | Custom error handler to use.                                                                                                                      |
+| `plugins`                  | `table`               | `{}`                | List of plugin modules to load.                                                                                                                   |
+| `captureScreenshot`        | `boolean`             | `false`             | Capture screenshots on error.                                                                                                                     |
+| `sessionName`              | `string`              | `""`                | Custom display name shown in desktop session tabs (e.g. `"My RPG"`).                                                                              |
+| `deviceId`                 | `string`              | auto-generated      | Persistent device ID. Auto-generated and saved to disk if not set.                                                                                |
+| `writeToDisk`              | `boolean`             | `true`              | Whether to write logs to `.featherlog` files.                                                                                                     |
+| `outputDir`                | `string`              | `"logs"`            | Folder name (relative to the love save directory) where `.featherlog` files and log screenshots are written.                                      |
+| `capabilities`             | `string[]` or `"all"` | `"all"`             | Allowed plugin capability tokens. Plugins requesting undeclared capabilities log a warning at load time. Pass `"all"` to skip checking.           |
+| `retryInterval`            | `number`              | `5`                 | Seconds between WebSocket reconnection attempts.                                                                                                  |
+| `connectTimeout`           | `number`              | `2`                 | Seconds to wait for initial WS connection.                                                                                                        |
+| `apiKey`                   | `string`              | `""`                | API key for authenticated connections.                                                                                                            |
+| `debugger`                 | `boolean`             | `false`             | Enable the step debugger (breakpoints, step over/into/out, locals inspection).                                                                    |
+| `assetPreview`             | `boolean`             | `true`              | Enable the core Assets tab tracking and previews. Set to `false` to avoid hooking asset loaders and `love.draw`.                                  |
+| `binaryTextThreshold`      | `number`              | `4096`              | Observer, time-travel, debugger, and console text values longer than this many bytes are sent through the hybrid binary protocol instead of JSON. |
 
 ---
+
+> [!WARNING]
+> `captureScreenshot` can affect performance because it captures the current frame when errors are handled. Enable it only when you need visual error context.
 
 ## Connecting
 
@@ -74,7 +81,8 @@ local debugger = FeatherDebugger({
 })
 ```
 
-> **Tip:** Open Feather → **Settings** → **Mobile Connection**. Your local IP is auto-detected with a copyable `ws://` connection string and ready-to-paste Lua snippet.
+> [!TIP]
+> Open Feather → **Settings** → **Mobile Connection**. Your local IP is auto-detected with a copyable `ws://` connection string and ready-to-paste Lua snippet.
 
 ### Offline / disk mode
 

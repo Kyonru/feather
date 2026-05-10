@@ -239,6 +239,8 @@ export default function Page() {
             addSession({
               id: fileSessionId,
               name: `📄 ${name}`,
+              kind: 'log-file',
+              filePath: filename,
               connected: false,
               connectedAt: Date.now(),
             });

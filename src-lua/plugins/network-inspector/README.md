@@ -15,16 +15,18 @@ FeatherPluginManager.createPlugin(NetworkInspectorPlugin, "network-inspector", {
   maxPackets = 1000,          -- max stored packets (oldest trimmed)
   maxPayloadPreview = 200,    -- max chars shown per payload
   hookSocket = false,         -- true = auto-hook LuaSocket TCP globally
+  captureFeatherTraffic = false, -- true = include Feather's own WS traffic
 })
 ```
 
 ## Options
 
-| Option              | Type    | Default | Description                                              |
-| ------------------- | ------- | ------- | -------------------------------------------------------- |
-| `maxPackets`        | number  | `1000`  | Maximum packets stored (FIFO overflow).                  |
-| `maxPayloadPreview` | number  | `200`   | Max characters of payload shown in the table.            |
-| `hookSocket`        | boolean | `false` | Auto-hook LuaSocket TCP send/receive at metatable level. |
+| Option                  | Type    | Default | Description                                                |
+| ----------------------- | ------- | ------- | ---------------------------------------------------------- |
+| `maxPackets`            | number  | `1000`  | Maximum packets stored (FIFO overflow).                    |
+| `maxPayloadPreview`     | number  | `200`   | Max characters of payload shown in the table.              |
+| `hookSocket`            | boolean | `false` | Auto-hook LuaSocket TCP send/receive at metatable level.   |
+| `captureFeatherTraffic` | boolean | `false` | Include Feather's own WebSocket traffic when auto-hooking. |
 
 ## How It Works
 
@@ -52,10 +54,12 @@ For OOP-style network objects, wrap the methods directly:
 ```lua
 if net then
   local client = myNetworkClient
-  client.send = net.instance:wrapSend("lobby", client.send)
-  client.receive = net.instance:wrapReceive("lobby", client.receive)
+  client.send = net.instance:wrapSendMethod("lobby", client.send)
+  client.receive = net.instance:wrapReceiveMethod("lobby", client.receive)
 end
 ```
+
+Use `wrapSend` and `wrapReceive` for plain functions. Use `wrapSendMethod` and `wrapReceiveMethod` for colon-style calls where the object is passed as the first argument.
 
 ### HTTP requests (LuaSocket HTTP)
 
@@ -107,7 +111,11 @@ end
 
 ### Global LuaSocket hooking
 
-Set `hookSocket = true` to automatically intercept **all** `tcp:send()` and `tcp:receive()` calls at the LuaSocket metatable level. This captures everything without manual wrapping, but is noisier (includes Feather's own WebSocket traffic).
+Set `hookSocket = true` to automatically intercept **all** `tcp:send()` and `tcp:receive()` calls at the LuaSocket metatable level. This captures everything without manual wrapping, but is noisier.
+
+By default the plugin filters out Feather's own WebSocket traffic so the table focuses on your game traffic. Set `captureFeatherTraffic = true` if you need to see those packets too.
+
+Partial receive data returned with a timeout is recorded when LuaSocket provides it, while empty timeout polls are ignored to keep the table readable.
 
 ### Programmatic recording
 
@@ -118,6 +126,8 @@ net.instance:_record("out", "game-server", '{"action":"move","x":10}', "ok")
 net.instance:_record("in", "game-server", '{"ack":true}', "ok")
 net.instance:_record("out", "game-server", nil, "error", "connection refused")
 ```
+
+Payloads can be strings or tables. Tables are JSON-encoded for preview, and control characters in binary payloads are escaped as `\xNN`.
 
 ## Actions
 

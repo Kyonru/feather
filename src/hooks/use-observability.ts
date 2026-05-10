@@ -1,16 +1,32 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey } from './use-ws-connection';
 
-export const useObservability = (): { data: Record<string, any>[] } => {
+export type ObserverEntry = {
+  key: string;
+  value: string;
+  type: string;
+  previous?: string;
+  changed: boolean;
+  history: string[];
+};
+
+export const useObservability = (search?: string): { data: ObserverEntry[]; all: ObserverEntry[] } => {
   const sessionId = useSessionStore((state) => state.sessionId);
 
-  const { data } = useQuery<Record<string, any>[]>({
+  const { data } = useQuery<ObserverEntry[]>({
     queryKey: sessionQueryKey.observers(sessionId ?? ''),
     queryFn: () => [],
-    enabled: false, // data is pushed via WS, not fetched
+    enabled: false,
   });
 
-  return { data: data ?? [] };
+  const filtered = useMemo(() => {
+    const entries = data ?? [];
+    if (!search?.trim()) return entries;
+    const q = search.toLowerCase();
+    return entries.filter((e) => e.key.toLowerCase().includes(q) || e.value.toLowerCase().includes(q));
+  }, [data, search]);
+
+  return { data: filtered, all: data ?? [] };
 };

@@ -9,10 +9,12 @@ type SettingsStoreState = {
   textEditorPath: string;
   isLatestVersion: boolean;
   apiKey: string;
+  sessionApiKeys: Record<string, string>;
   pausedLogs: boolean;
   // Seconds without a message before considering a session disconnected (default 15)
   connectionTimeout: number;
   hiddenPlugins: string[];
+  assetSourceDir: string;
 };
 
 type SettingsStoreActions = {
@@ -23,8 +25,10 @@ type SettingsStoreActions = {
   setTextEditorPath: (textEditorPath: string) => void;
   setPausedLogs: (pausedLogs: boolean) => void;
   setApiKey: (apiKey: string) => void;
+  setSessionApiKey: (sessionId: string, apiKey: string) => void;
   setConnectionTimeout: (timeout: number) => void;
   toggleHiddenPlugin: (pluginId: string) => void;
+  setAssetSourceDir: (dir: string) => void;
   reset: () => void;
 };
 
@@ -35,11 +39,13 @@ const defaultSettings: SettingsStoreState = {
   open: false,
   theme: 'system',
   apiKey: '',
+  sessionApiKeys: {},
   port: 4004,
   textEditorPath: '/usr/local/bin/code',
   pausedLogs: false,
   connectionTimeout: 15,
   hiddenPlugins: [],
+  assetSourceDir: '',
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -54,7 +60,18 @@ export const useSettingsStore = create<SettingsStore>()(
       reset: () => set((state) => ({ ...state, ...defaultSettings, open: state.open })),
       setPausedLogs: (pausedLogs: boolean) => set({ pausedLogs }),
       setApiKey: (apiKey: string) => set({ apiKey }),
+      setSessionApiKey: (sessionId: string, apiKey: string) =>
+        set((state) => {
+          const sessionApiKeys = { ...state.sessionApiKeys };
+          if (apiKey.trim() === '') {
+            delete sessionApiKeys[sessionId];
+          } else {
+            sessionApiKeys[sessionId] = apiKey;
+          }
+          return { sessionApiKeys };
+        }),
       setConnectionTimeout: (connectionTimeout: number) => set({ connectionTimeout }),
+      setAssetSourceDir: (assetSourceDir: string) => set({ assetSourceDir }),
       toggleHiddenPlugin: (pluginId: string) =>
         set((state) => ({
           hiddenPlugins: state.hiddenPlugins.includes(pluginId)

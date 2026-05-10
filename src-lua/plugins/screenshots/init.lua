@@ -1,5 +1,5 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 local base64encode = require(FEATHER_PATH .. ".lib.base64").encode
 
 ---@class ScreenshotPlugin: FeatherPlugin
@@ -50,6 +50,7 @@ local ScreenshotPlugin = Class({
 --- Called each frame
 function ScreenshotPlugin:update(dt, feather)
   Base.update(self, dt, feather)
+  self.feather = feather
 
   -- Batch-encode GIF frames after recording stops (N frames per update to stay smooth)
   if self._encodingFrames then
@@ -61,7 +62,7 @@ function ScreenshotPlugin:update(dt, feather)
         local frameCount = #self._encodedFrames
         table.insert(self.images, {
           name = self._encodingGifName,
-          data = self._encodedFrames,
+          frames = self._encodedFrames,
           type = "gif",
           fps = self.fps,
         })
@@ -78,7 +79,7 @@ function ScreenshotPlugin:update(dt, feather)
       local path = self._encodingFrames[idx]
       local contents = love.filesystem.read(path)
       if contents then
-        self._encodedFrames[idx] = "data:image/png;base64," .. base64encode(contents)
+        self._encodedFrames[idx] = contents
       end
       -- Free file now that it's encoded
       love.filesystem.remove(path)
@@ -113,12 +114,11 @@ function ScreenshotPlugin:captureScreenshot()
   love.graphics.captureScreenshot(function(imageData)
     local fileData = imageData:encode("png")
     local pngBytes = fileData:getString()
-    local dataUri = "data:image/png;base64," .. base64encode(pngBytes)
 
     table.insert(selfRef.images, {
       type = "png",
       name = filename,
-      data = dataUri,
+      data = pngBytes,
       fps = 1,
     })
 
@@ -189,11 +189,40 @@ function ScreenshotPlugin:getResponseBody()
   -- re-sending massive GIF payloads every push cycle
   for i = self._lastSentIndex + 1, #self.images do
     local item = self.images[i]
+    local data = item.data
+    local binary = item.binary
+
+    if item.type == "png" and type(item.data) == "string" then
+      if self.feather and self.feather.attachBinary then
+        local ref = self.feather:attachBinary("image/png", item.data)
+        data = ref.src
+        binary = ref.binary
+      elseif not item.data:match("^data:") then
+        data = "data:image/png;base64," .. base64encode(item.data)
+      end
+    elseif item.type == "gif" and type(item.frames) == "table" then
+      data = {}
+      binary = {}
+      for frameIndex, frameBytes in ipairs(item.frames) do
+        if self.feather and self.feather.attachBinary then
+          local ref = self.feather:attachBinary("image/png", frameBytes)
+          data[frameIndex] = ref.src
+          binary[frameIndex] = ref.binary
+        else
+          data[frameIndex] = "data:image/png;base64," .. base64encode(frameBytes)
+        end
+      end
+      if #binary == 0 then
+        binary = nil
+      end
+    end
+
     table.insert(items, {
       type = "image",
       metadata = {
         type = item.type,
-        src = item.data,
+        src = data,
+        binary = binary,
         width = self.width,
         height = self.height,
         fps = item.fps,
@@ -208,7 +237,9 @@ function ScreenshotPlugin:getResponseBody()
   return items
 end
 
-function ScreenshotPlugin:handleRequest()
+function ScreenshotPlugin:handleRequest(_, feather)
+  self.feather = feather or self.feather
+
   return {
     type = "gallery",
     data = self:getResponseBody(),
@@ -217,8 +248,9 @@ function ScreenshotPlugin:handleRequest()
   }
 end
 
-function ScreenshotPlugin:handleActionRequest(request)
+function ScreenshotPlugin:handleActionRequest(request, feather)
   local params = request.params or {}
+  self.feather = feather or self.feather
 
   if params.action == "gif" then
     self.gifDuration = tonumber(params.duration) or self.gifDuration
@@ -229,6 +261,12 @@ function ScreenshotPlugin:handleActionRequest(request)
 
   if params.action == "screenshot" then
     return self:captureScreenshot()
+  end
+
+  if params.action == "clear" then
+    self.images = {}
+    self._lastSentIndex = 0
+    return true
   end
 end
 
@@ -324,6 +362,12 @@ function ScreenshotPlugin:getConfig()
         icon = "save",
         type = "checkbox",
         value = self.persist,
+      },
+      {
+        label = "Clear",
+        key = "clear",
+        icon = "trash-2",
+        type = "button",
       },
     },
   }

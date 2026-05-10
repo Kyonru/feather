@@ -1,13 +1,16 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
+local json = require(FEATHER_PATH .. ".lib.json")
 
 --- Filesystem Plugin — browse and inspect files the game has written via love.filesystem.
---- Lets you navigate directories, preview text file contents, and delete files from the desktop.
---- Useful for inspecting save data, configs, log files, and other game-generated files.
+--- Lets you navigate directories, preview text/JSON/binary file contents, write files, and delete
+--- files from the desktop.
 
 -- Mount point used to isolate the save directory from the merged love.filesystem root.
 -- This keeps source files (visible during development) out of the browser.
 local SAVE_MOUNT = "__feather_savedir__"
+
+local HEX_PREVIEW_BYTES = 512
 
 ---@class FilesystemPlugin: FeatherPlugin
 ---@field currentPath string  Current directory relative to the save-directory mount
@@ -80,6 +83,41 @@ local function mountedPath(relativePath)
     return SAVE_MOUNT
   end
   return SAVE_MOUNT .. "/" .. relativePath
+end
+
+--- Return true if the byte string looks like binary (contains null bytes or high-control chars).
+local function isBinary(content)
+  -- Scan only the first 512 bytes for speed
+  local sample = content:sub(1, 512)
+  return sample:find("[\0\1\2\3\4\5\6\7\8\14\15\16\17\18\19\20\21\22\23\24\25\26\27\28\29\30\31]") ~= nil
+end
+
+--- Return a hex dump of content (up to HEX_PREVIEW_BYTES bytes).
+local function hexDump(content)
+  local lines = {}
+  local limit = math.min(#content, HEX_PREVIEW_BYTES)
+  local col = 0
+  local row = {}
+  for i = 1, limit do
+    row[#row + 1] = string.format("%02X", content:byte(i))
+    col = col + 1
+    if col == 16 then
+      lines[#lines + 1] = table.concat(row, " ")
+      row = {}
+      col = 0
+    end
+  end
+  if #row > 0 then
+    lines[#lines + 1] = table.concat(row, " ")
+  end
+  if #content > HEX_PREVIEW_BYTES then
+    lines[#lines + 1] = string.format(
+      "... [%d bytes total, showing first %d]",
+      #content,
+      HEX_PREVIEW_BYTES
+    )
+  end
+  return table.concat(lines, "\n")
 end
 
 --- Read and sort the entries in a directory.
@@ -197,7 +235,7 @@ function FilesystemPlugin:handleActionRequest(request, _feather)
     end
     return nil, "Not a valid directory: " .. target
 
-  -- Open an item: navigate into directories, or read files to the clipboard.
+  -- Open an item: navigate into directories, or read files with type-aware preview.
   elseif action == "open" then
     local name = params.selectedItem or self.selectedItem
     if not name or name == "" then
@@ -216,11 +254,37 @@ function FilesystemPlugin:handleActionRequest(request, _feather)
       return true
     end
 
-    -- Read file content, cap preview at 50 KB.
-    local ok, content = pcall(love.filesystem.read, fsPath)
-    if not ok or content == nil then
+    local ok, rawContent = pcall(love.filesystem.read, fsPath)
+    if not ok or rawContent == nil then
       return nil, "Cannot read: " .. relPath
     end
+    local content = rawContent --[[@as string]]
+
+    -- Binary files: return a hex dump instead of raw content.
+    if isBinary(content) then
+      return {
+        clipboard = "[binary file — hex dump]\n\n" .. hexDump(content),
+        fileType = "binary",
+      }
+    end
+
+    -- JSON files: validate and normalise to a stable pretty-ish representation.
+    if name:lower():match("%.json$") then
+      local ok2, parsed = pcall(json.decode, content)
+      if ok2 and parsed ~= nil then
+        local ok3, encoded = pcall(json.encode, parsed)
+        if ok3 then
+          return { clipboard = encoded, fileType = "json" }
+        end
+      end
+      -- Invalid JSON — fall through and show raw, with a warning prefix.
+      return {
+        clipboard = "[invalid JSON — showing raw]\n\n" .. content:sub(1, 50000),
+        fileType = "json-invalid",
+      }
+    end
+
+    -- Plain text: cap at 50 KB.
     local MAX = 50000
     if #content > MAX then
       return {
@@ -230,9 +294,27 @@ function FilesystemPlugin:handleActionRequest(request, _feather)
           .. " of "
           .. formatSize(#content)
           .. " total]",
+        fileType = "text",
       }
     end
-    return { clipboard = content }
+    return { clipboard = content, fileType = "text" }
+
+  -- Write a file imported from the desktop into the current save-directory path.
+  elseif action == "write" then
+    local fileName = params.fileName
+    local content = params.fileContent
+    if not fileName or fileName == "" then
+      return nil, "No file name"
+    end
+    if content == nil then
+      return nil, "No file content"
+    end
+    local destPath = joinPath(self.currentPath, fileName)
+    local ok2, err2 = love.filesystem.write(destPath, content)
+    if not ok2 then
+      return nil, "Write failed: " .. tostring(err2)
+    end
+    return { written = destPath }
 
   -- Delete a file or empty directory.
   elseif action == "delete" then
@@ -249,6 +331,7 @@ function FilesystemPlugin:handleActionRequest(request, _feather)
       self.selectedItem = ""
     end
     return true
+
   elseif action == "refresh" then
     return true
   end
@@ -296,7 +379,14 @@ function FilesystemPlugin:getConfig()
         key = "open",
         icon = "file-text",
         type = "button",
-        props = { title = "Directories: navigate into. Files: read content to clipboard." },
+        props = { title = "Directories: navigate into. Files: read content to clipboard. JSON and binary files are handled specially." },
+      },
+      {
+        label = "Import file",
+        key = "write",
+        icon = "upload",
+        type = "file",
+        props = { title = "Pick a file on your machine to write into the current save-directory path." },
       },
       { label = "Delete", key = "delete", icon = "trash-2", type = "button" },
     },

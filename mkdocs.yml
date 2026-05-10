@@ -32,11 +32,14 @@ nav:
   - Configuration: configuration.md
   - Usage: usage.md
   - Debugger: debugger.md
+  - Assets: assets.md
+  - CLI: cli.md
   - Time Travel: time-travel.md
   - Console: console.md
   - Recommendations: recommendations.md
   - Plugins:
       - Overview: plugins.md
+      - Plugin UI: plugin-ui.md
       - Animation Inspector: plugins/animation-inspector.md
       - Audio Debug: plugins/audio-debug.md
       - Bookmark: plugins/bookmark.md
@@ -57,6 +60,7 @@ nav:
       - Timer Inspector: plugins/timer-inspector.md
 
 markdown_extensions:
+  - github-callouts
   - admonition
   - pymdownx.highlight:
       anchor_linenums: true

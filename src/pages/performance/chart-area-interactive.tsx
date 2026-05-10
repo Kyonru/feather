@@ -26,6 +26,10 @@ const chartConfig = {
     label: 'Memory',
     color: 'var(--chart-1)',
   },
+  diskUsage: {
+    label: 'Disk Usage',
+    color: 'var(--chart-3)',
+  },
 } satisfies ChartConfig;
 
 const timeRanges: { label: string; value: string; seconds: number }[] = [
@@ -45,7 +49,7 @@ export function ChartAreaInteractive({
   data,
   dataKey = 'fps',
 }: {
-  dataKey?: 'fps' | 'memory';
+  dataKey?: 'fps' | 'memory' | 'diskUsage';
   title: string;
   data: PerformanceMetrics[];
 }) {
@@ -113,7 +117,7 @@ export function ChartAreaInteractive({
                   </>
                 ) : (
                   <>
-                    <stop offset="5%" stopColor={`var(--color-red-500)`} stopOpacity={1} />
+                    <stop offset="5%" stopColor={`var(--color-${dataKey})`} stopOpacity={1} />
                     <stop offset="50%" stopColor={`var(--color-${dataKey})`} stopOpacity={0.8} />
                     <stop offset="95%" stopColor={`var(--color-${dataKey})`} stopOpacity={0.3} />
                   </>
@@ -141,7 +145,6 @@ export function ChartAreaInteractive({
                 if (dataKey === 'fps') {
                   return `${value} FPS`;
                 }
-
                 return formatMemory(value, 1);
               }}
             />

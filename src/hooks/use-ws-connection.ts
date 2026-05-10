@@ -10,6 +10,7 @@ import { useSettingsStore } from '@/store/settings';
 import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
+import type { AssetCatalog } from './use-assets';
 import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
@@ -21,6 +22,7 @@ export const sessionQueryKey = {
   logs: (sessionId: string) => [sessionId, 'logs'],
   performance: (sessionId: string) => [sessionId, 'performance'],
   observers: (sessionId: string) => [sessionId, 'observers'],
+  assets: (sessionId: string) => [sessionId, 'assets'],
   plugin: (sessionId: string, pluginId: string) => [sessionId, 'plugin', pluginId],
   console: (sessionId: string) => [sessionId, 'console'],
   timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
@@ -32,6 +34,33 @@ type WsMessage = {
   type: string;
   data?: unknown;
   plugin?: string;
+};
+
+type BinaryEvent = {
+  _session: string;
+  bytes: number[];
+};
+
+type PendingBinary = {
+  id: string;
+  mime: string;
+  target: BinaryTarget;
+  mode: BinaryMode;
+};
+
+type BinaryMode = 'url' | 'text';
+
+type BinaryTarget =
+  | { type: 'assets' }
+  | { type: 'plugin'; pluginId: string }
+  | { type: 'observers' }
+  | { type: 'timeTravelFrames' }
+  | { type: 'debuggerPaused' }
+  | { type: 'console' };
+
+type BinaryRef = {
+  id: string;
+  mime: string;
 };
 
 export type EvalResponse = {
@@ -56,6 +85,51 @@ export type TimeTravelFrame = {
   observers: Record<string, string>;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const pushBinaryRef = (value: unknown, refs: BinaryRef[]) => {
+  if (!isRecord(value) || typeof value.id !== 'string') return;
+
+  refs.push({
+    id: value.id,
+    mime: typeof value.mime === 'string' ? value.mime : 'application/octet-stream',
+  });
+};
+
+const collectBinaryRefs = (value: unknown, refs: BinaryRef[] = []): BinaryRef[] => {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectBinaryRefs(item, refs));
+    return refs;
+  }
+
+  if (!isRecord(value)) return refs;
+
+  const binary = value.binary;
+  if (Array.isArray(binary)) {
+    binary.forEach((item) => pushBinaryRef(item, refs));
+  } else {
+    pushBinaryRef(binary, refs);
+  }
+
+  Object.values(value).forEach((item) => collectBinaryRefs(item, refs));
+  return refs;
+};
+
+const replaceBinaryValue = (value: unknown, id: string, replacement: string): unknown => {
+  if (typeof value === 'string') {
+    return value === `feather-binary:${id}` ? replacement : value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceBinaryValue(item, id, replacement));
+  }
+
+  if (!isRecord(value)) return value;
+
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceBinaryValue(item, id, replacement)]));
+};
+
 /**
  * Mounts at the root of the app (in <Modals>). Listens for Tauri events emitted by the
  * Rust WS server and routes each message type into the React Query cache so all pages
@@ -75,6 +149,7 @@ export const useWsConnection = () => {
   const setPausedState = useDebuggerStore((state) => state.setPausedState);
   const setDebuggerEnabled = useDebuggerStore((state) => state.setEnabled);
   const lastMessageRef = useRef<number>(Date.now());
+  const pendingBinaryRef = useRef<Record<string, PendingBinary[]>>({});
 
   // Connection health monitor: if no message within timeout, mark disconnected
   useEffect(() => {
@@ -95,6 +170,72 @@ export const useWsConnection = () => {
     const unlisteners: Array<() => void> = [];
 
     const setup = async () => {
+      const queueBinaryRefs = (
+        sessionId: string,
+        target: BinaryTarget,
+        value: unknown,
+        mode: BinaryMode = 'url',
+      ) => {
+        const refs = collectBinaryRefs(value);
+        if (refs.length === 0) return;
+
+        const queue = pendingBinaryRef.current[sessionId] ?? [];
+        refs.forEach((ref) => queue.push({ ...ref, target, mode }));
+        pendingBinaryRef.current[sessionId] = queue;
+      };
+
+      const unlistenBinary = await listen<BinaryEvent>('feather://binary', (event) => {
+        if (cancelled) return;
+        const { _session: sessionId, bytes } = event.payload;
+        const pending = pendingBinaryRef.current[sessionId]?.shift();
+        if (!pending) return;
+
+        const byteArray = new Uint8Array(bytes);
+        const replacement =
+          pending.mode === 'text'
+            ? new TextDecoder().decode(byteArray)
+            : URL.createObjectURL(new Blob([byteArray], { type: pending.mime }));
+
+        if (pending.target.type === 'assets') {
+          queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) =>
+            replaceBinaryValue(prev, pending.id, replacement) as AssetCatalog,
+          );
+          return;
+        }
+
+        if (pending.target.type === 'observers') {
+          queryClient.setQueryData(sessionQueryKey.observers(sessionId), (prev) =>
+            replaceBinaryValue(prev, pending.id, replacement),
+          );
+          return;
+        }
+
+        if (pending.target.type === 'timeTravelFrames') {
+          queryClient.setQueryData<TimeTravelFrame[]>(sessionQueryKey.timeTravelFrames(sessionId), (prev) =>
+            replaceBinaryValue(prev, pending.id, replacement) as TimeTravelFrame[],
+          );
+          return;
+        }
+
+        if (pending.target.type === 'debuggerPaused') {
+          const current = useDebuggerStore.getState().pausedState[sessionId];
+          setPausedState(sessionId, replaceBinaryValue(current, pending.id, replacement) as PausedState);
+          return;
+        }
+
+        if (pending.target.type === 'console') {
+          queryClient.setQueryData<EvalResponse[]>(sessionQueryKey.console(sessionId), (prev) =>
+            replaceBinaryValue(prev, pending.id, replacement) as EvalResponse[],
+          );
+          return;
+        }
+
+        queryClient.setQueryData<PluginContentProps>(
+          sessionQueryKey.plugin(sessionId, pending.target.pluginId),
+          (prev) => replaceBinaryValue(prev, pending.id, replacement) as PluginContentProps,
+        );
+      });
+
       // Game → desktop messages
       const unlistenMessage = await listen<string>('feather://message', (event) => {
         if (cancelled) return;
@@ -150,6 +291,10 @@ export const useWsConnection = () => {
                 if (oldObs) {
                   queryClient.setQueryData(sessionQueryKey.observers(sessionId), oldObs);
                 }
+                const oldAssets = queryClient.getQueryData(sessionQueryKey.assets(oldSession.id));
+                if (oldAssets) {
+                  queryClient.setQueryData(sessionQueryKey.assets(sessionId), oldAssets);
+                }
                 // Clean up old session cache
                 queryClient.removeQueries({ queryKey: [oldSession.id] });
               }
@@ -200,8 +345,11 @@ export const useWsConnection = () => {
 
           case 'performance': {
             const metric = data as PerformanceMetrics;
-            // Lua sends memory in KB (collectgarbage("count")), normalize to MB
+            // Lua sends memory/peakMemory in KB (collectgarbage("count")), normalize to MB
             metric.memory = metric.memory / 1024;
+            metric.peakMemory = (metric.peakMemory ?? 0) / 1024;
+            // Lua sends diskUsage in bytes, normalize to MB
+            metric.diskUsage = (metric.diskUsage ?? 0) / 1024 / 1024;
             // Lua sends texturememory in bytes, normalize to MB
             if (metric.stats?.texturememory) {
               metric.stats.texturememory = metric.stats.texturememory / 1024 / 1024;
@@ -215,7 +363,39 @@ export const useWsConnection = () => {
 
           case 'observe': {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            queryClient.setQueryData(sessionQueryKey.observers(sessionId), data as Record<string, any>[]);
+            const incoming = data as Record<string, any>[];
+            queueBinaryRefs(sessionId, { type: 'observers' }, incoming, 'text');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const existing: Record<string, any>[] = queryClient.getQueryData(sessionQueryKey.observers(sessionId)) ?? [];
+            const existingMap = new Map(existing.map((e) => [e.key, e]));
+            const HISTORY_MAX = 50;
+            const merged = incoming.map((entry) => {
+              const prev = existingMap.get(entry.key);
+              const changed = prev !== undefined && prev.value !== entry.value;
+              const history: string[] = prev?.history ?? [];
+              if (changed) {
+                history.push(prev.value);
+                if (history.length > HISTORY_MAX) history.shift();
+              }
+              return { ...entry, previous: prev?.value, changed, history };
+            });
+            queryClient.setQueryData(sessionQueryKey.observers(sessionId), merged);
+            break;
+          }
+
+          case 'assets': {
+            const incoming = data as AssetCatalog;
+            queueBinaryRefs(sessionId, { type: 'assets' }, incoming);
+            queryClient.setQueryData<AssetCatalog>(sessionQueryKey.assets(sessionId), (prev) => ({
+              ...incoming,
+              preview: incoming.preview === false ? null : (incoming.preview ?? prev?.preview ?? null),
+            }));
+            break;
+          }
+
+          case 'assets:error': {
+            const payload = data as { message?: string };
+            toast.error(`Asset preview failed: ${payload?.message || 'Unknown error'}`);
             break;
           }
 
@@ -223,6 +403,7 @@ export const useWsConnection = () => {
             const pluginId = msg.plugin;
             if (!pluginId) break;
             const pluginData = data as PluginContentProps;
+            queueBinaryRefs(sessionId, { type: 'plugin', pluginId }, pluginData);
 
             queryClient.setQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId), (prev) => {
               if (pluginData?.type === 'gallery' && pluginData.persist && prev?.type === 'gallery') {
@@ -272,6 +453,7 @@ export const useWsConnection = () => {
           case 'eval:response': {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const evalMsg = msg as any;
+            queueBinaryRefs(sessionId, { type: 'console' }, evalMsg, 'text');
             queryClient.setQueryData<EvalResponse[]>(sessionQueryKey.console(sessionId), (prev) => [
               ...(prev ?? []),
               {
@@ -285,6 +467,7 @@ export const useWsConnection = () => {
           }
 
           case 'debugger:paused': {
+            queueBinaryRefs(sessionId, { type: 'debuggerPaused' }, data, 'text');
             setPausedState(sessionId, data as PausedState);
             break;
           }
@@ -301,6 +484,7 @@ export const useWsConnection = () => {
 
           case 'time_travel:frames': {
             const framesMsg = data as { frames: TimeTravelFrame[] };
+            queueBinaryRefs(sessionId, { type: 'timeTravelFrames' }, framesMsg, 'text');
             queryClient.setQueryData(sessionQueryKey.timeTravelFrames(sessionId), framesMsg.frames);
             break;
           }
@@ -317,6 +501,7 @@ export const useWsConnection = () => {
       });
 
       if (cancelled) {
+        unlistenBinary();
         unlistenMessage();
         return;
       }
@@ -330,6 +515,7 @@ export const useWsConnection = () => {
       });
 
       if (cancelled) {
+        unlistenBinary();
         unlistenMessage();
         unlistenEnd();
         return;
@@ -346,6 +532,7 @@ export const useWsConnection = () => {
       });
 
       if (cancelled) {
+        unlistenBinary();
         unlistenMessage();
         unlistenEnd();
         unlistenStart();
@@ -369,7 +556,7 @@ export const useWsConnection = () => {
         })
         .catch(() => {});
 
-      unlisteners.push(unlistenMessage, unlistenEnd, unlistenStart);
+      unlisteners.push(unlistenBinary, unlistenMessage, unlistenEnd, unlistenStart);
     };
 
     setup();

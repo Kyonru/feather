@@ -6,6 +6,8 @@ export type SessionInfo = {
   os?: string;
   name?: string;
   deviceId?: string;
+  kind?: 'live' | 'log-file' | 'time-travel-file';
+  filePath?: string;
   connected: boolean;
   connectedAt: number;
 };

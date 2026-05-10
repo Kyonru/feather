@@ -17,6 +17,10 @@ function normalizePluginId(pluginId: string): string {
 export type ScreenshotType = {
   type: 'png';
   src: string;
+  binary?: {
+    id: string;
+    mime: string;
+  };
   width: number;
   height: number;
 };
@@ -25,6 +29,10 @@ export type GifType = {
   type: 'gif';
   name: string;
   src: string[];
+  binary?: Array<{
+    id: string;
+    mime: string;
+  }>;
   width: number;
   height: number;
   downloadable: boolean;
@@ -43,8 +51,23 @@ export interface PluginTableColumn {
   label: string;
 }
 
+export type PluginBinaryRef = {
+  id: string;
+  mime: string;
+};
+
+export type PluginTableCellValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | string[]
+  | PluginBinaryRef
+  | PluginBinaryRef[];
+
 export interface PluginTableRow {
-  [key: string]: string;
+  [key: string]: PluginTableCellValue;
 }
 
 export type PluginDataType = PluginContentImageType;
@@ -102,7 +125,85 @@ export interface PluginContentTimelineProps {
   loading: boolean;
 }
 
-export type PluginContentProps = PluginContentGalleryProps | PluginContentTableProps | PluginContentTreeProps | PluginContentTimelineProps;
+export type PluginUiOption = {
+  label: string;
+  value: string;
+};
+
+export type PluginUiNode = {
+  type:
+    | 'panel'
+    | 'row'
+    | 'column'
+    | 'tabs'
+    | 'tab'
+    | 'text'
+    | 'button'
+    | 'input'
+    | 'textarea'
+    | 'checkbox'
+    | 'switch'
+    | 'select'
+    | 'badge'
+    | 'stat'
+    | 'progress'
+    | 'alert'
+    | 'list'
+    | 'link'
+    | 'separator'
+    | 'image'
+    | 'code'
+    | 'table'
+    | 'timeline'
+    | 'inspector';
+  id?: string;
+  name?: string;
+  title?: string;
+  label?: string;
+  value?: PluginTableCellValue;
+  description?: string;
+  placeholder?: string;
+  checked?: boolean;
+  disabled?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+  action?: string;
+  src?: string;
+  href?: string;
+  binary?:
+    | {
+        id: string;
+        mime: string;
+      }
+    | Array<{
+        id: string;
+        mime: string;
+      }>;
+  alt?: string;
+  language?: string;
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline';
+  options?: PluginUiOption[];
+  columns?: PluginTableColumn[];
+  data?: PluginTableRow[];
+  items?: PluginTimelineItem[];
+  categories?: string[];
+  nodes?: PluginTreeNode[];
+  children?: PluginUiNode[];
+};
+
+export interface PluginContentUiProps {
+  type: 'ui';
+  tree: PluginUiNode;
+  loading: boolean;
+}
+
+export type PluginContentProps =
+  | PluginContentGalleryProps
+  | PluginContentTableProps
+  | PluginContentTreeProps
+  | PluginContentTimelineProps
+  | PluginContentUiProps;
 
 export const usePluginAction = (pluginId: string) => {
   const sessionId = useSessionStore((state) => state.sessionId);

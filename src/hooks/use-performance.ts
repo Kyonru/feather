@@ -32,17 +32,24 @@ type SupportedFeatures = {
 
 export type PerformanceMetrics = {
   time: number;
+  gameTime: number;
   vsyncEnabled: boolean;
   supported: SupportedFeatures;
   memory: number;
+  peakMemory: number;
+  diskUsage: number;
   stats: Stats;
   fps: number;
   frameTime: number;
+  frameTimeMin: number;
+  frameTimeMax: number;
+  frameTimeAvg: number;
   sysInfo: SystemInfo;
 };
 
 export const DEFAULT_METRIC: PerformanceMetrics = {
   time: 0,
+  gameTime: 0,
   vsyncEnabled: false,
   supported: {
     multicanvasformats: false,
@@ -55,6 +62,8 @@ export const DEFAULT_METRIC: PerformanceMetrics = {
     instancing: false,
   },
   memory: 0,
+  peakMemory: 0,
+  diskUsage: 0,
   stats: {
     drawcallsbatched: 0,
     canvasswitches: 0,
@@ -67,6 +76,9 @@ export const DEFAULT_METRIC: PerformanceMetrics = {
   },
   fps: 0,
   frameTime: 0,
+  frameTimeMin: 0,
+  frameTimeMax: 0,
+  frameTimeAvg: 0,
   sysInfo: { arch: '', cpuCount: 0, os: '' },
 };
 

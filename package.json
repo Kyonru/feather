@@ -2,13 +2,19 @@
   "name": "feather",
   "description": "Feather is a Love2D devtool to debug and inspect your game in real-time. It provides a web-based interface to view and manipulate game state, visualize physics, and more.",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
+  "workspaces": [
+    "cli"
+  ],
   "scripts": {
+    "cli:build": "npm run build --workspace=cli",
+    "cli:dev": "npm run dev --workspace=cli",
+    "feather": "node cli/dist/index.js",
     "dev": "vite",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
     "web": "vite",
-    "docs": "docker run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material",
+    "docs": "docker run --rm -it -p 8000:8000 -v \"$(pwd):/docs\" -w /docs --entrypoint sh squidfunk/mkdocs-material -c \"pip install -r requirements-docs.txt && mkdocs serve --dev-addr=0.0.0.0:8000\"",
     "native": "npm run tauri build -- --debug",
     "lua": "sh ./scripts/watch-lua.sh",
     "build": "tsc && vite build",
@@ -16,6 +22,8 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.json --composite false",
     "typecheck:lua": "luacheck src-lua",
     "typecheck": "npm run typecheck:web && npm run typecheck:lua",
+    "generate:plugin-catalog": "node scripts/generate-plugin-catalog.mjs",
+    "check:plugin-catalog": "npm run generate:plugin-catalog && git diff --exit-code cli/src/generated/plugin-catalog.ts",
     "lint": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "tauri": "tauri",
     "prepare": "husky"

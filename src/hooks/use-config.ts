@@ -7,6 +7,7 @@ import { useSessionStore } from '@/store/session';
 export function useConfig(): {
   data: Config | undefined;
   updateSampleRate: (value: number) => void;
+  updateDiskUsage: (enabled: boolean) => void;
 } {
   const config = useConfigStore((state) => state.config);
   const sessionId = useSessionStore((state) => state.sessionId);
@@ -25,9 +26,23 @@ export function useConfig(): {
     }, 1000);
   }, [sessionId]);
 
+  const updateDiskUsage = useMemo(() => {
+    return (enabled: boolean) => {
+      if (!sessionId) return;
+      invoke('send_command', {
+        sessionId,
+        message: JSON.stringify({
+          type: 'cmd:config',
+          data: { diskUsage: enabled },
+        }),
+      }).catch(console.error);
+    };
+  }, [sessionId]);
+
   return {
     data: config ?? undefined,
     updateSampleRate,
+    updateDiskUsage,
   };
 }
 

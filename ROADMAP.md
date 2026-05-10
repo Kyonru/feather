@@ -13,74 +13,10 @@
 
 ---
 
-## 0.7.x — Stability Foundation
+## 0.8.0
 
-Focus:
-Make Feather reliable under real-world debugging workloads before expanding features.
-
-### 0.7.1 – Stability & Bug Fixes
-
-#### Platform Reliability
-
-- [ ] Full OS & Love2D version testing (Windows/macOS/Linux)
-- [ ] Smooth UI under heavy load spikes
-- [ ] Graceful recovery from debugger disconnects
-- [ ] Improve websocket stability and reconnection handling
-
-#### Performance
-
-- [ ] Low-overhead runtime communication improvements
-- [ ] Reduce observer serialization overhead
-- [ ] Optimize screenshot/memory handling
-
-#### Quality
-
-- [ ] Add automated tests
-- [ ] Add stress-test scenarios
-- [ ] Improve error reporting/logging
-
----
-
-## 0.8.x — Observability & Runtime Data
-
-Focus:
-Build the core runtime inspection experience.
-
-### 0.8.0 – Observability & Data
-
-#### Observer Improvements
-
-- [ ] Table diffing in observed variables
-- [ ] Highlight nested table changes across frames
-- [ ] Observer history snapshots
-- [ ] Search/filter large observed tables
-
-#### Runtime Insights
-
-- [ ] Add app disk usage
-- [ ] Add memory usage tracking
-- [ ] Add frame-time/performance metrics
-- [ ] Low-overhead mode for production builds
-
-#### File & State Management
-
-- [ ] Add option to clear unused screenshots
-- [ ] Save data inspector
-  - [ ] Read/write `love.filesystem` save files
-  - [ ] JSON preview/editor
-  - [ ] Binary save inspection support
-
-#### Plugin System Foundations
-
-- [ ] Initial plugin API architecture
-- [ ] Plugin sandboxing model
-- [ ] Internal plugin loader
-
----
-
-#### CLI
-
-- [CLI.ROADMAP.md](CLI.ROADMAP.md)
+- e2e tests for cli
+- improve doctor experience
 
 ## 0.9.x — Assets & Runtime Inspection
 
@@ -88,14 +24,6 @@ Focus:
 Inspect and manipulate game resources live.
 
 ### 0.9.0 – Assets & Resources
-
-#### Asset Viewer
-
-- [ ] Asset viewer
-  - [ ] Loaded textures
-  - [ ] Audio sources
-  - [ ] Fonts
-  - [ ] Runtime previews
 
 #### Graphics Tooling
 
@@ -112,10 +40,6 @@ Inspect and manipulate game resources live.
   - [ ] Visualize draw order
   - [ ] Entity hierarchy tree
   - [ ] Collapsible runtime tree view
-
-#### Reliability
-
-- [ ] Graceful handling for unloaded/missing assets
 
 ---
 
@@ -228,5 +152,24 @@ Production-ready release with security, trust, and community adoption.
 - [ ] Announce to broader gamedev communities
 - [ ] Community showcase/demo projects
 - [ ] Creator partnerships/tutorials
+
+#### Quality
+
+- [ ] Add automated tests
+- [ ] Add stress-test scenarios
+- [ ] Improve error reporting/logging
+
+#### Platform Reliability
+
+- [ ] Full OS & Love2D version testing (Windows/macOS/Linux)
+- [ ] Smooth UI under heavy load spikes
+- [ ] Graceful recovery from debugger disconnects
+- [ ] Improve websocket stability and reconnection handling
+
+#### Performance
+
+- [ ] Low-overhead runtime communication improvements
+- [ ] Reduce observer serialization overhead
+- [ ] Optimize screenshot/memory handling
 
 ---

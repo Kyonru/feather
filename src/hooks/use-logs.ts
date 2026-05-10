@@ -6,7 +6,7 @@ import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { z } from 'zod';
 import { useSettingsStore } from '@/store/settings';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
 
@@ -54,6 +54,10 @@ export const useLogs = (): {
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
   const [clearTime, setClearTime] = useState(0);
   const lineOffsetRef = useRef<number>(0);
+
+  useEffect(() => {
+    setClearTime(0);
+  }, [sessionId]);
 
   // --- Live session path: reactive subscription to query cache ---
   const queryKey = sessionId ? sessionQueryKey.logs(sessionId) : ['noop-logs'];

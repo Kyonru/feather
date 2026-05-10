@@ -2,7 +2,8 @@
 
 The Console is an **opt-in plugin** that lets you evaluate arbitrary Lua code inside the running game from the Feather desktop app. It is not included by default and must be explicitly enabled.
 
----
+> [!WARNING]
+> Do not include the Console plugin in builds shipped to users. It allows remote code execution and can be a serious security risk.
 
 ## Setup
 
@@ -39,7 +40,7 @@ function love.update(dt)
 end
 ```
 
-> **Security:** `apiKey` must be set and non-empty in both the game config and the Feather desktop **Settings → API Key** field. The Console refuses to execute any code if the keys don't match.
+> **Security:** `apiKey` must be set and non-empty in the game config and in the Feather desktop app. The desktop uses the active session API key override when set, otherwise it falls back to the default **Settings → API Key** field. The Console refuses to execute any code if the keys don't match.
 
 ---
 

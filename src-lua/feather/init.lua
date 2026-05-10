@@ -10,14 +10,16 @@ local Class = require(FEATHER_PATH .. ".lib.class")
 local json = require(FEATHER_PATH .. ".lib.json")
 local errorhandler = require(FEATHER_PATH .. ".error_handler")
 local FeatherPluginManager = require(FEATHER_PATH .. ".plugin_manager")
-local FeatherLogger = require(FEATHER_PATH .. ".plugins.logger")
-local FeatherObserver = require(FEATHER_PATH .. ".plugins.observer")
-local FeatherPerformance = require(FEATHER_PATH .. ".plugins.performance")
+local FeatherLogger = require(FEATHER_PATH .. ".core.logger")
+local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
+local FeatherPerformance = require(FEATHER_PATH .. ".core.performance")
+local FeatherAssets = require(FEATHER_PATH .. ".core.assets")
 local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
+local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
 
-local FEATHER_VERSION_NAME = "0.6.0"
+local FEATHER_VERSION_NAME = "0.8.0"
 local FEATHER_API = 5
 
 local FEATHER_VERSION = {
@@ -44,6 +46,9 @@ local FEATHER_VERSION = {
 ---@field protected __handleCommand fun(self: Feather, msg: table)
 ---@field protected __pushPerformance fun(self: Feather, dt: number)
 ---@field protected __pushObservers fun(self: Feather)
+---@field protected __pushAssets fun(self: Feather)
+---@field attachBinary fun(self: Feather, mime: string, bytes: string): table
+---@field ui table Declarative UI node builders for plugins
 local Feather = Class({})
 
 local customErrorHandler = errorhandler
@@ -67,11 +72,14 @@ local customErrorHandler = errorhandler
 ---@field autoRegisterErrorHandler? boolean
 ---@field errorHandler? function
 ---@field plugins? table
+---@field capabilities? string[]|string  Allowed plugin capabilities — array of tokens or "all" (default: "all")
 ---@field mode? string
 ---@field writeToDisk? boolean  Whether to write logs to .featherlog files (default true)
 ---@field retryInterval? number
 ---@field connectTimeout? number
 ---@field debugger? boolean  Enable the step debugger (default false)
+---@field assetPreview? boolean  Enable core asset tracking and previews (default true)
+---@field binaryTextThreshold? number  Observer/time-travel strings longer than this are sent as binary text (default 4096)
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -92,16 +100,22 @@ function Feather:init(config)
   self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
   self.plugins = conf.plugins or {}
+  self.capabilities = conf.capabilities or "all"
   self.mode = conf.mode or "socket"
   self.debuggerEnabled = conf.debugger or false
   self.writeToDisk = conf.writeToDisk ~= false
   self.retryInterval = conf.retryInterval or 5
   self.connectTimeout = conf.connectTimeout or 2
   self.sessionName = conf.sessionName or ""
+  self.assetPreviewEnabled = conf.assetPreview ~= false
+  self.binaryTextThreshold = conf.binaryTextThreshold or 4096
+  self._nextBinaryId = 1
+  self._pendingBinaries = {}
   self.lastError = 0
   self.wsConnected = false
   self.version = FEATHER_VERSION.api
   self.versionName = FEATHER_VERSION.name
+  self.ui = FeatherUI
 
   -- Persistent device ID: saved to disk so the same device keeps its identity across launches.
   -- Can be overridden via config for custom identification.
@@ -151,7 +165,12 @@ function Feather:init(config)
     end
   end
 
+  if self.assetPreviewEnabled then
+    self.assets = FeatherAssets(self.featherLogger)
+  end
+
   self.pluginManager = FeatherPluginManager(self, self.featherLogger, self.featherObserver)
+  self.pluginManager:hookLoveCallbacks()
 
   ---@type FeatherDebugger
   self.featherDebugger = FeatherDebugger(self)
@@ -209,6 +228,55 @@ function Feather:__sendWs(payload)
   end
 end
 
+--- Queue bytes to be sent after the current JSON message and return a JSON-safe reference.
+--- Plugins can put the returned table's src/binary fields into normal content payloads.
+---@param mime string
+---@param bytes string
+---@return table
+function Feather:attachBinary(mime, bytes)
+  local binaryId = "binary-" .. tostring(self._nextBinaryId or 1)
+  self._nextBinaryId = (self._nextBinaryId or 1) + 1
+  self._pendingBinaries = self._pendingBinaries or {}
+  table.insert(self._pendingBinaries, {
+    id = binaryId,
+    mime = mime or "application/octet-stream",
+    bytes = bytes,
+  })
+  return {
+    src = "feather-binary:" .. binaryId,
+    binary = {
+      id = binaryId,
+      mime = mime or "application/octet-stream",
+    },
+  }
+end
+
+function Feather:__sendPendingBinaries()
+  if not self.wsConnected or not self.wsClient or not self.wsClient.sendBinary then
+    self._pendingBinaries = {}
+    return
+  end
+
+  local pending = self._pendingBinaries or {}
+  self._pendingBinaries = {}
+  for _, binary in ipairs(pending) do
+    if binary.bytes then
+      self.wsClient:sendBinary(binary.bytes)
+    end
+  end
+end
+
+---@param value string
+---@return string, table|nil
+function Feather:__maybeAttachText(value)
+  if type(value) ~= "string" or #value <= self.binaryTextThreshold then
+    return value, nil
+  end
+
+  local ref = self:attachBinary("text/plain;charset=utf-8", value)
+  return ref.src, ref.binary
+end
+
 --- Send feather:hello with full config — equivalent to old GET /config response.
 function Feather:__sendHello()
   self:__sendWs(json.encode({
@@ -225,6 +293,12 @@ function Feather:__getConfig()
   if #self.baseDir > 0 then
     root_path = root_path .. "/" .. self.baseDir
   end
+  local sourceDir = root_path
+  ---@diagnostic disable-next-line: undefined-field
+  if love.filesystem.getSourceDirectory then
+    ---@diagnostic disable-next-line: undefined-field
+    sourceDir = love.filesystem.getSourceDirectory()
+  end
   return {
     plugins = self.pluginManager:getConfig(),
     root_path = root_path,
@@ -235,18 +309,43 @@ function Feather:__getConfig()
     outfile = self.featherLogger.outfile,
     captureScreenshot = self.featherLogger.captureScreenshot,
     location = love.filesystem.getSaveDirectory(),
+    sourceDir = sourceDir,
+    protocols = { "json", "binary" },
     sysInfo = self.performance.sysInfo,
     deviceId = self.deviceId,
     sessionName = self.sessionName,
+    assets = { enabled = self.assetPreviewEnabled },
     debugger = { enabled = self.debuggerEnabled },
   }
 end
 
----@return nil
 function Feather:__setConfig(params)
   self.sampleRate = params.sampleRate or self.sampleRate
   self.updateInterval = params.updateInterval or self.updateInterval
   self.maxTempLogs = params.maxTempLogs or self.maxTempLogs
+  if params.diskUsage ~= nil then
+    self.performance._diskUsageEnabled = params.diskUsage
+  end
+end
+
+function Feather:__setAssetPreviewEnabled(enabled)
+  enabled = enabled ~= false
+  if self.assetPreviewEnabled == enabled then
+    return
+  end
+
+  self.pluginManager:unhookLoveCallbacks()
+  if self.assets then
+    self.assets:finish()
+    self.assets = nil
+  end
+
+  self.assetPreviewEnabled = enabled
+  if enabled then
+    self.assets = FeatherAssets(self.featherLogger)
+  end
+
+  self.pluginManager:hookLoveCallbacks()
 end
 
 --- Dispatch an incoming desktop → game command message.
@@ -307,6 +406,36 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:plugin:toggle" and msg.plugin then
     self.pluginManager:togglePlugin(msg.plugin)
     self:__sendHello()
+  elseif msg.type == "cmd:plugins:disable_all" then
+    self.pluginManager:disableAllPlugins()
+    self:__sendHello()
+  elseif msg.type == "cmd:assets:toggle" then
+    local enabled = not self.assetPreviewEnabled
+    if msg.data and msg.data.enabled ~= nil then
+      enabled = msg.data.enabled
+    end
+    self:__setAssetPreviewEnabled(enabled)
+    self:__sendHello()
+    self:__pushAssets()
+  elseif msg.type == "cmd:assets:preview" and msg.data then
+    if not self.assets then
+      self:__sendWs(json.encode({
+        type = "assets:error",
+        session = self.sessionId,
+        data = { message = "Asset preview is disabled for this session" },
+      }))
+      return
+    end
+    local ok, err = self.assets:preview(msg.data.kind, msg.data.id)
+    if ok then
+      self:__pushAssets()
+    else
+      self:__sendWs(json.encode({
+        type = "assets:error",
+        session = self.sessionId,
+        data = { message = tostring(err) },
+      }))
+    end
   elseif msg.type == "cmd:debugger:enable" then
     self.debuggerEnabled = true
     self.featherDebugger:enable()
@@ -335,7 +464,7 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:time_travel:start" then
     local plugin = self.pluginManager:getPlugin("time-travel")
     if plugin then
-      plugin.disabled = false  -- enable update() so frames are recorded each tick
+      plugin.disabled = false -- enable update() so frames are recorded each tick
       plugin.instance:startRecording()
       self:__sendHello()
     end
@@ -379,13 +508,45 @@ end
 
 --- Push current observer values to the desktop.
 function Feather:__pushObservers()
-  local values = self.featherObserver:getResponseBody()
+  local values = self.featherObserver:getResponseBody(self)
   if values then
     self:__sendWs(json.encode({
       type = "observe",
       session = self.sessionId,
       data = values,
     }))
+    self:__sendPendingBinaries()
+  end
+end
+
+--- Push current asset catalog to the desktop.
+function Feather:__pushAssets()
+  if not self.assets then
+    self:__sendWs(json.encode({
+      type = "assets",
+      session = self.sessionId,
+      data = {
+        enabled = false,
+        textures = {},
+        fonts = {},
+        audio = {},
+        preview = false,
+      },
+    }))
+    return
+  end
+  local body = self.assets:getResponseBody()
+  local binaryData = body.preview and body.preview._binaryData
+  if body.preview then
+    body.preview._binaryData = nil
+  end
+  self:__sendWs(json.encode({
+    type = "assets",
+    session = self.sessionId,
+    data = body,
+  }))
+  if binaryData and self.wsClient and self.wsClient.sendBinary then
+    self.wsClient:sendBinary(binaryData)
   end
 end
 
@@ -465,6 +626,9 @@ function Feather:finish()
   end
   self.wsConnected = false
   self.pluginManager:finish(self)
+  if self.assets then
+    self.assets:finish()
+  end
 end
 
 function Feather:error(msg)
@@ -478,6 +642,9 @@ function Feather:update(dt)
 
   -- Always update local systems
   self.featherLogger:update()
+  if self.assets then
+    self.assets:update()
+  end
   self.pluginManager:update(dt, self)
 
   if self.mode == "disk" then
@@ -505,11 +672,15 @@ function Feather:update(dt)
 
   -- Push-based data delivery: Lua sends performance/observers/plugins on its own schedule
   if self.wsConnected then
+    if self.assets and self.assets:hasPreview() then
+      self:__pushAssets()
+    end
     self._wsElapsed = (self._wsElapsed or 0) + dt
     if self._wsElapsed >= self.sampleRate then
       self._wsElapsed = 0
       self:__pushPerformance(dt)
       self:__pushObservers()
+      self:__pushAssets()
       self.pluginManager:pushAll(self)
       collectgarbage("step", 200)
     end
@@ -546,6 +717,7 @@ function Feather:pushPlugin(pluginId, data)
     plugin = pluginId,
     data = data,
   }))
+  self:__sendPendingBinaries()
 end
 
 ---@type fun(config: FeatherConfig): Feather

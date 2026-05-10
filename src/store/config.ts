@@ -17,6 +17,8 @@ export interface Config {
   language: 'lua';
   captureScreenshot: boolean;
   location: string;
+  sourceDir?: string;
+  assets?: { enabled?: boolean };
   sysInfo?: SysInfo;
   deviceId?: string;
   sessionName?: string;

@@ -1,5 +1,5 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 local json = require(FEATHER_PATH .. ".lib.json")
 
 local gettime
@@ -37,25 +37,47 @@ end
 ---@field _startTime number
 ---@field _hookSocket boolean
 ---@field _socketHooked boolean
+---@field _captureFeatherTraffic boolean
 local NetworkInspectorPlugin = Class({
   __includes = Base,
-  init = function(self, config)
-    self.options = config.options or {}
-    self.logger = config.logger
-    self.observer = config.observer
-    self.packets = {}
-    self.nextId = 1
-    self.maxPackets = self.options.maxPackets or 1000
-    self.maxPayloadPreview = self.options.maxPayloadPreview or 200
-    self.paused = false
-    self.filter = ""
-    self._origSend = {}
-    self._origReceive = {}
-    self._startTime = gettime()
-    self._hookSocket = self.options.hookSocket == true
-    self._socketHooked = false
-  end,
 })
+
+local function clampNumber(value, fallback, min, max)
+  value = tonumber(value) or fallback
+  if min and value < min then value = min end
+  if max and value > max then value = max end
+  return value
+end
+
+local function safeJsonEncode(value)
+  local ok, encoded = pcall(json.encode, value)
+  if ok and encoded then
+    return encoded
+  end
+  return tostring(value)
+end
+
+local function payloadToString(data)
+  if data == nil then
+    return ""
+  end
+
+  if type(data) == "table" then
+    return safeJsonEncode(data)
+  end
+
+  local text = tostring(data)
+  return (text:gsub("[%z\1-\8\11\12\14-\31\127]", function(ch)
+    return string.format("\\x%02X", string.byte(ch))
+  end))
+end
+
+local function truncatePayload(payload, maxPayloadPreview)
+  if #payload > maxPayloadPreview then
+    return string.sub(payload, 1, maxPayloadPreview) .. "..."
+  end
+  return payload
+end
 
 --- Record a packet.
 ---@param direction string "out" | "in"
@@ -71,12 +93,9 @@ function NetworkInspectorPlugin:_record(direction, endpoint, data, status, errMs
   local payload = ""
   local size = 0
   if data then
-    size = #data
-    if size > self.maxPayloadPreview then
-      payload = string.sub(data, 1, self.maxPayloadPreview) .. "..."
-    else
-      payload = data
-    end
+    local raw = payloadToString(data)
+    size = #raw
+    payload = truncatePayload(raw, self.maxPayloadPreview)
   end
 
   local packet = {
@@ -123,6 +142,24 @@ function NetworkInspectorPlugin:wrapSend(endpoint, fn)
   end
 end
 
+--- Wrap an object send method. Use this for colon-style calls: client:send(data).
+---@param endpoint string
+---@param fn function
+---@return function wrappedMethod
+function NetworkInspectorPlugin:wrapSendMethod(endpoint, fn)
+  local plugin = self
+  self._origSend[endpoint] = fn
+  return function(obj, data, ...)
+    local results = { fn(obj, data, ...) }
+    if results[1] == nil then
+      plugin:_record("out", endpoint, data, "error", tostring(results[2]))
+    else
+      plugin:_record("out", endpoint, data, "ok")
+    end
+    return unpack(results)
+  end
+end
+
 --- Wrap a receive function to log incoming packets.
 --- Returns the wrapped function; the original is called transparently.
 ---@param endpoint string   Label for this connection
@@ -136,6 +173,10 @@ function NetworkInspectorPlugin:wrapReceive(endpoint, fn)
     local data = results[1]
     if data == nil then
       local err = results[2]
+      local partial = results[3]
+      if partial and partial ~= "" then
+        plugin:_record("in", endpoint, partial, "ok")
+      end
       if err and err ~= "timeout" then
         plugin:_record("in", endpoint, nil, "error", tostring(err))
       end
@@ -145,6 +186,60 @@ function NetworkInspectorPlugin:wrapReceive(endpoint, fn)
     end
     return unpack(results)
   end
+end
+
+--- Wrap an object receive method. Use this for colon-style calls: client:receive(...).
+---@param endpoint string
+---@param fn function
+---@return function wrappedMethod
+function NetworkInspectorPlugin:wrapReceiveMethod(endpoint, fn)
+  local plugin = self
+  self._origReceive[endpoint] = fn
+  return function(obj, ...)
+    local results = { fn(obj, ...) }
+    local data = results[1]
+    if data == nil then
+      local err = results[2]
+      local partial = results[3]
+      if partial and partial ~= "" then
+        plugin:_record("in", endpoint, partial, "ok")
+      end
+      if err and err ~= "timeout" then
+        plugin:_record("in", endpoint, nil, "error", tostring(err))
+      end
+    else
+      plugin:_record("in", endpoint, data, "ok")
+    end
+    return unpack(results)
+  end
+end
+
+local function socketEndpoint(sock)
+  local okPeer, host, port = pcall(sock.getpeername, sock)
+  if okPeer and host then
+    return tostring(host) .. ":" .. tostring(port or "?"), host, port
+  end
+
+  local okLocal, localHost, localPort = pcall(sock.getsockname, sock)
+  if okLocal and localHost then
+    return tostring(localHost) .. ":" .. tostring(localPort or "?"), localHost, localPort
+  end
+
+  return tostring(sock), nil, nil
+end
+
+function NetworkInspectorPlugin:_shouldIgnoreSocket(host, port)
+  if self._captureFeatherTraffic then
+    return false
+  end
+  if not self.feather then
+    return false
+  end
+  return tonumber(port) == tonumber(self.feather.port) and (
+    host == self.feather.host
+    or host == "127.0.0.1"
+    or host == "localhost"
+  )
 end
 
 --- Hook LuaSocket TCP metatable to intercept all send/receive globally.
@@ -177,12 +272,15 @@ function NetworkInspectorPlugin:_hookLuaSocket()
   if tcpMethods.send and not self._origSocketSend then
     self._origSocketSend = tcpMethods.send
     tcpMethods.send = function(sock, data, ...)
-      local results = { self._origSocketSend(sock, data, ...) }
-      local peer = tostring(sock):gsub("tcp{.*}", "tcp")
+      local results = { plugin._origSocketSend(sock, data, ...) }
+      local peer, host, port = socketEndpoint(sock)
+      if plugin:_shouldIgnoreSocket(host, port) then
+        return unpack(results)
+      end
       if results[1] == nil then
-        plugin:_record("out", peer, tostring(data), "error", tostring(results[2]))
+        plugin:_record("out", peer, data, "error", tostring(results[2]))
       else
-        plugin:_record("out", peer, tostring(data), "ok")
+        plugin:_record("out", peer, data, "ok")
       end
       return unpack(results)
     end
@@ -192,10 +290,17 @@ function NetworkInspectorPlugin:_hookLuaSocket()
   if tcpMethods.receive and not self._origSocketReceive then
     self._origSocketReceive = tcpMethods.receive
     tcpMethods.receive = function(sock, pattern, ...)
-      local results = { self._origSocketReceive(sock, pattern, ...) }
-      local peer = tostring(sock):gsub("tcp{.*}", "tcp")
+      local results = { plugin._origSocketReceive(sock, pattern, ...) }
+      local peer, host, port = socketEndpoint(sock)
+      if plugin:_shouldIgnoreSocket(host, port) then
+        return unpack(results)
+      end
       if results[1] == nil then
         local err = results[2]
+        local partial = results[3]
+        if partial and partial ~= "" then
+          plugin:_record("in", peer, partial, "ok")
+        end
         if err and err ~= "timeout" then
           plugin:_record("in", peer, nil, "error", tostring(err))
         end
@@ -212,23 +317,48 @@ end
 
 function NetworkInspectorPlugin:init(config)
   self.options = config.options or {}
+  self.feather = config.feather
   self.logger = config.logger
   self.observer = config.observer
   self.packets = {}
   self.nextId = 1
-  self.maxPackets = self.options.maxPackets or 1000
-  self.maxPayloadPreview = self.options.maxPayloadPreview or 200
+  self.maxPackets = clampNumber(self.options.maxPackets, 1000, 1, 100000)
+  self.maxPayloadPreview = clampNumber(self.options.maxPayloadPreview, 200, 16, 10000)
   self.paused = false
   self.filter = ""
   self._origSend = {}
   self._origReceive = {}
   self._startTime = gettime()
   self._hookSocket = self.options.hookSocket == true
+  self._captureFeatherTraffic = self.options.captureFeatherTraffic == true
   self._socketHooked = false
 
   if self._hookSocket then
     self:_hookLuaSocket()
   end
+end
+
+function NetworkInspectorPlugin:finish()
+  if self._socketHooked then
+    local ok, socket = pcall(require, "socket")
+    if ok then
+      local tmp = socket.tcp()
+      local mt = tmp and getmetatable(tmp)
+      local tcpMethods = mt and mt.__index
+      if tcpMethods then
+        if self._origSocketSend then
+          tcpMethods.send = self._origSocketSend
+        end
+        if self._origSocketReceive then
+          tcpMethods.receive = self._origSocketReceive
+        end
+      end
+      if tmp then tmp:close() end
+    end
+  end
+  self._socketHooked = false
+  self._origSocketSend = nil
+  self._origSocketReceive = nil
 end
 
 --- Format bytes for display.
@@ -318,6 +448,7 @@ function NetworkInspectorPlugin:handleActionRequest(request)
         endpoint = p.endpoint,
         size = p.size,
         payload = p.payload,
+        payloadTruncated = p.size > self.maxPayloadPreview,
         time = p.time,
         gameTime = p.gameTime,
         status = p.status,
@@ -328,7 +459,7 @@ function NetworkInspectorPlugin:handleActionRequest(request)
     local content = json.encode(exportData)
     return {
       data = "Export ready",
-      download = { filename = filename, content = content },
+      download = { filename = filename, content = content, extension = "json" },
     }
   end
 

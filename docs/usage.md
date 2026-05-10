@@ -105,6 +105,16 @@ Click any line number in the source view to add a breakpoint. While paused, use 
 
 ---
 
+## Assets
+
+The Assets tab tracks textures, fonts, and audio sources loaded at runtime. It can preview file-backed images directly from the desktop filesystem, and falls back to game-rendered PNG previews for procedural textures and fonts.
+
+Use **Select Folder** in the Assets tab to set the session's Game Root when the desktop needs a local copy of the game project.
+
+→ [Full Assets documentation](assets.md)
+
+---
+
 ## Time Travel
 
 Time Travel records per-frame observer snapshots into a ring buffer and lets you scrub backwards through history to find exactly when a value changed.

@@ -18,8 +18,8 @@ Feather is a real-time debugging and inspection tool for [LÖVE](https://love2d.
 - 💻 **Console / REPL** — Execute Lua code in the running game (opt-in, requires `apiKey`).
 - 🐛 **Step Debugger** — Breakpoints, step over/into/out, call stack, local variable inspection.
 - 📁 **Log file viewer** — Open `.featherlog` files for offline inspection.
-- ⚡ **Zero-config setup** — `require("feather.auto")` registers all plugins with sensible defaults.
-- 📦 **One-line installer** — `curl | bash` to download core + plugins.
+- 🖥️ **CLI-first setup** — `feather init`, `feather run`, and `feather remove` manage the debugger lifecycle.
+- ⚡ **Guarded in-game setup** — Generated imports load only when `USE_DEBUGGER` is enabled.
 
 ---
 
@@ -31,18 +31,45 @@ Feather is a real-time debugging and inspection tool for [LÖVE](https://love2d.
 
 ## Quick Start
 
-```lua
-require("feather.auto")
+Install the CLI, initialize your game, then run with `USE_DEBUGGER=1` when you want Feather loaded:
 
+```bash
+npm install -g feather-cli
+feather init path/to/my-game
+USE_DEBUGGER=1 love path/to/my-game
+```
+
+> [!IMPORTANT]
+> For quick local desktop iteration, you can also use `feather run path/to/my-game` without changing game code. For mobile, handhelds, and remote devices like Android, iOS, or Steam Deck, use the embedded library from `feather init --mode auto` so the game carries Feather with it on the device.
+
+`feather init` creates a `feather.config.lua` file for project settings:
+
+```lua
+return {
+  sessionName = "My Game",
+  -- For phones, tablets, Steam Deck, or another computer, set this to
+  -- the desktop app machine's LAN IP.
+  -- host = "192.168.1.50",
+  -- include = { "console" },
+  -- exclude = { "hump.signal", "lua-state-machine" },
+}
+```
+
+Generated code always uses `DEBUGGER` safely:
+
+```lua
 function love.update(dt)
-  DEBUGGER:update(dt)
+  if DEBUGGER then
+    DEBUGGER:update(dt)
+  end
 end
 ```
 
-Install the Lua library:
+For production cleanup:
 
 ```bash
-curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh | bash
+feather remove --dry-run
+feather remove --yes
 ```
 
 Then download the desktop app from the [releases page](https://github.com/Kyonru/feather/releases).

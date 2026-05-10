@@ -6,3 +6,15 @@ if ! git diff --exit-code src-lua/manifest.txt; then
   echo "[feather] manifest.txt is out of date — it has been updated, please stage it and commit again."
   exit 1
 fi
+
+npm run generate:plugin-catalog
+if ! git diff --exit-code cli/src/generated/plugin-catalog.ts; then
+  echo "[feather] plugin catalog is out of date — it has been updated, please stage it and commit again."
+  exit 1
+fi
+
+bash scripts/set-version.sh
+if ! git diff --exit-code package.json src-lua/feather/init.lua src-tauri/Cargo.toml src-tauri/tauri.conf.json; then
+  echo "[feather] Version files are out of sync — they have been updated, please stage them and commit again."
+  exit 1
+fi

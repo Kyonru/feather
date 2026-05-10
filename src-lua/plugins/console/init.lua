@@ -1,7 +1,7 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
 local json = require(FEATHER_PATH .. ".lib.json")
 local inspect = require(FEATHER_PATH .. ".lib.inspect")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 
 ---@class ConsolePlugin: FeatherPlugin
 ---@field maxCodeSize number
@@ -67,6 +67,25 @@ end
 ---@param feather Feather
 function ConsolePlugin:handleEval(msg, feather)
   local function sendResponse(status, result, prints)
+    local binaries = {}
+    if feather.__maybeAttachText then
+      if result ~= nil then
+        local binary
+        result, binary = feather:__maybeAttachText(result)
+        if binary then
+          binaries[#binaries + 1] = binary
+        end
+      end
+
+      for i, value in ipairs(prints or {}) do
+        local binary
+        prints[i], binary = feather:__maybeAttachText(value)
+        if binary then
+          binaries[#binaries + 1] = binary
+        end
+      end
+    end
+
     feather:__sendWs(json.encode({
       type = "eval:response",
       session = feather.sessionId,
@@ -74,7 +93,9 @@ function ConsolePlugin:handleEval(msg, feather)
       status = status,
       result = result,
       prints = prints or {},
+      binary = #binaries > 0 and binaries or nil,
     }))
+    feather:__sendPendingBinaries()
   end
 
   -- Eval must be explicitly enabled.

@@ -5,6 +5,76 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.8.0]
+
+### Added
+
+- Feather CLI foundations
+  - project setup commands
+  - plugin management commands
+  - `feather doctor`
+  - Love2D launch helpers
+  - commands
+    - init - setup feather for a game
+    - run - run game with feather auto hooks
+    - plugin - management of the plugins
+    - remove - allow removing feather before release builds are created for embedded workflows
+- Plugins
+  - manifests (`manifest.lua`)
+    - Plugin capability declarations
+  - automatic discovery and loading
+  - UI layout type
+    - Custom React UI builded from lua
+      - `panel,`, `row`, `column`, `tabs`, `tab`, `text`, `badge`, `button`, `input`, `textarea`, `checkbox`, `switch`, `select`, `stat`, `progress`, `alert`, `list`, `link`, `separator`, `image`, `code`, `table`, `timeline`, `inspector`
+  - disable all option
+  - binary transport type
+  - Screenshots
+    - clean
+- Observers
+  - table diffing
+  - view revamp
+  - nested table change highlighting
+  - history snapshots
+  - search and filtering
+- Session
+  - reload button
+  - source folder override option
+  - add session specific apiKey
+- Development
+  - Automatic plugin list generation
+  - Manifest generation tooling
+  - Plugin manifest documentation
+  - Commit level checks
+    - synced version across all projects
+- Performance
+  - Add more insights
+- Assets
+  - list
+  - preview
+
+### Changed
+
+- Examples structure
+- Plugins
+  - improved architecture
+  - improved documentation
+  - improved ui
+  - Screenshots
+    - binary type transport
+- Observers
+  - UI changes
+- Debugger
+  - binary transport
+- Navigation
+  - require session to open tabs
+  - allow opening .featherlog and .feathertravel as new sessions
+- Docs
+  - add github style notes
+
+### Fixed
+
+- Cleaning logs not longer clean other sessions logs
+
 ## [v0.7.0] - 2026-05-08 - The one with the debugger and time travel
 
 ### Added
@@ -213,6 +283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v0.8.0]: https://github.com/Kyonru/feather/compare/v0.7.0...v0.8.0
 [v0.7.0]: https://github.com/Kyonru/feather/compare/v0.6.0...v0.7.0
 [v0.6.0]: https://github.com/Kyonru/feather/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/Kyonru/feather/compare/v0.5.0...v0.5.1

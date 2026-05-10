@@ -1,5 +1,5 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
-local Base = require(FEATHER_PATH .. ".plugins.base")
+local Base = require(FEATHER_PATH .. ".core.base")
 local inspect = require(FEATHER_PATH .. ".lib.inspect")
 
 --- Resolve a value: if it's a function, call it; otherwise return as-is.

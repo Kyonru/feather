@@ -8,10 +8,11 @@ import { usePlugin, usePluginAction } from '@/hooks/use-plugin';
 import { useConfigStore } from '@/store/config';
 import { DynamicIcon, IconName } from 'lucide-react/dynamic';
 import { useCallback, useRef } from 'react';
-import { useHref } from 'react-router';
+import { Link, useHref } from 'react-router';
 import { PluginContent } from './content';
 import { Checkbox } from '@/components/ui/checkbox';
 import { openUrl } from '@/utils/linking';
+import { PuzzleIcon } from 'lucide-react';
 
 const VectorInput = ({
   label,
@@ -241,9 +242,41 @@ export default function PluginPage() {
   const plugin = plugins?.[pluginKey];
 
   if (!plugin) {
+    const pluginEntries = Object.entries(plugins ?? {})
+      .filter(([, value]) => value.tabName)
+      .sort(([, a], [, b]) => String(a.tabName).localeCompare(String(b.tabName)));
+
     return (
       <PageLayout>
-        <pre className="whitespace-pre-wrap text-4xl p-12">404 Plugin Not Found</pre>
+        <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10 text-center">
+          <div className="flex max-w-lg flex-col items-center gap-4">
+            <div className="flex size-12 items-center justify-center rounded-md border bg-muted/40">
+              <PuzzleIcon className="size-5 text-muted-foreground" />
+            </div>
+            <div className="grid gap-1">
+              <p className="text-lg font-semibold">Plugin not available</p>
+              <p className="text-sm text-muted-foreground">
+                This session does not expose <span className="font-mono text-foreground">{pluginKey}</span>. It may
+                belong to another game session, or the plugin may be disabled or not installed in this run.
+              </p>
+            </div>
+
+            {pluginEntries.length > 0 ? (
+              <div className="flex max-w-full flex-wrap justify-center gap-2">
+                {pluginEntries.slice(0, 6).map(([key, value]) => (
+                  <Button key={key} asChild variant="outline" size="sm">
+                    <Link to={`/plugins/${key}`}>
+                      {value.icon && <DynamicIcon className="size-3.5" name={value.icon} />}
+                      {value.tabName}
+                    </Link>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No plugins are available for the selected session.</p>
+            )}
+          </div>
+        </div>
       </PageLayout>
     );
   }
@@ -278,42 +311,50 @@ export default function PluginPage() {
   return (
     <PageLayout>
       <div className="px-4">
-        <div className="flex flex-row flex-wrap gap-2 mb-4">
-          <Button
-            variant={plugin.disabled ? 'default' : 'outline'}
-            onClick={onToggle}
-          >
-            <DynamicIcon className="size-4" name={plugin.disabled ? 'play' : 'pause'} />
-            <div>{plugin.disabled ? 'Enable' : 'Disable'}</div>
-          </Button>
-          {plugin.docs && (
-            <Button variant="outline" onClick={() => openUrl(plugin.docs)}>
-              <DynamicIcon className="size-4" name="book-open" />
-              <div>Docs</div>
+        <div className="flex items-start justify-between gap-2 mb-4">
+          {/* Plugin-specific toolbar actions */}
+          <div className="flex flex-row flex-wrap gap-2">
+            {toolbarActions.map((action) => (
+              <PluginAction
+                key={action.key}
+                action={action.key}
+                label={action.label}
+                icon={action.icon}
+                type={action.type}
+                value={action.value}
+                onClick={onPluginAction}
+                onFileClick={onFileAction}
+                onChange={onActionChange}
+                props={action.props}
+              />
+            ))}
+            {data.loading && (
+              <Button variant="destructive" size="sm" onClick={() => onCancel('gif')}>
+                <DynamicIcon className="size-4" name="x" />
+                Cancel
+              </Button>
+            )}
+          </div>
+          {/* System controls */}
+          <div className="flex items-center gap-2 shrink-0">
+            {plugin.docs && (
+              <Button variant="ghost" size="sm" onClick={() => openUrl(plugin.docs)}>
+                <DynamicIcon className="size-4" name="book-open" />
+                Docs
+              </Button>
+            )}
+            <Button
+              variant={plugin.disabled ? 'default' : 'outline'}
+              size="sm"
+              onClick={onToggle}
+            >
+              <DynamicIcon className="size-4" name={plugin.disabled ? 'play' : 'pause'} />
+              {plugin.disabled ? 'Enable' : 'Disable'}
             </Button>
-          )}
-          {toolbarActions.map((action) => (
-            <PluginAction
-              key={action.key}
-              action={action.key}
-              label={action.label}
-              icon={action.icon}
-              type={action.type}
-              value={action.value}
-              onClick={onPluginAction}
-              onFileClick={onFileAction}
-              onChange={onActionChange}
-              props={action.props}
-            />
-          ))}
-          {data.loading && (
-            <Button variant="destructive" size="sm" onClick={() => onCancel('gif')}>
-              Cancel
-            </Button>
-          )}
+          </div>
         </div>
         {groups.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             {groups.map((group) => (
               <Card key={group.name} className="py-3 gap-3">
                 <CardHeader className="px-4 pb-0">
@@ -345,7 +386,9 @@ export default function PluginPage() {
             This plugin is disabled and execution is paused. Enable it to resume.
           </div>
         )}
-        {!plugin.disabled && <PluginContent {...data} onParamsChange={onParamsChange} />}
+        {!plugin.disabled && (
+          <PluginContent {...data} onAction={onPluginAction} onParamsChange={onParamsChange} />
+        )}
       </div>
     </PageLayout>
   );
