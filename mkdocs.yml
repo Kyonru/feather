@@ -60,6 +60,7 @@ nav:
       - Timer Inspector: plugins/timer-inspector.md
 
 markdown_extensions:
+  - github-callouts
   - admonition
   - pymdownx.highlight:
       anchor_linenums: true

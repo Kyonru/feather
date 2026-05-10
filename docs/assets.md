@@ -77,8 +77,8 @@ The Assets tab has three views:
 
 Use the filter input to search by filename or source path.
 
-!!! note
-    Feather only sees assets loaded after Feather has initialized. If an asset is loaded before Feather starts, reload the game with Feather enabled earlier in startup.
+> [!NOTE]
+> Feather only sees assets loaded after Feather has initialized. If an asset is loaded before Feather starts, reload the game with Feather enabled earlier in startup.
 
 ---
 
@@ -119,7 +119,10 @@ Fonts are previewed by rendering sample text in the game and sending a PNG previ
 
 The **Game Root** folder is the desktop-side root directory used to resolve asset paths and debugger source files.
 
-Feather automatically reports the source directory when the LÖVE version supports it. If the game runs somewhere the desktop cannot read directly, such as a mobile device, remote machine, or bundled runtime, click **Select Folder** and choose the local copy of the game's root folder.
+> [!IMPORTANT]
+> If the game runs somewhere the desktop cannot read directly, such as a mobile device, remote machine, or bundled runtime, click **Select Folder** and choose the local copy of the game's root folder.
+
+Feather automatically reports the source directory when the LÖVE version supports it.
 
 The selected folder is stored per session and is shared by:
 
@@ -148,7 +151,8 @@ the desktop reads:
 /Users/me/projects/my-game/assets/player.png
 ```
 
-For absolute paths reported by the game, a manually selected Game Root still wins. Feather strips the absolute prefix and resolves the path inside the selected folder so remote/mobile paths can map to a local project copy.
+> [!TIP]
+> For absolute paths reported by the game, a manually selected Game Root still wins. Feather strips the absolute prefix and resolves the path inside the selected folder so remote/mobile paths can map to a local project copy.
 
 ---
 
@@ -171,7 +175,8 @@ When zoom is above 100%, Feather draws a pixel grid over the preview. This is us
 
 ### The texture list is empty
 
-Make sure the game loads images after Feather starts. If assets are loaded before `require("feather.auto")` or before creating `FeatherDebugger`, Feather cannot track those calls.
+> [!IMPORTANT]
+> Make sure the game loads images after Feather starts. If assets are loaded before `require("feather.auto")` or before creating `FeatherDebugger`, Feather cannot track those calls.
 
 ### Preview says the file is not available
 

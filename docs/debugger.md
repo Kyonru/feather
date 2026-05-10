@@ -130,7 +130,8 @@ Step Over line by line to watch `self.velocity.y` and `self.y` update in real ti
 
 ## Mobile / remote source files
 
-If the game is running on a mobile device or in an environment where the desktop can't access the source files directly, click **Open folder** in the file tree header and select the directory where your `.lua` files live. The debugger will read files from there for display.
+> [!IMPORTANT]
+> If the game is running on a mobile device or in an environment where the desktop can't access the source files directly, click **Open folder** in the file tree header and select the directory where your `.lua` files live. The debugger will read files from there for display.
 
 ---
 
@@ -138,8 +139,8 @@ If the game is running on a mobile device or in an environment where the desktop
 
 Lua's `debug.sethook` line hook fires on every executed line. When a breakpoint or step condition is met, `love.update` blocks in a tight poll while the WS client keeps pumping — so the desktop stays connected and commands (continue, step) can arrive. Resuming any step command unblocks the loop and reinstalls the hook for the next pause.
 
-!!! note "Performance"
-    `debug.sethook` adds a small overhead to every executed Lua line. It is noticeable in CPU-heavy games. Enable the debugger only during active debugging sessions and disable it from the desktop when not in use.
+> [!NOTE]
+> `debug.sethook` adds a small overhead to every executed Lua line. It is noticeable in CPU-heavy games. Enable the debugger only during active debugging sessions and disable it from the desktop when not in use.
 
 ---
 

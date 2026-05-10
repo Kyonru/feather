@@ -6,6 +6,7 @@ on:
     paths:
       - docs/**
       - mkdocs.yml
+      - requirements-docs.txt
   workflow_dispatch:
 
 permissions:
@@ -27,6 +28,6 @@ jobs:
           restore-keys: mkdocs-material-
           path: ~/.cache/pip
 
-      - run: pip install mkdocs-material
+      - run: pip install -r requirements-docs.txt
 
       - run: mkdocs gh-deploy --force

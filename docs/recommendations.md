@@ -14,13 +14,57 @@ local debugger = FeatherDebugger({
 
 ### Console plugin
 
-Do not include the Console plugin in builds shipped to users — it allows remote code execution and can be a serious security risk.
+> [!WARNING]
+> Do not include the Console plugin in builds shipped to users. It allows remote code execution and can be a serious security risk.
+
+---
+
+## Safe `DEBUGGER` Usage
+
+> [!IMPORTANT]
+> `DEBUGGER` only exists when Feather actually loads. With CLI-managed setup, generated imports are guarded by `USE_DEBUGGER`, so production-like runs can leave Feather unloaded entirely.
+
+Always guard direct `DEBUGGER` usage:
+
+```lua
+function love.update(dt)
+  if DEBUGGER then
+    DEBUGGER:update(dt)
+  end
+end
+```
+
+For custom actions:
+
+```lua
+if DEBUGGER then
+  DEBUGGER:log("Player spawned")
+end
+```
+
+Avoid this in game code:
+
+```lua
+DEBUGGER:update(dt)
+```
+
+> [!CAUTION]
+> That direct call will fail when `USE_DEBUGGER` is unset, when `debug = false`, or after running `feather remove`.
+
+For local/dev runs, enable Feather explicitly:
+
+```bash
+USE_DEBUGGER=1 love .
+```
+
+For production builds, leave `USE_DEBUGGER` unset and run `feather remove --yes` before packaging.
 
 ---
 
 ## Performance
 
-Feather is a development tool, not something you should ship in production builds. Use one of these approaches, from least to most thorough:
+> [!WARNING]
+> Feather is a development tool, not something you should ship in production builds. Use one of these approaches, from least to most thorough.
 
 ### Level 1 — Disable at runtime (`debug = false`)
 
@@ -64,7 +108,8 @@ love .
 set USE_DEBUGGER=1 && love .
 ```
 
-Leave `USE_DEBUGGER` unset, `0`, or `false` in production-like runs so Feather is not loaded at all.
+> [!NOTE]
+> Leave `USE_DEBUGGER` unset, `0`, or `false` in production-like runs so Feather is not loaded at all.
 
 Before packaging a release, run:
 
@@ -86,7 +131,8 @@ feather remove --keep-runtime
 feather remove --keep-main
 ```
 
-This is the recommended workflow for most projects because Feather can clean up after itself before production packaging.
+> [!TIP]
+> This is the recommended workflow for most projects because Feather can clean up after itself before production packaging.
 
 ### Level 3 — Guard manual requires
 
@@ -130,7 +176,8 @@ exclude:
 exclude = ["feather/**"]
 ```
 
-No Feather code or assets are present in the release build — this also eliminates the Console plugin as an attack surface entirely.
+> [!IMPORTANT]
+> No Feather code or assets are present in the release build. This also eliminates the Console plugin as an attack surface entirely.
 
 If you use manual mode, also exclude or remove:
 

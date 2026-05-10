@@ -20,7 +20,7 @@
 | `autoRegisterErrorHandler` | `boolean`             | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                                                                                  |
 | `errorHandler`             | `function`            | `love.errorhandler` | Custom error handler to use.                                                                                                                      |
 | `plugins`                  | `table`               | `{}`                | List of plugin modules to load.                                                                                                                   |
-| `captureScreenshot`        | `boolean`             | `false`             | Capture screenshots on error. WARNING: impacts performance.                                                                                       |
+| `captureScreenshot`        | `boolean`             | `false`             | Capture screenshots on error.                                                                                                                     |
 | `sessionName`              | `string`              | `""`                | Custom display name shown in desktop session tabs (e.g. `"My RPG"`).                                                                              |
 | `deviceId`                 | `string`              | auto-generated      | Persistent device ID. Auto-generated and saved to disk if not set.                                                                                |
 | `writeToDisk`              | `boolean`             | `true`              | Whether to write logs to `.featherlog` files.                                                                                                     |
@@ -34,6 +34,9 @@
 | `binaryTextThreshold`      | `number`              | `4096`              | Observer, time-travel, debugger, and console text values longer than this many bytes are sent through the hybrid binary protocol instead of JSON. |
 
 ---
+
+> [!WARNING]
+> `captureScreenshot` can affect performance because it captures the current frame when errors are handled. Enable it only when you need visual error context.
 
 ## Connecting
 
@@ -78,7 +81,8 @@ local debugger = FeatherDebugger({
 })
 ```
 
-> **Tip:** Open Feather → **Settings** → **Mobile Connection**. Your local IP is auto-detected with a copyable `ws://` connection string and ready-to-paste Lua snippet.
+> [!TIP]
+> Open Feather → **Settings** → **Mobile Connection**. Your local IP is auto-detected with a copyable `ws://` connection string and ready-to-paste Lua snippet.
 
 ### Offline / disk mode
 

@@ -2,7 +2,8 @@
 
 The Console is an **opt-in plugin** that lets you evaluate arbitrary Lua code inside the running game from the Feather desktop app. It is not included by default and must be explicitly enabled.
 
----
+> [!WARNING]
+> Do not include the Console plugin in builds shipped to users. It allows remote code execution and can be a serious security risk.
 
 ## Setup
 

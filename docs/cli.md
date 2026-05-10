@@ -6,6 +6,9 @@ The Feather CLI lets you run and debug Love2D games **without modifying your gam
 feather run path/to/my-game
 ```
 
+> [!IMPORTANT]
+> `feather run` is best for local desktop development. For mobile, handhelds, Steam Deck, or a second computer where the CLI is not launching the game process, use `feather init --mode auto` so the game carries the embedded Feather library.
+
 ---
 
 ## Installation
@@ -92,6 +95,9 @@ feather init --local-src ../feather/src-lua  # copy from a local source tree
 feather init --install-dir lib/feather  # install like FEATHER_DIR=lib/feather
 ```
 
+> [!IMPORTANT]
+> Use `--mode auto` for device builds. It embeds Feather into the project and patches `main.lua` with a `USE_DEBUGGER`-guarded `feather.auto` loader, which works when the game runs on Android, iOS, Steam Deck, or another remote machine.
+
 **What it does:**
 
 By default, `feather init` opens an interactive terminal picker powered by Ink:
@@ -128,7 +134,8 @@ if featherUseDebugger and featherUseDebugger ~= "0" and featherUseDebugger:lower
 end
 ```
 
-Run local/dev builds with `USE_DEBUGGER=1` to load Feather. Leave it unset, `0`, or `false` to skip all Feather imports.
+> [!NOTE]
+> Run local/dev builds with `USE_DEBUGGER=1` to load Feather. Leave it unset, `0`, or `false` to skip all Feather imports.
 
 ```bash
 # macOS / Linux
@@ -192,7 +199,8 @@ DEBUGGER = FeatherDebugger({
 return DEBUGGER
 ```
 
-`main.lua` gets matching `FEATHER-INIT` comments around the loader and update hook. `feather.config.lua` also includes a managed metadata block so a future `feather remove` command can remove generated files and markers before production packaging.
+> [!TIP]
+> `main.lua` gets matching `FEATHER-INIT` comments around the loader and update hook. `feather.config.lua` also includes a managed metadata block so `feather remove` can remove generated files and markers before production packaging.
 
 **Options:**
 
@@ -223,7 +231,8 @@ feather remove --keep-runtime          # keep feather/ and feather/plugins/
 feather remove --install-dir lib/feather
 ```
 
-`feather remove` only edits `main.lua` inside the generated `FEATHER-INIT` marker blocks. It can also remove the installed runtime directory, `feather.config.lua`, and `feather.debugger.lua` when those files are detected.
+> [!CAUTION]
+> `feather remove` only edits `main.lua` inside the generated `FEATHER-INIT` marker blocks. It can also remove the installed runtime directory, `feather.config.lua`, and `feather.debugger.lua` when those files are detected.
 
 The command reads managed metadata from `feather.config.lua` when available, including the install directory and manual entrypoint path.
 

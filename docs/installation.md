@@ -11,12 +11,41 @@ feather run path/to/my-game
 
 A new session tab appears in the Feather desktop app automatically. No `require` calls, no `DEBUGGER:update(dt)` — the CLI handles everything.
 
-To add Feather to an existing project permanently (downloads the library, patches `main.lua`):
+> [!NOTE]
+> Use `feather run` for local desktop iteration where the CLI launches LÖVE directly.
+
+> [!IMPORTANT]
+> For mobile, handheld, and remote devices such as Android, iOS, Steam Deck, or a second computer, embed Feather into the game instead. Those devices run the game themselves, so the CLI cannot inject Feather at launch time.
+
+### Embedded library for devices
+
+Use auto mode for device builds:
 
 ```bash
 cd path/to/my-game
-feather init
+feather init --mode auto
 ```
+
+Then set the desktop app machine as the connection target in `feather.config.lua`:
+
+```lua
+return {
+  sessionName = "Steam Deck Test",
+
+  -- IP address of the computer running the Feather desktop app.
+  host = "192.168.1.50",
+}
+```
+
+Run the game with Feather enabled:
+
+```bash
+# macOS / Linux / Steam Deck shell
+USE_DEBUGGER=1 love .
+```
+
+> [!TIP]
+> For Android over USB with ADB reverse, the default `host = "127.0.0.1"` can still work because ADB routes the device port back to your computer. For Wi-Fi devices, Steam Deck, or another computer, use the LAN IP shown in Feather Settings.
 
 See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
 
@@ -115,7 +144,8 @@ FEATHER_BRANCH=v0.7.0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyo
 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
 ```
 
-> `FEATHER_BRANCH` accepts any Git ref — a tag (`v0.7.0`), branch (`main`, `next`), or a full commit SHA.
+> [!NOTE]
+> `FEATHER_BRANCH` accepts any Git ref: a tag (`v0.7.0`), branch (`main`, `next`), or a full commit SHA.
 
 ### Manual update
 

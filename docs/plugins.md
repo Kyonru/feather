@@ -140,7 +140,8 @@ function MyPlugin:onJoystickreleased(joystick, button) end
 
 Only override the methods you need — unused ones default to no-ops in the base class.
 
-> **Exception:** `input-replay` keeps its own hook system because it simulates love events during replay. Routing those through the central dispatcher would cause recursion.
+> [!NOTE]
+> `input-replay` keeps its own hook system because it simulates love events during replay. Routing those through the central dispatcher would cause recursion.
 
 ### Capabilities
 
