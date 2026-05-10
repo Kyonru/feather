@@ -86,6 +86,13 @@ function readIfExists(path: string): string | null {
   return readFileSync(path, "utf8");
 }
 
+function uncommentedLua(src: string): string {
+  return src
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("--"))
+    .join("\n");
+}
+
 function parseManagedValue(src: string, key: string): string | null {
   return src.match(new RegExp(`^--\\s*${key}:\\s*(.+)$`, "m"))?.[1]?.trim() ?? null;
 }
@@ -315,7 +322,8 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   }
 
   if (configSource) {
-    const captureScreenshot = luaBoolEnabled(configSource, "captureScreenshot");
+    const activeConfigSource = uncommentedLua(configSource);
+    const captureScreenshot = luaBoolEnabled(activeConfigSource, "captureScreenshot");
     add(
       checks,
       "Safety",
@@ -325,9 +333,9 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       captureScreenshot ? "Enable only when you need visual error context; it can affect performance." : undefined,
     );
 
-    const hotReloadEnabled = /hotReload\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(configSource);
-    const persistToDisk = /hotReload\s*=\s*\{[\s\S]*?persistToDisk\s*=\s*true/.test(configSource);
-    const broadHotReload = /allow\s*=\s*\{[\s\S]*["'][^"']+\.\*["']/.test(configSource);
+    const hotReloadEnabled = /hotReload\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
+    const persistToDisk = /hotReload\s*=\s*\{[\s\S]*?persistToDisk\s*=\s*true/.test(activeConfigSource);
+    const broadHotReload = /allow\s*=\s*\{[\s\S]*["'][^"']+\.\*["']/.test(activeConfigSource);
     add(
       checks,
       "Safety",
@@ -343,7 +351,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       add(checks, "Safety", "Hot reload persistence", "warn", "persistToDisk=true", "Persisted patches survive app restarts until restored or cleared.");
     }
 
-    const consoleIncluded = hasConfigArrayValue(configSource, "include", "console") || pluginDirs.some((dir) => readPluginId(dir) === "console");
+    const consoleIncluded = hasConfigArrayValue(activeConfigSource, "include", "console") || pluginDirs.some((dir) => readPluginId(dir) === "console");
     if (consoleIncluded) {
       const apiKey = config?.apiKey;
       add(

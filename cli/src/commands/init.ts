@@ -116,7 +116,11 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   const useRemote = opts.remote === true || setup.source === 'remote';
 
   if (mode === 'cli') {
-    writeConfig(target, setup.config);
+    writeConfig(target, setup.config, {
+      mode,
+      installDir,
+      source: useRemote ? `github:${setup.branch || opts.branch || 'main'}` : 'local',
+    });
     console.log('\n' + chalk.bold('Done!') + ' Run this project through Feather CLI.\n');
     console.log(chalk.dim(`  feather run ${dir}`));
     console.log(chalk.dim('  Use `--config <path>` if feather.config.lua lives elsewhere.\n'));
