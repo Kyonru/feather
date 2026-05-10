@@ -9,6 +9,7 @@ love src-lua --test-ws
 love src-lua --test-cli
 love src-lua --plugin-ui
 love src-lua --hot-reload
+love src-lua --e2e
 ```
 
 `--demo` is the default when no flag is passed.
@@ -30,3 +31,9 @@ love src-lua --hot-reload
 ```
 
 Open Feather's **Debugger** tab, select `example/hot_reload/gameplay.lua`, edit that file, then press **Reload** or enable **Watch**.
+
+The Lua E2E example is meant for automation. It runs assertions through LÖVE and exits on its own:
+
+```bash
+npm run test:lua:e2e
+```

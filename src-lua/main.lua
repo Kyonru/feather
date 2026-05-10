@@ -5,6 +5,7 @@ local examples = {
   ["--test-cli"] = "example.test_cli.main",
   ["--plugin-ui"] = "example.plugin_ui.main",
   ["--hot-reload"] = "example.hot_reload.main",
+  ["--e2e"] = "example.e2e.main",
 }
 
 local defaultExample = "--demo"
@@ -19,6 +20,7 @@ local function printUsage()
   print("  love src-lua --test-cli")
   print("  love src-lua --plugin-ui")
   print("  love src-lua --hot-reload")
+  print("  love src-lua --e2e")
 end
 
 for _, value in ipairs(arg or {}) do

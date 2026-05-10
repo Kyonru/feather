@@ -5,6 +5,7 @@ local titles = {
   ["--test-cli"] = "Feather CLI Example",
   ["--plugin-ui"] = "Feather Plugin UI Example",
   ["--hot-reload"] = "Feather Hot Reload Example",
+  ["--e2e"] = "Feather Lua E2E",
 }
 
 function love.conf(t)
