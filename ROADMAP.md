@@ -13,6 +13,11 @@
 
 ---
 
+## 0.8.0
+
+- e2e tests for cli
+- improve doctor experience
+
 ## 0.9.x — Assets & Runtime Inspection
 
 Focus:

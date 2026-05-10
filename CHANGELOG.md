@@ -10,38 +10,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Feather CLI foundations
-  - Project setup commands
-  - Plugin management commands
+  - project setup commands
+  - plugin management commands
   - `feather doctor`
   - Love2D launch helpers
-- Plugin manifests (`manifest.lua`)
-- Automatic plugin discovery and loading
-- Plugin capability declarations
-- Plugin UI layout type
-- Observer table diffing
-- Nested table change highlighting
-- Observer history snapshots
-- Observer search and filtering
-- Reload session option
-- Version sync checks between game and desktop app
-- Automatic plugin list generation
-- Manifest generation tooling
-- Plugin manifest documentation
+  - commands
+    - init - setup feather for a game
+    - run - run game with feather auto hooks
+    - plugin - management of the plugins
+    - remove - allow removing feather before release builds are created for embedded workflows
+- Plugins
+  - manifests (`manifest.lua`)
+    - Plugin capability declarations
+  - automatic discovery and loading
+  - UI layout type
+    - Custom React UI builded from lua
+      - `panel,`, `row`, `column`, `tabs`, `tab`, `text`, `badge`, `button`, `input`, `textarea`, `checkbox`, `switch`, `select`, `stat`, `progress`, `alert`, `list`, `link`, `separator`, `image`, `code`, `table`, `timeline`, `inspector`
+  - disable all option
+  - binary transport type
+  - Screenshots
+    - clean
+- Observers
+  - table diffing
+  - view revamp
+  - nested table change highlighting
+  - history snapshots
+  - search and filtering
+- Session
+  - reload button
+  - source folder override option
+  - add session specific apiKey
+- Development
+  - Automatic plugin list generation
+  - Manifest generation tooling
+  - Plugin manifest documentation
+  - Commit level checks
+    - synced version across all projects
+- Performance
+  - Add more insights
+- Assets
+  - list
+  - preview
 
 ### Changed
 
-- Improved plugin loading architecture
-- Improved observer update/render behavior
-- Improved session handling and reconnect flow
-- Improved internal configuration handling
-- Reorganized plugin and tooling structure
+- Examples structure
+- Plugins
+  - improved architecture
+  - improved documentation
+  - improved ui
+  - Screenshots
+    - binary type transport
+- Observers
+  - UI changes
+- Debugger
+  - binary transport
+- Navigation
+  - require session to open tabs
+  - allow opening .featherlog and .feathertravel as new sessions
+- Docs
+  - add github style notes
 
 ### Fixed
 
-- Fixed debugger folder resolution issues
-- Fixed plugin discovery/loading edge cases
-- Fixed observer synchronization issues
-- Fixed session inconsistencies during reconnects
+- Cleaning logs not longer clean other sessions logs
 
 ## [v0.7.0] - 2026-05-08 - The one with the debugger and time travel
 
