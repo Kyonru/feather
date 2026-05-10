@@ -19,6 +19,19 @@ export interface Config {
   location: string;
   sourceDir?: string;
   assets?: { enabled?: boolean };
+  debugger?: {
+    enabled?: boolean;
+    hotReload?: {
+      enabled?: boolean;
+      active?: boolean;
+      persistToDisk?: boolean;
+      requireLocalNetwork?: boolean;
+      modifiedModules?: string[];
+      persistedModules?: string[];
+      failedModules?: string[];
+      history?: unknown[];
+    };
+  };
   sysInfo?: SysInfo;
   deviceId?: string;
   sessionName?: string;

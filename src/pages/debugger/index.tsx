@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { useDebugger } from '@/hooks/use-debugger';
+import { pathToLuaModule, useHotReload } from '@/hooks/use-hot-reload';
 import { useTimeTravel } from '@/hooks/use-time-travel';
 import { useConfigStore } from '@/store/config';
 import { useDebuggerStore } from '@/store/debugger';
@@ -36,6 +37,8 @@ import {
   SearchIcon,
   XIcon,
   ChevronUpIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
 } from 'lucide-react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useLanguage } from '@/hooks/use-config';
@@ -614,6 +617,7 @@ function VarsSection({ title, vars, filter }: { title: string; vars: Record<stri
 
 export default function DebuggerPage() {
   const dbg = useDebugger();
+  const { state: hotReloadState, sendModule, restoreOriginals } = useHotReload();
   const navigate = useNavigate();
   const { frames } = useTimeTravel();
   const configRootPath = useConfigStore((state) => state.config?.sourceDir || state.config?.root_path || '');
@@ -631,6 +635,8 @@ export default function DebuggerPage() {
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
+  const fileContentRef = useRef<string | null>(null);
+  const [watchHotReload, setWatchHotReload] = useState(false);
   const [scrollToLine, setScrollToLine] = useState<number | null>(null);
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0);
   const [varFilter, setVarFilter] = useState('');
@@ -647,14 +653,68 @@ export default function DebuggerPage() {
 
   // Read file content whenever the selection or root changes
   useEffect(() => {
+    fileContentRef.current = fileContent;
+  }, [fileContent]);
+
+  useEffect(() => {
+    if (!hotReloadState.enabled && watchHotReload) {
+      setWatchHotReload(false);
+    }
+  }, [hotReloadState.enabled, watchHotReload]);
+
+  const selectedModule = useMemo(() => (selectedFile ? pathToLuaModule(selectedFile) : null), [selectedFile]);
+  const selectedAbsPath = selectedFile && rootPath ? `${rootPath.replace(/\/$/, '')}/${selectedFile}` : null;
+
+  const reloadSelectedModule = useCallback(() => {
+    if (!selectedAbsPath || !selectedModule || !hotReloadState.enabled || isWeb()) return;
+    readTextFile(selectedAbsPath)
+      .then((source) => {
+        fileContentRef.current = source;
+        setFileContent(source);
+        sendModule(selectedModule, source);
+      })
+      .catch(() => {});
+  }, [hotReloadState.enabled, selectedAbsPath, selectedModule, sendModule]);
+
+  useEffect(() => {
+    if (!watchHotReload || !selectedAbsPath || !selectedModule || !hotReloadState.enabled || isWeb()) return;
+    const timer = window.setInterval(() => {
+      readTextFile(selectedAbsPath)
+        .then((source) => {
+          const previous = fileContentRef.current;
+          if (previous === null) {
+            fileContentRef.current = source;
+            setFileContent(source);
+            return;
+          }
+          if (source !== previous) {
+            fileContentRef.current = source;
+            setFileContent(source);
+            sendModule(selectedModule, source);
+          }
+        })
+        .catch(() => {});
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [hotReloadState.enabled, selectedAbsPath, selectedModule, sendModule, watchHotReload]);
+
+  // Read file content whenever the selection or root changes
+  useEffect(() => {
     if (!selectedFile || !rootPath || isWeb()) {
       setFileContent(null);
+      fileContentRef.current = null;
       return;
     }
     const absPath = `${rootPath.replace(/\/$/, '')}/${selectedFile}`;
     readTextFile(absPath)
-      .then(setFileContent)
-      .catch(() => setFileContent(null));
+      .then((content) => {
+        fileContentRef.current = content;
+        setFileContent(content);
+      })
+      .catch(() => {
+        fileContentRef.current = null;
+        setFileContent(null);
+      });
   }, [selectedFile, rootPath]);
 
   const [conditionDialog, setConditionDialog] = useState<{ file: string; line: number; value: string } | null>(null);
@@ -667,6 +727,8 @@ export default function DebuggerPage() {
     dbg.breakpoints.filter((b) => b.file === selectedFile && b.enabled && !!b.condition).map((b) => b.line),
   );
   const currentLine = dbg.currentPaused?.file === selectedFile ? dbg.currentPaused.line : null;
+  const canHotReload = !isWeb() && hotReloadState.enabled && !!selectedModule && !!selectedAbsPath;
+  const latestHotReload = hotReloadState.history.at(-1);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -762,6 +824,69 @@ export default function DebuggerPage() {
               <ClockIcon className="size-3" /> Time Travel ({frames.length} frames)
             </Button>
           </>
+        )}
+
+        <Separator orientation="vertical" className="h-5" />
+
+        <div className="flex items-center gap-1">
+          {hotReloadState.active && (
+            <Badge variant="outline" className="gap-1 font-mono text-xs text-orange-500">
+              Hot Reload
+            </Badge>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1 px-2 text-xs"
+            disabled={!canHotReload}
+            onClick={reloadSelectedModule}
+            title={
+              hotReloadState.enabled
+                ? selectedModule
+                  ? `Development only: send Lua source for ${selectedModule} into the running game`
+                  : 'Select an allowlisted Lua module. Hot reload is development-only remote code execution.'
+                : 'Hot reload is disabled. Enable debugger.hotReload only for trusted development sessions.'
+            }
+          >
+            <RefreshCwIcon className="size-3" /> Reload
+          </Button>
+          <div className="flex items-center gap-1 px-1">
+            <Switch
+              id="hot-reload-watch"
+              checked={watchHotReload}
+              disabled={!canHotReload}
+              onCheckedChange={setWatchHotReload}
+            />
+            <Label htmlFor="hot-reload-watch" className="text-xs text-muted-foreground">
+              Watch
+            </Label>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+            disabled={!hotReloadState.active}
+            onClick={restoreOriginals}
+            title="Restore modules that were replaced by Feather hot reload"
+          >
+            <RotateCcwIcon className="size-3" /> Restore
+          </Button>
+        </div>
+
+        {latestHotReload && (
+          <span
+            className={cn(
+              'min-w-0 truncate text-xs',
+              latestHotReload.ok ? 'text-muted-foreground' : 'text-destructive',
+            )}
+            title={latestHotReload.error || latestHotReload.module}
+          >
+            {latestHotReload.ok
+              ? latestHotReload.restored
+                ? 'Runtime restored'
+                : `Reloaded ${latestHotReload.module}`
+              : `Failed ${latestHotReload.module}`}
+          </span>
         )}
       </div>
 

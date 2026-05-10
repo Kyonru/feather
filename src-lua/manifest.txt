@@ -1,6 +1,7 @@
 core:feather/auto.lua
 core:feather/core/assets.lua
 core:feather/core/base.lua
+core:feather/core/hot_reloader.lua
 core:feather/core/logger.lua
 core:feather/core/observer.lua
 core:feather/core/performance.lua

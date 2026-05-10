@@ -11,6 +11,7 @@ import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
 import type { AssetCatalog } from './use-assets';
+import type { HotReloadState } from './use-hot-reload';
 import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
@@ -27,6 +28,7 @@ export const sessionQueryKey = {
   console: (sessionId: string) => [sessionId, 'console'],
   timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
   timeTravelFrames: (sessionId: string) => [sessionId, 'time-travel-frames'],
+  hotReload: (sessionId: string) => [sessionId, 'hot-reload'],
 };
 
 type WsMessage = {
@@ -304,6 +306,9 @@ export const useWsConnection = () => {
             setConfig(config);
             setDisconnected(false);
             queryClient.setQueryData(sessionQueryKey.config(sessionId), config);
+            if (config.debugger?.hotReload) {
+              queryClient.setQueryData(sessionQueryKey.hotReload(sessionId), config.debugger.hotReload);
+            }
             const debuggerState = useDebuggerStore.getState();
             const shouldEnable = config.debugger?.enabled || debuggerState.defaultEnabled;
             console.log('Debugger enabled for session', sessionId);
@@ -396,6 +401,32 @@ export const useWsConnection = () => {
           case 'assets:error': {
             const payload = data as { message?: string };
             toast.error(`Asset preview failed: ${payload?.message || 'Unknown error'}`);
+            break;
+          }
+
+          case 'hot_reload:state': {
+            queryClient.setQueryData(sessionQueryKey.hotReload(sessionId), data as HotReloadState);
+            break;
+          }
+
+          case 'hot_reload:result': {
+            const payload = data as {
+              ok?: boolean;
+              module?: string;
+              error?: string;
+              persisted?: boolean;
+              state?: HotReloadState;
+            };
+            if (payload.state) {
+              queryClient.setQueryData(sessionQueryKey.hotReload(sessionId), payload.state);
+            }
+            if (payload.ok) {
+              toast.success(
+                `Hot reloaded ${payload.module || 'module'}${payload.persisted ? ' and saved patch' : ''}`,
+              );
+            } else {
+              toast.error(`Hot reload failed: ${payload.error || 'Unknown error'}`);
+            }
             break;
           }
 

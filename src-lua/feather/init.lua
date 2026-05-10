@@ -14,6 +14,7 @@ local FeatherLogger = require(FEATHER_PATH .. ".core.logger")
 local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
 local FeatherPerformance = require(FEATHER_PATH .. ".core.performance")
 local FeatherAssets = require(FEATHER_PATH .. ".core.assets")
+local FeatherHotReloader = require(FEATHER_PATH .. ".core.hot_reloader")
 local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
 local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
@@ -77,9 +78,10 @@ local customErrorHandler = errorhandler
 ---@field writeToDisk? boolean  Whether to write logs to .featherlog files (default true)
 ---@field retryInterval? number
 ---@field connectTimeout? number
----@field debugger? boolean  Enable the step debugger (default false)
+---@field debugger? boolean|table  Enable the step debugger (default false), or debugger options.
 ---@field assetPreview? boolean  Enable core asset tracking and previews (default true)
 ---@field binaryTextThreshold? number  Observer/time-travel strings longer than this are sent as binary text (default 4096)
+---@field hotReload? table  Top-level hot reload options. Prefer debugger.hotReload for new configs.
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -102,7 +104,9 @@ function Feather:init(config)
   self.plugins = conf.plugins or {}
   self.capabilities = conf.capabilities or "all"
   self.mode = conf.mode or "socket"
-  self.debuggerEnabled = conf.debugger or false
+  local debuggerConfig = type(conf.debugger) == "table" and conf.debugger or {}
+  self.debuggerEnabled = conf.debugger == true or debuggerConfig.enabled == true
+  self.hotReloadConfig = debuggerConfig.hotReload or conf.hotReload or {}
   self.writeToDisk = conf.writeToDisk ~= false
   self.retryInterval = conf.retryInterval or 5
   self.connectTimeout = conf.connectTimeout or 2
@@ -152,6 +156,7 @@ function Feather:init(config)
   self.featherObserver = FeatherObserver(self)
 
   self.performance = FeatherPerformance()
+  self.hotReloader = FeatherHotReloader(self, self.hotReloadConfig)
 
   if self.autoRegisterErrorHandler then
     local selfRef = self
@@ -315,7 +320,10 @@ function Feather:__getConfig()
     deviceId = self.deviceId,
     sessionName = self.sessionName,
     assets = { enabled = self.assetPreviewEnabled },
-    debugger = { enabled = self.debuggerEnabled },
+    debugger = {
+      enabled = self.debuggerEnabled,
+      hotReload = self.hotReloader and self.hotReloader:getState() or nil,
+    },
   }
 end
 
@@ -434,6 +442,45 @@ function Feather:__handleCommand(msg)
         type = "assets:error",
         session = self.sessionId,
         data = { message = tostring(err) },
+      }))
+    end
+  elseif msg.type == "cmd:hot_reload:module" and msg.data then
+    if not self.hotReloader then
+      return
+    end
+    local ok, err, persisted = self.hotReloader:reload(msg.data.module, msg.data.source)
+    self:__sendWs(json.encode({
+      type = "hot_reload:result",
+      session = self.sessionId,
+      data = {
+        ok = ok == true,
+        module = msg.data.module or "",
+        error = err,
+        persisted = persisted == true,
+        state = self.hotReloader:getState(),
+      },
+    }))
+    self:__sendWs(json.encode({
+      type = "hot_reload:state",
+      session = self.sessionId,
+      data = self.hotReloader:getState(),
+    }))
+  elseif msg.type == "cmd:hot_reload:restore" then
+    if not self.hotReloader then
+      return
+    end
+    self.hotReloader:restore()
+    self:__sendWs(json.encode({
+      type = "hot_reload:state",
+      session = self.sessionId,
+      data = self.hotReloader:getState(),
+    }))
+  elseif msg.type == "req:hot_reload:state" then
+    if self.hotReloader then
+      self:__sendWs(json.encode({
+        type = "hot_reload:state",
+        session = self.sessionId,
+        data = self.hotReloader:getState(),
       }))
     end
   elseif msg.type == "cmd:debugger:enable" then

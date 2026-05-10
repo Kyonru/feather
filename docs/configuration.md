@@ -29,7 +29,7 @@
 | `retryInterval`            | `number`              | `5`                 | Seconds between WebSocket reconnection attempts.                                                                                                  |
 | `connectTimeout`           | `number`              | `2`                 | Seconds to wait for initial WS connection.                                                                                                        |
 | `apiKey`                   | `string`              | `""`                | API key for authenticated connections.                                                                                                            |
-| `debugger`                 | `boolean`             | `false`             | Enable the step debugger (breakpoints, step over/into/out, locals inspection).                                                                    |
+| `debugger`                 | `boolean` or `table`  | `false`             | Enable the step debugger, or pass debugger options such as `debugger.hotReload`.                                                                  |
 | `assetPreview`             | `boolean`             | `true`              | Enable the core Assets tab tracking and previews. Set to `false` to avoid hooking asset loaders and `love.draw`.                                  |
 | `binaryTextThreshold`      | `number`              | `4096`              | Observer, time-travel, debugger, and console text values longer than this many bytes are sent through the hybrid binary protocol instead of JSON. |
 
@@ -37,6 +37,34 @@
 
 > [!WARNING]
 > `captureScreenshot` can affect performance because it captures the current frame when errors are handled. Enable it only when you need visual error context.
+
+## Hot Reload
+
+Hot reload is configured under `debugger.hotReload`:
+
+```lua
+return {
+  debugger = {
+    enabled = true,
+    hotReload = {
+      enabled = true,
+      allow = { "game.player", "game.systems.*" },
+      deny = { "main", "conf", "feather.*" },
+      persistToDisk = false,
+      clearOnBoot = false,
+      requireLocalNetwork = true,
+    },
+  },
+}
+```
+
+See [Hot Reload](hot-reload.md) for the full workflow.
+
+> [!WARNING]
+> Hot reload is remote code execution for development. Leave it disabled unless you are actively using it.
+
+> [!CAUTION]
+> Broad allowlists such as `allow = { "game.*" }` let Feather replace many modules at runtime. Start with exact module names and keep `persistToDisk = false` unless you explicitly need persistent mobile patches.
 
 ## Connecting
 

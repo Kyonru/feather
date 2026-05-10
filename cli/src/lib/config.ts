@@ -167,6 +167,23 @@ function optionReference(): string {
 
   -- Feature toggles:
   -- debugger = false,
+  --
+  -- Hot reload safety:
+  --   Hot reload lets the Feather app send Lua source into the running game.
+  --   Treat it as development-only remote code execution. Keep it disabled
+  --   unless you are actively using it, keep allow as narrow as possible, and
+  --   remove/disable it before shipping builds.
+  -- debugger = {
+  --   enabled = false,
+  --   hotReload = {
+  --     enabled = false,
+  --     allow = { "game.player" }, -- Prefer exact modules over broad "game.*".
+  --     deny = { "main", "conf", "feather.*" },
+  --     persistToDisk = false,
+  --     clearOnBoot = false,
+  --     requireLocalNetwork = true,
+  --   },
+  -- },
   -- assetPreview = true,
   -- captureScreenshot = false,
 

@@ -4,6 +4,7 @@ local titles = {
   ["--test-ws"] = "Feather WebSocket Test",
   ["--test-cli"] = "Feather CLI Example",
   ["--plugin-ui"] = "Feather Plugin UI Example",
+  ["--hot-reload"] = "Feather Hot Reload Example",
 }
 
 function love.conf(t)
