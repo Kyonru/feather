@@ -7,6 +7,7 @@ export type InitMode = "cli" | "auto" | "manual";
 
 export type InitSetup = {
   mode: InitMode;
+  source: "local" | "remote";
   branch: string;
   installDir: string;
   installPlugins: boolean;
@@ -17,6 +18,7 @@ export type InitSetup = {
 type Phase =
   | "mode"
   | "installDir"
+  | "source"
   | "branch"
   | "sessionName"
   | "installPlugins"
@@ -62,6 +64,19 @@ const modes: Option<InitMode>[] = [
     value: "manual",
     label: "Manual setup",
     description: "Install Feather and leave main.lua untouched for custom wiring.",
+  },
+];
+
+const installSources: Option<"local" | "remote">[] = [
+  {
+    value: "local",
+    label: "Bundled/local copy",
+    description: "Copy the CLI-bundled Lua runtime, or src-lua when running from the repo.",
+  },
+  {
+    value: "remote",
+    label: "GitHub download",
+    description: "Fetch files from GitHub using the selected branch or tag.",
   },
 ];
 
@@ -268,6 +283,7 @@ function InitSetupPrompt({
   const { exit } = useApp();
   const [phase, setPhase] = useState<Phase>("mode");
   const [modeIndex, setModeIndex] = useState(Math.max(0, modes.findIndex((mode) => mode.value === defaultMode)));
+  const [sourceIndex, setSourceIndex] = useState(0);
   const [installDir, setInstallDir] = useState(defaultInstallDir);
   const [branch, setBranch] = useState(defaultBranch);
   const [sessionName, setSessionName] = useState(defaultName);
@@ -300,6 +316,7 @@ function InitSetupPrompt({
   const [error, setError] = useState<string | undefined>();
 
   const mode = modes[modeIndex].value;
+  const installSource = installSources[sourceIndex].value;
   const installsFiles = mode !== "cli";
   const pluginPromptsEnabled = mode === "cli" || installPlugins;
   const needsApiKey = pluginPromptsEnabled && include.has("console");
@@ -367,6 +384,7 @@ function InitSetupPrompt({
 
     onComplete({
       mode,
+      source: installSource,
       branch: branch.trim() || "main",
       installDir: installDir.trim() || "feather",
       installPlugins,
@@ -432,8 +450,16 @@ function InitSetupPrompt({
     }
 
     if (phase === "installDir") {
-      if (key.return) setPhase("branch");
+      if (key.return) setPhase("source");
       else editText(input, key, installDir, setInstallDir);
+      return;
+    }
+
+    if (phase === "source") {
+      if (key.upArrow || input === "k") move(-1, installSources.length, setSourceIndex);
+      else if (key.downArrow || input === "j") move(1, installSources.length, setSourceIndex);
+      else if (Number(input) >= 1 && Number(input) <= installSources.length) setSourceIndex(Number(input) - 1);
+      else if (key.return) setPhase(installSources[sourceIndex].value === "remote" ? "branch" : "sessionName");
       return;
     }
 
@@ -563,7 +589,8 @@ function InitSetupPrompt({
     const rows = [
       `Mode: ${modes[modeIndex].label}`,
       installsFiles ? `Install dir: ${installDir || "feather"}/` : "Install dir: bundled CLI runtime",
-      installsFiles ? `Branch: ${branch || "main"}` : undefined,
+      installsFiles ? `Source: ${installSources[sourceIndex].label}` : undefined,
+      installsFiles && installSource === "remote" ? `Branch: ${branch || "main"}` : undefined,
       installsFiles ? `Install plugins: ${installPlugins ? "yes" : "no"}` : undefined,
       `Session: ${sessionName || "(default)"}`,
       pluginPromptsEnabled ? `Include: ${include.size > 0 ? [...include].join(", ") : "(none)"}` : undefined,
@@ -589,13 +616,16 @@ function InitSetupPrompt({
     installDir,
     installPlugins,
     installsFiles,
+    installSource,
     modeIndex,
     needsApiKey,
     pluginPromptsEnabled,
     sessionName,
+    sourceIndex,
   ]);
 
   if (phase === "mode") return <SingleSelect title="How should Feather be added to this project?" options={modes} selected={modeIndex} />;
+  if (phase === "source") return <SingleSelect title="Where should Feather be installed from?" options={installSources} selected={sourceIndex} />;
   if (phase === "installPlugins") return <ConfirmPrompt title="Install built-in plugins?" value={installPlugins} />;
   if (phase === "include") return <MultiSelect title="Force-enable optional plugins?" options={optionalPlugins} selected={include} cursor={includeCursor} />;
   if (phase === "exclude") {

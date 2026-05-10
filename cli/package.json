@@ -13,6 +13,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
+    "bundle:lua": "bash ../scripts/bundle-lua.sh",
+    "prepack": "npm run bundle:lua && npm run build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

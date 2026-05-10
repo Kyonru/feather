@@ -53,7 +53,9 @@ program
 program
   .command("init [dir]")
   .description("Initialize Feather in a Love2D project directory (default: current directory)")
-  .option("--branch <branch>", "GitHub branch to download from", "main")
+  .option("--remote", "Download from GitHub instead of copying the local/bundled Lua runtime")
+  .option("--branch <branch>", "GitHub branch to download from when using --remote", "main")
+  .option("--local-src <path>", "Copy Lua runtime from a local src-lua style directory")
   .option("--install-dir <path>", "Install directory for auto/manual modes", "feather")
   .option("--no-plugins", "Skip plugin installation")
   .option("--plugins <ids>", "Comma-separated list of plugins to install")
@@ -62,6 +64,8 @@ program
   .action(async (dir: string | undefined, opts) => {
     await initCommand(dir ?? ".", {
       branch: opts.branch as string,
+      remote: opts.remote as boolean | undefined,
+      localSrc: opts.localSrc as string | undefined,
       installDir: opts.installDir as string,
       noPlugins: opts.plugins === false,
       plugins: opts.plugins && opts.plugins !== true

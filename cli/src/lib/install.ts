@@ -1,5 +1,5 @@
-import { createWriteStream, mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { cpSync, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 
@@ -87,6 +87,45 @@ export async function installCore(
   }
 }
 
+export function installCoreFromLocal(
+  sourceRoot: string,
+  targetDir: string,
+  installDir = "feather",
+  onProgress?: (file: string) => void
+): void {
+  const source = join(sourceRoot, "feather");
+  if (!existsSync(source)) throw new Error(`No feather core found at ${source}`);
+
+  const root = normalizeInstallDir(installDir);
+  const dest = join(targetDir, root);
+  mkdirSync(dirname(dest), { recursive: true });
+  cpSync(source, dest, { recursive: true, force: true });
+  onProgress?.("feather");
+}
+
+export function installPluginsFromLocal(
+  pluginIds: string[],
+  sourceRoot: string,
+  targetDir: string,
+  installDir = "feather",
+  onProgress?: (file: string) => void
+): void {
+  const pluginsRoot = join(sourceRoot, "plugins");
+  if (!existsSync(pluginsRoot)) throw new Error(`No plugins directory found at ${pluginsRoot}`);
+
+  const root = normalizeInstallDir(installDir);
+  for (const pluginId of pluginIds) {
+    const sourceDir = pluginId.replace(/\./g, "/");
+    const source = join(pluginsRoot, sourceDir);
+    if (!existsSync(source)) throw new Error(`Unknown plugin: ${pluginId}`);
+
+    const dest = join(targetDir, root, "plugins", sourceDir);
+    mkdirSync(dirname(dest), { recursive: true });
+    cpSync(source, dest, { recursive: true, force: true });
+    onProgress?.(pluginId);
+  }
+}
+
 export async function installPlugin(
   pluginId: string,
   entries: ManifestEntry[],
@@ -114,4 +153,28 @@ export function getPluginIds(entries: ManifestEntry[]): string[] {
 
 export function normalizeInstallDir(installDir = "feather"): string {
   return installDir.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "") || "feather";
+}
+
+export function getLocalPluginIds(sourceRoot: string): string[] {
+  const pluginsRoot = join(sourceRoot, "plugins");
+  if (!existsSync(pluginsRoot)) return [];
+
+  const ids: string[] = [];
+  const visit = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const pluginDir = join(dir, entry.name);
+      const manifest = join(pluginDir, "manifest.lua");
+      if (existsSync(manifest)) {
+        const src = readFileSync(manifest, "utf8");
+        const id = src.match(/id\s*=\s*"([^"]+)"/)?.[1];
+        if (id) ids.push(id);
+      } else {
+        visit(pluginDir);
+      }
+    }
+  };
+
+  visit(pluginsRoot);
+  return ids.sort();
 }

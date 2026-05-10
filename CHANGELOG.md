@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin manifests (`manifest.lua`)
 - Automatic plugin discovery and loading
 - Plugin capability declarations
+- Plugin UI layout type
 - Observer table diffing
 - Nested table change highlighting
 - Observer history snapshots

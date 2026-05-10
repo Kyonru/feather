@@ -77,7 +77,7 @@ If a `feather.config.lua` exists in the game directory, it is read automatically
 
 ### `feather init [dir]`
 
-Initialize Feather in a Love2D project. Downloads the feather library and plugins from GitHub.
+Initialize Feather in a Love2D project. By default this copies the Lua runtime and plugins that ship with the CLI, so init works offline and stays version-matched with the CLI.
 
 ```bash
 feather init                         # initialize in current directory
@@ -87,7 +87,8 @@ feather init --plugins screenshots,profiler  # install specific plugins only
 feather init --mode cli             # create config only; use feather run
 feather init --mode auto            # install and patch main.lua with feather.auto
 feather init --mode manual          # install but leave main.lua untouched
-feather init --branch v0.7.0        # download a specific release
+feather init --remote --branch v0.7.0  # download a specific release from GitHub
+feather init --local-src ../feather/src-lua  # copy from a local source tree
 feather init --install-dir lib/feather  # install like FEATHER_DIR=lib/feather
 ```
 
@@ -98,8 +99,15 @@ By default, `feather init` opens an interactive terminal picker powered by Ink:
 | Mode     | Behavior                                                                      |
 | -------- | ----------------------------------------------------------------------------- |
 | `cli`    | Creates `feather.config.lua` only. Run with `feather run .`.                  |
-| `auto`   | Downloads core/plugins and patches `main.lua` with `require("feather.auto")`. |
-| `manual` | Downloads core/plugins and leaves `main.lua` untouched for custom setup.      |
+| `auto`   | Copies core/plugins and patches `main.lua` with `require("feather.auto")`. |
+| `manual` | Copies core/plugins and leaves `main.lua` untouched for custom setup.      |
+
+Install source priority:
+
+1. `--local-src <path>` copies from a local `src-lua` style tree.
+2. Running the CLI from the Feather monorepo copies the repo's `src-lua`.
+3. Published CLI installs copy the bundled `cli/lua` runtime.
+4. `--remote` downloads from GitHub using `--branch`.
 
 Auto and manual mode use the same project layout as `scripts/install-feather.sh`:
 
@@ -121,7 +129,8 @@ The interactive flow asks for:
 
 - session name
 - install directory, matching `FEATHER_DIR`
-- Git branch or tag, matching `FEATHER_BRANCH`
+- install source: bundled/local copy or GitHub download
+- Git branch or tag when using GitHub download, matching `FEATHER_BRANCH`
 - whether to install built-in plugins, matching `FEATHER_PLUGINS`
 - optional plugins to force-enable, such as Console, Physics Debug, and Timer Inspector
 - plugins to skip/exclude, matching `FEATHER_SKIP_PLUGINS`; Console, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults
@@ -158,7 +167,9 @@ end
 
 | Option              | Description                                                   |
 | ------------------- | ------------------------------------------------------------- |
-| `--branch <branch>` | GitHub branch or tag to download from (default: `main`).      |
+| `--remote`          | Download from GitHub instead of copying the local/bundled Lua runtime. |
+| `--branch <branch>` | GitHub branch or tag to download from when using `--remote` (default: `main`). |
+| `--local-src <path>` | Copy from a local `src-lua` style directory.                 |
 | `--install-dir <path>` | Install directory for auto/manual modes (default: `feather`). |
 | `--no-plugins`      | Skip plugin installation.                                     |
 | `--plugins <ids>`   | Comma-separated list of plugin IDs to install (default: all). |
@@ -185,7 +196,7 @@ Feather environment check
   ✔ love2d found  /Applications/love.app/Contents/MacOS/love  (11.5)
   ✔ love2d project (main.lua)  /path/to/my-game
   ✔ feather library installed  /path/to/my-game/feather
-  ✔ plugins directory  /path/to/my-game/plugins
+  ✔ plugins directory  /path/to/my-game/feather/plugins
   ✔ feather.config.lua
   ✔ Feather desktop app (port 4004)  connected
 ```

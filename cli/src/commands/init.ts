@@ -1,14 +1,26 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import ora from 'ora';
-import { fetchManifest, installCore, installPlugin, getPluginIds, normalizeInstallDir } from '../lib/install.js';
+import {
+  fetchManifest,
+  getLocalPluginIds,
+  getPluginIds,
+  installCore,
+  installCoreFromLocal,
+  installPlugin,
+  installPluginsFromLocal,
+  normalizeInstallDir,
+} from '../lib/install.js';
 import { configTemplate, luaKey, luaValue } from '../lib/config.js';
 import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init-mode.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 
 export interface InitOptions {
   branch?: string;
+  remote?: boolean;
+  localSrc?: string;
   noPlugins?: boolean;
   plugins?: string[];
   installDir?: string;
@@ -17,6 +29,7 @@ export interface InitOptions {
 }
 
 const knownPlugins = pluginCatalog.map((plugin) => plugin.id);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const toLocalName = (id: string) =>
   id
@@ -45,6 +58,20 @@ function patchMainLua(mainPath: string, installDir = 'feather'): boolean {
   return true;
 }
 
+function bundledLuaRoot(): string {
+  return resolve(__dirname, '../../lua');
+}
+
+function repoLuaRoot(): string | null {
+  const candidate = resolve(__dirname, '../../../src-lua');
+  return existsSync(join(candidate, 'feather', 'init.lua')) ? candidate : null;
+}
+
+function resolveLocalLuaRoot(opts: InitOptions): string {
+  if (opts.localSrc) return resolve(opts.localSrc);
+  return repoLuaRoot() ?? bundledLuaRoot();
+}
+
 export async function initCommand(dir: string, opts: InitOptions): Promise<void> {
   const target = resolve(dir);
 
@@ -58,6 +85,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
       ? await chooseInitMode(opts.mode ?? 'auto', basename(target), opts.branch ?? 'main', opts.installDir ?? 'feather')
       : {
           mode: opts.mode ?? 'auto',
+          source: opts.remote ? 'remote' : 'local',
           branch: opts.branch ?? 'main',
           installDir: opts.installDir ?? 'feather',
           installPlugins: opts.noPlugins ? false : true,
@@ -68,6 +96,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   const installDir = normalizeInstallDir(setup.installDir);
   const pluginsDisabled = opts.noPlugins || setup.installPlugins === false;
   const alreadyInstalled = existsSync(join(target, installDir, 'init.lua'));
+  const useRemote = opts.remote === true || setup.source === 'remote';
 
   if (mode === 'cli') {
     writeConfig(target, setup.config);
@@ -87,44 +116,73 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   let installedPluginIds: string[] = [];
 
   if (!alreadyInstalled) {
-    const spinner = ora('Fetching manifest…').start();
+    if (useRemote) {
+      const spinner = ora('Fetching manifest…').start();
 
-    try {
-      entries = await fetchManifest(branch);
-      spinner.succeed(`Manifest loaded (${entries.length} files)`);
-    } catch (err) {
-      spinner.fail(`Could not fetch manifest: ${(err as Error).message}`);
-      process.exit(1);
-    }
-
-    // Install core
-    const coreSpinner = ora('Installing feather core…').start();
-    try {
-      await installCore(entries, target, branch, (f) => {
-        coreSpinner.text = `Installing ${f}…`;
-      }, installDir);
-      coreSpinner.succeed('Feather core installed');
-    } catch (err) {
-      coreSpinner.fail(`Core install failed: ${(err as Error).message}`);
-      process.exit(1);
-    }
-
-    // Install plugins
-    if (!pluginsDisabled) {
-      const excluded = new Set(setup.exclude);
-      const pluginIds = (opts.plugins ?? getPluginIds(entries)).filter((id) => !excluded.has(id));
-      installedPluginIds = pluginIds;
-      const pluginSpinner = ora(`Installing ${pluginIds.length} plugins…`).start();
-      let failed = 0;
-      for (const id of pluginIds) {
-        try {
-          await installPlugin(id, entries, target, branch, undefined, installDir);
-          pluginSpinner.text = `Installed plugin: ${id}`;
-        } catch {
-          failed++;
-        }
+      try {
+        entries = await fetchManifest(branch);
+        spinner.succeed(`Manifest loaded (${entries.length} files)`);
+      } catch (err) {
+        spinner.fail(`Could not fetch manifest: ${(err as Error).message}`);
+        process.exit(1);
       }
-      pluginSpinner.succeed(`Plugins installed${failed > 0 ? chalk.yellow(` (${failed} failed)`) : ''}`);
+
+      const coreSpinner = ora('Installing feather core from GitHub…').start();
+      try {
+        await installCore(entries, target, branch, (f) => {
+          coreSpinner.text = `Installing ${f}…`;
+        }, installDir);
+        coreSpinner.succeed('Feather core installed');
+      } catch (err) {
+        coreSpinner.fail(`Core install failed: ${(err as Error).message}`);
+        process.exit(1);
+      }
+
+      if (!pluginsDisabled) {
+        const excluded = new Set(setup.exclude);
+        const pluginIds = (opts.plugins ?? getPluginIds(entries)).filter((id) => !excluded.has(id));
+        installedPluginIds = pluginIds;
+        const pluginSpinner = ora(`Installing ${pluginIds.length} plugins from GitHub…`).start();
+        let failed = 0;
+        for (const id of pluginIds) {
+          try {
+            await installPlugin(id, entries, target, branch, undefined, installDir);
+            pluginSpinner.text = `Installed plugin: ${id}`;
+          } catch {
+            failed++;
+          }
+        }
+        pluginSpinner.succeed(`Plugins installed${failed > 0 ? chalk.yellow(` (${failed} failed)`) : ''}`);
+      }
+    } else {
+      const sourceRoot = resolveLocalLuaRoot(opts);
+      const coreSpinner = ora(`Copying feather core from ${sourceRoot}…`).start();
+      try {
+        installCoreFromLocal(sourceRoot, target, installDir, (f) => {
+          coreSpinner.text = `Copying ${f}…`;
+        });
+        coreSpinner.succeed('Feather core installed');
+      } catch (err) {
+        coreSpinner.fail(`Core install failed: ${(err as Error).message}`);
+        process.exit(1);
+      }
+
+      if (!pluginsDisabled) {
+        const excluded = new Set(setup.exclude);
+        const pluginIds = (opts.plugins ?? getLocalPluginIds(sourceRoot)).filter((id) => !excluded.has(id));
+        installedPluginIds = pluginIds;
+        const pluginSpinner = ora(`Copying ${pluginIds.length} plugins…`).start();
+        let failed = 0;
+        for (const id of pluginIds) {
+          try {
+            installPluginsFromLocal([id], sourceRoot, target, installDir);
+            pluginSpinner.text = `Copied plugin: ${id}`;
+          } catch {
+            failed++;
+          }
+        }
+        pluginSpinner.succeed(`Plugins installed${failed > 0 ? chalk.yellow(` (${failed} failed)`) : ''}`);
+      }
     }
   }
 
