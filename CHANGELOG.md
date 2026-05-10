@@ -5,27 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0]
+## [v0.8.0]
 
 ### Added
 
-- Observer Improvements
-  - Table diffing in observed variables
-  - Highlight nested table changes across frames
-  - Observer history snapshots
-  - Search/filter large observed tables
-- Plugin System Foundations
-  - Add manifest for plugins
-  - Add manifest for auto load
-  - Manifest documentation
-- Project Management
-  - Version sync check
-  - Automatic plugin list
+- Feather CLI foundations
+  - Project setup commands
+  - Plugin management commands
+  - `feather doctor`
+  - Love2D launch helpers
+- Plugin manifests (`manifest.lua`)
+- Automatic plugin discovery and loading
+- Plugin capability declarations
+- Observer table diffing
+- Nested table change highlighting
+- Observer history snapshots
+- Observer search and filtering
 - Reload session option
+- Version sync checks between game and desktop app
+- Automatic plugin list generation
+- Manifest generation tooling
+- Plugin manifest documentation
 
 ### Changed
 
-- Fix folder for debugger
+- Improved plugin loading architecture
+- Improved observer update/render behavior
+- Improved session handling and reconnect flow
+- Improved internal configuration handling
+- Reorganized plugin and tooling structure
+
+### Fixed
+
+- Fixed debugger folder resolution issues
+- Fixed plugin discovery/loading edge cases
+- Fixed observer synchronization issues
+- Fixed session inconsistencies during reconnects
 
 ## [v0.7.0] - 2026-05-08 - The one with the debugger and time travel
 
@@ -235,6 +250,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v0.8.0]: https://github.com/Kyonru/feather/compare/v0.7.0...v0.8.0
 [v0.7.0]: https://github.com/Kyonru/feather/compare/v0.6.0...v0.7.0
 [v0.6.0]: https://github.com/Kyonru/feather/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/Kyonru/feather/compare/v0.5.0...v0.5.1
