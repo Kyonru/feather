@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { runCommand } from "./commands/run.js";
 import { initCommand } from "./commands/init.js";
+import { removeCommand } from "./commands/remove.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { updateCommand } from "./commands/update.js";
 import {
@@ -74,6 +75,29 @@ program
         : undefined,
       mode: opts.mode as InitMode | undefined,
       yes: opts.yes as boolean,
+    });
+  });
+
+// ── feather remove ───────────────────────────────────────────────────────────
+program
+  .command("remove [dir]")
+  .description("Remove Feather files and init markers from a Love2D project")
+  .option("--install-dir <path>", "Feather install directory override")
+  .option("--dry-run", "Show what would be removed without changing files")
+  .option("--keep-config", "Keep feather.config.lua")
+  .option("--keep-main", "Keep main.lua FEATHER-INIT markers")
+  .option("--keep-manual", "Keep feather.debugger.lua")
+  .option("--keep-runtime", "Keep installed Feather runtime/plugins")
+  .option("-y, --yes", "Skip interactive confirmation")
+  .action(async (dir: string | undefined, opts) => {
+    await removeCommand(dir ?? ".", {
+      installDir: opts.installDir as string | undefined,
+      dryRun: opts.dryRun as boolean | undefined,
+      keepConfig: opts.keepConfig as boolean | undefined,
+      keepMain: opts.keepMain as boolean | undefined,
+      keepManual: opts.keepManual as boolean | undefined,
+      keepRuntime: opts.keepRuntime as boolean | undefined,
+      yes: opts.yes as boolean | undefined,
     });
   });
 

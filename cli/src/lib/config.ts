@@ -126,6 +126,15 @@ function managedHeader(context: ConfigTemplateContext = {}): string {
 --   FEATHER-INIT-END require
 --   FEATHER-INIT update
 --
+-- The generated require block is guarded by USE_DEBUGGER. Set USE_DEBUGGER=1
+-- when running local/dev builds that should connect to Feather. Leave it unset,
+-- 0, or false to skip loading Feather.
+--
+-- Examples:
+--   macOS/Linux shell: USE_DEBUGGER=1 love .
+--   Windows PowerShell: $env:USE_DEBUGGER = "1"; love .
+--   Windows cmd.exe: set USE_DEBUGGER=1 && love .
+--
 -- Managed files/directories usually safe to remove for production:
 --   ${installDir}/
 --   feather.config.lua

@@ -85,8 +85,8 @@ feather init path/to/my-game        # initialize in a specific directory
 feather init --no-plugins           # install core only, skip plugins
 feather init --plugins screenshots,profiler  # install specific plugins only
 feather init --mode cli             # create config only; use feather run
-feather init --mode auto            # install and patch main.lua with feather.auto
-feather init --mode manual          # install but leave main.lua untouched
+feather init --mode auto            # install and patch main.lua with guarded feather.auto
+feather init --mode manual          # create feather.debugger.lua and a guarded loader
 feather init --remote --branch v0.7.0  # download a specific release from GitHub
 feather init --local-src ../feather/src-lua  # copy from a local source tree
 feather init --install-dir lib/feather  # install like FEATHER_DIR=lib/feather
@@ -99,8 +99,8 @@ By default, `feather init` opens an interactive terminal picker powered by Ink:
 | Mode     | Behavior                                                                      |
 | -------- | ----------------------------------------------------------------------------- |
 | `cli`    | Creates `feather.config.lua` only. Run with `feather run .`.                  |
-| `auto`   | Copies core/plugins and patches `main.lua` with `require("feather.auto")`. |
-| `manual` | Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua`. |
+| `auto`   | Copies core/plugins and patches `main.lua` with a `USE_DEBUGGER`-guarded `require("feather.auto")`. |
+| `manual` | Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua` when `USE_DEBUGGER` is set. |
 
 Install source priority:
 
@@ -119,10 +119,31 @@ my-game/
   main.lua
 ```
 
-If you choose `lib/feather` as the install directory, the Lua module becomes `lib.feather`, so auto mode patches `main.lua` with:
+If you choose `lib/feather` as the install directory, the Lua module becomes `lib.feather`, so auto mode patches `main.lua` with a guarded loader:
 
 ```lua
-require("lib.feather.auto")
+local featherUseDebugger = os.getenv("USE_DEBUGGER")
+if featherUseDebugger and featherUseDebugger ~= "0" and featherUseDebugger:lower() ~= "false" then
+  require("lib.feather.auto")
+end
+```
+
+Run local/dev builds with `USE_DEBUGGER=1` to load Feather. Leave it unset, `0`, or `false` to skip all Feather imports.
+
+```bash
+# macOS / Linux
+USE_DEBUGGER=1 love .
+```
+
+```powershell
+# Windows PowerShell
+$env:USE_DEBUGGER = "1"
+love .
+```
+
+```bat
+:: Windows cmd.exe
+set USE_DEBUGGER=1 && love .
 ```
 
 The interactive flow asks for:
@@ -141,10 +162,15 @@ If the terminal is non-interactive, or `--yes` is used, Feather defaults to `aut
 
 All modes create a `feather.config.lua` template if one doesn't exist.
 
-Manual mode writes the custom integration into `feather.debugger.lua`, then adds a small marked loader block near the top of `main.lua`. For example, when installing into `lib/feather` with `screenshots` and `runtime-snapshot`, the generated file looks like:
+Manual mode writes the custom integration into `feather.debugger.lua`, then adds a small marked loader block near the top of `main.lua`. Both are guarded by `USE_DEBUGGER`. For example, when installing into `lib/feather` with `screenshots` and `runtime-snapshot`, the generated file looks like:
 
 ```lua
 -- feather.debugger.lua
+local featherUseDebugger = os.getenv("USE_DEBUGGER")
+if not (featherUseDebugger and featherUseDebugger ~= "0" and featherUseDebugger:lower() ~= "false") then
+  return nil
+end
+
 if DEBUGGER then
   return DEBUGGER
 end
@@ -180,6 +206,38 @@ return DEBUGGER
 | `--plugins <ids>`   | Comma-separated list of plugin IDs to install (default: all). |
 | `--mode <mode>`     | Setup mode: `cli`, `auto`, or `manual`.                       |
 | `-y, --yes`         | Skip confirmation prompts.                                    |
+
+---
+
+### `feather remove [dir]`
+
+Remove Feather from a project before creating a production build.
+
+```bash
+feather remove                         # interactive picker
+feather remove path/to/my-game
+feather remove --yes                   # remove default managed targets
+feather remove --dry-run               # preview without changing files
+feather remove --keep-config           # keep feather.config.lua
+feather remove --keep-runtime          # keep feather/ and feather/plugins/
+feather remove --install-dir lib/feather
+```
+
+`feather remove` only edits `main.lua` inside the generated `FEATHER-INIT` marker blocks. It can also remove the installed runtime directory, `feather.config.lua`, and `feather.debugger.lua` when those files are detected.
+
+The command reads managed metadata from `feather.config.lua` when available, including the install directory and manual entrypoint path.
+
+**Options:**
+
+| Option                 | Description                                                   |
+| ---------------------- | ------------------------------------------------------------- |
+| `--install-dir <path>` | Override the detected Feather install directory.              |
+| `--dry-run`            | Show what would be removed without changing files.            |
+| `--keep-config`        | Keep `feather.config.lua`.                                    |
+| `--keep-main`          | Keep `main.lua` marker blocks and update hook.                |
+| `--keep-manual`        | Keep `feather.debugger.lua`.                                  |
+| `--keep-runtime`       | Keep installed Feather runtime and plugins.                   |
+| `-y, --yes`            | Skip the interactive picker and remove default managed targets. |
 
 ---
 

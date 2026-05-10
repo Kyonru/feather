@@ -58,12 +58,12 @@ const modes: Option<InitMode>[] = [
   {
     value: "auto",
     label: "Auto require",
-    description: 'Install Feather and patch main.lua with require("feather.auto").',
+    description: 'Patch main.lua with a USE_DEBUGGER-guarded require("feather.auto").',
   },
   {
     value: "manual",
     label: "Manual setup",
-    description: "Create feather.debugger.lua and load it from main.lua.",
+    description: "Create feather.debugger.lua and load it when USE_DEBUGGER is set.",
   },
 ];
 
