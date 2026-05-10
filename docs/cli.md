@@ -257,20 +257,41 @@ Check the environment and project health.
 ```bash
 feather doctor        # check current directory
 feather doctor path/to/my-game
+feather doctor . --install-dir lib/feather
+feather doctor . --host 127.0.0.1 --port 4004
+feather doctor . --json
 ```
+
+Doctor checks:
+
+- Node.js, npm, and LÖVE availability
+- `main.lua`, `feather.config.lua`, and managed init metadata
+- embedded runtime files for auto/manual setups
+- installed plugin manifests
+- `USE_DEBUGGER` guards and `FEATHER-INIT` markers
+- risky settings such as hot reload, screenshot capture, and Console API keys
+- Feather desktop WebSocket reachability
+
+> [!TIP]
+> `feather doctor --json` is useful in CI or pre-release scripts. It exits with a nonzero status only when it finds blockers.
 
 **Example output:**
 
 ```
-Feather environment check
+Feather doctor
 
-  ✔ Node.js >= 18  v22.0.0
-  ✔ love2d found  /Applications/love.app/Contents/MacOS/love  (11.5)
-  ✔ love2d project (main.lua)  /path/to/my-game
-  ✔ feather library installed  /path/to/my-game/feather
-  ✔ plugins directory  /path/to/my-game/feather/plugins
-  ✔ feather.config.lua
-  ✔ Feather desktop app (port 4004)  connected
+Project: /path/to/my-game
+
+Environment
+  ✔ Node.js  v22.0.0
+  ✔ npm  v10.8.1
+  ✔ LÖVE binary  /Applications/love.app/Contents/MacOS/love  (11.5)
+
+Safety
+  ! Hot reload  enabled
+    → Hot reload is development-only remote code execution; keep allowlists narrow and never ship with it on.
+
+Doctor passed with 1 warning.
 ```
 
 ---

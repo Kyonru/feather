@@ -105,8 +105,17 @@ program
 program
   .command("doctor [dir]")
   .description("Check the environment and project setup")
-  .action(async (dir: string | undefined) => {
-    await doctorCommand(dir);
+  .option("--install-dir <path>", "Feather install directory override")
+  .option("--host <host>", "Host to check for the Feather desktop WebSocket", "127.0.0.1")
+  .option("--port <port>", "Port to check for the Feather desktop WebSocket", (value) => Number(value))
+  .option("--json", "Print machine-readable diagnostics")
+  .action(async (dir: string | undefined, opts) => {
+    await doctorCommand(dir, {
+      installDir: opts.installDir as string | undefined,
+      host: opts.host as string | undefined,
+      port: opts.port as number | undefined,
+      json: opts.json as boolean | undefined,
+    });
   });
 
 // ── feather update ───────────────────────────────────────────────────────────
