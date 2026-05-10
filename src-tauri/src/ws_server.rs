@@ -25,13 +25,42 @@ pub type Sessions = Arc<Mutex<HashMap<String, WsSender>>>;
 #[derive(Clone)]
 struct AppState {
     sessions: Sessions,
-    app_handle: AppHandle,
+    events: Arc<dyn WsEventSink>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 struct BinaryPayload {
     _session: String,
     bytes: Vec<u8>,
+}
+
+trait WsEventSink: Send + Sync {
+    fn session_start(&self, session_id: String);
+    fn message(&self, payload: String);
+    fn binary(&self, payload: BinaryPayload);
+    fn session_end(&self, session_id: String);
+}
+
+struct TauriEventSink {
+    app_handle: AppHandle,
+}
+
+impl WsEventSink for TauriEventSink {
+    fn session_start(&self, session_id: String) {
+        let _ = self.app_handle.emit("feather://session-start", session_id);
+    }
+
+    fn message(&self, payload: String) {
+        let _ = self.app_handle.emit("feather://message", payload);
+    }
+
+    fn binary(&self, payload: BinaryPayload) {
+        let _ = self.app_handle.emit("feather://binary", payload);
+    }
+
+    fn session_end(&self, session_id: String) {
+        let _ = self.app_handle.emit("feather://session-end", session_id);
+    }
 }
 
 /// Start the WebSocket server. Called once during Tauri setup.
@@ -39,18 +68,16 @@ struct BinaryPayload {
 pub fn start(app_handle: AppHandle, port: u16, sessions: Sessions) {
     let state = AppState {
         sessions,
-        app_handle,
+        events: Arc::new(TauriEventSink { app_handle }),
     };
 
     tauri::async_runtime::spawn(async move {
-        let app = Router::new().route("/", get(ws_handler)).with_state(state);
-
         let addr = SocketAddr::from(([0, 0, 0, 0], port));
         let listener = tokio::net::TcpListener::bind(addr)
             .await
             .expect("failed to bind WS server");
 
-        axum::serve(listener, app).await.expect("WS server error");
+        serve_ws(listener, state).await;
     });
 }
 
@@ -86,6 +113,11 @@ async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl
         .on_upgrade(move |socket| handle_socket(socket, state))
 }
 
+async fn serve_ws(listener: tokio::net::TcpListener, state: AppState) {
+    let app = Router::new().route("/", get(ws_handler)).with_state(state);
+    axum::serve(listener, app).await.expect("WS server error");
+}
+
 async fn handle_socket(socket: WebSocket, state: AppState) {
     let session_id = Uuid::new_v4().to_string();
     let (mut ws_tx, mut ws_rx) = socket.split();
@@ -101,9 +133,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
         .insert(session_id.clone(), tx);
 
     // Notify frontend a session opened (frontend will wait for feather:hello to get config)
-    let _ = state
-        .app_handle
-        .emit("feather://session-start", session_id.clone());
+    state.events.session_start(session_id.clone());
 
     // Forward desktop→game commands to the WS socket
     let forward_session_id = session_id.clone();
@@ -124,22 +154,15 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                 Message::Text(text) => {
                     // Inject _session without JSON parsing: splice into the leading '{'
                     if text.starts_with('{') {
-                        let injected = format!(
-                            r#"{{"_session":"{}",{}"#,
-                            session_id,
-                            &text[1..]
-                        );
-                        let _ = state.app_handle.emit("feather://message", injected);
+                        let injected = format!(r#"{{"_session":"{}",{}"#, session_id, &text[1..]);
+                        state.events.message(injected);
                     }
                 }
                 Message::Binary(bytes) => {
-                    let _ = state.app_handle.emit(
-                        "feather://binary",
-                        BinaryPayload {
-                            _session: session_id.clone(),
-                            bytes: bytes.to_vec(),
-                        },
-                    );
+                    state.events.binary(BinaryPayload {
+                        _session: session_id.clone(),
+                        bytes: bytes.to_vec(),
+                    });
                 }
                 Message::Close(_) => break,
                 _ => {}
@@ -152,5 +175,172 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     state.sessions.lock().unwrap().remove(&session_id);
     forward_task.abort();
 
-    let _ = state.app_handle.emit("feather://session-end", session_id);
+    state.events.session_end(session_id);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use futures_util::{SinkExt, StreamExt};
+    use std::time::Duration;
+    use tokio::time::timeout;
+    use tokio_tungstenite::{connect_async, tungstenite::Message as ClientMessage};
+
+    #[derive(Debug, PartialEq)]
+    enum TestEvent {
+        SessionStart(String),
+        Message(String),
+        Binary(BinaryPayload),
+        SessionEnd(String),
+    }
+
+    struct CapturedEvents {
+        tx: mpsc::UnboundedSender<TestEvent>,
+    }
+
+    impl WsEventSink for CapturedEvents {
+        fn session_start(&self, session_id: String) {
+            self.tx
+                .send(TestEvent::SessionStart(session_id))
+                .expect("test event receiver should be open");
+        }
+
+        fn message(&self, payload: String) {
+            self.tx
+                .send(TestEvent::Message(payload))
+                .expect("test event receiver should be open");
+        }
+
+        fn binary(&self, payload: BinaryPayload) {
+            self.tx
+                .send(TestEvent::Binary(payload))
+                .expect("test event receiver should be open");
+        }
+
+        fn session_end(&self, session_id: String) {
+            self.tx
+                .send(TestEvent::SessionEnd(session_id))
+                .expect("test event receiver should be open");
+        }
+    }
+
+    async fn spawn_test_server() -> (
+        SocketAddr,
+        Sessions,
+        mpsc::UnboundedReceiver<TestEvent>,
+        tokio::task::JoinHandle<()>,
+    ) {
+        let sessions: Sessions = Arc::new(Mutex::new(HashMap::new()));
+        let (tx, rx) = mpsc::unbounded_channel();
+        let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0)))
+            .await
+            .expect("test server should bind to an ephemeral port");
+        let addr = listener
+            .local_addr()
+            .expect("test listener should have an addr");
+        let state = AppState {
+            sessions: sessions.clone(),
+            events: Arc::new(CapturedEvents { tx }),
+        };
+        let task = tokio::spawn(async move { serve_ws(listener, state).await });
+
+        (addr, sessions, rx, task)
+    }
+
+    async fn next_event(rx: &mut mpsc::UnboundedReceiver<TestEvent>) -> TestEvent {
+        timeout(Duration::from_secs(2), rx.recv())
+            .await
+            .expect("timed out waiting for WS event")
+            .expect("test event channel closed")
+    }
+
+    #[tokio::test]
+    async fn emits_lifecycle_text_and_binary_events() {
+        let (addr, sessions, mut events, server) = spawn_test_server().await;
+        let (mut socket, _) = connect_async(format!("ws://{addr}/"))
+            .await
+            .expect("client should connect to test WS server");
+
+        let session_id = match next_event(&mut events).await {
+            TestEvent::SessionStart(session_id) => session_id,
+            event => panic!("expected session start, got {event:?}"),
+        };
+
+        socket
+            .send(ClientMessage::Text(
+                r#"{"type":"feather:hello","config":{"name":"E2E"}}"#.into(),
+            ))
+            .await
+            .expect("client should send JSON text");
+        assert_eq!(
+            next_event(&mut events).await,
+            TestEvent::Message(format!(
+                r#"{{"_session":"{}","type":"feather:hello","config":{{"name":"E2E"}}}}"#,
+                session_id
+            ))
+        );
+
+        socket
+            .send(ClientMessage::Binary(vec![1, 2, 3, 5, 8].into()))
+            .await
+            .expect("client should send binary bytes");
+        assert_eq!(
+            next_event(&mut events).await,
+            TestEvent::Binary(BinaryPayload {
+                _session: session_id.clone(),
+                bytes: vec![1, 2, 3, 5, 8],
+            })
+        );
+
+        socket
+            .close(None)
+            .await
+            .expect("client should close cleanly");
+        assert_eq!(
+            next_event(&mut events).await,
+            TestEvent::SessionEnd(session_id)
+        );
+        assert!(sessions.lock().unwrap().is_empty());
+
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn forwards_desktop_commands_to_connected_session() {
+        let (addr, sessions, mut events, server) = spawn_test_server().await;
+        let (mut socket, _) = connect_async(format!("ws://{addr}/"))
+            .await
+            .expect("client should connect to test WS server");
+
+        let session_id = match next_event(&mut events).await {
+            TestEvent::SessionStart(session_id) => session_id,
+            event => panic!("expected session start, got {event:?}"),
+        };
+
+        let sender = sessions
+            .lock()
+            .unwrap()
+            .get(&session_id)
+            .cloned()
+            .expect("connected session should have a command sender");
+        sender
+            .send(Message::Text(r#"{"type":"req:performance"}"#.into()))
+            .expect("server should enqueue desktop command");
+
+        let received = timeout(Duration::from_secs(2), socket.next())
+            .await
+            .expect("timed out waiting for forwarded command")
+            .expect("client socket should still be open")
+            .expect("forwarded command should be valid");
+        assert_eq!(
+            received,
+            ClientMessage::Text(r#"{"type":"req:performance"}"#.into())
+        );
+
+        socket
+            .close(None)
+            .await
+            .expect("client should close cleanly");
+        server.abort();
+    }
 }
