@@ -12,6 +12,7 @@
     "cli:dev": "npm run dev --workspace=cli",
     "test:cli:e2e": "npm run cli:build && node scripts/cli-e2e.mjs",
     "test:lua:e2e": "node scripts/lua-e2e.mjs",
+    "test:app:e2e": "playwright test",
     "feather": "node cli/dist/index.js",
     "dev": "vite",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
@@ -83,6 +84,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@playwright/test": "^1.59.1",
     "@tanstack/eslint-plugin-query": "^5.83.1",
     "@tauri-apps/cli": "^2",
     "@types/node": "^24.2.0",
