@@ -15,6 +15,7 @@ local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
 local FeatherPerformance = require(FEATHER_PATH .. ".core.performance")
 local FeatherAssets = require(FEATHER_PATH .. ".core.assets")
 local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
+local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
 
@@ -47,6 +48,7 @@ local FEATHER_VERSION = {
 ---@field protected __pushObservers fun(self: Feather)
 ---@field protected __pushAssets fun(self: Feather)
 ---@field attachBinary fun(self: Feather, mime: string, bytes: string): table
+---@field ui table Declarative UI node builders for plugins
 local Feather = Class({})
 
 local customErrorHandler = errorhandler
@@ -113,6 +115,7 @@ function Feather:init(config)
   self.wsConnected = false
   self.version = FEATHER_VERSION.api
   self.versionName = FEATHER_VERSION.name
+  self.ui = FeatherUI
 
   -- Persistent device ID: saved to disk so the same device keeps its identity across launches.
   -- Can be overridden via config for custom identification.

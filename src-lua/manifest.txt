@@ -14,6 +14,7 @@ core:feather/lib/json.lua
 core:feather/lib/log.lua
 core:feather/lib/ws.lua
 core:feather/plugin_manager.lua
+core:feather/ui.lua
 core:feather/utils.lua
 plugin:animation-inspector:init.lua
 plugin:animation-inspector:manifest.lua
@@ -49,6 +50,8 @@ plugin:physics-debug:init.lua
 plugin:physics-debug:manifest.lua
 plugin:profiler:init.lua
 plugin:profiler:manifest.lua
+plugin:runtime-snapshot:init.lua
+plugin:runtime-snapshot:manifest.lua
 plugin:screenshots:init.lua
 plugin:screenshots:manifest.lua
 plugin:time-travel:init.lua

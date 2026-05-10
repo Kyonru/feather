@@ -434,10 +434,47 @@ The `handleRequest` method returns data that the desktop renders below the actio
 
 | Type       | Description                                                                    |
 | ---------- | ------------------------------------------------------------------------------ |
+| `ui`       | Declarative Feather UI tree rendered by the desktop.                           |
 | `gallery`  | Image grid with download buttons. Supports PNG screenshots and GIF animations. |
 | `table`    | Data table with sortable columns.                                              |
 | `tree`     | Collapsible tree view with properties on each node.                            |
 | `timeline` | Chronological event timeline with categories and optional screenshots.         |
+
+#### `ui`
+
+Lua plugins can describe UI declaratively with `feather.ui` primitives. React is only the renderer; plugins should send stable Feather UI nodes and action keys, not raw React components or JavaScript.
+
+For the full schema, supported nodes, and complete examples, see [Plugin UI](plugin-ui.md).
+
+```lua
+function MyPlugin:handleRequest(request, feather)
+  return feather.ui.render(
+    feather.ui.panel({
+      title = "Player Stats",
+
+      feather.ui.row({
+        feather.ui.badge({ value = "HP" }),
+        feather.ui.text({ value = tostring(player.health) }),
+      }),
+
+      feather.ui.button({
+        label = "Kill Player",
+        action = "kill-player",
+      }),
+    })
+  )
+end
+
+function MyPlugin:handleActionRequest(request)
+  if request.params.action == "kill-player" then
+    player.health = 0
+  end
+end
+```
+
+Supported node types in the first schema pass: `panel`, `row`, `column`, `tabs`, `tab`, `text`, `button`, `input`, `textarea`, `checkbox`, `switch`, `select`, `badge`, `stat`, `progress`, `alert`, `list`, `link`, `separator`, `image`, `code`, `table`, `timeline`, and `inspector`.
+
+Buttons use `action = "some-key"` (or `onClick = "some-key"`) and are routed through the existing `handleActionRequest()` path. Function callbacks are intentionally not serialized.
 
 #### `gallery`
 

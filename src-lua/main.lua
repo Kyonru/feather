@@ -34,6 +34,7 @@ local AnimationInspectorPlugin = require("plugins.animation-inspector")
 local TimerInspectorPlugin = require("plugins.timer-inspector")
 local FilesystemPlugin = require("plugins.filesystem")
 local TimeTravelPlugin = require("plugins.time-travel")
+local RuntimeSnapshotPlugin = require("plugins.runtime-snapshot")
 
 local TestPlugin = require("demo.plugin")
 local test = require("demo.another.lib")
@@ -404,6 +405,7 @@ DEBUGGER = FeatherDebugger({
     FeatherPluginManager.createPlugin(TimeTravelPlugin, "time-travel", {
       bufferSize = 500, -- max frames to keep (oldest are dropped when full)
     }),
+    FeatherPluginManager.createPlugin(RuntimeSnapshotPlugin, "runtime-snapshot", {}),
   },
 })
 

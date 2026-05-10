@@ -39,6 +39,7 @@ nav:
   - Recommendations: recommendations.md
   - Plugins:
       - Overview: plugins.md
+      - Plugin UI: plugin-ui.md
       - Animation Inspector: plugins/animation-inspector.md
       - Audio Debug: plugins/audio-debug.md
       - Bookmark: plugins/bookmark.md

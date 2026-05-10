@@ -386,7 +386,9 @@ export default function PluginPage() {
             This plugin is disabled and execution is paused. Enable it to resume.
           </div>
         )}
-        {!plugin.disabled && <PluginContent {...data} onParamsChange={onParamsChange} />}
+        {!plugin.disabled && (
+          <PluginContent {...data} onAction={onPluginAction} onParamsChange={onParamsChange} />
+        )}
       </div>
     </PageLayout>
   );
