@@ -27,10 +27,14 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 
 ## Quick Start
 
+> [!IMPORTANT]
+> For quick local desktop iteration, you can also use `feather run path/to/my-game` without changing game code. For mobile, handhelds, and remote devices like Android, iOS, or Steam Deck, use the embedded library from `feather init --mode auto` so the game carries Feather with it on the device.
+
 ### Option A — CLI injection (no game-side changes)
 
 ```bash
 npm install -g feather-cli
+feather init path/to/my-game
 feather run path/to/my-game
 ```
 

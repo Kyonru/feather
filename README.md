@@ -33,14 +33,18 @@ Feather is a real-time debugging and inspection tool for [LÖVE](https://love2d.
 
 Install the CLI, initialize your game, then run with `USE_DEBUGGER=1` when you want Feather loaded:
 
-```bash
+```sh
 npm install -g feather-cli
+feather init --mode cli
+feather run path/to/my-game
+```
+
+For games running in an external device (iOS, Android, SteamDeck, etc), you need to include feather in the source code. Checkout the documentation for good practices and worfklow recommendations.
+
+```sh
 feather init path/to/my-game
 USE_DEBUGGER=1 love path/to/my-game
 ```
-
-> [!IMPORTANT]
-> For quick local desktop iteration, you can also use `feather run path/to/my-game` without changing game code. For mobile, handhelds, and remote devices like Android, iOS, or Steam Deck, use the embedded library from `feather init --mode auto` so the game carries Feather with it on the device.
 
 `feather init` creates a `feather.config.lua` file for project settings:
 
