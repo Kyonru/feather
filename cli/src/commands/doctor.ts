@@ -60,8 +60,10 @@ export async function doctorCommand(gamePath?: string): Promise<void> {
       hasFeather ? join(projectDir, "feather") : "run: feather init"
     );
 
-    const hasPlugins = existsSync(join(projectDir, "plugins"));
-    check("plugins directory", hasPlugins, hasPlugins ? join(projectDir, "plugins") : "optional");
+    const pluginsPath = join(projectDir, "feather", "plugins");
+    const legacyPluginsPath = join(projectDir, "plugins");
+    const hasPlugins = existsSync(pluginsPath) || existsSync(legacyPluginsPath);
+    check("plugins directory", hasPlugins, hasPlugins ? (existsSync(pluginsPath) ? pluginsPath : legacyPluginsPath) : "optional");
 
     const hasConfig = existsSync(join(projectDir, "feather.config.lua"));
     check("feather.config.lua", hasConfig, hasConfig ? "" : "optional");

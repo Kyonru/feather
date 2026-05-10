@@ -58,14 +58,14 @@ feather run . -- --level dev              # pass args through to the game
 
 **Options:**
 
-| Option                    | Description                                                                                     |
-| ------------------------- | ----------------------------------------------------------------------------------------------- |
-| `--love <path>`           | Path to the love2d binary. Defaults to auto-detect (see [Binary detection](#binary-detection)). |
-| `--session-name <name>`   | Custom session name shown in the Feather desktop app.                                           |
-| `--no-plugins`            | Load feather core only — no plugins registered.                                                 |
-| `--config <path>`         | Explicit path to a `feather.config.lua` file.                                                   |
-| `--feather-path <path>`   | Use a local feather install instead of the CLI's bundled copy.                                  |
-| `--plugins-dir <path>`    | Use a custom plugins directory instead of the CLI's bundled plugins.                            |
+| Option                  | Description                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `--love <path>`         | Path to the love2d binary. Defaults to auto-detect (see [Binary detection](#binary-detection)). |
+| `--session-name <name>` | Custom session name shown in the Feather desktop app.                                           |
+| `--no-plugins`          | Load feather core only — no plugins registered.                                                 |
+| `--config <path>`       | Explicit path to a `feather.config.lua` file.                                                   |
+| `--feather-path <path>` | Use a local feather install instead of the CLI's bundled copy.                                  |
+| `--plugins-dir <path>`  | Use a custom plugins directory instead of the CLI's bundled plugins.                            |
 
 Use `--` to separate Feather CLI options from arguments intended for the LÖVE game. Everything after `--` is passed to `love` after the generated shim path.
 
@@ -84,22 +84,85 @@ feather init                         # initialize in current directory
 feather init path/to/my-game        # initialize in a specific directory
 feather init --no-plugins           # install core only, skip plugins
 feather init --plugins screenshots,profiler  # install specific plugins only
+feather init --mode cli             # create config only; use feather run
+feather init --mode auto            # install and patch main.lua with feather.auto
+feather init --mode manual          # install but leave main.lua untouched
 feather init --branch v0.7.0        # download a specific release
+feather init --install-dir lib/feather  # install like FEATHER_DIR=lib/feather
 ```
 
 **What it does:**
 
-1. Downloads `feather/` (core library) and `plugins/` from GitHub via `manifest.txt`.
-2. Patches `main.lua` with `require("feather.auto")` and `DEBUGGER:update(dt)` — skipped if feather is already referenced.
-3. Creates a `feather.config.lua` template if one doesn't exist.
+By default, `feather init` opens an interactive terminal picker powered by Ink:
+
+| Mode     | Behavior                                                                      |
+| -------- | ----------------------------------------------------------------------------- |
+| `cli`    | Creates `feather.config.lua` only. Run with `feather run .`.                  |
+| `auto`   | Downloads core/plugins and patches `main.lua` with `require("feather.auto")`. |
+| `manual` | Downloads core/plugins and leaves `main.lua` untouched for custom setup.      |
+
+Auto and manual mode use the same project layout as `scripts/install-feather.sh`:
+
+```
+my-game/
+  feather/init.lua
+  feather/plugins/screenshots/init.lua
+  feather/plugins/hump/signal/init.lua
+  main.lua
+```
+
+If you choose `lib/feather` as the install directory, the Lua module becomes `lib.feather`, so auto mode patches `main.lua` with:
+
+```lua
+require("lib.feather.auto")
+```
+
+The interactive flow asks for:
+
+- session name
+- install directory, matching `FEATHER_DIR`
+- Git branch or tag, matching `FEATHER_BRANCH`
+- whether to install built-in plugins, matching `FEATHER_PLUGINS`
+- optional plugins to force-enable, such as Console, Physics Debug, and Timer Inspector
+- plugins to skip/exclude, matching `FEATHER_SKIP_PLUGINS`; Console, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults
+- advanced connection/runtime options from `feather.config.lua`, including host/port, socket vs disk mode, observers, logging, debugger, asset previews, capabilities, and binary threshold
+- a strong API key when Console is included
+
+If the terminal is non-interactive, or `--yes` is used, Feather defaults to `auto`.
+
+All modes create a `feather.config.lua` template if one doesn't exist.
+
+Manual mode prints an integration snippet that matches the selected install directory and plugin list. For example, when installing into `lib/feather` with `screenshots` and `runtime-snapshot`:
+
+```lua
+local FeatherDebugger = require("lib.feather")
+local FeatherPluginManager = require("lib.feather.plugin_manager")
+local ScreenshotsPlugin = require("lib.feather.plugins.screenshots")
+local RuntimeSnapshotPlugin = require("lib.feather.plugins.runtime-snapshot")
+
+DEBUGGER = FeatherDebugger({
+  debug = true,
+  sessionName = "My Game",
+  plugins = {
+    FeatherPluginManager.createPlugin(ScreenshotsPlugin, "screenshots", {}),
+    FeatherPluginManager.createPlugin(RuntimeSnapshotPlugin, "runtime-snapshot", {}),
+  },
+})
+
+function love.update(dt)
+  if DEBUGGER then DEBUGGER:update(dt) end
+end
+```
 
 **Options:**
 
 | Option              | Description                                                   |
 | ------------------- | ------------------------------------------------------------- |
 | `--branch <branch>` | GitHub branch or tag to download from (default: `main`).      |
+| `--install-dir <path>` | Install directory for auto/manual modes (default: `feather`). |
 | `--no-plugins`      | Skip plugin installation.                                     |
 | `--plugins <ids>`   | Comma-separated list of plugin IDs to install (default: all). |
+| `--mode <mode>`     | Setup mode: `cli`, `auto`, or `manual`.                       |
 | `-y, --yes`         | Skip confirmation prompts.                                    |
 
 ---
@@ -171,6 +234,7 @@ Download and install a plugin.
 ```bash
 feather plugin install console
 feather plugin install time-travel --branch main
+feather plugin install console --install-dir lib/feather
 ```
 
 #### `feather plugin remove <id>`
@@ -189,6 +253,8 @@ Update a plugin, or all installed plugins if no ID is given.
 feather plugin update              # update all installed plugins
 feather plugin update profiler     # update a specific plugin
 ```
+
+Use `--install-dir <path>` with plugin commands when the project was initialized outside the default `feather/` directory.
 
 ---
 
@@ -254,7 +320,7 @@ By default, `feather run` uses the feather library and plugins bundled inside th
 ```
 my-game/
   feather/init.lua   ← detected → local install is used
-  plugins/
+  feather/plugins/
   main.lua
 ```
 

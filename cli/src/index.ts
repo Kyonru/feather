@@ -10,8 +10,17 @@ import {
   pluginRemoveCommand,
   pluginUpdateCommand,
 } from "./commands/plugin.js";
+import type { InitMode } from "./ui/init-mode.js";
 
 const program = new Command();
+const initModes = new Set(["cli", "auto", "manual"]);
+
+function parseInitMode(value: string): InitMode {
+  if (!initModes.has(value)) {
+    throw new Error("Mode must be one of: cli, auto, manual");
+  }
+  return value as InitMode;
+}
 
 program
   .name("feather")
@@ -45,16 +54,20 @@ program
   .command("init [dir]")
   .description("Initialize Feather in a Love2D project directory (default: current directory)")
   .option("--branch <branch>", "GitHub branch to download from", "main")
+  .option("--install-dir <path>", "Install directory for auto/manual modes", "feather")
   .option("--no-plugins", "Skip plugin installation")
   .option("--plugins <ids>", "Comma-separated list of plugins to install")
+  .option("--mode <mode>", "Setup mode: cli, auto, or manual", parseInitMode)
   .option("-y, --yes", "Skip confirmation prompts")
-  .action((dir: string | undefined, opts) => {
-    initCommand(dir ?? ".", {
+  .action(async (dir: string | undefined, opts) => {
+    await initCommand(dir ?? ".", {
       branch: opts.branch as string,
+      installDir: opts.installDir as string,
       noPlugins: opts.plugins === false,
       plugins: opts.plugins && opts.plugins !== true
         ? (opts.plugins as string).split(",").map((s: string) => s.trim())
         : undefined,
+      mode: opts.mode as InitMode | undefined,
       yes: opts.yes as boolean,
     });
   });
@@ -82,8 +95,9 @@ const plugin = program.command("plugin").description("Manage Feather plugins");
 plugin
   .command("list [dir]")
   .description("List installed plugins")
-  .action((dir: string | undefined) => {
-    pluginListCommand(dir);
+  .option("--install-dir <path>", "Feather install directory", "feather")
+  .action((dir: string | undefined, opts) => {
+    pluginListCommand(dir, opts.installDir as string);
   });
 
 plugin
@@ -91,16 +105,22 @@ plugin
   .description("Install a plugin from the Feather registry")
   .option("--dir <path>", "Project directory (default: current directory)")
   .option("--branch <branch>", "GitHub branch", "main")
+  .option("--install-dir <path>", "Feather install directory", "feather")
   .action((id: string, opts) => {
-    pluginInstallCommand(id, { dir: opts.dir as string | undefined, branch: opts.branch as string });
+    pluginInstallCommand(id, {
+      dir: opts.dir as string | undefined,
+      branch: opts.branch as string,
+      installDir: opts.installDir as string,
+    });
   });
 
 plugin
   .command("remove <id>")
   .description("Remove an installed plugin")
   .option("--dir <path>", "Project directory (default: current directory)")
+  .option("--install-dir <path>", "Feather install directory", "feather")
   .action((id: string, opts) => {
-    pluginRemoveCommand(id, { dir: opts.dir as string | undefined });
+    pluginRemoveCommand(id, { dir: opts.dir as string | undefined, installDir: opts.installDir as string });
   });
 
 plugin
@@ -108,8 +128,13 @@ plugin
   .description("Update a plugin (or all installed plugins if no id given)")
   .option("--dir <path>", "Project directory (default: current directory)")
   .option("--branch <branch>", "GitHub branch", "main")
+  .option("--install-dir <path>", "Feather install directory", "feather")
   .action((id: string | undefined, opts) => {
-    pluginUpdateCommand(id, { dir: opts.dir as string | undefined, branch: opts.branch as string });
+    pluginUpdateCommand(id, {
+      dir: opts.dir as string | undefined,
+      branch: opts.branch as string,
+      installDir: opts.installDir as string,
+    });
   });
 
 program.parse();

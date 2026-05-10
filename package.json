@@ -22,6 +22,8 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.json --composite false",
     "typecheck:lua": "luacheck src-lua",
     "typecheck": "npm run typecheck:web && npm run typecheck:lua",
+    "generate:plugin-catalog": "node scripts/generate-plugin-catalog.mjs",
+    "check:plugin-catalog": "npm run generate:plugin-catalog && git diff --exit-code cli/src/generated/plugin-catalog.ts",
     "lint": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "tauri": "tauri",
     "prepare": "husky"

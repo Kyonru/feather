@@ -12,6 +12,7 @@ export interface ManifestEntry {
   type: "core" | "plugin";
   path: string;   // for core: "feather/init.lua"
   plugin?: string; // for plugin: plugin id
+  sourceDir?: string; // for plugin: directory under plugins/
   file?: string;   // for plugin: filename within plugin dir
 }
 
@@ -38,7 +39,17 @@ export function parseManifest(text: string): ManifestEntry[] {
     if (parts[0] === "core" && parts[1]) {
       entries.push({ type: "core", path: parts[1] });
     } else if (parts[0] === "plugin" && parts[1] && parts[2]) {
-      entries.push({ type: "plugin", path: `plugins/${parts[1]}/${parts[2]}`, plugin: parts[1], file: parts[2] });
+      const nestedParts = parts[2].split("/");
+      const sourceDir = nestedParts.length > 1 ? `${parts[1]}/${nestedParts.slice(0, -1).join("/")}` : parts[1];
+      const file = nestedParts[nestedParts.length - 1];
+      const pluginId = sourceDir.replace(/\//g, ".");
+      entries.push({
+        type: "plugin",
+        path: `plugins/${parts[1]}/${parts[2]}`,
+        plugin: pluginId,
+        sourceDir,
+        file,
+      });
     }
   }
   return entries;
@@ -63,11 +74,13 @@ export async function installCore(
   entries: ManifestEntry[],
   targetDir: string,
   branch = "main",
-  onProgress?: (file: string) => void
+  onProgress?: (file: string) => void,
+  installDir = "feather"
 ): Promise<void> {
+  const root = normalizeInstallDir(installDir);
   for (const entry of entries) {
     if (entry.type !== "core") continue;
-    const dest = join(targetDir, entry.path);
+    const dest = join(targetDir, root, entry.path.replace(/^feather\//, ""));
     if (!existsSync(dirname(dest))) mkdirSync(dirname(dest), { recursive: true });
     await downloadFile(entry.path, dest, branch);
     onProgress?.(entry.path);
@@ -79,12 +92,16 @@ export async function installPlugin(
   entries: ManifestEntry[],
   targetDir: string,
   branch = "main",
-  onProgress?: (file: string) => void
+  onProgress?: (file: string) => void,
+  installDir = "feather"
 ): Promise<void> {
   const pluginEntries = entries.filter((e) => e.type === "plugin" && e.plugin === pluginId);
   if (pluginEntries.length === 0) throw new Error(`Unknown plugin: ${pluginId}`);
+  const root = normalizeInstallDir(installDir);
   for (const entry of pluginEntries) {
-    const dest = join(targetDir, entry.path);
+    const sourceDir = entry.sourceDir ?? pluginId.replace(/\./g, "/");
+    const file = entry.file ?? entry.path.replace(new RegExp(`^plugins/${sourceDir}/`), "");
+    const dest = join(targetDir, root, "plugins", sourceDir, file);
     mkdirSync(dirname(dest), { recursive: true });
     await downloadFile(entry.path, dest, branch);
     onProgress?.(entry.path);
@@ -93,4 +110,8 @@ export async function installPlugin(
 
 export function getPluginIds(entries: ManifestEntry[]): string[] {
   return [...new Set(entries.filter((e) => e.type === "plugin").map((e) => e.plugin!))];
+}
+
+export function normalizeInstallDir(installDir = "feather"): string {
+  return installDir.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "") || "feather";
 }
