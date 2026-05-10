@@ -13,11 +13,6 @@
 
 ---
 
-## 0.8.0
-
-- e2e tests for cli
-- improve doctor experience
-
 ## 0.9.x — Assets & Runtime Inspection
 
 Focus:
@@ -50,14 +45,6 @@ Reduce iteration time and improve daily usability.
 
 ### 0.10.0 – Developer Experience & Workflow
 
-#### Hot Reloading
-
-- [ ] Hot-reload Lua modules
-  - [ ] Watch file changes
-  - [ ] Auto-clear `package.loaded`
-  - [ ] Re-require changed modules
-  - [ ] Reload directly from debugger edits
-
 #### Runtime Control
 
 - [ ] Tween inspector
@@ -73,19 +60,6 @@ Reduce iteration time and improve daily usability.
 - [ ] Saved debugger sessions
 - [ ] Better keyboard shortcuts
 
-#### Documentation & Onboarding
-
-- [ ] Documentation website
-- [ ] Short demo videos
-- [ ] Quick-start templates
-- [ ] Example Love2D integrations
-
-#### UI/UX Polish
-
-- [ ] Improve branding
-- [ ] Improve onboarding
-- [ ] UI polish pass
-
 ---
 
 ## 0.11.x — Plugin Ecosystem
@@ -94,12 +68,6 @@ Focus:
 Turn Feather into a platform instead of only a debugger.
 
 ### 0.11.0 – Plugins & Extensions
-
-#### Public Plugin API
-
-- [ ] Stable plugin API
-- [ ] Plugin lifecycle hooks
-- [ ] Desktop ↔ runtime communication APIs
 
 #### Official Plugins
 

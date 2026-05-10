@@ -24,7 +24,7 @@ import { useConfigStore } from '@/store/config';
 import { useSettingsStore } from '@/store/settings';
 import { useSessionStore } from '@/store/session';
 import { useMemo, useState } from 'react';
-import { DynamicIcon } from 'lucide-react/dynamic';
+import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import { ChevronRight, PowerOffIcon, PuzzleIcon, SearchIcon, SlidersHorizontalIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -155,7 +155,7 @@ export function NavPlugins() {
                       )}
                     >
                       <NavLink to={item.url} end>
-                        {item.icon && <DynamicIcon className="size-4" name={item.icon} />}
+                        {item.icon && <DynamicIcon className="size-4" name={item.icon as IconName} />}
                         <span>{item.name}</span>
                       </NavLink>
                     </SidebarMenuSubButton>

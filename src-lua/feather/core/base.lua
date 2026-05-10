@@ -29,6 +29,9 @@ function FeatherPlugin:init(config)
   self.options = config.options or {}
   self.logger = config.logger or {}
   self.observer = config.observer or {}
+  self.api = config.api
+  self.minApi = config.minApi
+  self.maxApi = config.maxApi
 end
 
 function FeatherPlugin:update(dt)
@@ -58,7 +61,32 @@ end
 --- Verify if the plugin is supported by the current plugin api version of Feather
 ---@param version number
 function FeatherPlugin:isSupported(version)
-  -- By default, all api versions are supported
+  if self.api ~= nil then
+    if type(self.api) == "number" then
+      return version == self.api
+    end
+    if type(self.api) == "table" then
+      for _, api in ipairs(self.api) do
+        if version == api then
+          return true
+        end
+      end
+      if self.api.min ~= nil and version < self.api.min then
+        return false
+      end
+      if self.api.max ~= nil and version > self.api.max then
+        return false
+      end
+      return self.api.min ~= nil or self.api.max ~= nil
+    end
+  end
+  if self.minApi ~= nil and version < self.minApi then
+    return false
+  end
+  if self.maxApi ~= nil and version > self.maxApi then
+    return false
+  end
+  -- By default, plugins with no declared API range are treated as compatible.
   return version > 0
 end
 

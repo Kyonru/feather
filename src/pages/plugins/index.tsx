@@ -12,7 +12,41 @@ import { Link, useHref } from 'react-router';
 import { PluginContent } from './content';
 import { Checkbox } from '@/components/ui/checkbox';
 import { openUrl } from '@/utils/linking';
-import { PuzzleIcon } from 'lucide-react';
+import { PuzzleIcon, TriangleAlertIcon } from 'lucide-react';
+import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
+
+type PluginActionDefinition = {
+  label: string;
+  key: string;
+  icon: IconName;
+  type: 'button' | 'input' | 'checkbox' | 'select' | 'file' | 'vector';
+  value?: string;
+  props?: Record<string, unknown>;
+  group?: string;
+};
+
+const isPluginAction = (value: unknown): value is PluginActionDefinition => {
+  if (typeof value !== 'object' || value === null) return false;
+  const action = value as Record<string, unknown>;
+  return (
+    typeof action.label === 'string' &&
+    typeof action.key === 'string' &&
+    typeof action.icon === 'string' &&
+    typeof action.type === 'string'
+  );
+};
+
+const describePluginApi = (plugin: { api?: unknown; minApi?: unknown; maxApi?: unknown; currentApi?: unknown }) => {
+  const current = typeof plugin.currentApi === 'number' ? plugin.currentApi : FEATHER_PLUGIN_API;
+  if (typeof plugin.api === 'number') return `Requires API ${plugin.api}; this desktop supports API ${current}.`;
+  if (Array.isArray(plugin.api) && plugin.api.length > 0) {
+    return `Requires API ${plugin.api.join(', ')}; this desktop supports API ${current}.`;
+  }
+  if (typeof plugin.minApi === 'number' || typeof plugin.maxApi === 'number') {
+    return `Requires API ${typeof plugin.minApi === 'number' ? plugin.minApi : 'any'}-${typeof plugin.maxApi === 'number' ? plugin.maxApi : 'any'}; this desktop supports API ${current}.`;
+  }
+  return `This plugin is not compatible with Feather plugin API ${current}.`;
+};
 
 const VectorInput = ({
   label,
@@ -266,7 +300,7 @@ export default function PluginPage() {
                 {pluginEntries.slice(0, 6).map(([key, value]) => (
                   <Button key={key} asChild variant="outline" size="sm">
                     <Link to={`/plugins/${key}`}>
-                      {value.icon && <DynamicIcon className="size-3.5" name={value.icon} />}
+                      {value.icon && <DynamicIcon className="size-3.5" name={value.icon as IconName} />}
                       {value.tabName}
                     </Link>
                   </Button>
@@ -281,15 +315,8 @@ export default function PluginPage() {
     );
   }
 
-  const actions: {
-    label: string;
-    key: string;
-    icon: IconName;
-    type: 'button' | 'input' | 'vector';
-    value?: string;
-    props?: Record<string, unknown>;
-    group?: string;
-  }[] = plugin.actions || [];
+  const actions = Array.isArray(plugin.actions) ? plugin.actions.filter(isPluginAction) : [];
+  const docsUrl = typeof plugin.docs === 'string' ? plugin.docs : null;
 
   // Partition actions: toolbar (no group) vs grouped (has group)
   const toolbarActions = actions.filter((a) => !a.group);
@@ -337,8 +364,8 @@ export default function PluginPage() {
           </div>
           {/* System controls */}
           <div className="flex items-center gap-2 shrink-0">
-            {plugin.docs && (
-              <Button variant="ghost" size="sm" onClick={() => openUrl(plugin.docs)}>
+            {docsUrl && (
+              <Button variant="ghost" size="sm" onClick={() => openUrl(docsUrl)}>
                 <DynamicIcon className="size-4" name="book-open" />
                 Docs
               </Button>
@@ -347,12 +374,24 @@ export default function PluginPage() {
               variant={plugin.disabled ? 'default' : 'outline'}
               size="sm"
               onClick={onToggle}
+              disabled={plugin.incompatible}
             >
               <DynamicIcon className="size-4" name={plugin.disabled ? 'play' : 'pause'} />
               {plugin.disabled ? 'Enable' : 'Disable'}
             </Button>
           </div>
         </div>
+        {plugin.incompatible && (
+          <div className="mb-4 flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
+            <div className="grid gap-1">
+              <p className="font-medium text-destructive">Plugin API mismatch</p>
+              <p className="text-muted-foreground">
+                {plugin.incompatibilityReason || describePluginApi(plugin)} Update this plugin or use a matching Feather desktop/runtime version.
+              </p>
+            </div>
+          </div>
+        )}
         {groups.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             {groups.map((group) => (
@@ -381,12 +420,12 @@ export default function PluginPage() {
             ))}
           </div>
         )}
-        {plugin.disabled && (
+        {plugin.disabled && !plugin.incompatible && (
           <div className="text-muted-foreground text-sm mb-4">
             This plugin is disabled and execution is paused. Enable it to resume.
           </div>
         )}
-        {!plugin.disabled && (
+        {!plugin.disabled && !plugin.incompatible && (
           <PluginContent {...data} onAction={onPluginAction} onParamsChange={onParamsChange} />
         )}
       </div>

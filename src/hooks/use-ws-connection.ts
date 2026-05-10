@@ -16,6 +16,7 @@ import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
 import { useDebuggerStore, type PausedState } from '@/store/debugger';
+import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -271,6 +272,11 @@ export const useWsConnection = () => {
             // Config handshake — sets up the session and stores game config
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const config = data as any;
+            if (typeof config.API === 'number' && config.API !== FEATHER_PLUGIN_API) {
+              toast.warning(
+                `Feather API mismatch: game uses ${config.API}, desktop supports ${FEATHER_PLUGIN_API}. Some plugins may be unavailable.`,
+              );
+            }
 
             // Migrate cached data from previous session of the same device
             const deviceId = config.deviceId;

@@ -169,6 +169,42 @@ require("feather.auto").setup({
 
 Pass `"all"` (the default) to skip capability checking entirely.
 
+### API Compatibility
+
+Feather has a plugin UI/protocol API number. Plugins can declare which desktop API versions they support in `manifest.lua`; the runtime forwards that metadata to the desktop and disables incompatible plugins instead of letting them fail later.
+
+The current Lua runtime exposes the number as `require("feather").API`.
+
+```lua
+-- plugins/my-plugin/manifest.lua
+return {
+  id = "my-plugin",
+  name = "My Plugin",
+  version = "1.0.0",
+
+  -- Exact API
+  api = 5,
+
+  -- Or a range
+  -- minApi = 5,
+  -- maxApi = 6,
+}
+```
+
+For manually registered plugins, pass the same metadata through `createPlugin`:
+
+```lua
+local plugin = FeatherPluginManager.createPlugin(MyPlugin, "my-plugin", {}, false, {}, {
+  minApi = 5,
+  maxApi = 6,
+  name = "My Plugin",
+  version = "1.0.0",
+})
+```
+
+> [!IMPORTANT]
+> Declare an API range when your plugin depends on specific Feather UI nodes, binary attachments, action semantics, or table/gallery formats. Incompatible plugins are shown in the desktop app with an API mismatch message and cannot be enabled.
+
 ### Plugin lifecycle
 
 The FeatherPluginManager handles the lifecycle of each plugin. Each plugin's `update()` is wrapped in `pcall` for error isolation — if a plugin crashes, it won't affect the game or other plugins. After 10 consecutive errors, a plugin is automatically disabled. Use `pluginManager:enablePlugin(id)` to re-enable it.

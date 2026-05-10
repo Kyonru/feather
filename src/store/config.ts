@@ -7,8 +7,7 @@ export interface SysInfo {
 }
 
 export interface Config {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plugins: Record<string, any>;
+  plugins: Record<string, PluginConfig>;
   root_path: string;
   version: string;
   API: number;
@@ -35,6 +34,23 @@ export interface Config {
   sysInfo?: SysInfo;
   deviceId?: string;
   sessionName?: string;
+}
+
+export interface PluginConfig {
+  type?: string;
+  tabName?: string;
+  icon?: string;
+  disabled?: boolean;
+  incompatible?: boolean;
+  incompatibilityReason?: string;
+  api?: number | number[];
+  minApi?: number;
+  maxApi?: number;
+  currentApi?: number;
+  version?: string;
+  docs?: string;
+  actions?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
 }
 
 interface ConfigState {

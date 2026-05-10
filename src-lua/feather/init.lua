@@ -32,6 +32,8 @@ local FEATHER_VERSION = {
 ---@field lastError number
 ---@field debug boolean
 ---@field featherLogger FeatherLogger
+---@field API number
+---@field VERSION number
 ---@field wsConnected boolean
 ---@field wsClient table|nil
 ---@field sessionId string
@@ -770,5 +772,9 @@ end
 ---@type fun(config: FeatherConfig): Feather
 ---@diagnostic disable-next-line: assign-type-mismatch
 local casted = Feather
+---@diagnostic disable-next-line: inject-field
+casted.API = FEATHER_VERSION.api
+---@diagnostic disable-next-line: inject-field
+casted.VERSION = FEATHER_VERSION.name
 
 return casted

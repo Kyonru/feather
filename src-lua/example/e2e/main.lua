@@ -1,4 +1,22 @@
 local FeatherDebugger = require("feather")
+local Class = require("feather.lib.class")
+local FeatherPluginBase = require("feather.core.base")
+local FeatherPluginManager = require("feather.plugin_manager")
+
+local E2EPlugin = Class({
+  __includes = FeatherPluginBase,
+  init = function(self, config)
+    FeatherPluginBase.init(self, config)
+  end,
+})
+
+function E2EPlugin:getConfig()
+  return {
+    type = "e2e",
+    tabName = "E2E Plugin",
+    icon = "puzzle",
+  }
+end
 
 local results = {}
 
@@ -28,7 +46,18 @@ local function run()
     sessionName = "Lua E2E",
     deviceId = "lua-e2e",
     assetPreview = false,
-    plugins = {},
+    plugins = {
+      FeatherPluginManager.createPlugin(E2EPlugin, "api-compatible", {}, false, {}, {
+        api = FeatherDebugger.API,
+        name = "API Compatible",
+        version = "1.0.0",
+      }),
+      FeatherPluginManager.createPlugin(E2EPlugin, "api-incompatible", {}, false, {}, {
+        minApi = FeatherDebugger.API + 1,
+        name = "API Incompatible",
+        version = "1.0.0",
+      }),
+    },
     debugger = {
       enabled = false,
       hotReload = {
@@ -50,7 +79,13 @@ local function run()
 
   assertTruthy(feather, "feather creates debugger instance")
   assertTruthy(feather.hotReloader, "hot reloader is available")
-  assertEqual(feather:__getConfig().debugger.hotReload.enabled, true, "hello config includes hot reload state")
+  local helloConfig = feather:__getConfig()
+  assertEqual(helloConfig.debugger.hotReload.enabled, true, "hello config includes hot reload state")
+  assertEqual(helloConfig.plugins["api-compatible"].incompatible, false, "compatible plugin remains available")
+  assertEqual(helloConfig.plugins["api-compatible"].disabled, false, "compatible plugin remains enabled")
+  assertEqual(helloConfig.plugins["api-incompatible"].incompatible, true, "incompatible plugin is flagged")
+  assertEqual(helloConfig.plugins["api-incompatible"].disabled, true, "incompatible plugin is disabled")
+  assertTruthy(helloConfig.plugins["api-incompatible"].incompatibilityReason, "incompatible plugin includes reason")
 
   local moduleName = "example.e2e.reloadable"
   package.loaded[moduleName] = nil

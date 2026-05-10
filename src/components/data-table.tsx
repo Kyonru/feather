@@ -24,7 +24,7 @@ import { Log, LogType } from '@/hooks/use-logs';
 import { isWeb } from '@/utils/platform';
 import { Input } from './ui/input';
 import { useConfigStore } from '@/store/config';
-import { DynamicIcon } from 'lucide-react/dynamic';
+import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import {
   CircleXIcon,
   FeatherIcon,
@@ -100,7 +100,7 @@ export const BadgeType = ({ type }: { type: string }) => {
               width: 12,
             }}
           >
-            <DynamicIcon className={cn(color, 'size-3')} name={plugin.icon} />
+            <DynamicIcon className={cn(color, 'size-3')} name={plugin.icon as IconName} />
           </div>
         );
       }

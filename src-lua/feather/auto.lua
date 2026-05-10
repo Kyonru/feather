@@ -82,6 +82,13 @@ local function scanPlugins()
           optIn = manifest.optIn or false,
           disabled = manifest.disabled ~= false,
           capabilities = manifest.capabilities or {},
+          compatibility = {
+            api = manifest.api,
+            minApi = manifest.minApi,
+            maxApi = manifest.maxApi,
+            name = manifest.name,
+            version = manifest.version,
+          },
         }
       end
     end
@@ -110,6 +117,13 @@ local function scanPlugins()
         optIn = manifest.optIn or false,
         disabled = manifest.disabled ~= false,
         capabilities = manifest.capabilities or {},
+        compatibility = {
+          api = manifest.api,
+          minApi = manifest.minApi,
+          maxApi = manifest.maxApi,
+          name = manifest.name,
+          version = manifest.version,
+        },
       }
     end
   end
@@ -167,7 +181,14 @@ function auto.setup(config)
         end
       end
       local disabled = entry.disabled and not include[entry.id]
-      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(entry.mod, entry.id, opts, disabled, entry.capabilities)
+      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(
+        entry.mod,
+        entry.id,
+        opts,
+        disabled,
+        entry.capabilities,
+        entry.compatibility
+      )
     end
     ::continue::
   end
