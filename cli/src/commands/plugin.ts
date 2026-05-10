@@ -1,8 +1,19 @@
 import { existsSync, readFileSync, rmSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import ora from "ora";
-import { fetchManifest, installPlugin, getPluginIds, normalizeInstallDir } from "../lib/install.js";
+import {
+  fetchManifest,
+  getLocalPluginIds,
+  getPluginIds,
+  installPlugin,
+  installPluginsFromLocal,
+  normalizeInstallDir,
+} from "../lib/install.js";
+import { choosePluginWorkflow } from "../ui/plugin-workflow.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function findProjectDir(cwd = process.cwd()): string {
   if (existsSync(join(cwd, "feather", "init.lua"))) return cwd;
@@ -12,6 +23,20 @@ function findProjectDir(cwd = process.cwd()): string {
 
 function pluginsDir(projectDir: string, installDir = "feather"): string {
   return join(projectDir, normalizeInstallDir(installDir), "plugins");
+}
+
+function bundledLuaRoot(): string {
+  return resolve(__dirname, "../../lua");
+}
+
+function repoLuaRoot(): string | null {
+  const candidate = resolve(__dirname, "../../../src-lua");
+  return existsSync(join(candidate, "feather", "init.lua")) ? candidate : null;
+}
+
+function resolveLocalLuaRoot(opts: { localSrc?: string }): string {
+  if (opts.localSrc) return resolve(opts.localSrc);
+  return repoLuaRoot() ?? bundledLuaRoot();
 }
 
 function readManifest(pluginDir: string): Record<string, string> | null {
@@ -35,6 +60,16 @@ function findInstalledPluginDirs(root: string): string[] {
     }
   }
   return found;
+}
+
+function getInstalledPluginIds(projectDir: string, installDir = "feather"): string[] {
+  const dirPath = pluginsDir(projectDir, installDir);
+  if (!existsSync(dirPath)) return [];
+
+  return findInstalledPluginDirs(dirPath)
+    .map((dir) => readManifest(dir)?.id)
+    .filter((id): id is string => Boolean(id))
+    .sort();
 }
 
 export async function pluginListCommand(dir?: string, installDir = "feather"): Promise<void> {
@@ -67,11 +102,31 @@ export async function pluginListCommand(dir?: string, installDir = "feather"): P
 
 export async function pluginInstallCommand(
   pluginId: string,
-  opts: { dir?: string; branch?: string; installDir?: string }
+  opts: { dir?: string; branch?: string; installDir?: string; remote?: boolean; localSrc?: string }
 ): Promise<void> {
   const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
   const branch = opts.branch ?? "main";
   const installDir = opts.installDir ?? "feather";
+
+  if (!opts.remote) {
+    const sourceRoot = resolveLocalLuaRoot(opts);
+    const available = getLocalPluginIds(sourceRoot);
+    if (!available.includes(pluginId)) {
+      console.error(chalk.red(`Unknown plugin: ${pluginId}`));
+      console.log(chalk.dim("Available: " + available.join(", ")));
+      process.exit(1);
+    }
+
+    const spinner = ora(`Copying ${pluginId}…`).start();
+    try {
+      installPluginsFromLocal([pluginId], sourceRoot, projectDir, installDir);
+      spinner.succeed(`Installed ${pluginId}`);
+    } catch (err) {
+      spinner.fail((err as Error).message);
+      process.exit(1);
+    }
+    return;
+  }
 
   const spinner = ora("Fetching manifest…").start();
   let entries: Awaited<ReturnType<typeof fetchManifest>>;
@@ -115,12 +170,29 @@ export async function pluginRemoveCommand(pluginId: string, opts: { dir?: string
 
 export async function pluginUpdateCommand(
   pluginId: string | undefined,
-  opts: { dir?: string; branch?: string; installDir?: string }
+  opts: { dir?: string; branch?: string; installDir?: string; remote?: boolean; localSrc?: string }
 ): Promise<void> {
   const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
   const branch = opts.branch ?? "main";
   const installDir = opts.installDir ?? "feather";
   const dirPath = pluginsDir(projectDir, installDir);
+
+  if (!opts.remote) {
+    const sourceRoot = resolveLocalLuaRoot(opts);
+    const available = getLocalPluginIds(sourceRoot);
+    const ids = pluginId ? [pluginId] : available.filter((id) => existsSync(join(dirPath, id.replace(/\./g, "/"))));
+
+    for (const id of ids) {
+      const s = ora(`Updating ${id}…`).start();
+      try {
+        installPluginsFromLocal([id], sourceRoot, projectDir, installDir);
+        s.succeed(`Updated ${id}`);
+      } catch (err) {
+        s.fail(`${id}: ${(err as Error).message}`);
+      }
+    }
+    return;
+  }
 
   const spinner = ora("Fetching manifest…").start();
   let entries: Awaited<ReturnType<typeof fetchManifest>>;
@@ -144,5 +216,63 @@ export async function pluginUpdateCommand(
     } catch (err) {
       s.fail(`${id}: ${(err as Error).message}`);
     }
+  }
+}
+
+export async function pluginWorkflowCommand(opts: {
+  dir?: string;
+  branch?: string;
+  installDir?: string;
+  remote?: boolean;
+  localSrc?: string;
+}): Promise<void> {
+  const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
+  const installDir = opts.installDir ?? "feather";
+  const installedIds = getInstalledPluginIds(projectDir, installDir);
+
+  const result = await choosePluginWorkflow({
+    installedIds,
+    defaultBranch: opts.branch ?? "main",
+  });
+
+  if (result.action === "cancel") return;
+  if (result.action === "list") {
+    await pluginListCommand(projectDir, installDir);
+    return;
+  }
+
+  if (result.pluginIds.length === 0) {
+    console.log(chalk.dim("No plugins selected."));
+    return;
+  }
+
+  if (result.action === "install") {
+    for (const id of result.pluginIds) {
+      await pluginInstallCommand(id, {
+        dir: projectDir,
+        branch: result.branch,
+        installDir,
+        remote: result.source === "remote",
+        localSrc: opts.localSrc,
+      });
+    }
+    return;
+  }
+
+  if (result.action === "update") {
+    for (const id of result.pluginIds) {
+      await pluginUpdateCommand(id, {
+        dir: projectDir,
+        branch: result.branch,
+        installDir,
+        remote: result.source === "remote",
+        localSrc: opts.localSrc,
+      });
+    }
+    return;
+  }
+
+  for (const id of result.pluginIds) {
+    await pluginRemoveCommand(id, { dir: projectDir, installDir });
   }
 }

@@ -9,6 +9,7 @@ import {
   pluginInstallCommand,
   pluginRemoveCommand,
   pluginUpdateCommand,
+  pluginWorkflowCommand,
 } from "./commands/plugin.js";
 import type { InitMode } from "./ui/init-mode.js";
 
@@ -94,27 +95,51 @@ program
   });
 
 // ── feather plugin ───────────────────────────────────────────────────────────
-const plugin = program.command("plugin").description("Manage Feather plugins");
+const plugin = program
+  .command("plugin")
+  .description("Manage Feather plugins")
+  .option("--dir <path>", "Project directory (default: current directory)")
+  .option("--remote", "Download from GitHub instead of copying the local/bundled Lua runtime")
+  .option("--branch <branch>", "GitHub branch to download from when using --remote", "main")
+  .option("--local-src <path>", "Copy plugins from a local src-lua style directory")
+  .option("--install-dir <path>", "Feather install directory", "feather")
+  .action(async (opts) => {
+    await pluginWorkflowCommand({
+      dir: opts.dir as string | undefined,
+      branch: opts.branch as string,
+      installDir: opts.installDir as string,
+      remote: opts.remote as boolean | undefined,
+      localSrc: opts.localSrc as string | undefined,
+    });
+  });
+
+const pluginCommandOptions = (opts: Record<string, unknown>) => ({ ...opts, ...plugin.opts() });
 
 plugin
   .command("list [dir]")
   .description("List installed plugins")
   .option("--install-dir <path>", "Feather install directory", "feather")
-  .action((dir: string | undefined, opts) => {
-    pluginListCommand(dir, opts.installDir as string);
+  .action(async (dir: string | undefined, opts) => {
+    const merged = pluginCommandOptions(opts);
+    await pluginListCommand(dir ?? (merged.dir as string | undefined), merged.installDir as string);
   });
 
 plugin
   .command("install <id>")
   .description("Install a plugin from the Feather registry")
   .option("--dir <path>", "Project directory (default: current directory)")
-  .option("--branch <branch>", "GitHub branch", "main")
+  .option("--remote", "Download from GitHub instead of copying the local/bundled Lua runtime")
+  .option("--branch <branch>", "GitHub branch to download from when using --remote", "main")
+  .option("--local-src <path>", "Copy plugins from a local src-lua style directory")
   .option("--install-dir <path>", "Feather install directory", "feather")
-  .action((id: string, opts) => {
-    pluginInstallCommand(id, {
-      dir: opts.dir as string | undefined,
-      branch: opts.branch as string,
-      installDir: opts.installDir as string,
+  .action(async (id: string, opts) => {
+    const merged = pluginCommandOptions(opts);
+    await pluginInstallCommand(id, {
+      dir: merged.dir as string | undefined,
+      branch: merged.branch as string,
+      installDir: merged.installDir as string,
+      remote: merged.remote as boolean | undefined,
+      localSrc: merged.localSrc as string | undefined,
     });
   });
 
@@ -123,21 +148,27 @@ plugin
   .description("Remove an installed plugin")
   .option("--dir <path>", "Project directory (default: current directory)")
   .option("--install-dir <path>", "Feather install directory", "feather")
-  .action((id: string, opts) => {
-    pluginRemoveCommand(id, { dir: opts.dir as string | undefined, installDir: opts.installDir as string });
+  .action(async (id: string, opts) => {
+    const merged = pluginCommandOptions(opts);
+    await pluginRemoveCommand(id, { dir: merged.dir as string | undefined, installDir: merged.installDir as string });
   });
 
 plugin
   .command("update [id]")
   .description("Update a plugin (or all installed plugins if no id given)")
   .option("--dir <path>", "Project directory (default: current directory)")
-  .option("--branch <branch>", "GitHub branch", "main")
+  .option("--remote", "Download from GitHub instead of copying the local/bundled Lua runtime")
+  .option("--branch <branch>", "GitHub branch to download from when using --remote", "main")
+  .option("--local-src <path>", "Copy plugins from a local src-lua style directory")
   .option("--install-dir <path>", "Feather install directory", "feather")
-  .action((id: string | undefined, opts) => {
-    pluginUpdateCommand(id, {
-      dir: opts.dir as string | undefined,
-      branch: opts.branch as string,
-      installDir: opts.installDir as string,
+  .action(async (id: string | undefined, opts) => {
+    const merged = pluginCommandOptions(opts);
+    await pluginUpdateCommand(id, {
+      dir: merged.dir as string | undefined,
+      branch: merged.branch as string,
+      installDir: merged.installDir as string,
+      remote: merged.remote as boolean | undefined,
+      localSrc: merged.localSrc as string | undefined,
     });
   });
 

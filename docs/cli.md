@@ -221,6 +221,21 @@ This re-downloads all `core:` files listed in `manifest.txt`. Plugin files are n
 
 Manage Feather plugins in a project.
 
+Run `feather plugin` with no subcommand to open an Ink workflow for common plugin tasks:
+
+```bash
+feather plugin
+feather plugin --install-dir lib/feather
+feather plugin --remote --branch main
+```
+
+The workflow can list installed plugins, install one or more catalog plugins, remove installed plugins, or update selected plugins. Like `feather init`, plugin installs and updates are local-first by default:
+
+1. `--local-src <path>` copies from a local `src-lua` style tree.
+2. Running the CLI from the Feather monorepo copies the repo's `src-lua`.
+3. Published CLI installs copy the bundled `cli/lua` runtime.
+4. `--remote` downloads from GitHub using `--branch`.
+
 #### `feather plugin list [dir]`
 
 List installed plugins.
@@ -240,11 +255,12 @@ Installed plugins (12)
 
 #### `feather plugin install <id>`
 
-Download and install a plugin.
+Install a plugin from the local/bundled runtime by default, or from GitHub with `--remote`.
 
 ```bash
 feather plugin install console
-feather plugin install time-travel --branch main
+feather plugin install time-travel --remote --branch main
+feather plugin install console --local-src ../feather/src-lua
 feather plugin install console --install-dir lib/feather
 ```
 
@@ -263,6 +279,7 @@ Update a plugin, or all installed plugins if no ID is given.
 ```bash
 feather plugin update              # update all installed plugins
 feather plugin update profiler     # update a specific plugin
+feather plugin update --remote --branch main
 ```
 
 Use `--install-dir <path>` with plugin commands when the project was initialized outside the default `feather/` directory.
