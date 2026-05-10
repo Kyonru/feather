@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { useSessionStore } from '@/store/session';
-import { useSettingsStore } from '@/store/settings';
+import { useEffectiveApiKey } from './use-session-api-key';
 import { sessionQueryKey, type EvalResponse } from './use-ws-connection';
 import { toast } from 'sonner';
 
@@ -16,7 +16,7 @@ export type ConsoleEntry = {
 export const useConsole = () => {
   const queryClient = useQueryClient();
   const sessionId = useSessionStore((state) => state.sessionId);
-  const apiKey = useSettingsStore((state) => state.apiKey);
+  const apiKey = useEffectiveApiKey();
   const counterRef = useRef(0);
 
   const queryKey = sessionId ? sessionQueryKey.console(sessionId) : ['noop-console'];

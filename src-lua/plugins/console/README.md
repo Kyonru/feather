@@ -39,7 +39,7 @@ function love.update(dt)
 end
 ```
 
-> **Security:** `apiKey` must be set and non-empty in both the game config and the Feather desktop **Settings → API Key** field. The Console refuses to execute any code if the keys don't match.
+> **Security:** `apiKey` must be set and non-empty in the game config and in the Feather desktop app. The desktop uses the active session API key override when set, otherwise it falls back to the default **Settings → API Key** field. The Console refuses to execute any code if the keys don't match.
 
 ---
 
