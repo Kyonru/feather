@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
 import { useDebuggerStore, type PausedState } from '@/store/debugger';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
+import { sendCommand } from '@/lib/send-command';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -260,10 +261,7 @@ export const useWsConnection = () => {
         if (type !== 'feather:hello') {
           const sessions = useSessionStore.getState().sessions;
           if (!sessions[sessionId]) {
-            invoke('send_command', {
-              sessionId,
-              message: JSON.stringify({ type: 'req:config' }),
-            }).catch(() => {});
+            sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
           }
         }
 
@@ -320,18 +318,12 @@ export const useWsConnection = () => {
             console.log('Debugger enabled for session', sessionId);
             if (shouldEnable) {
               setDebuggerEnabled(sessionId, true);
-              invoke('send_command', {
-                sessionId,
-                message: JSON.stringify({ type: 'cmd:debugger:enable' }),
-              }).catch(() => {});
+              sendCommand(sessionId, { type: 'cmd:debugger:enable' }).catch(() => {});
               const stored = debuggerState.breakpoints.filter((b) => b.enabled);
               if (stored.length > 0) {
-                invoke('send_command', {
-                  sessionId,
-                  message: JSON.stringify({
-                    type: 'cmd:debugger:set_breakpoints',
-                    data: { breakpoints: stored.map(({ file, line, condition }) => ({ file, line, condition })) },
-                  }),
+                sendCommand(sessionId, {
+                  type: 'cmd:debugger:set_breakpoints',
+                  data: { breakpoints: stored.map(({ file, line, condition }) => ({ file, line, condition })) },
                 }).catch(() => {});
               }
             }
@@ -407,6 +399,12 @@ export const useWsConnection = () => {
           case 'assets:error': {
             const payload = data as { message?: string };
             toast.error(`Asset preview failed: ${payload?.message || 'Unknown error'}`);
+            break;
+          }
+
+          case 'auth:error': {
+            const payload = data as { message?: string };
+            toast.error(payload?.message || 'Feather app ID was rejected by the game');
             break;
           }
 
@@ -572,10 +570,7 @@ export const useWsConnection = () => {
       // This handles the race where feather:hello fires before the message listener is ready.
       const unlistenStart = await listen<string>('feather://session-start', (event) => {
         if (cancelled) return;
-        invoke('send_command', {
-          sessionId: event.payload,
-          message: JSON.stringify({ type: 'req:config' }),
-        }).catch(() => {});
+        sendCommand(event.payload, { type: 'req:config' }).catch(() => {});
       });
 
       if (cancelled) {
@@ -594,10 +589,7 @@ export const useWsConnection = () => {
           const knownSessions = useSessionStore.getState().sessions;
           sessionIds.forEach((sessionId) => {
             if (!knownSessions[sessionId]) {
-              invoke('send_command', {
-                sessionId,
-                message: JSON.stringify({ type: 'req:config' }),
-              }).catch(() => {});
+              sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
             }
           });
         })

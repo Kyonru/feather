@@ -152,6 +152,16 @@ function managedHeader(context: ConfigTemplateContext = {}): string {
 
 function optionReference(): string {
   return `
+  -- Security: set ONE of the two options below. Feather errors at startup if neither is set.
+  --
+  -- Option A (recommended): bind to your specific Feather desktop instance.
+  --   Copy from Feather desktop app → Settings → Security → Desktop App ID.
+  -- appId = "feather-app-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  --
+  -- Option B: explicitly allow any desktop to send commands.
+  --   Set this to acknowledge that any Feather desktop on the network can control this game.
+  -- __DANGEROUS_INSECURE_CONNECTION__ = true,
+
   -- Common connection options:
   -- host = "127.0.0.1",
   -- port = 4004,

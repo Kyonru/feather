@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 import { debounce } from '@/utils/timers';
 import { Config, useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -16,12 +16,9 @@ export function useConfig(): {
     return debounce((value: number) => {
       if (!sessionId) return;
 
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({
-          type: 'cmd:config',
-          data: { sampleRate: value },
-        }),
+      sendCommand(sessionId, {
+        type: 'cmd:config',
+        data: { sampleRate: value },
       }).catch(console.error);
     }, 1000);
   }, [sessionId]);
@@ -29,12 +26,9 @@ export function useConfig(): {
   const updateDiskUsage = useMemo(() => {
     return (enabled: boolean) => {
       if (!sessionId) return;
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({
-          type: 'cmd:config',
-          data: { diskUsage: enabled },
-        }),
+      sendCommand(sessionId, {
+        type: 'cmd:config',
+        data: { diskUsage: enabled },
       }).catch(console.error);
     };
   }, [sessionId]);

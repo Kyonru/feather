@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
+import { sendCommand } from '@/lib/send-command';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 
@@ -14,14 +14,11 @@ export const usePluginControl = (pluginId: string) => {
     (nextEnabled: boolean, extra?: Record<string, unknown>) => {
       if (!sessionId) return;
 
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({
-          type: 'cmd:plugin:set_enabled',
-          plugin: pluginId,
-          enabled: nextEnabled,
-          ...(extra ?? {}),
-        }),
+      sendCommand(sessionId, {
+        type: 'cmd:plugin:set_enabled',
+        plugin: pluginId,
+        enabled: nextEnabled,
+        ...(extra ?? {}),
       }).catch((error: unknown) => {
         toast.error(error instanceof Error ? error.message : `Failed to ${nextEnabled ? 'enable' : 'disable'} plugin`);
       });

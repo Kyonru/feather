@@ -67,6 +67,8 @@ local customErrorHandler = errorhandler
 ---@field sampleRate? number
 ---@field sessionName? string  Custom display name shown in desktop session tabs (e.g. "My RPG")
 ---@field deviceId? string  Override persistent device ID (auto-generated and saved to disk if not set)
+---@field appId? string  Desktop app ID allowed to send commands to this game. Required unless __DANGEROUS_INSECURE_CONNECTION__ = true.
+---@field __DANGEROUS_INSECURE_CONNECTION__? boolean  Explicit opt-in to accept commands from any desktop (no appId check). Must be set to acknowledge the security risk.
 ---@field apiKey? string
 ---@field defaultObservers? boolean
 ---@field captureScreenshot? boolean
@@ -112,6 +114,25 @@ function Feather:init(config)
   self.retryInterval = conf.retryInterval or 5
   self.connectTimeout = conf.connectTimeout or 2
   self.sessionName = conf.sessionName or ""
+  self.appId = conf.appId or ""
+  self.__DANGEROUS_INSECURE_CONNECTION__ = conf.__DANGEROUS_INSECURE_CONNECTION__ == true
+
+  -- Enforce that developers consciously opt out of appId binding.
+  -- If neither appId nor __DANGEROUS_INSECURE_CONNECTION__ is set, refuse to open a socket
+  -- connection so the developer cannot accidentally ship without one or the other.
+  if self.mode == "socket" and self.debug then
+    if type(self.appId) ~= "string" or self.appId == "" then
+      if not self.__DANGEROUS_INSECURE_CONNECTION__ then
+        error(
+          "[Feather] Security: appId is not set and __DANGEROUS_INSECURE_CONNECTION__ is not true.\n"
+            .. "  Set appId in feather.config.lua (copy from Feather → Settings → Security → Desktop App ID)\n"
+            .. "  OR set __DANGEROUS_INSECURE_CONNECTION__ = true to acknowledge that any Feather desktop can send commands to this game.",
+          2
+        )
+      end
+    end
+  end
+
   self.assetPreviewEnabled = conf.assetPreview ~= false
   self.binaryTextThreshold = conf.binaryTextThreshold or 4096
   self._nextBinaryId = 1
@@ -320,6 +341,10 @@ function Feather:__getConfig()
     sysInfo = self.performance.sysInfo,
     deviceId = self.deviceId,
     sessionName = self.sessionName,
+    security = {
+      appIdRequired = type(self.appId) == "string" and self.appId ~= "",
+      __DANGEROUS_INSECURE_CONNECTION__ = self.__DANGEROUS_INSECURE_CONNECTION__ == true,
+    },
     assets = { enabled = self.assetPreviewEnabled },
     debugger = {
       enabled = self.debuggerEnabled,
@@ -357,10 +382,31 @@ function Feather:__setAssetPreviewEnabled(enabled)
   self.pluginManager:hookLoveCallbacks()
 end
 
+function Feather:__isAppAuthorized(msg)
+  if self.__DANGEROUS_INSECURE_CONNECTION__ then
+    return true
+  end
+  if type(self.appId) ~= "string" or self.appId == "" then
+    return true  -- should not reach here; init() enforces appId or __DANGEROUS_INSECURE_CONNECTION__
+  end
+  return msg and msg.appId == self.appId
+end
+
 --- Dispatch an incoming desktop → game command message.
 ---@param msg table Decoded JSON command
 function Feather:__handleCommand(msg)
   if not msg or not msg.type then
+    return
+  end
+
+  if not self:__isAppAuthorized(msg) then
+    self:__sendWs(json.encode({
+      type = "auth:error",
+      session = self.sessionId,
+      data = {
+        message = "Desktop app ID mismatch. Update appId in feather.config.lua or use the matching Feather desktop app.",
+      },
+    }))
     return
   end
 

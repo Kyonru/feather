@@ -18,7 +18,18 @@ import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { MobileConnection } from '@/components/mobile-connection';
-import { EyeIcon, EyeOffIcon, MonitorIcon, NetworkIcon, ShieldIcon, CodeIcon, ActivityIcon, FolderIcon } from 'lucide-react';
+import {
+  ActivityIcon,
+  CodeIcon,
+  CopyIcon,
+  EyeIcon,
+  EyeOffIcon,
+  FolderIcon,
+  MonitorIcon,
+  NetworkIcon,
+  RefreshCwIcon,
+  ShieldIcon,
+} from 'lucide-react';
 
 function Section({
   icon: Icon,
@@ -168,6 +179,37 @@ function ApiKeyInput() {
   );
 }
 
+function AppIdInput() {
+  const appId = useSettingsStore((state) => state.appId);
+  const regenerateAppId = useSettingsStore((state) => state.regenerateAppId);
+  const appIdRequired = useConfigStore((state) => state.config?.security?.appIdRequired === true);
+
+  const copyAppId = () => {
+    navigator.clipboard?.writeText(appId).catch(() => {});
+  };
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="setting-app-id">Desktop App ID</Label>
+      <div className="flex gap-2">
+        <Input id="setting-app-id" value={appId} disabled className="font-mono text-sm" />
+        <Button type="button" variant="outline" size="icon" onClick={copyAppId} title="Copy app ID">
+          <CopyIcon className="size-4" />
+        </Button>
+        <Button type="button" variant="outline" size="icon" onClick={regenerateAppId} title="Generate a new app ID">
+          <RefreshCwIcon className="size-4" />
+        </Button>
+      </div>
+      <FieldDescription>
+        Paste this value into <code className="font-mono">appId</code> in{' '}
+        <code className="font-mono">feather.config.lua</code> to make the game accept commands only from this desktop
+        app.
+        {appIdRequired ? ' The active session requires a matching app ID.' : ''}
+      </FieldDescription>
+    </div>
+  );
+}
+
 function SessionApiKeyInput() {
   const sessionId = useSessionStore((state) => state.sessionId);
   const session = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
@@ -210,9 +252,9 @@ function SessionApiKeyInput() {
 }
 
 function AssetSourceDirInput() {
-  const assetSourceDir    = useSettingsStore((state) => state.assetSourceDir);
+  const assetSourceDir = useSettingsStore((state) => state.assetSourceDir);
   const setAssetSourceDir = useSettingsStore((state) => state.setAssetSourceDir);
-  const autoSourceDir     = useConfigStore((state)   => state.config?.sourceDir ?? '');
+  const autoSourceDir = useConfigStore((state) => state.config?.sourceDir ?? '');
   return (
     <div className="grid gap-2">
       <Label htmlFor="setting-asset-source-dir">Asset Source Directory</Label>
@@ -227,9 +269,9 @@ function AssetSourceDirInput() {
         />
       </div>
       <FieldDescription>
-        Override where the desktop looks for game asset files when previewing textures and fonts.
-        Leave empty to use the source directory reported by the game ({autoSourceDir || 'not connected'}).
-        Set this manually when the game runs on a different machine.
+        Override where the desktop looks for game asset files when previewing textures and fonts. Leave empty to use the
+        source directory reported by the game ({autoSourceDir || 'not connected'}). Set this manually when the game runs
+        on a different machine.
       </FieldDescription>
     </div>
   );
@@ -288,6 +330,7 @@ export function SettingsModal() {
           <Separator />
 
           <Section icon={ShieldIcon} title="Security">
+            <AppIdInput />
             <ApiKeyInput />
             <SessionApiKeyInput />
           </Section>

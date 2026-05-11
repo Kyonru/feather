@@ -1,26 +1,14 @@
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 /**
  * Send a one-shot request to the game for all data.
  * Use this for manual reconnect / refresh buttons only.
  */
 export const requestAllData = (sessionId: string) => {
-  invoke('send_command', {
-    sessionId,
-    message: JSON.stringify({ type: 'req:performance' }),
-  }).catch(() => {});
+  sendCommand(sessionId, { type: 'req:performance' }).catch(() => {});
 
-  invoke('send_command', {
-    sessionId,
-    message: JSON.stringify({ type: 'req:observers' }),
-  }).catch(() => {});
+  sendCommand(sessionId, { type: 'req:observers' }).catch(() => {});
 
-  invoke('send_command', {
-    sessionId,
-    message: JSON.stringify({ type: 'req:plugins' }),
-  }).catch(() => {});
+  sendCommand(sessionId, { type: 'req:plugins' }).catch(() => {});
 
-  invoke('send_command', {
-    sessionId,
-    message: JSON.stringify({ type: 'req:config' }),
-  }).catch(() => {});
+  sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
 };

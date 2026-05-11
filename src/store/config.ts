@@ -34,6 +34,9 @@ export interface Config {
   sysInfo?: SysInfo;
   deviceId?: string;
   sessionName?: string;
+  security?: {
+    appIdRequired?: boolean;
+  };
 }
 
 export interface PluginConfig {

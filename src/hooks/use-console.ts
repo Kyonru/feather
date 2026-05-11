@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
 import { useEffectiveApiKey } from './use-session-api-key';
 import { sessionQueryKey, type EvalResponse } from './use-ws-connection';
@@ -43,14 +43,11 @@ export const useConsole = () => {
         return entry;
       }
 
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({
-          type: 'cmd:eval',
-          code,
-          id,
-          apiKey: apiKey || undefined,
-        }),
+      sendCommand(sessionId, {
+        type: 'cmd:eval',
+        code,
+        id,
+        apiKey: apiKey || undefined,
       }).catch((e: unknown) => {
         toast.error(e instanceof Error ? e.message : 'Failed to send eval command');
       });

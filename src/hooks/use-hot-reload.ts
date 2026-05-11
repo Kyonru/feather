@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 import { useQuery } from '@tanstack/react-query';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -77,12 +77,9 @@ export const useHotReload = () => {
   const sendModule = useMemo(() => {
     return (moduleName: string, source: string) => {
       if (!sessionId) return;
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({
-          type: 'cmd:hot_reload:module',
-          data: { module: moduleName, source },
-        }),
+      sendCommand(sessionId, {
+        type: 'cmd:hot_reload:module',
+        data: { module: moduleName, source },
       }).catch(() => {});
     };
   }, [sessionId]);
@@ -90,10 +87,7 @@ export const useHotReload = () => {
   const restoreOriginals = useMemo(() => {
     return () => {
       if (!sessionId) return;
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({ type: 'cmd:hot_reload:restore' }),
-      }).catch(() => {});
+      sendCommand(sessionId, { type: 'cmd:hot_reload:restore' }).catch(() => {});
     };
   }, [sessionId]);
 

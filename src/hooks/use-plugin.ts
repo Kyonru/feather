@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand as sendCommandToSession } from '@/lib/send-command';
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { debounce } from '@/utils/timers';
@@ -214,7 +214,7 @@ export const usePluginAction = (pluginId: string) => {
 
   const sendCommand = (message: object) => {
     if (!sessionId) return Promise.resolve();
-    return invoke('send_command', { sessionId, message: JSON.stringify(message) }).catch((e: unknown) => {
+    return sendCommandToSession(sessionId, message as Record<string, unknown>).catch((e: unknown) => {
       toast.error(e instanceof Error ? e.message : 'Failed to send command');
     });
   };

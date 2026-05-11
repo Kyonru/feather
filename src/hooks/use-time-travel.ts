@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey, type TimeTravelFrame, type TimeTravelStatus } from './use-ws-connection';
 
@@ -32,10 +32,7 @@ export const useTimeTravel = () => {
     if (!sessionId) return;
     // Optimistically clear stale frames from a previous session
     queryClient.setQueryData(sessionQueryKey.timeTravelFrames(sessionId), []);
-    invoke('send_command', {
-      sessionId,
-      message: JSON.stringify({ type: 'cmd:time_travel:start' }),
-    }).catch(() => {});
+    sendCommand(sessionId, { type: 'cmd:time_travel:start' }).catch(() => {});
   };
 
   const stopRecording = () => {
@@ -45,20 +42,14 @@ export const useTimeTravel = () => {
     queryClient.setQueryData<TimeTravelStatus>(sessionQueryKey.timeTravel(sessionId), (prev) =>
       prev ? { ...prev, recording: false } : DEFAULT_STATUS,
     );
-    invoke('send_command', {
-      sessionId,
-      message: JSON.stringify({ type: 'cmd:time_travel:stop' }),
-    }).catch(() => {});
+    sendCommand(sessionId, { type: 'cmd:time_travel:stop' }).catch(() => {});
   };
 
   const requestFrames = (fromFrame?: number, toFrame?: number) => {
     if (!sessionId) return;
-    invoke('send_command', {
-      sessionId,
-      message: JSON.stringify({
-        type: 'cmd:time_travel:request_frames',
-        data: { from_frame: fromFrame, to_frame: toFrame },
-      }),
+    sendCommand(sessionId, {
+      type: 'cmd:time_travel:request_frames',
+      data: { from_frame: fromFrame, to_frame: toFrame },
     }).catch(() => {});
   };
 

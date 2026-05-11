@@ -18,7 +18,7 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 import { NavLink, useLocation } from 'react-router';
 import { useConfigStore } from '@/store/config';
 import { useSettingsStore } from '@/store/settings';
@@ -74,10 +74,7 @@ export function NavPlugins() {
 
   const disableAllPlugins = () => {
     if (!sessionId) return;
-    invoke('send_command', {
-      sessionId,
-      message: JSON.stringify({ type: 'cmd:plugins:disable_all' }),
-    })
+    sendCommand(sessionId, { type: 'cmd:plugins:disable_all' })
       .then(() => toast.success('Disabled all plugins'))
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to disable plugins'));
   };

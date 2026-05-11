@@ -1,6 +1,6 @@
 import { readTextFileLines } from '@tauri-apps/plugin-fs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -129,10 +129,7 @@ export const useLogs = (): {
       try {
         await timeout(
           3000,
-          invoke('send_command', {
-            sessionId,
-            message: JSON.stringify({ type: 'cmd:log', action: 'toggle-screenshots' }),
-          }),
+          sendCommand(sessionId, { type: 'cmd:log', action: 'toggle-screenshots' }),
         );
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Failed to toggle screenshots');
