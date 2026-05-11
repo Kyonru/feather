@@ -1,6 +1,6 @@
 [package]
 name = "feather"
-version = "0.9.0"
+version = "0.9.1"
 description = "Feather is a Love2D devtool to debug and inspect your game in real-time. It provides a web-based interface to view and manipulate game state, visualize physics, and more."
 authors = ["kyonru"]
 edition = "2021"
