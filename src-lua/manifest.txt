@@ -34,8 +34,14 @@ plugin:entity-inspector:init.lua
 plugin:entity-inspector:manifest.lua
 plugin:filesystem:init.lua
 plugin:filesystem:manifest.lua
+plugin:hot-reload:hot_reloader.lua
+plugin:hot-reload:init.lua
+plugin:hot-reload:manifest.lua
 plugin:hump:signal/init.lua
 plugin:hump:signal/manifest.lua
+plugin:ingame-overlay:init.lua
+plugin:ingame-overlay:manifest.lua
+plugin:ingame-overlay:overlay_stats.lua
 plugin:input-replay:init.lua
 plugin:input-replay:manifest.lua
 plugin:lua-state-machine:init.lua

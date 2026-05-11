@@ -9,6 +9,7 @@ type SettingsStoreState = {
   textEditorPath: string;
   isLatestVersion: boolean;
   apiKey: string;
+  appId: string;
   sessionApiKeys: Record<string, string>;
   pausedLogs: boolean;
   // Seconds without a message before considering a session disconnected (default 15)
@@ -25,6 +26,8 @@ type SettingsStoreActions = {
   setTextEditorPath: (textEditorPath: string) => void;
   setPausedLogs: (pausedLogs: boolean) => void;
   setApiKey: (apiKey: string) => void;
+  setAppId: (appId: string) => void;
+  regenerateAppId: () => void;
   setSessionApiKey: (sessionId: string, apiKey: string) => void;
   setConnectionTimeout: (timeout: number) => void;
   toggleHiddenPlugin: (pluginId: string) => void;
@@ -34,11 +37,19 @@ type SettingsStoreActions = {
 
 type SettingsStore = SettingsStoreState & SettingsStoreActions;
 
+function createAppId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `feather-app-${crypto.randomUUID()}`;
+  }
+  return `feather-app-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
 const defaultSettings: SettingsStoreState = {
   isLatestVersion: true,
   open: false,
   theme: 'system',
   apiKey: '',
+  appId: createAppId(),
   sessionApiKeys: {},
   port: 4004,
   textEditorPath: '/usr/local/bin/code',
@@ -60,6 +71,8 @@ export const useSettingsStore = create<SettingsStore>()(
       reset: () => set((state) => ({ ...state, ...defaultSettings, open: state.open })),
       setPausedLogs: (pausedLogs: boolean) => set({ pausedLogs }),
       setApiKey: (apiKey: string) => set({ apiKey }),
+      setAppId: (appId: string) => set({ appId }),
+      regenerateAppId: () => set({ appId: createAppId() }),
       setSessionApiKey: (sessionId: string, apiKey: string) =>
         set((state) => {
           const sessionApiKeys = { ...state.sessionApiKeys };

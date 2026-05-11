@@ -80,7 +80,9 @@ function FeatherDebugger:resume(mode)
 end
 
 function FeatherDebugger:_normalizeFile(path)
-  if not path then return "" end
+  if not path then
+    return ""
+  end
   -- debug.getinfo returns "@filename" for real files; strip the leading "@"
   if path:sub(1, 1) == "@" then
     path = path:sub(2)
@@ -98,7 +100,9 @@ function FeatherDebugger:_countDepth(startAt)
   while debug.getinfo(l, "S") do
     depth = depth + 1
     l = l + 1
-    if l > 40 then break end
+    if l > 40 then
+      break
+    end
   end
   return depth
 end
@@ -108,7 +112,9 @@ function FeatherDebugger:_getLocals(hookLevel)
   local i = 1
   while true do
     local name, value = debug.getlocal(hookLevel, i)
-    if not name then break end
+    if not name then
+      break
+    end
     if name:sub(1, 1) ~= "(" then
       locals[name] = self:_serializeValue(value, 0, {})
     end
@@ -119,11 +125,15 @@ end
 
 function FeatherDebugger:_getUpvalues(fn)
   local upvalues = {}
-  if not fn then return upvalues end
+  if not fn then
+    return upvalues
+  end
   local i = 1
   while true do
     local name, value = debug.getupvalue(fn, i)
-    if not name then break end
+    if not name then
+      break
+    end
     upvalues[name] = self:_serializeValue(value, 0, {})
     i = i + 1
   end
@@ -147,7 +157,9 @@ function FeatherDebugger:_serializeValue(v, depth, seen)
     end
     if depth >= 3 then
       local count = 0
-      for _ in pairs(v) do count = count + 1 end
+      for _ in pairs(v) do
+        count = count + 1
+      end
       return string.format("table {%d}", count)
     end
 
@@ -204,7 +216,9 @@ function FeatherDebugger:_getStack()
   -- safety net in case the chain depth shifts (e.g. pcall wrapping).
   for i = 4, 28 do
     local info = debug.getinfo(i, "Sln")
-    if not info then break end
+    if not info then
+      break
+    end
     if info.what ~= "C" and info.short_src ~= _SELF_SRC then
       table.insert(stack, {
         file = self:_normalizeFile(info.short_src or "?"),
@@ -219,19 +233,24 @@ end
 
 function FeatherDebugger:_installHook()
   local selfRef = self
-  local _seenFiles = {}  -- print each unique file once so the console isn't flooded
+  local _seenFiles = {} -- print each unique file once so the console isn't flooded
   debug.sethook(function(event, line)
-    if not selfRef.enabled then return end
-    if event ~= "line" then return end
+    if not selfRef.enabled then
+      return
+    end
+    if event ~= "line" then
+      return
+    end
 
     local info = debug.getinfo(2, "Sl")
-    if not info then return end
+    if not info then
+      return
+    end
 
     local src = selfRef:_normalizeFile(info.short_src or "")
 
     if not _seenFiles[src] then
       _seenFiles[src] = true
-      print("[Feather:debugger] hook sees file: " .. src)
     end
     local shouldPause = false
     local reason = "breakpoint"
@@ -247,8 +266,12 @@ function FeatherDebugger:_installHook()
         local li = 1
         while true do
           local name, value = debug.getlocal(2, li)
-          if not name then break end
-          if name:sub(1, 1) ~= "(" then env[name] = value end
+          if not name then
+            break
+          end
+          if name:sub(1, 1) ~= "(" then
+            env[name] = value
+          end
           li = li + 1
         end
         local funcInfo = debug.getinfo(2, "f")
@@ -256,7 +279,9 @@ function FeatherDebugger:_installHook()
           local ui = 1
           while true do
             local uname, uvalue = debug.getupvalue(funcInfo.func, ui)
-            if not uname then break end
+            if not uname then
+              break
+            end
             env[uname] = uvalue
             ui = ui + 1
           end
@@ -346,7 +371,9 @@ function FeatherDebugger:_doPause(info, line, reason)
   local socket = require("socket")
   while self.paused do
     if self.feather.wsClient then
-      pcall(function() self.feather.wsClient:update() end)
+      pcall(function()
+        self.feather.wsClient:update()
+      end)
     end
     socket.sleep(0.005)
   end

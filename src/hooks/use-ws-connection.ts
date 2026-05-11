@@ -11,10 +11,13 @@ import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
 import type { AssetCatalog } from './use-assets';
+import type { HotReloadState } from './use-hot-reload';
 import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
 import { useDebuggerStore, type PausedState } from '@/store/debugger';
+import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
+import { sendCommand } from '@/lib/send-command';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -27,6 +30,7 @@ export const sessionQueryKey = {
   console: (sessionId: string) => [sessionId, 'console'],
   timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
   timeTravelFrames: (sessionId: string) => [sessionId, 'time-travel-frames'],
+  hotReload: (sessionId: string) => [sessionId, 'hot-reload'],
 };
 
 type WsMessage = {
@@ -146,10 +150,17 @@ export const useWsConnection = () => {
   const clearSession = useSessionStore((state) => state.clearSession);
   const addSession = useSessionStore((state) => state.addSession);
   const connectionTimeout = useSettingsStore((state) => state.connectionTimeout);
+  const appId = useSettingsStore((state) => state.appId);
   const setPausedState = useDebuggerStore((state) => state.setPausedState);
   const setDebuggerEnabled = useDebuggerStore((state) => state.setEnabled);
   const lastMessageRef = useRef<number>(Date.now());
   const pendingBinaryRef = useRef<Record<string, PendingBinary[]>>({});
+
+  // Keep Rust's app_id in sync with settings so it can validate auth:response.
+  useEffect(() => {
+    invoke('set_app_id', { appIdStr: appId }).catch(() => {});
+  }, [appId]);
+
 
   // Connection health monitor: if no message within timeout, mark disconnected
   useEffect(() => {
@@ -252,23 +263,30 @@ export const useWsConnection = () => {
 
         const { _session: sessionId, type, data } = msg;
 
-        // If we receive a message from an unknown session (game connected before desktop),
-        // ask it to send its hello so we can set up the session properly.
-        if (type !== 'feather:hello') {
+        // If we receive a message from an unknown session (e.g. frontend restarted while
+        // game was connected), ask the game to resend its config. The game is already in
+        // "connected" state so it will respond immediately with feather:hello.
+        if (type !== 'feather:hello' && type !== 'auth:response') {
           const sessions = useSessionStore.getState().sessions;
           if (!sessions[sessionId]) {
-            invoke('send_command', {
-              sessionId,
-              message: JSON.stringify({ type: 'req:config' }),
-            }).catch(() => {});
+            sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
           }
         }
 
         switch (type) {
+          case 'auth:response':
+            // Handled by Rust — ignore any that leak through.
+            break;
+
           case 'feather:hello': {
             // Config handshake — sets up the session and stores game config
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const config = data as any;
+            if (typeof config.API === 'number' && config.API !== FEATHER_PLUGIN_API) {
+              toast.warning(
+                `Feather API mismatch: game uses ${config.API}, desktop supports ${FEATHER_PLUGIN_API}. Some plugins may be unavailable.`,
+              );
+            }
 
             // Migrate cached data from previous session of the same device
             const deviceId = config.deviceId;
@@ -304,28 +322,24 @@ export const useWsConnection = () => {
             setConfig(config);
             setDisconnected(false);
             queryClient.setQueryData(sessionQueryKey.config(sessionId), config);
+            if (config.debugger?.hotReload) {
+              queryClient.setQueryData(sessionQueryKey.hotReload(sessionId), config.debugger.hotReload);
+            }
             const debuggerState = useDebuggerStore.getState();
             const shouldEnable = config.debugger?.enabled || debuggerState.defaultEnabled;
             console.log('Debugger enabled for session', sessionId);
             if (shouldEnable) {
               setDebuggerEnabled(sessionId, true);
-              invoke('send_command', {
-                sessionId,
-                message: JSON.stringify({ type: 'cmd:debugger:enable' }),
-              }).catch(() => {});
+              sendCommand(sessionId, { type: 'cmd:debugger:enable' }).catch(() => {});
               const stored = debuggerState.breakpoints.filter((b) => b.enabled);
               if (stored.length > 0) {
-                invoke('send_command', {
-                  sessionId,
-                  message: JSON.stringify({
-                    type: 'cmd:debugger:set_breakpoints',
-                    data: { breakpoints: stored.map(({ file, line, condition }) => ({ file, line, condition })) },
-                  }),
+                sendCommand(sessionId, {
+                  type: 'cmd:debugger:set_breakpoints',
+                  data: { breakpoints: stored.map(({ file, line, condition }) => ({ file, line, condition })) },
                 }).catch(() => {});
               }
             }
 
-            // Register session with OS info for the session tabs
             addSession({
               id: sessionId,
               os: config.sysInfo?.os,
@@ -333,6 +347,7 @@ export const useWsConnection = () => {
               connected: true,
               connectedAt: Date.now(),
               deviceId: config.deviceId,
+              insecure: config.security?.__DANGEROUS_INSECURE_CONNECTION__ === true,
             });
             break;
           }
@@ -396,6 +411,39 @@ export const useWsConnection = () => {
           case 'assets:error': {
             const payload = data as { message?: string };
             toast.error(`Asset preview failed: ${payload?.message || 'Unknown error'}`);
+            break;
+          }
+
+          case 'auth:error': {
+            // Legacy: older game builds sent auth:error per-command. Kept for backward compat.
+            const payload = data as { message?: string };
+            toast.error(payload?.message || 'Feather app ID was rejected by the game');
+            break;
+          }
+
+          case 'hot_reload:state': {
+            queryClient.setQueryData(sessionQueryKey.hotReload(sessionId), data as HotReloadState);
+            break;
+          }
+
+          case 'hot_reload:result': {
+            const payload = data as {
+              ok?: boolean;
+              module?: string;
+              error?: string;
+              persisted?: boolean;
+              state?: HotReloadState;
+            };
+            if (payload.state) {
+              queryClient.setQueryData(sessionQueryKey.hotReload(sessionId), payload.state);
+            }
+            if (payload.ok) {
+              toast.success(
+                `Hot reloaded ${payload.module || 'module'}${payload.persisted ? ' and saved patch' : ''}`,
+              );
+            } else {
+              toast.error(`Hot reload failed: ${payload.error || 'Unknown error'}`);
+            }
             break;
           }
 
@@ -466,6 +514,16 @@ export const useWsConnection = () => {
             break;
           }
 
+          case 'console:enabled': {
+            const payload = data as { ok?: boolean; enabled?: boolean; error?: string };
+            if (payload.ok) {
+              toast.success(payload.enabled ? 'Console enabled' : 'Console disabled');
+            } else {
+              toast.error(payload.error || 'Console could not be enabled');
+            }
+            break;
+          }
+
           case 'debugger:paused': {
             queueBinaryRefs(sessionId, { type: 'debuggerPaused' }, data, 'text');
             setPausedState(sessionId, data as PausedState);
@@ -521,14 +579,11 @@ export const useWsConnection = () => {
         return;
       }
 
-      // When a new game session opens, immediately request its config.
-      // This handles the race where feather:hello fires before the message listener is ready.
+      // Rust completed the auth handshake — game is now in "connected" state and will
+      // send feather:hello on its own. req:config is a nudge in case feather:hello is delayed.
       const unlistenStart = await listen<string>('feather://session-start', (event) => {
         if (cancelled) return;
-        invoke('send_command', {
-          sessionId: event.payload,
-          message: JSON.stringify({ type: 'req:config' }),
-        }).catch(() => {});
+        sendCommand(event.payload, { type: 'req:config' }).catch(() => {});
       });
 
       if (cancelled) {
@@ -539,27 +594,35 @@ export const useWsConnection = () => {
         return;
       }
 
-      // On mount, probe any sessions already connected (e.g. after a hot reload).
-      // The game won't resend feather:hello unprompted, so we ask.
-      invoke<string[]>('get_active_sessions')
-        .then((sessionIds) => {
-          if (cancelled) return;
-          const knownSessions = useSessionStore.getState().sessions;
-          sessionIds.forEach((sessionId) => {
-            if (!knownSessions[sessionId]) {
-              invoke('send_command', {
-                sessionId,
-                message: JSON.stringify({ type: 'req:config' }),
-              }).catch(() => {});
-            }
-          });
-        })
-        .catch(() => {});
+      // Poll Rust for sessions not yet visible in React. Rust already completed the
+      // auth handshake, so the game is in "connected" state — req:config is enough to
+      // prompt feather:hello. Runs on mount and every 2 s so a missed session-start
+      // event never requires a page refresh.
+      const probe = () => {
+        invoke<string[]>('get_active_sessions')
+          .then((sessionIds) => {
+            if (cancelled) return;
+            const knownSessions = useSessionStore.getState().sessions;
+            sessionIds.forEach((sessionId) => {
+              if (knownSessions[sessionId]) return;
+              sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
+            });
+          })
+          .catch(() => {});
+      };
 
-      unlisteners.push(unlistenBinary, unlistenMessage, unlistenEnd, unlistenStart);
+      probe();
+      const probeInterval = setInterval(probe, 2000);
+
+      unlisteners.push(unlistenBinary, unlistenMessage, unlistenEnd, unlistenStart, () => clearInterval(probeInterval));
     };
 
-    setup();
+    setup().catch(() => {
+      // If setup fails (e.g. Tauri IPC not ready), retry after a short delay.
+      if (!cancelled) {
+        setTimeout(() => { if (!cancelled) setup().catch(() => {}); }, 500);
+      }
+    });
 
     return () => {
       cancelled = true;

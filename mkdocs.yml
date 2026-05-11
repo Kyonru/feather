@@ -32,6 +32,7 @@ nav:
   - Configuration: configuration.md
   - Usage: usage.md
   - Debugger: debugger.md
+  - Hot Reload: hot-reload.md
   - Assets: assets.md
   - CLI: cli.md
   - Time Travel: time-travel.md

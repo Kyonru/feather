@@ -1,0 +1,50 @@
+name: CLI E2E
+
+on:
+  pull_request:
+    paths:
+      - "cli/**"
+      - "src-lua/**"
+      - "scripts/cli-e2e.mjs"
+      - "scripts/bundle-lua.sh"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/cli-e2e.yml"
+  push:
+    branches: [ main, next ]
+    paths:
+      - "cli/**"
+      - "src-lua/**"
+      - "scripts/cli-e2e.mjs"
+      - "scripts/bundle-lua.sh"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/cli-e2e.yml"
+  workflow_dispatch:
+
+jobs:
+  cli-e2e:
+    name: CLI end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.1
+          cache: "npm"
+
+      - name: Install LÖVE
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y love
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run CLI E2E
+        run: npm run test:cli:e2e

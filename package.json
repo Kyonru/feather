@@ -2,7 +2,7 @@
   "name": "feather",
   "description": "Feather is a Love2D devtool to debug and inspect your game in real-time. It provides a web-based interface to view and manipulate game state, visualize physics, and more.",
   "private": true,
-  "version": "0.8.0",
+  "version": "0.9.0",
   "type": "module",
   "workspaces": [
     "cli"
@@ -10,6 +10,10 @@
   "scripts": {
     "cli:build": "npm run build --workspace=cli",
     "cli:dev": "npm run dev --workspace=cli",
+    "test:cli:e2e": "npm run cli:build && node scripts/cli-e2e.mjs",
+    "test:lua:e2e": "node scripts/lua-e2e.mjs",
+    "test:app:e2e": "playwright test",
+    "test:tauri:e2e": "cargo test --manifest-path src-tauri/Cargo.toml ws_server",
     "feather": "node cli/dist/index.js",
     "dev": "vite",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
@@ -81,6 +85,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@playwright/test": "^1.59.1",
     "@tanstack/eslint-plugin-query": "^5.83.1",
     "@tauri-apps/cli": "^2",
     "@types/node": "^24.2.0",

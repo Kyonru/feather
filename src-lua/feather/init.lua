@@ -19,7 +19,7 @@ local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
 
-local FEATHER_VERSION_NAME = "0.8.0"
+local FEATHER_VERSION_NAME = "0.9.0"
 local FEATHER_API = 5
 
 local FEATHER_VERSION = {
@@ -31,6 +31,8 @@ local FEATHER_VERSION = {
 ---@field lastError number
 ---@field debug boolean
 ---@field featherLogger FeatherLogger
+---@field API number
+---@field VERSION number
 ---@field wsConnected boolean
 ---@field wsClient table|nil
 ---@field sessionId string
@@ -65,6 +67,8 @@ local customErrorHandler = errorhandler
 ---@field sampleRate? number
 ---@field sessionName? string  Custom display name shown in desktop session tabs (e.g. "My RPG")
 ---@field deviceId? string  Override persistent device ID (auto-generated and saved to disk if not set)
+---@field appId? string  Desktop app ID allowed to send commands to this game. Required unless __DANGEROUS_INSECURE_CONNECTION__ = true.
+---@field __DANGEROUS_INSECURE_CONNECTION__? boolean  Explicit opt-in to accept commands from any desktop (no appId check). Must be set to acknowledge the security risk.
 ---@field apiKey? string
 ---@field defaultObservers? boolean
 ---@field captureScreenshot? boolean
@@ -77,9 +81,10 @@ local customErrorHandler = errorhandler
 ---@field writeToDisk? boolean  Whether to write logs to .featherlog files (default true)
 ---@field retryInterval? number
 ---@field connectTimeout? number
----@field debugger? boolean  Enable the step debugger (default false)
+---@field debugger? boolean|table  Enable the step debugger (default false), or debugger options.
 ---@field assetPreview? boolean  Enable core asset tracking and previews (default true)
 ---@field binaryTextThreshold? number  Observer/time-travel strings longer than this are sent as binary text (default 4096)
+---@field hotReload? table  Top-level hot reload options. Prefer debugger.hotReload for new configs.
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -102,17 +107,39 @@ function Feather:init(config)
   self.plugins = conf.plugins or {}
   self.capabilities = conf.capabilities or "all"
   self.mode = conf.mode or "socket"
-  self.debuggerEnabled = conf.debugger or false
+  local debuggerConfig = type(conf.debugger) == "table" and conf.debugger or {}
+  self.debuggerEnabled = conf.debugger == true or debuggerConfig.enabled == true
+  self.hotReloadConfig = debuggerConfig.hotReload or conf.hotReload or {}
   self.writeToDisk = conf.writeToDisk ~= false
-  self.retryInterval = conf.retryInterval or 5
+  self.retryInterval = conf.retryInterval or 2
   self.connectTimeout = conf.connectTimeout or 2
   self.sessionName = conf.sessionName or ""
+  self.appId = conf.appId or ""
+  self.__DANGEROUS_INSECURE_CONNECTION__ = conf.__DANGEROUS_INSECURE_CONNECTION__ == true
+
+  -- Enforce that developers consciously opt out of appId binding.
+  -- If neither appId nor __DANGEROUS_INSECURE_CONNECTION__ is set, refuse to open a socket
+  -- connection so the developer cannot accidentally ship without one or the other.
+  if self.mode == "socket" and self.debug then
+    if type(self.appId) ~= "string" or self.appId == "" then
+      if not self.__DANGEROUS_INSECURE_CONNECTION__ then
+        error(
+          "[Feather] Security: appId is not set and __DANGEROUS_INSECURE_CONNECTION__ is not true.\n"
+            .. "  Set appId in feather.config.lua (copy from Feather → Settings → Security → Desktop App ID)\n"
+            .. "  OR set __DANGEROUS_INSECURE_CONNECTION__ = true to acknowledge that any Feather desktop can send commands to this game.",
+          2
+        )
+      end
+    end
+  end
+
   self.assetPreviewEnabled = conf.assetPreview ~= false
   self.binaryTextThreshold = conf.binaryTextThreshold or 4096
   self._nextBinaryId = 1
   self._pendingBinaries = {}
   self.lastError = 0
   self.wsConnected = false
+  self.__connState = "idle"
   self.version = FEATHER_VERSION.api
   self.versionName = FEATHER_VERSION.name
   self.ui = FeatherUI
@@ -152,6 +179,7 @@ function Feather:init(config)
   self.featherObserver = FeatherObserver(self)
 
   self.performance = FeatherPerformance()
+  self.hotReloader = nil
 
   if self.autoRegisterErrorHandler then
     local selfRef = self
@@ -198,8 +226,9 @@ function Feather:__createWsClient()
 
   function self.wsClient:onopen()
     selfRef.wsConnected = true
-    selfRef:__sendHello()
-    print("[Feather] Connected to " .. selfRef.host .. ":" .. selfRef.port)
+    selfRef.__connState = "authenticating"
+    -- Wait for auth:challenge from desktop before sending feather:hello
+    print("[Feather] Connected to " .. selfRef.host .. ":" .. selfRef.port .. " — waiting for handshake")
   end
 
   function self.wsClient:onmessage(raw)
@@ -213,6 +242,9 @@ function Feather:__createWsClient()
     if selfRef.wsConnected then
       selfRef.wsConnected = false
       print("[Feather] Disconnected")
+    end
+    if selfRef.__connState ~= "failed" then
+      selfRef.__connState = "idle"
     end
   end
 
@@ -314,8 +346,15 @@ function Feather:__getConfig()
     sysInfo = self.performance.sysInfo,
     deviceId = self.deviceId,
     sessionName = self.sessionName,
+    security = {
+      appIdRequired = type(self.appId) == "string" and self.appId ~= "",
+      __DANGEROUS_INSECURE_CONNECTION__ = self.__DANGEROUS_INSECURE_CONNECTION__ == true,
+    },
     assets = { enabled = self.assetPreviewEnabled },
-    debugger = { enabled = self.debuggerEnabled },
+    debugger = {
+      enabled = self.debuggerEnabled,
+      hotReload = self.hotReloader and self.hotReloader:getState() or nil,
+    },
   }
 end
 
@@ -348,10 +387,48 @@ function Feather:__setAssetPreviewEnabled(enabled)
   self.pluginManager:hookLoveCallbacks()
 end
 
+function Feather:__isAppAuthorized(msg)
+  if self.__DANGEROUS_INSECURE_CONNECTION__ then
+    return true
+  end
+  if type(self.appId) ~= "string" or self.appId == "" then
+    return true  -- should not reach here; init() enforces appId or __DANGEROUS_INSECURE_CONNECTION__
+  end
+  return msg and msg.appId == self.appId
+end
+
 --- Dispatch an incoming desktop → game command message.
 ---@param msg table Decoded JSON command
 function Feather:__handleCommand(msg)
   if not msg or not msg.type then
+    return
+  end
+
+  -- Handshake state machine: authenticate before processing any game commands.
+  if self.__connState == "authenticating" then
+    if msg.type == "auth:challenge" then
+      self.__authNonce = msg.nonce or ""
+      self:__sendWs(json.encode({
+        type = "auth:response",
+        appId = self.appId or "",
+        nonce = self.__authNonce,
+        insecure = self.__DANGEROUS_INSECURE_CONNECTION__ or nil,
+      }))
+    elseif msg.type == "auth:ok" then
+      self.__authNonce = nil
+      self.__connState = "connected"
+      self:__sendHello()
+      print("[Feather] Handshake complete")
+    elseif msg.type == "auth:fail" then
+      self.__connState = "failed"
+      print("[Feather] Connection rejected by desktop: App ID mismatch.")
+      print("[Feather] Check that appId in feather.config.lua matches your Feather desktop App ID.")
+      self.wsClient:close()
+    end
+    return
+  end
+
+  if self.__connState ~= "connected" then
     return
   end
 
@@ -403,6 +480,36 @@ function Feather:__handleCommand(msg)
     local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
     local request = { method = "PUT", path = path, params = msg.params or {}, headers = {} }
     self.pluginManager:handleParamsUpdate(request, self)
+  elseif msg.type == "cmd:plugin:set_enabled" and msg.plugin then
+    local enabled = msg.enabled == true
+    local ok = false
+    local errorMessage = nil
+
+    if msg.plugin == "console" and enabled then
+      if type(self.apiKey) ~= "string" or self.apiKey == "" or msg.apiKey ~= self.apiKey then
+        errorMessage = "Console API key is missing or invalid."
+      else
+        ok = self.pluginManager:enablePlugin(msg.plugin)
+      end
+    elseif enabled then
+      ok = self.pluginManager:enablePlugin(msg.plugin)
+    else
+      ok = self.pluginManager:disablePlugin(msg.plugin)
+    end
+
+    if msg.plugin == "console" then
+      self:__sendWs(json.encode({
+        type = "console:enabled",
+        session = self.sessionId,
+        data = {
+          ok = ok == true,
+          enabled = ok == true and enabled or false,
+          error = errorMessage,
+        },
+      }))
+    end
+
+    self:__sendHello()
   elseif msg.type == "cmd:plugin:toggle" and msg.plugin then
     self.pluginManager:togglePlugin(msg.plugin)
     self:__sendHello()
@@ -434,6 +541,22 @@ function Feather:__handleCommand(msg)
         type = "assets:error",
         session = self.sessionId,
         data = { message = tostring(err) },
+      }))
+    end
+  elseif msg.type == "cmd:hot_reload:module" or msg.type == "cmd:hot_reload:restore" or msg.type == "req:hot_reload:state" then
+    local hotReloadPlugin = self.pluginManager:getPlugin("hot-reload")
+    if hotReloadPlugin and hotReloadPlugin.instance and not hotReloadPlugin.disabled then
+      hotReloadPlugin.instance:handleHotReloadCommand(msg, self)
+    else
+      local moduleName = type(msg.data) == "table" and msg.data.module or ""
+      self:__sendWs(json.encode({
+        type = "hot_reload:result",
+        session = self.sessionId,
+        data = {
+          ok = false,
+          module = moduleName,
+          error = "Hot reload plugin not registered. Add the hot-reload plugin to your plugins list.",
+        },
       }))
     end
   elseif msg.type == "cmd:debugger:enable" then
@@ -481,7 +604,7 @@ function Feather:__handleCommand(msg)
     end
   elseif msg.type == "cmd:eval" and msg.code then
     local consolePlugin = self.pluginManager:getPlugin("console")
-    if consolePlugin then
+    if consolePlugin and consolePlugin.instance and not consolePlugin.disabled then
       consolePlugin.instance:handleEval(msg, self)
     else
       self:__sendWs(json.encode({
@@ -489,7 +612,8 @@ function Feather:__handleCommand(msg)
         session = self.sessionId,
         id = msg.id,
         status = "error",
-        result = "Console plugin not registered. Add it to your plugins list.",
+        result = consolePlugin and "Console plugin is disabled. Enable it to run eval commands."
+          or "Console plugin not registered. Add it to your plugins list.",
         prints = {},
       }))
     end
@@ -641,6 +765,7 @@ function Feather:update(dt)
   end
 
   -- Always update local systems
+  self.pluginManager:hookLoveCallbacks()
   self.featherLogger:update()
   if self.assets then
     self.assets:update()
@@ -659,19 +784,21 @@ function Feather:update(dt)
         self.wsConnected = false
         print("[Feather] Disconnected")
       end
-      local socket = require("socket")
-      local now = socket.gettime()
-      if now - self._wsLastAttempt >= self.retryInterval then
-        self._wsLastAttempt = now
-        self:__createWsClient()
+      if self.__connState ~= "failed" then
+        local socket = require("socket")
+        local now = socket.gettime()
+        if now - self._wsLastAttempt >= self.retryInterval then
+          self._wsLastAttempt = now
+          self:__createWsClient()
+        end
       end
     else
       self.wsClient:update()
     end
   end
 
-  -- Push-based data delivery: Lua sends performance/observers/plugins on its own schedule
-  if self.wsConnected then
+  -- Push-based data delivery: only after handshake is complete
+  if self.wsConnected and self.__connState == "connected" then
     if self.assets and self.assets:hasPreview() then
       self:__pushAssets()
     end
@@ -723,5 +850,9 @@ end
 ---@type fun(config: FeatherConfig): Feather
 ---@diagnostic disable-next-line: assign-type-mismatch
 local casted = Feather
+---@diagnostic disable-next-line: inject-field
+casted.API = FEATHER_VERSION.api
+---@diagnostic disable-next-line: inject-field
+casted.VERSION = FEATHER_VERSION.name
 
 return casted

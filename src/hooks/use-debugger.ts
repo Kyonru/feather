@@ -1,12 +1,9 @@
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
 import { useDebuggerStore, type Breakpoint } from '@/store/debugger';
 
 const sendCmd = (sessionId: string, type: string, data?: unknown) =>
-  invoke('send_command', {
-    sessionId,
-    message: JSON.stringify({ type, ...(data !== undefined && { data }) }),
-  }).catch(() => {});
+  sendCommand(sessionId, { type, ...(data !== undefined && { data }) }).catch(() => {});
 
 const syncBreakpoints = (sessionId: string, breakpoints: Breakpoint[]) =>
   sendCmd(sessionId, 'cmd:debugger:set_breakpoints', {

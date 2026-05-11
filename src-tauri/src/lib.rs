@@ -4,7 +4,7 @@ use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
-use ws_server::Sessions;
+use ws_server::{AppId, Sessions};
 
 #[derive(serde::Serialize)]
 struct LocalIp {
@@ -41,8 +41,9 @@ fn get_local_ips() -> Vec<LocalIp> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Shared session map between the WS server and the Tauri send_command handler
+    // Shared session map and app ID between the WS server and Tauri commands
     let sessions: Sessions = Arc::new(Mutex::new(HashMap::new()));
+    let app_id: AppId = Arc::new(Mutex::new(String::new()));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -50,18 +51,21 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .manage(sessions.clone())
+        .manage(app_id.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
             let port: u16 = std::env::var("FEATHER_PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(4004);
-            ws_server::start(handle, port, sessions.clone());
+            ws_server::start(handle, port, sessions.clone(), app_id.clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             ws_server::send_command,
             ws_server::get_active_sessions,
+            ws_server::close_session,
+            ws_server::set_app_id,
             get_local_ips
         ])
         .run(tauri::generate_context!())

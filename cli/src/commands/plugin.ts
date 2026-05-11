@@ -11,7 +11,7 @@ import {
   installPluginsFromLocal,
   normalizeInstallDir,
 } from "../lib/install.js";
-import { choosePluginWorkflow } from "../ui/plugin-workflow.js";
+import { choosePluginUpdateWorkflow, choosePluginWorkflow } from "../ui/plugin-workflow.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -170,12 +170,44 @@ export async function pluginRemoveCommand(pluginId: string, opts: { dir?: string
 
 export async function pluginUpdateCommand(
   pluginId: string | undefined,
-  opts: { dir?: string; branch?: string; installDir?: string; remote?: boolean; localSrc?: string }
+  opts: { dir?: string; branch?: string; installDir?: string; remote?: boolean; localSrc?: string; yes?: boolean }
 ): Promise<void> {
   const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
   const branch = opts.branch ?? "main";
   const installDir = opts.installDir ?? "feather";
   const dirPath = pluginsDir(projectDir, installDir);
+
+  const hasExplicitSource = opts.remote === true || !!opts.localSrc || opts.yes === true;
+  if (!pluginId && process.stdin.isTTY && !hasExplicitSource) {
+    const installedIds = getInstalledPluginIds(projectDir, installDir);
+    if (installedIds.length === 0) {
+      console.log(chalk.dim("No plugins installed."));
+      return;
+    }
+
+    const result = await choosePluginUpdateWorkflow({
+      installedIds,
+      defaultBranch: branch,
+    });
+
+    if (result.action === "cancel") return;
+    if (result.action !== "update" || result.pluginIds.length === 0) {
+      console.log(chalk.dim("No plugins selected."));
+      return;
+    }
+
+    for (const id of result.pluginIds) {
+      await pluginUpdateCommand(id, {
+        dir: projectDir,
+        branch: result.branch,
+        installDir,
+        remote: result.source === "remote",
+        localSrc: opts.localSrc,
+        yes: true,
+      });
+    }
+    return;
+  }
 
   if (!opts.remote) {
     const sourceRoot = resolveLocalLuaRoot(opts);

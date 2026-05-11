@@ -3,6 +3,7 @@
 The Feather CLI lets you run and debug Love2D games **without modifying your game code**. Running a game through the CLI injects Feather automatically at the process level — no `require("feather.auto")` needed.
 
 ```bash
+feather run
 feather run path/to/my-game
 ```
 
@@ -45,11 +46,12 @@ Your game code runs exactly as normal — it just has Feather already active.
 
 ## Commands
 
-### `feather run <game-path>`
+### `feather run [game-path]`
 
 Inject Feather into a Love2D game and run it.
 
 ```bash
+feather run                                # interactive run workflow
 feather run .                              # run game in current directory
 feather run path/to/my-game               # run from an explicit path
 feather run . --session-name "RPG"        # custom name in the desktop session tab
@@ -58,6 +60,8 @@ feather run . --love /usr/bin/love        # override love2d binary
 feather run . --plugins-dir ./my-plugins  # use a custom plugins directory
 feather run . -- --level dev              # pass args through to the game
 ```
+
+When `game-path` is omitted in an interactive terminal, Feather opens an Ink workflow that asks for the game path, session name, config path, whether plugins should be disabled, and optional advanced paths/arguments. Scripts should pass `game-path` explicitly.
 
 **Options:**
 
@@ -257,20 +261,41 @@ Check the environment and project health.
 ```bash
 feather doctor        # check current directory
 feather doctor path/to/my-game
+feather doctor . --install-dir lib/feather
+feather doctor . --host 127.0.0.1 --port 4004
+feather doctor . --json
 ```
+
+Doctor checks:
+
+- Node.js, npm, and LÖVE availability
+- `main.lua`, `feather.config.lua`, and managed init metadata
+- embedded runtime files for auto/manual setups
+- installed plugin manifests
+- `USE_DEBUGGER` guards and `FEATHER-INIT` markers
+- risky settings such as hot reload, screenshot capture, and Console API keys
+- Feather desktop WebSocket reachability
+
+> [!TIP]
+> `feather doctor --json` is useful in CI or pre-release scripts. It exits with a nonzero status only when it finds blockers.
 
 **Example output:**
 
 ```
-Feather environment check
+Feather doctor
 
-  ✔ Node.js >= 18  v22.0.0
-  ✔ love2d found  /Applications/love.app/Contents/MacOS/love  (11.5)
-  ✔ love2d project (main.lua)  /path/to/my-game
-  ✔ feather library installed  /path/to/my-game/feather
-  ✔ plugins directory  /path/to/my-game/feather/plugins
-  ✔ feather.config.lua
-  ✔ Feather desktop app (port 4004)  connected
+Project: /path/to/my-game
+
+Environment
+  ✔ Node.js  v22.0.0
+  ✔ npm  v10.8.1
+  ✔ LÖVE binary  /Applications/love.app/Contents/MacOS/love  (11.5)
+
+Safety
+  ! Hot reload  enabled
+    → Hot reload is development-only remote code execution; keep allowlists narrow and never ship with it on.
+
+Doctor passed with 1 warning.
 ```
 
 ---
@@ -280,12 +305,16 @@ Feather environment check
 Update the Feather core library in a project.
 
 ```bash
-feather update                       # update in current directory
+feather update                       # interactive source picker in a terminal
+feather update -y                    # update from the local/bundled CLI copy
 feather update path/to/my-game
-feather update --branch v0.7.1      # update to a specific version
+feather update --remote --branch v0.7.1
+feather update --local-src ../feather/src-lua
 ```
 
-This re-downloads all `core:` files listed in `manifest.txt`. Plugin files are not touched — use `feather plugin update` for those.
+In an interactive terminal, `feather update` opens an Ink workflow to choose local/bundled files or a GitHub branch/tag. In scripts or with `-y`, it uses the local/bundled CLI copy unless `--remote` is provided.
+
+This updates all `core:` files listed in `manifest.txt`. Plugin files are not touched — use `feather plugin update` for those.
 
 ---
 
@@ -349,10 +378,13 @@ feather plugin remove hump.signal
 Update a plugin, or all installed plugins if no ID is given.
 
 ```bash
-feather plugin update              # update all installed plugins
+feather plugin update              # interactive picker for installed plugins
+feather plugin update -y           # update all installed plugins
 feather plugin update profiler     # update a specific plugin
 feather plugin update --remote --branch main
 ```
+
+When no plugin ID or source flag is provided in an interactive terminal, `feather plugin update` opens an Ink workflow where you can choose the source and select installed plugins. Use `-y`, `--remote`, or `--local-src` for CI or scripts.
 
 Use `--install-dir <path>` with plugin commands when the project was initialized outside the default `feather/` directory.
 
@@ -367,7 +399,8 @@ Place a `feather.config.lua` in your game directory to configure the Feather inj
 return {
   sessionName = "My RPG",
 
-  -- Force-enable opt-in plugins (e.g. the REPL console)
+  -- Force-enable opt-in plugins.
+  -- "console" is a remote REPL. "hot-reload" is development-only remote code execution.
   include = { "console" },
 
   -- Remove plugins you don't need

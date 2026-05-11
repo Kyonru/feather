@@ -8,6 +8,7 @@ import {
   MonitorIcon,
   CircleIcon,
   TriangleAlertIcon,
+  ShieldOffIcon,
   AppWindowIcon,
   BotIcon,
   GlobeIcon,
@@ -106,6 +107,7 @@ function SessionTab({
             {FileIcon ? <FileIcon className="size-3" /> : osIcon ? <span className="text-xs">{osIcon}</span> : <MonitorIcon className="size-3" />}
             <span className="max-w-[100px] truncate">{session.name || session.id.slice(0, 8)}</span>
             {versionMismatch && <TriangleAlertIcon className="size-3 text-yellow-500" />}
+            {session.insecure && <ShieldOffIcon className="size-3 text-orange-400" />}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
@@ -136,6 +138,17 @@ function SessionTab({
         <TooltipTrigger asChild>{tab}</TooltipTrigger>
         <TooltipContent>
           <p>Version mismatch — game library differs from desktop app (v{version})</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  if (session.insecure) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{tab}</TooltipTrigger>
+        <TooltipContent>
+          <p>Insecure connection — set appId in feather.config.lua to bind to this desktop</p>
         </TooltipContent>
       </Tooltip>
     );

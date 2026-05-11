@@ -152,6 +152,16 @@ function managedHeader(context: ConfigTemplateContext = {}): string {
 
 function optionReference(): string {
   return `
+  -- Security: set ONE of the two options below. Feather errors at startup if neither is set.
+  --
+  -- Option A (recommended): bind to your specific Feather desktop instance.
+  --   Copy from Feather desktop app → Settings → Security → Desktop App ID.
+  -- appId = "feather-app-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  --
+  -- Option B: explicitly allow any desktop to send commands.
+  --   Set this to acknowledge that any Feather desktop on the network can control this game.
+  -- __DANGEROUS_INSECURE_CONNECTION__ = true,
+
   -- Common connection options:
   -- host = "127.0.0.1",
   -- port = 4004,
@@ -167,6 +177,25 @@ function optionReference(): string {
 
   -- Feature toggles:
   -- debugger = false,
+  --
+  -- Hot reload safety:
+  --   Hot reload lets the Feather app send Lua source into the running game.
+  --   It only works when the opt-in "hot-reload" plugin is installed and
+  --   included. Do not include that plugin in production builds.
+  --   Treat it as development-only remote code execution. Keep it disabled
+  --   unless you are actively using it, keep allow as narrow as possible, and
+  --   remove/disable it before shipping builds.
+  -- debugger = {
+  --   enabled = false,
+  --   hotReload = {
+  --     enabled = false,
+  --     allow = { "game.player" }, -- Prefer exact modules over broad "game.*".
+  --     deny = { "main", "conf", "feather.*" },
+  --     persistToDisk = false,
+  --     clearOnBoot = false,
+  --     requireLocalNetwork = true,
+  --   },
+  -- },
   -- assetPreview = true,
   -- captureScreenshot = false,
 
@@ -181,6 +210,7 @@ function optionReference(): string {
 
   -- Plugin controls:
   -- include = { "console" },
+  -- include = { "hot-reload" }, -- development-only remote code execution
   -- exclude = { "hump.signal", "lua-state-machine" },
   -- capabilities = "all",
 

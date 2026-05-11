@@ -2,9 +2,45 @@
 
 ## Security
 
-### API Key
+### Desktop App ID (`appId`) — recommended for all setups
 
-Set `apiKey` in the game config and match it in the Feather desktop app Settings to prevent unauthorized connections:
+Each Feather desktop app generates a unique **App ID** (a UUID stored in Settings). You must set **one** of the following in `feather.config.lua` — Feather will error at startup in socket mode if neither is present:
+
+**Option A — bind to your desktop app (recommended):**
+
+```lua
+-- feather.config.lua
+return {
+  -- Copy from Feather desktop app → Settings → Security → Desktop App ID
+  appId = "feather-app-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+}
+```
+
+The game rejects commands from any other Feather desktop instance. Only the matching app can control it.
+
+**Option B — explicit insecure opt-in:**
+
+```lua
+-- feather.config.lua
+return {
+  -- Any Feather desktop on the network can send commands to this game.
+  -- Set this only when you cannot use appId (e.g. shared dev machine, CI).
+  insecureConnection = true,
+}
+```
+
+Setting `insecureConnection = true` is your acknowledgment that the game accepts commands from any Feather desktop on the network. Feather will not start without one of these two options — there is no silent fallback.
+
+`feather init` prompts for the App ID during setup and writes it to `feather.config.lua` automatically. To find it: open the Feather desktop app → **Settings** → **Security** → **Desktop App ID**.
+
+> [!NOTE]
+> `appId` identifies the **desktop app instance**, not a user or secret. If you reinstall or reset the desktop app, regenerate the App ID in Settings and update `feather.config.lua`.
+>
+> `appId` prevents accidental cross-talk between development machines on the same network — it is not a cryptographic guarantee and is not a substitute for proper network isolation in shared or untrusted environments.
+
+### API Key (`apiKey`) — required only for the Console plugin
+
+Set `apiKey` in the game config and match it in the Feather desktop app Settings. This gates access to the Console / REPL plugin (remote Lua execution):
 
 ```lua
 local debugger = FeatherDebugger({

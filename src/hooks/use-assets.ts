@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { sendCommand } from '@/lib/send-command';
 import { useQuery } from '@tanstack/react-query';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey } from './use-ws-connection';
@@ -74,12 +74,9 @@ export function useAssets() {
   const previewAsset = useMemo(() => {
     return (kind: Exclude<AssetKind, 'audio'>, id: number) => {
       if (!sessionId) return;
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({
-          type: 'cmd:assets:preview',
-          data: { kind, id },
-        }),
+      sendCommand(sessionId, {
+        type: 'cmd:assets:preview',
+        data: { kind, id },
       }).catch(console.error);
     };
   }, [sessionId]);
@@ -87,12 +84,9 @@ export function useAssets() {
   const setAssetPreviewEnabled = useMemo(() => {
     return (enabled: boolean) => {
       if (!sessionId) return;
-      invoke('send_command', {
-        sessionId,
-        message: JSON.stringify({
-          type: 'cmd:assets:toggle',
-          data: { enabled },
-        }),
+      sendCommand(sessionId, {
+        type: 'cmd:assets:toggle',
+        data: { enabled },
       }).catch(console.error);
     };
   }, [sessionId]);

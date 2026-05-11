@@ -31,7 +31,7 @@ program
 
 // ── feather run ──────────────────────────────────────────────────────────────
 program
-  .command("run <game-path> [game-args...]")
+  .command("run [game-path] [game-args...]")
   .description("Inject Feather into a Love2D game and run it")
   .option("--love <path>", "Path to the love2d binary (overrides auto-detect)")
   .option("--session-name <name>", "Custom session name shown in the desktop app")
@@ -39,8 +39,8 @@ program
   .option("--config <path>", "Path to feather.config.lua")
   .option("--feather-path <path>", "Use a local feather install instead of the bundled one")
   .option("--plugins-dir <path>", "Use a custom plugins directory instead of the bundled one")
-  .action((gamePath: string, gameArgs: string[], opts) => {
-    runCommand(gamePath, {
+  .action(async (gamePath: string | undefined, gameArgs: string[], opts) => {
+    await runCommand(gamePath, {
       love: opts.love as string | undefined,
       sessionName: opts.sessionName as string | undefined,
       noPlugins: opts.plugins === false,
@@ -105,17 +105,36 @@ program
 program
   .command("doctor [dir]")
   .description("Check the environment and project setup")
-  .action(async (dir: string | undefined) => {
-    await doctorCommand(dir);
+  .option("--install-dir <path>", "Feather install directory override")
+  .option("--host <host>", "Host to check for the Feather desktop WebSocket", "127.0.0.1")
+  .option("--port <port>", "Port to check for the Feather desktop WebSocket", (value) => Number(value))
+  .option("--json", "Print machine-readable diagnostics")
+  .action(async (dir: string | undefined, opts) => {
+    await doctorCommand(dir, {
+      installDir: opts.installDir as string | undefined,
+      host: opts.host as string | undefined,
+      port: opts.port as number | undefined,
+      json: opts.json as boolean | undefined,
+    });
   });
 
 // ── feather update ───────────────────────────────────────────────────────────
 program
   .command("update [dir]")
   .description("Update the Feather core library in a project (default: current directory)")
-  .option("--branch <branch>", "GitHub branch to download from", "main")
+  .option("--remote", "Download from GitHub instead of copying the local/bundled Lua runtime")
+  .option("--branch <branch>", "GitHub branch to download from when using --remote", "main")
+  .option("--local-src <path>", "Copy Lua runtime from a local src-lua style directory")
+  .option("--install-dir <path>", "Feather install directory", "feather")
+  .option("-y, --yes", "Skip interactive confirmation and use the selected/default source")
   .action((dir: string | undefined, opts) => {
-    updateCommand(dir ?? ".", { branch: opts.branch as string });
+    updateCommand(dir ?? ".", {
+      branch: opts.branch as string,
+      remote: opts.remote as boolean | undefined,
+      localSrc: opts.localSrc as string | undefined,
+      installDir: opts.installDir as string,
+      yes: opts.yes as boolean | undefined,
+    });
   });
 
 // ── feather plugin ───────────────────────────────────────────────────────────
@@ -185,6 +204,7 @@ plugin
   .option("--branch <branch>", "GitHub branch to download from when using --remote", "main")
   .option("--local-src <path>", "Copy plugins from a local src-lua style directory")
   .option("--install-dir <path>", "Feather install directory", "feather")
+  .option("-y, --yes", "Skip interactive selection and update all installed plugins when no id is given")
   .action(async (id: string | undefined, opts) => {
     const merged = pluginCommandOptions(opts);
     await pluginUpdateCommand(id, {
@@ -193,6 +213,7 @@ plugin
       installDir: merged.installDir as string,
       remote: merged.remote as boolean | undefined,
       localSrc: merged.localSrc as string | undefined,
+      yes: merged.yes as boolean | undefined,
     });
   });
 

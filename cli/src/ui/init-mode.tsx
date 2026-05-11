@@ -41,6 +41,7 @@ type Phase =
   | "capabilities"
   | "toggles"
   | "apiKey"
+  | "appId"
   | "summary";
 
 type Option<T extends string = string> = {
@@ -88,7 +89,7 @@ const pluginToOption = (plugin: (typeof pluginCatalog)[number]): Option => ({
 
 const optionalPlugins: Option[] = pluginCatalog.filter((plugin) => plugin.optIn).map(pluginToOption);
 const skipPluginOptions: Option[] = pluginCatalog.map(pluginToOption);
-const defaultSkippedPlugins = new Set(["console", "hump.signal", "lua-state-machine"]);
+const defaultSkippedPlugins = new Set(["console", "hot-reload", "hump.signal", "lua-state-machine"]);
 
 const configToggles: Option[] = [
   { value: "debug", label: "Enable Feather", description: "Set debug = true." },
@@ -313,6 +314,7 @@ function InitSetupPrompt({
   );
   const [apiKey, setApiKey] = useState("");
   const [apiKeyCopied, setApiKeyCopied] = useState<boolean | null>(null);
+  const [appIdInput, setAppIdInput] = useState("");
   const [error, setError] = useState<string | undefined>();
 
   const mode = modes[modeIndex].value;
@@ -341,8 +343,8 @@ function InitSetupPrompt({
   };
 
   const nextAfterPluginChoice = () => setPhase(pluginPromptsEnabled ? "include" : "advanced");
-  const nextAfterAdvanced = () => setPhase(advanced ? "host" : needsApiKey ? "apiKey" : "summary");
-  const nextAfterToggles = () => setPhase(needsApiKey ? "apiKey" : "summary");
+  const nextAfterAdvanced = () => setPhase(advanced ? "host" : needsApiKey ? "apiKey" : "appId");
+  const nextAfterToggles = () => setPhase(needsApiKey ? "apiKey" : "appId");
 
   const finish = () => {
     const config: Record<string, unknown> = {};
@@ -380,6 +382,12 @@ function InitSetupPrompt({
       config.pluginOptions = {
         console: { evalEnabled: true },
       };
+    }
+
+    if (appIdInput.trim()) {
+      config.appId = appIdInput.trim();
+    } else {
+      config.__DANGEROUS_INSECURE_CONNECTION__ = true;
     }
 
     onComplete({
@@ -566,9 +574,18 @@ function InitSetupPrompt({
           return;
         }
         setApiKeyCopied(copyToClipboard(apiKey));
-        setPhase("summary");
+        setPhase("appId");
       } else {
         editText(input, key, apiKey, setApiKey);
+      }
+      return;
+    }
+
+    if (phase === "appId") {
+      if (key.return) {
+        setPhase("summary");
+      } else {
+        editText(input, key, appIdInput, setAppIdInput);
       }
       return;
     }
@@ -606,10 +623,12 @@ function InitSetupPrompt({
             : "Console API key: set",
       );
     }
+    rows.push(appIdInput.trim() ? `App ID: ${appIdInput.trim()}` : "App ID: not set → __DANGEROUS_INSECURE_CONNECTION__ = true (any Feather desktop can connect)");
     return rows;
   }, [
     advanced,
     apiKeyCopied,
+    appIdInput,
     branch,
     exclude,
     include,
@@ -654,6 +673,19 @@ function InitSetupPrompt({
   if (phase === "toggles") return <MultiSelect title="Toggle runtime options" options={configToggles} selected={toggles} cursor={toggleCursor} />;
   if (phase === "apiKey") {
     return <TextInputPrompt title="Console API key" value={apiKey} secure error={error} placeholder="Strong secret, 16+ chars" />;
+  }
+  if (phase === "appId") {
+    return (
+      <Box flexDirection="column" gap={1}>
+        <TextInputPrompt
+          title="Desktop App ID"
+          value={appIdInput}
+          placeholder="feather-app-xxxxxxxx-…  (leave empty to use __DANGEROUS_INSECURE_CONNECTION__ = true)"
+        />
+        <Text color="gray">Find it in the Feather desktop app → Settings → Security → Desktop App ID.</Text>
+        <Text color="gray">If skipped, __DANGEROUS_INSECURE_CONNECTION__ = true is written to feather.config.lua so any Feather desktop can send commands to the game.</Text>
+      </Box>
+    );
   }
   if (textValues[phase]) {
     const [value] = textValues[phase];

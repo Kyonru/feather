@@ -13,17 +13,12 @@
 
 ---
 
-## 0.8.0
-
-- e2e tests for cli
-- improve doctor experience
-
-## 0.9.x — Assets & Runtime Inspection
+## 0.10.x — Iteration Workflow & Developer Experience
 
 Focus:
-Inspect and manipulate game resources live.
+Reduce iteration time and improve daily usability.
 
-### 0.9.0 – Assets & Resources
+### 0.10.0 – Developer Experience & Workflow
 
 #### Graphics Tooling
 
@@ -41,50 +36,12 @@ Inspect and manipulate game resources live.
   - [ ] Entity hierarchy tree
   - [ ] Collapsible runtime tree view
 
----
-
-## 0.10.x — Iteration Workflow & Developer Experience
-
-Focus:
-Reduce iteration time and improve daily usability.
-
-### 0.10.0 – Developer Experience & Workflow
-
-#### Hot Reloading
-
-- [ ] Hot-reload Lua modules
-  - [ ] Watch file changes
-  - [ ] Auto-clear `package.loaded`
-  - [ ] Re-require changed modules
-  - [ ] Reload directly from debugger edits
-
-#### Runtime Control
-
-- [ ] Tween inspector
-  - [ ] Live tween visualization
-  - [ ] Flux/hump.timer integration
-  - [ ] Progress bars
-  - [ ] Pause/cancel tweens remotely
-
 #### Workspace Experience
 
 - [ ] Persistent filtered views
 - [ ] Persistent layout settings
 - [ ] Saved debugger sessions
 - [ ] Better keyboard shortcuts
-
-#### Documentation & Onboarding
-
-- [ ] Documentation website
-- [ ] Short demo videos
-- [ ] Quick-start templates
-- [ ] Example Love2D integrations
-
-#### UI/UX Polish
-
-- [ ] Improve branding
-- [ ] Improve onboarding
-- [ ] UI polish pass
 
 ---
 
@@ -95,26 +52,11 @@ Turn Feather into a platform instead of only a debugger.
 
 ### 0.11.0 – Plugins & Extensions
 
-#### Public Plugin API
-
-- [ ] Stable plugin API
-- [ ] Plugin lifecycle hooks
-- [ ] Desktop ↔ runtime communication APIs
-
 #### Official Plugins
 
 - [ ] Scene graph inspector
-- [ ] Tween inspector
 - [ ] Shader inspector
 - [ ] Save data inspector
-- [ ] Asset viewer
-
-#### Distribution
-
-- [ ] Public plugin library
-- [ ] Plugin installer UI
-- [ ] Plugin version management
-- [ ] Plugin marketplace website
 
 ---
 
@@ -155,7 +97,6 @@ Production-ready release with security, trust, and community adoption.
 
 #### Quality
 
-- [ ] Add automated tests
 - [ ] Add stress-test scenarios
 - [ ] Improve error reporting/logging
 

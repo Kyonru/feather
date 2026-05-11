@@ -78,6 +78,9 @@ FEATHER_PLUGINS=0 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/
 
 # Include console (opt-in, excluded by default)
 FEATHER_INCLUDE_CONSOLE=1 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
+
+# Include hot reload (opt-in, development-only remote code execution)
+FEATHER_INCLUDE_HOT_RELOAD=1 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
 ```
 
 ## Option 3: Direct Download

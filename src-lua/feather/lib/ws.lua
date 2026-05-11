@@ -202,8 +202,9 @@ function _M:update()
     if data and #data > 0 then
       self._buf = self._buf .. data
     end
-    if self._buf:find("\r\n\r\n") then
-      self._buf = ""
+    local _, hdr_end = self._buf:find("\r\n\r\n")
+    if hdr_end then
+      self._buf = self._buf:sub(hdr_end + 1) -- keep any WS frame bytes that followed the headers
       self.status = STATUS.OPEN
       self:onopen()
     end

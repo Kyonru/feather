@@ -113,12 +113,36 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
+    "id": "hot-reload",
+    "sourceDir": "hot-reload",
+    "name": "Hot Reload",
+    "description": "Development-only Lua module hot reload over Feather WebSocket",
+    "version": "1.0.0",
+    "capabilities": [
+      "filesystem"
+    ],
+    "optIn": true,
+    "disabled": true
+  },
+  {
     "id": "hump.signal",
     "sourceDir": "hump/signal",
     "name": "HUMP Signal",
     "description": "HUMP signal/event integration",
     "version": "1.0.0",
     "capabilities": [],
+    "optIn": true,
+    "disabled": true
+  },
+  {
+    "id": "ingame-overlay",
+    "sourceDir": "ingame-overlay",
+    "name": "In-Game Overlay",
+    "description": "Opt-in in-game performance overlay drawn through Feather plugin hooks",
+    "version": "1.0.0",
+    "capabilities": [
+      "draw"
+    ],
     "optIn": true,
     "disabled": true
   },

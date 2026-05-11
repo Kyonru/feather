@@ -1,9 +1,18 @@
----@class overlayStats
+--- From https://github.com/Oval-Tutu/bootstrap-love2d-project/blob/main/game/lib/overlayStats.lua
+---@class IngameOverlayStats
 ---A performance monitoring overlay module for LÖVE games
 ---@field isActive boolean Whether the overlay is currently visible
 ---@field sampleSize number Maximum number of samples to keep for metrics
 ---@field vsyncEnabled boolean Current VSync state
 local name, version, vendor, device = love.graphics.getRendererInfo()
+local arch = "unknown"
+local ok, ffi = pcall(require, "ffi")
+if ok and ffi and ffi.arch then
+  arch = ffi.arch
+elseif love.system.getOS() == "Web" then
+  arch = "Web"
+end
+
 local overlayStats = {
   isActive = false,
   sampleSize = 60,
@@ -19,7 +28,7 @@ local overlayStats = {
     device = device,
   },
   sysInfo = {
-    arch = love.system.getOS() ~= "Web" and require("ffi").arch or "Web",
+    arch = arch,
     os = love.system.getOS(),
     cpuCount = love.system.getProcessorCount(),
   },
@@ -326,7 +335,7 @@ function overlayStats.update(dt)
 
   -- Get draw call stats before any drawing occurs
   local stats = love.graphics.getStats()
-  overlayStats.metrics.canvases[overlayStats.currentSample] = stats.canvasses
+  overlayStats.metrics.canvases[overlayStats.currentSample] = stats.canvases or stats.canvasses or 0
   overlayStats.metrics.canvasSwitches[overlayStats.currentSample] = stats.canvasswitches
   overlayStats.metrics.drawCalls[overlayStats.currentSample] = stats.drawcalls
   overlayStats.metrics.drawCallsBatched[overlayStats.currentSample] = stats.drawcallsbatched

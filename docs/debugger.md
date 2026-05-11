@@ -2,6 +2,11 @@
 
 The step debugger lets you pause game execution at any line, inspect local variables and the call stack, and resume with continue, step over, step into, or step out — all from the **Debugger** tab in the Feather desktop app.
 
+It also hosts Feather's opt-in [Hot Reload](hot-reload.md) controls for selected Lua modules.
+
+> [!WARNING]
+> Hot reload sends Lua source from the app into the running game. Enable it only in trusted development sessions with a narrow module allowlist.
+
 ---
 
 ## Setup

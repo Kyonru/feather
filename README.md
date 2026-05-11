@@ -2,7 +2,7 @@
 
 Feather is a real-time debugging and inspection tool for [LÖVE](https://love2d.org) games — like Flipper or React DevTools, but for your game. Inspired by [LoveBird](https://github.com/rxi/lovebird).
 
-**[📖 Documentation](https://kyonru.github.io/feather)** · [Releases](https://github.com/Kyonru/feather/releases) · [Changelog](CHANGELOG.md)
+**[📖 Documentation](https://kyonru.github.io/feather)** · [Releases](https://github.com/Kyonru/feather/releases) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ---
 
@@ -114,3 +114,9 @@ Then download the desktop app from the [releases page](https://github.com/Kyonru
 DISCLAIMER: The license only applies to products that directly replicate the logic/purpose of this tool. It does not apply to games created using it as a dev tool.
 
 See [LICENSE.md](LICENSE.md).
+
+## AI Usage
+
+The architecture and planing of this tool has been made by me, I take a lot of my time and effort to put on this tool, mostly because it helps my development experience with Love2D. Once i had the plugin system in place, using AI for autocompletion has allowed for fast plugin development, and fix my poorly written rust code.
+
+Code is curated and carefully revised by me. While I don't think there is need to explain this, i understand some people might not feel comfortable with AI in any form. I respect that.

@@ -5,7 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.8.0]
+## [v0.9.0] - 2026-05-11 - The one with the Hot Reloading
+
+### Added
+
+- Hot reloading
+  - Options added to debugger
+  - Documentation
+- e2e
+  - cli
+  - app
+  - rust
+  - lua
+- MacOS
+  - Code signing
+- Plugin
+  - Overlay plugin
+
+### Changed
+
+- CLI
+  - `run`, `update`, `doctor` now include ink workflow
+- Debugger
+  - Toast is displayed in game when code is hot reloaded
+- Console
+  - Toast is displayed in game when code is hot reloaded
+- AppID is now required to limit which serves can communicate with the feather lua client
+- Handshake required before enabling connection
+
+## [v0.8.0] - 2026-05-10 - The one with the CLI
 
 ### Added
 
@@ -51,6 +79,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Assets
   - list
   - preview
+- **App ID authorization** (`appId`) — each Feather desktop app generates a unique ID; set `appId` in `feather.config.lua` so the game only accepts commands from the matching desktop instance; when unset, `__INSECURE_CONNECTION__` is set to `true` in the game
+- **CLI: `appId` prompt** — `feather init` now asks for the desktop App ID and writes it to `feather.config.lua`
+- **Performance overlay plugin** — in-game FPS and memory overlay without requiring the desktop app
+- **Hot reload** — opt-in `hot-reload` plugin lets the Feather desktop push Lua source into the running game; guarded by allow/deny lists and `requireLocalNetwork`; development-only
+- **Code signing** — macOS and Windows desktop app releases are now signed
+- **E2E test suite** — end-to-end tests covering the Lua library, desktop app, Tauri layer, and CLI
 
 ### Changed
 
@@ -74,6 +108,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Cleaning logs not longer clean other sessions logs
+- Console page input area always visible regardless of log volume
+- Console no longer breaks when all plugins are disabled simultaneously
+- Particle editor: switching between multiple systems now correctly updates grouped inputs and applies subsequent property changes to the newly selected system
+- Input replay: added capture and replay for touch (`love.touchpressed/released/moved`) and joystick (`love.joystickpressed/released`, `love.gamepadpressed/released`, `love.joystickaxis`, `love.gamepadaxis`, `love.joystickhat`)
 
 ## [v0.7.0] - 2026-05-08 - The one with the debugger and time travel
 
