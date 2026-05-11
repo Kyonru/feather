@@ -9,7 +9,7 @@ on:
       - "package-lock.json"
       - ".github/workflows/lua-e2e.yml"
   push:
-    branches: [main, dev]
+    branches: [ main, next ]
     paths:
       - "src-lua/**"
       - "scripts/lua-e2e.mjs"
@@ -31,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.21.1
           cache: "npm"
 
       - name: Install LÖVE

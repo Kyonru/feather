@@ -8,7 +8,7 @@ on:
       - "package-lock.json"
       - ".github/workflows/tauri-e2e.yml"
   push:
-    branches: [main, dev]
+    branches: [ main, next ]
     paths:
       - "src-tauri/**"
       - "package.json"

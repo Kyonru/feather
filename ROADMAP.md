@@ -45,14 +45,6 @@ Reduce iteration time and improve daily usability.
 
 ### 0.10.0 – Developer Experience & Workflow
 
-#### Runtime Control
-
-- [ ] Tween inspector
-  - [ ] Live tween visualization
-  - [ ] Flux/hump.timer integration
-  - [ ] Progress bars
-  - [ ] Pause/cancel tweens remotely
-
 #### Workspace Experience
 
 - [ ] Persistent filtered views
@@ -76,13 +68,6 @@ Turn Feather into a platform instead of only a debugger.
 - [ ] Shader inspector
 - [ ] Save data inspector
 - [ ] Asset viewer
-
-#### Distribution
-
-- [ ] Public plugin library
-- [ ] Plugin installer UI
-- [ ] Plugin version management
-- [ ] Plugin marketplace website
 
 ---
 

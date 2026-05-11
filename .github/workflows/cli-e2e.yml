@@ -11,7 +11,7 @@ on:
       - "package-lock.json"
       - ".github/workflows/cli-e2e.yml"
   push:
-    branches: [main, dev]
+    branches: [ main, next ]
     paths:
       - "cli/**"
       - "src-lua/**"
@@ -35,7 +35,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.21.1
           cache: "npm"
 
       - name: Install LÖVE
