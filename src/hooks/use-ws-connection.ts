@@ -150,10 +150,17 @@ export const useWsConnection = () => {
   const clearSession = useSessionStore((state) => state.clearSession);
   const addSession = useSessionStore((state) => state.addSession);
   const connectionTimeout = useSettingsStore((state) => state.connectionTimeout);
+  const appId = useSettingsStore((state) => state.appId);
   const setPausedState = useDebuggerStore((state) => state.setPausedState);
   const setDebuggerEnabled = useDebuggerStore((state) => state.setEnabled);
   const lastMessageRef = useRef<number>(Date.now());
   const pendingBinaryRef = useRef<Record<string, PendingBinary[]>>({});
+
+  // Keep Rust's app_id in sync with settings so it can validate auth:response.
+  useEffect(() => {
+    invoke('set_app_id', { appIdStr: appId }).catch(() => {});
+  }, [appId]);
+
 
   // Connection health monitor: if no message within timeout, mark disconnected
   useEffect(() => {
@@ -256,9 +263,10 @@ export const useWsConnection = () => {
 
         const { _session: sessionId, type, data } = msg;
 
-        // If we receive a message from an unknown session (game connected before desktop),
-        // ask it to send its hello so we can set up the session properly.
-        if (type !== 'feather:hello') {
+        // If we receive a message from an unknown session (e.g. frontend restarted while
+        // game was connected), ask the game to resend its config. The game is already in
+        // "connected" state so it will respond immediately with feather:hello.
+        if (type !== 'feather:hello' && type !== 'auth:response') {
           const sessions = useSessionStore.getState().sessions;
           if (!sessions[sessionId]) {
             sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
@@ -266,6 +274,10 @@ export const useWsConnection = () => {
         }
 
         switch (type) {
+          case 'auth:response':
+            // Handled by Rust — ignore any that leak through.
+            break;
+
           case 'feather:hello': {
             // Config handshake — sets up the session and stores game config
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -328,7 +340,6 @@ export const useWsConnection = () => {
               }
             }
 
-            // Register session with OS info for the session tabs
             addSession({
               id: sessionId,
               os: config.sysInfo?.os,
@@ -336,6 +347,7 @@ export const useWsConnection = () => {
               connected: true,
               connectedAt: Date.now(),
               deviceId: config.deviceId,
+              insecure: config.security?.__DANGEROUS_INSECURE_CONNECTION__ === true,
             });
             break;
           }
@@ -403,6 +415,7 @@ export const useWsConnection = () => {
           }
 
           case 'auth:error': {
+            // Legacy: older game builds sent auth:error per-command. Kept for backward compat.
             const payload = data as { message?: string };
             toast.error(payload?.message || 'Feather app ID was rejected by the game');
             break;
@@ -566,8 +579,8 @@ export const useWsConnection = () => {
         return;
       }
 
-      // When a new game session opens, immediately request its config.
-      // This handles the race where feather:hello fires before the message listener is ready.
+      // Rust completed the auth handshake — game is now in "connected" state and will
+      // send feather:hello on its own. req:config is a nudge in case feather:hello is delayed.
       const unlistenStart = await listen<string>('feather://session-start', (event) => {
         if (cancelled) return;
         sendCommand(event.payload, { type: 'req:config' }).catch(() => {});
@@ -581,24 +594,35 @@ export const useWsConnection = () => {
         return;
       }
 
-      // On mount, probe any sessions already connected (e.g. after a hot reload).
-      // The game won't resend feather:hello unprompted, so we ask.
-      invoke<string[]>('get_active_sessions')
-        .then((sessionIds) => {
-          if (cancelled) return;
-          const knownSessions = useSessionStore.getState().sessions;
-          sessionIds.forEach((sessionId) => {
-            if (!knownSessions[sessionId]) {
+      // Poll Rust for sessions not yet visible in React. Rust already completed the
+      // auth handshake, so the game is in "connected" state — req:config is enough to
+      // prompt feather:hello. Runs on mount and every 2 s so a missed session-start
+      // event never requires a page refresh.
+      const probe = () => {
+        invoke<string[]>('get_active_sessions')
+          .then((sessionIds) => {
+            if (cancelled) return;
+            const knownSessions = useSessionStore.getState().sessions;
+            sessionIds.forEach((sessionId) => {
+              if (knownSessions[sessionId]) return;
               sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
-            }
-          });
-        })
-        .catch(() => {});
+            });
+          })
+          .catch(() => {});
+      };
 
-      unlisteners.push(unlistenBinary, unlistenMessage, unlistenEnd, unlistenStart);
+      probe();
+      const probeInterval = setInterval(probe, 2000);
+
+      unlisteners.push(unlistenBinary, unlistenMessage, unlistenEnd, unlistenStart, () => clearInterval(probeInterval));
     };
 
-    setup();
+    setup().catch(() => {
+      // If setup fails (e.g. Tauri IPC not ready), retry after a short delay.
+      if (!cancelled) {
+        setTimeout(() => { if (!cancelled) setup().catch(() => {}); }, 500);
+      }
+    });
 
     return () => {
       cancelled = true;

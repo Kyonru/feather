@@ -10,6 +10,7 @@ export type SessionInfo = {
   filePath?: string;
   connected: boolean;
   connectedAt: number;
+  insecure?: boolean;
 };
 
 type SessionStore = {

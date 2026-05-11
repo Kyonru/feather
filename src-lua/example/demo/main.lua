@@ -253,6 +253,7 @@ DEBUGGER = FeatherDebugger({
   baseDir = "src-lua",
   apiKey = "debugger",
   captureScreenshot = false,
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
   debugger = true,
   debug = true,
   plugins = {

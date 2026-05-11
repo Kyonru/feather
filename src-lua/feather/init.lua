@@ -111,7 +111,7 @@ function Feather:init(config)
   self.debuggerEnabled = conf.debugger == true or debuggerConfig.enabled == true
   self.hotReloadConfig = debuggerConfig.hotReload or conf.hotReload or {}
   self.writeToDisk = conf.writeToDisk ~= false
-  self.retryInterval = conf.retryInterval or 5
+  self.retryInterval = conf.retryInterval or 2
   self.connectTimeout = conf.connectTimeout or 2
   self.sessionName = conf.sessionName or ""
   self.appId = conf.appId or ""
@@ -139,6 +139,7 @@ function Feather:init(config)
   self._pendingBinaries = {}
   self.lastError = 0
   self.wsConnected = false
+  self.__connState = "idle"
   self.version = FEATHER_VERSION.api
   self.versionName = FEATHER_VERSION.name
   self.ui = FeatherUI
@@ -225,8 +226,9 @@ function Feather:__createWsClient()
 
   function self.wsClient:onopen()
     selfRef.wsConnected = true
-    selfRef:__sendHello()
-    print("[Feather] Connected to " .. selfRef.host .. ":" .. selfRef.port)
+    selfRef.__connState = "authenticating"
+    -- Wait for auth:challenge from desktop before sending feather:hello
+    print("[Feather] Connected to " .. selfRef.host .. ":" .. selfRef.port .. " — waiting for handshake")
   end
 
   function self.wsClient:onmessage(raw)
@@ -240,6 +242,9 @@ function Feather:__createWsClient()
     if selfRef.wsConnected then
       selfRef.wsConnected = false
       print("[Feather] Disconnected")
+    end
+    if selfRef.__connState ~= "failed" then
+      selfRef.__connState = "idle"
     end
   end
 
@@ -399,14 +404,31 @@ function Feather:__handleCommand(msg)
     return
   end
 
-  if not self:__isAppAuthorized(msg) then
-    self:__sendWs(json.encode({
-      type = "auth:error",
-      session = self.sessionId,
-      data = {
-        message = "Desktop app ID mismatch. Update appId in feather.config.lua or use the matching Feather desktop app.",
-      },
-    }))
+  -- Handshake state machine: authenticate before processing any game commands.
+  if self.__connState == "authenticating" then
+    if msg.type == "auth:challenge" then
+      self.__authNonce = msg.nonce or ""
+      self:__sendWs(json.encode({
+        type = "auth:response",
+        appId = self.appId or "",
+        nonce = self.__authNonce,
+        insecure = self.__DANGEROUS_INSECURE_CONNECTION__ or nil,
+      }))
+    elseif msg.type == "auth:ok" then
+      self.__authNonce = nil
+      self.__connState = "connected"
+      self:__sendHello()
+      print("[Feather] Handshake complete")
+    elseif msg.type == "auth:fail" then
+      self.__connState = "failed"
+      print("[Feather] Connection rejected by desktop: App ID mismatch.")
+      print("[Feather] Check that appId in feather.config.lua matches your Feather desktop App ID.")
+      self.wsClient:close()
+    end
+    return
+  end
+
+  if self.__connState ~= "connected" then
     return
   end
 
@@ -762,19 +784,21 @@ function Feather:update(dt)
         self.wsConnected = false
         print("[Feather] Disconnected")
       end
-      local socket = require("socket")
-      local now = socket.gettime()
-      if now - self._wsLastAttempt >= self.retryInterval then
-        self._wsLastAttempt = now
-        self:__createWsClient()
+      if self.__connState ~= "failed" then
+        local socket = require("socket")
+        local now = socket.gettime()
+        if now - self._wsLastAttempt >= self.retryInterval then
+          self._wsLastAttempt = now
+          self:__createWsClient()
+        end
       end
     else
       self.wsClient:update()
     end
   end
 
-  -- Push-based data delivery: Lua sends performance/observers/plugins on its own schedule
-  if self.wsConnected then
+  -- Push-based data delivery: only after handshake is complete
+  if self.wsConnected and self.__connState == "connected" then
     if self.assets and self.assets:hasPreview() then
       self:__pushAssets()
     end

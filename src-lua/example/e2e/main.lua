@@ -147,6 +147,66 @@ return M
   assertEqual(#feather.featherObserver:getResponseBody(feather) > 0, true, "observer response is available")
 
   feather:finish()
+
+  -- ── Auth handshake state machine ───────────────────────────────────────────
+  -- Test the challenge-response logic in isolation. We use a disk-mode instance
+  -- so no real WS server is needed; __sendWs is a no-op when wsConnected=false.
+  local authFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Auth E2E",
+    deviceId = "auth-e2e",
+    assetPreview = false,
+    __DANGEROUS_INSECURE_CONNECTION__ = true,
+  })
+
+  -- Manually wire up the internal state to simulate an open (but disk-mode) connection.
+  authFeather.__connState = "authenticating"
+  authFeather.wsConnected = false -- __sendWs will be a no-op; that's fine
+
+  -- Receiving auth:challenge should store the nonce.
+  ---@diagnostic disable-next-line: invisible
+  authFeather:__handleCommand({ type = "auth:challenge", nonce = "test-nonce-123" })
+  assertEqual(authFeather.__authNonce, "test-nonce-123", "auth:challenge stores nonce")
+  assertEqual(authFeather.__connState, "authenticating", "state stays authenticating after challenge")
+
+  -- auth:ok should advance to connected and clear the nonce.
+  ---@diagnostic disable-next-line: invisible
+  authFeather:__handleCommand({ type = "auth:ok" })
+  assertEqual(authFeather.__connState, "connected", "auth:ok advances to connected")
+  assertEqual(authFeather.__authNonce, nil, "auth:ok clears stored nonce")
+
+  -- Commands should now be dispatched (connected state). Use cmd:config as a
+  -- side-effect-free probe — it updates sampleRate without crashing.
+  ---@diagnostic disable-next-line: invisible
+  authFeather:__handleCommand({ type = "cmd:config", data = { sampleRate = 2 } })
+  assertEqual(authFeather.sampleRate, 2, "commands dispatched after auth:ok")
+
+  -- auth:fail path: reset state and test rejection.
+  local failFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Auth Fail E2E",
+    deviceId = "auth-fail-e2e",
+    assetPreview = false,
+    __DANGEROUS_INSECURE_CONNECTION__ = true,
+  })
+  failFeather.__connState = "authenticating"
+  failFeather.wsConnected = false
+  -- Simulate having received a challenge first.
+  failFeather.__authNonce = "some-nonce"
+  -- auth:fail should set state to failed and not advance to connected.
+  -- We need a stub wsClient for the close() call.
+  failFeather.wsClient = { close = function() end }
+  ---@diagnostic disable-next-line: invisible
+  failFeather:__handleCommand({ type = "auth:fail", reason = "appId mismatch" })
+  assertEqual(failFeather.__connState, "failed", "auth:fail sets state to failed")
+
+  -- Messages should be ignored in failed state.
+  ---@diagnostic disable-next-line: invisible
+  failFeather:__handleCommand({ type = "cmd:config", data = { sampleRate = 99 } })
+  assertEqual(failFeather.sampleRate, 1, "commands ignored in failed state")
+
   print("[Lua E2E] LUA_E2E_PASS " .. tostring(#results) .. " assertions")
 end
 

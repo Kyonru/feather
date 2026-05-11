@@ -25,6 +25,7 @@ function love.load()
     wrapPrint = true,
     defaultObservers = true,
     captureScreenshot = false,
+    __DANGEROUS_INSECURE_CONNECTION__ = true, -- Only for development; requires matching setting in plugin
     plugins = {
       FeatherPluginManager.createPlugin(HotReloadPlugin, "hot-reload", {
         -- Development-only remote code execution. Keep this disabled in real

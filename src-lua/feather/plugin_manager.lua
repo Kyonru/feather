@@ -170,7 +170,9 @@ function FeatherPluginManager:init(feather, logger, observer)
       goto continue
     end
 
-    local ok, pluginInstance = pcall(plugin.plugin, {
+    local ok, pluginInstance = xpcall(plugin.plugin, function(err)
+      return type(err) == "string" and debug.traceback(err, 2) or debug.traceback(tostring(err), 2)
+    end, {
       options = plugin.options,
       feather = feather,
       logger = logger,
@@ -220,7 +222,8 @@ function FeatherPluginManager:init(feather, logger, observer)
         end
       end
     else
-      self.logger:log({ type = "error", str = debug.traceback(pluginInstance) })
+      -- pluginInstance is the formatted error+traceback string from the xpcall handler
+      self.logger:log({ type = "error", str = tostring(pluginInstance) })
     end
     ::continue::
   end
