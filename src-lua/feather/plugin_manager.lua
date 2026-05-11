@@ -96,6 +96,29 @@ local function describeApiCompatibility(compatibility, currentApi)
   return "Requires a different Feather plugin API. Desktop API is " .. tostring(currentApi) .. "."
 end
 
+local function callbackReferences(callback, target)
+  if type(callback) ~= "function" or type(target) ~= "function" then
+    return false
+  end
+  if not debug or not debug.getupvalue then
+    return false
+  end
+
+  local index = 1
+  while true do
+    local name, value = debug.getupvalue(callback, index)
+    if not name then
+      break
+    end
+    if value == target then
+      return true
+    end
+    index = index + 1
+  end
+
+  return false
+end
+
 ---@param feather Feather
 ---@param logger FeatherLogger
 ---@param observer FeatherObserver
@@ -326,12 +349,10 @@ function FeatherPluginManager:pushAll(feather)
   end
 end
 
---- Patch love callbacks once so all plugins receive events via their on* methods.
---- Called once after all plugins are initialised. Safe to call multiple times (no-op if already hooked).
+--- Patch love callbacks so all plugins receive events via their on* methods.
+--- Safe to call repeatedly; if the game assigns love.draw after Feather starts,
+--- this re-wraps the new callback without stacking duplicate wrappers.
 function FeatherPluginManager:hookLoveCallbacks()
-  if self._hookedCallbacks then
-    return
-  end
   if not love then
     return
   end
@@ -346,97 +367,63 @@ function FeatherPluginManager:hookLoveCallbacks()
     end
   end
 
-  -- Snapshot all originals before patching anything
-  ---@type table
-  local hooks = {
-    draw = love.draw,
-    keypressed = love.keypressed,
-    keyreleased = love.keyreleased,
-    mousepressed = love.mousepressed,
-    mousereleased = love.mousereleased,
-    touchpressed = love.touchpressed,
-    touchreleased = love.touchreleased,
-    joystickpressed = love.joystickpressed,
-    joystickreleased = love.joystickreleased,
+  self._loveCallbackOriginals = self._loveCallbackOriginals or {}
+  self._loveCallbackWrappers = self._loveCallbackWrappers or {}
+
+  local callbacks = {
+    { name = "draw", method = "onDraw" },
+    { name = "keypressed", method = "onKeypressed" },
+    { name = "keyreleased", method = "onKeyreleased" },
+    { name = "mousepressed", method = "onMousepressed" },
+    { name = "mousereleased", method = "onMousereleased" },
+    { name = "touchpressed", method = "onTouchpressed" },
+    { name = "touchreleased", method = "onTouchreleased" },
+    { name = "joystickpressed", method = "onJoystickpressed" },
+    { name = "joystickreleased", method = "onJoystickreleased" },
   }
 
-  love.draw = function()
-    if hooks.draw then
-      hooks.draw()
+  for _, callback in ipairs(callbacks) do
+    local name = callback.name
+    local method = callback.method
+    local wrapper = self._loveCallbackWrappers[name]
+
+    if not wrapper then
+      wrapper = function(...)
+        local original = mgr._loveCallbackOriginals and mgr._loveCallbackOriginals[name]
+        if original and original ~= wrapper then
+          original(...)
+        end
+        dispatch(method, ...)
+      end
+      self._loveCallbackWrappers[name] = wrapper
     end
-    dispatch("onDraw")
-  end
-  love.keypressed = function(key, scancode, isrepeat)
-    if hooks.keypressed then
-      hooks.keypressed(key, scancode, isrepeat)
+
+    local current = love[name]
+    if current ~= wrapper and not callbackReferences(current, wrapper) then
+      self._loveCallbackOriginals[name] = current
+      love[name] = wrapper
     end
-    dispatch("onKeypressed", key, scancode, isrepeat)
-  end
-  love.keyreleased = function(key, scancode)
-    if hooks.keyreleased then
-      hooks.keyreleased(key, scancode)
-    end
-    dispatch("onKeyreleased", key, scancode)
-  end
-  love.mousepressed = function(x, y, button, istouch, presses)
-    if hooks.mousepressed then
-      hooks.mousepressed(x, y, button, istouch, presses)
-    end
-    dispatch("onMousepressed", x, y, button, istouch, presses)
-  end
-  love.mousereleased = function(x, y, button, istouch, presses)
-    if hooks.mousereleased then
-      hooks.mousereleased(x, y, button, istouch, presses)
-    end
-    dispatch("onMousereleased", x, y, button, istouch, presses)
-  end
-  love.touchpressed = function(id, x, y, dx, dy, pressure)
-    if hooks.touchpressed then
-      hooks.touchpressed(id, x, y, dx, dy, pressure)
-    end
-    dispatch("onTouchpressed", id, x, y, dx, dy, pressure)
-  end
-  love.touchreleased = function(id, x, y, dx, dy, pressure)
-    if hooks.touchreleased then
-      hooks.touchreleased(id, x, y, dx, dy, pressure)
-    end
-    dispatch("onTouchreleased", id, x, y, dx, dy, pressure)
-  end
-  love.joystickpressed = function(joystick, button)
-    if hooks.joystickpressed then
-      hooks.joystickpressed(joystick, button)
-    end
-    dispatch("onJoystickpressed", joystick, button)
-  end
-  love.joystickreleased = function(joystick, button)
-    if hooks.joystickreleased then
-      hooks.joystickreleased(joystick, button)
-    end
-    dispatch("onJoystickreleased", joystick, button)
   end
 
-  self._hookedCallbacks = hooks
+  self._hookedCallbacks = self._loveCallbackOriginals
 end
 
 --- Restore all love callbacks patched by hookLoveCallbacks.
 function FeatherPluginManager:unhookLoveCallbacks()
-  if not self._hookedCallbacks then
+  if not self._loveCallbackOriginals then
     return
   end
   if not love then
     return
   end
-  local h = self._hookedCallbacks
-  love.draw = h.draw
-  love.keypressed = h.keypressed
-  love.keyreleased = h.keyreleased
-  love.mousepressed = h.mousepressed
-  love.mousereleased = h.mousereleased
-  love.touchpressed = h.touchpressed
-  love.touchreleased = h.touchreleased
-  love.joystickpressed = h.joystickpressed
-  love.joystickreleased = h.joystickreleased
+  for name, original in pairs(self._loveCallbackOriginals) do
+    if love[name] == self._loveCallbackWrappers[name] then
+      love[name] = original
+    end
+  end
   self._hookedCallbacks = nil
+  self._loveCallbackOriginals = nil
+  self._loveCallbackWrappers = nil
 end
 
 function FeatherPluginManager:finish(feather)

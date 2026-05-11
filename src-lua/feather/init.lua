@@ -412,6 +412,36 @@ function Feather:__handleCommand(msg)
     local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
     local request = { method = "PUT", path = path, params = msg.params or {}, headers = {} }
     self.pluginManager:handleParamsUpdate(request, self)
+  elseif msg.type == "cmd:plugin:set_enabled" and msg.plugin then
+    local enabled = msg.enabled == true
+    local ok = false
+    local errorMessage = nil
+
+    if msg.plugin == "console" and enabled then
+      if type(self.apiKey) ~= "string" or self.apiKey == "" or msg.apiKey ~= self.apiKey then
+        errorMessage = "Console API key is missing or invalid."
+      else
+        ok = self.pluginManager:enablePlugin(msg.plugin)
+      end
+    elseif enabled then
+      ok = self.pluginManager:enablePlugin(msg.plugin)
+    else
+      ok = self.pluginManager:disablePlugin(msg.plugin)
+    end
+
+    if msg.plugin == "console" then
+      self:__sendWs(json.encode({
+        type = "console:enabled",
+        session = self.sessionId,
+        data = {
+          ok = ok == true,
+          enabled = ok == true and enabled or false,
+          error = errorMessage,
+        },
+      }))
+    end
+
+    self:__sendHello()
   elseif msg.type == "cmd:plugin:toggle" and msg.plugin then
     self.pluginManager:togglePlugin(msg.plugin)
     self:__sendHello()
@@ -506,7 +536,7 @@ function Feather:__handleCommand(msg)
     end
   elseif msg.type == "cmd:eval" and msg.code then
     local consolePlugin = self.pluginManager:getPlugin("console")
-    if consolePlugin then
+    if consolePlugin and consolePlugin.instance and not consolePlugin.disabled then
       consolePlugin.instance:handleEval(msg, self)
     else
       self:__sendWs(json.encode({
@@ -514,7 +544,8 @@ function Feather:__handleCommand(msg)
         session = self.sessionId,
         id = msg.id,
         status = "error",
-        result = "Console plugin not registered. Add it to your plugins list.",
+        result = consolePlugin and "Console plugin is disabled. Enable it to run eval commands."
+          or "Console plugin not registered. Add it to your plugins list.",
         prints = {},
       }))
     end
@@ -666,6 +697,7 @@ function Feather:update(dt)
   end
 
   -- Always update local systems
+  self.pluginManager:hookLoveCallbacks()
   self.featherLogger:update()
   if self.assets then
     self.assets:update()

@@ -4,6 +4,7 @@ import { readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { useDebugger } from '@/hooks/use-debugger';
 import { pathToLuaModule, useHotReload } from '@/hooks/use-hot-reload';
+import { usePluginControl } from '@/hooks/use-plugin-control';
 import { useTimeTravel } from '@/hooks/use-time-travel';
 import { useConfigStore } from '@/store/config';
 import { useDebuggerStore } from '@/store/debugger';
@@ -618,6 +619,7 @@ function VarsSection({ title, vars, filter }: { title: string; vars: Record<stri
 export default function DebuggerPage() {
   const dbg = useDebugger();
   const { state: hotReloadState, sendModule, restoreOriginals } = useHotReload();
+  const hotReloadPlugin = usePluginControl('hot-reload');
   const navigate = useNavigate();
   const { frames } = useTimeTravel();
   const configRootPath = useConfigStore((state) => state.config?.sourceDir || state.config?.root_path || '');
@@ -657,10 +659,10 @@ export default function DebuggerPage() {
   }, [fileContent]);
 
   useEffect(() => {
-    if (!hotReloadState.enabled && watchHotReload) {
+    if ((!hotReloadState.enabled || !hotReloadPlugin.enabled) && watchHotReload) {
       setWatchHotReload(false);
     }
-  }, [hotReloadState.enabled, watchHotReload]);
+  }, [hotReloadPlugin.enabled, hotReloadState.enabled, watchHotReload]);
 
   const selectedModule = useMemo(() => (selectedFile ? pathToLuaModule(selectedFile) : null), [selectedFile]);
   const selectedAbsPath = selectedFile && rootPath ? `${rootPath.replace(/\/$/, '')}/${selectedFile}` : null;
@@ -727,7 +729,8 @@ export default function DebuggerPage() {
     dbg.breakpoints.filter((b) => b.file === selectedFile && b.enabled && !!b.condition).map((b) => b.line),
   );
   const currentLine = dbg.currentPaused?.file === selectedFile ? dbg.currentPaused.line : null;
-  const canHotReload = !isWeb() && hotReloadState.enabled && !!selectedModule && !!selectedAbsPath;
+  const canHotReload =
+    !isWeb() && hotReloadPlugin.enabled && hotReloadState.enabled && !!selectedModule && !!selectedAbsPath;
   const latestHotReload = hotReloadState.history.at(-1);
 
   return (
@@ -829,6 +832,17 @@ export default function DebuggerPage() {
         <Separator orientation="vertical" className="h-5" />
 
         <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 px-1">
+            <Switch
+              id="hot-reload-enabled"
+              checked={hotReloadPlugin.enabled}
+              disabled={!sessionId || !hotReloadPlugin.available || hotReloadPlugin.plugin?.incompatible}
+              onCheckedChange={hotReloadPlugin.setEnabled}
+            />
+            <Label htmlFor="hot-reload-enabled" className="text-xs text-muted-foreground">
+              Hot Reload
+            </Label>
+          </div>
           {hotReloadState.active && (
             <Badge variant="outline" className="gap-1 font-mono text-xs text-orange-500">
               Hot Reload
@@ -842,7 +856,9 @@ export default function DebuggerPage() {
             onClick={reloadSelectedModule}
             title={
               hotReloadState.enabled
-                ? selectedModule
+                ? !hotReloadPlugin.enabled
+                  ? 'Hot reload plugin is disabled. Enable it with the switch first.'
+                  : selectedModule
                   ? `Development only: send Lua source for ${selectedModule} into the running game`
                   : 'Select an allowlisted Lua module. Hot reload is development-only remote code execution.'
                 : 'Hot reload is disabled. Include the hot-reload plugin and configure debugger.hotReload only for trusted development sessions.'

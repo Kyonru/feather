@@ -13,7 +13,11 @@ The Console is an **opt-in plugin** that lets you evaluate arbitrary Lua code in
 require("feather.auto").setup({
   include = { "console" },
   pluginOptions = {
-    console = { evalEnabled = true },
+    console = {
+      evalEnabled = true,
+      showOverlay = true,
+      toastDuration = 2.5,
+    },
   },
 })
 ```
@@ -31,6 +35,8 @@ local debugger = FeatherDebugger({
   plugins = {
     FeatherPluginManager.createPlugin(ConsolePlugin, "console", {
       evalEnabled = true,
+      showOverlay = true,
+      toastDuration = 2.5,
     }),
   },
 })
@@ -152,6 +158,8 @@ return player.velocity
 | `maxCodeSize`      | `number`  | `20000`  | Maximum characters per eval payload. Payloads over this limit are rejected.                                                                                             |
 | `instructionLimit` | `number`  | `100000` | Lua instruction count before the eval is aborted. Prevents infinite loops from freezing the game.                                                                       |
 | `maxOutputSize`    | `number`  | `100000` | Maximum characters in the serialized return value before it is truncated.                                                                                               |
+| `showOverlay`      | `boolean` | `true`   | Draws a temporary in-game toast when console eval succeeds or is rejected.                                                                                              |
+| `toastDuration`    | `number`  | `2.5`    | Seconds the in-game console toast remains visible.                                                                                                                      |
 
 ---
 

@@ -503,6 +503,16 @@ export const useWsConnection = () => {
             break;
           }
 
+          case 'console:enabled': {
+            const payload = data as { ok?: boolean; enabled?: boolean; error?: string };
+            if (payload.ok) {
+              toast.success(payload.enabled ? 'Console enabled' : 'Console disabled');
+            } else {
+              toast.error(payload.error || 'Console could not be enabled');
+            }
+            break;
+          }
+
           case 'debugger:paused': {
             queueBinaryRefs(sessionId, { type: 'debuggerPaused' }, data, 'text');
             setPausedState(sessionId, data as PausedState);

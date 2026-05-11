@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { LuaCodeInput } from '@/components/ui/lua-code-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import { useConsole, type ConsoleEntry } from '@/hooks/use-console';
+import { useEffectiveApiKey } from '@/hooks/use-session-api-key';
+import { usePluginControl } from '@/hooks/use-plugin-control';
 import type { EvalResponse } from '@/hooks/use-ws-connection';
 import { useSessionStore } from '@/store/session';
 import { useConsoleHistoryStore } from '@/store/console-history';
@@ -80,6 +84,8 @@ function ConsoleOutput({ entry, response }: { entry: ConsoleEntry; response?: Ev
 export default function ConsolePage() {
   const { responses, execute, clear } = useConsole();
   const sessionId = useSessionStore((state) => state.sessionId);
+  const apiKey = useEffectiveApiKey();
+  const consolePlugin = usePluginControl('console');
   const [input, setInput] = useState('');
   const emptyRef = useRef([]);
   // storedHistory: persisted string[], most-recent last, deduplicated, scoped to the active session
@@ -192,6 +198,16 @@ export default function ConsolePage() {
     clear();
   }, [clear, clearHistory, sessionId]);
 
+  const handleConsoleEnabledChange = useCallback(
+    (enabled: boolean) => {
+      consolePlugin.setEnabled(enabled, enabled ? { apiKey } : undefined);
+    },
+    [apiKey, consolePlugin],
+  );
+
+  const consoleReady = !!sessionId && consolePlugin.available && consolePlugin.enabled;
+  const canEnableConsole = !!sessionId && consolePlugin.available && !consolePlugin.plugin?.incompatible && !!apiKey;
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -241,6 +257,18 @@ export default function ConsolePage() {
       <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
         <h2 className="text-sm font-semibold">Console</h2>
         <div className="flex-1" />
+        <div className="flex items-center gap-2">
+          <Switch
+            id="console-enabled"
+            size="sm"
+            checked={consolePlugin.enabled}
+            disabled={consolePlugin.enabled ? !sessionId : !canEnableConsole}
+            onCheckedChange={handleConsoleEnabledChange}
+          />
+          <Label htmlFor="console-enabled" className="text-xs text-muted-foreground">
+            Enabled
+          </Label>
+        </div>
         <Button
           variant="ghost"
           size="sm"
@@ -270,9 +298,15 @@ export default function ConsolePage() {
         {persistedOutputs.length === 0 && sessionEntries.length === 0 && (
           <div className="flex h-full items-center justify-center text-muted-foreground">
             <p className="text-sm">
-              {sessionId
-                ? 'Type Lua code below and press Enter to execute.'
-                : 'No active session. Connect a game to use the console.'}
+              {!sessionId
+                ? 'No active session. Connect a game to use the console.'
+                : !consolePlugin.available
+                  ? 'The console plugin is not installed in this session.'
+                  : !consolePlugin.enabled
+                    ? apiKey
+                      ? 'Console is disabled. Enable it from the switch above.'
+                      : 'Console is disabled. Set the session API key before enabling it.'
+                    : 'Type Lua code below and press Enter to execute.'}
             </p>
           </div>
         )}
@@ -324,10 +358,10 @@ export default function ConsolePage() {
             value={input}
             onChange={setInput}
             onKeyDown={handleKeyDown}
-            placeholder={sessionId ? 'return 1 + 1  (Ctrl+R to search history)' : 'No session connected...'}
-            disabled={!sessionId}
+            placeholder={consoleReady ? 'return 1 + 1  (Ctrl+R to search history)' : 'Console unavailable...'}
+            disabled={!consoleReady}
           />
-          <Button size="icon" onClick={handleSubmit} disabled={!sessionId || !input.trim()}>
+          <Button size="icon" onClick={handleSubmit} disabled={!consoleReady || !input.trim()}>
             <SendIcon className="size-4" />
           </Button>
         </div>
