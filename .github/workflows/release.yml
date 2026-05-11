@@ -143,5 +143,5 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
         with:
-          tagName: ${{ github.ref_name }}
+          tagName: 0.8.1
           args: ${{ matrix.args }}
