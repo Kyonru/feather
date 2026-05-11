@@ -845,7 +845,7 @@ export default function DebuggerPage() {
                 ? selectedModule
                   ? `Development only: send Lua source for ${selectedModule} into the running game`
                   : 'Select an allowlisted Lua module. Hot reload is development-only remote code execution.'
-                : 'Hot reload is disabled. Enable debugger.hotReload only for trusted development sessions.'
+                : 'Hot reload is disabled. Include the hot-reload plugin and configure debugger.hotReload only for trusted development sessions.'
             }
           >
             <RefreshCwIcon className="size-3" /> Reload

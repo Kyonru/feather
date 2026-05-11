@@ -16,7 +16,8 @@ Only enable hot reload when all of this is true:
 - The Feather desktop app and game are on a trusted local machine or trusted LAN.
 - `allow` names only the modules you intend to edit.
 - `persistToDisk` is off unless you deliberately want patches written into the LÖVE save directory.
-- You have a clear release path where `debugger.hotReload.enabled` is `false` or the Feather integration is removed.
+- You have explicitly installed and included the opt-in `hot-reload` plugin.
+- You have a clear release path where the `hot-reload` plugin is excluded or the Feather integration is removed.
 
 ## Enable It
 
@@ -25,6 +26,10 @@ Configure it from `feather.config.lua`:
 ```lua
 return {
   debug = true,
+
+  -- Hot reload is an opt-in plugin. Without this include, Feather ignores
+  -- cmd:hot_reload messages even if debugger.hotReload is configured.
+  include = { "hot-reload" },
 
   debugger = {
     enabled = true,
@@ -53,6 +58,28 @@ return {
   },
 }
 ```
+
+For manual plugin registration, require and register the plugin explicitly:
+
+```lua
+local FeatherPluginManager = require("feather.plugin_manager")
+local HotReloadPlugin = require("plugins.hot-reload")
+
+DEBUGGER = FeatherDebugger({
+  debug = true,
+  debugger = { enabled = true },
+  plugins = {
+    FeatherPluginManager.createPlugin(HotReloadPlugin, "hot-reload", {
+      enabled = true,
+      allow = { "game.player" },
+      deny = { "main", "conf", "feather.*" },
+    }),
+  },
+})
+```
+
+> [!IMPORTANT]
+> Installing Feather core alone does not enable hot reload. The `hot-reload` plugin must be installed and registered, which keeps the remote-code-loading path out of normal sessions.
 
 | Field                 | Default | Description                                                                 |
 | --------------------- | ------- | --------------------------------------------------------------------------- |

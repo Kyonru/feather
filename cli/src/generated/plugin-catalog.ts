@@ -113,6 +113,18 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
+    "id": "hot-reload",
+    "sourceDir": "hot-reload",
+    "name": "Hot Reload",
+    "description": "Development-only Lua module hot reload over Feather WebSocket",
+    "version": "1.0.0",
+    "capabilities": [
+      "filesystem"
+    ],
+    "optIn": true,
+    "disabled": true
+  },
+  {
     "id": "hump.signal",
     "sourceDir": "hump/signal",
     "name": "HUMP Signal",

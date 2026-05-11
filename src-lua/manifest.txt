@@ -1,7 +1,6 @@
 core:feather/auto.lua
 core:feather/core/assets.lua
 core:feather/core/base.lua
-core:feather/core/hot_reloader.lua
 core:feather/core/logger.lua
 core:feather/core/observer.lua
 core:feather/core/performance.lua
@@ -35,6 +34,9 @@ plugin:entity-inspector:init.lua
 plugin:entity-inspector:manifest.lua
 plugin:filesystem:init.lua
 plugin:filesystem:manifest.lua
+plugin:hot-reload:hot_reloader.lua
+plugin:hot-reload:init.lua
+plugin:hot-reload:manifest.lua
 plugin:hump:signal/init.lua
 plugin:hump:signal/manifest.lua
 plugin:input-replay:init.lua

@@ -24,7 +24,7 @@ npm run feather -- run src-lua --config src-lua/example/test_cli/feather.config.
 
 It includes a `feather.config.lua` so the CLI can demonstrate project-local configuration.
 
-The hot reload example demonstrates the opt-in module reload flow:
+The hot reload example demonstrates the opt-in `hot-reload` plugin module reload flow:
 
 ```bash
 love src-lua --hot-reload

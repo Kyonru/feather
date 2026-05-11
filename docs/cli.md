@@ -388,7 +388,8 @@ Place a `feather.config.lua` in your game directory to configure the Feather inj
 return {
   sessionName = "My RPG",
 
-  -- Force-enable opt-in plugins (e.g. the REPL console)
+  -- Force-enable opt-in plugins.
+  -- "console" is a remote REPL. "hot-reload" is development-only remote code execution.
   include = { "console" },
 
   -- Remove plugins you don't need

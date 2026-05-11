@@ -88,7 +88,7 @@ const pluginToOption = (plugin: (typeof pluginCatalog)[number]): Option => ({
 
 const optionalPlugins: Option[] = pluginCatalog.filter((plugin) => plugin.optIn).map(pluginToOption);
 const skipPluginOptions: Option[] = pluginCatalog.map(pluginToOption);
-const defaultSkippedPlugins = new Set(["console", "hump.signal", "lua-state-machine"]);
+const defaultSkippedPlugins = new Set(["console", "hot-reload", "hump.signal", "lua-state-machine"]);
 
 const configToggles: Option[] = [
   { value: "debug", label: "Enable Feather", description: "Set debug = true." },

@@ -1,6 +1,7 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
 
 local PATCH_ROOT = ".feather/hot"
+local HOT_RELOAD_PLUGIN_PATH = (...):gsub("%.hot_reloader$", "")
 
 local FeatherHotReloader = Class({})
 
@@ -112,6 +113,54 @@ local function matchesAny(moduleName, patterns)
   return false
 end
 
+local function trimTrailingDot(value)
+  if type(value) ~= "string" then
+    return nil
+  end
+  return value:gsub("%.$", "")
+end
+
+local function isSameOrChild(moduleName, prefix)
+  prefix = trimTrailingDot(prefix)
+  if not prefix or prefix == "" then
+    return false
+  end
+  return moduleName == prefix or moduleName:sub(1, #prefix + 1) == prefix .. "."
+end
+
+local function hasModuleSegment(moduleName, segment)
+  return moduleName == segment or moduleName:match("^" .. segment .. "%.") or moduleName:match("%." .. segment .. "%.") or moduleName:match("%." .. segment .. "$")
+end
+
+local function isProtectedModule(moduleName)
+  if type(moduleName) ~= "string" then
+    return true
+  end
+
+  if moduleName == "main" or moduleName == "conf" then
+    return true
+  end
+
+  -- Protect Feather even when installed as lib.feather.* or another prefix.
+  if hasModuleSegment(moduleName, "feather") then
+    return true
+  end
+  if isSameOrChild(moduleName, _G.FEATHER_PATH) or isSameOrChild(moduleName, _G.FEATHER_PLUGIN_PATH) then
+    return true
+  end
+
+  -- The hot-reload plugin owns the allowlist and command handler. Never allow
+  -- hot reload to replace itself, even if a broad allowlist includes plugins.*.
+  if isSameOrChild(moduleName, HOT_RELOAD_PLUGIN_PATH)
+    or isSameOrChild(moduleName, "plugins.hot_reload")
+    or isSameOrChild(moduleName, "plugins.hot-reload")
+  then
+    return true
+  end
+
+  return false
+end
+
 local function isValidModuleName(moduleName)
   if type(moduleName) ~= "string" or moduleName == "" then
     return false
@@ -156,10 +205,10 @@ local function installPatchLoader()
       return "\n\tFeather hot reload is disabled"
     end
 
-    if type(moduleName) ~= "string" or moduleName == "feather" or moduleName:match("^feather%.") then
+    if type(moduleName) ~= "string" or isProtectedModule(moduleName) then
       return "\n\tFeather hot reload skipped " .. tostring(moduleName)
     end
-    if moduleName == "main" or moduleName == "conf" or matchesAny(moduleName, config.deny) then
+    if matchesAny(moduleName, config.deny) then
       return "\n\tFeather hot reload denied " .. moduleName
     end
     if not matchesAny(moduleName, config.allow) then
@@ -234,7 +283,7 @@ function FeatherHotReloader:validate(moduleName)
     return false, "Invalid Lua module name"
   end
 
-  if moduleName == "main" or moduleName == "conf" or moduleName == "feather" or moduleName:match("^feather%.") then
+  if isProtectedModule(moduleName) then
     return false, "This module is protected"
   end
 

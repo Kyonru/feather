@@ -170,6 +170,8 @@ function optionReference(): string {
   --
   -- Hot reload safety:
   --   Hot reload lets the Feather app send Lua source into the running game.
+  --   It only works when the opt-in "hot-reload" plugin is installed and
+  --   included. Do not include that plugin in production builds.
   --   Treat it as development-only remote code execution. Keep it disabled
   --   unless you are actively using it, keep allow as narrow as possible, and
   --   remove/disable it before shipping builds.
@@ -198,6 +200,7 @@ function optionReference(): string {
 
   -- Plugin controls:
   -- include = { "console" },
+  -- include = { "hot-reload" }, -- development-only remote code execution
   -- exclude = { "hump.signal", "lua-state-machine" },
   -- capabilities = "all",
 

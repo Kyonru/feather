@@ -2,6 +2,7 @@ local FeatherDebugger = require("feather")
 local Class = require("feather.lib.class")
 local FeatherPluginBase = require("feather.core.base")
 local FeatherPluginManager = require("feather.plugin_manager")
+local HotReloadPlugin = require("plugins.hot-reload")
 
 local E2EPlugin = Class({
   __includes = FeatherPluginBase,
@@ -57,13 +58,13 @@ local function run()
         name = "API Incompatible",
         version = "1.0.0",
       }),
-    },
-    debugger = {
-      enabled = false,
-      hotReload = {
+      FeatherPluginManager.createPlugin(HotReloadPlugin, "hot-reload", {
         enabled = true,
         allow = {
           "example.e2e.reloadable",
+          "feather.*",
+          "lib.*",
+          "plugins.*",
         },
         deny = {
           "main",
@@ -73,7 +74,10 @@ local function run()
         persistToDisk = false,
         clearOnBoot = true,
         requireLocalNetwork = false,
-      },
+      }),
+    },
+    debugger = {
+      enabled = false,
     },
   })
 
@@ -122,6 +126,18 @@ return M
   ok, err = feather.hotReloader:reload("bad-module-name", "return {}")
   assertEqual(ok, false, "invalid module name is rejected")
   assertTruthy(err, "invalid module name returns message")
+
+  ok, err = feather.hotReloader:reload("feather.init", "return {}")
+  assertEqual(ok, false, "feather module is protected")
+  assertEqual(err, "This module is protected", "feather module returns protected message")
+
+  ok, err = feather.hotReloader:reload("lib.feather.init", "return {}")
+  assertEqual(ok, false, "prefixed feather module is protected")
+  assertEqual(err, "This module is protected", "prefixed feather module returns protected message")
+
+  ok, err = feather.hotReloader:reload("plugins.hot_reload.init", "return {}")
+  assertEqual(ok, false, "hot reload plugin module is protected")
+  assertEqual(err, "This module is protected", "hot reload plugin module returns protected message")
 
   feather.hotReloader:restore()
   assertEqual(package.loaded[moduleName], nil, "restore removes originally unloaded module")

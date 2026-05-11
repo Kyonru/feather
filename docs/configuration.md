@@ -40,10 +40,12 @@
 
 ## Hot Reload
 
-Hot reload is configured under `debugger.hotReload`:
+Hot reload is configured under `debugger.hotReload`, but the command handler only exists when the opt-in `hot-reload` plugin is installed and included:
 
 ```lua
 return {
+  include = { "hot-reload" },
+
   debugger = {
     enabled = true,
     hotReload = {
@@ -61,7 +63,7 @@ return {
 See [Hot Reload](hot-reload.md) for the full workflow.
 
 > [!WARNING]
-> Hot reload is remote code execution for development. Leave it disabled unless you are actively using it.
+> Hot reload is remote code execution for development. Leave the `hot-reload` plugin excluded unless you are actively using it.
 
 > [!CAUTION]
 > Broad allowlists such as `allow = { "game.*" }` let Feather replace many modules at runtime. Start with exact module names and keep `persistToDisk = false` unless you explicitly need persistent mobile patches.

@@ -334,6 +334,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     );
 
     const hotReloadEnabled = /hotReload\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
+    const hotReloadPluginIncluded = hasConfigArrayValue(activeConfigSource, "include", "hot-reload") || pluginDirs.some((dir) => readPluginId(dir) === "hot-reload");
     const persistToDisk = /hotReload\s*=\s*\{[\s\S]*?persistToDisk\s*=\s*true/.test(activeConfigSource);
     const broadHotReload = /allow\s*=\s*\{[\s\S]*["'][^"']+\.\*["']/.test(activeConfigSource);
     add(
@@ -346,6 +347,16 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     );
     if (hotReloadEnabled && broadHotReload) {
       add(checks, "Safety", "Hot reload allowlist", "warn", "contains wildcard", "Prefer exact module names while editing.");
+    }
+    if (hotReloadEnabled && !hotReloadPluginIncluded) {
+      add(
+        checks,
+        "Safety",
+        "Hot reload plugin",
+        "warn",
+        "not included",
+        "Install and include the opt-in `hot-reload` plugin, or remove debugger.hotReload.",
+      );
     }
     if (hotReloadEnabled && persistToDisk) {
       add(checks, "Safety", "Hot reload persistence", "warn", "persistToDisk=true", "Persisted patches survive app restarts until restored or cleared.");

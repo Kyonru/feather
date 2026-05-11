@@ -1,4 +1,6 @@
 local FeatherDebugger = require("feather")
+local FeatherPluginManager = require("feather.plugin_manager")
+local HotReloadPlugin = require("plugins.hot-reload")
 
 local state = {
   time = 0,
@@ -23,10 +25,8 @@ function love.load()
     wrapPrint = true,
     defaultObservers = true,
     captureScreenshot = false,
-    plugins = {},
-    debugger = {
-      enabled = true,
-      hotReload = {
+    plugins = {
+      FeatherPluginManager.createPlugin(HotReloadPlugin, "hot-reload", {
         -- Development-only remote code execution. Keep this disabled in real
         -- projects unless you explicitly need it, and never ship with it on.
         enabled = true,
@@ -46,7 +46,10 @@ function love.load()
         persistToDisk = false,
         clearOnBoot = true,
         requireLocalNetwork = true,
-      },
+      }),
+    },
+    debugger = {
+      enabled = true,
     },
   })
 

@@ -14,7 +14,6 @@ local FeatherLogger = require(FEATHER_PATH .. ".core.logger")
 local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
 local FeatherPerformance = require(FEATHER_PATH .. ".core.performance")
 local FeatherAssets = require(FEATHER_PATH .. ".core.assets")
-local FeatherHotReloader = require(FEATHER_PATH .. ".core.hot_reloader")
 local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
 local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
@@ -158,7 +157,7 @@ function Feather:init(config)
   self.featherObserver = FeatherObserver(self)
 
   self.performance = FeatherPerformance()
-  self.hotReloader = FeatherHotReloader(self, self.hotReloadConfig)
+  self.hotReloader = nil
 
   if self.autoRegisterErrorHandler then
     local selfRef = self
@@ -446,43 +445,20 @@ function Feather:__handleCommand(msg)
         data = { message = tostring(err) },
       }))
     end
-  elseif msg.type == "cmd:hot_reload:module" and msg.data then
-    if not self.hotReloader then
-      return
-    end
-    local ok, err, persisted = self.hotReloader:reload(msg.data.module, msg.data.source)
-    self:__sendWs(json.encode({
-      type = "hot_reload:result",
-      session = self.sessionId,
-      data = {
-        ok = ok == true,
-        module = msg.data.module or "",
-        error = err,
-        persisted = persisted == true,
-        state = self.hotReloader:getState(),
-      },
-    }))
-    self:__sendWs(json.encode({
-      type = "hot_reload:state",
-      session = self.sessionId,
-      data = self.hotReloader:getState(),
-    }))
-  elseif msg.type == "cmd:hot_reload:restore" then
-    if not self.hotReloader then
-      return
-    end
-    self.hotReloader:restore()
-    self:__sendWs(json.encode({
-      type = "hot_reload:state",
-      session = self.sessionId,
-      data = self.hotReloader:getState(),
-    }))
-  elseif msg.type == "req:hot_reload:state" then
-    if self.hotReloader then
+  elseif msg.type == "cmd:hot_reload:module" or msg.type == "cmd:hot_reload:restore" or msg.type == "req:hot_reload:state" then
+    local hotReloadPlugin = self.pluginManager:getPlugin("hot-reload")
+    if hotReloadPlugin and hotReloadPlugin.instance and not hotReloadPlugin.disabled then
+      hotReloadPlugin.instance:handleHotReloadCommand(msg, self)
+    else
+      local moduleName = type(msg.data) == "table" and msg.data.module or ""
       self:__sendWs(json.encode({
-        type = "hot_reload:state",
+        type = "hot_reload:result",
         session = self.sessionId,
-        data = self.hotReloader:getState(),
+        data = {
+          ok = false,
+          module = moduleName,
+          error = "Hot reload plugin not registered. Add the hot-reload plugin to your plugins list.",
+        },
       }))
     end
   elseif msg.type == "cmd:debugger:enable" then
