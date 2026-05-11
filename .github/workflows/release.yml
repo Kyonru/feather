@@ -2,59 +2,58 @@ name: Feather release
 
 on:
   push:
-    branches: [ main, next ]
     tags:
       - "*"
 
 jobs:
-  # luarocks-release:
-  #   runs-on: ubuntu-latest
-  #   name: LuaRocks upload
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+  luarocks-release:
+    runs-on: ubuntu-latest
+    name: LuaRocks upload
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Fail if changelog entry does not exist
-  #       run: grep -q "${{ github.ref_name }}" CHANGELOG.md
+      - name: Fail if changelog entry does not exist
+        run: grep -q "${{ github.ref_name }}" CHANGELOG.md
 
-  #     - name: Get version from tag
-  #       id: get_version
-  #       run: |
-  #         VERSION="${GITHUB_REF_NAME#v}"
-  #         echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-  #     - name: LuaRocks Upload
-  #       uses: nvim-neorocks/luarocks-tag-release@v7
-  #       with:
-  #         license: Feather License
-  #         labels: |
-  #           love2d
-  #           löve
-  #           debug
-  #         copy_directories: |
-  #           src-lua/feather
-  #         summary: Debug & Inspect Tool for LÖVE (love2d)
-  #         detailed_description: |
-  #           Feather is a debugger tool with a plugin system for Love2D projects.
-  #         fail_on_duplicate: true
-  #       env:
-  #         LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+      - name: LuaRocks Upload
+        uses: nvim-neorocks/luarocks-tag-release@v7
+        with:
+          license: Feather License
+          labels: |
+            love2d
+            löve
+            debug
+          copy_directories: |
+            src-lua/feather
+          summary: Debug & Inspect Tool for LÖVE (love2d)
+          detailed_description: |
+            Feather is a debugger tool with a plugin system for Love2D projects.
+          fail_on_duplicate: true
+        env:
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
 
-  #     - name: Zip feather folder
-  #       run: |
-  #         cd src-lua
-  #         zip -r ../feather-${{ steps.get_version.outputs.version }}.zip feather/
+      - name: Zip feather folder
+        run: |
+          cd src-lua
+          zip -r ../feather-${{ steps.get_version.outputs.version }}.zip feather/
 
-  #     - name: GitHub Release
-  #       uses: ncipollo/release-action@v1
-  #       with:
-  #         artifacts: |
-  #           feather-${{ steps.get_version.outputs.version }}-1.rockspec
-  #           feather-${{ steps.get_version.outputs.version }}-1.src.rock
-  #           feather-${{ steps.get_version.outputs.version }}.zip
-  #         allowUpdates: true
+      - name: GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            feather-${{ steps.get_version.outputs.version }}-1.rockspec
+            feather-${{ steps.get_version.outputs.version }}-1.src.rock
+            feather-${{ steps.get_version.outputs.version }}.zip
+          allowUpdates: true
 
   tauri-release:
     permissions:
@@ -143,5 +142,5 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
         with:
-          tagName: 0.8.1
+          tagName: ${{ github.ref_name }}
           args: ${{ matrix.args }}
