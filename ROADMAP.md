@@ -13,12 +13,12 @@
 
 ---
 
-## 0.9.x — Assets & Runtime Inspection
+## 0.10.x — Iteration Workflow & Developer Experience
 
 Focus:
-Inspect and manipulate game resources live.
+Reduce iteration time and improve daily usability.
 
-### 0.9.0 – Assets & Resources
+### 0.10.0 – Developer Experience & Workflow
 
 #### Graphics Tooling
 
@@ -35,15 +35,6 @@ Inspect and manipulate game resources live.
   - [ ] Visualize draw order
   - [ ] Entity hierarchy tree
   - [ ] Collapsible runtime tree view
-
----
-
-## 0.10.x — Iteration Workflow & Developer Experience
-
-Focus:
-Reduce iteration time and improve daily usability.
-
-### 0.10.0 – Developer Experience & Workflow
 
 #### Workspace Experience
 
@@ -64,10 +55,8 @@ Turn Feather into a platform instead of only a debugger.
 #### Official Plugins
 
 - [ ] Scene graph inspector
-- [ ] Tween inspector
 - [ ] Shader inspector
 - [ ] Save data inspector
-- [ ] Asset viewer
 
 ---
 
@@ -108,7 +97,6 @@ Production-ready release with security, trust, and community adoption.
 
 #### Quality
 
-- [ ] Add automated tests
 - [ ] Add stress-test scenarios
 - [ ] Improve error reporting/logging
 

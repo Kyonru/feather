@@ -5,7 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.8.0]
+## [v0.9.0] - 2026-05-11 - The one with the Hot Reloading
+
+### Added
+
+- Hot reloading
+  - Options added to debugger
+  - Documentation
+- e2e
+  - cli
+  - app
+  - rust
+  - lua
+- MacOS
+  - Code signing
+- Plugin
+  - Overlay plugin
+
+### Changed
+
+- CLI
+  - `run`, `update`, `doctor` now include ink workflow
+- Debugger
+  - Toast is displayed in game when code is hot reloaded
+- Console
+  - Toast is displayed in game when code is hot reloaded
+- AppID is now required to limit which serves can communicate with the feather lua client
+- Handshake required before enabling connection
+
+## [v0.8.0] - 2026-05-10 - The one with the CLI
 
 ### Added
 
