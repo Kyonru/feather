@@ -22,6 +22,7 @@ local TimerInspectorPlugin = require("plugins.timer-inspector")
 local FilesystemPlugin = require("plugins.filesystem")
 local TimeTravelPlugin = require("plugins.time-travel")
 local RuntimeSnapshotPlugin = require("plugins.runtime-snapshot")
+local IngameOverlayPlugin = require("plugins.ingame-overlay")
 
 local TestPlugin = require("example.demo.plugin")
 local test = require("example.demo.another.lib")
@@ -393,6 +394,9 @@ DEBUGGER = FeatherDebugger({
       bufferSize = 500, -- max frames to keep (oldest are dropped when full)
     }),
     FeatherPluginManager.createPlugin(RuntimeSnapshotPlugin, "runtime-snapshot", {}),
+    FeatherPluginManager.createPlugin(IngameOverlayPlugin, "ingame-overlay", {
+      visible = false,
+    }),
   },
 })
 

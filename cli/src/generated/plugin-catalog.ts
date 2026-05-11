@@ -135,6 +135,18 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
+    "id": "ingame-overlay",
+    "sourceDir": "ingame-overlay",
+    "name": "In-Game Overlay",
+    "description": "Opt-in in-game performance overlay drawn through Feather plugin hooks",
+    "version": "1.0.0",
+    "capabilities": [
+      "draw"
+    ],
+    "optIn": true,
+    "disabled": true
+  },
+  {
     "id": "input-replay",
     "sourceDir": "input-replay",
     "name": "Input Replay",

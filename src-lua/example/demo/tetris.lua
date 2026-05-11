@@ -1,5 +1,3 @@
-local overlayStats = require("example.demo.lib.overlayStats")
-
 -- from https://berbasoft.com/simplegametutorials/love/blocks/
 local Game = {}
 
@@ -209,7 +207,6 @@ function Game.load()
   timerLimit = 0.5
 
   reset()
-  overlayStats.load() -- Should always be called last
 end
 
 function Game.update(dt)
@@ -270,7 +267,6 @@ function Game.update(dt)
       end
     end
   end
-  overlayStats.update(dt) -- Should always be called last
 end
 
 function Game.keypressed(key)
@@ -310,8 +306,6 @@ function Game.keypressed(key)
       timer = timerLimit
     end
   end
-
-  overlayStats.handleKeyboard(key) -- Should always be called last
 end
 
 function Game.draw()
@@ -366,7 +360,6 @@ function Game.draw()
   for i = 1, 1000 do
     love.graphics.draw(image, love.graphics.getWidth() - image:getWidth(), i / 100)
   end
-  overlayStats.draw()
 end
 
 return Game
