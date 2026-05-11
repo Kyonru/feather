@@ -1,6 +1,6 @@
 {
   "name": "@kyonru/feather",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "CLI for Feather — run and debug Love2D games without touching your game code",
   "license": "EPL-2.0",
   "repository": {
