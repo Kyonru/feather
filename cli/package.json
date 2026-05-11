@@ -1,8 +1,17 @@
 {
   "name": "@kyonru/feather",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "CLI for Feather — run and debug Love2D games without touching your game code",
   "license": "EPL-2.0",
+  "keywords": [
+    "feather",
+    "love2d",
+    "cli",
+    "debugger",
+    "devtool",
+    "inspector",
+    "lua"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Kyonru/feather.git",
