@@ -73,7 +73,7 @@ function doctorJson(dir, extra = []) {
 assert(existsSync(cli), 'cli/dist/index.js is missing. Run npm run cli:build first.');
 assert(existsSync(join(localSrc, 'feather', 'init.lua')), 'src-lua Feather runtime is missing.');
 
-const workspace = mkdtempSync(join(tmpdir(), 'feather-cli-e2e-'));
+const workspace = mkdtempSync(join(tmpdir(), 'kyonru-feather-e2e-'));
 log(`workspace ${workspace}`);
 
 try {

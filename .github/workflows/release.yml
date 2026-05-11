@@ -6,6 +6,68 @@ on:
       - "*"
 
 jobs:
+  npm-cli-release:
+    runs-on: ubuntu-latest
+    name: npm CLI publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify CLI package version
+        run: |
+          CLI_VERSION="$(node -p "require('./cli/package.json').version")"
+          if [ "$CLI_VERSION" != "${{ steps.get_version.outputs.version }}" ]; then
+            echo "Tag version ${{ steps.get_version.outputs.version }} does not match cli/package.json version $CLI_VERSION."
+            exit 1
+          fi
+
+      - name: Fail if CLI package version already exists
+        run: |
+          if npm view "@kyonru/feather@${{ steps.get_version.outputs.version }}" version --registry https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "@kyonru/feather@${{ steps.get_version.outputs.version }} already exists on npm."
+            exit 1
+          fi
+
+      - name: Build CLI
+        run: npm run cli:build
+
+      - name: Run CLI e2e
+        run: npm run test:cli:e2e
+
+      - name: Verify npm package contents
+        run: npm pack --workspace=cli --dry-run
+
+      - name: Publish CLI to npm
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "Using NPM_TOKEN fallback. Prefer npm Trusted Publishing/OIDC when it is configured."
+            export NODE_AUTH_TOKEN="$NPM_TOKEN"
+            npm publish --workspace=cli --access public --provenance
+          else
+            echo "Using npm Trusted Publishing/OIDC."
+            npm publish --workspace=cli --access public
+          fi
+
   luarocks-release:
     runs-on: ubuntu-latest
     name: LuaRocks upload

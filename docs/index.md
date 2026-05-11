@@ -33,7 +33,7 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 ### Option A — CLI injection (no game-side changes)
 
 ```bash
-npm install -g feather-cli
+npm install -g @kyonru/feather
 feather init path/to/my-game
 feather run path/to/my-game
 ```
@@ -46,7 +46,7 @@ Feather is injected automatically. No `require` needed in the game. See [CLI](cl
 ### Option B — Managed in-game setup
 
 ```bash
-npm install -g feather-cli
+npm install -g @kyonru/feather
 feather init path/to/my-game --mode auto
 USE_DEBUGGER=1 love path/to/my-game
 ```

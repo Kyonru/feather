@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="$ROOT/cli/lua"
 
-echo "Bundling Lua into $DEST…"
+echo "Bundling Lua into ${DEST}..."
 rm -rf "$DEST"
 mkdir -p "$DEST"
 

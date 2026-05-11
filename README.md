@@ -34,7 +34,7 @@ Feather is a real-time debugging and inspection tool for [LÖVE](https://love2d.
 Install the CLI, initialize your game, then run with `USE_DEBUGGER=1` when you want Feather loaded:
 
 ```sh
-npm install -g feather-cli
+npm install -g @kyonru/feather
 feather init --mode cli
 feather run path/to/my-game
 ```

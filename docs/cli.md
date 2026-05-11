@@ -15,7 +15,7 @@ feather run path/to/my-game
 ## Installation
 
 ```bash
-npm install -g feather-cli
+npm install -g @kyonru/feather
 ```
 
 Requires **Node.js 18+** and **love2d** installed on your system.
@@ -106,10 +106,10 @@ feather init --install-dir lib/feather  # install like FEATHER_DIR=lib/feather
 
 By default, `feather init` opens an interactive terminal picker powered by Ink:
 
-| Mode     | Behavior                                                                      |
-| -------- | ----------------------------------------------------------------------------- |
-| `cli`    | Creates `feather.config.lua` only. Run with `feather run .`.                  |
-| `auto`   | Copies core/plugins and patches `main.lua` with a `USE_DEBUGGER`-guarded `require("feather.auto")`. |
+| Mode     | Behavior                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------- |
+| `cli`    | Creates `feather.config.lua` only. Run with `feather run .`.                                                  |
+| `auto`   | Copies core/plugins and patches `main.lua` with a `USE_DEBUGGER`-guarded `require("feather.auto")`.           |
 | `manual` | Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua` when `USE_DEBUGGER` is set. |
 
 Install source priority:
@@ -208,16 +208,16 @@ return DEBUGGER
 
 **Options:**
 
-| Option              | Description                                                   |
-| ------------------- | ------------------------------------------------------------- |
-| `--remote`          | Download from GitHub instead of copying the local/bundled Lua runtime. |
-| `--branch <branch>` | GitHub branch or tag to download from when using `--remote` (default: `main`). |
-| `--local-src <path>` | Copy from a local `src-lua` style directory.                 |
-| `--install-dir <path>` | Install directory for auto/manual modes (default: `feather`). |
-| `--no-plugins`      | Skip plugin installation.                                     |
-| `--plugins <ids>`   | Comma-separated list of plugin IDs to install (default: all). |
-| `--mode <mode>`     | Setup mode: `cli`, `auto`, or `manual`.                       |
-| `-y, --yes`         | Skip confirmation prompts.                                    |
+| Option                 | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `--remote`             | Download from GitHub instead of copying the local/bundled Lua runtime.         |
+| `--branch <branch>`    | GitHub branch or tag to download from when using `--remote` (default: `main`). |
+| `--local-src <path>`   | Copy from a local `src-lua` style directory.                                   |
+| `--install-dir <path>` | Install directory for auto/manual modes (default: `feather`).                  |
+| `--no-plugins`         | Skip plugin installation.                                                      |
+| `--plugins <ids>`      | Comma-separated list of plugin IDs to install (default: all).                  |
+| `--mode <mode>`        | Setup mode: `cli`, `auto`, or `manual`.                                        |
+| `-y, --yes`            | Skip confirmation prompts.                                                     |
 
 ---
 
@@ -242,14 +242,14 @@ The command reads managed metadata from `feather.config.lua` when available, inc
 
 **Options:**
 
-| Option                 | Description                                                   |
-| ---------------------- | ------------------------------------------------------------- |
-| `--install-dir <path>` | Override the detected Feather install directory.              |
-| `--dry-run`            | Show what would be removed without changing files.            |
-| `--keep-config`        | Keep `feather.config.lua`.                                    |
-| `--keep-main`          | Keep `main.lua` marker blocks and update hook.                |
-| `--keep-manual`        | Keep `feather.debugger.lua`.                                  |
-| `--keep-runtime`       | Keep installed Feather runtime and plugins.                   |
+| Option                 | Description                                                     |
+| ---------------------- | --------------------------------------------------------------- |
+| `--install-dir <path>` | Override the detected Feather install directory.                |
+| `--dry-run`            | Show what would be removed without changing files.              |
+| `--keep-config`        | Keep `feather.config.lua`.                                      |
+| `--keep-main`          | Keep `main.lua` marker blocks and update hook.                  |
+| `--keep-manual`        | Keep `feather.debugger.lua`.                                    |
+| `--keep-runtime`       | Keep installed Feather runtime and plugins.                     |
 | `-y, --yes`            | Skip the interactive picker and remove default managed targets. |
 
 ---

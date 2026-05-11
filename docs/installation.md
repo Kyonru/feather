@@ -2,10 +2,10 @@
 
 ## Option 1: CLI (Recommended — no game changes needed)
 
-Install the `feather-cli` npm package globally, then use `feather run` to inject Feather into any love2d game without touching its source:
+Install the `@kyonru/feather` npm package globally, then use `feather run` to inject Feather into any love2d game without touching its source:
 
 ```bash
-npm install -g feather-cli
+npm install -g @kyonru/feather
 feather run path/to/my-game
 ```
 
@@ -123,7 +123,7 @@ local Feather = require("feather")
 
 ### Using the CLI
 
-If you installed via `feather-cli`, run:
+If you installed via `@kyonru/feather`, run:
 
 ```bash
 feather update
