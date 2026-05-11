@@ -1,6 +1,14 @@
 # Feather CLI
 
-The Feather CLI lets you run and debug Love2D games **without modifying your game code**. Running a game through the CLI injects Feather automatically at the process level — no `require("feather.auto")` needed.
+The Feather CLI lets you run and debug LÖVE games **without modifying your game code**. Running a game through the CLI injects Feather automatically at the process level — no `require("feather.auto")` needed.
+
+- Package: [`@kyonru/feather`](https://www.npmjs.com/package/@kyonru/feather)
+- Command: `feather`
+- Repo: [github.com/Kyonru/feather](https://github.com/Kyonru/feather)
+- Documentation: [kyonru.github.io/feather](https://kyonru.github.io/feather/)
+
+> [!NOTE]
+> The npm package is scoped as `@kyonru/feather`, but the executable command is `feather`. npm creates that command from the package `bin` field.
 
 ```bash
 feather run
@@ -18,7 +26,17 @@ feather run path/to/my-game
 npm install -g @kyonru/feather
 ```
 
-Requires **Node.js 18+** and **love2d** installed on your system.
+Requires **Node.js 18+** and **LÖVE** installed on your system.
+
+For local development inside this repository:
+
+```bash
+npm install
+npm run cli:build
+npm run feather -- --help
+```
+
+`npm install` links the workspace package into `node_modules/@kyonru/feather` and exposes `node_modules/.bin/feather` for local CLI testing.
 
 ---
 
