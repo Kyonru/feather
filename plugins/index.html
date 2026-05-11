@@ -1,0 +1,3286 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Real-time debug & inspect tool for LÖVE (love2d) games.">
+      
+      
+      
+        <link rel="canonical" href="https://kyonru.github.io/feather/plugins/">
+      
+      
+        <link rel="prev" href="../recommendations/">
+      
+      
+        <link rel="next" href="../plugin-ui/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Overview - Feather</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#feather-plugins" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Feather" class="md-header__button md-logo" aria-label="Feather" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Feather
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Overview
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Kyonru/feather" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Kyonru/feather
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Feather" class="md-nav__button md-logo" aria-label="Feather" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Feather
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Kyonru/feather" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Kyonru/feather
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../debugger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debugger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hot-reload/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot Reload
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../time-travel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Time Travel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Console
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recommendations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recommendations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#creating-a-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating a plugin
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating a plugin">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manifestlua" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        manifest.lua
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#love-event-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Love-event hooks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plugin-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Initialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-push-every-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Push (every cycle)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#action-handling-from-desktop-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Action Handling (from desktop UI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#finish" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finish
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registering-a-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registering a plugin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feather-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feather Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#config-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#action-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Action types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Action types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#type-button" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "button"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-input" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "input"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-checkbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "checkbox"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-select" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "select"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-vector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "vector"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "file"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grouped-card-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouped card layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#action-response-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Action response types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Action response types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#download-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clipboard-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clipboard response
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#content-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Content types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Content types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ui
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gallery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gallery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-plugins-to-featherauto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding plugins to feather.auto
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Adding plugins to feather.auto">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#append-a-custom-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Append a custom plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#start-a-custom-plugin-disabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start a custom plugin disabled
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-enable-a-built-in-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Force-enable a built-in plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exclude-a-built-in-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exclude a built-in plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#override-built-in-plugin-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Override built-in plugin options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-plugin-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Plugin Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin examples
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugin-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="animation-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Animation Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="audio-debug/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audio Debug
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="bookmark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookmark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="collision-debug/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collision Debug
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="config-tweaker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Config Tweaker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="coroutine-monitor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coroutine Monitor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="entity-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entity Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="hump-signal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HUMP Signal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="input-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="lua-state-machine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lua State Machine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="memory-snapshot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory Snapshot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="network-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="particle-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Particle Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="physics-debug/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Physics Debug
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="profiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="timer-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Timer Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#creating-a-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating a plugin
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating a plugin">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manifestlua" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        manifest.lua
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#love-event-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Love-event hooks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plugin-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Initialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-push-every-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Push (every cycle)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#action-handling-from-desktop-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Action Handling (from desktop UI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#finish" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finish
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registering-a-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registering a plugin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feather-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feather Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#config-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#action-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Action types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Action types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#type-button" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "button"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-input" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "input"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-checkbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "checkbox"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-select" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "select"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-vector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "vector"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type = "file"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grouped-card-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouped card layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#action-response-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Action response types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Action response types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#download-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clipboard-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clipboard response
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#content-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Content types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Content types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ui
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gallery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gallery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-plugins-to-featherauto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding plugins to feather.auto
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Adding plugins to feather.auto">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#append-a-custom-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Append a custom plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#start-a-custom-plugin-disabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start a custom plugin disabled
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-enable-a-built-in-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Force-enable a built-in plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exclude-a-built-in-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exclude a built-in plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#override-built-in-plugin-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Override built-in plugin options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-plugin-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Plugin Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin examples
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="feather-plugins">Feather Plugins<a class="headerlink" href="#feather-plugins" title="Permanent link">&para;</a></h1>
+<p>Feather plugins are Lua modules that extend the functionality of the debugger. Plugins use a <strong>server-driven UI</strong> approach: they declare their actions and configuration in Lua via <code>getConfig()</code>, and the Feather desktop app renders the UI automatically — no TypeScript code needed.</p>
+<h2 id="creating-a-plugin">Creating a plugin<a class="headerlink" href="#creating-a-plugin" title="Permanent link">&para;</a></h2>
+<p>To create a plugin, extend the <code>FeatherPlugin</code> base class and implement the lifecycle methods you need:</p>
+<ul>
+<li><code>init(config)</code>: Called when the plugin is initialized.</li>
+<li><code>update(dt, feather)</code>: Called every frame. Wrapped in <code>pcall</code> for error isolation — a crashing plugin won't take down the game.</li>
+<li><code>onerror(msg, feather)</code>: Called when a game error occurs.</li>
+<li><code>handleRequest(request, feather)</code>: Called on each push cycle to get data for the desktop (GET). Return data to be sent, or <code>nil</code> to skip.</li>
+<li><code>handleActionRequest(request, feather)</code>: Called when a plugin action is triggered from the desktop (POST). Returns <code>(data, err)</code> tuple.</li>
+<li><code>handleActionCancel(request, feather)</code>: Called when an in-flight action is cancelled from the desktop (DELETE).</li>
+<li><code>handleParamsUpdate(request, feather)</code>: Called when plugin parameters are updated from the desktop (PUT).</li>
+<li><code>finish(feather)</code>: Called when the game disconnects.</li>
+<li><code>getConfig()</code>: Returns the plugin configuration including server-driven UI actions. Sent to the desktop on connect.</li>
+</ul>
+<p>To help with the implementation, Feather provides the <code>FeatherPlugin</code> class, which you can extend to create your plugin.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="nv">FEATHER_PATH</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;.core.base&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">MyPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Class</span><span class="p">({</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nv">__includes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">FeatherPlugin</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">})</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">init</span><span class="p">(</span><span class="nv">config</span><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="c1">-- config.options contains the options passed to createPlugin</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="c1">-- config.logger and config.observer are always available</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="kr">end</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="c1">-- Called every frame (error-isolated via pcall)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="kr">end</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onerror</span><span class="p">(</span><span class="nv">msg</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">  </span><span class="c1">-- Called when a game error occurs</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="kr">end</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">  </span><span class="c1">-- Return data to push to desktop each cycle</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">    </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gallery&quot;</span><span class="p">,</span><span class="w"> </span><span class="c1">-- content type: &quot;gallery&quot;, etc.</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="nv">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="nv">loading</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="kr">end</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleActionRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">action</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">request</span><span class="p">.</span><span class="py">params</span><span class="p">.</span><span class="py">action</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">  </span><span class="c1">-- Handle the action, return (data, err) tuple</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="s2">&quot;success&quot;</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="kr">end</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleActionCancel</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">  </span><span class="c1">-- Cancel an in-flight action (e.g. stop GIF recording)</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="kr">end</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleParamsUpdate</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="w">  </span><span class="c1">-- Handle parameter changes from desktop UI</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="kr">end</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">isSupported</span><span class="p">(</span><span class="nv">version</span><span class="p">)</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="nv">version</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="kr">end</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">finish</span><span class="p">(</span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="w">  </span><span class="c1">-- Clean up resources</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="kr">end</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">getConfig</span><span class="p">()</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a><span class="w">    </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a><span class="w">    </span><span class="nv">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="w">    </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;puzzle&quot;</span><span class="p">,</span><span class="w">           </span><span class="c1">-- Lucide icon name</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="w">    </span><span class="nv">tabName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Plugin&quot;</span><span class="p">,</span><span class="w">     </span><span class="c1">-- Display name in sidebar</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="w">    </span><span class="nv">actions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Do Thing&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;do-thing&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;play&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;button&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Count&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;count&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;hash&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nv">max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Enabled&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;enabled&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;toggle-left&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;checkbox&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a><span class="kr">end</span>
+<a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a>
+<a id="__codelineno-0-66" name="__codelineno-0-66" href="#__codelineno-0-66"></a><span class="kr">return</span><span class="w"> </span><span class="nv">MyPlugin</span>
+</code></pre></div>
+<h3 id="manifestlua">manifest.lua<a class="headerlink" href="#manifestlua" title="Permanent link">&para;</a></h3>
+<p>Every plugin that should be auto-discovered by <code>feather.auto</code> needs a <code>manifest.lua</code> at the root of its directory. Without it the directory is silently skipped.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">-- plugins/my-plugin/manifest.lua</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nv">id</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span><span class="w">          </span><span class="c1">-- must match the directory name and createPlugin id</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nv">name</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Plugin&quot;</span><span class="p">,</span><span class="w">          </span><span class="c1">-- display name (for tooling / future UI)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nv">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;What this plugin does&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nv">version</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nv">capabilities</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;filesystem&quot;</span><span class="w"> </span><span class="p">},</span><span class="w">     </span><span class="c1">-- tokens this plugin requires (see Capabilities)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nv">opts</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="p">},</span><span class="w">      </span><span class="c1">-- default options merged with user pluginOptions</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nv">optIn</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">                </span><span class="c1">-- true = not registered unless in config.include</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nv">disabled</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">                 </span><span class="c1">-- true = registered but inactive by default</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>Unique plugin identifier. Must match the directory name and the <code>id</code> passed to <code>createPlugin</code>.</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td>Human-readable display name.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td><code>string</code></td>
+<td>Short description shown in tooling.</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td><code>string</code></td>
+<td>Semver string.</td>
+</tr>
+<tr>
+<td><code>capabilities</code></td>
+<td><code>string[]</code></td>
+<td>Capability tokens this plugin needs (e.g. <code>"filesystem"</code>, <code>"network"</code>). Checked against the user's <code>config.capabilities</code> at load time.</td>
+</tr>
+<tr>
+<td><code>opts</code></td>
+<td><code>table</code></td>
+<td>Default plugin options. Merged with (and overridden by) the user's <code>config.pluginOptions[id]</code>.</td>
+</tr>
+<tr>
+<td><code>optIn</code></td>
+<td><code>boolean</code></td>
+<td>If <code>true</code>, the plugin is not registered at all unless its ID appears in <code>config.include</code>.</td>
+</tr>
+<tr>
+<td><code>disabled</code></td>
+<td><code>boolean</code></td>
+<td>If <code>true</code>, the plugin registers and appears in the UI but starts inactive. Users can enable it from the desktop, or via <code>config.include</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="love-event-hooks">Love-event hooks<a class="headerlink" href="#love-event-hooks" title="Permanent link">&para;</a></h3>
+<p>Instead of patching <code>love.*</code> callbacks inside <code>init()</code>, override the corresponding <code>on*</code> method. <code>FeatherPluginManager</code> patches each love callback once and dispatches to all enabled plugins — this prevents conflicts when multiple plugins hook the same callback.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onDraw</span><span class="p">()</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="c1">-- Runs after love.draw(); use love.graphics here</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kr">end</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onKeypressed</span><span class="p">(</span><span class="nv">key</span><span class="p">,</span><span class="w"> </span><span class="nv">scancode</span><span class="p">,</span><span class="w"> </span><span class="nv">isrepeat</span><span class="p">)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;f5&quot;</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="nv">self</span><span class="p">:</span><span class="nf">doSomething</span><span class="p">()</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="kr">end</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onKeyreleased</span><span class="p">(</span><span class="nv">key</span><span class="p">,</span><span class="w"> </span><span class="nv">scancode</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onMousepressed</span><span class="p">(</span><span class="nv">x</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="p">,</span><span class="w"> </span><span class="nv">button</span><span class="p">,</span><span class="w"> </span><span class="nv">istouch</span><span class="p">,</span><span class="w"> </span><span class="nv">presses</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onMousereleased</span><span class="p">(</span><span class="nv">x</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="p">,</span><span class="w"> </span><span class="nv">button</span><span class="p">,</span><span class="w"> </span><span class="nv">istouch</span><span class="p">,</span><span class="w"> </span><span class="nv">presses</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onTouchpressed</span><span class="p">(</span><span class="nv">id</span><span class="p">,</span><span class="w"> </span><span class="nv">x</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="p">,</span><span class="w"> </span><span class="nv">dx</span><span class="p">,</span><span class="w"> </span><span class="nv">dy</span><span class="p">,</span><span class="w"> </span><span class="nv">pressure</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onTouchreleased</span><span class="p">(</span><span class="nv">id</span><span class="p">,</span><span class="w"> </span><span class="nv">x</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="p">,</span><span class="w"> </span><span class="nv">dx</span><span class="p">,</span><span class="w"> </span><span class="nv">dy</span><span class="p">,</span><span class="w"> </span><span class="nv">pressure</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onJoystickpressed</span><span class="p">(</span><span class="nv">joystick</span><span class="p">,</span><span class="w"> </span><span class="nv">button</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">onJoystickreleased</span><span class="p">(</span><span class="nv">joystick</span><span class="p">,</span><span class="w"> </span><span class="nv">button</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+</code></pre></div>
+<p>Only override the methods you need — unused ones default to no-ops in the base class.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>input-replay</code> keeps its own hook system because it simulates love events during replay. Routing those through the central dispatcher would cause recursion.</p>
+</div>
+<h3 id="capabilities">Capabilities<a class="headerlink" href="#capabilities" title="Permanent link">&para;</a></h3>
+<p>Declare the system access your plugin needs in <code>manifest.lua</code>. At load time, <code>FeatherPluginManager</code> checks these against the user's <code>config.capabilities</code> allowlist and logs a warning for any undeclared capability. Loading is not blocked — warnings are informational.</p>
+<p>Available capability tokens:</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"filesystem"</code></td>
+<td>Reads or writes via <code>love.filesystem</code></td>
+</tr>
+<tr>
+<td><code>"network"</code></td>
+<td>Uses LuaSocket / HTTP</td>
+</tr>
+<tr>
+<td><code>"audio"</code></td>
+<td>Accesses <code>love.audio</code></td>
+</tr>
+<tr>
+<td><code>"physics"</code></td>
+<td>Accesses <code>love.physics</code></td>
+</tr>
+<tr>
+<td><code>"input"</code></td>
+<td>Hooks input callbacks (<code>onKeypressed</code>, etc.)</td>
+</tr>
+<tr>
+<td><code>"draw"</code></td>
+<td>Hooks <code>onDraw</code> to render overlays</td>
+</tr>
+</tbody>
+</table>
+<p>Users can restrict which capabilities are allowed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="c1">-- Only allow filesystem and draw; plugins requesting anything else get a warning</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nv">capabilities</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;filesystem&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;draw&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">})</span>
+</code></pre></div>
+<p>Pass <code>"all"</code> (the default) to skip capability checking entirely.</p>
+<h3 id="api-compatibility">API Compatibility<a class="headerlink" href="#api-compatibility" title="Permanent link">&para;</a></h3>
+<p>Feather has a plugin UI/protocol API number. Plugins can declare which desktop API versions they support in <code>manifest.lua</code>; the runtime forwards that metadata to the desktop and disables incompatible plugins instead of letting them fail later.</p>
+<p>The current Lua runtime exposes the number as <code>require("feather").API</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">-- plugins/my-plugin/manifest.lua</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nv">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Plugin&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nv">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="c1">-- Exact API</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="nv">api</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span><span class="c1">-- Or a range</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">  </span><span class="c1">-- minApi = 5,</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span><span class="c1">-- maxApi = 6,</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="p">}</span>
+</code></pre></div>
+<p>For manually registered plugins, pass the same metadata through <code>createPlugin</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">MyPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nv">minApi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nv">maxApi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Plugin&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nv">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">})</span>
+</code></pre></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Declare an API range when your plugin depends on specific Feather UI nodes, binary attachments, action semantics, or table/gallery formats. Incompatible plugins are shown in the desktop app with an API mismatch message and cannot be enabled.</p>
+</div>
+<h3 id="plugin-lifecycle">Plugin lifecycle<a class="headerlink" href="#plugin-lifecycle" title="Permanent link">&para;</a></h3>
+<p>The FeatherPluginManager handles the lifecycle of each plugin. Each plugin's <code>update()</code> is wrapped in <code>pcall</code> for error isolation — if a plugin crashes, it won't affect the game or other plugins. After 10 consecutive errors, a plugin is automatically disabled. Use <code>pluginManager:enablePlugin(id)</code> to re-enable it.</p>
+<h4 id="initialization">Initialization<a class="headerlink" href="#initialization" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>init(config)</code>: Called when the plugin is initialized. <code>config.options</code> contains the options passed to <code>createPlugin</code>, and <code>config.logger</code> / <code>config.observer</code> are always available.</li>
+<li><code>getConfig()</code>: Returns the plugin configuration (type, icon, tab name, actions). Sent to the desktop app on connect.</li>
+</ul>
+<h4 id="data-push-every-cycle">Data Push (every cycle)<a class="headerlink" href="#data-push-every-cycle" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>handleRequest(request, feather)</code>: Called on each push cycle at the configured <code>sampleRate</code>. Return data to be sent to the desktop, or <code>nil</code> to skip. The return value should include <code>type</code> (content type), <code>data</code>, and optionally <code>loading</code> and <code>persist</code>.</li>
+</ul>
+<h4 id="action-handling-from-desktop-ui">Action Handling (from desktop UI)<a class="headerlink" href="#action-handling-from-desktop-ui" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>handleActionRequest(request, feather)</code>: Called when a button action is triggered from the desktop. <code>request.params.action</code> contains the action key. Returns a <code>(data, err)</code> tuple — errors are sent back to the desktop as toast notifications.</li>
+<li><code>handleActionCancel(request, feather)</code>: Called when the user cancels an in-flight action from the desktop (e.g. stopping a GIF recording mid-way).</li>
+<li><code>handleParamsUpdate(request, feather)</code>: Called when the user changes an input or checkbox value in the desktop UI. <code>request.params</code> contains the updated key-value pairs.</li>
+</ul>
+<h4 id="update">Update<a class="headerlink" href="#update" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>update(dt, feather)</code>: Called every frame, error-isolated via <code>pcall</code>. Use for ongoing work like batch encoding, timers, or frame capture.</li>
+</ul>
+<h4 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>onerror(msg, feather)</code>: Called when a game-level error occurs (not plugin errors). Use to capture state or clean up.</li>
+</ul>
+<h4 id="finish">Finish<a class="headerlink" href="#finish" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>finish(feather)</code>: Called when the game disconnects or shuts down.</li>
+</ul>
+<h2 id="registering-a-plugin">Registering a plugin<a class="headerlink" href="#registering-a-plugin" title="Permanent link">&para;</a></h2>
+<p>To register a plugin, you need to create an instance of it and pass it to the FeatherPluginManager. The FeatherPluginManager will handle the lifecycle of the plugin and call the appropriate functions.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">MyPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;my-plugin&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">MyPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="c1">-- Plugin options</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">})</span>
+</code></pre></div>
+<h2 id="plugin-options">Plugin options<a class="headerlink" href="#plugin-options" title="Permanent link">&para;</a></h2>
+<p>The plugin options are passed to the plugin's constructor. Here's an example of a plugin with options:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">MyPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;my-plugin&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">MyPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nv">option1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;value1&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nv">option2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;value2&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">})</span>
+</code></pre></div>
+<h3 id="feather-options">Feather Options<a class="headerlink" href="#feather-options" title="Permanent link">&para;</a></h3>
+<p>By default, every plugin has the following properties available:</p>
+<ul>
+<li><code>self.logger</code>: A logger that logs messages to the Feather logger.</li>
+<li><code>self.observer</code>: A logger that logs messages to the Feather observer.</li>
+</ul>
+<h2 id="plugin-configuration">Plugin configuration<a class="headerlink" href="#plugin-configuration" title="Permanent link">&para;</a></h2>
+<p>Plugins return configuration via <code>getConfig()</code> that drives the desktop UI. This uses a <strong>server-driven UI</strong> pattern — the Lua side declares what controls are needed, and the desktop renders them as native components.</p>
+<h3 id="config-fields">Config fields<a class="headerlink" href="#config-fields" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td><code>string</code></td>
+<td>Unique plugin type identifier.</td>
+</tr>
+<tr>
+<td><code>color</code></td>
+<td><code>string</code></td>
+<td>Hex color for the plugin's sidebar icon.</td>
+</tr>
+<tr>
+<td><code>icon</code></td>
+<td><code>string</code></td>
+<td><a href="https://lucide.dev/icons">Lucide</a> icon name.</td>
+</tr>
+<tr>
+<td><code>tabName</code></td>
+<td><code>string</code></td>
+<td>Display name shown in the sidebar navigation.</td>
+</tr>
+<tr>
+<td><code>actions</code></td>
+<td><code>table</code></td>
+<td>Array of action definitions (see <a href="#action-types">Action types</a>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="action-types">Action types<a class="headerlink" href="#action-types" title="Permanent link">&para;</a></h3>
+<p>Actions define the interactive controls rendered in the plugin page. Each action requires <code>label</code>, <code>key</code>, <code>icon</code>, and <code>type</code>. Some types support an optional <code>value</code> (default/initial value) and <code>props</code> (extra configuration).</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>label</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>Display text for the control.</td>
+</tr>
+<tr>
+<td><code>key</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>Unique identifier. Sent as the action/param key.</td>
+</tr>
+<tr>
+<td><code>icon</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td><a href="https://lucide.dev/icons">Lucide</a> icon name.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>One of: <code>button</code>, <code>input</code>, <code>checkbox</code>, <code>select</code>, <code>vector</code>, <code>file</code>.</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td><code>any</code></td>
+<td>No</td>
+<td>Default value (string, number, or boolean).</td>
+</tr>
+<tr>
+<td><code>props</code></td>
+<td><code>table</code></td>
+<td>No</td>
+<td>Extra configuration — varies by type (see below).</td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>Group name for card layout (see <a href="#grouped-card-layout">Grouped card layout</a>).</td>
+</tr>
+</tbody>
+</table>
+<h4 id="type-button"><code>type = "button"</code><a class="headerlink" href="#type-button" title="Permanent link">&para;</a></h4>
+<p>Renders a button. Clicking sends <code>cmd:plugin:action</code> with <code>params.action</code> set to the action <code>key</code>. The plugin's <code>handleActionRequest</code> receives it.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Capture&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;screenshot&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;camera&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;button&quot;</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<h4 id="type-input"><code>type = "input"</code><a class="headerlink" href="#type-input" title="Permanent link">&para;</a></h4>
+<p>Renders a text input field. Value changes send <code>cmd:plugin:params</code>. The plugin's <code>handleParamsUpdate</code> receives the key-value pair.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;FPS&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;fps&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gauge&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="nv">max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="nv">step</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p><strong>Supported <code>props</code>:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td><code>string</code></td>
+<td>HTML input type (<code>"number"</code>, <code>"text"</code>, etc.). Use <code>"number"</code> to restrict to numeric entry.</td>
+</tr>
+<tr>
+<td><code>min</code></td>
+<td><code>number</code></td>
+<td>Minimum value (for <code>type = "number"</code>).</td>
+</tr>
+<tr>
+<td><code>max</code></td>
+<td><code>number</code></td>
+<td>Maximum value (for <code>type = "number"</code>).</td>
+</tr>
+<tr>
+<td><code>step</code></td>
+<td><code>number</code></td>
+<td>Step increment (for <code>type = "number"</code>).</td>
+</tr>
+<tr>
+<td><code>placeholder</code></td>
+<td><code>string</code></td>
+<td>Placeholder text.</td>
+</tr>
+<tr>
+<td><code>disabled</code></td>
+<td><code>boolean</code></td>
+<td>Disable the input.</td>
+</tr>
+<tr>
+<td><code>readOnly</code></td>
+<td><code>boolean</code></td>
+<td>Make the input read-only.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="type-checkbox"><code>type = "checkbox"</code><a class="headerlink" href="#type-checkbox" title="Permanent link">&para;</a></h4>
+<p>Renders a checkbox. Toggle sends <code>cmd:plugin:params</code> with <code>"true"</code> or <code>"false"</code> as the value.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Persist&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;persist&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;save&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;checkbox&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<h4 id="type-select"><code>type = "select"</code><a class="headerlink" href="#type-select" title="Permanent link">&para;</a></h4>
+<p>Renders a dropdown select menu. Value changes send <code>cmd:plugin:params</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Mode&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;mode&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;settings&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;select&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;normal&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;normal&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;additive&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;multiply&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p><strong>Supported <code>props</code>:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td>
+<td><code>table</code></td>
+<td>Array of string values to choose from.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="type-vector"><code>type = "vector"</code><a class="headerlink" href="#type-vector" title="Permanent link">&para;</a></h4>
+<p>Renders a multi-field input for comma-separated values (e.g. coordinates, colors). Each value gets its own labeled input field. Value changes send the joined comma-separated string via <code>cmd:plugin:params</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1">-- 3 labeled fields: Start, Mid, End</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Sizes&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;sizes&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ruler&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;vector&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1.0, 0.5, 0.0&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">labels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;Start&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Mid&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;End&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="nv">step</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="c1">-- Repeating labels cycle through the array (e.g. RGBA groups)</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Colors&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;colors&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;palette&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;vector&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1, 0.5, 0, 1, 0, 0.2, 0.8, 0&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">  </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">labels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;R&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;G&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;B&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;A&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nv">repeating</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nv">step</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p><strong>Supported <code>props</code>:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>labels</code></td>
+<td><code>table</code></td>
+<td>Array of labels for each field (e.g. <code>{"X", "Y"}</code>, <code>{"R", "G", "B", "A"}</code>).</td>
+</tr>
+<tr>
+<td><code>repeating</code></td>
+<td><code>boolean</code></td>
+<td>When <code>true</code>, labels cycle through the array. Groups values into rows of <code>#labels</code> size (e.g. RGBA → rows of 4).</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>string</code></td>
+<td>HTML input type for each field (default: <code>"number"</code>).</td>
+</tr>
+<tr>
+<td><code>min</code></td>
+<td><code>number</code></td>
+<td>Minimum value per field.</td>
+</tr>
+<tr>
+<td><code>max</code></td>
+<td><code>number</code></td>
+<td>Maximum value per field.</td>
+</tr>
+<tr>
+<td><code>step</code></td>
+<td><code>number</code></td>
+<td>Step increment per field.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="type-file"><code>type = "file"</code><a class="headerlink" href="#type-file" title="Permanent link">&para;</a></h4>
+<p>Renders a button that opens a native file picker dialog. The selected file's contents are sent to <code>handleActionRequest</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Import&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;import&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;upload&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">filters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Lua files&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">extensions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;lua&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p><strong>Supported <code>props</code>:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>filters</code></td>
+<td><code>table</code></td>
+<td>Array of file filters: <code>{ name = "Label", extensions = { "ext" } }</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="grouped-card-layout">Grouped card layout<a class="headerlink" href="#grouped-card-layout" title="Permanent link">&para;</a></h3>
+<p>By default, actions render in a horizontal toolbar at the top of the plugin page. For plugins with many controls, you can organize actions into <strong>named groups</strong> using the <code>group</code> field. Grouped actions render in a responsive card grid below the toolbar.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nv">actions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="c1">-- These appear in the toolbar (no group)</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Export&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;export&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;download&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;button&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Reset&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;reset&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;rotate-ccw&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;button&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">  </span><span class="c1">-- These appear in a &quot;Speed&quot; card</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Min Speed&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;speedMin&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gauge&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nv">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Speed&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Max Speed&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;speedMax&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gauge&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">    </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nv">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Speed&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">  </span><span class="c1">-- These appear in a &quot;Visual&quot; card</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Sizes&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;sizes&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ruler&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;vector&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1, 0.5, 0&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="w">    </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">labels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;Start&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Mid&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;End&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nv">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Visual&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Colors&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;colors&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;palette&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;vector&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="w">    </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1, 0, 0, 1&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="w">    </span><span class="nv">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">labels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;R&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;G&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;B&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;A&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nv">repeating</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nv">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Visual&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Layout behavior:</strong></p>
+<ul>
+<li>Actions <strong>without</strong> <code>group</code> render in the toolbar (top row, horizontal).</li>
+<li>Actions <strong>with</strong> <code>group</code> render in a responsive card grid below the toolbar.</li>
+<li>Cards are ordered by the first appearance of each group name.</li>
+<li>The grid is responsive: 1 column on small screens, up to 4 on wide screens.</li>
+<li>All action types (<code>button</code>, <code>input</code>, <code>checkbox</code>, <code>select</code>, <code>vector</code>, <code>file</code>) work inside cards. Buttons and selects expand to full width within a card.</li>
+</ul>
+<h3 id="action-response-types">Action response types<a class="headerlink" href="#action-response-types" title="Permanent link">&para;</a></h3>
+<p>When a plugin's <code>handleActionRequest</code> returns data, the desktop app handles it based on the response shape:</p>
+<h4 id="error-response">Error response<a class="headerlink" href="#error-response" title="Permanent link">&para;</a></h4>
+<p>Return an error string as the second value of the <code>(data, err)</code> tuple. The error is shown as a toast notification.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleActionRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Something went wrong&quot;</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kr">end</span>
+</code></pre></div>
+<h4 id="download-response">Download response<a class="headerlink" href="#download-response" title="Permanent link">&para;</a></h4>
+<p>Return a <code>download</code> table to trigger a native save-file dialog on the desktop.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleActionRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span><span class="nv">download</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">      </span><span class="nv">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;export.lua&quot;</span><span class="p">,</span><span class="w">   </span><span class="c1">-- suggested filename</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">      </span><span class="nv">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;-- exported&quot;</span><span class="p">,</span><span class="w">   </span><span class="c1">-- file content (string)</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">      </span><span class="nv">extension</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lua&quot;</span><span class="p">,</span><span class="w">         </span><span class="c1">-- file extension for the filter</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="kr">end</span>
+</code></pre></div>
+<h4 id="clipboard-response">Clipboard response<a class="headerlink" href="#clipboard-response" title="Permanent link">&para;</a></h4>
+<p>Return a <code>clipboard</code> string to copy text to the user's clipboard with a success toast.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleActionRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">    </span><span class="nv">clipboard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;local ps = love.graphics.newParticleSystem(image, 100)&quot;</span><span class="p">,</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="kr">end</span>
+</code></pre></div>
+<h3 id="content-types">Content types<a class="headerlink" href="#content-types" title="Permanent link">&para;</a></h3>
+<p>The <code>handleRequest</code> method returns data that the desktop renders below the actions. The <code>type</code> field determines the layout:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ui</code></td>
+<td>Declarative Feather UI tree rendered by the desktop.</td>
+</tr>
+<tr>
+<td><code>gallery</code></td>
+<td>Image grid with download buttons. Supports PNG screenshots and GIF animations.</td>
+</tr>
+<tr>
+<td><code>table</code></td>
+<td>Data table with sortable columns.</td>
+</tr>
+<tr>
+<td><code>tree</code></td>
+<td>Collapsible tree view with properties on each node.</td>
+</tr>
+<tr>
+<td><code>timeline</code></td>
+<td>Chronological event timeline with categories and optional screenshots.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ui"><code>ui</code><a class="headerlink" href="#ui" title="Permanent link">&para;</a></h4>
+<p>Lua plugins can describe UI declaratively with <code>feather.ui</code> primitives. React is only the renderer; plugins should send stable Feather UI nodes and action keys, not raw React components or JavaScript.</p>
+<p>For the full schema, supported nodes, and complete examples, see <a href="../plugin-ui/">Plugin UI</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="nv">feather</span><span class="p">.</span><span class="py">ui</span><span class="p">.</span><span class="nf">render</span><span class="p">(</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="nv">feather</span><span class="p">.</span><span class="py">ui</span><span class="p">.</span><span class="nf">panel</span><span class="p">({</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">      </span><span class="nv">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Player Stats&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">      </span><span class="nv">feather</span><span class="p">.</span><span class="py">ui</span><span class="p">.</span><span class="nf">row</span><span class="p">({</span>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">        </span><span class="nv">feather</span><span class="p">.</span><span class="py">ui</span><span class="p">.</span><span class="nf">badge</span><span class="p">({</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;HP&quot;</span><span class="w"> </span><span class="p">}),</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="w">        </span><span class="nv">feather</span><span class="p">.</span><span class="py">ui</span><span class="p">.</span><span class="nf">text</span><span class="p">({</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="p">)</span><span class="w"> </span><span class="p">}),</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="w">      </span><span class="p">}),</span>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="w">      </span><span class="nv">feather</span><span class="p">.</span><span class="py">ui</span><span class="p">.</span><span class="nf">button</span><span class="p">({</span>
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="w">        </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Kill Player&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="w">        </span><span class="nv">action</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;kill-player&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="w">      </span><span class="p">}),</span>
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="w">    </span><span class="p">})</span>
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">  </span><span class="p">)</span>
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="kr">end</span>
+<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>
+<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleActionRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">)</span>
+<a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">request</span><span class="p">.</span><span class="py">params</span><span class="p">.</span><span class="py">action</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;kill-player&quot;</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a><span class="w">    </span><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a><span class="w">  </span><span class="kr">end</span>
+<a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a><span class="kr">end</span>
+</code></pre></div>
+<p>Supported node types in the first schema pass: <code>panel</code>, <code>row</code>, <code>column</code>, <code>tabs</code>, <code>tab</code>, <code>text</code>, <code>button</code>, <code>input</code>, <code>textarea</code>, <code>checkbox</code>, <code>switch</code>, <code>select</code>, <code>badge</code>, <code>stat</code>, <code>progress</code>, <code>alert</code>, <code>list</code>, <code>link</code>, <code>separator</code>, <code>image</code>, <code>code</code>, <code>table</code>, <code>timeline</code>, and <code>inspector</code>.</p>
+<p>Buttons use <code>action = "some-key"</code> (or <code>onClick = "some-key"</code>) and are routed through the existing <code>handleActionRequest()</code> path. Function callbacks are intentionally not serialized.</p>
+<h4 id="gallery"><code>gallery</code><a class="headerlink" href="#gallery" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gallery&quot;</span><span class="p">,</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span><span class="nv">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;image&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;shot1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">downloadable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nv">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;png&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">src</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">base64data</span><span class="p">,</span><span class="w"> </span><span class="nv">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">800</span><span class="p">,</span><span class="w"> </span><span class="nv">height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">600</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="nv">loading</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">  </span><span class="nv">persist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">  </span><span class="c1">-- merge with previous data instead of replacing</span>
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="p">}</span>
+</code></pre></div>
+<p>For large images or binary payloads, prefer Feather's hybrid protocol instead of embedding base64 in JSON. Call <code>feather:attachBinary(mime, bytes)</code> and place the returned <code>src</code> and <code>binary</code> fields in your normal plugin data. Feather sends the JSON first, then streams the bytes on a binary WebSocket frame; the desktop swaps <code>feather-binary:&lt;id&gt;</code> into a local blob URL automatically.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">pngBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">:</span><span class="nf">getLatestPreviewPng</span><span class="p">()</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">preview</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">feather</span><span class="p">:</span><span class="nf">attachBinary</span><span class="p">(</span><span class="s2">&quot;image/png&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">pngBytes</span><span class="p">)</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">    </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gallery&quot;</span><span class="p">,</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="w">    </span><span class="nv">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="w">      </span><span class="p">{</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="w">        </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;image&quot;</span><span class="p">,</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="w">        </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;preview.png&quot;</span><span class="p">,</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="w">        </span><span class="nv">downloadable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a><span class="w">        </span><span class="nv">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a><span class="w">          </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;png&quot;</span><span class="p">,</span>
+<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a><span class="w">          </span><span class="nv">src</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">preview</span><span class="p">.</span><span class="py">src</span><span class="p">,</span>
+<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="w">          </span><span class="nv">binary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">preview</span><span class="p">.</span><span class="py">binary</span><span class="p">,</span>
+<a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a><span class="w">          </span><span class="nv">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">800</span><span class="p">,</span>
+<a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a><span class="w">          </span><span class="nv">height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">600</span><span class="p">,</span>
+<a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a><span class="w">        </span><span class="p">},</span>
+<a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a><span class="w">      </span><span class="p">},</span>
+<a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-20-21" name="__codelineno-20-21" href="#__codelineno-20-21"></a><span class="w">    </span><span class="nv">loading</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-20-22" name="__codelineno-20-22" href="#__codelineno-20-22"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-20-23" name="__codelineno-20-23" href="#__codelineno-20-23"></a><span class="kr">end</span>
+</code></pre></div>
+<p>For GIF-style frame lists, put the placeholder URLs in <code>src</code> and the matching binary refs in <code>binary</code> using the same order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nv">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gif&quot;</span><span class="p">,</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">  </span><span class="nv">src</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">frame1</span><span class="p">.</span><span class="py">src</span><span class="p">,</span><span class="w"> </span><span class="nv">frame2</span><span class="p">.</span><span class="py">src</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">  </span><span class="nv">binary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">frame1</span><span class="p">.</span><span class="py">binary</span><span class="p">,</span><span class="w"> </span><span class="nv">frame2</span><span class="p">.</span><span class="py">binary</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="w">  </span><span class="nv">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">800</span><span class="p">,</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">  </span><span class="nv">height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">600</span><span class="p">,</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="w">  </span><span class="nv">fps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="p">}</span>
+</code></pre></div>
+<p>The same works in table rows. The desktop resolves <code>src</code> to a blob URL and renders it as a download/open control when that column is visible; the <code>binary</code> field can stay hidden metadata if you do not add a matching column.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">MyPlugin</span><span class="p">:</span><span class="nf">handleRequest</span><span class="p">(</span><span class="nv">request</span><span class="p">,</span><span class="w"> </span><span class="nv">feather</span><span class="p">)</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">feather</span><span class="p">:</span><span class="nf">attachBinary</span><span class="p">(</span><span class="s2">&quot;application/octet-stream&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">bytes</span><span class="p">)</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">    </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;table&quot;</span><span class="p">,</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">    </span><span class="nv">columns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;name&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Name&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;size&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Size&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;src&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;File&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="w">    </span><span class="nv">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;dump.bin&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="o">#</span><span class="nv">bytes</span><span class="p">),</span><span class="w"> </span><span class="nv">src</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">file</span><span class="p">.</span><span class="py">src</span><span class="p">,</span><span class="w"> </span><span class="nv">binary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">file</span><span class="p">.</span><span class="py">binary</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="w">    </span><span class="nv">loading</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a><span class="kr">end</span>
+</code></pre></div>
+<h4 id="table"><code>table</code><a class="headerlink" href="#table" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;table&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">  </span><span class="nv">columns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;name&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Name&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;value&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Value&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">  </span><span class="nv">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;FPS&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;60&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Memory&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;12.5 MB&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="w">  </span><span class="nv">loading</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="tree"><code>tree</code><a class="headerlink" href="#tree" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="w">  </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;tree&quot;</span><span class="p">,</span>
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">  </span><span class="nv">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="w">      </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Player&quot;</span><span class="p">,</span>
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="w">      </span><span class="nv">properties</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;health&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;100&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;x&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;320&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="w">      </span><span class="nv">children</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Inventory&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">properties</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;items&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;5&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="w">      </span><span class="p">},</span>
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a><span class="w">  </span><span class="nv">sources</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;ECS&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Scene&quot;</span><span class="w"> </span><span class="p">},</span><span class="w">    </span><span class="c1">-- data source names for the source selector</span>
+<a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="w">  </span><span class="nv">selectedSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">               </span><span class="c1">-- currently selected source index</span>
+<a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a><span class="w">  </span><span class="nv">searchFilter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="w">                 </span><span class="c1">-- current search filter text</span>
+<a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="w">  </span><span class="nv">loading</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="timeline"><code>timeline</code><a class="headerlink" href="#timeline" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">  </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;timeline&quot;</span><span class="p">,</span>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="w">  </span><span class="nv">items</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nv">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Game started&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">category</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lifecycle&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">gameTime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0:00&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nv">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nv">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Level loaded&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">category</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lifecycle&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#4ade80&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.5</span><span class="p">,</span><span class="w"> </span><span class="nv">gameTime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0:01&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="w">  </span><span class="nv">categories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;lifecycle&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="w">  </span><span class="nv">loading</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="p">}</span>
+</code></pre></div>
+<h2 id="adding-plugins-to-featherauto">Adding plugins to <code>feather.auto</code><a class="headerlink" href="#adding-plugins-to-featherauto" title="Permanent link">&para;</a></h2>
+<p><code>feather.auto</code> registers all built-in plugins for you. You can extend it with your own plugins through the <code>plugins</code> key in <code>setup()</code>, without giving up the zero-config defaults.</p>
+<h3 id="append-a-custom-plugin">Append a custom plugin<a class="headerlink" href="#append-a-custom-plugin" title="Permanent link">&para;</a></h3>
+<p>Pass additional plugins via <code>config.plugins</code>. They are appended after all built-in plugins:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherPluginManager</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.plugin_manager&quot;</span><span class="p">)</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">MyPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;my-plugin&quot;</span><span class="p">)</span>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="w">  </span><span class="nv">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">MyPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="w">      </span><span class="nv">option1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;value1&quot;</span><span class="p">,</span>
+<a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="w">    </span><span class="p">}),</span>
+<a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a><span class="p">})</span>
+</code></pre></div>
+<p><code>DEBUGGER</code> is created as usual, and your plugin appears in the sidebar alongside the built-in ones.</p>
+<h3 id="start-a-custom-plugin-disabled">Start a custom plugin disabled<a class="headerlink" href="#start-a-custom-plugin-disabled" title="Permanent link">&para;</a></h3>
+<p>Pass <code>true</code> as the fourth argument to <code>createPlugin</code>. The plugin is registered and visible in the desktop UI, but starts inactive — users can enable it from the desktop without restarting.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">MyPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">option1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;value1&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="kc">true</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="force-enable-a-built-in-plugin">Force-enable a built-in plugin<a class="headerlink" href="#force-enable-a-built-in-plugin" title="Permanent link">&para;</a></h3>
+<p>Built-in plugins that are <code>optIn</code> (like <code>console</code>) or start <code>disabled</code> are not active by default. Add their IDs to <code>config.include</code> to force-enable them:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;physics-debug&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="p">})</span>
+</code></pre></div>
+<p><code>include</code> both registers <code>optIn</code> plugins (which would otherwise be skipped entirely) and activates <code>disabled</code> ones.</p>
+<h3 id="exclude-a-built-in-plugin">Exclude a built-in plugin<a class="headerlink" href="#exclude-a-built-in-plugin" title="Permanent link">&para;</a></h3>
+<p>Remove a built-in plugin entirely with <code>config.exclude</code>. It won't be registered at all:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="w">  </span><span class="nv">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;network-inspector&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;memory-snapshot&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="p">})</span>
+</code></pre></div>
+<h3 id="override-built-in-plugin-options">Override built-in plugin options<a class="headerlink" href="#override-built-in-plugin-options" title="Permanent link">&para;</a></h3>
+<p>Pass per-plugin option overrides via <code>config.pluginOptions</code>, keyed by plugin ID. Options are merged over the built-in defaults:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">    </span><span class="nv">screenshots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">fps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="nv">gifDuration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;memory-snapshot&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">autoInterval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="p">})</span>
+</code></pre></div>
+<h3 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherPluginManager</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.plugin_manager&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">MyPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;my-plugin&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">AnotherPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;another-plugin&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="w">  </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="p">,</span>
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="w">  </span><span class="c1">-- Force-enable built-in opt-in plugins</span>
+<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a><span class="w">  </span><span class="c1">-- Remove plugins you don&#39;t need</span>
+<a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a><span class="w">  </span><span class="nv">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;hump.signal&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;lua-state-machine&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a><span class="w">  </span><span class="c1">-- Override options for specific built-in plugins</span>
+<a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a><span class="w">    </span><span class="nv">screenshots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">fps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a><span class="w">  </span><span class="c1">-- Append your own plugins</span>
+<a id="__codelineno-31-16" name="__codelineno-31-16" href="#__codelineno-31-16"></a><span class="w">  </span><span class="nv">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-31-17" name="__codelineno-31-17" href="#__codelineno-31-17"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">MyPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;my-plugin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}),</span>
+<a id="__codelineno-31-18" name="__codelineno-31-18" href="#__codelineno-31-18"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">AnotherPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;another-plugin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span><span class="w"> </span><span class="kc">true</span><span class="p">),</span><span class="w"> </span><span class="c1">-- starts disabled</span>
+<a id="__codelineno-31-19" name="__codelineno-31-19" href="#__codelineno-31-19"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-31-20" name="__codelineno-31-20" href="#__codelineno-31-20"></a><span class="p">})</span>
+</code></pre></div>
+<h2 id="using-plugin-actions">Using Plugin Actions<a class="headerlink" href="#using-plugin-actions" title="Permanent link">&para;</a></h2>
+<p>Plugins can be triggered from game code at runtime using <code>debugger:action()</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">  </span><span class="nv">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">ScreenshotPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;screenshots&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">      </span><span class="nv">screenshotDirectory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;screenshots&quot;</span><span class="p">,</span>
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">      </span><span class="nv">fps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">      </span><span class="nv">gifDuration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="w">    </span><span class="p">}),</span>
+<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="p">})</span>
+<a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a>
+<a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">keypressed</span><span class="p">(</span><span class="nv">key</span><span class="p">)</span>
+<a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;f1&quot;</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a><span class="w">    </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">action</span><span class="p">(</span><span class="s2">&quot;screenshots&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;screenshot&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span>
+<a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a><span class="w">  </span><span class="kr">elseif</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;f2&quot;</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a><span class="w">    </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">action</span><span class="p">(</span><span class="s2">&quot;screenshots&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;gif&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nv">fps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span><span class="p">})</span>
+<a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a><span class="w">  </span><span class="kr">end</span>
+<a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a><span class="kr">end</span>
+</code></pre></div>
+<p>Actions can also be triggered from the desktop UI — button actions in <code>getConfig()</code> send <code>cmd:plugin:action</code> messages over WebSocket, and the response (success/error) is shown as a toast notification in the desktop app.</p>
+<h2 id="plugin-examples">Plugin examples<a class="headerlink" href="#plugin-examples" title="Permanent link">&para;</a></h2>
+<p>Here are some examples of Feather plugins:</p>
+<ul>
+<li><a href="../src-lua/plugins/hump/signal/README.md">Hump's Signal Plugin</a></li>
+<li><a href="../src-lua/plugins/lua-state-machine/README.md">Lua State Machine Plugin</a></li>
+<li><a href="../src-lua/plugins/screenshots/README.md">Screenshot Plugin</a></li>
+<li><a href="../src-lua/plugins/particle-editor/README.md">Particle Editor Plugin</a></li>
+<li><a href="../src-lua/plugins/audio-debug/README.md">Audio Debug Plugin</a></li>
+<li><a href="../src-lua/plugins/coroutine-monitor/README.md">Coroutine Monitor Plugin</a></li>
+<li><a href="../src-lua/plugins/collision-debug/README.md">Collision Debug Plugin</a></li>
+<li><a href="../src-lua/plugins/animation-inspector/README.md">Animation Inspector Plugin</a></li>
+<li><a href="../src-lua/plugins/timer-inspector/README.md">Timer Inspector Plugin</a></li>
+</ul>
+<h2 id="plugin-documentation">Plugin documentation<a class="headerlink" href="#plugin-documentation" title="Permanent link">&para;</a></h2>
+<p>Each plugin should have a README file that explains how to use it and provides examples.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

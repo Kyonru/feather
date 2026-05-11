@@ -1,0 +1,2338 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Real-time debug & inspect tool for LÖVE (love2d) games.">
+      
+      
+      
+        <link rel="canonical" href="https://kyonru.github.io/feather/cli/">
+      
+      
+        <link rel="prev" href="../assets/">
+      
+      
+        <link rel="next" href="../time-travel/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>CLI - Feather</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#feather-cli" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Feather" class="md-header__button md-logo" aria-label="Feather" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Feather
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Kyonru/feather" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Kyonru/feather
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Feather" class="md-nav__button md-logo" aria-label="Feather" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Feather
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Kyonru/feather" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Kyonru/feather
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../debugger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debugger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hot-reload/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot Reload
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-injection-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How injection works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feather-run-game-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather run [game-path]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-init-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather init [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-remove-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather remove [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-doctor-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather doctor [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-update-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather update [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="feather plugin">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin-list-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin list [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin-install-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin install &lt;id&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin-remove-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin remove &lt;id&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin-update-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin update [id]
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#featherconfiglua" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather.config.lua
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binary-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary detection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run-any-game-with-zero-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run any game with zero setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#use-the-bundled-feather-vs-a-local-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use the bundled feather vs a local install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci-headless-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI / headless mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alias-for-fast-iteration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alias for fast iteration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#comparison-with-manual-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison with manual setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../time-travel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Time Travel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Console
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recommendations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recommendations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugin-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/animation-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Animation Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/audio-debug/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audio Debug
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/bookmark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookmark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/collision-debug/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collision Debug
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/config-tweaker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Config Tweaker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/coroutine-monitor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coroutine Monitor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/entity-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entity Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/hump-signal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HUMP Signal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/input-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/lua-state-machine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lua State Machine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/memory-snapshot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory Snapshot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/network-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/particle-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Particle Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/physics-debug/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Physics Debug
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/profiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/timer-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Timer Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-injection-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How injection works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feather-run-game-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather run [game-path]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-init-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather init [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-remove-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather remove [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-doctor-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather doctor [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-update-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather update [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="feather plugin">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin-list-dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin list [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin-install-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin install &lt;id&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin-remove-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin remove &lt;id&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-plugin-update-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather plugin update [id]
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#featherconfiglua" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather.config.lua
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binary-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary detection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run-any-game-with-zero-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run any game with zero setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#use-the-bundled-feather-vs-a-local-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use the bundled feather vs a local install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci-headless-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI / headless mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alias-for-fast-iteration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alias for fast iteration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#comparison-with-manual-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison with manual setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="feather-cli">Feather CLI<a class="headerlink" href="#feather-cli" title="Permanent link">&para;</a></h1>
+<p>The Feather CLI lets you run and debug LÖVE games <strong>without modifying your game code</strong>. Running a game through the CLI injects Feather automatically at the process level — no <code>require("feather.auto")</code> needed.</p>
+<ul>
+<li>Package: <a href="https://www.npmjs.com/package/@kyonru/feather"><code>@kyonru/feather</code></a></li>
+<li>Command: <code>feather</code></li>
+<li>Repo: <a href="https://github.com/Kyonru/feather">github.com/Kyonru/feather</a></li>
+<li>Documentation: <a href="https://kyonru.github.io/feather/">kyonru.github.io/feather</a></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The npm package is scoped as <code>@kyonru/feather</code>, but the executable command is <code>feather</code>. npm creates that command from the package <code>bin</code> field.</p>
+</div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>feather<span class="w"> </span>run
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game
+</code></pre></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><code>feather run</code> is best for local desktop development. For mobile, handhelds, Steam Deck, or a second computer where the CLI is not launching the game process, use <code>feather init --mode auto</code> so the game carries the embedded Feather library.</p>
+</div>
+<hr />
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>@kyonru/feather
+</code></pre></div>
+<p>Requires <strong>Node.js 18+</strong> and <strong>LÖVE</strong> installed on your system.</p>
+<p>For local development inside this repository:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>npm<span class="w"> </span>install
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>npm<span class="w"> </span>run<span class="w"> </span>cli:build
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>npm<span class="w"> </span>run<span class="w"> </span>feather<span class="w"> </span>--<span class="w"> </span>--help
+</code></pre></div>
+<p><code>npm install</code> links the workspace package into <code>node_modules/@kyonru/feather</code> and exposes <code>node_modules/.bin/feather</code> for local CLI testing.</p>
+<hr />
+<h2 id="how-injection-works">How injection works<a class="headerlink" href="#how-injection-works" title="Permanent link">&para;</a></h2>
+<p><code>feather run</code> creates a temporary shim directory and passes it to love2d as the game source:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>/tmp/feather-{uuid}/
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  conf.lua     ← delegates to your game&#39;s conf.lua (window title, modules, etc.)
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  main.lua     ← loads feather.auto, then runs your game&#39;s main.lua
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  feather/     ← symlink to the bundled feather library
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  plugins/     ← symlink to the bundled plugins
+</code></pre></div>
+<p>Your game's directory is:</p>
+<ol>
+<li>Added to Lua's <code>package.path</code> so all <code>require()</code> calls resolve correctly.</li>
+<li>Mounted into <code>love.filesystem</code> so assets (images, audio, data files) are accessible.</li>
+<li>Loaded via <code>loadfile()</code> to avoid a conflict with the shim's own <code>main.lua</code>.</li>
+</ol>
+<p>Your game code runs exactly as normal — it just has Feather already active.</p>
+<hr />
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
+<h3 id="feather-run-game-path"><code>feather run [game-path]</code><a class="headerlink" href="#feather-run-game-path" title="Permanent link">&para;</a></h3>
+<p>Inject Feather into a Love2D game and run it.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>run<span class="w">                                </span><span class="c1"># interactive run workflow</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w">                              </span><span class="c1"># run game in current directory</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w">               </span><span class="c1"># run from an explicit path</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--session-name<span class="w"> </span><span class="s2">&quot;RPG&quot;</span><span class="w">        </span><span class="c1"># custom name in the desktop session tab</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--no-plugins<span class="w">                </span><span class="c1"># feather core only, no plugins</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--love<span class="w"> </span>/usr/bin/love<span class="w">        </span><span class="c1"># override love2d binary</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--plugins-dir<span class="w"> </span>./my-plugins<span class="w">  </span><span class="c1"># use a custom plugins directory</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--<span class="w"> </span>--level<span class="w"> </span>dev<span class="w">              </span><span class="c1"># pass args through to the game</span>
+</code></pre></div>
+<p>When <code>game-path</code> is omitted in an interactive terminal, Feather opens an Ink workflow that asks for the game path, session name, config path, whether plugins should be disabled, and optional advanced paths/arguments. Scripts should pass <code>game-path</code> explicitly.</p>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--love &lt;path&gt;</code></td>
+<td>Path to the love2d binary. Defaults to auto-detect (see <a href="#binary-detection">Binary detection</a>).</td>
+</tr>
+<tr>
+<td><code>--session-name &lt;name&gt;</code></td>
+<td>Custom session name shown in the Feather desktop app.</td>
+</tr>
+<tr>
+<td><code>--no-plugins</code></td>
+<td>Load feather core only — no plugins registered.</td>
+</tr>
+<tr>
+<td><code>--config &lt;path&gt;</code></td>
+<td>Explicit path to a <code>feather.config.lua</code> file.</td>
+</tr>
+<tr>
+<td><code>--feather-path &lt;path&gt;</code></td>
+<td>Use a local feather install instead of the CLI's bundled copy.</td>
+</tr>
+<tr>
+<td><code>--plugins-dir &lt;path&gt;</code></td>
+<td>Use a custom plugins directory instead of the CLI's bundled plugins.</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>--</code> to separate Feather CLI options from arguments intended for the LÖVE game. Everything after <code>--</code> is passed to <code>love</code> after the generated shim path.</p>
+<p><strong>Project config file:</strong></p>
+<p>If a <code>feather.config.lua</code> exists in the game directory, it is read automatically and merged into the feather setup. See <a href="#featherconfiglua">feather.config.lua</a>.</p>
+<hr />
+<h3 id="feather-init-dir"><code>feather init [dir]</code><a class="headerlink" href="#feather-init-dir" title="Permanent link">&para;</a></h3>
+<p>Initialize Feather in a Love2D project. By default this copies the Lua runtime and plugins that ship with the CLI, so init works offline and stays version-matched with the CLI.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>feather<span class="w"> </span>init<span class="w">                         </span><span class="c1"># initialize in current directory</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>feather<span class="w"> </span>init<span class="w"> </span>path/to/my-game<span class="w">        </span><span class="c1"># initialize in a specific directory</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>feather<span class="w"> </span>init<span class="w"> </span>--no-plugins<span class="w">           </span><span class="c1"># install core only, skip plugins</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>feather<span class="w"> </span>init<span class="w"> </span>--plugins<span class="w"> </span>screenshots,profiler<span class="w">  </span><span class="c1"># install specific plugins only</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>feather<span class="w"> </span>init<span class="w"> </span>--mode<span class="w"> </span>cli<span class="w">             </span><span class="c1"># create config only; use feather run</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>feather<span class="w"> </span>init<span class="w"> </span>--mode<span class="w"> </span>auto<span class="w">            </span><span class="c1"># install and patch main.lua with guarded feather.auto</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>feather<span class="w"> </span>init<span class="w"> </span>--mode<span class="w"> </span>manual<span class="w">          </span><span class="c1"># create feather.debugger.lua and a guarded loader</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>feather<span class="w"> </span>init<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>v0.7.0<span class="w">  </span><span class="c1"># download a specific release from GitHub</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>feather<span class="w"> </span>init<span class="w"> </span>--local-src<span class="w"> </span>../feather/src-lua<span class="w">  </span><span class="c1"># copy from a local source tree</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>feather<span class="w"> </span>init<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather<span class="w">  </span><span class="c1"># install like FEATHER_DIR=lib/feather</span>
+</code></pre></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Use <code>--mode auto</code> for device builds. It embeds Feather into the project and patches <code>main.lua</code> with a <code>USE_DEBUGGER</code>-guarded <code>feather.auto</code> loader, which works when the game runs on Android, iOS, Steam Deck, or another remote machine.</p>
+</div>
+<p><strong>What it does:</strong></p>
+<p>By default, <code>feather init</code> opens an interactive terminal picker powered by Ink:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cli</code></td>
+<td>Creates <code>feather.config.lua</code> only. Run with <code>feather run .</code>.</td>
+</tr>
+<tr>
+<td><code>auto</code></td>
+<td>Copies core/plugins and patches <code>main.lua</code> with a <code>USE_DEBUGGER</code>-guarded <code>require("feather.auto")</code>.</td>
+</tr>
+<tr>
+<td><code>manual</code></td>
+<td>Copies core/plugins, creates <code>feather.debugger.lua</code>, and loads it from <code>main.lua</code> when <code>USE_DEBUGGER</code> is set.</td>
+</tr>
+</tbody>
+</table>
+<p>Install source priority:</p>
+<ol>
+<li><code>--local-src &lt;path&gt;</code> copies from a local <code>src-lua</code> style tree.</li>
+<li>Running the CLI from the Feather monorepo copies the repo's <code>src-lua</code>.</li>
+<li>Published CLI installs copy the bundled <code>cli/lua</code> runtime.</li>
+<li><code>--remote</code> downloads from GitHub using <code>--branch</code>.</li>
+</ol>
+<p>Auto and manual mode use the same project layout as <code>scripts/install-feather.sh</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>my-game/
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  feather/init.lua
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  feather/plugins/screenshots/init.lua
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>  feather/plugins/hump/signal/init.lua
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>  main.lua
+</code></pre></div>
+<p>If you choose <code>lib/feather</code> as the install directory, the Lua module becomes <code>lib.feather</code>, so auto mode patches <code>main.lua</code> with a guarded loader:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">featherUseDebugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">os.getenv</span><span class="p">(</span><span class="s2">&quot;USE_DEBUGGER&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kr">if</span><span class="w"> </span><span class="nv">featherUseDebugger</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">featherUseDebugger</span><span class="w"> </span><span class="o">~=</span><span class="w"> </span><span class="s2">&quot;0&quot;</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">featherUseDebugger</span><span class="p">:</span><span class="nf">lower</span><span class="p">()</span><span class="w"> </span><span class="o">~=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lib.feather.auto&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kr">end</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Run local/dev builds with <code>USE_DEBUGGER=1</code> to load Feather. Leave it unset, <code>0</code>, or <code>false</code> to skip all Feather imports.</p>
+</div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># macOS / Linux</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nv">USE_DEBUGGER</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>love<span class="w"> </span>.
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c"># Windows PowerShell</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nv">$env:USE_DEBUGGER</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">love</span> <span class="p">.</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">:</span><span class="c1">: Windows cmd.exe</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">set</span> <span class="nv">USE_DEBUGGER</span><span class="p">=</span>1 <span class="p">&amp;&amp;</span> love .
+</code></pre></div>
+<p>The interactive flow asks for:</p>
+<ul>
+<li>session name</li>
+<li>install directory, matching <code>FEATHER_DIR</code></li>
+<li>install source: bundled/local copy or GitHub download</li>
+<li>Git branch or tag when using GitHub download, matching <code>FEATHER_BRANCH</code></li>
+<li>whether to install built-in plugins, matching <code>FEATHER_PLUGINS</code></li>
+<li>optional plugins to force-enable, such as Console, Physics Debug, and Timer Inspector</li>
+<li>plugins to skip/exclude, matching <code>FEATHER_SKIP_PLUGINS</code>; Console, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults</li>
+<li>advanced connection/runtime options from <code>feather.config.lua</code>, including host/port, socket vs disk mode, observers, logging, debugger, asset previews, capabilities, and binary threshold</li>
+<li>a strong API key when Console is included</li>
+</ul>
+<p>If the terminal is non-interactive, or <code>--yes</code> is used, Feather defaults to <code>auto</code>.</p>
+<p>All modes create a <code>feather.config.lua</code> template if one doesn't exist.</p>
+<p>Manual mode writes the custom integration into <code>feather.debugger.lua</code>, then adds a small marked loader block near the top of <code>main.lua</code>. Both are guarded by <code>USE_DEBUGGER</code>. For example, when installing into <code>lib/feather</code> with <code>screenshots</code> and <code>runtime-snapshot</code>, the generated file looks like:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">-- feather.debugger.lua</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">featherUseDebugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">os.getenv</span><span class="p">(</span><span class="s2">&quot;USE_DEBUGGER&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="p">(</span><span class="nv">featherUseDebugger</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">featherUseDebugger</span><span class="w"> </span><span class="o">~=</span><span class="w"> </span><span class="s2">&quot;0&quot;</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">featherUseDebugger</span><span class="p">:</span><span class="nf">lower</span><span class="p">()</span><span class="w"> </span><span class="o">~=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span><span class="p">)</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="kr">end</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="nv">DEBUGGER</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="kr">end</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherDebugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lib.feather&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherPluginManager</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lib.feather.plugin_manager&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="kd">local</span><span class="w"> </span><span class="nv">ScreenshotsPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lib.feather.plugins.screenshots&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="kd">local</span><span class="w"> </span><span class="nv">RuntimeSnapshotPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lib.feather.plugins.runtime-snapshot&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="nv">DEBUGGER</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">  </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="w">  </span><span class="nv">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">ScreenshotsPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;screenshots&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{}),</span>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">RuntimeSnapshotPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;runtime-snapshot&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{}),</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="p">})</span>
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="kr">return</span><span class="w"> </span><span class="nv">DEBUGGER</span>
+</code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><code>main.lua</code> gets matching <code>FEATHER-INIT</code> comments around the loader and update hook. <code>feather.config.lua</code> also includes a managed metadata block so <code>feather remove</code> can remove generated files and markers before production packaging.</p>
+</div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--remote</code></td>
+<td>Download from GitHub instead of copying the local/bundled Lua runtime.</td>
+</tr>
+<tr>
+<td><code>--branch &lt;branch&gt;</code></td>
+<td>GitHub branch or tag to download from when using <code>--remote</code> (default: <code>main</code>).</td>
+</tr>
+<tr>
+<td><code>--local-src &lt;path&gt;</code></td>
+<td>Copy from a local <code>src-lua</code> style directory.</td>
+</tr>
+<tr>
+<td><code>--install-dir &lt;path&gt;</code></td>
+<td>Install directory for auto/manual modes (default: <code>feather</code>).</td>
+</tr>
+<tr>
+<td><code>--no-plugins</code></td>
+<td>Skip plugin installation.</td>
+</tr>
+<tr>
+<td><code>--plugins &lt;ids&gt;</code></td>
+<td>Comma-separated list of plugin IDs to install (default: all).</td>
+</tr>
+<tr>
+<td><code>--mode &lt;mode&gt;</code></td>
+<td>Setup mode: <code>cli</code>, <code>auto</code>, or <code>manual</code>.</td>
+</tr>
+<tr>
+<td><code>-y, --yes</code></td>
+<td>Skip confirmation prompts.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="feather-remove-dir"><code>feather remove [dir]</code><a class="headerlink" href="#feather-remove-dir" title="Permanent link">&para;</a></h3>
+<p>Remove Feather from a project before creating a production build.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>feather<span class="w"> </span>remove<span class="w">                         </span><span class="c1"># interactive picker</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>feather<span class="w"> </span>remove<span class="w"> </span>--yes<span class="w">                   </span><span class="c1"># remove default managed targets</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>feather<span class="w"> </span>remove<span class="w"> </span>--dry-run<span class="w">               </span><span class="c1"># preview without changing files</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>feather<span class="w"> </span>remove<span class="w"> </span>--keep-config<span class="w">           </span><span class="c1"># keep feather.config.lua</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>feather<span class="w"> </span>remove<span class="w"> </span>--keep-runtime<span class="w">          </span><span class="c1"># keep feather/ and feather/plugins/</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>feather<span class="w"> </span>remove<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather
+</code></pre></div>
+<div class="admonition danger">
+<p class="admonition-title">Caution</p>
+<p><code>feather remove</code> only edits <code>main.lua</code> inside the generated <code>FEATHER-INIT</code> marker blocks. It can also remove the installed runtime directory, <code>feather.config.lua</code>, and <code>feather.debugger.lua</code> when those files are detected.</p>
+</div>
+<p>The command reads managed metadata from <code>feather.config.lua</code> when available, including the install directory and manual entrypoint path.</p>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--install-dir &lt;path&gt;</code></td>
+<td>Override the detected Feather install directory.</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Show what would be removed without changing files.</td>
+</tr>
+<tr>
+<td><code>--keep-config</code></td>
+<td>Keep <code>feather.config.lua</code>.</td>
+</tr>
+<tr>
+<td><code>--keep-main</code></td>
+<td>Keep <code>main.lua</code> marker blocks and update hook.</td>
+</tr>
+<tr>
+<td><code>--keep-manual</code></td>
+<td>Keep <code>feather.debugger.lua</code>.</td>
+</tr>
+<tr>
+<td><code>--keep-runtime</code></td>
+<td>Keep installed Feather runtime and plugins.</td>
+</tr>
+<tr>
+<td><code>-y, --yes</code></td>
+<td>Skip the interactive picker and remove default managed targets.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="feather-doctor-dir"><code>feather doctor [dir]</code><a class="headerlink" href="#feather-doctor-dir" title="Permanent link">&para;</a></h3>
+<p>Check the environment and project health.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>feather<span class="w"> </span>doctor<span class="w">        </span><span class="c1"># check current directory</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>feather<span class="w"> </span>doctor<span class="w"> </span>.<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>feather<span class="w"> </span>doctor<span class="w"> </span>.<span class="w"> </span>--host<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--port<span class="w"> </span><span class="m">4004</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>feather<span class="w"> </span>doctor<span class="w"> </span>.<span class="w"> </span>--json
+</code></pre></div>
+<p>Doctor checks:</p>
+<ul>
+<li>Node.js, npm, and LÖVE availability</li>
+<li><code>main.lua</code>, <code>feather.config.lua</code>, and managed init metadata</li>
+<li>embedded runtime files for auto/manual setups</li>
+<li>installed plugin manifests</li>
+<li><code>USE_DEBUGGER</code> guards and <code>FEATHER-INIT</code> markers</li>
+<li>risky settings such as hot reload, screenshot capture, and Console API keys</li>
+<li>Feather desktop WebSocket reachability</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><code>feather doctor --json</code> is useful in CI or pre-release scripts. It exits with a nonzero status only when it finds blockers.</p>
+</div>
+<p><strong>Example output:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Feather doctor
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>Project: /path/to/my-game
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>Environment
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>  ✔ Node.js  v22.0.0
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>  ✔ npm  v10.8.1
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>  ✔ LÖVE binary  /Applications/love.app/Contents/MacOS/love  (11.5)
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>Safety
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>  ! Hot reload  enabled
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>    → Hot reload is development-only remote code execution; keep allowlists narrow and never ship with it on.
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>Doctor passed with 1 warning.
+</code></pre></div>
+<hr />
+<h3 id="feather-update-dir"><code>feather update [dir]</code><a class="headerlink" href="#feather-update-dir" title="Permanent link">&para;</a></h3>
+<p>Update the Feather core library in a project.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>feather<span class="w"> </span>update<span class="w">                       </span><span class="c1"># interactive source picker in a terminal</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>feather<span class="w"> </span>update<span class="w"> </span>-y<span class="w">                    </span><span class="c1"># update from the local/bundled CLI copy</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>feather<span class="w"> </span>update<span class="w"> </span>path/to/my-game
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>feather<span class="w"> </span>update<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>v0.7.1
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>feather<span class="w"> </span>update<span class="w"> </span>--local-src<span class="w"> </span>../feather/src-lua
+</code></pre></div>
+<p>In an interactive terminal, <code>feather update</code> opens an Ink workflow to choose local/bundled files or a GitHub branch/tag. In scripts or with <code>-y</code>, it uses the local/bundled CLI copy unless <code>--remote</code> is provided.</p>
+<p>This updates all <code>core:</code> files listed in <code>manifest.txt</code>. Plugin files are not touched — use <code>feather plugin update</code> for those.</p>
+<hr />
+<h3 id="feather-plugin"><code>feather plugin</code><a class="headerlink" href="#feather-plugin" title="Permanent link">&para;</a></h3>
+<p>Manage Feather plugins in a project.</p>
+<p>Run <code>feather plugin</code> with no subcommand to open an Ink workflow for common plugin tasks:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>feather<span class="w"> </span>plugin
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
+</code></pre></div>
+<p>The workflow can list installed plugins, install one or more catalog plugins, remove installed plugins, or update selected plugins. Like <code>feather init</code>, plugin installs and updates are local-first by default:</p>
+<ol>
+<li><code>--local-src &lt;path&gt;</code> copies from a local <code>src-lua</code> style tree.</li>
+<li>Running the CLI from the Feather monorepo copies the repo's <code>src-lua</code>.</li>
+<li>Published CLI installs copy the bundled <code>cli/lua</code> runtime.</li>
+<li><code>--remote</code> downloads from GitHub using <code>--branch</code>.</li>
+</ol>
+<h4 id="feather-plugin-list-dir"><code>feather plugin list [dir]</code><a class="headerlink" href="#feather-plugin-list-dir" title="Permanent link">&para;</a></h4>
+<p>List installed plugins.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>list
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>Installed plugins (12)
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>  screenshots              1.0.0    Capture screenshots and record GIFs
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>  profiler                 1.0.0    Function-level CPU profiling
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>  entity-inspector         1.0.0    ECS entity browser
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>  ...
+</code></pre></div>
+<h4 id="feather-plugin-install-id"><code>feather plugin install &lt;id&gt;</code><a class="headerlink" href="#feather-plugin-install-id" title="Permanent link">&para;</a></h4>
+<p>Install a plugin from the local/bundled runtime by default, or from GitHub with <code>--remote</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>time-travel<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>--local-src<span class="w"> </span>../feather/src-lua
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather
+</code></pre></div>
+<h4 id="feather-plugin-remove-id"><code>feather plugin remove &lt;id&gt;</code><a class="headerlink" href="#feather-plugin-remove-id" title="Permanent link">&para;</a></h4>
+<p>Remove an installed plugin.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>remove<span class="w"> </span>hump.signal
+</code></pre></div>
+<h4 id="feather-plugin-update-id"><code>feather plugin update [id]</code><a class="headerlink" href="#feather-plugin-update-id" title="Permanent link">&para;</a></h4>
+<p>Update a plugin, or all installed plugins if no ID is given.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w">              </span><span class="c1"># interactive picker for installed plugins</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>-y<span class="w">           </span><span class="c1"># update all installed plugins</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>profiler<span class="w">     </span><span class="c1"># update a specific plugin</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
+</code></pre></div>
+<p>When no plugin ID or source flag is provided in an interactive terminal, <code>feather plugin update</code> opens an Ink workflow where you can choose the source and select installed plugins. Use <code>-y</code>, <code>--remote</code>, or <code>--local-src</code> for CI or scripts.</p>
+<p>Use <code>--install-dir &lt;path&gt;</code> with plugin commands when the project was initialized outside the default <code>feather/</code> directory.</p>
+<hr />
+<h2 id="featherconfiglua">feather.config.lua<a class="headerlink" href="#featherconfiglua" title="Permanent link">&para;</a></h2>
+<p>Place a <code>feather.config.lua</code> in your game directory to configure the Feather injection without touching command-line flags. <code>feather run</code> reads it automatically.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1">-- feather.config.lua</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My RPG&quot;</span><span class="p">,</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">  </span><span class="c1">-- Force-enable opt-in plugins.</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">  </span><span class="c1">-- &quot;console&quot; is a remote REPL. &quot;hot-reload&quot; is development-only remote code execution.</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="w">  </span><span class="c1">-- Remove plugins you don&#39;t need</span>
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="w">  </span><span class="nv">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;hump.signal&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;lua-state-machine&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="w">  </span><span class="c1">-- Per-plugin option overrides</span>
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="w">    </span><span class="nv">screenshots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">fps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="nv">gifDuration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;memory-snapshot&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">autoInterval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a>
+<a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a><span class="w">  </span><span class="c1">-- Connect to a remote desktop app (e.g. on another machine)</span>
+<a id="__codelineno-22-19" name="__codelineno-22-19" href="#__codelineno-22-19"></a><span class="w">  </span><span class="c1">-- host = &quot;192.168.1.42&quot;,</span>
+<a id="__codelineno-22-20" name="__codelineno-22-20" href="#__codelineno-22-20"></a><span class="p">}</span>
+</code></pre></div>
+<p>All <code>feather.auto.setup()</code> options are supported. Command-line flags (<code>--session-name</code>, etc.) take precedence over the config file.</p>
+<hr />
+<h2 id="binary-detection">Binary detection<a class="headerlink" href="#binary-detection" title="Permanent link">&para;</a></h2>
+<p><code>feather run</code> finds the love2d binary in this order:</p>
+<ol>
+<li><code>--love &lt;path&gt;</code> flag</li>
+<li><code>LOVE_BIN</code> environment variable</li>
+<li>Platform defaults:</li>
+<li><strong>macOS:</strong> <code>/Applications/love.app/Contents/MacOS/love</code></li>
+<li><strong>Windows:</strong> <code>%PROGRAMFILES%\LOVE\love.exe</code>, <code>%LOCALAPPDATA%\LOVE\love.exe</code></li>
+<li><strong>Linux:</strong> <code>love</code> or <code>love2d</code> from PATH</li>
+</ol>
+<hr />
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="run-any-game-with-zero-setup">Run any game with zero setup<a class="headerlink" href="#run-any-game-with-zero-setup" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Clone any love2d game and run it with Feather</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/some/game.git
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>feather<span class="w"> </span>run<span class="w"> </span>game/
+</code></pre></div>
+<p>The Feather desktop app will show a new session as soon as the game connects.</p>
+<h3 id="use-the-bundled-feather-vs-a-local-install">Use the bundled feather vs a local install<a class="headerlink" href="#use-the-bundled-feather-vs-a-local-install" title="Permanent link">&para;</a></h3>
+<p>By default, <code>feather run</code> uses the feather library and plugins bundled inside the CLI package. If your project has feather installed locally (via <code>feather init</code>), the CLI prefers that:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>my-game/
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>  feather/init.lua   ← detected → local install is used
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>  feather/plugins/
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>  main.lua
+</code></pre></div>
+<p>To point at a different feather build or plugins directory:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--feather-path<span class="w"> </span>../feather-dev
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--plugins-dir<span class="w"> </span>../my-custom-plugins
+</code></pre></div>
+<p><code>--plugins-dir</code> takes precedence over the bundled plugins and any game-local <code>plugins/</code> directory.</p>
+<h3 id="ci-headless-mode">CI / headless mode<a class="headerlink" href="#ci-headless-mode" title="Permanent link">&para;</a></h3>
+<p><code>feather run</code> exits with love2d's exit code, making it suitable for CI workflows:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run game smoke test</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">feather run . --no-plugins</span>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">    </span><span class="nt">LOVE_BIN</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/bin/love</span>
+</code></pre></div>
+<h3 id="alias-for-fast-iteration">Alias for fast iteration<a class="headerlink" href="#alias-for-fast-iteration" title="Permanent link">&para;</a></h3>
+<p>Add a shell alias so <code>fr</code> runs from any game directory:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="nb">alias</span><span class="w"> </span><span class="nv">fr</span><span class="o">=</span><span class="s1">&#39;feather run .&#39;</span>
+</code></pre></div>
+<hr />
+<h2 id="comparison-with-manual-setup">Comparison with manual setup<a class="headerlink" href="#comparison-with-manual-setup" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>feather run</code></th>
+<th>Manual (<code>require("feather.auto")</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Game code changes</td>
+<td>None</td>
+<td>Add require + update call</td>
+</tr>
+<tr>
+<td>Works on any game</td>
+<td>Yes</td>
+<td>Only games you've modified</td>
+</tr>
+<tr>
+<td><code>feather.config.lua</code></td>
+<td>Supported</td>
+<td>Supported</td>
+</tr>
+<tr>
+<td>Plugin management</td>
+<td>Via CLI</td>
+<td>Manual download</td>
+</tr>
+</tbody>
+</table>
+<!-- | Hot reload | love2d restarts via CLI | Native | -->
+
+<p>Both approaches are compatible — a game that already has <code>require("feather.auto")</code> can still be launched with <code>feather run</code> (Feather checks the <code>DEBUGGER</code> global and skips double-initialization).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
