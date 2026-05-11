@@ -122,9 +122,19 @@ program
 program
   .command("update [dir]")
   .description("Update the Feather core library in a project (default: current directory)")
-  .option("--branch <branch>", "GitHub branch to download from", "main")
+  .option("--remote", "Download from GitHub instead of copying the local/bundled Lua runtime")
+  .option("--branch <branch>", "GitHub branch to download from when using --remote", "main")
+  .option("--local-src <path>", "Copy Lua runtime from a local src-lua style directory")
+  .option("--install-dir <path>", "Feather install directory", "feather")
+  .option("-y, --yes", "Skip interactive confirmation and use the selected/default source")
   .action((dir: string | undefined, opts) => {
-    updateCommand(dir ?? ".", { branch: opts.branch as string });
+    updateCommand(dir ?? ".", {
+      branch: opts.branch as string,
+      remote: opts.remote as boolean | undefined,
+      localSrc: opts.localSrc as string | undefined,
+      installDir: opts.installDir as string,
+      yes: opts.yes as boolean | undefined,
+    });
   });
 
 // ── feather plugin ───────────────────────────────────────────────────────────
@@ -194,6 +204,7 @@ plugin
   .option("--branch <branch>", "GitHub branch to download from when using --remote", "main")
   .option("--local-src <path>", "Copy plugins from a local src-lua style directory")
   .option("--install-dir <path>", "Feather install directory", "feather")
+  .option("-y, --yes", "Skip interactive selection and update all installed plugins when no id is given")
   .action(async (id: string | undefined, opts) => {
     const merged = pluginCommandOptions(opts);
     await pluginUpdateCommand(id, {
@@ -202,6 +213,7 @@ plugin
       installDir: merged.installDir as string,
       remote: merged.remote as boolean | undefined,
       localSrc: merged.localSrc as string | undefined,
+      yes: merged.yes as boolean | undefined,
     });
   });
 

@@ -301,12 +301,16 @@ Doctor passed with 1 warning.
 Update the Feather core library in a project.
 
 ```bash
-feather update                       # update in current directory
+feather update                       # interactive source picker in a terminal
+feather update -y                    # update from the local/bundled CLI copy
 feather update path/to/my-game
-feather update --branch v0.7.1      # update to a specific version
+feather update --remote --branch v0.7.1
+feather update --local-src ../feather/src-lua
 ```
 
-This re-downloads all `core:` files listed in `manifest.txt`. Plugin files are not touched — use `feather plugin update` for those.
+In an interactive terminal, `feather update` opens an Ink workflow to choose local/bundled files or a GitHub branch/tag. In scripts or with `-y`, it uses the local/bundled CLI copy unless `--remote` is provided.
+
+This updates all `core:` files listed in `manifest.txt`. Plugin files are not touched — use `feather plugin update` for those.
 
 ---
 
@@ -370,10 +374,13 @@ feather plugin remove hump.signal
 Update a plugin, or all installed plugins if no ID is given.
 
 ```bash
-feather plugin update              # update all installed plugins
+feather plugin update              # interactive picker for installed plugins
+feather plugin update -y           # update all installed plugins
 feather plugin update profiler     # update a specific plugin
 feather plugin update --remote --branch main
 ```
+
+When no plugin ID or source flag is provided in an interactive terminal, `feather plugin update` opens an Ink workflow where you can choose the source and select installed plugins. Use `-y`, `--remote`, or `--local-src` for CI or scripts.
 
 Use `--install-dir <path>` with plugin commands when the project was initialized outside the default `feather/` directory.
 

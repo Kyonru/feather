@@ -21,6 +21,8 @@ type Option<T extends string = string> = {
 type PluginWorkflowInput = {
   installedIds: string[];
   defaultBranch: string;
+  initialAction?: PluginAction;
+  defaultSelectAll?: boolean;
 };
 
 const actions: Option<PluginAction>[] = [
@@ -141,14 +143,23 @@ function Confirm({
   );
 }
 
-function PluginWorkflow({ installedIds, defaultBranch, onComplete }: PluginWorkflowInput & { onComplete: (result: PluginWorkflowResult) => void }) {
+function PluginWorkflow({
+  installedIds,
+  defaultBranch,
+  initialAction,
+  defaultSelectAll,
+  onComplete,
+}: PluginWorkflowInput & { onComplete: (result: PluginWorkflowResult) => void }) {
   const { exit } = useApp();
-  const [phase, setPhase] = useState<Phase>("action");
-  const [actionCursor, setActionCursor] = useState(0);
+  const initialActionIndex = initialAction ? Math.max(0, actions.findIndex((option) => option.value === initialAction)) : 0;
+  const [phase, setPhase] = useState<Phase>(initialAction === "install" || initialAction === "update" ? "source" : "action");
+  const [actionCursor, setActionCursor] = useState(initialActionIndex);
   const [sourceCursor, setSourceCursor] = useState(0);
   const [pluginCursor, setPluginCursor] = useState(0);
   const [branch, setBranch] = useState(defaultBranch);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(defaultSelectAll && initialAction === "update" ? installedIds : []),
+  );
   const [confirmed, setConfirmed] = useState(true);
 
   const action = actions[actionCursor].value;
@@ -281,5 +292,16 @@ function PluginWorkflow({ installedIds, defaultBranch, onComplete }: PluginWorkf
 export async function choosePluginWorkflow(input: PluginWorkflowInput): Promise<PluginWorkflowResult> {
   return new Promise((resolve) => {
     render(<PluginWorkflow {...input} onComplete={resolve} />);
+  });
+}
+
+export async function choosePluginUpdateWorkflow(input: {
+  installedIds: string[];
+  defaultBranch: string;
+}): Promise<PluginWorkflowResult> {
+  return choosePluginWorkflow({
+    ...input,
+    initialAction: "update",
+    defaultSelectAll: true,
   });
 }
