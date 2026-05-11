@@ -3,6 +3,7 @@
 The Feather CLI lets you run and debug Love2D games **without modifying your game code**. Running a game through the CLI injects Feather automatically at the process level — no `require("feather.auto")` needed.
 
 ```bash
+feather run
 feather run path/to/my-game
 ```
 
@@ -45,11 +46,12 @@ Your game code runs exactly as normal — it just has Feather already active.
 
 ## Commands
 
-### `feather run <game-path>`
+### `feather run [game-path]`
 
 Inject Feather into a Love2D game and run it.
 
 ```bash
+feather run                                # interactive run workflow
 feather run .                              # run game in current directory
 feather run path/to/my-game               # run from an explicit path
 feather run . --session-name "RPG"        # custom name in the desktop session tab
@@ -58,6 +60,8 @@ feather run . --love /usr/bin/love        # override love2d binary
 feather run . --plugins-dir ./my-plugins  # use a custom plugins directory
 feather run . -- --level dev              # pass args through to the game
 ```
+
+When `game-path` is omitted in an interactive terminal, Feather opens an Ink workflow that asks for the game path, session name, config path, whether plugins should be disabled, and optional advanced paths/arguments. Scripts should pass `game-path` explicitly.
 
 **Options:**
 

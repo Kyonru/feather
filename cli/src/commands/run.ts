@@ -5,6 +5,7 @@ import chalk from "chalk";
 import { findLoveBinary } from "../lib/love.js";
 import { createShim, shimEnv } from "../lib/shim.js";
 import { loadConfig } from "../lib/config.js";
+import { chooseRunWorkflow } from "../ui/run-workflow.js";
 
 export interface RunOptions {
   love?: string;
@@ -16,7 +17,32 @@ export interface RunOptions {
   gameArgs?: string[];
 }
 
-export function runCommand(gamePath: string, opts: RunOptions): void {
+export async function runCommand(gamePath: string | undefined, opts: RunOptions): Promise<void> {
+  if (!gamePath) {
+    if (!process.stdin.isTTY) {
+      console.error(chalk.red("Game path is required. Use `feather run <game-path>`."));
+      process.exit(1);
+    }
+
+    const result = await chooseRunWorkflow();
+    if (result.cancelled) {
+      console.log(chalk.dim("Run cancelled."));
+      return;
+    }
+
+    gamePath = result.gamePath;
+    opts = {
+      ...opts,
+      love: result.love ?? opts.love,
+      sessionName: result.sessionName ?? opts.sessionName,
+      noPlugins: result.noPlugins ?? opts.noPlugins,
+      config: result.config ?? opts.config,
+      featherPath: result.featherPath ?? opts.featherPath,
+      pluginsDir: result.pluginsDir ?? opts.pluginsDir,
+      gameArgs: result.gameArgs ?? opts.gameArgs,
+    };
+  }
+
   const absGame = resolve(gamePath);
 
   if (!existsSync(absGame)) {
