@@ -19,6 +19,8 @@ require("feather.auto").setup({
       persistToDisk = false,
       clearOnBoot = false,
       requireLocalNetwork = true,
+      showOverlay = true,
+      toastDuration = 2.5,
     },
   },
 })
@@ -39,6 +41,8 @@ DEBUGGER = FeatherDebugger({
       enabled = true,
       allow = { "game.player" },
       deny = { "main", "conf", "feather.*" },
+      showOverlay = true,
+      toastDuration = 2.5,
     }),
   },
 })

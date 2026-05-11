@@ -11,6 +11,8 @@ return {
     persistToDisk = false,
     clearOnBoot = false,
     requireLocalNetwork = true,
+    showOverlay = true,
+    toastDuration = 2.5,
   },
   optIn = true,
   disabled = true,

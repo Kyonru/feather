@@ -54,6 +54,8 @@ return {
       persistToDisk = false,
       clearOnBoot = false,
       requireLocalNetwork = true,
+      showOverlay = true,
+      toastDuration = 2.5,
     },
   },
 }
@@ -89,6 +91,8 @@ DEBUGGER = FeatherDebugger({
 | `persistToDisk`       | `false` | Writes hot patches to `.feather/hot/<module>.lua` in LÖVE's save directory. |
 | `clearOnBoot`         | `false` | Clears persisted hot patches when Feather starts.                           |
 | `requireLocalNetwork` | `true`  | Accepts reload commands only when the configured Feather host is local/LAN.  |
+| `showOverlay`         | `true`  | Draws a temporary in-game toast when hot reload succeeds, fails, or restores. |
+| `toastDuration`       | `2.5`   | Seconds the in-game hot reload toast remains visible.                       |
 
 > [!IMPORTANT]
 > `allow = { "game.*" }` is convenient, but a smaller list is safer. Prefer only the modules you are actively editing.
