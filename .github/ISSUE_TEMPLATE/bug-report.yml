@@ -1,0 +1,84 @@
+name: Bug report
+description: Report a crash, error, or unexpected behavior
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of Feather is affected?
+      options:
+        - CLI (feather command)
+        - Package manager (feather package)
+        - Desktop app
+        - Lua runtime / game-side
+        - Plugin
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what actually occurred?
+      placeholder: |
+        I ran `feather package install anim8` and got an error instead of the files being installed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a new LÖVE project directory
+        2. Run `feather package install anim8`
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_output
+    attributes:
+      label: Error output or logs
+      description: Paste the full terminal output or error message. Use `feather <command> --json` if available for machine-readable output.
+      render: shell
+
+  - type: input
+    id: feather_version
+    attributes:
+      label: Feather CLI version
+      description: Run `feather --version`
+      placeholder: 0.9.3
+    validations:
+      required: true
+
+  - type: input
+    id: node_version
+    attributes:
+      label: Node.js version
+      description: Run `node --version`
+      placeholder: v22.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: macOS 15.4 / Windows 11 / Ubuntu 24.04
+    validations:
+      required: true
+
+  - type: input
+    id: love_version
+    attributes:
+      label: LÖVE version (if relevant)
+      placeholder: 11.5
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Lockfile contents, feather.config.lua, workarounds you tried, etc.

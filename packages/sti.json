@@ -1,0 +1,20 @@
+{
+  "type": "love2d-library",
+  "trust": "known",
+  "description": "Simple Tiled Implementation — loads and renders Tiled maps (.tmx) in LÖVE.",
+  "tags": ["maps", "tiled", "tilemaps"],
+  "homepage": "https://github.com/karai17/Simple-Tiled-Implementation",
+  "source": {
+    "repo": "karai17/Simple-Tiled-Implementation",
+    "tag": "master",
+    "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/master/"
+  },
+  "install": {
+    "files": [
+      { "name": "sti/init.lua",  "sha256": "b7542ac156b3c2ee24d256ce260f73dc01ab2d1245c4eb4b14c92fcdf487c814", "target": "lib/sti/init.lua" },
+      { "name": "sti/utils.lua", "sha256": "ba8abf5a3f5680c6a020234afc248c4fb8945cda993d4cd82b292510e4dab17c", "target": "lib/sti/utils.lua" }
+    ]
+  },
+  "require": "lib.sti",
+  "example": "local sti = require('lib.sti')"
+}

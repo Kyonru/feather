@@ -5,7 +5,6 @@ on:
     paths:
       - "cli/**"
       - "src-lua/**"
-      - "scripts/cli-e2e.mjs"
       - "scripts/bundle-lua.sh"
       - "package.json"
       - "package-lock.json"
@@ -15,7 +14,6 @@ on:
     paths:
       - "cli/**"
       - "src-lua/**"
-      - "scripts/cli-e2e.mjs"
       - "scripts/bundle-lua.sh"
       - "package.json"
       - "package-lock.json"

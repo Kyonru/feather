@@ -1,0 +1,19 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A fast, lightweight tweening library for Lua with chainable API and easing functions.",
+  "tags": ["animation", "tweening"],
+  "homepage": "https://github.com/rxi/flux",
+  "source": {
+    "repo": "rxi/flux",
+    "tag": "master",
+    "baseUrl": "https://raw.githubusercontent.com/rxi/flux/master/"
+  },
+  "install": {
+    "files": [
+      { "name": "flux.lua", "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5", "target": "lib/flux.lua" }
+    ]
+  },
+  "require": "lib.flux",
+  "example": "local flux = require('lib.flux')"
+}

@@ -1,0 +1,57 @@
+name: Publish registry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/**'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate registry
+        run: node scripts/generate-registry.mjs
+
+      - name: Push to packages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch packages branch if it already exists
+          git fetch origin packages 2>/dev/null || true
+
+          # Set up a worktree pointing at the packages branch.
+          # If the branch doesn't exist yet, create it as an orphan.
+          if git ls-remote --exit-code origin packages > /dev/null 2>&1; then
+            git worktree add /tmp/registry-branch packages
+          else
+            git worktree add --orphan -b packages /tmp/registry-branch
+          fi
+
+          cp cli/src/generated/registry.json /tmp/registry-branch/registry.json
+
+          cd /tmp/registry-branch
+          git add registry.json
+
+          if git diff --cached --quiet; then
+            echo "Registry unchanged — nothing to push."
+          else
+            # Surface the triggering commit so the packages branch log is traceable
+            TRIGGER_SHA="${{ github.sha }}"
+            TRIGGER_MSG=$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=format:"%s" "$TRIGGER_SHA")
+            git commit -m "chore: update registry (${TRIGGER_SHA::7}) ${TRIGGER_MSG}"
+            git push origin packages
+          fi

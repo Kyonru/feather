@@ -1,0 +1,19 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A Lua library for simple AABB collision detection and resolution.",
+  "tags": ["collision", "physics"],
+  "homepage": "https://github.com/kikito/bump.lua",
+  "source": {
+    "repo": "kikito/bump.lua",
+    "tag": "v3.1.7",
+    "baseUrl": "https://raw.githubusercontent.com/kikito/bump.lua/v3.1.7/"
+  },
+  "install": {
+    "files": [
+      { "name": "bump.lua", "sha256": "b947cc4449554816831d5c45b61a169e1559548139478d980c8eef14c7b362a6", "target": "lib/bump.lua" }
+    ]
+  },
+  "require": "lib.bump",
+  "example": "local bump = require('lib.bump')"
+}

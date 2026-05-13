@@ -1,0 +1,19 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A simple OOP library for Lua. Supports inheritance, mixins, and interfaces.",
+  "tags": ["oop", "utilities"],
+  "homepage": "https://github.com/kikito/middleclass",
+  "source": {
+    "repo": "kikito/middleclass",
+    "tag": "v4.1.1",
+    "baseUrl": "https://raw.githubusercontent.com/kikito/middleclass/v4.1.1/"
+  },
+  "install": {
+    "files": [
+      { "name": "middleclass.lua", "sha256": "b4f0060e16daa070a0da33b6808f6e4cb9ee819205321d019a8e770af5e77c07", "target": "lib/middleclass.lua" }
+    ]
+  },
+  "require": "lib.middleclass",
+  "example": "local Class = require('lib.middleclass')"
+}

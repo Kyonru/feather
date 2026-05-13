@@ -34,7 +34,9 @@ nav:
   - Debugger: debugger.md
   - Hot Reload: hot-reload.md
   - Assets: assets.md
-  - CLI: cli.md
+  - CLI:
+      - Overview: cli.md
+      - Package Management: packages.md
   - Time Travel: time-travel.md
   - Console: console.md
   - Recommendations: recommendations.md

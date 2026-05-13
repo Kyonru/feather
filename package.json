@@ -10,7 +10,7 @@
   "scripts": {
     "cli:build": "npm run build --workspace=cli",
     "cli:dev": "npm run dev --workspace=cli",
-    "test:cli:e2e": "npm run cli:build && node scripts/cli-e2e.mjs",
+    "test:cli:e2e": "npm run cli:build && node cli/test/e2e.mjs && node cli/test/package.test.mjs",
     "test:lua:e2e": "node scripts/lua-e2e.mjs",
     "test:app:e2e": "playwright test",
     "test:tauri:e2e": "cargo test --manifest-path src-tauri/Cargo.toml ws_server",
@@ -28,6 +28,9 @@
     "typecheck": "npm run typecheck:web && npm run typecheck:lua",
     "generate:plugin-catalog": "node scripts/generate-plugin-catalog.mjs",
     "check:plugin-catalog": "npm run generate:plugin-catalog && git diff --exit-code cli/src/generated/plugin-catalog.ts",
+    "generate:registry": "node scripts/generate-registry.mjs",
+    "check:registry": "npm run generate:registry && git diff --exit-code cli/src/generated/registry.json",
+    "verify:packages": "node scripts/compute-checksums.mjs --all",
     "lint": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "tauri": "tauri",
     "prepare": "husky"

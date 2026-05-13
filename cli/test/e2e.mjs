@@ -158,6 +158,59 @@ try {
   run(['doctor', '--help']);
   run(['plugin', '--help']);
 
+  log('package: loading registry');
+  const registryPath = join(root, 'cli', 'dist', 'generated', 'registry.json');
+  assert(existsSync(registryPath), 'cli/dist/generated/registry.json missing — run build first');
+  const registry = JSON.parse(read(registryPath));
+
+  const topLevel = Object.entries(registry.packages).filter(([, e]) => !e.parent);
+  log(`package: ${topLevel.length} top-level packages to test`);
+
+  for (const [pkgId, entry] of topLevel) {
+    log(`package install ${pkgId} @ ${entry.source.tag}`);
+    const pkgDir = mkdtempSync(join(tmpdir(), `feather-pkg-${pkgId}-`));
+
+    // install
+    run(['package', 'install', pkgId, '--dir', pkgDir]);
+
+    // every file must exist on disk
+    for (const file of entry.install.files) {
+      assert(existsSync(join(pkgDir, file.target)), `${pkgId}: ${file.target} not on disk after install`);
+    }
+
+    // lockfile entry must be correct
+    const lock = JSON.parse(read(join(pkgDir, 'feather.lock.json')));
+    assert(lock.packages[pkgId], `${pkgId}: missing lockfile entry`);
+    assert(
+      lock.packages[pkgId].version === entry.source.tag,
+      `${pkgId}: lockfile version ${lock.packages[pkgId].version} !== registry ${entry.source.tag}`,
+    );
+    assert(
+      lock.packages[pkgId].trust === entry.trust,
+      `${pkgId}: lockfile trust ${lock.packages[pkgId].trust} !== registry ${entry.trust}`,
+    );
+
+    // audit must pass (--json gives clean stdout even when piped)
+    const auditOut = run(['package', 'audit', '--json', '--dir', pkgDir]);
+    const auditResults = JSON.parse(auditOut);
+    for (const r of auditResults) {
+      assert(r.status === 'verified', `${pkgId}: audit ${r.target} → ${r.status}`);
+    }
+
+    // remove
+    run(['package', 'remove', pkgId, '--dir', pkgDir]);
+    for (const file of entry.install.files) {
+      assert(!existsSync(join(pkgDir, file.target)), `${pkgId}: ${file.target} still on disk after remove`);
+    }
+    const lockAfter = JSON.parse(read(join(pkgDir, 'feather.lock.json')));
+    assert(!lockAfter.packages[pkgId], `${pkgId}: lockfile entry remains after remove`);
+
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(pkgDir, { recursive: true, force: true });
+    }
+    log(`package install ${pkgId} ✔`);
+  }
+
   log('passed');
 } finally {
   if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
