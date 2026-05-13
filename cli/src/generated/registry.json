@@ -497,6 +497,594 @@
       "require": "lib.inspect",
       "example": "local inspect = require('lib.inspect')"
     },
+    "knife.base": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — base module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/base.lua",
+            "sha256": "9cdc89da1a37296aa0f57c1f28c4123be6052604ca2b60306a98e926666e2fd1",
+            "target": "lib/knife/base.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.base",
+      "example": "local base = require('lib.knife.base')"
+    },
+    "knife.behavior": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — behavior module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/behavior.lua",
+            "sha256": "9ee69bf0b7966061e75716811727138772dc766ba8d03ed6a5d98df3491967e4",
+            "target": "lib/knife/behavior.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.behavior",
+      "example": "local behavior = require('lib.knife.behavior')"
+    },
+    "knife.bind": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — bind module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/bind.lua",
+            "sha256": "01923de7538a127d4bdc23ec6dccea9c791928e88dcd61dd4cd7cc97287c639a",
+            "target": "lib/knife/bind.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.bind",
+      "example": "local bind = require('lib.knife.bind')"
+    },
+    "knife.chain": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — chain module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/chain.lua",
+            "sha256": "70143d8618f7be18025da8cc073714fe1c3c3a2d173c2d04f415e9d0d85bd964",
+            "target": "lib/knife/chain.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.chain",
+      "example": "local chain = require('lib.knife.chain')"
+    },
+    "knife.convoke": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — convoke module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/convoke.lua",
+            "sha256": "76c1862861999b8523cb060c964fded1986dbcd04c08610e9547bddcef751776",
+            "target": "lib/knife/convoke.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.convoke",
+      "example": "local convoke = require('lib.knife.convoke')"
+    },
+    "knife.event": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — event module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/event.lua",
+            "sha256": "962e2f6b47fc6a81cdc07d28d5fef6cd40132dcb28fd3d34c834616cd15be74f",
+            "target": "lib/knife/event.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.event",
+      "example": "local event = require('lib.knife.event')"
+    },
+    "knife.gun": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — gun module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/gun.lua",
+            "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
+            "target": "lib/knife/gun.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.gun",
+      "example": "local gun = require('lib.knife.gun')"
+    },
+    "knife.memoize": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — memoize module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/memoize.lua",
+            "sha256": "45c857737cf3b3c4e7bd3994c882a142761153932ba4695b57aa4eb9198ccfd0",
+            "target": "lib/knife/memoize.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.memoize",
+      "example": "local memoize = require('lib.knife.memoize')"
+    },
+    "knife.serialize": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — serialize module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/serialize.lua",
+            "sha256": "472901fa35c502af4bfddc2ee0cc723dc91fb5ffbd06ddde22fa512bd94c4870",
+            "target": "lib/knife/serialize.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.serialize",
+      "example": "local serialize = require('lib.knife.serialize')"
+    },
+    "knife.system": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — system module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/system.lua",
+            "sha256": "bc9d8981679bdb752f4e1b2031f42b6e08a40f411981f23f6f148588edb23ea2",
+            "target": "lib/knife/system.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.system",
+      "example": "local system = require('lib.knife.system')"
+    },
+    "knife.test": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — test module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/test.lua",
+            "sha256": "581c6c679cf5b711068880b36c242da9a4648c1525a9d615bbaeed0f79b4dbcd",
+            "target": "lib/knife/test.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.test",
+      "example": "local test = require('lib.knife.test')"
+    },
+    "knife.timer": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — timer module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/timer.lua",
+            "sha256": "6c0a1f59404f7c1e3612afc80fb443b543546a5aa14a1d200a679e8684b5aaac",
+            "target": "lib/knife/timer.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.timer",
+      "example": "local timer = require('lib.knife.timer')"
+    },
+    "knife": {
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "A collection of useful micro-modules for Lua.",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/base.lua",
+            "sha256": "9cdc89da1a37296aa0f57c1f28c4123be6052604ca2b60306a98e926666e2fd1",
+            "target": "lib/knife/base.lua"
+          },
+          {
+            "name": "knife/behavior.lua",
+            "sha256": "9ee69bf0b7966061e75716811727138772dc766ba8d03ed6a5d98df3491967e4",
+            "target": "lib/knife/behavior.lua"
+          },
+          {
+            "name": "knife/bind.lua",
+            "sha256": "01923de7538a127d4bdc23ec6dccea9c791928e88dcd61dd4cd7cc97287c639a",
+            "target": "lib/knife/bind.lua"
+          },
+          {
+            "name": "knife/chain.lua",
+            "sha256": "70143d8618f7be18025da8cc073714fe1c3c3a2d173c2d04f415e9d0d85bd964",
+            "target": "lib/knife/chain.lua"
+          },
+          {
+            "name": "knife/convoke.lua",
+            "sha256": "76c1862861999b8523cb060c964fded1986dbcd04c08610e9547bddcef751776",
+            "target": "lib/knife/convoke.lua"
+          },
+          {
+            "name": "knife/event.lua",
+            "sha256": "962e2f6b47fc6a81cdc07d28d5fef6cd40132dcb28fd3d34c834616cd15be74f",
+            "target": "lib/knife/event.lua"
+          },
+          {
+            "name": "knife/gun.lua",
+            "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
+            "target": "lib/knife/gun.lua"
+          },
+          {
+            "name": "knife/memoize.lua",
+            "sha256": "45c857737cf3b3c4e7bd3994c882a142761153932ba4695b57aa4eb9198ccfd0",
+            "target": "lib/knife/memoize.lua"
+          },
+          {
+            "name": "knife/serialize.lua",
+            "sha256": "472901fa35c502af4bfddc2ee0cc723dc91fb5ffbd06ddde22fa512bd94c4870",
+            "target": "lib/knife/serialize.lua"
+          },
+          {
+            "name": "knife/system.lua",
+            "sha256": "bc9d8981679bdb752f4e1b2031f42b6e08a40f411981f23f6f148588edb23ea2",
+            "target": "lib/knife/system.lua"
+          },
+          {
+            "name": "knife/test.lua",
+            "sha256": "581c6c679cf5b711068880b36c242da9a4648c1525a9d615bbaeed0f79b4dbcd",
+            "target": "lib/knife/test.lua"
+          },
+          {
+            "name": "knife/timer.lua",
+            "sha256": "6c0a1f59404f7c1e3612afc80fb443b543546a5aa14a1d200a679e8684b5aaac",
+            "target": "lib/knife/timer.lua"
+          }
+        ]
+      },
+      "subpackages": [
+        "knife.base",
+        "knife.behavior",
+        "knife.bind",
+        "knife.chain",
+        "knife.convoke",
+        "knife.event",
+        "knife.gun",
+        "knife.memoize",
+        "knife.serialize",
+        "knife.system",
+        "knife.test",
+        "knife.timer"
+      ],
+      "require": "lib.knife.base",
+      "example": "local knife = require('lib.knife.base')"
+    },
     "love-dialogue": {
       "type": "love2d-library",
       "trust": "verified",
