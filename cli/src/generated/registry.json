@@ -497,6 +497,101 @@
       "require": "lib.inspect",
       "example": "local inspect = require('lib.inspect')"
     },
+    "love-dialogue": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Dialogue based Game Engine for Love2d with custom scripting language for dialogues",
+      "tags": [
+        "text",
+        "dialogue",
+        "system",
+        "tag",
+        "talk"
+      ],
+      "homepage": "https://github.com/Miisan-png/Love-Dialogue",
+      "license": "unknown",
+      "source": {
+        "repo": "Miisan-png/Love-Dialogue",
+        "tag": "main",
+        "baseUrl": "https://raw.githubusercontent.com/Miisan-png/Love-Dialogue/main/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "LoveDialogue/9patch.lua",
+            "sha256": "dd882490cab2a6850b4b5f95a3fc1845b090a37773fcd4347d5bb496efe2839b",
+            "target": "lib/love-dialogue/9patch.lua"
+          },
+          {
+            "name": "LoveDialogue/DialogueConstants.lua",
+            "sha256": "9335210bfd61d9e39fcfdbd7ca6c7e55f5897565848260dffd3080e62ee9d0c5",
+            "target": "lib/love-dialogue/DialogueConstants.lua"
+          },
+          {
+            "name": "LoveDialogue/Logic.lua",
+            "sha256": "85701aa89d7892f5a55095b70a992036a241504e3470caeb58caae7f886b434f",
+            "target": "lib/love-dialogue/Logic.lua"
+          },
+          {
+            "name": "LoveDialogue/LoveCharacter.lua",
+            "sha256": "b606202a72f9b9c349bcee793bd6bfc7a36cc64059480a5a4071f81ba442d7d6",
+            "target": "lib/love-dialogue/LoveCharacter.lua"
+          },
+          {
+            "name": "LoveDialogue/LoveDialogue.lua",
+            "sha256": "9bea894af34bca1db4f04e94c38fd8800a36093bac8730f5f32c5b963a9b7043",
+            "target": "lib/love-dialogue/LoveDialogue.lua"
+          },
+          {
+            "name": "LoveDialogue/LoveDialogueParser.lua",
+            "sha256": "35548075414928e077b9d8136186444fbcbfb11c89c8b92eb92487e1cc78bddc",
+            "target": "lib/love-dialogue/LoveDialogueParser.lua"
+          },
+          {
+            "name": "LoveDialogue/PluginManager.lua",
+            "sha256": "c66684888259a4eea25546369ffe9c8540f778b4e16fa5adad2a5fe3cda1dc8c",
+            "target": "lib/love-dialogue/PluginManager.lua"
+          },
+          {
+            "name": "LoveDialogue/ResourceManager.lua",
+            "sha256": "5366b1bdb8a033fc1c2bfd787c326f1031aa9e285ff73c8c4695ac8e97dd32bb",
+            "target": "lib/love-dialogue/ResourceManager.lua"
+          },
+          {
+            "name": "LoveDialogue/TextEffects.lua",
+            "sha256": "399aacf0ff2e8f8615692ef86a184f5e2b730f0ab1fc5961e24ee8a8564f11d6",
+            "target": "lib/love-dialogue/TextEffects.lua"
+          },
+          {
+            "name": "LoveDialogue/ThemeParser.lua",
+            "sha256": "1303f4057eb47c9606c66560207308b7cc6b2ca12d4bcb98ee9c023d29e03af9",
+            "target": "lib/love-dialogue/ThemeParser.lua"
+          },
+          {
+            "name": "LoveDialogue/Transition.lua",
+            "sha256": "296a3c8f33d184387487d46e6f5b22205a565293cdbb2226eaab6052e2ef5d84",
+            "target": "lib/love-dialogue/Transition.lua"
+          },
+          {
+            "name": "LoveDialogue/Tween.lua",
+            "sha256": "2d5be30a9a4d3132373505c3ebde532ffe3009db2e7f8b9ce45680f01f5fef0f",
+            "target": "lib/love-dialogue/Tween.lua"
+          },
+          {
+            "name": "LoveDialogue/init.lua",
+            "sha256": "23f6c1bf3ac8e9d9d99443caa750acee158a415242208e93f8e4f21893b5df79",
+            "target": "lib/love-dialogue/init.lua"
+          },
+          {
+            "name": "LoveDialogue/plugins/DebugPlugin.lua",
+            "sha256": "5dc1d9f7a01d9f2e92aff9647ba43742cebb4095c17a4a48a2d698b9c638cebd",
+            "target": "lib/love-dialogue/plugins/DebugPlugin.lua"
+          }
+        ]
+      },
+      "require": "lib.love-dialogue",
+      "example": "local love_dialogue = require('lib.love-dialogue')"
+    },
     "lua-state-machine": {
       "type": "love2d-library",
       "trust": "verified",
