@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-12",
+  "updatedAt": "2026-05-13",
   "packages": {
     "anim8": {
       "type": "love2d-library",
@@ -451,6 +451,47 @@
       },
       "require": "lib.push",
       "example": "local push = require('lib.push')"
+    },
+    "shove": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A powerful resolution-handler and rendering library for LÖVE 📐",
+      "tags": [
+        "resolution",
+        "gamedev",
+        "performance",
+        "lua",
+        "rendering",
+        "aspect-ratio",
+        "game-development",
+        "love2d",
+        "layers",
+        "pixel-perfect",
+        "scaling",
+        "love2d-framework"
+      ],
+      "homepage": "https://github.com/oval-tutu/shove",
+      "source": {
+        "repo": "oval-tutu/shove",
+        "tag": "1.0.6",
+        "baseUrl": "https://raw.githubusercontent.com/oval-tutu/shove/1.0.6/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "shove-profiler.lua",
+            "sha256": "8c2c78a0d4dac5afaa3e487648c1e12fad632bd8971dd21424da765ac0135e88",
+            "target": "lib/shove/profiler.lua"
+          },
+          {
+            "name": "shove.lua",
+            "sha256": "151b3bb65aa33114189bd7a2abe23b61acb58bd0530e4a3a92531ee0502e4903",
+            "target": "lib/shove/init.lua"
+          }
+        ]
+      },
+      "require": "lib.shove",
+      "example": "local shove = require('lib.shove')"
     },
     "sti": {
       "type": "love2d-library",
