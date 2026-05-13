@@ -173,6 +173,7 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   console.log(`  Source:   ${chalk.cyan(`github.com/${entry.source.repo}`)}`);
   console.log(`  Version:  ${entry.source.tag}`);
   console.log(`  Tags:     ${entry.tags.join(', ') || '—'}`);
+  if (entry.license) console.log(`  License:  ${entry.license}`);
   if (entry.homepage) console.log(`  Docs:     ${chalk.cyan(entry.homepage)}`);
   if (installed) {
     console.log(`  Status:   ${chalk.green('installed')} @ ${installed.version}`);

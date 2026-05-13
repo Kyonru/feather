@@ -186,6 +186,7 @@ function PackageWorkflow({
         </Box>
         <Text color="gray">{entry.description}</Text>
         <Text color="gray">github.com/{entry.source.repo}</Text>
+        {entry.license ? <Text color="gray">license: {entry.license}</Text> : null}
         {entry.subpackages?.length ? <Text color="gray">modules: {entry.subpackages.join(', ')}</Text> : null}
         <Box flexDirection="column" marginTop={1}>
           {actions.map((act, i) => (

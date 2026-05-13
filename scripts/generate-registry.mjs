@@ -56,6 +56,7 @@ for (const file of packageFiles) {
         description: sub.description ?? `${id} — ${subId.split(".").pop()} module`,
         tags: pkg.tags ?? [],
         homepage: pkg.homepage,
+        license: pkg.license,
         source: pkg.source,
         install: {
           files: (pkg.install?.files ?? []).filter((f) =>
@@ -74,6 +75,7 @@ for (const file of packageFiles) {
     description: pkg.description,
     tags: pkg.tags ?? [],
     homepage: pkg.homepage,
+    license: pkg.license,
     source: pkg.source,
     install: pkg.install,
     subpackages: pkg.subpackages ? Object.keys(pkg.subpackages) : undefined,

@@ -1,54 +1,48 @@
 #!/usr/bin/env node
 /**
- * Interactive wizard to add a new package to the Feather catalog.
+ * Interactive wizard to update an existing package in the Feather catalog.
  *
  * Usage (from repo root):
- *   npm run package:add
+ *   npm run package:update
+ *
+ * Loads packages/<id>.json, pre-fills every field so you can change only
+ * what's wrong, re-computes checksums, and overwrites the file.
  */
 
 import { render, Text, Box, useApp } from 'ink';
 import { useState, useEffect } from 'react';
-import { existsSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import {
-  root,
-  packagesDir,
-  type FormData,
-  type FileEntry,
-  TextInputStep,
-  SelectStep,
-  MultiSelectStep,
-  AutoStep,
-  TargetsStep,
-  ReviewStep,
-  ChecksumStep,
-  fetchRepoMeta,
-  fetchLuaFiles,
-  buildPackageJson,
+  root, packagesDir,
+  type FormData, type FileEntry,
+  TextInputStep, SelectStep, MultiSelectStep,
+  AutoStep, TargetsStep, ReviewStep, ChecksumStep,
+  fetchRepoMeta, fetchLuaFiles, buildPackageJson,
 } from './wizard-shared.js';
 
-// ─── Steps ────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Step =
-  | 'id'
-  | 'repo'
-  | 'fetch-tags'
-  | 'tag'
-  | 'trust'
-  | 'description'
-  | 'pkg-tags'
-  | 'fetch-files'
-  | 'files'
-  | 'targets'
-  | 'require'
-  | 'fetch-checksums'
-  | 'review'
-  | 'write'
-  | 'done'
-  | 'error';
+  | 'pick' | 'repo' | 'fetch-tags' | 'tag' | 'trust'
+  | 'description' | 'pkg-tags' | 'fetch-files' | 'files'
+  | 'targets' | 'require' | 'fetch-checksums' | 'review'
+  | 'write' | 'done' | 'error';
 
-const TITLE = 'feather package:add';
+interface RawPackage {
+  trust?: string;
+  description?: string;
+  tags?: string[];
+  homepage?: string;
+  license?: string;
+  source?: { repo?: string; tag?: string; baseUrl?: string };
+  install?: { files?: Array<{ name: string; sha256: string; target: string }> };
+  require?: string;
+  example?: string;
+}
+
+const TITLE = 'feather package:update';
 const TOTAL = 11;
 
 // ─── Done step ────────────────────────────────────────────────────────────────
@@ -61,18 +55,11 @@ function DoneStep({ id, onExit }: { id: string; onExit: () => void }) {
 
   return (
     <Box flexDirection="column" paddingLeft={2} paddingTop={1}>
-      <Text color="green" bold>
-        ✔ Done!
-      </Text>
-      <Text>
-        {'  '}packages/{id}.json written
-      </Text>
+      <Text color="green" bold>✔ Done!</Text>
+      <Text>{'  '}packages/{id}.json updated</Text>
       <Text>{'  '}Registry regenerated</Text>
       <Box marginTop={1}>
         <Text dimColor>Commit packages/{id}.json and cli/src/generated/registry.json</Text>
-      </Box>
-      <Box>
-        <Text dimColor>Then push — GitHub Actions will publish to the packages branch.</Text>
       </Box>
     </Box>
   );
@@ -82,49 +69,65 @@ function DoneStep({ id, onExit }: { id: string; onExit: () => void }) {
 
 function Wizard() {
   const { exit } = useApp();
-  const [step, setStep] = useState<Step>('id');
+  const [step, setStep] = useState<Step>('pick');
   const [data, setData] = useState<Partial<FormData>>({});
   const [fetchedTags, setFetchedTags] = useState<string[]>([]);
   const [fetchedFiles, setFetchedFiles] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [outputJson, setOutputJson] = useState('');
 
-  const handleError = (msg: string) => {
-    setErrorMsg(msg);
-    setStep('error');
-  };
+  // pre-selection state from the loaded package
+  const [initialTagIndex, setInitialTagIndex] = useState(0);
+  const [initialFileSelected, setInitialFileSelected] = useState<Set<number> | undefined>(undefined);
+  const [initialTargets, setInitialTargets] = useState<Record<string, string> | undefined>(undefined);
 
-  if (step === 'id') {
+  const handleError = (msg: string) => { setErrorMsg(msg); setStep('error'); };
+
+  // Step 1: pick which package to update
+  if (step === 'pick') {
+    const ids = readdirSync(packagesDir)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => f.replace(/\.json$/, ''))
+      .sort();
+
     return (
-      <TextInputStep
-        stepNum={1}
-        total={TOTAL}
-        title={TITLE}
-        label="Package ID"
-        hint="Lowercase letters, numbers, dots, hyphens (e.g. anim8, hump.camera)"
-        validate={(v) => {
-          if (!v) return 'Required';
-          if (!/^[a-z0-9][a-z0-9.-]*$/.test(v)) return 'Use only a-z, 0-9, dots, hyphens';
-          if (existsSync(join(packagesDir, `${v}.json`)))
-            return `packages/${v}.json already exists — use package:update to edit it`;
-          return null;
-        }}
-        onSubmit={(id) => {
-          setData((d) => ({ ...d, id }));
+      <SelectStep
+        stepNum={1} total={TOTAL} title={TITLE}
+        label="Which package do you want to update?"
+        options={ids}
+        onSelect={(id) => {
+          const raw: RawPackage = JSON.parse(readFileSync(join(packagesDir, `${id}.json`), 'utf8'));
+          const existingFiles = raw.install?.files ?? [];
+          setInitialTargets(Object.fromEntries(existingFiles.map((f) => [f.name, f.target])));
+          setData({
+            id,
+            repo: raw.source?.repo ?? '',
+            homepage: raw.homepage ?? `https://github.com/${raw.source?.repo ?? ''}`,
+            license: raw.license ?? '',
+            tag: raw.source?.tag ?? '',
+            baseUrl: raw.source?.baseUrl ?? '',
+            trust: (raw.trust as FormData['trust']) ?? 'known',
+            description: raw.description ?? '',
+            tags: raw.tags ?? [],
+            selectedFiles: existingFiles.map((f) => f.name),
+            targetMap: Object.fromEntries(existingFiles.map((f) => [f.name, f.target])),
+            require: raw.require ?? '',
+            example: raw.example ?? '',
+          });
           setStep('repo');
         }}
       />
     );
   }
 
+  // Step 2: repo (pre-filled)
   if (step === 'repo') {
     return (
       <TextInputStep
-        stepNum={2}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={2} total={TOTAL} title={TITLE}
         label="GitHub repository"
-        hint="owner/repo  (e.g. kikito/anim8)"
+        hint="owner/repo — edit if the source moved"
+        defaultValue={data.repo ?? ''}
         validate={(v) => {
           if (!v) return 'Required';
           if (!/^[^/]+\/[^/]+$/.test(v)) return 'Must be owner/repo format';
@@ -138,14 +141,18 @@ function Wizard() {
     );
   }
 
+  // Step 3: fetch tags + license
   if (step === 'fetch-tags') {
     return (
       <AutoStep
         label={`Fetching metadata for ${data.repo}…`}
         run={async () => {
           const { tags, license } = await fetchRepoMeta(data.repo!);
-          if (tags.length === 0) throw new Error('No tags found. Push a release tag first.');
+          if (tags.length === 0) throw new Error('No tags found.');
           setFetchedTags(tags);
+          // pre-position cursor at the currently pinned tag
+          const idx = tags.indexOf(data.tag ?? '');
+          setInitialTagIndex(idx >= 0 ? idx : 0);
           setData((d) => ({ ...d, license }));
           setStep('tag');
         }}
@@ -154,15 +161,15 @@ function Wizard() {
     );
   }
 
+  // Step 4: select tag (cursor starts at current pin)
   if (step === 'tag') {
     return (
       <SelectStep
-        stepNum={3}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={3} total={TOTAL} title={TITLE}
         label="Select release tag to pin"
-        hint={`${fetchedTags.length} tags available`}
+        hint={`currently pinned: ${data.tag ?? '—'}`}
         options={fetchedTags}
+        initialIndex={initialTagIndex}
         onSelect={(tag) => {
           setData((d) => ({ ...d, tag, baseUrl: `https://raw.githubusercontent.com/${d.repo}/${tag}/` }));
           setStep('trust');
@@ -171,15 +178,16 @@ function Wizard() {
     );
   }
 
+  // Step 5: trust level
   if (step === 'trust') {
+    const currentIdx = ['verified', 'known'].indexOf(data.trust ?? 'known');
     return (
       <SelectStep
-        stepNum={4}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={4} total={TOTAL} title={TITLE}
         label="Trust level"
         hint="verified = Feather-reviewed · known = popular, checksum-pinned"
         options={['verified', 'known']}
+        initialIndex={currentIdx >= 0 ? currentIdx : 0}
         onSelect={(trust) => {
           setData((d) => ({ ...d, trust: trust as FormData['trust'] }));
           setStep('description');
@@ -188,37 +196,30 @@ function Wizard() {
     );
   }
 
+  // Step 6: description
   if (step === 'description') {
     return (
       <TextInputStep
-        stepNum={5}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={5} total={TOTAL} title={TITLE}
         label="Description"
-        hint="One sentence describing what the library does"
+        defaultValue={data.description ?? ''}
         validate={(v) => (v ? null : 'Required')}
-        onSubmit={(description) => {
-          setData((d) => ({ ...d, description }));
-          setStep('pkg-tags');
-        }}
+        onSubmit={(description) => { setData((d) => ({ ...d, description })); setStep('pkg-tags'); }}
       />
     );
   }
 
+  // Step 7: tags
   if (step === 'pkg-tags') {
     return (
       <TextInputStep
-        stepNum={6}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={6} total={TOTAL} title={TITLE}
         label="Tags"
         hint="Comma-separated (e.g. animation,sprites)"
+        defaultValue={(data.tags ?? []).join(', ')}
         validate={(v) => (v ? null : 'Required')}
         onSubmit={(tagStr) => {
-          const tags = tagStr
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean);
+          const tags = tagStr.split(',').map((t) => t.trim()).filter(Boolean);
           setData((d) => ({ ...d, tags }));
           setStep('fetch-files');
         }}
@@ -226,6 +227,7 @@ function Wizard() {
     );
   }
 
+  // Step 8: fetch files for the (possibly new) tag
   if (step === 'fetch-files') {
     return (
       <AutoStep
@@ -234,6 +236,9 @@ function Wizard() {
           const files = await fetchLuaFiles(data.repo!, data.tag!);
           if (files.length === 0) throw new Error('No .lua files found at this tag.');
           setFetchedFiles(files);
+          // pre-select files that were already installed
+          const existing = new Set(data.selectedFiles ?? []);
+          setInitialFileSelected(new Set(files.map((f, i) => ({ f, i })).filter(({ f }) => existing.has(f)).map(({ i }) => i)));
           setStep('files');
         }}
         onError={handleError}
@@ -241,15 +246,15 @@ function Wizard() {
     );
   }
 
+  // Step 9: multi-select files
   if (step === 'files') {
     return (
       <MultiSelectStep
-        stepNum={7}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={7} total={TOTAL} title={TITLE}
         label="Select files to install"
-        hint={`${fetchedFiles.length} .lua files · all selected by default`}
+        hint={`${fetchedFiles.length} .lua files · previously installed files pre-selected`}
         options={fetchedFiles}
+        initialSelected={initialFileSelected}
         onSubmit={(selectedFiles) => {
           setData((d) => ({ ...d, selectedFiles }));
           setStep('targets');
@@ -258,32 +263,26 @@ function Wizard() {
     );
   }
 
+  // Step 10: target paths (pre-filled from existing package)
   if (step === 'targets') {
     return (
       <TargetsStep
-        stepNum={8}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={8} total={TOTAL} title={TITLE}
         id={data.id!}
         files={data.selectedFiles!}
-        onSubmit={(targetMap) => {
-          setData((d) => ({ ...d, targetMap }));
-          setStep('require');
-        }}
+        initialTargets={initialTargets}
+        onSubmit={(targetMap) => { setData((d) => ({ ...d, targetMap })); setStep('require'); }}
       />
     );
   }
 
+  // Step 11: require path
   if (step === 'require') {
-    const firstTarget = Object.values(data.targetMap ?? {})[0] ?? `lib/${data.id}.lua`;
-    const suggested = firstTarget.replace(/\.lua$/, '').replace(/\//g, '.');
     return (
       <TextInputStep
-        stepNum={9}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={9} total={TOTAL} title={TITLE}
         label="Require path"
-        defaultValue={suggested}
+        defaultValue={data.require ?? ''}
         validate={(v) => (v ? null : 'Required')}
         onSubmit={(req) => {
           const example = `local ${data.id!.replace(/[.-]/g, '_')} = require('${req}')`;
@@ -294,6 +293,7 @@ function Wizard() {
     );
   }
 
+  // Step 12: compute checksums (always fresh — tag may have changed)
   if (step === 'fetch-checksums') {
     const fileList = (data.selectedFiles ?? []).map((name) => ({ name, url: data.baseUrl! + name }));
     return (
@@ -315,32 +315,27 @@ function Wizard() {
     );
   }
 
+  // Step 13: review
   if (step === 'review') {
     return (
       <ReviewStep
-        stepNum={10}
-        total={TOTAL}
-        title={TITLE}
+        stepNum={10} total={TOTAL} title={TITLE}
         json={outputJson}
         onConfirm={() => setStep('write')}
-        onAbort={() => {
-          setErrorMsg('Aborted.');
-          setStep('error');
-        }}
+        onAbort={() => { setErrorMsg('Aborted.'); setStep('error'); }}
       />
     );
   }
 
+  // Step 14: write + regenerate
   if (step === 'write') {
     return (
       <AutoStep
-        label={`Writing packages/${data.id}.json and regenerating registry…`}
+        label={`Updating packages/${data.id}.json and regenerating registry…`}
         run={async () => {
           writeFileSync(join(packagesDir, `${data.id}.json`), outputJson + '\n', 'utf8');
           const result = spawnSync(process.execPath, [join(root, 'scripts', 'generate-registry.mjs')], {
-            cwd: root,
-            stdio: 'pipe',
-            encoding: 'utf8',
+            cwd: root, stdio: 'pipe', encoding: 'utf8',
           });
           if (result.status !== 0) throw new Error(result.stderr || 'generate-registry.mjs failed');
           setStep('done');
@@ -354,9 +349,7 @@ function Wizard() {
 
   return (
     <Box flexDirection="column" paddingLeft={2} paddingTop={1}>
-      <Text color="red" bold>
-        ✖ Error
-      </Text>
+      <Text color="red" bold>✖ Error</Text>
       <Text>{errorMsg}</Text>
     </Box>
   );

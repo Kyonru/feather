@@ -22,6 +22,7 @@ export type RegistryEntry = {
   description: string;
   tags: string[];
   homepage?: string;
+  license?: string;
   source: {
     repo: string;
     tag: string;
