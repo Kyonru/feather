@@ -28,8 +28,6 @@ import {
   buildPackageJson,
 } from './wizard-shared.js';
 
-// ─── Steps ────────────────────────────────────────────────────────────────────
-
 type Step =
   | 'id'
   | 'repo'
@@ -50,8 +48,6 @@ type Step =
 
 const TITLE = 'feather package:add';
 const TOTAL = 11;
-
-// ─── Done step ────────────────────────────────────────────────────────────────
 
 function DoneStep({ id, onExit }: { id: string; onExit: () => void }) {
   useEffect(() => {
@@ -78,15 +74,13 @@ function DoneStep({ id, onExit }: { id: string; onExit: () => void }) {
   );
 }
 
-// ─── Wizard ───────────────────────────────────────────────────────────────────
-
 function Wizard() {
   const { exit } = useApp();
   const [step, setStep] = useState<Step>('id');
   const [data, setData] = useState<Partial<FormData>>({});
   const [fetchedTags, setFetchedTags] = useState<string[]>([]);
+  const [fetchedLabels, setFetchedLabels] = useState<string[]>([]);
   const [fetchedFiles, setFetchedFiles] = useState<string[]>([]);
-  const [tagsAreBranches, setTagsAreBranches] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [outputJson, setOutputJson] = useState('');
 
@@ -146,9 +140,11 @@ function Wizard() {
         run={async () => {
           const { tags, branches, defaultBranch, license } = await fetchRepoMeta(data.repo!);
           if (tags.length === 0 && branches.length === 0) throw new Error('No tags or branches found.');
-          const useBranches = tags.length === 0;
-          setTagsAreBranches(useBranches);
-          setFetchedTags(useBranches ? [defaultBranch, ...branches.filter((b) => b !== defaultBranch)] : tags);
+          const orderedBranches = [defaultBranch, ...branches.filter((b) => b !== defaultBranch)];
+          const values = [...tags, ...orderedBranches];
+          const labels = [...tags.map((t) => t), ...orderedBranches.map((b) => `⎇  ${b}`)];
+          setFetchedTags(values);
+          setFetchedLabels(labels);
           setData((d) => ({ ...d, license }));
           setStep('tag');
         }}
@@ -158,17 +154,15 @@ function Wizard() {
   }
 
   if (step === 'tag') {
-    const isBranch = tagsAreBranches;
     return (
       <SelectStep
         stepNum={3}
         total={TOTAL}
         title={TITLE}
-        label={isBranch ? 'Select branch to pin (no releases found)' : 'Select release tag to pin'}
-        hint={isBranch
-          ? `${fetchedTags.length} branches · default branch listed first`
-          : `${fetchedTags.length} tags available`}
+        label="Select tag or branch to pin"
+        hint={`${fetchedTags.length} options · tags first, then branches (⎇)`}
         options={fetchedTags}
+        labels={fetchedLabels}
         onSelect={(tag) => {
           setData((d) => ({ ...d, tag, baseUrl: `https://raw.githubusercontent.com/${d.repo}/${tag}/` }));
           setStep('trust');
@@ -367,8 +361,6 @@ function Wizard() {
     </Box>
   );
 }
-
-// ─── Entry ────────────────────────────────────────────────────────────────────
 
 const { waitUntilExit } = render(<Wizard />);
 await waitUntilExit();

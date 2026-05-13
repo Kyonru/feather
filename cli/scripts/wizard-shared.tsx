@@ -12,8 +12,6 @@ export const __dirname = dirname(fileURLToPath(import.meta.url));
 export const root = resolve(__dirname, '../..');
 export const packagesDir = join(root, 'packages');
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export interface FileEntry {
   name: string;
   target: string;
@@ -39,13 +37,12 @@ export interface FormData {
 
 export type InkKey = Parameters<Parameters<typeof useInput>[0]>[1];
 
-// ─── Header & Hint ───────────────────────────────────────────────────────────
-
 export function Header({ step, total, title }: { step: number; total: number; title?: string }) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Text bold color="cyan">
-        {'  '}{title ?? 'feather package:add'}
+        {'  '}
+        {title ?? 'feather package:add'}
       </Text>
       <Text dimColor>{`  Step ${step} of ${total}`}</Text>
     </Box>
@@ -61,8 +58,6 @@ export function Hint({ children }: { children: string }) {
   );
 }
 
-// ─── Cursor-aware text input ──────────────────────────────────────────────────
-
 export function useTextInput(initial: string) {
   const [value, setValue] = useState(initial);
   const [cursor, setCursor] = useState(initial.length);
@@ -73,8 +68,14 @@ export function useTextInput(initial: string) {
   };
 
   const handleKey = (input: string, key: InkKey) => {
-    if (key.leftArrow) { setCursor((c) => Math.max(0, c - 1)); return true; }
-    if (key.rightArrow) { setCursor((c) => Math.min(value.length, c + 1)); return true; }
+    if (key.leftArrow) {
+      setCursor((c) => Math.max(0, c - 1));
+      return true;
+    }
+    if (key.rightArrow) {
+      setCursor((c) => Math.min(value.length, c + 1));
+      return true;
+    }
     if (key.backspace) {
       if (cursor === 0) return true;
       const pos = cursor;
@@ -117,8 +118,6 @@ export function CursorText({ before, at, after }: { before: string; at: string; 
   );
 }
 
-// ─── TextInputStep ────────────────────────────────────────────────────────────
-
 interface TextInputStepProps {
   stepNum: number;
   total: number;
@@ -130,14 +129,26 @@ interface TextInputStepProps {
   title?: string;
 }
 
-export function TextInputStep({ stepNum, total, label, hint, defaultValue = '', validate, onSubmit, title }: TextInputStepProps) {
+export function TextInputStep({
+  stepNum,
+  total,
+  label,
+  hint,
+  defaultValue = '',
+  validate,
+  onSubmit,
+  title,
+}: TextInputStepProps) {
   const input = useTextInput(defaultValue);
   const [error, setError] = useState<string | null>(null);
 
   useInput((char, key) => {
     if (key.return) {
       const err = validate ? validate(input.value.trim()) : null;
-      if (err) { setError(err); return; }
+      if (err) {
+        setError(err);
+        return;
+      }
       onSubmit(input.value.trim());
       return;
     }
@@ -148,13 +159,23 @@ export function TextInputStep({ stepNum, total, label, hint, defaultValue = '', 
   return (
     <Box flexDirection="column">
       <Header step={stepNum} total={total} title={title} />
-      <Text bold>{'  '}{label}</Text>
+      <Text bold>
+        {'  '}
+        {label}
+      </Text>
       {hint && <Hint>{hint}</Hint>}
       <Box marginTop={1}>
         <Text>{'  '}</Text>
         <CursorText before={input.before} at={input.at} after={input.after} />
       </Box>
-      {error && <Box marginTop={1}><Text color="red">{'  ✖ '}{error}</Text></Box>}
+      {error && (
+        <Box marginTop={1}>
+          <Text color="red">
+            {'  ✖ '}
+            {error}
+          </Text>
+        </Box>
+      )}
       <Box marginTop={1}>
         <Text dimColor>{'  ←→ move · Backspace/Delete edit · Enter confirm'}</Text>
       </Box>
@@ -162,20 +183,29 @@ export function TextInputStep({ stepNum, total, label, hint, defaultValue = '', 
   );
 }
 
-// ─── SelectStep ───────────────────────────────────────────────────────────────
-
 interface SelectStepProps {
   stepNum: number;
   total: number;
   label: string;
   hint?: string;
   options: string[];
+  labels?: string[]; // display labels parallel to options; falls back to option value
   initialIndex?: number;
   onSelect: (value: string) => void;
   title?: string;
 }
 
-export function SelectStep({ stepNum, total, label, hint, options, initialIndex = 0, onSelect, title }: SelectStepProps) {
+export function SelectStep({
+  stepNum,
+  total,
+  label,
+  hint,
+  options,
+  labels,
+  initialIndex = 0,
+  onSelect,
+  title,
+}: SelectStepProps) {
   const [cursor, setCursor] = useState(initialIndex);
 
   useInput((_, key) => {
@@ -187,13 +217,18 @@ export function SelectStep({ stepNum, total, label, hint, options, initialIndex 
   return (
     <Box flexDirection="column">
       <Header step={stepNum} total={total} title={title} />
-      <Text bold>{'  '}{label}</Text>
+      <Text bold>
+        {'  '}
+        {label}
+      </Text>
       {hint && <Hint>{hint}</Hint>}
       <Box flexDirection="column" marginTop={1}>
         {options.map((opt, i) => (
           <Box key={opt}>
             <Text color={i === cursor ? 'cyan' : undefined}>
-              {'  '}{i === cursor ? '❯ ' : '  '}{opt}
+              {'  '}
+              {i === cursor ? '❯ ' : '  '}
+              {labels?.[i] ?? opt}
             </Text>
           </Box>
         ))}
@@ -204,8 +239,6 @@ export function SelectStep({ stepNum, total, label, hint, options, initialIndex 
     </Box>
   );
 }
-
-// ─── MultiSelectStep ──────────────────────────────────────────────────────────
 
 interface MultiSelectStepProps {
   stepNum: number;
@@ -218,11 +251,18 @@ interface MultiSelectStepProps {
   title?: string;
 }
 
-export function MultiSelectStep({ stepNum, total, label, hint, options, initialSelected, onSubmit, title }: MultiSelectStepProps) {
+export function MultiSelectStep({
+  stepNum,
+  total,
+  label,
+  hint,
+  options,
+  initialSelected,
+  onSubmit,
+  title,
+}: MultiSelectStepProps) {
   const [cursor, setCursor] = useState(0);
-  const [selected, setSelected] = useState<Set<number>>(
-    initialSelected ?? new Set(options.map((_, i) => i)),
-  );
+  const [selected, setSelected] = useState<Set<number>>(initialSelected ?? new Set(options.map((_, i) => i)));
 
   useInput((input, key) => {
     if (key.upArrow) setCursor((c) => Math.max(0, c - 1));
@@ -230,6 +270,7 @@ export function MultiSelectStep({ stepNum, total, label, hint, options, initialS
     if (input === ' ') {
       setSelected((s) => {
         const next = new Set(s);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         next.has(cursor) ? next.delete(cursor) : next.add(cursor);
         return next;
       });
@@ -243,13 +284,17 @@ export function MultiSelectStep({ stepNum, total, label, hint, options, initialS
   return (
     <Box flexDirection="column">
       <Header step={stepNum} total={total} title={title} />
-      <Text bold>{'  '}{label}</Text>
+      <Text bold>
+        {'  '}
+        {label}
+      </Text>
       {hint && <Hint>{hint}</Hint>}
       <Box flexDirection="column" marginTop={1}>
         {options.map((opt, i) => (
           <Box key={opt}>
             <Text color={i === cursor ? 'cyan' : undefined}>
-              {'  '}{i === cursor ? '❯ ' : '  '}
+              {'  '}
+              {i === cursor ? '❯ ' : '  '}
               {selected.has(i) ? '◉ ' : '○ '}
               {opt}
             </Text>
@@ -262,8 +307,6 @@ export function MultiSelectStep({ stepNum, total, label, hint, options, initialS
     </Box>
   );
 }
-
-// ─── Spinner & AutoStep ───────────────────────────────────────────────────────
 
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
@@ -312,8 +355,6 @@ export function AutoStep({ label, run, onError }: AutoStepProps) {
   );
 }
 
-// ─── TargetsStep ──────────────────────────────────────────────────────────────
-
 interface TargetsStepProps {
   stepNum: number;
   total: number;
@@ -325,8 +366,7 @@ interface TargetsStepProps {
 }
 
 export function TargetsStep({ stepNum, total, id, files, initialTargets, onSubmit, title }: TargetsStepProps) {
-  const defaultTarget = (f: string) =>
-    initialTargets?.[f] ?? (files.length === 1 ? `lib/${f}` : `lib/${id}/${f}`);
+  const defaultTarget = (f: string) => initialTargets?.[f] ?? (files.length === 1 ? `lib/${f}` : `lib/${id}/${f}`);
 
   const [index, setIndex] = useState(0);
   const [targets, setTargets] = useState<Record<string, string>>(
@@ -339,8 +379,14 @@ export function TargetsStep({ stepNum, total, id, files, initialTargets, onSubmi
 
   const advance = () => {
     const val = textInput.value.trim();
-    if (!val) { setError('Target path is required'); return; }
-    if (!val.endsWith('.lua')) { setError('Target path must end in .lua'); return; }
+    if (!val) {
+      setError('Target path is required');
+      return;
+    }
+    if (!val.endsWith('.lua')) {
+      setError('Target path must end in .lua');
+      return;
+    }
     const next = { ...targets, [file]: val };
     setTargets(next);
     if (index + 1 < files.length) {
@@ -354,7 +400,10 @@ export function TargetsStep({ stepNum, total, id, files, initialTargets, onSubmi
   };
 
   useInput((char, key) => {
-    if (key.return) { advance(); return; }
+    if (key.return) {
+      advance();
+      return;
+    }
     textInput.handleKey(char, key);
     setError(null);
   });
@@ -368,15 +417,20 @@ export function TargetsStep({ stepNum, total, id, files, initialTargets, onSubmi
         <Text>{'  '}</Text>
         <CursorText before={textInput.before} at={textInput.at} after={textInput.after} />
       </Box>
-      {error && <Box marginTop={1}><Text color="red">{'  ✖ '}{error}</Text></Box>}
+      {error && (
+        <Box marginTop={1}>
+          <Text color="red">
+            {'  ✖ '}
+            {error}
+          </Text>
+        </Box>
+      )}
       <Box marginTop={1}>
         <Text dimColor>{'  ←→ move · Backspace/Delete edit · Enter confirm'}</Text>
       </Box>
     </Box>
   );
 }
-
-// ─── ReviewStep ───────────────────────────────────────────────────────────────
 
 interface ReviewStepProps {
   stepNum: number;
@@ -399,7 +453,10 @@ export function ReviewStep({ stepNum, total, json, onConfirm, onAbort, title }: 
       <Text bold>{'  '}Review generated package</Text>
       <Box marginTop={1} flexDirection="column">
         {json.split('\n').map((line, i) => (
-          <Text key={i}>{'  '}{line}</Text>
+          <Text key={i}>
+            {'  '}
+            {line}
+          </Text>
         ))}
       </Box>
       <Box marginTop={1}>
@@ -408,8 +465,6 @@ export function ReviewStep({ stepNum, total, json, onConfirm, onAbort, title }: 
     </Box>
   );
 }
-
-// ─── ChecksumStep ─────────────────────────────────────────────────────────────
 
 interface ChecksumStepProps {
   files: Array<{ name: string; url: string }>;
@@ -447,11 +502,20 @@ export function ChecksumStep({ files, onDone, onError }: ChecksumStepProps) {
         return (
           <Box key={f.name}>
             {sha ? (
-              <Text color="green">{'  ✔ '}{f.name}</Text>
+              <Text color="green">
+                {'  ✔ '}
+                {f.name}
+              </Text>
             ) : isActive ? (
-              <Box><Text color="cyan">{'  '}</Text><Spinner label={f.name} /></Box>
+              <Box>
+                <Text color="cyan">{'  '}</Text>
+                <Spinner label={f.name} />
+              </Box>
             ) : (
-              <Text dimColor>{'  ○ '}{f.name}</Text>
+              <Text dimColor>
+                {'  ○ '}
+                {f.name}
+              </Text>
             )}
           </Box>
         );
@@ -459,8 +523,6 @@ export function ChecksumStep({ files, onDone, onError }: ChecksumStepProps) {
     </Box>
   );
 }
-
-// ─── GitHub API helpers ───────────────────────────────────────────────────────
 
 const GH_HEADERS = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
 
@@ -504,8 +566,6 @@ export async function fetchLuaFiles(repo: string, tag: string): Promise<string[]
     .map((node) => node.path)
     .sort();
 }
-
-// ─── Registry regeneration ────────────────────────────────────────────────────
 
 export function buildPackageJson(data: FormData): object {
   return {
