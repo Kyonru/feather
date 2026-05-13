@@ -12,7 +12,8 @@
   "source": {
     "repo": "bjornbytes/cargo",
     "tag": "v0.1.1",
-    "baseUrl": "https://raw.githubusercontent.com/bjornbytes/cargo/v0.1.1/"
+    "baseUrl": "https://raw.githubusercontent.com/bjornbytes/cargo/8014bc0ad7d4639c112e5d00fac6c9ac68b0d696/",
+    "commitSha": "8014bc0ad7d4639c112e5d00fac6c9ac68b0d696"
   },
   "install": {
     "files": [

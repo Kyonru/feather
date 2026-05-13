@@ -21,7 +21,8 @@
   "source": {
     "repo": "oval-tutu/shove",
     "tag": "1.0.6",
-    "baseUrl": "https://raw.githubusercontent.com/oval-tutu/shove/1.0.6/"
+    "baseUrl": "https://raw.githubusercontent.com/oval-tutu/shove/ee1dedbca78ca988589edd4c5314d7e662223973/",
+    "commitSha": "ee1dedbca78ca988589edd4c5314d7e662223973"
   },
   "install": {
     "files": [

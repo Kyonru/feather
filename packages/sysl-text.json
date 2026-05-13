@@ -14,7 +14,8 @@
   "source": {
     "repo": "sysl-dev/SYSL-Text",
     "tag": "v2.2",
-    "baseUrl": "https://raw.githubusercontent.com/sysl-dev/SYSL-Text/v2.2/"
+    "baseUrl": "https://raw.githubusercontent.com/sysl-dev/SYSL-Text/6c9b95047cb8650344e90224cd56bd00c5132d97/",
+    "commitSha": "6c9b95047cb8650344e90224cd56bd00c5132d97"
   },
   "install": {
     "files": [

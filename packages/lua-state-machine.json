@@ -12,7 +12,8 @@
   "source": {
     "repo": "kyleconroy/lua-state-machine",
     "tag": "master",
-    "baseUrl": "https://raw.githubusercontent.com/kyleconroy/lua-state-machine/master/"
+    "baseUrl": "https://raw.githubusercontent.com/kyleconroy/lua-state-machine/96fc10ee123479cf2e5fb8ffe9cdde2fd6df0877/",
+    "commitSha": "96fc10ee123479cf2e5fb8ffe9cdde2fd6df0877"
   },
   "install": {
     "files": [

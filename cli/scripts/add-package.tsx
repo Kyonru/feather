@@ -25,6 +25,7 @@ import {
   ReviewStep,
   ChecksumStep,
   fetchRepoMeta,
+  fetchCommitSha,
   fetchLuaFiles,
   buildPackageJson,
 } from './wizard-shared.js';
@@ -34,6 +35,7 @@ type Step =
   | 'repo'
   | 'fetch-tags'
   | 'tag'
+  | 'resolve-commit'
   | 'trust'
   | 'description'
   | 'pkg-tags'
@@ -166,9 +168,27 @@ function Wizard() {
         options={fetchedTags}
         labels={fetchedLabels}
         onSelect={(tag) => {
-          setData((d) => ({ ...d, tag, baseUrl: `https://raw.githubusercontent.com/${d.repo}/${tag}/` }));
+          setData((d) => ({ ...d, tag }));
+          setStep('resolve-commit');
+        }}
+      />
+    );
+  }
+
+  if (step === 'resolve-commit') {
+    return (
+      <AutoStep
+        label={`Resolving ${data.tag} to commit SHA…`}
+        run={async () => {
+          const commitSha = await fetchCommitSha(data.repo!, data.tag!);
+          setData((d) => ({
+            ...d,
+            commitSha,
+            baseUrl: `https://raw.githubusercontent.com/${d.repo}/${commitSha}/`,
+          }));
           setStep('trust');
         }}
+        onError={handleError}
       />
     );
   }

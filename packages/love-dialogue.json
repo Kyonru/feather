@@ -14,7 +14,8 @@
   "source": {
     "repo": "Miisan-png/Love-Dialogue",
     "tag": "main",
-    "baseUrl": "https://raw.githubusercontent.com/Miisan-png/Love-Dialogue/main/"
+    "baseUrl": "https://raw.githubusercontent.com/Miisan-png/Love-Dialogue/1d1cbd1f6730fbaf73fab18a2d33ee3525abfb75/",
+    "commitSha": "1d1cbd1f6730fbaf73fab18a2d33ee3525abfb75"
   },
   "install": {
     "files": [

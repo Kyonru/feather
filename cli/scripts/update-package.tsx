@@ -28,6 +28,7 @@ import {
   ReviewStep,
   ChecksumStep,
   fetchRepoMeta,
+  fetchCommitSha,
   fetchLuaFiles,
   buildPackageJson,
 } from './wizard-shared.js';
@@ -37,6 +38,7 @@ type Step =
   | 'repo'
   | 'fetch-tags'
   | 'tag'
+  | 'resolve-commit'
   | 'trust'
   | 'description'
   | 'pkg-tags'
@@ -57,7 +59,7 @@ interface RawPackage {
   tags?: string[];
   homepage?: string;
   license?: string;
-  source?: { repo?: string; tag?: string; baseUrl?: string };
+  source?: { repo?: string; tag?: string; commitSha?: string; baseUrl?: string };
   install?: { files?: Array<{ name: string; sha256: string; target: string }> };
   require?: string;
   example?: string;
@@ -135,6 +137,7 @@ function Wizard() {
             homepage: raw.homepage ?? `https://github.com/${raw.source?.repo ?? ''}`,
             license: raw.license ?? '',
             tag: raw.source?.tag ?? '',
+            commitSha: raw.source?.commitSha ?? '',
             baseUrl: raw.source?.baseUrl ?? '',
             trust: (raw.trust as FormData['trust']) ?? 'known',
             description: raw.description ?? '',
@@ -211,9 +214,27 @@ function Wizard() {
         labels={fetchedLabels}
         initialIndex={initialTagIndex}
         onSelect={(tag) => {
-          setData((d) => ({ ...d, tag, baseUrl: `https://raw.githubusercontent.com/${d.repo}/${tag}/` }));
+          setData((d) => ({ ...d, tag }));
+          setStep('resolve-commit');
+        }}
+      />
+    );
+  }
+
+  if (step === 'resolve-commit') {
+    return (
+      <AutoStep
+        label={`Resolving ${data.tag} to commit SHA…`}
+        run={async () => {
+          const commitSha = await fetchCommitSha(data.repo!, data.tag!);
+          setData((d) => ({
+            ...d,
+            commitSha,
+            baseUrl: `https://raw.githubusercontent.com/${d.repo}/${commitSha}/`,
+          }));
           setStep('trust');
         }}
+        onError={handleError}
       />
     );
   }

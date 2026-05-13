@@ -23,7 +23,8 @@
   "source": {
     "repo": "airstruck/knife",
     "tag": "master",
-    "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+    "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+    "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
   },
   "install": {
     "files": [
@@ -93,51 +94,75 @@
   "example": "local knife = require('lib.knife.base')",
   "subpackages": {
     "knife.base": {
-      "files": ["knife/base.lua"],
+      "files": [
+        "knife/base.lua"
+      ],
       "require": "lib.knife.base"
     },
     "knife.behavior": {
-      "files": ["knife/behavior.lua"],
+      "files": [
+        "knife/behavior.lua"
+      ],
       "require": "lib.knife.behavior"
     },
     "knife.bind": {
-      "files": ["knife/bind.lua"],
+      "files": [
+        "knife/bind.lua"
+      ],
       "require": "lib.knife.bind"
     },
     "knife.chain": {
-      "files": ["knife/chain.lua"],
+      "files": [
+        "knife/chain.lua"
+      ],
       "require": "lib.knife.chain"
     },
     "knife.convoke": {
-      "files": ["knife/convoke.lua"],
+      "files": [
+        "knife/convoke.lua"
+      ],
       "require": "lib.knife.convoke"
     },
     "knife.event": {
-      "files": ["knife/event.lua"],
+      "files": [
+        "knife/event.lua"
+      ],
       "require": "lib.knife.event"
     },
     "knife.gun": {
-      "files": ["knife/gun.lua"],
+      "files": [
+        "knife/gun.lua"
+      ],
       "require": "lib.knife.gun"
     },
     "knife.memoize": {
-      "files": ["knife/memoize.lua"],
+      "files": [
+        "knife/memoize.lua"
+      ],
       "require": "lib.knife.memoize"
     },
     "knife.serialize": {
-      "files": ["knife/serialize.lua"],
+      "files": [
+        "knife/serialize.lua"
+      ],
       "require": "lib.knife.serialize"
     },
     "knife.system": {
-      "files": ["knife/system.lua"],
+      "files": [
+        "knife/system.lua"
+      ],
       "require": "lib.knife.system"
     },
     "knife.test": {
-      "files": ["knife/test.lua"],
+      "files": [
+        "knife/test.lua"
+      ],
       "require": "lib.knife.test"
     },
     "knife.timer": {
-      "files": ["knife/timer.lua"],
+      "files": [
+        "knife/timer.lua"
+      ],
       "require": "lib.knife.timer"
     }
   }

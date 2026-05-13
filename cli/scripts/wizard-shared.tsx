@@ -24,6 +24,7 @@ export interface FormData {
   homepage: string;
   license: string;
   tag: string;
+  commitSha: string;
   baseUrl: string;
   trust: 'verified' | 'known';
   description: string;
@@ -745,6 +746,15 @@ export async function fetchRepoMeta(repo: string): Promise<RepoMeta> {
   };
 }
 
+export async function fetchCommitSha(repo: string, ref: string): Promise<string> {
+  const res = await fetch(`https://api.github.com/repos/${repo}/commits/${encodeURIComponent(ref)}`, {
+    headers: GH_HEADERS,
+  });
+  if (!res.ok) throw new Error(`GitHub API ${res.status} resolving ${repo}@${ref} to commit SHA`);
+  const data = (await res.json()) as { sha: string };
+  return data.sha;
+}
+
 export async function fetchLuaFiles(repo: string, tag: string): Promise<string[]> {
   const res = await fetch(`https://api.github.com/repos/${repo}/git/trees/${tag}?recursive=1`, {
     headers: GH_HEADERS,
@@ -765,7 +775,12 @@ export function buildPackageJson(data: FormData): object {
     tags: data.tags,
     homepage: data.homepage,
     license: data.license,
-    source: { repo: data.repo, tag: data.tag, baseUrl: data.baseUrl },
+    source: {
+      repo: data.repo,
+      tag: data.tag,
+      commitSha: data.commitSha,
+      baseUrl: `https://raw.githubusercontent.com/${data.repo}/${data.commitSha}/`,
+    },
     install: {
       files: data.files.map((f) => ({ name: f.name, sha256: f.sha256, target: f.target })),
     },

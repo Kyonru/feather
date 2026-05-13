@@ -14,7 +14,8 @@
   "source": {
     "repo": "tesselode/baton",
     "tag": "v1.0.2",
-    "baseUrl": "https://raw.githubusercontent.com/tesselode/baton/v1.0.2/"
+    "baseUrl": "https://raw.githubusercontent.com/tesselode/baton/3defe19f8f0da1a457ba86095e6f6a3c7ee6a8e9/",
+    "commitSha": "3defe19f8f0da1a457ba86095e6f6a3c7ee6a8e9"
   },
   "install": {
     "files": [

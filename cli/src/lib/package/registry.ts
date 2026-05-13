@@ -26,6 +26,7 @@ export type RegistryEntry = {
   source: {
     repo: string;
     tag: string;
+    commitSha?: string;
     baseUrl: string;
   };
   install: { files: PackageFile[] };

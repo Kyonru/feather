@@ -2,13 +2,17 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "A 2D animation library for LÖVE. Handles sprite sheets, frames, tags, and playback.",
-  "tags": ["animation", "sprites"],
+  "tags": [
+    "animation",
+    "sprites"
+  ],
   "homepage": "https://github.com/kikito/anim8",
   "license": "MIT",
   "source": {
     "repo": "kikito/anim8",
     "tag": "v2.3.1",
-    "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/v2.3.1/"
+    "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/c1c12ec45fde28ffd2d6967675adcb3c3e501fa7/",
+    "commitSha": "c1c12ec45fde28ffd2d6967675adcb3c3e501fa7"
   },
   "install": {
     "files": [

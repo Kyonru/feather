@@ -2,13 +2,17 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "A tiny class module for Lua. Minimal OOP with inheritance.",
-  "tags": ["oop", "utilities"],
+  "tags": [
+    "oop",
+    "utilities"
+  ],
   "homepage": "https://github.com/rxi/classic",
   "license": "MIT",
   "source": {
     "repo": "rxi/classic",
     "tag": "master",
-    "baseUrl": "https://raw.githubusercontent.com/rxi/classic/master/"
+    "baseUrl": "https://raw.githubusercontent.com/rxi/classic/e5610756c98ac2f8facd7ab90c94e1a097ecd2c6/",
+    "commitSha": "e5610756c98ac2f8facd7ab90c94e1a097ecd2c6"
   },
   "install": {
     "files": [

@@ -2,13 +2,17 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "A Lua library for simple AABB collision detection and resolution.",
-  "tags": ["collision", "physics"],
+  "tags": [
+    "collision",
+    "physics"
+  ],
   "homepage": "https://github.com/kikito/bump.lua",
   "license": "MIT",
   "source": {
     "repo": "kikito/bump.lua",
     "tag": "v3.1.7",
-    "baseUrl": "https://raw.githubusercontent.com/kikito/bump.lua/v3.1.7/"
+    "baseUrl": "https://raw.githubusercontent.com/kikito/bump.lua/72d6b13dfa525564f6e1a533d71eaa8235a5e96c/",
+    "commitSha": "72d6b13dfa525564f6e1a533d71eaa8235a5e96c"
   },
   "install": {
     "files": [

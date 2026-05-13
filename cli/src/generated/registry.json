@@ -15,7 +15,8 @@
       "source": {
         "repo": "kikito/anim8",
         "tag": "v2.3.1",
-        "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/v2.3.1/"
+        "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/c1c12ec45fde28ffd2d6967675adcb3c3e501fa7/",
+        "commitSha": "c1c12ec45fde28ffd2d6967675adcb3c3e501fa7"
       },
       "install": {
         "files": [
@@ -45,7 +46,8 @@
       "source": {
         "repo": "tesselode/baton",
         "tag": "v1.0.2",
-        "baseUrl": "https://raw.githubusercontent.com/tesselode/baton/v1.0.2/"
+        "baseUrl": "https://raw.githubusercontent.com/tesselode/baton/3defe19f8f0da1a457ba86095e6f6a3c7ee6a8e9/",
+        "commitSha": "3defe19f8f0da1a457ba86095e6f6a3c7ee6a8e9"
       },
       "install": {
         "files": [
@@ -73,7 +75,8 @@
       "source": {
         "repo": "drhayes/beehive.lua",
         "tag": "main",
-        "baseUrl": "https://raw.githubusercontent.com/drhayes/beehive.lua/main/"
+        "baseUrl": "https://raw.githubusercontent.com/drhayes/beehive.lua/00877150688ce42fffbaeeb76d7a4cb87e88da60/",
+        "commitSha": "00877150688ce42fffbaeeb76d7a4cb87e88da60"
       },
       "install": {
         "files": [
@@ -125,7 +128,8 @@
       "source": {
         "repo": "kikito/bump.lua",
         "tag": "v3.1.7",
-        "baseUrl": "https://raw.githubusercontent.com/kikito/bump.lua/v3.1.7/"
+        "baseUrl": "https://raw.githubusercontent.com/kikito/bump.lua/72d6b13dfa525564f6e1a533d71eaa8235a5e96c/",
+        "commitSha": "72d6b13dfa525564f6e1a533d71eaa8235a5e96c"
       },
       "install": {
         "files": [
@@ -153,7 +157,8 @@
       "source": {
         "repo": "bjornbytes/cargo",
         "tag": "v0.1.1",
-        "baseUrl": "https://raw.githubusercontent.com/bjornbytes/cargo/v0.1.1/"
+        "baseUrl": "https://raw.githubusercontent.com/bjornbytes/cargo/8014bc0ad7d4639c112e5d00fac6c9ac68b0d696/",
+        "commitSha": "8014bc0ad7d4639c112e5d00fac6c9ac68b0d696"
       },
       "install": {
         "files": [
@@ -180,7 +185,8 @@
       "source": {
         "repo": "rxi/classic",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/rxi/classic/master/"
+        "baseUrl": "https://raw.githubusercontent.com/rxi/classic/e5610756c98ac2f8facd7ab90c94e1a097ecd2c6/",
+        "commitSha": "e5610756c98ac2f8facd7ab90c94e1a097ecd2c6"
       },
       "install": {
         "files": [
@@ -207,7 +213,8 @@
       "source": {
         "repo": "rxi/flux",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/rxi/flux/master/"
+        "baseUrl": "https://raw.githubusercontent.com/rxi/flux/bb330231b87eabf84fbd68322f13a6320db30a41/",
+        "commitSha": "bb330231b87eabf84fbd68322f13a6320db30a41"
       },
       "install": {
         "files": [
@@ -238,7 +245,8 @@
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -269,7 +277,8 @@
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -300,7 +309,8 @@
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -331,7 +341,8 @@
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -362,7 +373,8 @@
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -393,7 +405,8 @@
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -423,7 +436,8 @@
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -483,7 +497,8 @@
       "source": {
         "repo": "kikito/inspect.lua",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/kikito/inspect.lua/master/"
+        "baseUrl": "https://raw.githubusercontent.com/kikito/inspect.lua/a8ca3120dfec48801036eaeff9335ab7a096dd24/",
+        "commitSha": "a8ca3120dfec48801036eaeff9335ab7a096dd24"
       },
       "install": {
         "files": [
@@ -523,7 +538,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -563,7 +579,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -603,7 +620,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -643,7 +661,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -683,7 +702,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -723,7 +743,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -763,7 +784,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -803,7 +825,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -843,7 +866,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -883,7 +907,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -923,7 +948,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -963,7 +989,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -1002,7 +1029,8 @@
       "source": {
         "repo": "airstruck/knife",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/master/"
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
       },
       "install": {
         "files": [
@@ -1101,7 +1129,8 @@
       "source": {
         "repo": "Miisan-png/Love-Dialogue",
         "tag": "main",
-        "baseUrl": "https://raw.githubusercontent.com/Miisan-png/Love-Dialogue/main/"
+        "baseUrl": "https://raw.githubusercontent.com/Miisan-png/Love-Dialogue/1d1cbd1f6730fbaf73fab18a2d33ee3525abfb75/",
+        "commitSha": "1d1cbd1f6730fbaf73fab18a2d33ee3525abfb75"
       },
       "install": {
         "files": [
@@ -1194,7 +1223,8 @@
       "source": {
         "repo": "kyleconroy/lua-state-machine",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/kyleconroy/lua-state-machine/master/"
+        "baseUrl": "https://raw.githubusercontent.com/kyleconroy/lua-state-machine/96fc10ee123479cf2e5fb8ffe9cdde2fd6df0877/",
+        "commitSha": "96fc10ee123479cf2e5fb8ffe9cdde2fd6df0877"
       },
       "install": {
         "files": [
@@ -1221,7 +1251,8 @@
       "source": {
         "repo": "rxi/lume",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/rxi/lume/master/"
+        "baseUrl": "https://raw.githubusercontent.com/rxi/lume/98847e7812cf28d3d64b289b03fad71dc704547d/",
+        "commitSha": "98847e7812cf28d3d64b289b03fad71dc704547d"
       },
       "install": {
         "files": [
@@ -1248,7 +1279,8 @@
       "source": {
         "repo": "kikito/middleclass",
         "tag": "v4.1.1",
-        "baseUrl": "https://raw.githubusercontent.com/kikito/middleclass/v4.1.1/"
+        "baseUrl": "https://raw.githubusercontent.com/kikito/middleclass/dc0fb3612da5d41866a2f06076a4ecea5614ef78/",
+        "commitSha": "dc0fb3612da5d41866a2f06076a4ecea5614ef78"
       },
       "install": {
         "files": [
@@ -1275,7 +1307,8 @@
       "source": {
         "repo": "Ulydev/push",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/Ulydev/push/master/"
+        "baseUrl": "https://raw.githubusercontent.com/Ulydev/push/9c165816a14c868339c3cd0d22eed65c313c8bf8/",
+        "commitSha": "9c165816a14c868339c3cd0d22eed65c313c8bf8"
       },
       "install": {
         "files": [
@@ -1312,7 +1345,8 @@
       "source": {
         "repo": "oval-tutu/shove",
         "tag": "1.0.6",
-        "baseUrl": "https://raw.githubusercontent.com/oval-tutu/shove/1.0.6/"
+        "baseUrl": "https://raw.githubusercontent.com/oval-tutu/shove/ee1dedbca78ca988589edd4c5314d7e662223973/",
+        "commitSha": "ee1dedbca78ca988589edd4c5314d7e662223973"
       },
       "install": {
         "files": [
@@ -1346,7 +1380,8 @@
       "source": {
         "repo": "karai17/Simple-Tiled-Implementation",
         "tag": "v1.2.3.0",
-        "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/v1.2.3.0/"
+        "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/69cdf8c7565f518c03967d0243cb54d1ee31da4e/",
+        "commitSha": "69cdf8c7565f518c03967d0243cb54d1ee31da4e"
       },
       "install": {
         "files": [
@@ -1396,7 +1431,8 @@
       "source": {
         "repo": "sysl-dev/SYSL-Text",
         "tag": "v2.2",
-        "baseUrl": "https://raw.githubusercontent.com/sysl-dev/SYSL-Text/v2.2/"
+        "baseUrl": "https://raw.githubusercontent.com/sysl-dev/SYSL-Text/6c9b95047cb8650344e90224cd56bd00c5132d97/",
+        "commitSha": "6c9b95047cb8650344e90224cd56bd00c5132d97"
       },
       "install": {
         "files": [

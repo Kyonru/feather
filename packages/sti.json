@@ -13,7 +13,8 @@
   "source": {
     "repo": "karai17/Simple-Tiled-Implementation",
     "tag": "v1.2.3.0",
-    "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/v1.2.3.0/"
+    "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/69cdf8c7565f518c03967d0243cb54d1ee31da4e/",
+    "commitSha": "69cdf8c7565f518c03967d0243cb54d1ee31da4e"
   },
   "install": {
     "files": [

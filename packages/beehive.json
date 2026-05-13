@@ -12,7 +12,8 @@
   "source": {
     "repo": "drhayes/beehive.lua",
     "tag": "main",
-    "baseUrl": "https://raw.githubusercontent.com/drhayes/beehive.lua/main/"
+    "baseUrl": "https://raw.githubusercontent.com/drhayes/beehive.lua/00877150688ce42fffbaeeb76d7a4cb87e88da60/",
+    "commitSha": "00877150688ce42fffbaeeb76d7a4cb87e88da60"
   },
   "install": {
     "files": [
