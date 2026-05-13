@@ -464,18 +464,33 @@ export function ChecksumStep({ files, onDone, onError }: ChecksumStepProps) {
 
 const GH_HEADERS = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
 
-export async function fetchRepoMeta(repo: string): Promise<{ tags: string[]; license: string }> {
-  const [tagsRes, repoRes] = await Promise.all([
+export interface RepoMeta {
+  tags: string[];
+  branches: string[];
+  defaultBranch: string;
+  license: string;
+}
+
+export async function fetchRepoMeta(repo: string): Promise<RepoMeta> {
+  const [tagsRes, repoRes, branchesRes] = await Promise.all([
     fetch(`https://api.github.com/repos/${repo}/tags?per_page=20`, { headers: GH_HEADERS }),
     fetch(`https://api.github.com/repos/${repo}`, { headers: GH_HEADERS }),
+    fetch(`https://api.github.com/repos/${repo}/branches?per_page=30`, { headers: GH_HEADERS }),
   ]);
   if (!tagsRes.ok) throw new Error(`GitHub API ${tagsRes.status} for ${repo}/tags`);
   if (!repoRes.ok) throw new Error(`GitHub API ${repoRes.status} for ${repo}`);
-  const [tagsData, repoData] = await Promise.all([
+  if (!branchesRes.ok) throw new Error(`GitHub API ${branchesRes.status} for ${repo}/branches`);
+  const [tagsData, repoData, branchesData] = await Promise.all([
     tagsRes.json() as Promise<Array<{ name: string }>>,
-    repoRes.json() as Promise<{ license?: { spdx_id?: string } }>,
+    repoRes.json() as Promise<{ license?: { spdx_id?: string }; default_branch?: string }>,
+    branchesRes.json() as Promise<Array<{ name: string }>>,
   ]);
-  return { tags: tagsData.map((t) => t.name), license: repoData.license?.spdx_id ?? 'unknown' };
+  return {
+    tags: tagsData.map((t) => t.name),
+    branches: branchesData.map((b) => b.name),
+    defaultBranch: repoData.default_branch ?? 'main',
+    license: repoData.license?.spdx_id ?? 'unknown',
+  };
 }
 
 export async function fetchLuaFiles(repo: string, tag: string): Promise<string[]> {

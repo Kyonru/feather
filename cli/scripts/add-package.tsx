@@ -86,6 +86,7 @@ function Wizard() {
   const [data, setData] = useState<Partial<FormData>>({});
   const [fetchedTags, setFetchedTags] = useState<string[]>([]);
   const [fetchedFiles, setFetchedFiles] = useState<string[]>([]);
+  const [tagsAreBranches, setTagsAreBranches] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [outputJson, setOutputJson] = useState('');
 
@@ -143,9 +144,11 @@ function Wizard() {
       <AutoStep
         label={`Fetching metadata for ${data.repo}…`}
         run={async () => {
-          const { tags, license } = await fetchRepoMeta(data.repo!);
-          if (tags.length === 0) throw new Error('No tags found. Push a release tag first.');
-          setFetchedTags(tags);
+          const { tags, branches, defaultBranch, license } = await fetchRepoMeta(data.repo!);
+          if (tags.length === 0 && branches.length === 0) throw new Error('No tags or branches found.');
+          const useBranches = tags.length === 0;
+          setTagsAreBranches(useBranches);
+          setFetchedTags(useBranches ? [defaultBranch, ...branches.filter((b) => b !== defaultBranch)] : tags);
           setData((d) => ({ ...d, license }));
           setStep('tag');
         }}
@@ -155,13 +158,16 @@ function Wizard() {
   }
 
   if (step === 'tag') {
+    const isBranch = tagsAreBranches;
     return (
       <SelectStep
         stepNum={3}
         total={TOTAL}
         title={TITLE}
-        label="Select release tag to pin"
-        hint={`${fetchedTags.length} tags available`}
+        label={isBranch ? 'Select branch to pin (no releases found)' : 'Select release tag to pin'}
+        hint={isBranch
+          ? `${fetchedTags.length} branches · default branch listed first`
+          : `${fetchedTags.length} tags available`}
         options={fetchedTags}
         onSelect={(tag) => {
           setData((d) => ({ ...d, tag, baseUrl: `https://raw.githubusercontent.com/${d.repo}/${tag}/` }));

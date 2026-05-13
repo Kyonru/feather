@@ -77,6 +77,7 @@ function Wizard() {
   const [outputJson, setOutputJson] = useState('');
 
   // pre-selection state from the loaded package
+  const [tagsAreBranches, setTagsAreBranches] = useState(false);
   const [initialTagIndex, setInitialTagIndex] = useState(0);
   const [initialFileSelected, setInitialFileSelected] = useState<Set<number> | undefined>(undefined);
   const [initialTargets, setInitialTargets] = useState<Record<string, string> | undefined>(undefined);
@@ -147,11 +148,16 @@ function Wizard() {
       <AutoStep
         label={`Fetching metadata for ${data.repo}…`}
         run={async () => {
-          const { tags, license } = await fetchRepoMeta(data.repo!);
-          if (tags.length === 0) throw new Error('No tags found.');
-          setFetchedTags(tags);
-          // pre-position cursor at the currently pinned tag
-          const idx = tags.indexOf(data.tag ?? '');
+          const { tags, branches, defaultBranch, license } = await fetchRepoMeta(data.repo!);
+          if (tags.length === 0 && branches.length === 0) throw new Error('No tags or branches found.');
+          const useBranches = tags.length === 0;
+          setTagsAreBranches(useBranches);
+          const list = useBranches
+            ? [defaultBranch, ...branches.filter((b) => b !== defaultBranch)]
+            : tags;
+          setFetchedTags(list);
+          // pre-position cursor at the currently pinned tag/branch
+          const idx = list.indexOf(data.tag ?? '');
           setInitialTagIndex(idx >= 0 ? idx : 0);
           setData((d) => ({ ...d, license }));
           setStep('tag');
@@ -161,13 +167,15 @@ function Wizard() {
     );
   }
 
-  // Step 4: select tag (cursor starts at current pin)
+  // Step 4: select tag or branch (cursor starts at current pin)
   if (step === 'tag') {
     return (
       <SelectStep
         stepNum={3} total={TOTAL} title={TITLE}
-        label="Select release tag to pin"
-        hint={`currently pinned: ${data.tag ?? '—'}`}
+        label={tagsAreBranches ? 'Select branch to pin (no releases found)' : 'Select release tag to pin'}
+        hint={tagsAreBranches
+          ? `${fetchedTags.length} branches · currently pinned: ${data.tag ?? '—'}`
+          : `${fetchedTags.length} tags · currently pinned: ${data.tag ?? '—'}`}
         options={fetchedTags}
         initialIndex={initialTagIndex}
         onSelect={(tag) => {
