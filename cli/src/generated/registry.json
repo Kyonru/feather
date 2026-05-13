@@ -696,6 +696,51 @@
       },
       "require": "lib.sti",
       "example": "local sti = require('lib.sti')"
+    },
+    "sysl-text": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Text rendering with tag support",
+      "tags": [
+        "text",
+        "draw",
+        "love2d",
+        "textboxes",
+        "sprite-text"
+      ],
+      "homepage": "https://github.com/sysl-dev/SYSL-Text",
+      "license": "MIT",
+      "source": {
+        "repo": "sysl-dev/SYSL-Text",
+        "tag": "v2.2",
+        "baseUrl": "https://raw.githubusercontent.com/sysl-dev/SYSL-Text/v2.2/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "example/library/slog-frame.lua",
+            "sha256": "d37119014d865d4e829a2757d8ec2974c3991afdcbcafe558decafb651066c5e",
+            "target": "lib/sysl-text/slog-frame.lua"
+          },
+          {
+            "name": "example/library/slog-icon.lua",
+            "sha256": "bf48f58f25930d20a367361ef5decceb4e8e377aed27093e3ea9f5a2c34dfc1a",
+            "target": "lib/sysl-text/slog-icon.lua"
+          },
+          {
+            "name": "example/library/slog-pixel.lua",
+            "sha256": "c95586e30a45ea9b5b49dfca1089c61c9ec1a59981e9526febdc56ae5354e925",
+            "target": "lib/sysl-text/slog-pixel.lua"
+          },
+          {
+            "name": "example/library/slog-text.lua",
+            "sha256": "10134b45499d925de5b177ae13874fd026dfc476f1eae5ba1b64874a49ec4ad9",
+            "target": "lib/sysl-text/slog-text.lua"
+          }
+        ]
+      },
+      "require": "lib.sysl-text.slog-text",
+      "example": "local sysl_text = require('lib.sysl-text.slog-text')"
     }
   }
 }

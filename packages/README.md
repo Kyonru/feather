@@ -189,7 +189,7 @@ Auditing 4 installed packages…
 
 ---
 
-## Available Packages
+## Some Available Packages
 
 | Package          | Trust    | Description                                     |
 | ---------------- | -------- | ----------------------------------------------- |
