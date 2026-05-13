@@ -5,7 +5,7 @@ message_file="$1"
 subject="$(sed -n '1p' "$message_file")"
 
 case "$subject" in
-  cli:*|app:*|lua:*|tauri:*|feather:*|docs:*)
+  ci:*|cli:*|app:*|lua:*|tauri:*|feather:*|docs:*)
     exit 0
     ;;
 esac
@@ -14,6 +14,7 @@ cat <<'EOF'
 [feather] Invalid commit message.
 
 Commit message must start with one of:
+  ci:
   cli:
   app:
   lua:
@@ -22,6 +23,7 @@ Commit message must start with one of:
   docs:
 
 Examples:
+  ci: update repo workflows
   cli: add interactive plugin workflow
   app: improve assets panel
   lua: add debugger binary payloads
