@@ -1,0 +1,514 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-13",
+  "packages": {
+    "anim8": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A 2D animation library for LÖVE. Handles sprite sheets, frames, tags, and playback.",
+      "tags": [
+        "animation",
+        "sprites"
+      ],
+      "homepage": "https://github.com/kikito/anim8",
+      "source": {
+        "repo": "kikito/anim8",
+        "tag": "v2.3.1",
+        "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/v2.3.1/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "anim8.lua",
+            "sha256": "c6581c30225a4297924a4f27e56edbc12894fb2e168232fa3a19d21ac149e83f",
+            "target": "lib/anim8.lua"
+          }
+        ]
+      },
+      "require": "lib.anim8",
+      "example": "local anim8 = require('lib.anim8')"
+    },
+    "bump": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A Lua library for simple AABB collision detection and resolution.",
+      "tags": [
+        "collision",
+        "physics"
+      ],
+      "homepage": "https://github.com/kikito/bump.lua",
+      "source": {
+        "repo": "kikito/bump.lua",
+        "tag": "v3.1.7",
+        "baseUrl": "https://raw.githubusercontent.com/kikito/bump.lua/v3.1.7/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "bump.lua",
+            "sha256": "b947cc4449554816831d5c45b61a169e1559548139478d980c8eef14c7b362a6",
+            "target": "lib/bump.lua"
+          }
+        ]
+      },
+      "require": "lib.bump",
+      "example": "local bump = require('lib.bump')"
+    },
+    "classic": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A tiny class module for Lua. Minimal OOP with inheritance.",
+      "tags": [
+        "oop",
+        "utilities"
+      ],
+      "homepage": "https://github.com/rxi/classic",
+      "source": {
+        "repo": "rxi/classic",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/rxi/classic/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "classic.lua",
+            "sha256": "52827561440f22ff3f34f926b2f4bdc1b74cbbaafa3b3b8252b530b12387d48b",
+            "target": "lib/classic.lua"
+          }
+        ]
+      },
+      "require": "lib.classic",
+      "example": "local Object = require('lib.classic')"
+    },
+    "flux": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A fast, lightweight tweening library for Lua with chainable API and easing functions.",
+      "tags": [
+        "animation",
+        "tweening"
+      ],
+      "homepage": "https://github.com/rxi/flux",
+      "source": {
+        "repo": "rxi/flux",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/rxi/flux/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "flux.lua",
+            "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5",
+            "target": "lib/flux.lua"
+          }
+        ]
+      },
+      "require": "lib.flux",
+      "example": "local flux = require('lib.flux')"
+    },
+    "hump.camera": {
+      "parent": "hump",
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "hump — camera module",
+      "tags": [
+        "utilities",
+        "camera",
+        "timer",
+        "oop",
+        "math"
+      ],
+      "homepage": "https://github.com/vrld/hump",
+      "source": {
+        "repo": "vrld/hump",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "camera.lua",
+            "sha256": "b5f0c086fc652f7f97eef84b6be358f889ab9b8d28cf7f295b46d48638014099",
+            "target": "lib/hump/camera.lua"
+          }
+        ]
+      },
+      "require": "lib.hump.camera",
+      "example": "local camera = require('lib.hump.camera')"
+    },
+    "hump.timer": {
+      "parent": "hump",
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "hump — timer module",
+      "tags": [
+        "utilities",
+        "camera",
+        "timer",
+        "oop",
+        "math"
+      ],
+      "homepage": "https://github.com/vrld/hump",
+      "source": {
+        "repo": "vrld/hump",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "timer.lua",
+            "sha256": "8931203b027ecce889692e67323e7f333881fb230ed9dd735c785f5e3a7def03",
+            "target": "lib/hump/timer.lua"
+          }
+        ]
+      },
+      "require": "lib.hump.timer",
+      "example": "local timer = require('lib.hump.timer')"
+    },
+    "hump.signal": {
+      "parent": "hump",
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "hump — signal module",
+      "tags": [
+        "utilities",
+        "camera",
+        "timer",
+        "oop",
+        "math"
+      ],
+      "homepage": "https://github.com/vrld/hump",
+      "source": {
+        "repo": "vrld/hump",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "signal.lua",
+            "sha256": "4f311197119177453d8759add39531905da2d3590a7e3a7befc618e46f31b051",
+            "target": "lib/hump/signal.lua"
+          }
+        ]
+      },
+      "require": "lib.hump.signal",
+      "example": "local signal = require('lib.hump.signal')"
+    },
+    "hump.class": {
+      "parent": "hump",
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "hump — class module",
+      "tags": [
+        "utilities",
+        "camera",
+        "timer",
+        "oop",
+        "math"
+      ],
+      "homepage": "https://github.com/vrld/hump",
+      "source": {
+        "repo": "vrld/hump",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "class.lua",
+            "sha256": "b0b97bb7cc51b9234dfe3dce0f6da12beaebbb6335eaeaa38de8e537a157cb4e",
+            "target": "lib/hump/class.lua"
+          }
+        ]
+      },
+      "require": "lib.hump.class",
+      "example": "local class = require('lib.hump.class')"
+    },
+    "hump.vector": {
+      "parent": "hump",
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "hump — vector module",
+      "tags": [
+        "utilities",
+        "camera",
+        "timer",
+        "oop",
+        "math"
+      ],
+      "homepage": "https://github.com/vrld/hump",
+      "source": {
+        "repo": "vrld/hump",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "vector.lua",
+            "sha256": "70a4d9437e0c7bdf718160eb4a3464f54705129b854f1c9bd60a5adea8d197cc",
+            "target": "lib/hump/vector.lua"
+          }
+        ]
+      },
+      "require": "lib.hump.vector",
+      "example": "local vector = require('lib.hump.vector')"
+    },
+    "hump.gamestate": {
+      "parent": "hump",
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "hump — gamestate module",
+      "tags": [
+        "utilities",
+        "camera",
+        "timer",
+        "oop",
+        "math"
+      ],
+      "homepage": "https://github.com/vrld/hump",
+      "source": {
+        "repo": "vrld/hump",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "gamestate.lua",
+            "sha256": "7e11c9f4909ececc3b61fa4313b001b25f33b5ac36bc96b641aedff0328a4406",
+            "target": "lib/hump/gamestate.lua"
+          }
+        ]
+      },
+      "require": "lib.hump.gamestate",
+      "example": "local gamestate = require('lib.hump.gamestate')"
+    },
+    "hump": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Helper utilities for LÖVE: camera, timer, signal, class, vector, gamestate.",
+      "tags": [
+        "utilities",
+        "camera",
+        "timer",
+        "oop",
+        "math"
+      ],
+      "homepage": "https://github.com/vrld/hump",
+      "source": {
+        "repo": "vrld/hump",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "camera.lua",
+            "sha256": "b5f0c086fc652f7f97eef84b6be358f889ab9b8d28cf7f295b46d48638014099",
+            "target": "lib/hump/camera.lua"
+          },
+          {
+            "name": "timer.lua",
+            "sha256": "8931203b027ecce889692e67323e7f333881fb230ed9dd735c785f5e3a7def03",
+            "target": "lib/hump/timer.lua"
+          },
+          {
+            "name": "signal.lua",
+            "sha256": "4f311197119177453d8759add39531905da2d3590a7e3a7befc618e46f31b051",
+            "target": "lib/hump/signal.lua"
+          },
+          {
+            "name": "class.lua",
+            "sha256": "b0b97bb7cc51b9234dfe3dce0f6da12beaebbb6335eaeaa38de8e537a157cb4e",
+            "target": "lib/hump/class.lua"
+          },
+          {
+            "name": "vector.lua",
+            "sha256": "70a4d9437e0c7bdf718160eb4a3464f54705129b854f1c9bd60a5adea8d197cc",
+            "target": "lib/hump/vector.lua"
+          },
+          {
+            "name": "gamestate.lua",
+            "sha256": "7e11c9f4909ececc3b61fa4313b001b25f33b5ac36bc96b641aedff0328a4406",
+            "target": "lib/hump/gamestate.lua"
+          }
+        ]
+      },
+      "subpackages": [
+        "hump.camera",
+        "hump.timer",
+        "hump.signal",
+        "hump.class",
+        "hump.vector",
+        "hump.gamestate"
+      ],
+      "require": "lib.hump",
+      "example": "local Camera = require('lib.hump.camera')"
+    },
+    "inspect": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Human-readable table serializer and pretty-printer for Lua. Useful for debugging.",
+      "tags": [
+        "debug",
+        "utilities"
+      ],
+      "homepage": "https://github.com/kikito/inspect.lua",
+      "source": {
+        "repo": "kikito/inspect.lua",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/kikito/inspect.lua/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "inspect.lua",
+            "sha256": "656e4be83802750cfe13156810f7990d49893c86518ed5d882f0709d2901dfc5",
+            "target": "lib/inspect.lua"
+          }
+        ]
+      },
+      "require": "lib.inspect",
+      "example": "local inspect = require('lib.inspect')"
+    },
+    "lume": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A collection of Lua functions for gamedev: math, table manipulation, string utilities, and more.",
+      "tags": [
+        "utilities",
+        "math"
+      ],
+      "homepage": "https://github.com/rxi/lume",
+      "source": {
+        "repo": "rxi/lume",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/rxi/lume/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "lume.lua",
+            "sha256": "fb2856d60eb48516c8aa04de1e8b58b355a56fb7a05fd1170cfe330f8ad69b1a",
+            "target": "lib/lume.lua"
+          }
+        ]
+      },
+      "require": "lib.lume",
+      "example": "local lume = require('lib.lume')"
+    },
+    "middleclass": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A simple OOP library for Lua. Supports inheritance, mixins, and interfaces.",
+      "tags": [
+        "oop",
+        "utilities"
+      ],
+      "homepage": "https://github.com/kikito/middleclass",
+      "source": {
+        "repo": "kikito/middleclass",
+        "tag": "v4.1.1",
+        "baseUrl": "https://raw.githubusercontent.com/kikito/middleclass/v4.1.1/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "middleclass.lua",
+            "sha256": "b4f0060e16daa070a0da33b6808f6e4cb9ee819205321d019a8e770af5e77c07",
+            "target": "lib/middleclass.lua"
+          }
+        ]
+      },
+      "require": "lib.middleclass",
+      "example": "local Class = require('lib.middleclass')"
+    },
+    "push": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Resolution-independence library for LÖVE. Lets you draw at a fixed resolution and scale to any window size.",
+      "tags": [
+        "rendering",
+        "resolution"
+      ],
+      "homepage": "https://github.com/Ulydev/push",
+      "source": {
+        "repo": "Ulydev/push",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/Ulydev/push/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "push.lua",
+            "sha256": "c5702771a3275ce3e3909a8414d1fe76024b30ca3943382d06a9b54f5ee3c517",
+            "target": "lib/push.lua"
+          }
+        ]
+      },
+      "require": "lib.push",
+      "example": "local push = require('lib.push')"
+    },
+    "sti": {
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "Simple Tiled Implementation — loads and renders Tiled maps (.tmx) in LÖVE.",
+      "tags": [
+        "maps",
+        "tiled",
+        "tilemaps"
+      ],
+      "homepage": "https://github.com/karai17/Simple-Tiled-Implementation",
+      "source": {
+        "repo": "karai17/Simple-Tiled-Implementation",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "sti/init.lua",
+            "sha256": "b7542ac156b3c2ee24d256ce260f73dc01ab2d1245c4eb4b14c92fcdf487c814",
+            "target": "lib/sti/init.lua"
+          },
+          {
+            "name": "sti/utils.lua",
+            "sha256": "ba8abf5a3f5680c6a020234afc248c4fb8945cda993d4cd82b292510e4dab17c",
+            "target": "lib/sti/utils.lua"
+          }
+        ]
+      },
+      "require": "lib.sti",
+      "example": "local sti = require('lib.sti')"
+    },
+    "windfield": {
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "A physics module for LÖVE that makes Box2D easier to use. Wraps love.physics with a simpler API.",
+      "tags": [
+        "physics",
+        "box2d"
+      ],
+      "homepage": "https://github.com/SSYGEN/windfield",
+      "source": {
+        "repo": "SSYGEN/windfield",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/SSYGEN/windfield/master/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "windfield/init.lua",
+            "sha256": "687c789dceeba3ebb6f5b152b94e9c085268695ed8cc578780d24ec1696f0388",
+            "target": "lib/windfield/init.lua"
+          }
+        ]
+      },
+      "require": "lib.windfield",
+      "example": "local wf = require('lib.windfield')"
+    }
+  }
+}
