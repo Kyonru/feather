@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://kyonru.github.io/feather/recommendations/">
+        <link rel="canonical" href="https://kyonru.github.io/feather/packages/">
       
       
-        <link rel="prev" href="../console/">
+        <link rel="prev" href="../cli/">
       
       
-        <link rel="next" href="../plugins/">
+        <link rel="next" href="../time-travel/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Recommendations - Feather</title>
+        <title>Package Management - Feather</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#recommendations" class="md-skip">
+        <a href="#package-manager" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Recommendations
+              Package Management
             
           </span>
         </div>
@@ -448,18 +448,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
         
           
           <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
@@ -480,7 +482,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -523,10 +525,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../packages/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Management
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -542,6 +571,225 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concepts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trust-levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trust levels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lockfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lockfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-search-query" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package search [query]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package list
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-info-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package info &lt;name&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-install-name-name2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package install &lt;name&gt; [name2...]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-install-nameversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package install &lt;name&gt;@&lt;version&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-install-from-url-url-target-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package install --from-url &lt;url&gt; --target &lt;path&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-update-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package update [name]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-remove-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package remove &lt;name&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package audit
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Packages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing packages
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -612,37 +860,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Recommendations
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../recommendations/" class="md-nav__link">
         
   
   
@@ -658,159 +879,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#security" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Security
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Security">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#desktop-app-id-appid-recommended-for-all-setups" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Desktop App ID (appId) — recommended for all setups
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#api-key-apikey-required-only-for-the-console-plugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        API Key (apiKey) — required only for the Console plugin
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#console-plugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Console plugin
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#safe-debugger-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Safe DEBUGGER Usage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Performance">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#level-1-disable-at-runtime-debug-false" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Level 1 — Disable at runtime (debug = false)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#level-2-keep-feather-managed-by-the-cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Level 2 — Keep Feather managed by the CLI
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#level-3-guard-manual-requires" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Level 3 — Guard manual requires
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#level-4-exclude-from-the-release-build" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Level 4 — Exclude from the release build
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#in-game-observability" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        In-game Observability
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1456,22 +1524,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#security" class="md-nav__link">
+  <a href="#concepts" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Security
+        Concepts
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Security">
+    <nav class="md-nav" aria-label="Concepts">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#desktop-app-id-appid-recommended-for-all-setups" class="md-nav__link">
+  <a href="#trust-levels" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Desktop App ID (appId) — recommended for all setups
+        Trust levels
       
     </span>
   </a>
@@ -1479,21 +1547,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#api-key-apikey-required-only-for-the-console-plugin" class="md-nav__link">
+  <a href="#lockfile" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Key (apiKey) — required only for the Console plugin
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#console-plugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Console plugin
+        Lockfile
       
     </span>
   </a>
@@ -1506,33 +1563,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#safe-debugger-usage" class="md-nav__link">
+  <a href="#commands" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Safe DEBUGGER Usage
+        Commands
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Performance">
+    <nav class="md-nav" aria-label="Commands">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#level-1-disable-at-runtime-debug-false" class="md-nav__link">
+  <a href="#feather-package-search-query" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 1 — Disable at runtime (debug = false)
+        feather package search [query]
       
     </span>
   </a>
@@ -1540,10 +1586,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-2-keep-feather-managed-by-the-cli" class="md-nav__link">
+  <a href="#feather-package-list" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 2 — Keep Feather managed by the CLI
+        feather package list
       
     </span>
   </a>
@@ -1551,10 +1597,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-3-guard-manual-requires" class="md-nav__link">
+  <a href="#feather-package-info-name" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 3 — Guard manual requires
+        feather package info &lt;name&gt;
       
     </span>
   </a>
@@ -1562,10 +1608,76 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-4-exclude-from-the-release-build" class="md-nav__link">
+  <a href="#feather-package-install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 4 — Exclude from the release build
+        feather package install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-install-name-name2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package install &lt;name&gt; [name2...]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-install-nameversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package install &lt;name&gt;@&lt;version&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-install-from-url-url-target-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package install --from-url &lt;url&gt; --target &lt;path&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-update-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package update [name]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-remove-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package remove &lt;name&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-package-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package audit
       
     </span>
   </a>
@@ -1578,10 +1690,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#in-game-observability" class="md-nav__link">
+  <a href="#available-packages" class="md-nav__link">
     <span class="md-ellipsis">
       
-        In-game Observability
+        Available Packages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing packages
       
     </span>
   </a>
@@ -1608,161 +1742,290 @@
   
 
 
-<h1 id="recommendations">Recommendations<a class="headerlink" href="#recommendations" title="Permanent link">&para;</a></h1>
-<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
-<h3 id="desktop-app-id-appid-recommended-for-all-setups">Desktop App ID (<code>appId</code>) — recommended for all setups<a class="headerlink" href="#desktop-app-id-appid-recommended-for-all-setups" title="Permanent link">&para;</a></h3>
-<p>Each Feather desktop app generates a unique <strong>App ID</strong> (a UUID stored in Settings). You must set <strong>one</strong> of the following in <code>feather.config.lua</code> — Feather will error at startup in socket mode if neither is present:</p>
-<p><strong>Option A — bind to your desktop app (recommended):</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">-- feather.config.lua</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="c1">-- Copy from Feather desktop app → Settings → Security → Desktop App ID</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nv">appId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;feather-app-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">}</span>
+<h1 id="package-manager">Package Manager<a class="headerlink" href="#package-manager" title="Permanent link">&para;</a></h1>
+<p>Feather includes a curated package installer for LÖVE libraries. It is not a general package manager. It is a hand-curated catalog of known-good libraries with verified checksums.</p>
+<h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Permanent link">&para;</a></h2>
+<h3 id="trust-levels">Trust levels<a class="headerlink" href="#trust-levels" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>verified</code></td>
+<td>Feather-reviewed. Pinned release + per-file SHA-256.</td>
+</tr>
+<tr>
+<td><code>known</code></td>
+<td>Popular community library. Checksum-pinned but not audited in depth.</td>
+</tr>
+<tr>
+<td><code>experimental</code></td>
+<td>Installed via <code>--from-url</code> or a version override (<code>name@version</code>). SHA-256 computed live. Requires <code>--allow-untrusted</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>By default, <code>verified</code> and <code>known</code> packages install without extra flags. <code>experimental</code> requires <code>--allow-untrusted</code>.</p>
+<p>Version overrides (<code>feather package install anim8@v2.2.0</code>) are treated as <code>experimental</code> even when the package itself is <code>verified</code> — the source (name, repo) is curated, but Feather has not reviewed that specific version.</p>
+<h3 id="lockfile">Lockfile<a class="headerlink" href="#lockfile" title="Permanent link">&para;</a></h3>
+<p>Every install, update, or remove updates <code>feather.lock.json</code> in your project root. Commit this file — it records the exact version and SHA-256 of every installed file so anyone cloning your project can restore dependencies with <code>feather package install</code> and verify them with <code>feather package audit</code>.</p>
+<hr />
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
+<h3 id="feather-package-search-query"><code>feather package search [query]</code><a class="headerlink" href="#feather-package-search-query" title="Permanent link">&para;</a></h3>
+<p>Search the catalog by name, description, or tag.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>animation
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>collision
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>oop
 </code></pre></div>
-<p>The game rejects commands from any other Feather desktop instance. Only the matching app can control it.</p>
-<p><strong>Option B — explicit insecure opt-in:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">-- feather.config.lua</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="c1">-- Any Feather desktop on the network can send commands to this game.</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="c1">-- Set this only when you cannot use appId (e.g. shared dev machine, CI).</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nv">insecureConnection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">}</span>
+<h3 id="feather-package-list"><code>feather package list</code><a class="headerlink" href="#feather-package-list" title="Permanent link">&para;</a></h3>
+<p>List all packages in the catalog. Add <code>--installed</code> to show only what's in your project.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>package<span class="w"> </span>list
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>package<span class="w"> </span>list<span class="w"> </span>--installed
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>feather<span class="w"> </span>package<span class="w"> </span>list<span class="w"> </span>--refresh<span class="w">   </span><span class="c1"># force re-fetch the registry</span>
 </code></pre></div>
-<p>Setting <code>insecureConnection = true</code> is your acknowledgment that the game accepts commands from any Feather desktop on the network. Feather will not start without one of these two options — there is no silent fallback.</p>
-<p><code>feather init</code> prompts for the App ID during setup and writes it to <code>feather.config.lua</code> automatically. To find it: open the Feather desktop app → <strong>Settings</strong> → <strong>Security</strong> → <strong>Desktop App ID</strong>.</p>
+<h3 id="feather-package-info-name"><code>feather package info &lt;name&gt;</code><a class="headerlink" href="#feather-package-info-name" title="Permanent link">&para;</a></h3>
+<p>Show full details for a package: description, trust, source, files, and usage snippet.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>feather<span class="w"> </span>package<span class="w"> </span>info<span class="w"> </span>anim8
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>feather<span class="w"> </span>package<span class="w"> </span>info<span class="w"> </span>hump
+</code></pre></div>
+<h3 id="feather-package-install"><code>feather package install</code><a class="headerlink" href="#feather-package-install" title="Permanent link">&para;</a></h3>
+<p>Run with no arguments to restore all packages recorded in <code>feather.lock.json</code>. Files already on disk with the correct checksum are skipped; only missing or tampered files are re-downloaded.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install
+</code></pre></div>
+<p>This is the command to run after cloning a project that has a lockfile.</p>
+<h3 id="feather-package-install-name-name2"><code>feather package install &lt;name&gt; [name2...]</code><a class="headerlink" href="#feather-package-install-name-name2" title="Permanent link">&para;</a></h3>
+<p>Install one or more packages. Files are verified against their SHA-256 before being written. The lockfile is updated on success.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>anim8
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>bump<span class="w"> </span>lume<span class="w"> </span>flux
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>hump<span class="w">          </span><span class="c1"># installs all hump modules</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>hump.camera<span class="w">   </span><span class="c1"># installs only the camera module</span>
+</code></pre></div>
+<p>Options:</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Show what would be installed without writing files</td>
+</tr>
+<tr>
+<td><code>--target &lt;dir&gt;</code></td>
+<td>Override the install directory</td>
+</tr>
+<tr>
+<td><code>--offline</code></td>
+<td>Use the bundled registry snapshot instead of fetching</td>
+</tr>
+<tr>
+<td><code>--allow-untrusted</code></td>
+<td>Required for <code>experimental</code> packages and version overrides</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example output:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>  anim8
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  Source:  github.com/kikito/anim8
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>  Version: v2.3.1
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  Trust:   [verified]
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  Files:
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    anim8.lua  →  lib/anim8.lua
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>✔ anim8 @ v2.3.1
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  → lib/anim8.lua  checksum: verified
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>  Add to your code:
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>  local anim8 = require(&quot;lib.anim8&quot;)
+</code></pre></div>
+<h3 id="feather-package-install-nameversion"><code>feather package install &lt;name&gt;@&lt;version&gt;</code><a class="headerlink" href="#feather-package-install-nameversion" title="Permanent link">&para;</a></h3>
+<p>Install a specific version of a registry package that differs from the Feather-pinned release. Because that version has not been reviewed, the SHA-256 is computed live at install time rather than checked against the registry. <strong>Requires <code>--allow-untrusted</code>.</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>anim8@v2.2.0<span class="w"> </span>--allow-untrusted
+</code></pre></div>
+<p>The package source (name, GitHub repo) is registry-curated, but the specific version is not. The install is stored in the lockfile with <code>trust: experimental</code> so it is clearly visible in <code>list --installed</code> and <code>audit</code> output.</p>
+<p><strong>Example output:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>  anim8
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  Source:  github.com/kikito/anim8
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  Version: v2.2.0
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  Trust:   [experimental]  (source is registry-curated, but v2.2.0 has not been reviewed)
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  Files:
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    anim8.lua  →  lib/anim8.lua
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>✔ anim8 @ v2.2.0
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  → lib/anim8.lua  checksum: live-computed ⚠
+</code></pre></div>
+<p>If the requested version does not exist on GitHub, the install aborts with a clear error and a link to the package's releases page.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>appId</code> identifies the <strong>desktop app instance</strong>, not a user or secret. If you reinstall or reset the desktop app, regenerate the App ID in Settings and update <code>feather.config.lua</code>.</p>
-<p><code>appId</code> prevents accidental cross-talk between development machines on the same network — it is not a cryptographic guarantee and is not a substitute for proper network isolation in shared or untrusted environments.</p>
+<p>To go back to the Feather-reviewed version, run <code>feather package install anim8</code> (no version pin). This re-installs the registry-pinned release and resets the lockfile entry to <code>trust: verified</code>.</p>
 </div>
-<h3 id="api-key-apikey-required-only-for-the-console-plugin">API Key (<code>apiKey</code>) — required only for the Console plugin<a class="headerlink" href="#api-key-apikey-required-only-for-the-console-plugin" title="Permanent link">&para;</a></h3>
-<p>Set <code>apiKey</code> in the game config and match it in the Feather desktop app Settings. This gates access to the Console / REPL plugin (remote Lua execution):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">apiKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">})</span>
-</code></pre></div>
-<h3 id="console-plugin">Console plugin<a class="headerlink" href="#console-plugin" title="Permanent link">&para;</a></h3>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Do not include the Console plugin in builds shipped to users. It allows remote code execution and can be a serious security risk.</p>
-</div>
-<hr />
-<h2 id="safe-debugger-usage">Safe <code>DEBUGGER</code> Usage<a class="headerlink" href="#safe-debugger-usage" title="Permanent link">&para;</a></h2>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p><code>DEBUGGER</code> only exists when Feather actually loads. With CLI-managed setup, generated imports are guarded by <code>USE_DEBUGGER</code>, so production-like runs can leave Feather unloaded entirely.</p>
-</div>
-<p>Always guard direct <code>DEBUGGER</code> usage:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="kr">end</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kr">end</span>
-</code></pre></div>
-<p>For custom actions:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;Player spawned&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kr">end</span>
-</code></pre></div>
-<p>Avoid this in game code:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<h3 id="feather-package-install-from-url-url-target-path"><code>feather package install --from-url &lt;url&gt; --target &lt;path&gt;</code><a class="headerlink" href="#feather-package-install-from-url-url-target-path" title="Permanent link">&para;</a></h3>
+<p>Install a single Lua file from an arbitrary URL. The SHA-256 is computed and shown before the file is written. The package is stored in the lockfile with <code>trust: experimental</code>.</p>
+<p><strong>Requires <code>--allow-untrusted</code></strong> — this is intentional. The flag name makes the risk explicit.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>--from-url<span class="w"> </span>https://example.com/mylib.lua<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>--target<span class="w"> </span>lib/mylib.lua<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>--allow-untrusted
 </code></pre></div>
 <div class="admonition danger">
 <p class="admonition-title">Caution</p>
-<p>That direct call will fail when <code>USE_DEBUGGER</code> is unset, when <code>debug = false</code>, or after running <code>feather remove</code>.</p>
+<p>Experimental packages have not been reviewed by the Feather team. Only install files from sources you trust. The SHA-256 shown at install time is what will be verified by future <code>feather package audit</code> runs.</p>
 </div>
-<p>For local/dev runs, enable Feather explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">USE_DEBUGGER</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>love<span class="w"> </span>.
+<h3 id="feather-package-update-name"><code>feather package update [name]</code><a class="headerlink" href="#feather-package-update-name" title="Permanent link">&para;</a></h3>
+<p>Update an installed package to the latest version in the registry. Omit the name to update all installed packages.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w"> </span>anim8
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w">          </span><span class="c1"># update all</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w"> </span>--dry-run
 </code></pre></div>
-<p>For production builds, leave <code>USE_DEBUGGER</code> unset and run <code>feather remove --yes</code> before packaging.</p>
+<p><code>experimental</code> packages (installed via <code>--from-url</code>) cannot be updated — re-install with <code>--from-url</code> to replace them.</p>
+<h3 id="feather-package-remove-name"><code>feather package remove &lt;name&gt;</code><a class="headerlink" href="#feather-package-remove-name" title="Permanent link">&para;</a></h3>
+<p>Remove an installed package and its files. Updates the lockfile.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>feather<span class="w"> </span>package<span class="w"> </span>remove<span class="w"> </span>anim8
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>feather<span class="w"> </span>package<span class="w"> </span>remove<span class="w"> </span>hump.camera
+</code></pre></div>
+<h3 id="feather-package-audit"><code>feather package audit</code><a class="headerlink" href="#feather-package-audit" title="Permanent link">&para;</a></h3>
+<p>Verify the SHA-256 of every installed file against the lockfile. Exits with code 1 if any file is modified or missing.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>feather<span class="w"> </span>package<span class="w"> </span>audit
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>feather<span class="w"> </span>package<span class="w"> </span>audit<span class="w"> </span>--json<span class="w">    </span><span class="c1"># machine-readable output</span>
+</code></pre></div>
+<p><strong>Example output:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Auditing 4 installed packages…
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>  ✔ anim8        lib/anim8.lua           verified
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>  ✔ hump.camera  lib/hump/camera.lua     verified
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>  ✖ baton        lib/baton.lua           MODIFIED  ← SHA-256 mismatch
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  !  sti          lib/sti/init.lua        missing
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>1 issue(s) found. Re-install affected packages with `feather package install &lt;name&gt;`.
+</code></pre></div>
 <hr />
-<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Feather is a development tool, not something you should ship in production builds. Use one of these approaches, from least to most thorough.</p>
-</div>
-<h3 id="level-1-disable-at-runtime-debug-false">Level 1 — Disable at runtime (<code>debug = false</code>)<a class="headerlink" href="#level-1-disable-at-runtime-debug-false" title="Permanent link">&para;</a></h3>
-<p>The <code>debug</code> flag makes Feather a no-op: no WebSocket connection, no hooks, <code>update()</code> returns immediately. The library is still bundled but consumes no CPU.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Config</span><span class="p">.</span><span class="py">IS_DEBUG</span><span class="p">,</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">})</span>
-</code></pre></div>
-<p>The files are dormant but present in the bundle.</p>
-<h3 id="level-2-keep-feather-managed-by-the-cli">Level 2 — Keep Feather managed by the CLI<a class="headerlink" href="#level-2-keep-feather-managed-by-the-cli" title="Permanent link">&para;</a></h3>
-<p>Prefer initializing Feather through the CLI so the generated files are easy to remove later:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>feather<span class="w"> </span>init<span class="w"> </span>--mode<span class="w"> </span>auto
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># or</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>feather<span class="w"> </span>init<span class="w"> </span>--mode<span class="w"> </span>manual
-</code></pre></div>
-<p>Auto mode inserts marked <code>FEATHER-INIT</code> blocks in <code>main.lua</code>. Manual mode creates <code>feather.debugger.lua</code> and loads it from a marked block in <code>main.lua</code>.</p>
-<p>Both modes guard Feather imports with the <code>USE_DEBUGGER</code> environment variable. Run local/dev builds with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># macOS / Linux</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nv">USE_DEBUGGER</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>love<span class="w"> </span>.
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c"># Windows PowerShell</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nv">$env:USE_DEBUGGER</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">love</span> <span class="p">.</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">:</span><span class="c1">: Windows cmd.exe</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">set</span> <span class="nv">USE_DEBUGGER</span><span class="p">=</span>1 <span class="p">&amp;&amp;</span> love .
-</code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Leave <code>USE_DEBUGGER</code> unset, <code>0</code>, or <code>false</code> in production-like runs so Feather is not loaded at all.</p>
-</div>
-<p>Before packaging a release, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>feather<span class="w"> </span>remove
-</code></pre></div>
-<p>Use <code>--dry-run</code> first to preview:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>--dry-run
-</code></pre></div>
-<p>The remove command only edits generated <code>FEATHER-INIT</code> blocks and removes generated Feather files it can identify. If you want to keep part of the setup:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>--keep-config
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>feather<span class="w"> </span>remove<span class="w"> </span>--keep-runtime
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>feather<span class="w"> </span>remove<span class="w"> </span>--keep-main
-</code></pre></div>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>This is the recommended workflow for most projects because Feather can clean up after itself before production packaging.</p>
-</div>
-<h3 id="level-3-guard-manual-requires">Level 3 — Guard manual requires<a class="headerlink" href="#level-3-guard-manual-requires" title="Permanent link">&para;</a></h3>
-<p>If you wire Feather by hand, wrap the entire setup in a conditional so the library is never loaded in production:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">Config</span><span class="p">.</span><span class="py">IS_DEBUG</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span><span class="w"> </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="w"> </span><span class="p">})</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kr">end</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="kr">end</span>
-</code></pre></div>
-<p>No Lua code runs and no globals are created in release builds.</p>
-<h3 id="level-4-exclude-from-the-release-build">Level 4 — Exclude from the release build<a class="headerlink" href="#level-4-exclude-from-the-release-build" title="Permanent link">&para;</a></h3>
-<p>Since Feather installs into a single directory, excluding it is a single glob:</p>
-<p><strong>Manual zip:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>zip<span class="w"> </span>-r<span class="w"> </span>MyGame.love<span class="w"> </span>.<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>-x<span class="w"> </span><span class="s2">&quot;*.git*&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>-x<span class="w"> </span><span class="s2">&quot;lib/feather/*&quot;</span>
-</code></pre></div>
-<p><strong><a href="https://github.com/MisterDA/love-release">love-release</a></strong> — add to <code>.love-release.yml</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nt">exclude</span><span class="p">:</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">feather/</span>
-</code></pre></div>
-<p><strong><a href="https://github.com/pfirsich/makelove">makelove</a></strong> — add to <code>makelove.toml</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">[love_files]</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;feather/**&quot;</span><span class="p">]</span>
-</code></pre></div>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>No Feather code or assets are present in the release build. This also eliminates the Console plugin as an attack surface entirely.</p>
-</div>
-<p>If you use manual mode, also exclude or remove:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>feather.debugger.lua
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>feather.config.lua
-</code></pre></div>
-<p><code>feather remove --yes</code> handles these generated files automatically when they are present.</p>
+<h2 id="available-packages">Available Packages<a class="headerlink" href="#available-packages" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Trust</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>anim8</code></td>
+<td>verified</td>
+<td>2D sprite animation</td>
+</tr>
+<tr>
+<td><code>bump</code></td>
+<td>verified</td>
+<td>AABB collision detection</td>
+</tr>
+<tr>
+<td><code>classic</code></td>
+<td>verified</td>
+<td>Minimal OOP class library</td>
+</tr>
+<tr>
+<td><code>flux</code></td>
+<td>verified</td>
+<td>Tweening / easing</td>
+</tr>
+<tr>
+<td><code>hump</code></td>
+<td>verified</td>
+<td>Camera, timer, signal, class, vector, gamestate</td>
+</tr>
+<tr>
+<td><code>hump.camera</code></td>
+<td>verified</td>
+<td>Camera module only</td>
+</tr>
+<tr>
+<td><code>hump.class</code></td>
+<td>verified</td>
+<td>Class module only</td>
+</tr>
+<tr>
+<td><code>hump.gamestate</code></td>
+<td>verified</td>
+<td>Gamestate module only</td>
+</tr>
+<tr>
+<td><code>hump.signal</code></td>
+<td>verified</td>
+<td>Signal module only</td>
+</tr>
+<tr>
+<td><code>hump.timer</code></td>
+<td>verified</td>
+<td>Timer module only</td>
+</tr>
+<tr>
+<td><code>hump.vector</code></td>
+<td>verified</td>
+<td>Vector module only</td>
+</tr>
+<tr>
+<td><code>inspect</code></td>
+<td>verified</td>
+<td>Human-readable table printer</td>
+</tr>
+<tr>
+<td><code>lume</code></td>
+<td>verified</td>
+<td>Functional utilities</td>
+</tr>
+<tr>
+<td><code>middleclass</code></td>
+<td>verified</td>
+<td>Full-featured OOP class library</td>
+</tr>
+<tr>
+<td><code>push</code></td>
+<td>verified</td>
+<td>Resolution-independence</td>
+</tr>
+<tr>
+<td><code>sti</code></td>
+<td>known</td>
+<td>Simple Tiled Implementation (map loader)</td>
+</tr>
+<tr>
+<td><code>windfield</code></td>
+<td>known</td>
+<td>Box2D physics wrapper</td>
+</tr>
+</tbody>
+</table>
+<p>Run <code>feather package list</code> for the most up-to-date listing including any newly added packages.</p>
 <hr />
-<h2 id="in-game-observability">In-game Observability<a class="headerlink" href="#in-game-observability" title="Permanent link">&para;</a></h2>
-<p><a href="https://github.com/Oval-Tutu/bootstrap-love2d-project/blob/main/game/lib/overlayStats.lua">OverlayStats</a> by <a href="https://github.com/Oval-Tutu">Oval-Tutu</a> is a great companion for visualizing performance directly in the game window. Feather's performance plugin draws inspiration from it.</p>
+<h2 id="security-model">Security model<a class="headerlink" href="#security-model" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>SHA-256 is verified before any file is written.</strong> For registry installs, the checksum is checked against the Feather-pinned value before anything touches disk. A mismatch aborts the install.</li>
+<li><strong>Version overrides and <code>--from-url</code> compute SHA-256 live.</strong> The hash is shown at install time and stored in the lockfile, so future <code>audit</code> runs detect tampering — but the initial download is not checked against a known-good value.</li>
+<li><strong>No post-install scripts.</strong> No code runs during install, update, or remove.</li>
+<li><strong>Files stay inside your project.</strong> Target paths are resolved and validated against the project root. Paths that would escape (e.g. <code>../../</code>) are rejected.</li>
+<li><strong>The registry is fetched over HTTPS only.</strong></li>
+<li><strong><code>experimental</code> packages are flagged everywhere</strong> — in install output, <code>list --installed</code>, and <code>audit</code> results. This includes version overrides.</li>
+</ul>
+<hr />
+<h2 id="contributing-packages">Contributing packages<a class="headerlink" href="#contributing-packages" title="Permanent link">&para;</a></h2>
+<p>To propose adding a package to the Feather catalog, open an issue at <a href="https://github.com/Kyonru/feather">github.com/Kyonru/feather</a> with:</p>
+<ul>
+<li>The library name and GitHub repo</li>
+<li>The specific release tag or commit to pin</li>
+<li>Whether it meets the criteria for <code>verified</code> or <code>known</code> trust</li>
+</ul>
+<p>Maintainers will compute checksums, review the library, and add it to <code>packages/</code>.</p>
+<p>To compute checksums locally while developing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>--all<span class="w">            </span><span class="c1"># verify all package files</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>https://raw.githubusercontent.com/example/lib/main/lib.lua
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>--package<span class="w"> </span>packages/anim8.json
+</code></pre></div>
 
 
 

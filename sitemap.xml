@@ -2,126 +2,130 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://kyonru.github.io/feather/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/assets/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/cli/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/configuration/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/console/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/debugger/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/hot-reload/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/installation/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
-         <loc>https://kyonru.github.io/feather/plugin-ui/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <loc>https://kyonru.github.io/feather/packages/</loc>
+         <lastmod>2026-05-13</lastmod>
+    </url>
+    <url>
+         <loc>https://kyonru.github.io/feather/plugins-ui/</loc>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/recommendations/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/time-travel/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/usage/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/animation-inspector/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/audio-debug/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/bookmark/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/collision-debug/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/config-tweaker/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/coroutine-monitor/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/entity-inspector/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/filesystem/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/hump-signal/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/input-replay/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/lua-state-machine/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/memory-snapshot/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/network-inspector/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/particle-editor/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/physics-debug/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/profiler/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/screenshots/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
     <url>
          <loc>https://kyonru.github.io/feather/plugins/timer-inspector/</loc>
-         <lastmod>2026-05-11</lastmod>
+         <lastmod>2026-05-13</lastmod>
     </url>
 </urlset>
