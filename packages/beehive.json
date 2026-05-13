@@ -1,0 +1,53 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A behavior tree implementation in lua.",
+  "tags": [
+    "ai",
+    "behavior",
+    "tree"
+  ],
+  "homepage": "https://github.com/drhayes/beehive.lua",
+  "license": "MIT",
+  "source": {
+    "repo": "drhayes/beehive.lua",
+    "tag": "main",
+    "baseUrl": "https://raw.githubusercontent.com/drhayes/beehive.lua/main/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "beehive/fail.lua",
+        "sha256": "8ffc086030857f311398ce2abc578f574c0303364e3f68a3e78e84fb00a9e41e",
+        "target": "lib/beehive/fail.lua"
+      },
+      {
+        "name": "beehive/invert.lua",
+        "sha256": "cb11cc9564409a5419ad113155e357c968e8c6f38ec10cae55403e5ac488040e",
+        "target": "lib/beehive/invert.lua"
+      },
+      {
+        "name": "beehive/parallel.lua",
+        "sha256": "fdeeadcf6e437a0d11bfcd4019a50aaac34cb969d72bfa10cf6cb69ee570fe4f",
+        "target": "lib/beehive/parallel.lua"
+      },
+      {
+        "name": "beehive/repeat.lua",
+        "sha256": "fd4a75cfbba982ba4436716b12ca5a102e13b1bcf6f630a3c162ee7ad1afff38",
+        "target": "lib/beehive/repeat.lua"
+      },
+      {
+        "name": "beehive/selector.lua",
+        "sha256": "0b46e7085065e89bd8488a0c1edaf335640c01c8d04b4fe302e8b02556f16b83",
+        "target": "lib/beehive/selector.lua"
+      },
+      {
+        "name": "beehive/sequence.lua",
+        "sha256": "80ee98a5a1f8fd302bb2b0452b145051c4094cd4f776453eb0df7a10aef2ae15",
+        "target": "lib/beehive/sequence.lua"
+      }
+    ]
+  },
+  "require": "lib.beehive.fail",
+  "example": "local beehive = require('lib.beehive.fail')"
+}
