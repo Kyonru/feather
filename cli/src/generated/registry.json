@@ -139,6 +139,34 @@
       "require": "lib.bump",
       "example": "local bump = require('lib.bump')"
     },
+    "cargo": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "LÖVE asset manager",
+      "tags": [
+        "asset",
+        "manager",
+        "loader"
+      ],
+      "homepage": "https://github.com/bjornbytes/cargo",
+      "license": "MIT",
+      "source": {
+        "repo": "bjornbytes/cargo",
+        "tag": "v0.1.1",
+        "baseUrl": "https://raw.githubusercontent.com/bjornbytes/cargo/v0.1.1/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "cargo.lua",
+            "sha256": "50749991281b9052e8f449c55d5bda0c5855f73c9264adb3f42077cf3ff0ab96",
+            "target": "lib/cargo.lua"
+          }
+        ]
+      },
+      "require": "lib.cargo",
+      "example": "local cargo = require('lib.cargo')"
+    },
     "classic": {
       "type": "love2d-library",
       "trust": "verified",
