@@ -1,0 +1,75 @@
+name: Package request
+description: Propose adding a library to the Feather catalog
+labels: ["package-request"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Package name
+      description: The name you'd like to use with `feather package install <name>`
+      placeholder: anim8
+    validations:
+      required: true
+
+  - type: input
+    id: repo
+    attributes:
+      label: GitHub repository
+      description: Full repo path (owner/repo)
+      placeholder: kikito/anim8
+    validations:
+      required: true
+
+  - type: input
+    id: tag
+    attributes:
+      label: Release tag or commit to pin
+      description: The specific tag or commit SHA Feather should pin. Prefer a tagged release over a branch.
+      placeholder: v2.3.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: trust
+    attributes:
+      label: Suggested trust level
+      description: >
+        `verified` — you've read the source and consider it safe to use as-is.
+        `known` — popular and widely used but you haven't audited it line by line.
+      options:
+        - known
+        - verified
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What does this library do?
+      description: One or two sentences. This becomes the catalog description.
+      placeholder: A 2D animation library for LÖVE. Handles sprite sheets, frames, and playback.
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Files to install
+      description: List the files that should be copied into a project and their suggested target paths.
+      placeholder: |
+        anim8.lua  →  lib/anim8.lua
+    validations:
+      required: true
+
+  - type: input
+    id: require
+    attributes:
+      label: require() path
+      description: How users load it in Lua code, matching the suggested target path.
+      placeholder: lib.anim8
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why should this be in the catalog?
+      description: What problem does it solve? Are there alternatives already in the catalog?

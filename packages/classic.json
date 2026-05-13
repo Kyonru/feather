@@ -1,0 +1,19 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A tiny class module for Lua. Minimal OOP with inheritance.",
+  "tags": ["oop", "utilities"],
+  "homepage": "https://github.com/rxi/classic",
+  "source": {
+    "repo": "rxi/classic",
+    "tag": "master",
+    "baseUrl": "https://raw.githubusercontent.com/rxi/classic/master/"
+  },
+  "install": {
+    "files": [
+      { "name": "classic.lua", "sha256": "52827561440f22ff3f34f926b2f4bdc1b74cbbaafa3b3b8252b530b12387d48b", "target": "lib/classic.lua" }
+    ]
+  },
+  "require": "lib.classic",
+  "example": "local Object = require('lib.classic')"
+}

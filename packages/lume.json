@@ -1,0 +1,19 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A collection of Lua functions for gamedev: math, table manipulation, string utilities, and more.",
+  "tags": ["utilities", "math"],
+  "homepage": "https://github.com/rxi/lume",
+  "source": {
+    "repo": "rxi/lume",
+    "tag": "master",
+    "baseUrl": "https://raw.githubusercontent.com/rxi/lume/master/"
+  },
+  "install": {
+    "files": [
+      { "name": "lume.lua", "sha256": "fb2856d60eb48516c8aa04de1e8b58b355a56fb7a05fd1170cfe330f8ad69b1a", "target": "lib/lume.lua" }
+    ]
+  },
+  "require": "lib.lume",
+  "example": "local lume = require('lib.lume')"
+}

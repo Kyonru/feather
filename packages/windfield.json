@@ -1,0 +1,19 @@
+{
+  "type": "love2d-library",
+  "trust": "known",
+  "description": "A physics module for LÖVE that makes Box2D easier to use. Wraps love.physics with a simpler API.",
+  "tags": ["physics", "box2d"],
+  "homepage": "https://github.com/SSYGEN/windfield",
+  "source": {
+    "repo": "SSYGEN/windfield",
+    "tag": "master",
+    "baseUrl": "https://raw.githubusercontent.com/SSYGEN/windfield/master/"
+  },
+  "install": {
+    "files": [
+      { "name": "windfield/init.lua", "sha256": "687c789dceeba3ebb6f5b152b94e9c085268695ed8cc578780d24ec1696f0388", "target": "lib/windfield/init.lua" }
+    ]
+  },
+  "require": "lib.windfield",
+  "example": "local wf = require('lib.windfield')"
+}

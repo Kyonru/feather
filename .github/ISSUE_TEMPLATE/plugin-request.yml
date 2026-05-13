@@ -1,0 +1,76 @@
+name: Plugin request
+description: Propose adding a plugin to the Feather catalog
+labels: ["plugin-request"]
+body:
+  - type: input
+    id: id
+    attributes:
+      label: Plugin ID
+      description: Snake-case identifier used with `feather plugin install <id>`
+      placeholder: collision-debug
+    validations:
+      required: true
+
+  - type: input
+    id: name
+    attributes:
+      label: Display name
+      description: Human-readable name shown in `feather plugin list`
+      placeholder: Collision Debug
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What does this plugin do?
+      description: One or two sentences shown in the catalog. Be specific about what it displays or enables inside Feather.
+      placeholder: Draws AABB and circle collision shapes on top of your game world, color-coded by collision group.
+    validations:
+      required: true
+
+  - type: textarea
+    id: integration
+    attributes:
+      label: How does it integrate with the game?
+      description: >
+        Describe what the game needs to do to support this plugin — e.g. does it hook into
+        love.update / love.draw automatically, or does the developer need to call specific APIs?
+        Does it require any particular library (bump, windfield, etc.)?
+      placeholder: |
+        Hooks into love.draw automatically. Requires bump.lua to be installed and passed in via opts.world.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: opt_in
+    attributes:
+      label: Opt-in?
+      description: Should the plugin be disabled by default and require the developer to explicitly enable it?
+      options:
+        - "Yes — opt-in (disabled by default)"
+        - "No — enabled by default"
+    validations:
+      required: true
+
+  - type: textarea
+    id: capabilities
+    attributes:
+      label: Capabilities used
+      description: List any Feather capabilities this plugin relies on (e.g. overlay, inspector, command palette). Leave blank if none.
+      placeholder: |
+        overlay
+        inspector
+
+  - type: input
+    id: repo
+    attributes:
+      label: Source repository (if external)
+      description: If the plugin lives in a separate repo rather than being contributed directly, link it here.
+      placeholder: github.com/yourname/feather-plugin-collision-debug
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why should this be in the catalog?
+      description: What workflow or debugging scenario does it address? Is there overlap with an existing plugin?

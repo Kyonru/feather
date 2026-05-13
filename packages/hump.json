@@ -1,0 +1,32 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "Helper utilities for LÖVE: camera, timer, signal, class, vector, gamestate.",
+  "tags": ["utilities", "camera", "timer", "oop", "math"],
+  "homepage": "https://github.com/vrld/hump",
+  "source": {
+    "repo": "vrld/hump",
+    "tag": "master",
+    "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+  },
+  "install": {
+    "files": [
+      { "name": "camera.lua",    "sha256": "b5f0c086fc652f7f97eef84b6be358f889ab9b8d28cf7f295b46d48638014099", "target": "lib/hump/camera.lua" },
+      { "name": "timer.lua",     "sha256": "8931203b027ecce889692e67323e7f333881fb230ed9dd735c785f5e3a7def03", "target": "lib/hump/timer.lua" },
+      { "name": "signal.lua",    "sha256": "4f311197119177453d8759add39531905da2d3590a7e3a7befc618e46f31b051", "target": "lib/hump/signal.lua" },
+      { "name": "class.lua",     "sha256": "b0b97bb7cc51b9234dfe3dce0f6da12beaebbb6335eaeaa38de8e537a157cb4e", "target": "lib/hump/class.lua" },
+      { "name": "vector.lua",    "sha256": "70a4d9437e0c7bdf718160eb4a3464f54705129b854f1c9bd60a5adea8d197cc", "target": "lib/hump/vector.lua" },
+      { "name": "gamestate.lua", "sha256": "7e11c9f4909ececc3b61fa4313b001b25f33b5ac36bc96b641aedff0328a4406", "target": "lib/hump/gamestate.lua" }
+    ]
+  },
+  "subpackages": {
+    "hump.camera":    { "files": ["camera.lua"],    "require": "lib.hump.camera" },
+    "hump.timer":     { "files": ["timer.lua"],     "require": "lib.hump.timer" },
+    "hump.signal":    { "files": ["signal.lua"],    "require": "lib.hump.signal" },
+    "hump.class":     { "files": ["class.lua"],     "require": "lib.hump.class" },
+    "hump.vector":    { "files": ["vector.lua"],    "require": "lib.hump.vector" },
+    "hump.gamestate": { "files": ["gamestate.lua"], "require": "lib.hump.gamestate" }
+  },
+  "require": "lib.hump",
+  "example": "local Camera = require('lib.hump.camera')"
+}
