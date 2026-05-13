@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.10.0] - 2026-05-13 - The one with the internal package manager
+
+### Added
+
+- **Package manager** — `feather package` command group for installing and managing LÖVE libraries
+  - Curated catalog of 11 libraries: anim8, bump, classic, flux, hump (+ subpackages), inspect, lume, middleclass, push, sti, windfield
+  - `feather package install <name>` — downloads and verifies files against pinned SHA-256 before writing to disk
+  - `feather package install` (no args) — restores all packages recorded in `feather.lock.json`; skips files already verified
+  - `feather package install <name>@<version>` — installs a specific version, treated as `experimental` (requires `--allow-untrusted`)
+  - `feather package install --from-url <url> --target <path>` — install any Lua file by URL; SHA-256 computed live and stored
+  - `feather package update [name]` — updates installed packages to the registry-pinned version
+  - `feather package remove <name>` — deletes installed files and removes the lockfile entry
+  - `feather package audit` — re-hashes every installed file and compares against `feather.lock.json`; exits 1 if any file is missing or modified
+  - `feather package search [query]` — filters catalog by name, description, or tag
+  - `feather package info <name>` — shows source, trust level, files, and usage snippet
+  - `feather package list` — interactive TUI browser (falls back to plain text when not a TTY)
+  - Three trust levels: `verified` (Feather-reviewed, pinned SHA-256), `known` (checksum-pinned), `experimental` (`--from-url` or version override)
+  - `feather.lock.json` lockfile — records exact version and SHA-256 of every installed file; designed to be committed
+  - `--dry-run`, `--offline`, `--allow-untrusted`, `--json` flags across subcommands
+- **Registry pipeline** — `packages/*.json` source files compose into a `registry.json` snapshot via `scripts/generate-registry.mjs`; GitHub Actions publishes it to the `packages` branch automatically on every change
+- **Interactive TUI** — `feather package list` uses an ink-based browser with search, navigation, and an action picker (install / update / remove)
+- **Install progress UI** — live per-file download and checksum status for installs and updates
+- **GitHub issue templates** — package request, plugin request, and bug report
+
 ## [v0.9.3] - 2026-05-11 - The one with NPM releases
 
 - fix npm step release
@@ -329,6 +353,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v0.10.0]: https://github.com/Kyonru/feather/compare/v0.9.3...v0.10.0
+[v0.9.3]: https://github.com/Kyonru/feather/compare/v0.9.2...v0.9.3
+[v0.9.2]: https://github.com/Kyonru/feather/compare/v0.9.0...v0.9.2
+[v0.9.0]: https://github.com/Kyonru/feather/compare/v0.8.0...v0.9.0
 [v0.8.0]: https://github.com/Kyonru/feather/compare/v0.7.0...v0.8.0
 [v0.7.0]: https://github.com/Kyonru/feather/compare/v0.6.0...v0.7.0
 [v0.6.0]: https://github.com/Kyonru/feather/compare/v0.5.1...v0.6.0
