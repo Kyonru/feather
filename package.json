@@ -28,6 +28,7 @@
     "typecheck": "npm run typecheck:web && npm run typecheck:lua",
     "generate:plugin-catalog": "node scripts/generate-plugin-catalog.mjs",
     "check:plugin-catalog": "npm run generate:plugin-catalog && git diff --exit-code cli/src/generated/plugin-catalog.ts",
+    "package:add": "npm run package:add --workspace=cli",
     "generate:registry": "node scripts/generate-registry.mjs",
     "check:registry": "npm run generate:registry && git diff --exit-code cli/src/generated/registry.json",
     "verify:packages": "node scripts/compute-checksums.mjs --all",
