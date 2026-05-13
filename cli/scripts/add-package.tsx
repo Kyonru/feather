@@ -21,6 +21,7 @@ import {
   MultiSelectStep,
   AutoStep,
   TargetsStep,
+  SubpackagesStep,
   ReviewStep,
   ChecksumStep,
   fetchRepoMeta,
@@ -40,6 +41,7 @@ type Step =
   | 'files'
   | 'targets'
   | 'require'
+  | 'subpkgs'
   | 'fetch-checksums'
   | 'review'
   | 'write'
@@ -47,7 +49,7 @@ type Step =
   | 'error';
 
 const TITLE = 'feather package:add';
-const TOTAL = 11;
+const TOTAL = 12;
 
 function DoneStep({ id, onExit }: { id: string; onExit: () => void }) {
   useEffect(() => {
@@ -288,6 +290,21 @@ function Wizard() {
         onSubmit={(req) => {
           const example = `local ${data.id!.replace(/[.-]/g, '_')} = require('${req}')`;
           setData((d) => ({ ...d, require: req, example }));
+          setStep('subpkgs');
+        }}
+      />
+    );
+  }
+
+  if (step === 'subpkgs') {
+    return (
+      <SubpackagesStep
+        stepNum={10}
+        total={TOTAL}
+        title={TITLE}
+        selectedFiles={data.selectedFiles!}
+        onSubmit={(subpackages) => {
+          setData((d) => ({ ...d, subpackages }));
           setStep('fetch-checksums');
         }}
       />
@@ -318,7 +335,7 @@ function Wizard() {
   if (step === 'review') {
     return (
       <ReviewStep
-        stepNum={10}
+        stepNum={11}
         total={TOTAL}
         title={TITLE}
         json={outputJson}

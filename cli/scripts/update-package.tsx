@@ -24,6 +24,7 @@ import {
   MultiSelectStep,
   AutoStep,
   TargetsStep,
+  SubpackagesStep,
   ReviewStep,
   ChecksumStep,
   fetchRepoMeta,
@@ -43,6 +44,7 @@ type Step =
   | 'files'
   | 'targets'
   | 'require'
+  | 'subpkgs'
   | 'fetch-checksums'
   | 'review'
   | 'write'
@@ -59,10 +61,11 @@ interface RawPackage {
   install?: { files?: Array<{ name: string; sha256: string; target: string }> };
   require?: string;
   example?: string;
+  subpackages?: Record<string, { files: string[]; require: string }>;
 }
 
 const TITLE = 'feather package:update';
-const TOTAL = 11;
+const TOTAL = 12;
 
 function DoneStep({ id, onExit }: { id: string; onExit: () => void }) {
   useEffect(() => {
@@ -100,6 +103,7 @@ function Wizard() {
   const [initialTagIndex, setInitialTagIndex] = useState(0);
   const [initialFileSelected, setInitialFileSelected] = useState<Set<number> | undefined>(undefined);
   const [initialTargets, setInitialTargets] = useState<Record<string, string> | undefined>(undefined);
+  const [initialSubpkgs, setInitialSubpkgs] = useState<Record<string, { files: string[]; require: string }> | undefined>(undefined);
 
   const handleError = (msg: string) => {
     setErrorMsg(msg);
@@ -124,6 +128,7 @@ function Wizard() {
           const raw: RawPackage = JSON.parse(readFileSync(join(packagesDir, `${id}.json`), 'utf8'));
           const existingFiles = raw.install?.files ?? [];
           setInitialTargets(Object.fromEntries(existingFiles.map((f) => [f.name, f.target])));
+          setInitialSubpkgs(raw.subpackages ?? undefined);
           setData({
             id,
             repo: raw.source?.repo ?? '',
@@ -138,6 +143,7 @@ function Wizard() {
             targetMap: Object.fromEntries(existingFiles.map((f) => [f.name, f.target])),
             require: raw.require ?? '',
             example: raw.example ?? '',
+            subpackages: raw.subpackages,
           });
           setStep('repo');
         }}
@@ -349,13 +355,30 @@ function Wizard() {
         onSubmit={(req) => {
           const example = `local ${data.id!.replace(/[.-]/g, '_')} = require('${req}')`;
           setData((d) => ({ ...d, require: req, example }));
+          setStep('subpkgs');
+        }}
+      />
+    );
+  }
+
+  // Step 12: submodules
+  if (step === 'subpkgs') {
+    return (
+      <SubpackagesStep
+        stepNum={10}
+        total={TOTAL}
+        title={TITLE}
+        selectedFiles={data.selectedFiles!}
+        initialSubpackages={initialSubpkgs}
+        onSubmit={(subpackages) => {
+          setData((d) => ({ ...d, subpackages }));
           setStep('fetch-checksums');
         }}
       />
     );
   }
 
-  // Step 12: compute checksums (always fresh — tag may have changed)
+  // Step 13: compute checksums (always fresh — tag may have changed)
   if (step === 'fetch-checksums') {
     const fileList = (data.selectedFiles ?? []).map((name) => ({ name, url: data.baseUrl! + name }));
     return (
@@ -377,11 +400,11 @@ function Wizard() {
     );
   }
 
-  // Step 13: review
+  // Step 14: review
   if (step === 'review') {
     return (
       <ReviewStep
-        stepNum={10}
+        stepNum={11}
         total={TOTAL}
         title={TITLE}
         json={outputJson}

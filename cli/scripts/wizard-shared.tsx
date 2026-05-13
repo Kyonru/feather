@@ -33,6 +33,7 @@ export interface FormData {
   require: string;
   example: string;
   files: FileEntry[];
+  subpackages?: Record<string, { files: string[]; require: string }>;
 }
 
 export type InkKey = Parameters<Parameters<typeof useInput>[0]>[1];
@@ -524,6 +525,195 @@ export function ChecksumStep({ files, onDone, onError }: ChecksumStepProps) {
   );
 }
 
+type SubPkgPhase = 'ask' | 'id' | 'files' | 'require' | 'add-more';
+
+interface SubpackagesStepProps {
+  stepNum: number;
+  total: number;
+  title?: string;
+  selectedFiles: string[];
+  initialSubpackages?: Record<string, { files: string[]; require: string }>;
+  onSubmit: (subpackages: Record<string, { files: string[]; require: string }>) => void;
+}
+
+export function SubpackagesStep({
+  stepNum,
+  total,
+  title,
+  selectedFiles,
+  initialSubpackages,
+  onSubmit,
+}: SubpackagesStepProps) {
+  const hasInitial = Object.keys(initialSubpackages ?? {}).length > 0;
+  const [phase, setPhase] = useState<SubPkgPhase>(hasInitial ? 'add-more' : 'ask');
+  const [accumulated, setAccumulated] = useState<Record<string, { files: string[]; require: string }>>(
+    initialSubpackages ?? {},
+  );
+  const [currentId, setCurrentId] = useState('');
+  const [currentFiles, setCurrentFiles] = useState<string[]>([]);
+  const idInput = useTextInput('');
+  const reqInput = useTextInput('');
+  const [fileCursor, setFileCursor] = useState(0);
+  const [fileSelected, setFileSelected] = useState<Set<number>>(new Set());
+  const [idError, setIdError] = useState<string | null>(null);
+  const [reqError, setReqError] = useState<string | null>(null);
+
+  useInput((input, key) => {
+    if (phase === 'ask' || phase === 'add-more') {
+      if (input === 'y' || input === 'Y') {
+        idInput.reset('');
+        setIdError(null);
+        setPhase('id');
+      } else if (input === 'n' || input === 'N' || key.return || key.escape) {
+        onSubmit(accumulated);
+      }
+    } else if (phase === 'id') {
+      if (key.return) {
+        const val = idInput.value.trim();
+        if (!val) { setIdError('Required'); return; }
+        setCurrentId(val);
+        setFileSelected(new Set());
+        setFileCursor(0);
+        setPhase('files');
+        return;
+      }
+      if (idInput.handleKey(input, key)) setIdError(null);
+    } else if (phase === 'files') {
+      if (key.upArrow) setFileCursor((c) => Math.max(0, c - 1));
+      if (key.downArrow) setFileCursor((c) => Math.min(selectedFiles.length - 1, c + 1));
+      if (input === ' ') {
+        setFileSelected((s) => {
+          const next = new Set(s);
+          next.has(fileCursor) ? next.delete(fileCursor) : next.add(fileCursor);
+          return next;
+        });
+      }
+      if (key.return) {
+        const chosen = selectedFiles.filter((_, i) => fileSelected.has(i));
+        if (chosen.length === 0) return;
+        setCurrentFiles(chosen);
+        const suggested = chosen[0]!.replace(/\.lua$/, '').replace(/\//g, '.');
+        reqInput.reset(suggested);
+        setReqError(null);
+        setPhase('require');
+      }
+    } else if (phase === 'require') {
+      if (key.return) {
+        const val = reqInput.value.trim();
+        if (!val) { setReqError('Required'); return; }
+        setAccumulated((a) => ({ ...a, [currentId]: { files: currentFiles, require: val } }));
+        setPhase('add-more');
+        return;
+      }
+      if (reqInput.handleKey(input, key)) setReqError(null);
+    }
+  });
+
+  const accKeys = Object.keys(accumulated);
+
+  if (phase === 'ask') {
+    return (
+      <Box flexDirection="column">
+        <Header step={stepNum} total={total} title={title} />
+        <Text bold>{'  '}Define submodules?</Text>
+        <Hint>Like hump.camera, hump.timer — named subsets of the package files</Hint>
+        <Box marginTop={1}>
+          <Text dimColor>{'  y = define submodules · n/Enter = skip'}</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (phase === 'add-more') {
+    return (
+      <Box flexDirection="column">
+        <Header step={stepNum} total={total} title={title} />
+        <Text bold>{'  '}Add another submodule?</Text>
+        <Box flexDirection="column" marginTop={1}>
+          {accKeys.map((k) => (
+            <Text key={k} color="green">
+              {'  ✔ '}
+              {k}
+              {' '}
+              <Text dimColor>({accumulated[k]!.files.length} file{accumulated[k]!.files.length === 1 ? '' : 's'})</Text>
+            </Text>
+          ))}
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>{'  y = add another · n/Enter = done'}</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (phase === 'id') {
+    return (
+      <Box flexDirection="column">
+        <Header step={stepNum} total={total} title={title} />
+        <Text bold>{'  '}Submodule ID</Text>
+        <Hint>e.g. hump.camera, hump.timer</Hint>
+        <Box marginTop={1}>
+          <Text>{'  '}</Text>
+          <CursorText before={idInput.before} at={idInput.at} after={idInput.after} />
+        </Box>
+        {idError && (
+          <Box marginTop={1}>
+            <Text color="red">{'  ✖ '}{idError}</Text>
+          </Box>
+        )}
+        <Box marginTop={1}>
+          <Text dimColor>{'  ←→ move · Backspace/Delete edit · Enter confirm'}</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (phase === 'files') {
+    return (
+      <Box flexDirection="column">
+        <Header step={stepNum} total={total} title={title} />
+        <Text bold>{'  '}Files for {currentId}</Text>
+        <Hint>Select which files belong to this submodule</Hint>
+        <Box flexDirection="column" marginTop={1}>
+          {selectedFiles.map((f, i) => (
+            <Box key={f}>
+              <Text color={i === fileCursor ? 'cyan' : undefined}>
+                {'  '}
+                {i === fileCursor ? '❯ ' : '  '}
+                {fileSelected.has(i) ? '◉ ' : '○ '}
+                {f}
+              </Text>
+            </Box>
+          ))}
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>{'  ↑↓ navigate · Space toggle · Enter confirm'}</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box flexDirection="column">
+      <Header step={stepNum} total={total} title={title} />
+      <Text bold>{'  '}Require path for {currentId}</Text>
+      <Hint>e.g. lib.hump.camera</Hint>
+      <Box marginTop={1}>
+        <Text>{'  '}</Text>
+        <CursorText before={reqInput.before} at={reqInput.at} after={reqInput.after} />
+      </Box>
+      {reqError && (
+        <Box marginTop={1}>
+          <Text color="red">{'  ✖ '}{reqError}</Text>
+        </Box>
+      )}
+      <Box marginTop={1}>
+        <Text dimColor>{'  ←→ move · Backspace/Delete edit · Enter confirm'}</Text>
+      </Box>
+    </Box>
+  );
+}
+
 const GH_HEADERS = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
 
 export interface RepoMeta {
@@ -568,7 +758,7 @@ export async function fetchLuaFiles(repo: string, tag: string): Promise<string[]
 }
 
 export function buildPackageJson(data: FormData): object {
-  return {
+  const obj: Record<string, unknown> = {
     type: 'love2d-library',
     trust: data.trust,
     description: data.description,
@@ -582,4 +772,8 @@ export function buildPackageJson(data: FormData): object {
     require: data.require,
     example: data.example,
   };
+  if (data.subpackages && Object.keys(data.subpackages).length > 0) {
+    obj.subpackages = data.subpackages;
+  }
+  return obj;
 }
