@@ -4,6 +4,7 @@
   "description": "A 2D animation library for LÖVE. Handles sprite sheets, frames, tags, and playback.",
   "tags": ["animation", "sprites"],
   "homepage": "https://github.com/kikito/anim8",
+  "license": "MIT",
   "source": {
     "repo": "kikito/anim8",
     "tag": "v2.3.1",
@@ -11,7 +12,11 @@
   },
   "install": {
     "files": [
-      { "name": "anim8.lua", "sha256": "c6581c30225a4297924a4f27e56edbc12894fb2e168232fa3a19d21ac149e83f", "target": "lib/anim8.lua" }
+      {
+        "name": "anim8.lua",
+        "sha256": "c6581c30225a4297924a4f27e56edbc12894fb2e168232fa3a19d21ac149e83f",
+        "target": "lib/anim8.lua"
+      }
     ]
   },
   "require": "lib.anim8",

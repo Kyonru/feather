@@ -4,6 +4,7 @@
   "description": "A fast, lightweight tweening library for Lua with chainable API and easing functions.",
   "tags": ["animation", "tweening"],
   "homepage": "https://github.com/rxi/flux",
+  "license": "MIT",
   "source": {
     "repo": "rxi/flux",
     "tag": "master",
@@ -11,7 +12,11 @@
   },
   "install": {
     "files": [
-      { "name": "flux.lua", "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5", "target": "lib/flux.lua" }
+      {
+        "name": "flux.lua",
+        "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5",
+        "target": "lib/flux.lua"
+      }
     ]
   },
   "require": "lib.flux",

@@ -17,6 +17,7 @@
     "love2d-framework"
   ],
   "homepage": "https://github.com/oval-tutu/shove",
+  "license": "MIT",
   "source": {
     "repo": "oval-tutu/shove",
     "tag": "1.0.6",

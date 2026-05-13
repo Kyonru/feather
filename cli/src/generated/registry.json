@@ -11,6 +11,7 @@
         "sprites"
       ],
       "homepage": "https://github.com/kikito/anim8",
+      "license": "MIT",
       "source": {
         "repo": "kikito/anim8",
         "tag": "v2.3.1",
@@ -28,6 +29,36 @@
       "require": "lib.anim8",
       "example": "local anim8 = require('lib.anim8')"
     },
+    "baton": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "An input library for LÖVE.",
+      "tags": [
+        "input",
+        "controller",
+        "keyboard",
+        "mouse",
+        "touch"
+      ],
+      "homepage": "https://github.com/tesselode/baton",
+      "license": "MIT",
+      "source": {
+        "repo": "tesselode/baton",
+        "tag": "v1.0.2",
+        "baseUrl": "https://raw.githubusercontent.com/tesselode/baton/v1.0.2/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "baton.lua",
+            "sha256": "5dee8e0984badef516d1a42f5996b8fae332363399940241fb82abeb5ae648f7",
+            "target": "lib/baton.lua"
+          }
+        ]
+      },
+      "require": "lib.baton",
+      "example": "local baton = require('lib.baton')"
+    },
     "bump": {
       "type": "love2d-library",
       "trust": "verified",
@@ -37,6 +68,7 @@
         "physics"
       ],
       "homepage": "https://github.com/kikito/bump.lua",
+      "license": "MIT",
       "source": {
         "repo": "kikito/bump.lua",
         "tag": "v3.1.7",
@@ -63,6 +95,7 @@
         "utilities"
       ],
       "homepage": "https://github.com/rxi/classic",
+      "license": "MIT",
       "source": {
         "repo": "rxi/classic",
         "tag": "master",
@@ -89,6 +122,7 @@
         "tweening"
       ],
       "homepage": "https://github.com/rxi/flux",
+      "license": "MIT",
       "source": {
         "repo": "rxi/flux",
         "tag": "master",
@@ -119,6 +153,7 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
@@ -149,6 +184,7 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
@@ -179,6 +215,7 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
@@ -209,6 +246,7 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
@@ -239,6 +277,7 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
@@ -269,6 +308,7 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
@@ -298,6 +338,7 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
@@ -357,6 +398,7 @@
         "utilities"
       ],
       "homepage": "https://github.com/kikito/inspect.lua",
+      "license": "MIT",
       "source": {
         "repo": "kikito/inspect.lua",
         "tag": "master",
@@ -383,6 +425,7 @@
         "math"
       ],
       "homepage": "https://github.com/rxi/lume",
+      "license": "MIT",
       "source": {
         "repo": "rxi/lume",
         "tag": "master",
@@ -409,6 +452,7 @@
         "utilities"
       ],
       "homepage": "https://github.com/kikito/middleclass",
+      "license": "MIT",
       "source": {
         "repo": "kikito/middleclass",
         "tag": "v4.1.1",
@@ -435,6 +479,7 @@
         "resolution"
       ],
       "homepage": "https://github.com/Ulydev/push",
+      "license": "MIT",
       "source": {
         "repo": "Ulydev/push",
         "tag": "master",
@@ -471,6 +516,7 @@
         "love2d-framework"
       ],
       "homepage": "https://github.com/oval-tutu/shove",
+      "license": "MIT",
       "source": {
         "repo": "oval-tutu/shove",
         "tag": "1.0.6",
@@ -495,61 +541,52 @@
     },
     "sti": {
       "type": "love2d-library",
-      "trust": "known",
+      "trust": "verified",
       "description": "Simple Tiled Implementation — loads and renders Tiled maps (.tmx) in LÖVE.",
       "tags": [
+        "sprites",
         "maps",
-        "tiled",
-        "tilemaps"
+        "tiles",
+        "tiled"
       ],
       "homepage": "https://github.com/karai17/Simple-Tiled-Implementation",
+      "license": "NOASSERTION",
       "source": {
         "repo": "karai17/Simple-Tiled-Implementation",
-        "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/master/"
+        "tag": "v1.2.3.0",
+        "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/v1.2.3.0/"
       },
       "install": {
         "files": [
           {
+            "name": "sti/graphics.lua",
+            "sha256": "c77ed8b4220b2e7c37fdf56612365ce3520ea8183deee92e2f337691f7d20b14",
+            "target": "lib/sti/graphics.lua"
+          },
+          {
             "name": "sti/init.lua",
-            "sha256": "b7542ac156b3c2ee24d256ce260f73dc01ab2d1245c4eb4b14c92fcdf487c814",
+            "sha256": "b65f9cc816bd666bf1ba42b4f50ee14d5fa83f22b3f121eb0b0f07c14ecb8df7",
             "target": "lib/sti/init.lua"
           },
           {
+            "name": "sti/plugins/box2d.lua",
+            "sha256": "5206a9528eeaf19a12b9512f2b8ca2fa9e2af7e3a634eb084b4dd9c0ac070205",
+            "target": "lib/sti/plugins/box2d.lua"
+          },
+          {
+            "name": "sti/plugins/bump.lua",
+            "sha256": "0c2bc5c882aeab0e2dc5ad1019a83aab72ccfe25ef6d9b105b8cb924d2feaab5",
+            "target": "lib/sti/plugins/bump.lua"
+          },
+          {
             "name": "sti/utils.lua",
-            "sha256": "ba8abf5a3f5680c6a020234afc248c4fb8945cda993d4cd82b292510e4dab17c",
+            "sha256": "6993cfde776ec0d1dae4ee53cec8df36fe37801dcf6858f51e443fe65f4ad4c9",
             "target": "lib/sti/utils.lua"
           }
         ]
       },
       "require": "lib.sti",
       "example": "local sti = require('lib.sti')"
-    },
-    "windfield": {
-      "type": "love2d-library",
-      "trust": "known",
-      "description": "A physics module for LÖVE that makes Box2D easier to use. Wraps love.physics with a simpler API.",
-      "tags": [
-        "physics",
-        "box2d"
-      ],
-      "homepage": "https://github.com/SSYGEN/windfield",
-      "source": {
-        "repo": "SSYGEN/windfield",
-        "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/SSYGEN/windfield/master/"
-      },
-      "install": {
-        "files": [
-          {
-            "name": "windfield/init.lua",
-            "sha256": "687c789dceeba3ebb6f5b152b94e9c085268695ed8cc578780d24ec1696f0388",
-            "target": "lib/windfield/init.lua"
-          }
-        ]
-      },
-      "require": "lib.windfield",
-      "example": "local wf = require('lib.windfield')"
     }
   }
 }

@@ -1,0 +1,30 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "An input library for LÖVE.",
+  "tags": [
+    "input",
+    "controller",
+    "keyboard",
+    "mouse",
+    "touch"
+  ],
+  "homepage": "https://github.com/tesselode/baton",
+  "license": "MIT",
+  "source": {
+    "repo": "tesselode/baton",
+    "tag": "v1.0.2",
+    "baseUrl": "https://raw.githubusercontent.com/tesselode/baton/v1.0.2/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "baton.lua",
+        "sha256": "5dee8e0984badef516d1a42f5996b8fae332363399940241fb82abeb5ae648f7",
+        "target": "lib/baton.lua"
+      }
+    ]
+  },
+  "require": "lib.baton",
+  "example": "local baton = require('lib.baton')"
+}
