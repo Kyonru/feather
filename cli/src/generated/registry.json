@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-13",
+  "updatedAt": "2026-05-14",
   "packages": {
     "anim8": {
       "type": "love2d-library",
@@ -227,6 +227,64 @@
       },
       "require": "lib.flux",
       "example": "local flux = require('lib.flux')"
+    },
+    "g3d": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Simple and easy 3D engine for LÖVE.",
+      "tags": [
+        "3d",
+        "engine"
+      ],
+      "homepage": "https://github.com/groverburger/g3d",
+      "license": "MIT",
+      "source": {
+        "repo": "groverburger/g3d",
+        "tag": "master",
+        "commitSha": "639120acd754dc5c34402e41eb1687b1a5a3ffa8",
+        "baseUrl": "https://raw.githubusercontent.com/groverburger/g3d/639120acd754dc5c34402e41eb1687b1a5a3ffa8/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "g3d/camera.lua",
+            "sha256": "4aa73b340ef09168ff22574bc2e9f5ea8c0f6f4561f38215ed9d0ae268897dc6",
+            "target": "lib/g3d/camera.lua"
+          },
+          {
+            "name": "g3d/collisions.lua",
+            "sha256": "f93b0806e75f570a41e35d1a45978bf3217e7ca970d442ef9b18dea8aeef0850",
+            "target": "lib/g3d/collisions.lua"
+          },
+          {
+            "name": "g3d/init.lua",
+            "sha256": "02f5c867264b8ca1d4501a4b7537aba35600d013950bc3d05e9b3b372e6a4dc6",
+            "target": "lib/g3d/init.lua"
+          },
+          {
+            "name": "g3d/matrices.lua",
+            "sha256": "c6579f4c87032bfd0562a679ce261e51c6c42e4a6a69e05102de087e15625f9a",
+            "target": "lib/g3d/matrices.lua"
+          },
+          {
+            "name": "g3d/model.lua",
+            "sha256": "c52054e0d5db5688417712449606bfd1eaedcdc85a5a4fc3eebf482f2d38360b",
+            "target": "lib/g3d/model.lua"
+          },
+          {
+            "name": "g3d/objloader.lua",
+            "sha256": "208002fe5edd9ef05ebd710f0a07701f2fbadfc3cf74059cd701832f195c633e",
+            "target": "lib/g3d/objloader.lua"
+          },
+          {
+            "name": "g3d/vectors.lua",
+            "sha256": "4d23c3334fa1e6b43fbf7bf4fe00969480ee6a4c82a7007f87b3e10df42c411e",
+            "target": "lib/g3d/vectors.lua"
+          }
+        ]
+      },
+      "require": "lib.g3d",
+      "example": "local g3d = require('lib.g3d')"
     },
     "hump.camera": {
       "parent": "hump",
