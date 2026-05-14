@@ -9,6 +9,7 @@ import { installFromUrl, restorePackage } from '../lib/package/install.js';
 import { auditLockfile } from '../lib/package/audit.js';
 import { showPackageBrowser } from '../ui/package-workflow.js';
 import { showInstallProgress } from '../ui/package-progress.js';
+import { showAddFromUrlWizard } from '../ui/package-add-url.js';
 
 function findProjectDir(cwd = process.cwd()): string {
   if (existsSync(join(cwd, 'main.lua'))) return cwd;
@@ -472,6 +473,16 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
   removeFromLockfile(lockfile, name);
   writeLockfile(projectDir, lockfile);
   console.log(`  ${chalk.bold(name)} removed.`);
+}
+
+export type PackageAddOptions = {
+  dir?: string;
+};
+
+export async function packageAddCommand(opts: PackageAddOptions = {}): Promise<void> {
+  const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
+  const lockfile = readLockfile(projectDir);
+  await showAddFromUrlWizard({ projectDir, lockfile });
 }
 
 export type PackageAuditOptions = {

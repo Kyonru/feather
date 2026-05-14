@@ -29,6 +29,7 @@
     "generate:plugin-catalog": "node scripts/generate-plugin-catalog.mjs",
     "check:plugin-catalog": "npm run generate:plugin-catalog && git diff --exit-code cli/src/generated/plugin-catalog.ts",
     "package:add": "npm run package:add --workspace=cli",
+    "package:add-url": "npm run package:add-url --workspace=cli",
     "package:update": "npm run package:update --workspace=cli",
     "package:remove": "npm run package:remove --workspace=cli",
     "generate:registry": "node scripts/generate-registry.mjs",

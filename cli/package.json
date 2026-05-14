@@ -38,6 +38,7 @@
     "test": "node --test test/package.test.mjs",
     "test:e2e": "npm run build && node --test test/package.test.mjs",
     "package:add": "tsx --tsconfig scripts/tsconfig.json scripts/add-package.tsx",
+    "package:add-url": "tsx --tsconfig scripts/tsconfig.json scripts/add-package-url.tsx",
     "package:update": "tsx --tsconfig scripts/tsconfig.json scripts/update-package.tsx",
     "package:remove": "tsx --tsconfig scripts/tsconfig.json scripts/remove-package.tsx"
   },

@@ -126,7 +126,7 @@ function InstallProgress({
   const [states, setStates] = useState<PkgState[]>(
     packages.map((pkg) => ({
       id: pkg.id,
-      version: pkg.versionOverride ?? pkg.entry.source.tag,
+      version: pkg.versionOverride ?? pkg.entry.source.tag ?? 'url',
       liveComputed: !!pkg.versionOverride,
       status: "pending",
       files: pkg.files.map((f) => ({

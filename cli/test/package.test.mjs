@@ -397,3 +397,195 @@ test('update: experimental packages are skipped', () => {
   assert.equal(exitCode, 0);
   assert.ok(stdout.includes('Skipping') || stdout.includes('experimental'));
 });
+
+/**
+ * Write a lockfile entry as produced by `feather package add`:
+ * trust: experimental, source: { url }, per-file url in each file entry.
+ */
+function writeUrlLock(dir, id, files) {
+  writeLock(dir, {
+    [id]: {
+      version: 'url',
+      trust: 'experimental',
+      source: { url: files[0].url },
+      files,
+      installedAt: new Date().toISOString(),
+    },
+  });
+}
+
+test('list --installed: shows url package with experimental trust', () => {
+  const dir = makeTmp();
+  writeUrlLock(dir, 'my-helper', [
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'abc' },
+  ]);
+  const { stdout, exitCode } = run(['package', 'list', '--installed', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('my-helper'));
+  assert.ok(stdout.includes('experimental'));
+});
+
+test('audit: url package with correct file reports verified', () => {
+  const dir = makeTmp();
+  const content = 'return {}';
+  const hash = sha256(content);
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'helper.lua'), content);
+  writeUrlLock(dir, 'my-helper', [
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: hash },
+  ]);
+  const { stdout, exitCode } = run(['package', 'audit', '--dir', dir]);
+  assert.equal(exitCode, 0, `unexpected failure:\n${stdout}`);
+  assert.ok(stdout.includes('verified'));
+});
+
+test('audit: url package with missing file exits 1 and reports missing', () => {
+  const dir = makeTmp();
+  writeUrlLock(dir, 'my-helper', [
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'abc' },
+  ]);
+  const { stdout, exitCode } = run(['package', 'audit', '--dir', dir]);
+  assert.equal(exitCode, 1);
+  assert.ok(stdout.includes('missing'));
+});
+
+test('audit: url package with tampered file exits 1 and reports MODIFIED', () => {
+  const dir = makeTmp();
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'helper.lua'), 'tampered');
+  writeUrlLock(dir, 'my-helper', [
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('original') },
+  ]);
+  const { stdout, exitCode } = run(['package', 'audit', '--dir', dir]);
+  assert.equal(exitCode, 1);
+  assert.ok(stdout.includes('MODIFIED'));
+});
+
+test('audit: multi-file url package all verified', () => {
+  const dir = makeTmp();
+  const c1 = 'return "a"';
+  const c2 = 'return "b"';
+  mkdirSync(join(dir, 'lib', 'mypkg'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'mypkg', 'a.lua'), c1);
+  writeFileSync(join(dir, 'lib', 'mypkg', 'b.lua'), c2);
+  writeUrlLock(dir, 'mypkg', [
+    { name: 'a.lua', url: 'https://example.com/a.lua', target: 'lib/mypkg/a.lua', sha256: sha256(c1) },
+    { name: 'b.lua', url: 'https://example.com/b.lua', target: 'lib/mypkg/b.lua', sha256: sha256(c2) },
+  ]);
+  const { stdout, exitCode } = run(['package', 'audit', '--dir', dir]);
+  assert.equal(exitCode, 0, `unexpected failure:\n${stdout}`);
+  assert.equal((stdout.match(/✔/g) ?? []).length, 2, 'both files should be verified');
+});
+
+test('install (no args): url package already on disk with correct hash is skipped', () => {
+  const dir = makeTmp();
+  const content = 'return {}';
+  const hash = sha256(content);
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'helper.lua'), content);
+  writeUrlLock(dir, 'my-helper', [
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: hash },
+  ]);
+  const { stdout, exitCode } = run(['package', 'install', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('up to date'));
+});
+
+test('remove: url package removes file and lockfile entry', () => {
+  const dir = makeTmp();
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'helper.lua'), 'return {}');
+  writeUrlLock(dir, 'my-helper', [
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'any' },
+  ]);
+  const { exitCode } = run(['package', 'remove', 'my-helper', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(!existsSync(join(dir, 'lib', 'helper.lua')), 'file should be deleted');
+  const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
+  assert.ok(!lock.packages['my-helper'], 'lockfile entry should be removed');
+});
+
+test('remove: url package with multiple files removes all of them', () => {
+  const dir = makeTmp();
+  mkdirSync(join(dir, 'lib', 'mypkg'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'mypkg', 'a.lua'), 'return "a"');
+  writeFileSync(join(dir, 'lib', 'mypkg', 'b.lua'), 'return "b"');
+  writeUrlLock(dir, 'mypkg', [
+    { name: 'a.lua', url: 'https://example.com/a.lua', target: 'lib/mypkg/a.lua', sha256: 'any' },
+    { name: 'b.lua', url: 'https://example.com/b.lua', target: 'lib/mypkg/b.lua', sha256: 'any' },
+  ]);
+  const { exitCode } = run(['package', 'remove', 'mypkg', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(!existsSync(join(dir, 'lib', 'mypkg', 'a.lua')));
+  assert.ok(!existsSync(join(dir, 'lib', 'mypkg', 'b.lua')));
+});
+
+test('update: url package is skipped with experimental message', () => {
+  const dir = makeTmp();
+  writeUrlLock(dir, 'my-helper', [
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'abc' },
+  ]);
+  const { stdout, exitCode } = run(['package', 'update', '--offline', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('Skipping') || stdout.includes('experimental'));
+});
+
+test('install: subpackage dry-run installs only its files', () => {
+  const dir = makeTmp();
+  const { stdout, exitCode } = run(['package', 'install', 'hump.camera', '--dry-run', '--offline', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('camera.lua'), 'should list camera.lua');
+  assert.ok(stdout.includes('Dry run'));
+  assert.ok(!stdout.includes('timer.lua'), 'must not include timer.lua');
+  assert.ok(!stdout.includes('signal.lua'), 'must not include signal.lua');
+});
+
+test('install: parent package dry-run includes all files', () => {
+  const dir = makeTmp();
+  const { stdout, exitCode } = run(['package', 'install', 'hump', '--dry-run', '--offline', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('camera.lua'));
+  assert.ok(stdout.includes('timer.lua'));
+  assert.ok(stdout.includes('Dry run'));
+});
+
+test('info: package with subpackages lists module names', () => {
+  const dir = makeTmp();
+  const { stdout, exitCode } = run(['package', 'info', 'hump', '--offline', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('hump.camera'));
+  assert.ok(stdout.includes('hump.timer'));
+});
+
+test('search: matches package description', () => {
+  const { stdout, exitCode } = run(['package', 'search', 'sprite', '--offline']);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('anim8'));
+});
+
+test('search: subpackages not shown at top level', () => {
+  const { stdout, exitCode } = run(['package', 'search', '--offline']);
+  assert.equal(exitCode, 0);
+  // hump.camera should not appear as a top-level entry (it's a subpackage)
+  const lines = stdout.split('\n').filter((l) => l.trim().startsWith('hump'));
+  assert.ok(lines.length > 0, 'hump should appear');
+  assert.ok(!lines.some((l) => l.startsWith('  hump.camera')), 'hump.camera should not be a top-level entry');
+});
+
+test('audit --json: url package included in output', () => {
+  const dir = makeTmp();
+  const content = 'return {}';
+  const hash = sha256(content);
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'helper.lua'), content);
+  writeUrlLock(dir, 'my-helper', [
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: hash },
+  ]);
+  const { stdout, exitCode } = run(['package', 'audit', '--json', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  const parsed = JSON.parse(stdout);
+  assert.ok(Array.isArray(parsed));
+  const entry = parsed.find((r) => r.id === 'my-helper');
+  assert.ok(entry, 'my-helper should appear in audit output');
+  assert.equal(entry.status, 'verified');
+});

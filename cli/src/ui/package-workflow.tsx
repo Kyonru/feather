@@ -236,7 +236,7 @@ function PackageWorkflow({
           const prefix = active ? '>> ' : installed ? ' * ' : '   ';
           const nameColor = active ? 'cyan' : hasUpdate ? 'yellow' : installed ? 'green' : undefined;
           const nameText = pkg.id.padEnd(NAME_W);
-          const verText = entry.source.tag.padEnd(VER_W);
+          const verText = (entry.source.tag ?? 'url').padEnd(VER_W);
           const trustText = trustLabel(entry.trust).padEnd(TRUST_W);
 
           return (

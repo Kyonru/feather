@@ -33,7 +33,7 @@ for (const file of packageFiles) {
     console.warn(`  WARN  ${id}: missing "trust" field`);
     warnings++;
   }
-  if (!pkg.source?.baseUrl) {
+  if (pkg.source?.type !== 'url' && !pkg.source?.baseUrl) {
     console.warn(`  WARN  ${id}: missing source.baseUrl`);
     warnings++;
   }

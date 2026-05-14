@@ -3,7 +3,7 @@
  */
 
 import { Text, Box, useInput } from 'ink';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +14,7 @@ export const packagesDir = join(root, 'packages');
 
 export interface FileEntry {
   name: string;
+  url?: string;
   target: string;
   sha256: string;
 }
@@ -226,7 +227,7 @@ export function SelectStep({
       {hint && <Hint>{hint}</Hint>}
       <Box flexDirection="column" marginTop={1}>
         {options.map((opt, i) => (
-          <Box key={opt}>
+          <Box key={`${i}:${opt}`}>
             <Text color={i === cursor ? 'cyan' : undefined}>
               {'  '}
               {i === cursor ? '❯ ' : '  '}
@@ -293,7 +294,7 @@ export function MultiSelectStep({
       {hint && <Hint>{hint}</Hint>}
       <Box flexDirection="column" marginTop={1}>
         {options.map((opt, i) => (
-          <Box key={opt}>
+          <Box key={`${i}:${opt}`}>
             <Text color={i === cursor ? 'cyan' : undefined}>
               {'  '}
               {i === cursor ? '❯ ' : '  '}
@@ -522,6 +523,39 @@ export function ChecksumStep({ files, onDone, onError }: ChecksumStepProps) {
           </Box>
         );
       })}
+    </Box>
+  );
+}
+
+interface YesNoStepProps {
+  stepNum: number;
+  total: number;
+  title?: string;
+  label: string;
+  hint?: string;
+  children?: ReactNode;
+  onYes: () => void;
+  onNo: () => void;
+}
+
+export function YesNoStep({ stepNum, total, title, label, hint, children, onYes, onNo }: YesNoStepProps) {
+  useInput((input, key) => {
+    if (input === 'y' || input === 'Y') onYes();
+    else if (input === 'n' || input === 'N' || key.return || key.escape) onNo();
+  });
+
+  return (
+    <Box flexDirection="column">
+      <Header step={stepNum} total={total} title={title} />
+      <Text bold>
+        {'  '}
+        {label}
+      </Text>
+      {hint && <Hint>{hint}</Hint>}
+      {children}
+      <Box marginTop={1}>
+        <Text dimColor>{'  y = yes · n/Enter = no'}</Text>
+      </Box>
     </Box>
   );
 }

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 export type PackageFile = {
   name: string;
+  url?: string;
   sha256: string;
   target: string;
 };
@@ -24,10 +25,11 @@ export type RegistryEntry = {
   homepage?: string;
   license?: string;
   source: {
-    repo: string;
-    tag: string;
+    type?: string;
+    repo?: string;
+    tag?: string;
     commitSha?: string;
-    baseUrl: string;
+    baseUrl?: string;
   };
   install: { files: PackageFile[] };
   subpackages?: string[];
