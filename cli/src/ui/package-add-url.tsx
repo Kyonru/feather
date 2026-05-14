@@ -312,10 +312,9 @@ function DoneStep({
   require: string;
   onExit: () => void;
 }) {
-  useEffect(() => {
-    const t = setTimeout(onExit, 300);
-    return () => clearTimeout(t);
-  }, [onExit]);
+  useInput((_, key) => {
+    if (key.return || key.escape) onExit();
+  });
 
   return (
     <Box flexDirection="column" paddingLeft={2} paddingTop={1}>
@@ -329,6 +328,9 @@ function DoneStep({
       <Box>
         <Text color="yellow">  Trust: experimental ⚠  — not reviewed by the Feather team</Text>
       </Box>
+      <Box marginTop={1}>
+        <Text dimColor>  Press Enter to exit</Text>
+      </Box>
     </Box>
   );
 }
@@ -337,8 +339,7 @@ function DoneStep({
 
 function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfile }) {
   const { exit } = useApp();
-  const [step, _setStep] = useState<Step>('id');
-  const setStep = (next: Step) => { process.stdout.write('\x1B[2J\x1B[H'); _setStep(next); };
+  const [step, setStep] = useState<Step>('id');
   const [id, setId] = useState('');
   const [requirePath, setRequirePath] = useState('');
   const [urlFiles, setUrlFiles] = useState<UrlFile[]>([]);
@@ -483,9 +484,9 @@ export async function showAddFromUrlWizard(opts: {
   projectDir: string;
   lockfile: Lockfile;
 }): Promise<void> {
-  process.stdout.write('\x1B[2J\x1B[H');
   const { waitUntilExit } = render(
     <Wizard projectDir={opts.projectDir} lockfile={opts.lockfile} />,
+    { alternateScreen: true },
   );
   await waitUntilExit();
 }

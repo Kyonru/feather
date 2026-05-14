@@ -196,8 +196,7 @@ function DoneStep({ id, onExit }: { id: string; onExit: () => void }) {
 
 function Wizard() {
   const { exit } = useApp();
-  const [step, _setStep] = useState<Step>('id');
-  const setStep = (next: Step) => { process.stdout.write('\x1B[2J\x1B[H'); _setStep(next); };
+  const [step, setStep] = useState<Step>('id');
   const [data, setData] = useState<Partial<FormData>>({});
   const [urlFiles, setUrlFiles] = useState<UrlFile[]>([]);
   const [currentUrl, setCurrentUrl] = useState('');
@@ -484,6 +483,5 @@ function Wizard() {
   );
 }
 
-process.stdout.write('\x1B[2J\x1B[H');
-const { waitUntilExit } = render(<Wizard />);
+const { waitUntilExit } = render(<Wizard />, { alternateScreen: true });
 await waitUntilExit();
