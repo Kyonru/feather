@@ -29,7 +29,7 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 ## Quick Start
 
 > [!IMPORTANT]
-> For quick local desktop iteration, you can also use `feather run path/to/my-game` without changing game code. For mobile, handhelds, and remote devices like Android, iOS, or Steam Deck, use the embedded library from `feather init --mode auto` so the game carries Feather with it on the device.
+> For quick local desktop iteration, use `feather run path/to/my-game` without changing game code. For Android and iOS dev loops, `feather run path/to/my-game --target android|ios` builds the configured native template, installs it, and launches it on a device or simulator.
 
 ### Option A — CLI injection (no game-side changes)
 
@@ -37,12 +37,13 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 npm install -g @kyonru/feather
 feather init path/to/my-game
 feather run path/to/my-game
+feather run path/to/my-game --target android
 ```
 
 Feather is injected automatically. No `require` needed in the game. See [CLI](cli.md).
 
 > [!NOTE]
-> This is best for local desktop development where the CLI launches LÖVE directly.
+> This is best for desktop development where the CLI launches LÖVE directly. Android/iOS mobile run requires the build template setup from `feather build vendor add mobile`.
 
 ### Option B — Managed in-game setup
 
@@ -53,7 +54,7 @@ USE_DEBUGGER=1 love path/to/my-game
 ```
 
 > [!IMPORTANT]
-> Use this for mobile, handheld, and remote devices such as Android, iOS, Steam Deck, or a second computer. Those builds need the embedded Feather library because the CLI is not launching the game process on that device.
+> Use this for handhelds, Steam Deck, or a second computer. Android/iOS can also use `feather run --target android|ios` once mobile build templates are configured.
 
 `feather init` creates `feather.config.lua`:
 

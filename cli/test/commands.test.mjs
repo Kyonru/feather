@@ -17,7 +17,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { delimiter, join, resolve } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const CLI = fileURLToPath(new URL('../dist/index.js', import.meta.url));
@@ -114,6 +114,40 @@ process.exit(${JSON.stringify(exitCode)});
   );
   chmodSync(fakePath, 0o755);
   return { fakePath, recordPath };
+}
+
+function writeFakeAdb(dir, options = {}) {
+  const recordPath = options.recordPath ?? join(dir, 'adb-record.json');
+  const { binDir } = writeFakeCommand(dir, 'adb', `
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+const previous = fs.existsSync(${JSON.stringify(recordPath)})
+  ? JSON.parse(fs.readFileSync(${JSON.stringify(recordPath)}, 'utf8'))
+  : [];
+previous.push({ args });
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
+if (${JSON.stringify(options.failInstall ?? false)} && args.includes('install')) {
+  console.error('install failed');
+  process.exit(42);
+}
+process.exit(0);
+`);
+  return { binDir, recordPath };
+}
+
+function writeFakeXcrun(dir) {
+  const recordPath = join(dir, 'xcrun-record.json');
+  const { binDir } = writeFakeCommand(dir, 'xcrun', `
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+const previous = fs.existsSync(${JSON.stringify(recordPath)})
+  ? JSON.parse(fs.readFileSync(${JSON.stringify(recordPath)}, 'utf8'))
+  : [];
+previous.push({ args });
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
+process.exit(0);
+`);
+  return { binDir, recordPath };
 }
 
 function writeFakeCommand(dir, name, script) {
@@ -351,6 +385,174 @@ test('run: fake love receives shim, args, env, and exit code is propagated', () 
   assert.equal(record.shimMainExists, true);
   assert.equal(existsSync(record.argv[0]), false, 'shim should be cleaned after love exits');
   assert.deepEqual(record.argv.slice(1), ['--level', '2']);
+});
+
+test('run --target android: builds, installs, sets adb reverse, launches, and supports device selection', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Run Android',
+    version: '1.0.0',
+    productId: 'com.example.runandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { port = 4010 }\n');
+  const { binDir, recordPath } = writeFakeAdb(dir);
+
+  const result = run(['run', dir, '--target', 'android', '--device', 'emulator-5554'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(outputOf(result).includes('Launched android'));
+  assert.ok(outputOf(result).includes('com.example.runandroid'));
+  const records = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.deepEqual(records.map((entry) => entry.args), [
+    ['-s', 'emulator-5554', 'version'],
+    ['-s', 'emulator-5554', 'install', '-r', join(dir, 'builds', 'run-android-1.0.0-android.apk')],
+    ['-s', 'emulator-5554', 'reverse', 'tcp:4010', 'tcp:4010'],
+    ['-s', 'emulator-5554', 'shell', 'monkey', '-p', 'com.example.runandroid', '-c', 'android.intent.category.LAUNCHER', '1'],
+  ]);
+});
+
+test('run --target android --no-adb-reverse skips reverse setup', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'No Reverse',
+    version: '1.0.0',
+    productId: 'com.example.noreverse',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+  const { binDir, recordPath } = writeFakeAdb(dir);
+
+  const result = run(['run', dir, '--target', 'android', '--no-adb-reverse'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const records = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(records.some((entry) => entry.args.includes('reverse')), false);
+});
+
+test('run --target android: missing adb produces doctor guidance', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Missing Adb',
+    version: '1.0.0',
+    productId: 'com.example.missingadb',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const result = run(['run', dir, '--target', 'android'], {
+    env: {
+      ...process.env,
+      NO_COLOR: '1',
+      FORCE_COLOR: '0',
+      PATH: dirname(process.execPath),
+    },
+  });
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('adb not found'));
+  assert.ok(outputOf(result).includes('feather doctor --build-target android'));
+});
+
+test('run --target android: failed install exits with compact error', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Install Fail',
+    version: '1.0.0',
+    productId: 'com.example.installfail',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+  const { binDir } = writeFakeAdb(dir, { failInstall: true });
+
+  const result = run(['run', dir, '--target', 'android'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Android install failed'));
+  assert.ok(outputOf(result).includes('install failed'));
+});
+
+test('run --target ios: builds app, installs simulator app, and launches bundle id', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Run iOS',
+    version: '1.0.0',
+    targets: {
+      ios: {
+        loveIosDir: 'love-ios',
+        bundleIdentifier: 'com.example.runios',
+        derivedDataPath: 'builds/ios-run-derived-data',
+      },
+    },
+  });
+  const recordPath = join(dir, 'xcodebuild-run-record.json');
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+if (process.argv.includes('-version')) {
+  console.log('Xcode 99.0');
+  process.exit(0);
+}
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+const derivedData = args[args.indexOf('-derivedDataPath') + 1];
+const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+fs.mkdirSync(app, { recursive: true });
+fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: args }, null, 2));
+process.exit(0);
+`);
+  const xcrun = writeFakeXcrun(dir);
+
+  const result = run(['run', dir, '--target', 'ios', '--device', 'SIM-123'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(outputOf(result).includes('Launched ios'));
+  const records = JSON.parse(readFileSync(xcrun.recordPath, 'utf8'));
+  assert.deepEqual(records.map((entry) => entry.args), [
+    ['simctl', 'install', 'SIM-123', join(dir, 'builds', 'run-ios-1.0.0-ios.app')],
+    ['simctl', 'launch', 'SIM-123', 'com.example.runios'],
+  ]);
+});
+
+test('run --target ios: missing xcrun produces doctor guidance', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Missing Xcrun',
+    version: '1.0.0',
+    targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.missingxcrun' } },
+  });
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+const derivedData = args[args.indexOf('-derivedDataPath') + 1];
+const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+fs.mkdirSync(app, { recursive: true });
+fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+process.exit(0);
+`);
+
+  const result = run(['run', dir, '--target', 'ios'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1', PATH: `${binDir}${delimiter}${dirname(process.execPath)}` }),
+  });
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('xcrun not found'));
+  assert.ok(outputOf(result).includes('feather doctor --build-target ios'));
+});
+
+test('run mobile: forwarded game arguments are rejected', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+
+  const result = run(['run', dir, '--target', 'android', '--', '--level', 'dev']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Mobile run does not support forwarded game arguments yet'));
 });
 
 test('plugin list: missing plugin directory is a clean empty state', () => {

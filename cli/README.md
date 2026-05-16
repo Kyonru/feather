@@ -13,10 +13,12 @@ The Feather CLI lets you run and debug LÖVE games **without modifying your game
 ```bash
 feather run
 feather run path/to/my-game
+feather run path/to/my-game --target android
+feather run path/to/my-game --target ios
 ```
 
 > [!IMPORTANT]
-> `feather run` is best for local desktop development. For mobile, handhelds, Steam Deck, or a second computer where the CLI is not launching the game process, use `feather init --mode auto` so the game carries the embedded Feather library.
+> `feather run` launches desktop games directly. For Android and iOS dev loops it builds the configured native template, installs the artifact, and launches it on a connected device or simulator.
 
 ---
 
@@ -77,6 +79,10 @@ feather run . --no-plugins                # feather core only, no plugins
 feather run . --love /usr/bin/love        # override love2d binary
 feather run . --plugins-dir ./my-plugins  # use a custom plugins directory
 feather run . -- --level dev              # pass args through to the game
+feather run . --target android            # build, install, adb reverse, and launch Android
+feather run . --target android --device emulator-5554
+feather run . --target ios                # build, install, and launch on the booted simulator
+feather run . --target ios --device <simulator-udid>
 ```
 
 When `game-path` is omitted in an interactive terminal, Feather opens an Ink workflow that asks for the game path, session name, config path, whether plugins should be disabled, and optional advanced paths/arguments. Scripts should pass `game-path` explicitly.
@@ -91,8 +97,17 @@ When `game-path` is omitted in an interactive terminal, Feather opens an Ink wor
 | `--config <path>`       | Explicit path to a `feather.config.lua` file.                                                   |
 | `--feather-path <path>` | Use a local feather install instead of the CLI's bundled copy.                                  |
 | `--plugins-dir <path>`  | Use a custom plugins directory instead of the CLI's bundled plugins.                            |
+| `--target <target>`     | Run target: `desktop`, `android`, or `ios`. Defaults to `desktop`.                              |
+| `--device <id>`         | Android device serial or iOS simulator UDID. iOS defaults to `booted`.                          |
+| `--build-config <path>` | Path to `feather.build.json` for mobile run.                                                    |
+| `--out-dir <path>`      | Build output directory for mobile run.                                                          |
+| `--clean`               | Remove the output directory before the mobile build.                                            |
+| `--no-adb-reverse`      | Skip Android `adb reverse` setup.                                                               |
+| `--port <port>`         | Port used for Android `adb reverse`; defaults to `feather.config.lua` `port` or `4004`.         |
 
 Use `--` to separate Feather CLI options from arguments intended for the LÖVE game. Everything after `--` is passed to `love` after the generated shim path.
+
+Mobile run is dev-only in V1 and does not forward game arguments. Android requires `adb`, a configured `targets.android.loveAndroidDir`, and USB debugging or an emulator. iOS requires macOS, Xcode, a configured `targets.ios.loveIosDir`, and a booted simulator.
 
 **Project config file:**
 

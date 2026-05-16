@@ -2,7 +2,7 @@
 
 ## Option 1: CLI (Recommended — no game changes needed)
 
-Install the `@kyonru/feather` npm package globally, then use `feather run` to inject Feather into any love2d game without touching its source:
+Install the `@kyonru/feather` npm package globally, then use `feather run` to inject Feather into any desktop love2d game without touching its source:
 
 ```bash
 npm install -g @kyonru/feather
@@ -12,14 +12,14 @@ feather run path/to/my-game
 A new session tab appears in the Feather desktop app automatically. No `require` calls, no `DEBUGGER:update(dt)` — the CLI handles everything.
 
 > [!NOTE]
-> Use `feather run` for local desktop iteration where the CLI launches LÖVE directly.
+> Use plain `feather run` for local desktop iteration where the CLI launches LÖVE directly.
 
 > [!IMPORTANT]
-> For mobile, handheld, and remote devices such as Android, iOS, Steam Deck, or a second computer, embed Feather into the game instead. Those devices run the game themselves, so the CLI cannot inject Feather at launch time.
+> For Android and iOS dev loops, `feather run path/to/my-game --target android|ios` can build the configured native template, install it, and launch it. For handhelds, Steam Deck, or another computer, embed Feather into the game instead.
 
 ### Embedded library for devices
 
-Use auto mode for device builds:
+Use auto mode for handheld or remote device builds:
 
 ```bash
 cd path/to/my-game
@@ -45,7 +45,7 @@ USE_DEBUGGER=1 love .
 ```
 
 > [!TIP]
-> For Android over USB with ADB reverse, the default `host = "127.0.0.1"` can still work because ADB routes the device port back to your computer. For Wi-Fi devices, Steam Deck, or another computer, use the LAN IP shown in Feather Settings.
+> `feather run --target android` runs ADB reverse by default, so `host = "127.0.0.1"` can still work over USB. For Wi-Fi devices, Steam Deck, or another computer, use the LAN IP shown in Feather Settings.
 
 See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
 
@@ -64,7 +64,16 @@ feather doctor path/to/my-game --upload-target itch
 
 `feather build` supports web, Android, iOS, Windows, macOS, Linux, and SteamOS artifacts. Web builds need a local love.js player directory configured in `feather.build.json`; Android/iOS builds need local love-android or LÖVE iOS template paths; desktop builds expect `love-release` on `PATH`. `feather upload itch` expects Butler on `PATH` and either `BUTLER_API_KEY` in CI or a local `butler login` session.
 
-For mobile setup, run `feather build vendor add mobile --dir path/to/my-game` to fetch official LÖVE template checkouts into `vendor/` and update `feather.build.json`. Then run `feather doctor path/to/my-game --build-target android` or `--build-target ios`. Doctor checks the native template path, product/bundle id, local build tools, and the common environment variables before the build command stages or writes artifacts. Vendor fetching does not install Android SDK, JDK, Xcode, or signing assets.
+For mobile setup, run `feather build vendor add mobile --dir path/to/my-game` to fetch official LÖVE template checkouts into `vendor/` and update `feather.build.json`. Then run `feather doctor path/to/my-game --build-target android` or `--build-target ios`. Doctor checks the native template path, product/bundle id, local build tools, and the common environment variables before the build or run command stages or writes artifacts. Vendor fetching does not install Android SDK, JDK, Xcode, or signing assets.
+
+Mobile dev run examples:
+
+```bash
+feather run path/to/my-game --target android
+feather run path/to/my-game --target android --device emulator-5554
+feather run path/to/my-game --target ios
+feather run path/to/my-game --target ios --device <simulator-udid>
+```
 
 Use `feather build android --release` for Android AAB/APK release artifacts and `feather build ios --release` for iOS archive/IPA artifacts. Keep signing file paths in `feather.build.json`, but put passwords in environment variables referenced by the config so secrets are not committed or printed.
 

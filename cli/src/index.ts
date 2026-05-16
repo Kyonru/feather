@@ -46,6 +46,13 @@ program
 program
   .command('run [game-path] [game-args...]')
   .description('Inject Feather into a Love2D game and run it')
+  .option('--target <target>', 'Run target: desktop, android, or ios', 'desktop')
+  .option('--device <id>', 'Android device serial or iOS simulator UDID')
+  .option('--build-config <path>', 'Path to feather.build.json for mobile run')
+  .option('--out-dir <path>', 'Build output directory for mobile run')
+  .option('--clean', 'Remove the output directory before mobile build')
+  .option('--no-adb-reverse', 'Skip adb reverse setup for Android mobile run')
+  .option('--port <port>', 'Feather desktop port for Android adb reverse', (value) => Number(value))
   .option('--love <path>', 'Path to the love2d binary (overrides auto-detect)')
   .option('--session-name <name>', 'Custom session name shown in the desktop app')
   .option('--no-plugins', 'Disable plugin loading (feather core only)')
@@ -54,6 +61,13 @@ program
   .option('--plugins-dir <path>', 'Use a custom plugins directory instead of the bundled one')
   .action((gamePath: string | undefined, gameArgs: string[], opts) => runCliAction(() => runCommand(gamePath, {
       love: opts.love as string | undefined,
+      target: opts.target as 'desktop' | 'android' | 'ios' | undefined,
+      device: opts.device as string | undefined,
+      buildConfig: opts.buildConfig as string | undefined,
+      outDir: opts.outDir as string | undefined,
+      clean: opts.clean as boolean | undefined,
+      adbReverse: opts.adbReverse as boolean | undefined,
+      port: opts.port as number | undefined,
       sessionName: opts.sessionName as string | undefined,
       noPlugins: opts.plugins === false,
       config: opts.config as string | undefined,
