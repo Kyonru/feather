@@ -27,6 +27,10 @@ export type BuildCommandOptions = {
   json?: boolean;
   allowUnsafe?: boolean;
   release?: boolean;
+  noCache?: boolean;
+  debugger?: boolean;
+  runtimeConfig?: string;
+  verbose?: boolean;
 };
 
 export async function buildCommand(targetValue: string, opts: BuildCommandOptions = {}): Promise<void> {
@@ -34,7 +38,11 @@ export async function buildCommand(targetValue: string, opts: BuildCommandOption
     fail(`Unknown build target: ${targetValue}`, { details: [`Available: ${buildTargets.join(', ')}`] });
   }
   const target: BuildTarget = targetValue;
-  const spinner = opts.json || opts.dryRun ? null : createSpinner(`Building ${target}…`).start();
+  const verbose = Boolean(opts.verbose && !opts.json && !opts.dryRun);
+  const spinner = opts.json || opts.dryRun || verbose ? null : createSpinner(`Building ${target}…`).start();
+  if (verbose) {
+    printStatus('info', `Building ${style.heading(target)} in verbose mode`);
+  }
   const result = runBuild({
     target,
     projectDir: opts.dir,
@@ -46,6 +54,11 @@ export async function buildCommand(targetValue: string, opts: BuildCommandOption
     dryRun: opts.dryRun,
     allowUnsafe: opts.allowUnsafe,
     release: opts.release,
+    noCache: opts.noCache,
+    debugger: opts.debugger,
+    runtimeConfigPath: opts.runtimeConfig,
+    verbose,
+    log: verbose ? printMuted : undefined,
   });
 
   if (!result.ok) {

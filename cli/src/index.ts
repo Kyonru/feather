@@ -51,12 +51,18 @@ program
   .option('--build-config <path>', 'Path to feather.build.json for mobile run')
   .option('--out-dir <path>', 'Build output directory for mobile run')
   .option('--clean', 'Remove the output directory before mobile build')
+  .option('--no-cache', 'Disable Android/iOS dev native build cache')
+  .option('--verbose', 'Show Android/iOS build commands and native tool output')
   .option('--no-adb-reverse', 'Skip adb reverse setup for Android mobile run')
   .option('--port <port>', 'Feather desktop port for Android adb reverse', (value) => Number(value))
   .option('--love <path>', 'Path to the love2d binary (overrides auto-detect)')
   .option('--session-name <name>', 'Custom session name shown in the desktop app')
   .option('--no-plugins', 'Disable plugin loading (feather core only)')
+  .option('--no-debugger', 'Run without Feather debugger injection')
+  .option('--disable-debugger', 'Alias for --no-debugger')
   .option('--config <path>', 'Path to feather.config.lua')
+  .option('--config-path <path>', 'Alias for --config')
+  .option('--configPath <path>', 'Alias for --config')
   .option('--feather-path <path>', 'Use a local feather install instead of the bundled one')
   .option('--plugins-dir <path>', 'Use a custom plugins directory instead of the bundled one')
   .action((gamePath: string | undefined, gameArgs: string[], opts) => runCliAction(() => runCommand(gamePath, {
@@ -66,11 +72,14 @@ program
       buildConfig: opts.buildConfig as string | undefined,
       outDir: opts.outDir as string | undefined,
       clean: opts.clean as boolean | undefined,
+      noCache: opts.cache === false,
+      verbose: opts.verbose as boolean | undefined,
       adbReverse: opts.adbReverse as boolean | undefined,
       port: opts.port as number | undefined,
       sessionName: opts.sessionName as string | undefined,
       noPlugins: opts.plugins === false,
-      config: opts.config as string | undefined,
+      debugger: opts.debugger !== false && !opts.disableDebugger,
+      config: (opts.config ?? opts.configPath) as string | undefined,
       featherPath: opts.featherPath as string | undefined,
       pluginsDir: opts.pluginsDir as string | undefined,
       gameArgs,
@@ -155,6 +164,10 @@ function addBuildTargetCommand(target: string): void {
     .description(`Build a LÖVE game for ${target}`)
     .option('--dir <path>', 'Project directory (default: current directory)')
     .option('--config <path>', 'Path to feather.build.json')
+    .option('--build-config <path>', 'Alias for --config')
+    .option('--runtime-config <path>', 'Path to feather.config.lua for mobile debugger embedding')
+    .option('--config-path <path>', 'Alias for --runtime-config')
+    .option('--configPath <path>', 'Alias for --runtime-config')
     .option('--out-dir <path>', 'Build output directory')
     .option('--name <name>', 'Build product name')
     .option('--version <version>', 'Build product version')
@@ -163,9 +176,18 @@ function addBuildTargetCommand(target: string): void {
     .option('--json', 'Output machine-readable JSON')
     .option('--allow-unsafe', 'Allow production-unsafe Feather config during build')
     .option('--release', 'Build signed/store-oriented mobile release artifacts')
+    .option('--no-cache', 'Disable Android/iOS dev native build cache')
+    .option('--no-debugger', 'Build mobile dev artifacts without Feather debugger embedding')
+    .option('--disable-debugger', 'Alias for --no-debugger')
+    .option('--verbose', 'Show Android/iOS build commands and native tool output')
     .action((opts) => runCliAction(() => buildCommand(target, {
       dir: opts.dir as string | undefined,
-      config: opts.config as string | undefined,
+      config: buildConfigOption(opts.config as string | undefined, opts.buildConfig as string | undefined),
+      runtimeConfig: runtimeConfigOption(
+        opts.config as string | undefined,
+        opts.runtimeConfig as string | undefined,
+        opts.configPath as string | undefined,
+      ),
       outDir: opts.outDir as string | undefined,
       name: opts.name as string | undefined,
       version: opts.version as string | undefined,
@@ -174,7 +196,27 @@ function addBuildTargetCommand(target: string): void {
       json: opts.json as boolean | undefined,
       allowUnsafe: opts.allowUnsafe as boolean | undefined,
       release: opts.release as boolean | undefined,
+      noCache: opts.cache === false,
+      debugger: opts.debugger !== false && !opts.disableDebugger,
+      verbose: opts.verbose as boolean | undefined,
     })));
+}
+
+function looksLikeRuntimeConfig(path: string | undefined): boolean {
+  return Boolean(path && (/\.lua$/i.test(path) || path.endsWith('.featherrc')));
+}
+
+function buildConfigOption(config: string | undefined, buildConfig: string | undefined): string | undefined {
+  if (buildConfig) return buildConfig;
+  return looksLikeRuntimeConfig(config) ? undefined : config;
+}
+
+function runtimeConfigOption(
+  config: string | undefined,
+  runtimeConfig: string | undefined,
+  configPath: string | undefined,
+): string | undefined {
+  return runtimeConfig ?? configPath ?? (looksLikeRuntimeConfig(config) ? config : undefined);
 }
 
 for (const target of ['web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos']) {

@@ -13,6 +13,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -108,6 +109,8 @@ fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
     FEATHER_SESSION_NAME: process.env.FEATHER_SESSION_NAME,
   },
   shimMainExists: shimDir ? fs.existsSync(path.join(shimDir, 'main.lua')) : false,
+  featherAutoExists: shimDir ? fs.existsSync(path.join(shimDir, 'feather', 'auto.lua')) : false,
+  shimMain: shimDir ? fs.readFileSync(path.join(shimDir, 'main.lua'), 'utf8') : '',
 }, null, 2));
 process.exit(${JSON.stringify(exitCode)});
 `,
@@ -223,6 +226,7 @@ function writeFakeLoveAndroid(dir, options = {}) {
   const root = join(dir, 'love-android');
   mkdirSync(join(root, 'app', 'src', 'main', 'res', 'values'), { recursive: true });
   mkdirSync(join(root, 'app', 'src', 'main'), { recursive: true });
+  mkdirSync(join(root, 'love', 'src', 'main', 'java', 'org', 'love2d', 'android'), { recursive: true });
   writeFileSync(
     join(root, 'app', 'build.gradle'),
     `android {
@@ -236,6 +240,15 @@ function writeFakeLoveAndroid(dir, options = {}) {
 `,
   );
   writeFileSync(
+    join(root, 'gradle.properties'),
+    `app.name_byte_array=76,195,150,86,69
+app.application_id=org.love2d.android
+app.orientation=landscape
+app.version_code=31
+app.version_name=11.5
+`,
+  );
+  writeFileSync(
     join(root, 'app', 'src', 'main', 'AndroidManifest.xml'),
     `<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 ${manifestPermission}    <uses-permission android:name="android.permission.INTERNET" />
@@ -246,6 +259,22 @@ ${manifestPermission}    <uses-permission android:name="android.permission.INTER
 `,
   );
   writeFileSync(join(root, 'app', 'src', 'main', 'res', 'values', 'strings.xml'), '<resources><string name="app_name">LÖVE</string></resources>\n');
+  writeFileSync(
+    join(root, 'love', 'src', 'main', 'java', 'org', 'love2d', 'android', 'GameActivity.java'),
+    `package org.love2d.android;
+import java.io.IOException;
+import java.io.InputStream;
+class GameActivity {
+  boolean embed;
+  boolean needToCopyGameInArchive;
+  Object getResources() { return null; }
+  Object getAssets() { return null; }
+  void onCreate() {
+        embed = getResources().getBoolean(R.bool.embed);
+  }
+}
+`,
+  );
   const gradlew = join(root, 'gradlew');
   writeFileSync(
     gradlew,
@@ -264,15 +293,21 @@ const previous = fs.existsSync(${JSON.stringify(recordPath)})
   : { records: [] };
 const entry = {
   argv: process.argv.slice(2),
+  cwd,
   embeddedLoveExists: fs.existsSync(path.join(cwd, 'app', 'src', 'embed', 'assets', 'game.love')),
   gradle: fs.readFileSync(path.join(cwd, 'app', 'build.gradle'), 'utf8'),
+  gradleProperties: fs.readFileSync(path.join(cwd, 'gradle.properties'), 'utf8'),
   manifest: fs.readFileSync(path.join(cwd, 'app', 'src', 'main', 'AndroidManifest.xml'), 'utf8'),
+  gameActivity: fs.existsSync(path.join(cwd, 'love', 'src', 'main', 'java', 'org', 'love2d', 'android', 'GameActivity.java'))
+    ? fs.readFileSync(path.join(cwd, 'love', 'src', 'main', 'java', 'org', 'love2d', 'android', 'GameActivity.java'), 'utf8')
+    : '',
   signingProperties: fs.existsSync(path.join(cwd, 'feather-signing.properties'))
     ? fs.readFileSync(path.join(cwd, 'feather-signing.properties'), 'utf8')
     : '',
 };
 previous.records.push(entry);
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ ...entry, records: previous.records }, null, 2));
+console.log('fake gradle ' + process.argv.slice(2).join(' '));
 process.exit(0);
 `,
   );
@@ -305,6 +340,26 @@ function writeFakeLoveIos(dir) {
 
 function writeBuildConfig(dir, config) {
   writeFileSync(join(dir, 'feather.build.json'), `${JSON.stringify(config, null, 2)}\n`);
+}
+
+function readStoredZipEntries(zipPath) {
+  const buffer = readFileSync(zipPath);
+  const entries = new Map();
+  let offset = 0;
+  while (offset + 30 < buffer.length && buffer.readUInt32LE(offset) === 0x04034b50) {
+    const method = buffer.readUInt16LE(offset + 8);
+    const compressedSize = buffer.readUInt32LE(offset + 18);
+    const fileNameLength = buffer.readUInt16LE(offset + 26);
+    const extraLength = buffer.readUInt16LE(offset + 28);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + fileNameLength + extraLength;
+    const name = buffer.subarray(nameStart, nameStart + fileNameLength).toString('utf8');
+    const data = buffer.subarray(dataStart, dataStart + compressedSize);
+    if (method !== 0) throw new Error(`Test zip reader only supports stored entries: ${name}`);
+    entries.set(name, data);
+    offset = dataStart + compressedSize;
+  }
+  return entries;
 }
 
 async function writeFakeAppleLibrariesZip(dir) {
@@ -383,8 +438,92 @@ test('run: fake love receives shim, args, env, and exit code is propagated', () 
   assert.equal(record.env.FEATHER_GAME_PATH, resolve(gameDir));
   assert.equal(record.env.FEATHER_SESSION_NAME, 'Command Test');
   assert.equal(record.shimMainExists, true);
+  assert.equal(record.featherAutoExists, true);
   assert.equal(existsSync(record.argv[0]), false, 'shim should be cleaned after love exits');
   assert.deepEqual(record.argv.slice(1), ['--level', '2']);
+});
+
+test('run: source checkout build exposes feather.auto without a bundled cli/lua directory', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', '--love', fakePath, gameDir]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(record.featherAutoExists, true);
+});
+
+test('run: accepts configPath aliases and recovers npm-stripped config path argument', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const configPath = join(gameDir, 'feather.config.lua');
+  writeFileSync(configPath, 'return { sessionName = "From Config Alias" }\n');
+
+  const alias = writeFakeLove(dir, { recordPath: join(dir, 'alias-record.json') });
+  const aliasResult = run(['run', '--love', alias.fakePath, '--configPath', configPath, gameDir]);
+  assert.equal(aliasResult.exitCode, 0, outputOf(aliasResult));
+  const aliasRecord = JSON.parse(readFileSync(alias.recordPath, 'utf8'));
+  assert.equal(aliasRecord.env.FEATHER_SESSION_NAME, 'From Config Alias');
+  assert.deepEqual(aliasRecord.argv.slice(1), []);
+
+  const stripped = writeFakeLove(dir, { recordPath: join(dir, 'stripped-record.json') });
+  const strippedResult = run(['run', '--love', stripped.fakePath, gameDir, configPath]);
+  assert.equal(strippedResult.exitCode, 0, outputOf(strippedResult));
+  const strippedRecord = JSON.parse(readFileSync(stripped.recordPath, 'utf8'));
+  assert.equal(strippedRecord.env.FEATHER_SESSION_NAME, 'From Config Alias');
+  assert.deepEqual(strippedRecord.argv.slice(1), []);
+});
+
+test('run: shim preloads config before requiring feather.auto', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const configPath = join(gameDir, 'feather.config.lua');
+  writeFileSync(configPath, 'return { __DANGEROUS_INSECURE_CONNECTION__ = true, sessionName = "Security Config" }\n');
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', '--love', fakePath, gameDir, '--config', configPath]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(record.shimMain.includes('FEATHER_AUTO_CONFIG = {'));
+  assert.ok(record.shimMain.includes('__DANGEROUS_INSECURE_CONNECTION__ = true'));
+  assert.equal(record.shimMain.includes('require("feather.auto").setup'), false);
+  assert.ok(record.shimMain.includes('require("feather.auto")'));
+});
+
+test('run --no-debugger: launches game directly without Feather shim', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', '--love', fakePath, '--no-debugger', gameDir, '--', '--plain']);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(outputOf(result).includes('Debugger  disabled'));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(record.argv[0], resolve(gameDir));
+  assert.deepEqual(record.argv.slice(1), ['--plain']);
+  assert.equal(record.featherAutoExists, false);
+  assert.equal(record.shimMain, readFileSync(join(gameDir, 'main.lua'), 'utf8'));
+});
+
+test('run --disable-debugger: aliases debugger-disabled desktop launch', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', '--love', fakePath, '--disable-debugger', gameDir]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(record.argv[0], resolve(gameDir));
 });
 
 test('run --target android: builds, installs, sets adb reverse, launches, and supports device selection', () => {
@@ -408,9 +547,80 @@ test('run --target android: builds, installs, sets adb reverse, launches, and su
   assert.deepEqual(records.map((entry) => entry.args), [
     ['-s', 'emulator-5554', 'version'],
     ['-s', 'emulator-5554', 'install', '-r', join(dir, 'builds', 'run-android-1.0.0-android.apk')],
+    ['-s', 'emulator-5554', 'shell', 'am', 'force-stop', 'com.example.runandroid'],
     ['-s', 'emulator-5554', 'reverse', 'tcp:4010', 'tcp:4010'],
     ['-s', 'emulator-5554', 'shell', 'monkey', '-p', 'com.example.runandroid', '-c', 'android.intent.category.LAUNCHER', '1'],
   ]);
+  const entries = readStoredZipEntries(join(dir, 'builds', 'run-android-1.0.0.love'));
+  assert.equal(entries.has('feather/auto.lua'), true);
+  assert.match(entries.get('feather.config.lua').toString('utf8'), /port\s*=\s*4010/);
+});
+
+test('run --target android --config: embeds selected raw Feather config in mobile love archive', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const configPath = join(gameDir, 'custom-feather.config.lua');
+  writeFileSync(configPath, `return {
+  sessionName = "Mobile Custom",
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  debugger = {
+    hotReload = {
+      enabled = true,
+      allow = { "game.*" },
+    },
+  },
+}
+`);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Run Android Config',
+    version: '1.0.0',
+    productId: 'com.example.runandroidconfig',
+    sourceDir: 'game',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+  const { binDir } = writeFakeAdb(dir);
+
+  const result = run(['run', gameDir, '--target', 'android', '--config', configPath, '--no-adb-reverse'], {
+    cwd: dir,
+    env: envWithPath(binDir),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const entries = readStoredZipEntries(join(dir, 'builds', 'run-android-config-1.0.0.love'));
+  assert.equal(entries.has('main.lua'), true);
+  assert.equal(entries.has('.feather-main.lua'), true);
+  assert.equal(entries.has('feather/core/debug_overlay.lua'), true);
+  const config = entries.get('feather.config.lua').toString('utf8');
+  assert.match(config, /sessionName\s*=\s*"Mobile Custom"/);
+  assert.match(config, /hotReload\s*=\s*\{/);
+  assert.match(config, /allow\s*=\s*\{\s*"game\.\*"\s*\}/);
+});
+
+test('run --target android: uses root build config for a nested game path', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'src-lua', 'example', 'test_cli');
+  writeGame(gameDir);
+  const { recordPath: gradleRecordPath } = writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Nested Android',
+    version: '1.0.0',
+    productId: 'com.example.nestedandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+  const { binDir, recordPath } = writeFakeAdb(dir);
+
+  const result = run(['run', gameDir, '--target', 'android', '--no-adb-reverse'], {
+    cwd: dir,
+    env: envWithPath(binDir),
+  });
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(outputOf(result).includes('Launched android'));
+  assert.ok(outputOf(result).includes(gameDir));
+  assert.ok(existsSync(join(dir, 'builds', 'nested-android-1.0.0-android.apk')));
+  const gradleRecord = JSON.parse(readFileSync(gradleRecordPath, 'utf8'));
+  assert.equal(gradleRecord.embeddedLoveExists, true);
 });
 
 test('run --target android --no-adb-reverse skips reverse setup', () => {
@@ -429,6 +639,50 @@ test('run --target android --no-adb-reverse skips reverse setup', () => {
   assert.equal(result.exitCode, 0, outputOf(result));
   const records = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.equal(records.some((entry) => entry.args.includes('reverse')), false);
+});
+
+test('run --target android --no-debugger skips adb reverse setup', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'No Debugger Android',
+    version: '1.0.0',
+    productId: 'com.example.nodebuggerandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+  const { binDir, recordPath } = writeFakeAdb(dir);
+
+  const result = run(['run', dir, '--target', 'android', '--no-debugger'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const records = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(records.some((entry) => entry.args.includes('reverse')), false);
+  assert.equal(outputOf(result).includes('ADB reverse  disabled'), true);
+  const entries = readStoredZipEntries(join(dir, 'builds', 'no-debugger-android-1.0.0.love'));
+  assert.equal(entries.has('feather/auto.lua'), false);
+  assert.equal(entries.has('.feather-main.lua'), false);
+});
+
+test('run --target android --no-cache forwards cache option to mobile build', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const { recordPath: gradleRecordPath } = writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Run No Cache',
+    version: '1.0.0',
+    productId: 'com.example.runnocache',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+  const { binDir } = writeFakeAdb(dir);
+
+  const first = run(['run', dir, '--target', 'android', '--no-adb-reverse', '--no-cache'], { env: envWithPath(binDir) });
+  const second = run(['run', dir, '--target', 'android', '--no-adb-reverse', '--no-cache'], { env: envWithPath(binDir) });
+  assert.equal(first.exitCode, 0, outputOf(first));
+  assert.equal(second.exitCode, 0, outputOf(second));
+  assert.equal(existsSync(join(dir, 'builds', '.feather-cache')), false);
+  const records = JSON.parse(readFileSync(gradleRecordPath, 'utf8')).records;
+  assert.equal(records.length, 2);
+  assert.notEqual(records[0].cwd, records[1].cwd);
 });
 
 test('run --target android: missing adb produces doctor guidance', () => {
@@ -1153,7 +1407,7 @@ test('build android: invalid config fails before staging or writing artifacts', 
     targets: { android: { loveAndroidDir: 'love-android', versionCode: 0 } },
   });
 
-  const result = run(['build', 'android', '--dir', dir, '--json']);
+  const result = run(['build', 'android', '--dir', dir, '--allow-unsafe', '--json']);
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('Invalid android build config'));
   assert.ok(outputOf(result).includes('productId'));
@@ -1180,7 +1434,7 @@ test('build android: injects game.love, runs Gradle, copies APK, and writes mani
     },
   });
 
-  const result = run(['build', 'android', '--dir', dir, '--json']);
+  const result = run(['build', 'android', '--dir', dir, '--allow-unsafe', '--json']);
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.equal(ANSI_RE.test(result.stdout), false);
   const parsed = JSON.parse(result.stdout);
@@ -1195,12 +1449,221 @@ test('build android: injects game.love, runs Gradle, copies APK, and writes mani
   assert.ok(record.gradle.includes('applicationId "com.example.mobilegame"'));
   assert.ok(record.gradle.includes('versionCode 7'));
   assert.ok(record.gradle.includes('versionName "1.2.3-dev"'));
+  assert.ok(record.gradleProperties.includes('app.application_id=com.example.mobilegame'));
+  assert.ok(record.gradleProperties.includes('app.orientation=landscape'));
+  assert.ok(record.gradleProperties.includes('app.version_code=7'));
+  assert.ok(record.gradleProperties.includes('app.version_name=1.2.3-dev'));
+  assert.equal(record.gradleProperties.includes('app.name='), false);
+  assert.ok(record.gradleProperties.includes('app.name_byte_array='));
   assert.ok(record.manifest.includes('android:label="Mobile Game Dev"'));
   assert.ok(record.manifest.includes('android:screenOrientation="landscape"'));
   assert.ok(record.manifest.includes('android.permission.RECORD_AUDIO'));
+  assert.ok(record.gameActivity.includes('Feather: forcing embedded game.love from assets'));
   const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
   assert.equal(manifest.target, 'android');
   assert.equal(manifest.artifacts.some((artifact) => artifact.type === 'apk'), true);
+});
+
+test('build android: embeds Feather debugger runtime and raw config in dev love archive', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  sessionName = "Nested Config",
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  debugOverlay = {
+    enabled = true,
+    visible = false,
+  },
+}
+`,
+  );
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Embedded Android',
+    version: '1.0.0',
+    productId: 'com.example.embeddedandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--allow-unsafe', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const entries = readStoredZipEntries(join(dir, 'builds', 'embedded-android-1.0.0.love'));
+  assert.equal(entries.has('main.lua'), true);
+  assert.equal(entries.has('.feather-main.lua'), true);
+  assert.equal(entries.has('feather/auto.lua'), true);
+  assert.equal(entries.has('feather/core/debug_overlay.lua'), true);
+  assert.equal(entries.has('plugins/profiler/manifest.lua'), true);
+  assert.match(entries.get('main.lua').toString('utf8'), /require\("feather\.auto"\)/);
+  assert.match(entries.get('feather.config.lua').toString('utf8'), /debugOverlay\s*=\s*\{/);
+  assert.match(entries.get('feather.config.lua').toString('utf8'), /visible\s*=\s*false/);
+});
+
+test('build android --no-debugger: builds raw source without Feather embed', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Raw Android',
+    version: '1.0.0',
+    productId: 'com.example.rawandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--no-debugger', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const entries = readStoredZipEntries(join(dir, 'builds', 'raw-android-1.0.0.love'));
+  assert.equal(entries.has('main.lua'), true);
+  assert.equal(entries.has('.feather-main.lua'), false);
+  assert.equal(entries.has('feather/auto.lua'), false);
+  assert.equal(entries.has('feather.config.lua'), false);
+});
+
+test('build android --release: does not auto-embed Feather debugger runtime', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Release Raw Android',
+    version: '1.0.0',
+    productId: 'com.example.releaserawandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--release', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const entries = readStoredZipEntries(join(dir, 'builds', 'release-raw-android-1.0.0.love'));
+  assert.equal(entries.has('.feather-main.lua'), false);
+  assert.equal(entries.has('feather/auto.lua'), false);
+});
+
+test('build android: reuses dev native cache between builds', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const { recordPath } = writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Cached Android',
+    version: '1.0.0',
+    productId: 'com.example.cachedandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const first = run(['build', 'android', '--dir', dir, '--json']);
+  assert.equal(first.exitCode, 0, outputOf(first));
+  const firstParsed = JSON.parse(first.stdout);
+  assert.equal(firstParsed.cache.enabled, true);
+  assert.equal(firstParsed.cache.hit, false);
+  assert.ok(firstParsed.cache.path.includes(join('builds', '.feather-cache', 'android')));
+  assert.equal(existsSync(firstParsed.cache.path), true);
+
+  const second = run(['build', 'android', '--dir', dir, '--json']);
+  assert.equal(second.exitCode, 0, outputOf(second));
+  const secondParsed = JSON.parse(second.stdout);
+  assert.equal(secondParsed.cache.enabled, true);
+  assert.equal(secondParsed.cache.hit, true);
+  assert.equal(secondParsed.cache.key, firstParsed.cache.key);
+  assert.equal(secondParsed.cache.path, firstParsed.cache.path);
+
+  const records = JSON.parse(readFileSync(recordPath, 'utf8')).records;
+  assert.equal(records.length, 2);
+  assert.equal(records[0].cwd, records[1].cwd);
+  assert.ok(records[0].cwd.includes(join('builds', '.feather-cache', 'android')));
+});
+
+test('build android --no-cache uses fresh native workspaces', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const { recordPath } = writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Uncached Android',
+    version: '1.0.0',
+    productId: 'com.example.uncachedandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const first = run(['build', 'android', '--dir', dir, '--no-cache', '--json']);
+  const second = run(['build', 'android', '--dir', dir, '--no-cache', '--json']);
+  assert.equal(first.exitCode, 0, outputOf(first));
+  assert.equal(second.exitCode, 0, outputOf(second));
+  assert.equal(JSON.parse(first.stdout).cache.enabled, false);
+  assert.equal(JSON.parse(second.stdout).cache.enabled, false);
+  assert.equal(existsSync(join(dir, 'builds', '.feather-cache')), false);
+  const records = JSON.parse(readFileSync(recordPath, 'utf8')).records;
+  assert.equal(records.length, 2);
+  assert.notEqual(records[0].cwd, records[1].cwd);
+  assert.equal(records[0].cwd.includes('.feather-cache'), false);
+  assert.equal(records[1].cwd.includes('.feather-cache'), false);
+});
+
+test('build android: stale native cache missing Gradle wrapper is recopied', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const { recordPath } = writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Stale Cached Android',
+    version: '1.0.0',
+    productId: 'com.example.stalecachedandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const first = run(['build', 'android', '--dir', dir, '--json']);
+  assert.equal(first.exitCode, 0, outputOf(first));
+  const firstParsed = JSON.parse(first.stdout);
+  rmSync(join(firstParsed.cache.path, 'love-android', process.platform === 'win32' ? 'gradlew.bat' : 'gradlew'), { force: true });
+
+  const second = run(['build', 'android', '--dir', dir, '--json']);
+  assert.equal(second.exitCode, 0, outputOf(second));
+  const secondParsed = JSON.parse(second.stdout);
+  assert.equal(secondParsed.cache.enabled, true);
+  assert.equal(secondParsed.cache.hit, false);
+  assert.equal(secondParsed.cache.path, firstParsed.cache.path);
+  assert.equal(existsSync(join(secondParsed.cache.path, 'love-android', process.platform === 'win32' ? 'gradlew.bat' : 'gradlew')), true);
+  const records = JSON.parse(readFileSync(recordPath, 'utf8')).records;
+  assert.equal(records.length, 2);
+});
+
+test('build android --clean resets dev native cache', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Clean Cached Android',
+    version: '1.0.0',
+    productId: 'com.example.cleancachedandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const first = run(['build', 'android', '--dir', dir, '--json']);
+  const second = run(['build', 'android', '--dir', dir, '--json']);
+  const cleaned = run(['build', 'android', '--dir', dir, '--clean', '--json']);
+  assert.equal(first.exitCode, 0, outputOf(first));
+  assert.equal(second.exitCode, 0, outputOf(second));
+  assert.equal(cleaned.exitCode, 0, outputOf(cleaned));
+  assert.equal(JSON.parse(first.stdout).cache.hit, false);
+  assert.equal(JSON.parse(second.stdout).cache.hit, true);
+  assert.equal(JSON.parse(cleaned.stdout).cache.hit, false);
+});
+
+test('build android --verbose: shows native build steps and Gradle output', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Verbose Android',
+    version: '1.0.0',
+    productId: 'com.example.verboseandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--verbose']);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(result.stdout.includes('Building android in verbose mode'));
+  assert.ok(result.stdout.includes('Staged'));
+  assert.ok(result.stdout.includes('Android workspace'));
+  assert.ok(result.stdout.includes('assembleEmbedNoRecordDebug'));
+  assert.ok(result.stdout.includes('fake gradle assembleEmbedNoRecordDebug'));
 });
 
 test('build android: honors gradleTask, custom artifactPath, and removes microphone permission', () => {
@@ -1278,6 +1741,7 @@ test('build android --release: runs bundle/apk tasks, copies artifacts, and keep
   assert.equal(outputOf(result).includes('store-secret'), false);
   assert.equal(outputOf(result).includes('key-secret'), false);
   const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.cache.enabled, false);
   assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'aab'), true);
   assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'apk'), true);
   assert.equal(existsSync(join(dir, 'builds', 'store-android-3.0.0-android.aab')), true);
@@ -1348,10 +1812,11 @@ fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
   gameLoveExists: fs.existsSync(path.join(process.cwd(), 'platform', 'xcode', 'game.love')),
   projectContainsGameLove: fs.readFileSync(path.join(process.cwd(), 'platform', 'xcode', 'love.xcodeproj', 'project.pbxproj'), 'utf8').includes('game.love'),
 }, null, 2));
+console.log('fake xcodebuild ' + args.join(' '));
 process.exit(0);
 `);
 
-  const result = run(['build', 'ios', '--dir', dir, '--json'], { env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }) });
+  const result = run(['build', 'ios', '--dir', dir, '--no-cache', '--json'], { env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }) });
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.equal(ANSI_RE.test(result.stdout), false);
   const parsed = JSON.parse(result.stdout);
@@ -1372,9 +1837,106 @@ process.exit(0);
   assert.ok(record.argv.includes('DEVELOPMENT_TEAM=ABC123XYZ'));
   assert.equal(record.gameLoveExists, true);
   assert.equal(record.projectContainsGameLove, true);
+  const entries = readStoredZipEntries(join(dir, 'builds', 'ios-game-5.0.0.love'));
+  assert.equal(entries.has('main.lua'), true);
+  assert.equal(entries.has('.feather-main.lua'), true);
+  assert.equal(entries.has('feather/auto.lua'), true);
+  assert.equal(entries.has('feather/core/debug_overlay.lua'), true);
   const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
   assert.equal(manifest.target, 'ios');
   assert.equal(manifest.artifacts.some((artifact) => artifact.type === 'app'), true);
+});
+
+test('build ios: reuses dev native cache and cached DerivedData between builds', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Cached iOS',
+    version: '1.0.0',
+    targets: {
+      ios: {
+        loveIosDir: 'love-ios',
+        bundleIdentifier: 'com.example.cachedios',
+      },
+    },
+  });
+  const recordPath = join(dir, 'xcodebuild-cache-record.json');
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+const derivedData = args[args.indexOf('-derivedDataPath') + 1];
+const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+fs.mkdirSync(app, { recursive: true });
+fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+const previous = fs.existsSync(${JSON.stringify(recordPath)})
+  ? JSON.parse(fs.readFileSync(${JSON.stringify(recordPath)}, 'utf8'))
+  : { records: [] };
+previous.records.push({
+  argv: args,
+  cwd: process.cwd(),
+  derivedData,
+  gameLoveExists: fs.existsSync(path.join(process.cwd(), 'platform', 'xcode', 'game.love')),
+});
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
+process.exit(0);
+`);
+  const env = envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' });
+
+  const first = run(['build', 'ios', '--dir', dir, '--json'], { env });
+  assert.equal(first.exitCode, 0, outputOf(first));
+  const firstParsed = JSON.parse(first.stdout);
+  assert.equal(firstParsed.cache.enabled, true);
+  assert.equal(firstParsed.cache.hit, false);
+
+  const second = run(['build', 'ios', '--dir', dir, '--json'], { env });
+  assert.equal(second.exitCode, 0, outputOf(second));
+  const secondParsed = JSON.parse(second.stdout);
+  assert.equal(secondParsed.cache.enabled, true);
+  assert.equal(secondParsed.cache.hit, true);
+  assert.equal(secondParsed.cache.path, firstParsed.cache.path);
+
+  const records = JSON.parse(readFileSync(recordPath, 'utf8')).records;
+  assert.equal(records.length, 2);
+  assert.equal(records[0].cwd, records[1].cwd);
+  assert.equal(records[0].derivedData, records[1].derivedData);
+  assert.ok(records[0].cwd.includes(join('builds', '.feather-cache', 'ios')));
+  assert.ok(records[0].derivedData.includes(join('builds', '.feather-cache', 'ios')));
+  assert.equal(records[0].gameLoveExists, true);
+  assert.equal(records[1].gameLoveExists, true);
+});
+
+test('build ios --verbose: shows native build steps and xcodebuild output', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Verbose iOS',
+    version: '1.0.0',
+    targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.verboseios' } },
+  });
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+const derivedData = args[args.indexOf('-derivedDataPath') + 1];
+const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+fs.mkdirSync(app, { recursive: true });
+fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+console.log('fake xcodebuild ' + args.join(' '));
+process.exit(0);
+`);
+
+  const result = run(['build', 'ios', '--dir', dir, '--verbose'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(result.stdout.includes('Building ios in verbose mode'));
+  assert.ok(result.stdout.includes('iOS workspace'));
+  assert.ok(result.stdout.includes('xcodebuild'));
+  assert.ok(result.stdout.includes('fake xcodebuild'));
 });
 
 test('build ios --release: archives, exports IPA, and writes release manifest artifacts', () => {
@@ -1438,6 +2000,7 @@ process.exit(0);
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.equal(ANSI_RE.test(result.stdout), false);
   const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.cache.enabled, false);
   assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'xcarchive'), true);
   assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'ipa'), true);
   assert.equal(existsSync(join(dir, 'builds', 'release-ios-6.0.0-ios.xcarchive')), true);
@@ -1454,6 +2017,11 @@ process.exit(0);
 test('build mobile: missing native template paths fail with actionable errors', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeBuildConfig(dir, {
+    name: 'Missing Mobile Template',
+    version: '1.0.0',
+    productId: 'com.example.missingmobiletemplate',
+  });
 
   const android = run(['build', 'android', '--dir', dir, '--allow-unsafe', '--json']);
   assert.equal(android.exitCode, 1);

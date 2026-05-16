@@ -115,6 +115,7 @@ export type ResolvedBuildConfig = {
 export type LoadBuildConfigOptions = {
   projectDir?: string;
   configPath?: string;
+  sourceDir?: string;
   outDir?: string;
   name?: string;
   version?: string;
@@ -185,7 +186,7 @@ export function loadBuildConfig(options: LoadBuildConfigOptions = {}): ResolvedB
   if (!name) throw new Error('Build name must not be empty.');
   if (!version) throw new Error('Build version must not be empty.');
 
-  const sourceDir = projectPath(projectDir, raw.sourceDir, '.', 'Build source directory');
+  const sourceDir = projectPath(projectDir, options.sourceDir ?? raw.sourceDir, '.', 'Build source directory');
   const outDir = projectPath(projectDir, options.outDir ?? raw.outDir, 'builds', 'Build output directory');
   const outRel = isPathInside(projectDir, outDir) ? outDirRelative(projectDir, outDir) : '';
   const includeRuntime = Boolean(raw.includeRuntime);

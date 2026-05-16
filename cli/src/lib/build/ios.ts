@@ -3,11 +3,24 @@ import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node
 import { dirname, join, resolve } from 'node:path';
 import { artifactBaseName, copyDirectory, writeLoveArchive, type BuildArtifact } from './files.js';
 import type { ResolvedBuildConfig } from './config.js';
-import { createNativeWorkspace, findFirstPath } from './native.js';
+import {
+  createNativeWorkspace,
+  findFirstPath,
+  logNativeCommand,
+  logNativeOutput,
+  logNativeStep,
+  type NativeCacheInfo,
+  type NativeBuildLogger,
+} from './native.js';
 import { iosBundleIdentifier } from './validation.js';
 
 export type IosBuildModeOptions = {
   release?: boolean;
+  cache?: boolean;
+  debuggerSignature?: string;
+  verbose?: boolean;
+  log?: NativeBuildLogger;
+  onCache?: (cache: NativeCacheInfo) => void;
 };
 
 export function buildIos(config: ResolvedBuildConfig, stageDir: string, options: IosBuildModeOptions = {}): BuildArtifact[] {
@@ -17,16 +30,44 @@ export function buildIos(config: ResolvedBuildConfig, stageDir: string, options:
 
   const iosConfig = config.targets.ios ?? {};
   const loveIosDir = iosConfig.loveIosDir ? resolve(config.projectDir, iosConfig.loveIosDir) : '';
-  if (!loveIosDir || !existsSync(loveIosDir)) {
+  if (!iosConfig.loveIosDir) {
     throw new Error('iOS build requires targets.ios.loveIosDir in feather.build.json.');
+  }
+  if (!existsSync(loveIosDir)) {
+    throw new Error(`iOS template not found at ${loveIosDir}. Run \`feather build vendor add ios --dir ${config.projectDir}\` or update targets.ios.loveIosDir in feather.build.json.`);
   }
 
   const base = artifactBaseName(config);
   const lovePath = writeLoveArchive(stageDir, config.outDir, base);
-  const workspace = createNativeWorkspace('feather-ios-', loveIosDir, 'love-ios');
-  const derivedDataPath = iosConfig.derivedDataPath
-    ? resolve(config.projectDir, iosConfig.derivedDataPath)
-    : join(workspace.root, 'DerivedData');
+  logNativeStep(options.log, `Created .love archive: ${lovePath}`);
+  if (options.release || options.cache === false) {
+    logNativeStep(options.log, `Build cache: ${options.release ? 'disabled for release build' : 'disabled by --no-cache'}`);
+  }
+  const cacheEnabled = !options.release && options.cache !== false;
+  logNativeStep(options.log, `iOS template: ${loveIosDir}`);
+  const workspace = createNativeWorkspace('feather-ios-', loveIosDir, 'love-ios', {
+    enabled: cacheEnabled,
+    target: 'ios',
+    outDir: config.outDir,
+    log: options.log,
+    requiredPaths: ['platform/xcode/love.xcodeproj'],
+    keyParts: {
+      bundleIdentifier: iosBundleIdentifier(config),
+      displayName: iosConfig.displayName ?? config.name,
+      scheme: iosConfig.scheme ?? 'love-ios',
+      configuration: iosConfig.configuration ?? 'Debug',
+      sdk: iosConfig.sdk ?? 'iphonesimulator',
+      teamId: iosConfig.teamId,
+      debuggerSignature: options.debuggerSignature,
+    },
+  });
+  options.onCache?.(workspace.cache);
+  logNativeStep(options.log, `iOS workspace: ${workspace.dir}`);
+  const derivedDataPath = cacheEnabled
+    ? join(workspace.root, 'DerivedData')
+    : iosConfig.derivedDataPath
+      ? resolve(config.projectDir, iosConfig.derivedDataPath)
+      : join(workspace.root, 'DerivedData');
 
   try {
     const xcodeProject = join(workspace.dir, 'platform', 'xcode', 'love.xcodeproj');
@@ -37,15 +78,17 @@ export function buildIos(config: ResolvedBuildConfig, stageDir: string, options:
     const gameLovePath = join(workspace.dir, 'platform', 'xcode', 'game.love');
     mkdirSync(dirname(gameLovePath), { recursive: true });
     cpSync(lovePath, gameLovePath, { force: true });
+    logNativeStep(options.log, `Embedded game.love: ${gameLovePath}`);
     patchIosProject(join(xcodeProject, 'project.pbxproj'));
+    logNativeStep(options.log, 'Patched Xcode project resources');
 
     if (options.release) {
-      const releaseArtifacts = buildIosRelease(config, workspace.dir, xcodeProject, base, lovePath);
+      const releaseArtifacts = buildIosRelease(config, workspace.dir, xcodeProject, base, lovePath, options.log);
       return releaseArtifacts;
     }
 
     const args = xcodebuildArgs(config, xcodeProject, derivedDataPath);
-    runXcodebuild(args, workspace.dir);
+    runXcodebuild(args, workspace.dir, options.log);
 
     const appSource = findFirstPath(derivedDataPath, (_path, entry) => entry.isDirectory() && entry.name.endsWith('.app'));
     if (!appSource || !existsSync(appSource)) {
@@ -53,6 +96,7 @@ export function buildIos(config: ResolvedBuildConfig, stageDir: string, options:
     }
     const appPath = join(config.outDir, `${base}-ios.app`);
     copyDirectory(appSource, appPath);
+    logNativeStep(options.log, `Copied app artifact: ${appPath}`);
 
     return [
       { target: 'ios', type: 'love', path: lovePath },
@@ -69,6 +113,7 @@ function buildIosRelease(
   xcodeProject: string,
   base: string,
   lovePath: string,
+  log?: NativeBuildLogger,
 ): BuildArtifact[] {
   const release = config.targets.ios?.release ?? {};
   const archiveSource = release.archivePath
@@ -81,11 +126,11 @@ function buildIosRelease(
     ? resolve(config.projectDir, release.exportOptionsPlist)
     : writeGeneratedExportOptions(config, join(workDir, '..', 'ExportOptions.plist'));
 
-  runXcodebuild(xcodeArchiveArgs(config, xcodeProject, archiveSource), workDir);
+  runXcodebuild(xcodeArchiveArgs(config, xcodeProject, archiveSource), workDir, log);
   if (!existsSync(archiveSource)) {
     throw new Error('iOS archive completed but no .xcarchive was found. Check targets.ios.release.archivePath or Xcode archive settings.');
   }
-  runXcodebuild(xcodeExportArchiveArgs(archiveSource, exportPath, exportOptionsPlist), workDir);
+  runXcodebuild(xcodeExportArchiveArgs(archiveSource, exportPath, exportOptionsPlist), workDir, log);
   const ipaSource = findFirstPath(exportPath, (_path, entry) => entry.isFile() && entry.name.endsWith('.ipa'));
   if (!ipaSource || !existsSync(ipaSource)) {
     throw new Error('iOS export completed but no .ipa artifact was found. Check targets.ios.release.exportPath or export options.');
@@ -95,6 +140,8 @@ function buildIosRelease(
   const ipaPath = join(config.outDir, `${base}-ios.ipa`);
   copyDirectory(archiveSource, archivePath);
   cpSync(ipaSource, ipaPath, { force: true });
+  logNativeStep(log, `Copied archive artifact: ${archivePath}`);
+  logNativeStep(log, `Copied IPA artifact: ${ipaPath}`);
   return [
     { target: 'ios', type: 'love', path: lovePath },
     { target: 'ios', type: 'xcarchive', path: archivePath },
@@ -158,11 +205,18 @@ export function xcodeExportArchiveArgs(archivePath: string, exportPath: string, 
   ];
 }
 
-function runXcodebuild(args: string[], workDir: string): void {
-  const result = spawnSync('xcodebuild', args, { cwd: workDir, encoding: 'utf8' });
+function runXcodebuild(args: string[], workDir: string, log?: NativeBuildLogger): void {
+  logNativeCommand(log, 'xcodebuild', args, workDir);
+  const streamOutput = Boolean(log);
+  const result = spawnSync('xcodebuild', args, {
+    cwd: workDir,
+    encoding: streamOutput ? undefined : 'utf8',
+    stdio: streamOutput ? 'inherit' : 'pipe',
+  });
+  if (!streamOutput) logNativeOutput(log, result.stdout, result.stderr);
   if (result.error) throw new Error('xcodebuild not found. Run `feather doctor --build-target ios`.');
   if (result.status !== 0) {
-    throw new Error((result.stderr || result.stdout || 'xcodebuild failed').trim());
+    throw new Error((result.stderr || result.stdout || `xcodebuild failed with exit code ${result.status ?? 'unknown'}`).toString().trim());
   }
 }
 

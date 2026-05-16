@@ -14,6 +14,7 @@ local FeatherLogger = require(FEATHER_PATH .. ".core.logger")
 local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
 local FeatherPerformance = require(FEATHER_PATH .. ".core.performance")
 local FeatherAssets = require(FEATHER_PATH .. ".core.assets")
+local FeatherDebugOverlay = require(FEATHER_PATH .. ".core.debug_overlay")
 local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
 local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
@@ -85,6 +86,7 @@ local customErrorHandler = errorhandler
 ---@field assetPreview? boolean  Enable core asset tracking and previews (default true)
 ---@field binaryTextThreshold? number  Observer/time-travel strings longer than this are sent as binary text (default 4096)
 ---@field hotReload? table  Top-level hot reload options. Prefer debugger.hotReload for new configs.
+---@field debugOverlay? table|boolean  Small in-game debugger status badge (default enabled in debug builds)
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -199,6 +201,7 @@ function Feather:init(config)
 
   self.pluginManager = FeatherPluginManager(self, self.featherLogger, self.featherObserver)
   self.pluginManager:hookLoveCallbacks()
+  self.debugOverlay = FeatherDebugOverlay(self, conf.debugOverlay)
 
   ---@type FeatherDebugger
   self.featherDebugger = FeatherDebugger(self)

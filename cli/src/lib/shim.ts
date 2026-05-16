@@ -5,8 +5,17 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-// Path to the bundled Lua library shipped with this CLI package
-const BUNDLED_LUA = resolve(__dirname, '../../lua');
+// Path to the bundled Lua library shipped with this CLI package.
+// In a source checkout `npm run build` does not run the publish-time Lua bundle,
+// so fall back to the repository's src-lua directory for local development.
+const PACKAGED_LUA = resolve(__dirname, '../../lua');
+const SOURCE_LUA = resolve(__dirname, '../../../src-lua');
+
+export function bundledLuaRoot(): string {
+  if (existsSync(join(PACKAGED_LUA, 'feather', 'auto.lua'))) return PACKAGED_LUA;
+  if (existsSync(join(SOURCE_LUA, 'feather', 'auto.lua'))) return SOURCE_LUA;
+  return PACKAGED_LUA;
+}
 
 export interface ShimOptions {
   gamePath: string;
@@ -22,16 +31,16 @@ export interface Shim {
   cleanup: () => void;
 }
 
-function featherRoot(override?: string): string {
+export function featherRoot(override?: string): string {
   if (override) return resolve(override);
-  return join(BUNDLED_LUA, 'feather');
+  return join(bundledLuaRoot(), 'feather');
 }
 
-function pluginsRoot(featherDir: string, override?: string): string {
+export function pluginsRoot(featherDir: string, override?: string): string {
   if (override) return join(resolve(override), '..', 'plugins');
   const localPlugins = join(featherDir, '..', 'plugins');
   if (existsSync(localPlugins)) return resolve(localPlugins);
-  return join(BUNDLED_LUA, 'plugins');
+  return join(bundledLuaRoot(), 'plugins');
 }
 
 /** Read plugin IDs from a plugins directory by checking for manifest.lua in each subdir. */
@@ -82,12 +91,13 @@ ${pluginListLine}
 FEATHER_PATH = "feather"
 FEATHER_PLUGIN_PATH = ""
 ${opts.noPlugins ? 'FEATHER_SKIP_PLUGINS = true' : ''}
-require("feather.auto").setup({
+FEATHER_AUTO_CONFIG = {
   debug = true,
   wrapPrint = true,
   sessionName = os.getenv("FEATHER_SESSION_NAME") or ${JSON.stringify(sessionName)},
 ${configLines}
-})
+}
+require("feather.auto")
 
 -- Load the game's main.lua via absolute OS path to avoid shadowing by this file
 local gamePath = os.getenv("FEATHER_GAME_PATH")

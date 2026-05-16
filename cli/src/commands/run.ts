@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, realpathSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { findLoveBinary } from "../lib/love.js";
 import { createShim, shimEnv } from "../lib/shim.js";
 import { loadConfig } from "../lib/config.js";
@@ -8,11 +8,13 @@ import { chooseRunWorkflow } from "../ui/run-workflow.js";
 import { fail } from "../lib/command.js";
 import { printInfo, printKeyValues, printMuted, printStatus } from "../lib/output.js";
 import { runMobile, type MobileRunTarget } from "../lib/run/mobile.js";
+import { isPathInside } from "../lib/path-safety.js";
 
 export interface RunOptions {
   love?: string;
   sessionName?: string;
   noPlugins?: boolean;
+  debugger?: boolean;
   config?: string;
   featherPath?: string;
   pluginsDir?: string;
@@ -22,12 +24,15 @@ export interface RunOptions {
   buildConfig?: string;
   outDir?: string;
   clean?: boolean;
+  noCache?: boolean;
+  verbose?: boolean;
   adbReverse?: boolean;
   port?: number;
 }
 
 export async function runCommand(gamePath: string | undefined, opts: RunOptions): Promise<void | number> {
   const target = opts.target ?? "desktop";
+  const debuggerEnabled = opts.debugger !== false;
   if (!["desktop", "android", "ios"].includes(target)) {
     fail("Run target must be one of: desktop, android, ios.");
   }
@@ -69,27 +74,45 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
     fail(`No main.lua found in: ${absGame}`);
   }
 
+  const inferredConfig = inferConfigArg(opts.config, opts.gameArgs);
+  if (inferredConfig) {
+    opts = {
+      ...opts,
+      config: inferredConfig.config,
+      gameArgs: inferredConfig.gameArgs,
+    };
+  }
+
   const userConfig = loadConfig(absGame, opts.config) ?? undefined;
 
   if (target === "android" || target === "ios") {
     if ((opts.gameArgs?.length ?? 0) > 0) {
       fail("Mobile run does not support forwarded game arguments yet.");
     }
+    const buildContext = resolveMobileBuildContext(absGame, opts.buildConfig);
     try {
       printInfo(`Feather run ${target}`);
       const result = runMobile({
         target,
-        projectDir: absGame,
-        configPath: opts.buildConfig,
+        projectDir: buildContext.projectDir,
+        configPath: buildContext.configPath,
+        sourceDir: buildContext.sourceDir,
         outDir: opts.outDir,
         clean: opts.clean,
+        noCache: opts.noCache,
+        debugger: debuggerEnabled,
+        runtimeConfigPath: opts.config,
+        noPlugins: opts.noPlugins,
+        featherOverride: opts.featherPath,
+        pluginsOverride: opts.pluginsDir,
+        verbose: opts.verbose,
         device: opts.device,
-        adbReverse: opts.adbReverse,
+        adbReverse: debuggerEnabled ? opts.adbReverse : false,
         port: opts.port ?? (typeof userConfig?.port === "number" ? userConfig.port : undefined),
       });
       printStatus("success", `Launched ${target}`);
       printKeyValues([
-        ["Game", result.projectDir],
+        ["Game", absGame],
         ["Artifact", result.artifact],
         ["App ID", result.appId],
         ["Device", result.device],
@@ -109,6 +132,26 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   }
 
   const sessionName = opts.sessionName ?? (userConfig?.sessionName as string | undefined);
+
+  if (!debuggerEnabled) {
+    printInfo("Feather run");
+    printKeyValues([
+      ["Game", absGame],
+      ["Debugger", "disabled"],
+      ["Args", opts.gameArgs?.join(" ")],
+    ]);
+
+    const result = spawnSync(loveBin, [absGame, ...(opts.gameArgs ?? [])], {
+      stdio: "inherit",
+      env: process.env,
+    });
+
+    if (result.error) {
+      fail(`Failed to launch love: ${result.error.message}`, { cause: result.error });
+    }
+
+    return result.status ?? 0;
+  }
 
   const shim = createShim({
     gamePath: absGame,
@@ -140,4 +183,54 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   }
 
   return result.status ?? 0;
+}
+
+function resolveMobileBuildContext(absGame: string, buildConfig: string | undefined): {
+  projectDir: string;
+  configPath?: string;
+  sourceDir?: string;
+} {
+  if (buildConfig) {
+    const configPath = resolve(buildConfig);
+    const configDir = dirname(configPath);
+    const sourceDir = relativeInside(configDir, absGame);
+    if (sourceDir) {
+      return {
+        projectDir: realpathSync(configDir),
+        configPath,
+        sourceDir,
+      };
+    }
+    return { projectDir: absGame, configPath };
+  }
+
+  if (existsSync(join(absGame, "feather.build.json"))) {
+    return { projectDir: absGame };
+  }
+
+  const cwd = resolve(process.cwd());
+  const sourceDir = relativeInside(cwd, absGame);
+  if (existsSync(join(cwd, "feather.build.json")) && sourceDir) {
+    return {
+      projectDir: realpathSync(cwd),
+      sourceDir,
+    };
+  }
+
+  return { projectDir: absGame };
+}
+
+function relativeInside(root: string, target: string): string | null {
+  const rootReal = realpathSync(root);
+  const targetReal = realpathSync(target);
+  if (!isPathInside(rootReal, targetReal)) return null;
+  return relative(rootReal, targetReal) || ".";
+}
+
+function inferConfigArg(config: string | undefined, gameArgs: string[] | undefined): { config: string; gameArgs: string[] } | null {
+  if (config || !gameArgs || gameArgs.length !== 1) return null;
+  const candidate = gameArgs[0];
+  if (!["feather.config.lua", ".featherrc.lua"].includes(basename(candidate))) return null;
+  if (!existsSync(resolve(candidate))) return null;
+  return { config: candidate, gameArgs: [] };
 }

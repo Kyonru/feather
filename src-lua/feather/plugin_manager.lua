@@ -397,6 +397,16 @@ function FeatherPluginManager:hookLoveCallbacks()
           original(...)
         end
         dispatch(method, ...)
+        local overlay = mgr.feather and mgr.feather.debugOverlay
+        if overlay then
+          if method == "onDraw" and overlay.onDraw then
+            overlay:onDraw()
+          elseif method == "onKeypressed" and overlay.onKeypressed then
+            overlay:onKeypressed(...)
+          elseif method == "onTouchpressed" and overlay.onTouchpressed then
+            overlay:onTouchpressed(...)
+          end
+        end
       end
       self._loveCallbackWrappers[name] = wrapper
     end

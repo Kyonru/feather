@@ -76,11 +76,15 @@ feather run .                              # run game in current directory
 feather run path/to/my-game               # run from an explicit path
 feather run . --session-name "RPG"        # custom name in the desktop session tab
 feather run . --no-plugins                # feather core only, no plugins
+feather run . --no-debugger               # launch without Feather injection
 feather run . --love /usr/bin/love        # override love2d binary
 feather run . --plugins-dir ./my-plugins  # use a custom plugins directory
 feather run . -- --level dev              # pass args through to the game
 feather run . --target android            # build, install, adb reverse, and launch Android
 feather run . --target android --device emulator-5554
+feather run . --target android --verbose  # show Gradle/ADB commands and output
+feather run . --target android --no-cache # force a fresh native workspace
+feather run . --target android --no-debugger
 feather run . --target ios                # build, install, and launch on the booted simulator
 feather run . --target ios --device <simulator-udid>
 ```
@@ -94,6 +98,8 @@ When `game-path` is omitted in an interactive terminal, Feather opens an Ink wor
 | `--love <path>`         | Path to the love2d binary. Defaults to auto-detect (see [Binary detection](#binary-detection)). |
 | `--session-name <name>` | Custom session name shown in the Feather desktop app.                                           |
 | `--no-plugins`          | Load feather core only — no plugins registered.                                                 |
+| `--no-debugger`         | Run without Feather debugger injection. Desktop runs the game directly; mobile skips connection setup and builds raw source. |
+| `--disable-debugger`    | Alias for `--no-debugger`.                                                                      |
 | `--config <path>`       | Explicit path to a `feather.config.lua` file.                                                   |
 | `--feather-path <path>` | Use a local feather install instead of the CLI's bundled copy.                                  |
 | `--plugins-dir <path>`  | Use a custom plugins directory instead of the CLI's bundled plugins.                            |
@@ -102,12 +108,14 @@ When `game-path` is omitted in an interactive terminal, Feather opens an Ink wor
 | `--build-config <path>` | Path to `feather.build.json` for mobile run.                                                    |
 | `--out-dir <path>`      | Build output directory for mobile run.                                                          |
 | `--clean`               | Remove the output directory before the mobile build.                                            |
+| `--no-cache`            | Disable Android/iOS dev native build cache for this run.                                        |
+| `--verbose`             | Show Android/iOS build, install, and launch commands plus native tool output.                   |
 | `--no-adb-reverse`      | Skip Android `adb reverse` setup.                                                               |
 | `--port <port>`         | Port used for Android `adb reverse`; defaults to `feather.config.lua` `port` or `4004`.         |
 
 Use `--` to separate Feather CLI options from arguments intended for the LÖVE game. Everything after `--` is passed to `love` after the generated shim path.
 
-Mobile run is dev-only in V1 and does not forward game arguments. Android requires `adb`, a configured `targets.android.loveAndroidDir`, and USB debugging or an emulator. iOS requires macOS, Xcode, a configured `targets.ios.loveIosDir`, and a booted simulator.
+Mobile run is dev-only in V1 and does not forward game arguments. By default it embeds the bundled Feather runtime, bundled plugins, and the selected `feather.config.lua` into the temporary `.love` archive before installing. Android requires `adb`, a configured `targets.android.loveAndroidDir`, and USB debugging or an emulator. iOS requires macOS, Xcode, a configured `targets.ios.loveIosDir`, and a booted simulator.
 
 **Project config file:**
 
@@ -354,8 +362,13 @@ Build a LÖVE game into local artifacts. V1 supports `web`, `android`, `ios`, `w
 feather build web --dir path/to/my-game
 feather build vendor add mobile --dir path/to/my-game
 feather build android --dir path/to/my-game
+feather build android --dir path/to/my-game --verbose
+feather build android --dir path/to/my-game --no-cache
+feather build android --dir path/to/my-game --runtime-config path/to/feather.config.lua
+feather build android --dir path/to/my-game --no-debugger
 feather build android --dir path/to/my-game --release
 feather build ios --dir path/to/my-game
+feather build ios --dir path/to/my-game --verbose
 feather build ios --dir path/to/my-game --release
 feather build linux --dir path/to/my-game
 feather build steamos --dir path/to/my-game --json
@@ -442,8 +455,11 @@ Build behavior:
 - packages `web` by copying the configured love.js player, adding `game.love`, patching the page title/game URL, and creating an HTML zip
 - packages `android` by copying a configured love-android checkout, embedding `game.love`, patching obvious app metadata, running Gradle, and copying the APK
 - packages `ios` on macOS by copying a configured LÖVE iOS source tree, embedding `game.love`, running `xcodebuild`, and copying the `.app`
+- embeds Feather runtime/config into Android/iOS dev builds by default; use `--no-debugger` to build raw source, and note that `--release` never auto-embeds Feather
+- caches Android/iOS dev native workspaces under `<outDir>/.feather-cache` so Gradle/Xcode incremental state survives between builds
 - `--release` on Android produces `.aab` and `.apk` artifacts; signing passwords are read from environment variables named in config
 - `--release` on iOS produces `.xcarchive` and `.ipa` artifacts through `xcodebuild archive` and `-exportArchive`
+- `--verbose` on Android/iOS shows staging steps, native workspace paths, Gradle/Xcode commands, and captured native tool output; JSON output stays decoration-free
 - delegates desktop targets to `love-release`; `steamos` uses the Linux packaging path with Steam-friendly target naming
 
 **Options:**
@@ -460,6 +476,10 @@ Build behavior:
 | `--json`            | Print machine-readable output only.                               |
 | `--allow-unsafe`    | Skip the production safety preflight for intentional dev builds.  |
 | `--release`         | Build Android/iOS release artifacts instead of dev artifacts.     |
+| `--no-cache`        | Disable Android/iOS dev native build cache for this build.        |
+| `--no-debugger`     | Build Android/iOS dev artifacts without embedding Feather.        |
+| `--runtime-config`  | Path to `feather.config.lua` for Android/iOS dev embedding.       |
+| `--verbose`         | Show Android/iOS native build commands and tool output.           |
 
 Run `feather doctor --build-target <target>` to see missing local dependencies and exact setup guidance before building.
 
@@ -468,6 +488,8 @@ Mobile build notes:
 - Android builds expect `targets.android.loveAndroidDir` to point at a local love-android checkout with `gradlew`.
 - iOS builds expect `targets.ios.loveIosDir` to point at a local LÖVE iOS source tree with `platform/xcode/love.xcodeproj`.
 - `feather build vendor add mobile` fetches those template checkouts, but it does not install Android SDK, JDK, Xcode, or signing assets.
+- Dev Android/iOS builds reuse cached copied native templates by default. Use `--no-cache` for a fresh temporary workspace, or `--clean` to remove both artifacts and cached state in the output directory.
+- Release Android/iOS builds use fresh native workspaces by default for reproducibility.
 - `feather doctor --build-target android --release` validates product id, Gradle wrapper, JDK, Android SDK, and signing env setup.
 - `feather doctor --build-target ios --release` validates bundle id, macOS/Xcode setup, template path, export options, and signing hints.
 - Play Console and App Store upload are not included in this pass.
@@ -625,10 +647,19 @@ return {
 
   -- Connect to a remote desktop app (e.g. on another machine)
   -- host = "192.168.1.42",
+
+  -- Small in-game badge shown while Feather is loaded.
+  debugOverlay = {
+    enabled = true,
+    visible = true,
+    hideKey = "f12",
+    touchToggle = true,
+    corner = "top-right",
+  },
 }
 ```
 
-All `feather.auto.setup()` options are supported. Command-line flags (`--session-name`, etc.) take precedence over the config file.
+All `feather.auto.setup()` options are supported. Command-line flags (`--session-name`, etc.) take precedence over the config file. The debug overlay is visible by default when Feather is active; press `F12` or double-tap the top-right corner to temporarily hide/show it.
 
 ---
 

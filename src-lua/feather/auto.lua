@@ -215,7 +215,7 @@ function auto.setup(config)
 end
 
 if not DEBUGGER then
-  auto.setup()
+  auto.setup(rawget(_G, "FEATHER_AUTO_CONFIG"))
 end
 
 return auto

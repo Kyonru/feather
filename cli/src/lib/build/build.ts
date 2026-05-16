@@ -24,6 +24,8 @@ import { buildAndroid } from './android.js';
 import { buildIos } from './ios.js';
 import { buildDesktop } from './desktop.js';
 import { assertBuildConfigValidForTarget } from './validation.js';
+import type { NativeBuildLogger, NativeCacheInfo } from './native.js';
+import { embedMobileDebuggerStage } from './debug-stage.js';
 
 export type BuildOptions = LoadBuildConfigOptions & {
   target: BuildTarget;
@@ -31,6 +33,14 @@ export type BuildOptions = LoadBuildConfigOptions & {
   dryRun?: boolean;
   allowUnsafe?: boolean;
   release?: boolean;
+  noCache?: boolean;
+  debugger?: boolean;
+  runtimeConfigPath?: string;
+  noPlugins?: boolean;
+  featherOverride?: string;
+  pluginsOverride?: string;
+  verbose?: boolean;
+  log?: NativeBuildLogger;
 };
 
 export type BuildResult = {
@@ -45,6 +55,7 @@ export type BuildResult = {
   files: string[];
   manifestPath?: string;
   command?: string[];
+  cache?: NativeCacheInfo;
 } | {
   ok: false;
   error: string;
@@ -108,17 +119,53 @@ export function runBuild(options: BuildOptions): BuildResult {
     assertNoSymlinkEscape(config.projectDir, config.outDir, 'Build output directory');
 
     if (options.dryRun) return planBuild(options);
+    const log = options.verbose ? options.log : undefined;
+    const mobileDevBuild = (options.target === 'android' || options.target === 'ios') && !options.release;
+    if (options.clean && mobileDevBuild && !options.noCache) {
+      log?.('Build cache: reset by --clean');
+    }
     if (options.clean) rmSync(config.outDir, { recursive: true, force: true });
     mkdirSync(config.outDir, { recursive: true });
 
     const staged = stageProject(config);
+    log?.(`Staged ${staged.files.length} files from ${config.sourceDir}`);
     try {
+      let cache: NativeCacheInfo | undefined;
+      const mobileDevBuild = (options.target === 'android' || options.target === 'ios') && !options.release;
+      const debugStage = mobileDevBuild
+        ? embedMobileDebuggerStage(config, staged.dir, {
+            enabled: options.debugger !== false,
+            runtimeConfigPath: options.runtimeConfigPath,
+            noPlugins: options.noPlugins,
+            featherOverride: options.featherOverride,
+            pluginsOverride: options.pluginsOverride,
+          })
+        : undefined;
+      if (debugStage?.enabled) {
+        log?.(`Embedded Feather debugger runtime${debugStage.configPath ? ` with ${debugStage.configPath}` : ' with generated dev config'}`);
+      } else if (mobileDevBuild) {
+        log?.('Feather debugger embedding: disabled');
+      }
       const artifacts = options.target === 'web'
         ? buildWeb(config, staged.dir)
         : options.target === 'android'
-          ? buildAndroid(config, staged.dir, { release: Boolean(options.release) })
+          ? buildAndroid(config, staged.dir, {
+              release: Boolean(options.release),
+              cache: !options.noCache,
+              debuggerSignature: debugStage?.signature,
+              verbose: options.verbose,
+              log,
+              onCache: (info) => { cache = info; },
+            })
           : options.target === 'ios'
-            ? buildIos(config, staged.dir, { release: Boolean(options.release) })
+            ? buildIos(config, staged.dir, {
+                release: Boolean(options.release),
+                cache: !options.noCache,
+                debuggerSignature: debugStage?.signature,
+                verbose: options.verbose,
+                log,
+                onCache: (info) => { cache = info; },
+              })
             : buildDesktop(config, options.target, staged.dir);
       const manifest: BuildManifest = {
         name: config.name,
@@ -139,6 +186,7 @@ export function runBuild(options: BuildOptions): BuildResult {
         files: staged.files,
         artifacts,
         manifestPath: latestManifestPath(config.outDir),
+        cache,
       };
     } finally {
       staged.cleanup();

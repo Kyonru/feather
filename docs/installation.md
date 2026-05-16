@@ -45,7 +45,7 @@ USE_DEBUGGER=1 love .
 ```
 
 > [!TIP]
-> `feather run --target android` runs ADB reverse by default, so `host = "127.0.0.1"` can still work over USB. For Wi-Fi devices, Steam Deck, or another computer, use the LAN IP shown in Feather Settings.
+> `feather run --target android` runs ADB reverse by default, so `host = "127.0.0.1"` can still work over USB. Mobile dev runs embed Feather and your selected `feather.config.lua` into the temporary `.love` archive; pass `--no-debugger` to build/install raw source instead. For Wi-Fi devices, Steam Deck, or another computer, use the LAN IP shown in Feather Settings.
 
 See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
 
@@ -71,6 +71,7 @@ Mobile dev run examples:
 ```bash
 feather run path/to/my-game --target android
 feather run path/to/my-game --target android --device emulator-5554
+feather run path/to/my-game --target android --no-debugger
 feather run path/to/my-game --target ios
 feather run path/to/my-game --target ios --device <simulator-udid>
 ```
