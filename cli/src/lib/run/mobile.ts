@@ -150,8 +150,19 @@ function runAdb(device: string | undefined, args: string[], message: string, log
 }
 
 function installAndLaunchIos(input: { app: string; appId: string; device: string; log?: NativeBuildLogger }): void {
+  runXcrunOptional(['simctl', 'terminate', input.device, input.appId], input.log);
+  runXcrunOptional(['simctl', 'uninstall', input.device, input.appId], input.log);
   runXcrun(['simctl', 'install', input.device, input.app], 'iOS simulator install failed.', input.log);
   runXcrun(['simctl', 'launch', input.device, input.appId], 'iOS simulator launch failed.', input.log);
+}
+
+function runXcrunOptional(args: string[], log?: NativeBuildLogger): void {
+  logNativeCommand(log, 'xcrun', args, process.cwd());
+  const result = spawnSync('xcrun', args, {
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+  logNativeOutput(log, result.stdout, result.stderr);
 }
 
 function runXcrun(args: string[], message: string, log?: NativeBuildLogger): void {

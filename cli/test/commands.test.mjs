@@ -375,7 +375,29 @@ process.exit(0);
 function writeFakeLoveIos(dir) {
   const root = join(dir, 'love-ios');
   const projectDir = join(root, 'platform', 'xcode', 'love.xcodeproj');
+  const plistDir = join(root, 'platform', 'xcode', 'ios');
   mkdirSync(projectDir, { recursive: true });
+  mkdirSync(plistDir, { recursive: true });
+  writeFileSync(
+    join(plistDir, 'love-ios.plist'),
+    `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>love</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.love2d.love</string>
+	<key>CFBundleName</key>
+	<string>love</string>
+	<key>CFBundleShortVersionString</key>
+	<string>11.5</string>
+	<key>CFBundleVersion</key>
+	<string>11.5</string>
+</dict>
+</plist>
+`,
+  );
   writeFileSync(
     join(projectDir, 'project.pbxproj'),
     `// !$*UTF8*$!
@@ -384,11 +406,37 @@ function writeFakeLoveIos(dir) {
 /* End PBXBuildFile section */
 /* Begin PBXFileReference section */
 /* End PBXFileReference section */
-    1234567890ABCDEF00000001 /* Resources */ = {
+/* Begin PBXNativeTarget section */
+    111111111111111111111111 /* love-macosx */ = {
+        isa = PBXNativeTarget;
+        buildPhases = (
+            222222222222222222222222 /* Resources */,
+        );
+        name = "love-macosx";
+    };
+    333333333333333333333333 /* love-ios */ = {
+        isa = PBXNativeTarget;
+        buildPhases = (
+            444444444444444444444444 /* Sources */,
+            555555555555555555555555 /* Frameworks */,
+            666666666666666666666666 /* Resources */,
+        );
+        name = "love-ios";
+    };
+/* End PBXNativeTarget section */
+/* Begin PBXResourcesBuildPhase section */
+    222222222222222222222222 /* Resources */ = {
         isa = PBXResourcesBuildPhase;
         files = (
         );
     };
+    666666666666666666666666 /* Resources */ = {
+        isa = PBXResourcesBuildPhase;
+        files = (
+            777777777777777777777777 /* Launch Screen.xib in Resources */,
+        );
+    };
+/* End PBXResourcesBuildPhase section */
 }
 `,
   );
@@ -419,12 +467,76 @@ function readStoredZipEntries(zipPath) {
   return entries;
 }
 
+function createDataDescriptorZipBuffer(entries) {
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+
+  for (const entry of entries) {
+    const name = Buffer.from(entry.name);
+    const data = Buffer.from(entry.data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x08, 6);
+    local.writeUInt16LE(0, 8);
+    local.writeUInt32LE(0, 10);
+    local.writeUInt32LE(0, 14);
+    local.writeUInt32LE(0, 18);
+    local.writeUInt32LE(0, 22);
+    local.writeUInt16LE(name.length, 26);
+    local.writeUInt16LE(0, 28);
+
+    const descriptor = Buffer.alloc(16);
+    descriptor.writeUInt32LE(0x08074b50, 0);
+    descriptor.writeUInt32LE(0, 4);
+    descriptor.writeUInt32LE(data.length, 8);
+    descriptor.writeUInt32LE(data.length, 12);
+
+    const centralEntry = Buffer.alloc(46);
+    centralEntry.writeUInt32LE(0x02014b50, 0);
+    centralEntry.writeUInt16LE(20, 4);
+    centralEntry.writeUInt16LE(20, 6);
+    centralEntry.writeUInt16LE(0x08, 8);
+    centralEntry.writeUInt16LE(0, 10);
+    centralEntry.writeUInt32LE(0, 12);
+    centralEntry.writeUInt32LE(0, 16);
+    centralEntry.writeUInt32LE(data.length, 20);
+    centralEntry.writeUInt32LE(data.length, 24);
+    centralEntry.writeUInt16LE(name.length, 28);
+    centralEntry.writeUInt16LE(0, 30);
+    centralEntry.writeUInt16LE(0, 32);
+    centralEntry.writeUInt16LE(0, 34);
+    centralEntry.writeUInt16LE(0, 36);
+    centralEntry.writeUInt32LE(0, 38);
+    centralEntry.writeUInt32LE(offset, 42);
+
+    chunks.push(local, name, data, descriptor);
+    central.push(centralEntry, name);
+    offset += local.length + name.length + data.length + descriptor.length;
+  }
+
+  const centralOffset = offset;
+  const centralSize = central.reduce((sum, chunk) => sum + chunk.length, 0);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(0, 4);
+  end.writeUInt16LE(0, 6);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralSize, 12);
+  end.writeUInt32LE(centralOffset, 16);
+  end.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...chunks, ...central, end]);
+}
+
 async function writeFakeAppleLibrariesZip(dir) {
-  const { createZipBuffer } = await import('../dist/lib/build/archive.js');
   const zipPath = join(dir, 'love-apple-libraries.zip');
-  writeFileSync(zipPath, createZipBuffer([
-    { name: 'iOS/libraries/liblove-test.a', data: Buffer.from('ios lib') },
-    { name: 'shared/test-shared.txt', data: Buffer.from('shared lib') },
+  writeFileSync(zipPath, createDataDescriptorZipBuffer([
+    { name: 'love-apple-dependencies/iOS/libraries/liblove-test.a', data: Buffer.from('ios lib') },
+    { name: 'love-apple-dependencies/macOS/Frameworks/test.framework/test', data: Buffer.from('mac lib') },
+    { name: '__MACOSX/love-apple-dependencies/iOS/libraries/._ignored', data: Buffer.from('metadata') },
   ]));
   return zipPath;
 }
@@ -809,7 +921,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
 const derivedData = args[args.indexOf('-derivedDataPath') + 1];
-const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+const configuration = args[args.indexOf('-configuration') + 1] || 'Release';
+const sdk = args[args.indexOf('-sdk') + 1] || 'iphonesimulator';
+const sdkFolder = sdk.startsWith('iphoneos') ? 'iphoneos' : 'iphonesimulator';
+const app = path.join(derivedData, 'Build', 'Products', configuration + '-' + sdkFolder, 'love-ios.app');
 fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: args }, null, 2));
@@ -824,9 +939,12 @@ process.exit(0);
   assert.ok(outputOf(result).includes('Launched ios'));
   const records = JSON.parse(readFileSync(xcrun.recordPath, 'utf8'));
   assert.deepEqual(records.map((entry) => entry.args), [
+    ['simctl', 'terminate', 'SIM-123', 'com.example.runios'],
+    ['simctl', 'uninstall', 'SIM-123', 'com.example.runios'],
     ['simctl', 'install', 'SIM-123', join(dir, 'builds', 'run-ios-1.0.0-ios.app')],
     ['simctl', 'launch', 'SIM-123', 'com.example.runios'],
   ]);
+  assert.equal(existsSync(join(dir, 'builds', 'run-ios-1.0.0-ios.app', 'game.love')), true);
 });
 
 test('run --target ios: missing xcrun produces doctor guidance', () => {
@@ -843,7 +961,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
 const derivedData = args[args.indexOf('-derivedDataPath') + 1];
-const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+const configuration = args[args.indexOf('-configuration') + 1] || 'Release';
+const sdk = args[args.indexOf('-sdk') + 1] || 'iphonesimulator';
+const sdkFolder = sdk.startsWith('iphoneos') ? 'iphoneos' : 'iphonesimulator';
+const app = path.join(derivedData, 'Build', 'Products', configuration + '-' + sdkFolder, 'love-ios.app');
 fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 process.exit(0);
@@ -1203,6 +1324,7 @@ test('doctor --production fails unmanaged embedded runtime', () => {
 test('build web: creates love archive, love.js html package, zip, and manifest', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFakeLoveJs(dir);
   writeBuildConfig(dir, {
     name: 'Command Game',
     version: '1.2.3',
@@ -1474,7 +1596,8 @@ test('build vendor add ios --json: clones vendor, installs Apple libraries, and 
   assert.equal(parsed.vendors[0].target, 'ios');
   assert.equal(parsed.vendors[0].relativePath, 'vendor/love-ios');
   assert.equal(existsSync(join(dir, 'vendor', 'love-ios', 'platform', 'xcode', 'ios', 'libraries', 'liblove-test.a')), true);
-  assert.equal(existsSync(join(dir, 'vendor', 'love-ios', 'platform', 'xcode', 'shared', 'test-shared.txt')), true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-ios', 'platform', 'xcode', 'macosx', 'Frameworks', 'test.framework', 'test')), true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-ios', 'platform', 'xcode', 'ios', 'libraries', '._ignored')), false);
   const config = JSON.parse(readFileSync(join(dir, 'feather.build.json'), 'utf8'));
   assert.equal(config.targets.ios.loveIosDir, 'vendor/love-ios');
   const records = JSON.parse(readFileSync(recordPath, 'utf8'));
@@ -1983,13 +2106,23 @@ const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
 const derivedData = args[args.indexOf('-derivedDataPath') + 1];
-const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+const configuration = args[args.indexOf('-configuration') + 1] || 'Release';
+const sdk = args[args.indexOf('-sdk') + 1] || 'iphonesimulator';
+const sdkFolder = sdk.startsWith('iphoneos') ? 'iphoneos' : 'iphonesimulator';
+const app = path.join(derivedData, 'Build', 'Products', configuration + '-' + sdkFolder, 'love-ios.app');
 fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+const project = fs.readFileSync(path.join(process.cwd(), 'platform', 'xcode', 'love.xcodeproj', 'project.pbxproj'), 'utf8');
+const plist = fs.readFileSync(path.join(process.cwd(), 'platform', 'xcode', 'ios', 'love-ios.plist'), 'utf8');
+const iosResources = project.match(/666666666666666666666666 \\/\\* Resources \\*\\/ = \\{[\\s\\S]*?\\n    \\};/)?.[0] || '';
+const macosResources = project.match(/222222222222222222222222 \\/\\* Resources \\*\\/ = \\{[\\s\\S]*?\\n    \\};/)?.[0] || '';
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
   argv: args,
   gameLoveExists: fs.existsSync(path.join(process.cwd(), 'platform', 'xcode', 'game.love')),
-  projectContainsGameLove: fs.readFileSync(path.join(process.cwd(), 'platform', 'xcode', 'love.xcodeproj', 'project.pbxproj'), 'utf8').includes('game.love'),
+  projectContainsGameLove: project.includes('game.love'),
+  iosResourcesContainGameLove: iosResources.includes('FEATHERGAMELOVE000000000001 /* game.love in Resources */'),
+  macosResourcesContainGameLove: macosResources.includes('FEATHERGAMELOVE000000000001 /* game.love in Resources */'),
+  plistSupportsIndirectInput: plist.includes('UIApplicationSupportsIndirectInputEvents') && plist.includes('<true/>'),
 }, null, 2));
 console.log('fake xcodebuild ' + args.join(' '));
 process.exit(0);
@@ -2003,6 +2136,7 @@ process.exit(0);
   assert.equal(parsed.target, 'ios');
   assert.equal(existsSync(join(dir, 'builds', 'ios-game-5.0.0.love')), true);
   assert.equal(existsSync(join(dir, 'builds', 'ios-game-5.0.0-ios.app')), true);
+  assert.equal(existsSync(join(dir, 'builds', 'ios-game-5.0.0-ios.app', 'game.love')), true);
   const record = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.ok(record.argv.includes('-scheme'));
   assert.ok(record.argv.includes('FeatherGame'));
@@ -2016,6 +2150,9 @@ process.exit(0);
   assert.ok(record.argv.includes('DEVELOPMENT_TEAM=ABC123XYZ'));
   assert.equal(record.gameLoveExists, true);
   assert.equal(record.projectContainsGameLove, true);
+  assert.equal(record.iosResourcesContainGameLove, true);
+  assert.equal(record.macosResourcesContainGameLove, false);
+  assert.equal(record.plistSupportsIndirectInput, true);
   const entries = readStoredZipEntries(join(dir, 'builds', 'ios-game-5.0.0.love'));
   assert.equal(entries.has('main.lua'), true);
   assert.equal(entries.has('.feather-main.lua'), true);
@@ -2046,7 +2183,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
 const derivedData = args[args.indexOf('-derivedDataPath') + 1];
-const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+const configuration = args[args.indexOf('-configuration') + 1] || 'Release';
+const sdk = args[args.indexOf('-sdk') + 1] || 'iphonesimulator';
+const sdkFolder = sdk.startsWith('iphoneos') ? 'iphoneos' : 'iphonesimulator';
+const app = path.join(derivedData, 'Build', 'Products', configuration + '-' + sdkFolder, 'love-ios.app');
 fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 const previous = fs.existsSync(${JSON.stringify(recordPath)})
@@ -2100,7 +2240,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
 const derivedData = args[args.indexOf('-derivedDataPath') + 1];
-const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+const configuration = args[args.indexOf('-configuration') + 1] || 'Release';
+const sdk = args[args.indexOf('-sdk') + 1] || 'iphonesimulator';
+const sdkFolder = sdk.startsWith('iphoneos') ? 'iphoneos' : 'iphonesimulator';
+const app = path.join(derivedData, 'Build', 'Products', configuration + '-' + sdkFolder, 'love-ios.app');
 fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 console.log('fake xcodebuild ' + args.join(' '));
@@ -2191,6 +2334,62 @@ process.exit(0);
   assert.ok(record.exportOptions.includes('<string>app-store-connect</string>'));
   assert.ok(record.exportOptions.includes('<string>manual</string>'));
   assert.ok(record.exportOptions.includes('Release Profile'));
+});
+
+test('build ios --release: packages unsigned IPA from archive when no signing team is configured', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Unsigned iOS',
+    version: '1.2.3',
+    targets: {
+      ios: {
+        loveIosDir: 'love-ios',
+        bundleIdentifier: 'com.example.unsignedios',
+        release: {
+          archivePath: 'builds/unsigned.xcarchive',
+          exportPath: 'builds/unsigned-export',
+        },
+      },
+    },
+  });
+  const recordPath = join(dir, 'xcodebuild-unsigned-record.json');
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+const previous = fs.existsSync(${JSON.stringify(recordPath)})
+  ? JSON.parse(fs.readFileSync(${JSON.stringify(recordPath)}, 'utf8'))
+  : { records: [] };
+if (args.includes('archive')) {
+  const archivePath = args[args.indexOf('-archivePath') + 1];
+  const app = path.join(archivePath, 'Products', 'Applications', 'love-ios.app');
+  fs.mkdirSync(app, { recursive: true });
+  fs.writeFileSync(path.join(archivePath, 'Info.plist'), 'fake archive');
+  fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+  fs.writeFileSync(path.join(app, 'love-ios'), 'fake executable');
+}
+if (args.includes('-exportArchive')) {
+  throw new Error('unsigned release should not call -exportArchive');
+}
+previous.records.push({ argv: args });
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
+process.exit(0);
+`);
+
+  const result = run(['build', 'ios', '--dir', dir, '--release', '--json'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'ipa'), true);
+  assert.equal(existsSync(join(dir, 'builds', 'unsigned-ios-1.2.3-ios.ipa')), true);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(record.records.length, 1);
+  assert.ok(record.records[0].argv.includes('archive'));
+  assert.ok(record.records[0].argv.includes('CODE_SIGNING_ALLOWED=NO'));
 });
 
 test('build mobile: missing native template paths fail with actionable errors', () => {

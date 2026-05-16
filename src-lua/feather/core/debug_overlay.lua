@@ -8,6 +8,7 @@ local DEFAULTS = {
   hideKey = "f12",
   touchToggle = true,
   corner = "top-right",
+  text = true,
 }
 
 local function withDefault(value, fallback)
@@ -29,6 +30,10 @@ function DebugOverlay:init(feather, config)
   self.hideKey = config.hideKey or DEFAULTS.hideKey
   self.touchToggle = withDefault(config.touchToggle, DEFAULTS.touchToggle)
   self.corner = config.corner or DEFAULTS.corner
+  self.text = withDefault(config.text, DEFAULTS.text)
+  if love and love.system and love.system.getOS and love.system.getOS() == "iOS" and config.text == nil then
+    self.text = false
+  end
   self._lastTouchTime = 0
   self._doubleTapWindow = config.doubleTapWindow or 0.35
   self._touchSize = config.touchSize or 96
@@ -113,8 +118,8 @@ function DebugOverlay:onDraw()
     local label = "Feather debugger enabled · " .. text
     local font = g.getFont()
     local paddingX, paddingY = 8, 5
-    local textWidth = font and font:getWidth(label) or (#label * 7)
-    local textHeight = font and font:getHeight() or 14
+    local textWidth = self.text and font and font:getWidth(label) or (self.text and #label * 7 or 0)
+    local textHeight = self.text and font and font:getHeight() or 14
     local width = textWidth + paddingX * 2
     local height = textHeight + paddingY * 2
     local screenWidth = g.getWidth()
@@ -128,8 +133,10 @@ function DebugOverlay:onDraw()
     g.rectangle("fill", x, y, width, height, 5, 5)
     g.setColor(accent)
     g.rectangle("fill", x, y, 4, height, 5, 5)
-    g.setColor(1, 1, 1, 0.92)
-    g.print(label, x + paddingX, y + paddingY)
+    if self.text then
+      g.setColor(1, 1, 1, 0.92)
+      g.print(label, x + paddingX, y + paddingY)
+    end
     if g.pop then
       g.pop()
     end

@@ -40,6 +40,7 @@ export type IosBuildTargetConfig = {
   scheme?: string;
   configuration?: string;
   sdk?: string;
+  deploymentTarget?: string;
   derivedDataPath?: string;
   teamId?: string;
   release?: {

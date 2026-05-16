@@ -3,7 +3,6 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
@@ -14,6 +13,7 @@ import {
   readBuildConfig,
   type FeatherBuildConfig,
 } from './config.js';
+import { removePath } from './files.js';
 import { assertNoSymlinkEscape, assertSafeRelativePath, isPathInside } from '../path-safety.js';
 
 export const buildVendorTargets = ['web', 'android', 'ios', 'mobile', 'all'] as const;
@@ -185,14 +185,20 @@ async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendor
 
   if (!input.dryRun) {
     assertGitAvailable();
-    if (existsSync(targetPath) && input.force) rmSync(targetPath, { recursive: true, force: true });
-    mkdirSync(dirname(targetPath), { recursive: true });
-    cloneVendor(repo, input.ref, targetPath, input.target === 'android');
-    if (input.target === 'ios') {
-      await installAppleLibraries(input.loveVersion, targetPath);
-    }
-    if (input.updateConfig) {
-      updateVendorConfig(input.projectDir, input.configPath, input.raw, input.target, relativePath);
+    const shouldCleanupOnFailure = input.force || !existsSync(targetPath);
+    try {
+      if (existsSync(targetPath) && input.force) removePath(targetPath);
+      mkdirSync(dirname(targetPath), { recursive: true });
+      cloneVendor(repo, input.ref, targetPath, input.target === 'android');
+      if (input.target === 'ios') {
+        await installAppleLibraries(input.loveVersion, targetPath);
+      }
+      if (input.updateConfig) {
+        updateVendorConfig(input.projectDir, input.configPath, input.raw, input.target, relativePath);
+      }
+    } catch (err) {
+      if (shouldCleanupOnFailure) removePath(targetPath);
+      throw err;
     }
   }
 
@@ -318,24 +324,52 @@ async function installAppleLibraries(loveVersion: string, loveIosDir: string): P
   const zip = await appleLibrariesZip(loveVersion);
   const entries = unzip(zip);
   let installed = 0;
+  const librariesRoot = join(loveIosDir, 'platform', 'xcode', 'ios', 'libraries');
+  const macosFrameworksRoot = join(loveIosDir, 'platform', 'xcode', 'macosx', 'Frameworks');
+  const sharedRoot = join(loveIosDir, 'platform', 'xcode', 'shared');
   for (const entry of entries) {
-    const normalized = entry.name.replace(/\\/g, '/').replace(/^\/+/, '');
+    const normalized = normalizeAppleLibrariesEntry(entry.name);
+    if (!normalized) continue;
     const librariesPrefix = 'iOS/libraries/';
+    const macosFrameworksPrefix = 'macOS/Frameworks/';
     const sharedPrefix = 'shared/';
     let destination: string | null = null;
+    let destinationRoot: string | null = null;
     if (normalized.startsWith(librariesPrefix)) {
-      destination = join(loveIosDir, 'platform', 'xcode', 'ios', 'libraries', normalized.slice(librariesPrefix.length));
+      destinationRoot = librariesRoot;
+      destination = join(librariesRoot, normalized.slice(librariesPrefix.length));
+    } else if (normalized.startsWith(macosFrameworksPrefix)) {
+      destinationRoot = macosFrameworksRoot;
+      destination = join(macosFrameworksRoot, normalized.slice(macosFrameworksPrefix.length));
     } else if (normalized.startsWith(sharedPrefix)) {
-      destination = join(loveIosDir, 'platform', 'xcode', 'shared', normalized.slice(sharedPrefix.length));
+      destinationRoot = sharedRoot;
+      destination = join(sharedRoot, normalized.slice(sharedPrefix.length));
     }
-    if (!destination || destination.endsWith('/') || entry.data.length === 0) continue;
+    if (!destination || !destinationRoot || destination.endsWith('/') || entry.data.length === 0) continue;
+    if (!isPathInside(destinationRoot, resolve(destination))) {
+      throw new Error(`Apple libraries ZIP contains an unsafe path: ${entry.name}`);
+    }
     mkdirSync(dirname(destination), { recursive: true });
     writeFileSync(destination, entry.data);
     installed += 1;
   }
   if (installed === 0) {
-    throw new Error(`love-${loveVersion}-apple-libraries.zip did not contain iOS/libraries or shared files.`);
+    throw new Error(`love-${loveVersion}-apple-libraries.zip did not contain Apple dependency files.`);
   }
+}
+
+function normalizeAppleLibrariesEntry(name: string): string | null {
+  let normalized = name.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!normalized || normalized.startsWith('__MACOSX/') || normalized.includes('/.__MACOSX/')) {
+    return null;
+  }
+  if (normalized.startsWith('love-apple-dependencies/')) {
+    normalized = normalized.slice('love-apple-dependencies/'.length);
+  }
+  if (normalized.startsWith('._') || normalized.includes('/._')) {
+    return null;
+  }
+  return normalized;
 }
 
 async function appleLibrariesZip(loveVersion: string): Promise<Buffer> {
@@ -356,24 +390,25 @@ type UnzippedEntry = {
 
 function unzip(zip: Buffer): UnzippedEntry[] {
   const entries: UnzippedEntry[] = [];
-  let offset = 0;
-  while (offset + 30 <= zip.length) {
+  let offset = centralDirectoryOffset(zip);
+  while (offset + 46 <= zip.length) {
     const signature = zip.readUInt32LE(offset);
-    if (signature !== 0x04034b50) break;
-    const flags = zip.readUInt16LE(offset + 6);
-    const method = zip.readUInt16LE(offset + 8);
-    const compressedSize = zip.readUInt32LE(offset + 18);
-    const uncompressedSize = zip.readUInt32LE(offset + 22);
-    const nameLength = zip.readUInt16LE(offset + 26);
-    const extraLength = zip.readUInt16LE(offset + 28);
-    if (flags & 0x08) {
-      throw new Error('ZIP entries with data descriptors are not supported.');
+    if (signature !== 0x02014b50) break;
+    const method = zip.readUInt16LE(offset + 10);
+    const compressedSize = zip.readUInt32LE(offset + 20);
+    const uncompressedSize = zip.readUInt32LE(offset + 24);
+    const nameLength = zip.readUInt16LE(offset + 28);
+    const extraLength = zip.readUInt16LE(offset + 30);
+    const commentLength = zip.readUInt16LE(offset + 32);
+    const localHeaderOffset = zip.readUInt32LE(offset + 42);
+    if (compressedSize === 0xffffffff || uncompressedSize === 0xffffffff || localHeaderOffset === 0xffffffff) {
+      throw new Error('ZIP64 archives are not supported for Apple libraries.');
     }
-    const nameStart = offset + 30;
-    const dataStart = nameStart + nameLength + extraLength;
+    const nameStart = offset + 46;
+    const name = zip.subarray(nameStart, nameStart + nameLength).toString('utf8');
+    const dataStart = localFileDataOffset(zip, localHeaderOffset);
     const dataEnd = dataStart + compressedSize;
     if (dataEnd > zip.length) throw new Error('Invalid ZIP archive.');
-    const name = zip.subarray(nameStart, nameStart + nameLength).toString('utf8');
     const compressed = zip.subarray(dataStart, dataEnd);
     let data: Buffer;
     if (method === 0) {
@@ -385,9 +420,30 @@ function unzip(zip: Buffer): UnzippedEntry[] {
     }
     if (data.length !== uncompressedSize) throw new Error(`Invalid ZIP entry size for ${name}.`);
     entries.push({ name, data });
-    offset = dataEnd;
+    offset = nameStart + nameLength + extraLength + commentLength;
   }
   return entries;
+}
+
+function centralDirectoryOffset(zip: Buffer): number {
+  const minOffset = Math.max(0, zip.length - 65557);
+  for (let offset = zip.length - 22; offset >= minOffset; offset -= 1) {
+    if (zip.readUInt32LE(offset) === 0x06054b50) {
+      return zip.readUInt32LE(offset + 16);
+    }
+  }
+  throw new Error('Invalid ZIP archive: central directory not found.');
+}
+
+function localFileDataOffset(zip: Buffer, offset: number): number {
+  if (offset + 30 > zip.length || zip.readUInt32LE(offset) !== 0x04034b50) {
+    throw new Error('Invalid ZIP archive: local file header not found.');
+  }
+  const nameLength = zip.readUInt16LE(offset + 26);
+  const extraLength = zip.readUInt16LE(offset + 28);
+  const dataOffset = offset + 30 + nameLength + extraLength;
+  if (dataOffset > zip.length) throw new Error('Invalid ZIP archive.');
+  return dataOffset;
 }
 
 function updateVendorConfig(
