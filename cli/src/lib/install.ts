@@ -5,10 +5,10 @@ import { Readable } from "node:stream";
 import {
   assertValidPluginId,
   findLocalPluginIds,
-  isSafePluginRelativePath,
   pluginIdToSourceDir,
   validatePluginManifest,
 } from "./plugin-utils.js";
+import { assertSafeProjectTarget, assertSafeRelativePath } from "./path-safety.js";
 
 const GITHUB_RAW =
   "https://raw.githubusercontent.com/Kyonru/feather/{branch}/src-lua/{path}";
@@ -87,8 +87,9 @@ export async function installCore(
   const root = normalizeInstallDir(installDir);
   for (const entry of entries) {
     if (entry.type !== "core") continue;
-    const dest = join(targetDir, root, entry.path.replace(/^feather\//, ""));
-    if (!existsSync(dirname(dest))) mkdirSync(dirname(dest), { recursive: true });
+    const relativeTarget = join(root, entry.path.replace(/^feather\//, ""));
+    const dest = assertSafeProjectTarget(targetDir, relativeTarget, "Core install target");
+    mkdirSync(dirname(dest), { recursive: true });
     await downloadFile(entry.path, dest, branch);
     onProgress?.(entry.path);
   }
@@ -104,7 +105,7 @@ export function installCoreFromLocal(
   if (!existsSync(source)) throw new Error(`No feather core found at ${source}`);
 
   const root = normalizeInstallDir(installDir);
-  const dest = join(targetDir, root);
+  const dest = assertSafeProjectTarget(targetDir, root, "Core install target");
   mkdirSync(dirname(dest), { recursive: true });
   cpSync(source, dest, { recursive: true, force: true });
   onProgress?.("feather");
@@ -130,7 +131,7 @@ export function installPluginsFromLocal(
   });
 
   for (const { pluginId, sourceDir, source } of plans) {
-    const dest = join(targetDir, root, "plugins", sourceDir);
+    const dest = assertSafeProjectTarget(targetDir, join(root, "plugins", sourceDir), "Plugin install target");
     mkdirSync(dirname(dest), { recursive: true });
     cpSync(source, dest, { recursive: true, force: true });
     onProgress?.(pluginId);
@@ -153,15 +154,24 @@ export async function installPlugin(
     const sourceDir = entry.sourceDir ?? pluginId.replace(/\./g, "/");
     const file = entry.file ?? entry.path.replace(new RegExp(`^plugins/${sourceDir}/`), "");
     if (sourceDir !== pluginIdToSourceDir(pluginId)) throw new Error(`Plugin manifest path mismatch: ${pluginId} should live in plugins/${pluginIdToSourceDir(pluginId)}`);
-    if (!isSafePluginRelativePath(file)) throw new Error(`Unsafe plugin file path: ${file}`);
-    if (!isSafePluginRelativePath(entry.path) || !entry.path.startsWith(`plugins/${sourceDir}/`)) {
+    try {
+      assertSafeRelativePath(file, "Plugin file path");
+    } catch {
+      throw new Error(`Unsafe plugin file path: ${file}`);
+    }
+    try {
+      assertSafeRelativePath(entry.path, "Plugin manifest path");
+    } catch {
+      throw new Error(`Unsafe plugin manifest path: ${entry.path}`);
+    }
+    if (!entry.path.startsWith(`plugins/${sourceDir}/`)) {
       throw new Error(`Unsafe plugin manifest path: ${entry.path}`);
     }
     return { entry, sourceDir, file };
   });
 
   for (const { entry, sourceDir, file } of plans) {
-    const dest = join(targetDir, root, "plugins", sourceDir, file);
+    const dest = assertSafeProjectTarget(targetDir, join(root, "plugins", sourceDir, file), "Plugin install target");
     mkdirSync(dirname(dest), { recursive: true });
     await downloadFile(entry.path, dest, branch);
     onProgress?.(entry.path);
@@ -180,7 +190,9 @@ export function getPluginIds(entries: ManifestEntry[]): string[] {
 }
 
 export function normalizeInstallDir(installDir = "feather"): string {
-  return installDir.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "") || "feather";
+  const normalized = installDir.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "") || "feather";
+  assertSafeRelativePath(normalized, "Install directory");
+  return normalized;
 }
 
 export function getLocalPluginIds(sourceRoot: string): string[] {

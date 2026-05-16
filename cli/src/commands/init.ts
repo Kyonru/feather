@@ -16,6 +16,7 @@ import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
 import { fail } from '../lib/command.js';
 import { createSpinner, icon, printLine, printMuted, printWarning, style } from '../lib/output.js';
+import { assertSafeProjectTarget } from '../lib/path-safety.js';
 
 export interface InitOptions {
   branch?: string;
@@ -77,7 +78,13 @@ function patchMainLuaForManual(mainPath: string): boolean {
 export async function initCommand(dir: string, opts: InitOptions): Promise<void> {
   const target = resolve(dir);
 
-  if (!existsSync(join(target, 'main.lua'))) {
+  let mainPath: string;
+  try {
+    mainPath = assertSafeProjectTarget(target, 'main.lua', 'main.lua write target');
+  } catch (err) {
+    fail((err as Error).message);
+  }
+  if (!existsSync(mainPath)) {
     fail(`No main.lua found in ${target}. Is this a love2d project?`);
   }
 
@@ -95,8 +102,14 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
         };
   const mode = setup.mode;
   const installDir = normalizeInstallDir(setup.installDir);
+  let installInitPath: string;
+  try {
+    installInitPath = assertSafeProjectTarget(target, join(installDir, 'init.lua'), 'Core install target');
+  } catch (err) {
+    fail((err as Error).message);
+  }
   const pluginsDisabled = opts.noPlugins || setup.installPlugins === false;
-  const alreadyInstalled = existsSync(join(target, installDir, 'init.lua'));
+  const alreadyInstalled = existsSync(installInitPath);
   const useRemote = opts.remote === true || setup.source === 'remote';
 
   if (mode === 'cli') {
@@ -191,8 +204,6 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
     }
   }
 
-  const mainPath = join(target, 'main.lua');
-
   if (mode === 'auto') {
     const patched = patchMainLua(mainPath, installDir);
     if (patched) {
@@ -244,7 +255,7 @@ function writeConfig(
   config: Record<string, unknown> = {},
   context: { mode?: string; installDir?: string; source?: string; manualEntrypoint?: string } = {},
 ): void {
-  const configPath = join(target, 'feather.config.lua');
+  const configPath = assertSafeProjectTarget(target, 'feather.config.lua', 'Config write target');
   if (!existsSync(configPath)) {
     writeFileSync(configPath, configTemplate(config, context));
     printLine(`${icon.success} Created feather.config.lua`);
@@ -254,7 +265,7 @@ function writeConfig(
 }
 
 function writeManualDebugger(target: string, config: Record<string, unknown>, pluginIds: string[], installDir: string): boolean {
-  const manualPath = join(target, 'feather.debugger.lua');
+  const manualPath = assertSafeProjectTarget(target, 'feather.debugger.lua', 'Manual debugger write target');
   if (existsSync(manualPath)) return false;
   writeFileSync(manualPath, buildManualDebuggerFile(config, pluginIds, installDir));
   return true;

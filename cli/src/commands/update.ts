@@ -5,6 +5,7 @@ import { chooseCoreUpdateWorkflow } from "../ui/update-workflow.js";
 import { resolveLocalLuaRoot } from "../lib/paths.js";
 import { fail } from "../lib/command.js";
 import { createSpinner, printLine, printMuted, style } from "../lib/output.js";
+import { assertSafeProjectTarget } from "../lib/path-safety.js";
 
 export async function updateCommand(
   dir: string,
@@ -12,8 +13,14 @@ export async function updateCommand(
 ): Promise<void> {
   const target = resolve(dir);
   const installDir = normalizeInstallDir(opts.installDir);
+  let installedInit: string;
+  try {
+    installedInit = assertSafeProjectTarget(target, join(installDir, "init.lua"), "Core update target");
+  } catch (err) {
+    fail((err as Error).message);
+  }
 
-  if (!existsSync(join(target, installDir, "init.lua"))) {
+  if (!existsSync(installedInit)) {
     fail(`Feather is not installed in ${target}. Run \`feather init\` first.`);
   }
 

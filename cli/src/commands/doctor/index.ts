@@ -5,6 +5,7 @@ import { loadConfig } from '../../lib/config.js';
 import { normalizeInstallDir } from '../../lib/install.js';
 import { fail } from '../../lib/command.js';
 import { printJson } from '../../lib/output.js';
+import { findSymlinkEscapes } from '../../lib/path-safety.js';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { loadRegistry } from '../../lib/package/registry.js';
@@ -160,7 +161,26 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   const runtimePluginRoot = join(runtimeDir, 'plugins');
   const sourceTreePluginRoot = join(projectDir, 'plugins');
   const pluginRoot = existsSync(runtimePluginRoot) ? runtimePluginRoot : sourceTreePluginRoot;
-  const pluginDirs = findInstalledPluginDirs(pluginRoot);
+  let pluginRootUnsafe = false;
+  if (hasProjectDir) {
+    const symlinkEscapes = findSymlinkEscapes(projectDir, [runtimeDir, runtimePluginRoot, sourceTreePluginRoot]);
+    pluginRootUnsafe = symlinkEscapes.some((escape) => resolve(pluginRoot).startsWith(resolve(escape.path)));
+    const seenEscapes = new Set<string>();
+    for (const escape of symlinkEscapes) {
+      const key = `${escape.path}\0${escape.target}`;
+      if (seenEscapes.has(key)) continue;
+      seenEscapes.add(key);
+      add(
+        checks,
+        'Safety',
+        'Symlink escape',
+        'warn',
+        `${escape.path} → ${escape.target}`,
+        'Remove or replace symlinks that point outside the project before running update/remove or shipping.',
+      );
+    }
+  }
+  const pluginDirs = pluginRootUnsafe ? [] : findInstalledPluginDirs(pluginRoot);
   const installedPlugins = buildPluginIndex(pluginDirs);
   const knownPluginIds = new Set(pluginCatalog.map((plugin) => plugin.id));
   const pluginCatalogById = new Map(pluginCatalog.map((plugin) => [plugin.id, plugin]));

@@ -1,16 +1,28 @@
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fail } from '../../lib/command.js';
+import { normalizeInstallDir } from '../../lib/install.js';
 import { icon, printLine, printMuted } from '../../lib/output.js';
+import { assertSafeProjectTarget } from '../../lib/path-safety.js';
+import { pluginIdToSourceDir } from '../../lib/plugin-utils.js';
 import { confirmAction } from '../../ui/confirm.js';
-import { pluginsDir, resolvePluginProjectDir } from './shared.js';
+import { resolvePluginProjectDir } from './shared.js';
 
 export async function pluginRemoveCommand(
   pluginId: string,
   opts: { dir?: string; installDir?: string; yes?: boolean },
 ): Promise<void> {
   const projectDir = resolvePluginProjectDir(opts.dir);
-  const pluginDir = join(pluginsDir(projectDir, opts.installDir), pluginId.replace(/\./g, '/'));
+  let pluginDir: string;
+  try {
+    pluginDir = assertSafeProjectTarget(
+      projectDir,
+      join(normalizeInstallDir(opts.installDir), 'plugins', pluginIdToSourceDir(pluginId)),
+      'Plugin remove target',
+    );
+  } catch (err) {
+    fail((err as Error).message);
+  }
 
   if (!existsSync(pluginDir)) {
     fail(`Plugin not found: ${pluginId}`);

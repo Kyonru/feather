@@ -5,6 +5,7 @@ import { chooseRemoveWorkflow, type RemoveTarget } from "../ui/remove-workflow.j
 import { parseManagedValue } from "../lib/plugin-utils.js";
 import { fail } from "../lib/command.js";
 import { icon, printLine, printMuted, style } from "../lib/output.js";
+import { assertSafeProjectTarget } from "../lib/path-safety.js";
 
 export interface RemoveOptions {
   yes?: boolean;
@@ -22,21 +23,29 @@ type RemoveContext = {
   configPath: string;
   mainPath: string;
   manualEntrypoint: string;
+  manualPath: string;
+  runtimePath: string;
 };
 
 function resolveContext(dir: string, opts: RemoveOptions): RemoveContext {
   const projectDir = resolve(dir);
-  const configPath = join(projectDir, "feather.config.lua");
+  const configPath = assertSafeProjectTarget(projectDir, "feather.config.lua", "Config remove target");
   const configSrc = existsSync(configPath) ? readFileSync(configPath, "utf8") : "";
   const installDir = normalizeInstallDir(opts.installDir ?? parseManagedValue(configSrc, "installDir") ?? "feather");
   const manualEntrypoint = parseManagedValue(configSrc, "manualEntrypoint") ?? "feather.debugger.lua";
+  const runtimePath = assertSafeProjectTarget(projectDir, installDir, "Runtime remove target");
+  const manualPath = manualEntrypoint === "(none)"
+    ? join(projectDir, "(none)")
+    : assertSafeProjectTarget(projectDir, manualEntrypoint, "Manual entrypoint remove target");
 
   return {
     projectDir,
     installDir,
     configPath,
-    mainPath: join(projectDir, "main.lua"),
+    mainPath: assertSafeProjectTarget(projectDir, "main.lua", "main.lua update target"),
     manualEntrypoint,
+    manualPath,
+    runtimePath,
   };
 }
 
@@ -63,24 +72,22 @@ function discoverTargets(context: RemoveContext, opts: RemoveOptions): RemoveTar
     }
   }
 
-  const runtimePath = join(context.projectDir, context.installDir);
-  if (!opts.keepRuntime && existsSync(runtimePath)) {
+  if (!opts.keepRuntime && existsSync(context.runtimePath)) {
     targets.push({
       id: "runtime",
       label: "Feather runtime",
-      path: runtimePath,
+      path: context.runtimePath,
       description: "Delete the installed Feather core and plugins directory.",
       defaultSelected: true,
       dangerous: true,
     });
   }
 
-  const manualPath = join(context.projectDir, context.manualEntrypoint);
-  if (!opts.keepManual && context.manualEntrypoint !== "(none)" && existsSync(manualPath)) {
+  if (!opts.keepManual && context.manualEntrypoint !== "(none)" && existsSync(context.manualPath)) {
     targets.push({
       id: "manual",
       label: "Manual debugger entrypoint",
-      path: manualPath,
+      path: context.manualPath,
       description: "Delete the generated manual setup file.",
       defaultSelected: true,
       dangerous: true,
@@ -114,16 +121,14 @@ function applyTarget(id: string, context: RemoveContext, dryRun: boolean): strin
   }
 
   if (id === "runtime") {
-    const runtimePath = join(context.projectDir, context.installDir);
-    if (!existsSync(runtimePath)) return null;
-    if (!dryRun) rmSync(runtimePath, { recursive: true, force: true });
+    if (!existsSync(context.runtimePath)) return null;
+    if (!dryRun) rmSync(context.runtimePath, { recursive: true, force: true });
     return `Removed ${context.installDir}/`;
   }
 
   if (id === "manual") {
-    const manualPath = join(context.projectDir, context.manualEntrypoint);
-    if (!existsSync(manualPath)) return null;
-    if (!dryRun) rmSync(manualPath, { force: true });
+    if (!existsSync(context.manualPath)) return null;
+    if (!dryRun) rmSync(context.manualPath, { force: true });
     return `Removed ${context.manualEntrypoint}`;
   }
 

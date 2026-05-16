@@ -13,6 +13,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -263,6 +264,18 @@ test('plugin install: rejects path traversal plugin ids', () => {
   assert.ok(outputOf(result).includes('Invalid plugin id: ../escape'));
 });
 
+test('plugin install: refuses install directory symlink escaping project', () => {
+  const dir = makeTmp();
+  const outside = join(makeTmp(), 'outside-runtime');
+  mkdirSync(outside, { recursive: true });
+  symlinkSync(outside, join(dir, 'feather'), 'dir');
+
+  const result = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Plugin install target resolves outside project root'));
+  assert.equal(existsSync(join(outside, 'plugins', 'console')), false);
+});
+
 test('plugin update: explicit local update fails on invalid manifest', () => {
   const dir = makeTmp();
   const source = join(makeTmp(), 'src-lua');
@@ -272,6 +285,40 @@ test('plugin update: explicit local update fails on invalid manifest', () => {
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('Plugin manifest has invalid version: bad-plugin'));
   assert.equal(existsSync(join(dir, 'feather', 'plugins', 'bad-plugin')), false);
+});
+
+test('plugin remove: refuses plugin directory symlink escaping project', () => {
+  const dir = makeTmp();
+  const outside = join(makeTmp(), 'outside-runtime');
+  writeLocalPluginSource(outside, 'console');
+  symlinkSync(outside, join(dir, 'feather'), 'dir');
+
+  const result = run(['plugin', 'remove', 'console', '--dir', dir, '--yes']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Plugin remove target resolves outside project root'));
+  assert.equal(existsSync(join(outside, 'plugins', 'console', 'manifest.lua')), true);
+});
+
+test('remove: refuses runtime symlink escaping project', () => {
+  const dir = makeTmp();
+  const outside = join(makeTmp(), 'outside-runtime');
+  writeGame(dir);
+  writeMinimalRuntime(outside);
+  symlinkSync(join(outside, 'feather'), join(dir, 'feather'), 'dir');
+  writeFileSync(join(dir, 'feather.config.lua'), [
+    '-- FEATHER-MANAGED-BEGIN',
+    '-- mode: auto',
+    '-- installDir: feather',
+    '-- manualEntrypoint: (none)',
+    '-- FEATHER-MANAGED-END',
+    'return { appId = "feather-app-test" }',
+    '',
+  ].join('\n'));
+
+  const result = run(['remove', dir, '--yes']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Runtime remove target resolves outside project root'));
+  assert.equal(existsSync(join(outside, 'feather', 'init.lua')), true);
 });
 
 test('plugin list: malformed manifests do not crash and use directory fallback id', () => {
@@ -312,6 +359,19 @@ test('doctor --json reports dangerous bundled plugin trust', () => {
   const trustCheck = labels.get('Plugin console trust');
   assert.equal(trustCheck.severity, 'warn');
   assert.ok(trustCheck.detail.includes('development-only'));
+});
+
+test('doctor --json warns about runtime symlinks escaping project', () => {
+  const dir = makeTmp();
+  const outside = join(makeTmp(), 'outside-runtime');
+  writeGame(dir);
+  writeMinimalRuntime(outside);
+  symlinkSync(join(outside, 'feather'), join(dir, 'feather'), 'dir');
+
+  const parsed = parseDoctorJson(dir);
+  const symlinkCheck = parsed.checks.find((check) => check.label === 'Symlink escape');
+  assert.equal(symlinkCheck.severity, 'warn');
+  assert.ok(symlinkCheck.detail.includes('outside-runtime'));
 });
 
 test('doctor --json remains decoration-free and reports missing plugin directory', () => {
@@ -503,4 +563,25 @@ test('json commands used by scripts stay parseable and decoration-free', () => {
   assert.equal(ANSI_RE.test(doctor.stdout), false);
   assert.equal(doctor.stdout.trim().startsWith('{'), true);
   JSON.parse(doctor.stdout);
+});
+
+test('package remove: refuses lockfile target through symlink escaping project', () => {
+  const dir = makeTmp();
+  const outside = join(makeTmp(), 'outside-lib');
+  mkdirSync(outside, { recursive: true });
+  writeFileSync(join(outside, 'helper.lua'), 'return {}\n');
+  symlinkSync(outside, join(dir, 'lib'), 'dir');
+  writeLock(dir, {
+    helper: {
+      version: 'url',
+      trust: 'experimental',
+      source: { url: 'https://example.com/helper.lua' },
+      files: [{ name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('return {}\n') }],
+    },
+  });
+
+  const result = run(['package', 'remove', 'helper', '--dir', dir, '--yes']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Refusing to remove unsafe package target: lib/helper.lua'));
+  assert.equal(existsSync(join(outside, 'helper.lua')), true);
 });
