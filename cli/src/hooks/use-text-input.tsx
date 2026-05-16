@@ -1,5 +1,5 @@
 import { useInput } from 'ink';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type InkKey = Parameters<Parameters<typeof useInput>[0]>[1];
 
@@ -11,6 +11,10 @@ function useTextInput(initial: string) {
     setValue(next);
     setCursor(next.length);
   };
+
+  useEffect(() => {
+    reset(initial);
+  }, [initial]);
 
   const handleKey = (input: string, key: InkKey) => {
     if (key.leftArrow) {

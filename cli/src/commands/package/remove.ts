@@ -1,0 +1,61 @@
+import { existsSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import chalk from 'chalk';
+import { readLockfile, removeFromLockfile, writeLockfile } from '../../lib/package/lockfile.js';
+import { icon, style } from '../../lib/output.js';
+import { confirmAction } from '../../ui/confirm.js';
+import { resolvePackageProjectDir } from './shared.js';
+
+export type PackageRemoveOptions = {
+  dir?: string;
+  yes?: boolean;
+};
+
+export async function packageRemoveCommand(name: string, opts: PackageRemoveOptions = {}): Promise<void> {
+  const projectDir = resolvePackageProjectDir(opts.dir);
+  const lockfile = readLockfile(projectDir);
+
+  const entry = lockfile.packages[name];
+  if (!entry) {
+    console.log(chalk.red(`"${name}" is not installed.`));
+    process.exitCode = 1;
+    return;
+  }
+
+  const existingFiles = entry.files.filter((file) => existsSync(join(projectDir, file.target)));
+  if (!opts.yes && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    console.log(style.danger(`Refusing to remove "${name}" without --yes in non-interactive mode.`));
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!opts.yes) {
+    const confirmed = await confirmAction({
+      title: 'feather package remove',
+      label: `Remove package "${name}"?`,
+      hint: 'This deletes installed files and updates feather.lock.json.',
+      danger: true,
+      rows: [
+        ...existingFiles.map((file) => file.target),
+        'feather.lock.json',
+      ],
+    });
+    if (!confirmed) {
+      console.log(chalk.dim('Package remove cancelled.'));
+      return;
+    }
+  }
+
+  for (const file of entry.files) {
+    const abs = join(projectDir, file.target);
+    if (existsSync(abs)) {
+      rmSync(abs);
+      console.log(style.muted(`  removed ${file.target}`));
+    }
+  }
+
+  removeFromLockfile(lockfile, name);
+  writeLockfile(projectDir, lockfile);
+  console.log(`  ${icon.success} ${chalk.bold(name)} removed.`);
+}
+

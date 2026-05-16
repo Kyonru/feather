@@ -1,0 +1,89 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { createConnection } from 'node:net';
+import { spawnSync } from 'node:child_process';
+
+export type Severity = 'pass' | 'warn' | 'fail' | 'info';
+
+export type DoctorCheck = {
+  group: string;
+  label: string;
+  severity: Severity;
+  detail?: string;
+  fix?: string;
+};
+
+export type DoctorOptions = {
+  installDir?: string;
+  host?: string;
+  port?: number;
+  json?: boolean;
+};
+
+export const severityOrder: Record<Severity, number> = {
+  fail: 0,
+  warn: 1,
+  info: 2,
+  pass: 3,
+};
+
+export function add(
+  checks: DoctorCheck[],
+  group: string,
+  label: string,
+  severity: Severity,
+  detail?: string,
+  fix?: string,
+): void {
+  checks.push({ group, label, severity, detail, fix });
+}
+
+export function portReachable(port: number, host = '127.0.0.1', timeout = 1000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const sock = createConnection({ port, host });
+    const timer = setTimeout(() => {
+      sock.destroy();
+      resolve(false);
+    }, timeout);
+    sock.once('connect', () => {
+      clearTimeout(timer);
+      sock.destroy();
+      resolve(true);
+    });
+    sock.once('error', () => {
+      clearTimeout(timer);
+      resolve(false);
+    });
+  });
+}
+
+export function commandVersion(command: string, args: string[]): string | null {
+  const result = spawnSync(command, args, { encoding: 'utf8' });
+  if (result.error || result.status !== 0) return null;
+  return (result.stdout || result.stderr).trim().split('\n')[0] ?? null;
+}
+
+export function readIfExists(path: string): string | null {
+  if (!existsSync(path)) return null;
+  return readFileSync(path, 'utf8');
+}
+
+export function uncommentedLua(src: string): string {
+  return src
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('--'))
+    .join('\n');
+}
+
+export function luaBoolEnabled(src: string, key: string): boolean {
+  return new RegExp(`${key}\\s*=\\s*true\\b`).test(src);
+}
+
+export function hasConfigArrayValue(src: string, key: string, value: string): boolean {
+  const match = src.match(new RegExp(`${key}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
+  return match ? new RegExp(`["']${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(match[1]) : false;
+}
+
+export function isWeakApiKey(value: unknown): boolean {
+  return typeof value !== 'string' || value.trim().length < 24 || value === 'change-me' || value === 'dev';
+}
+

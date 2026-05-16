@@ -375,6 +375,7 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
   if (step === 'id') {
     return (
       <TextInputStep
+        key="package-add-id"
         stepNum={1}
         total={mode === 'repo' ? REPO_TOTAL : URL_TOTAL}
         label="Package name"
@@ -396,6 +397,7 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
   if (step === 'repo') {
     return (
       <TextInputStep
+        key="package-add-repo"
         stepNum={2}
         total={REPO_TOTAL}
         label="GitHub repository"
@@ -516,6 +518,7 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
     const suggested = firstTarget.replace(/\.lua$/, '').replace(/\//g, '.');
     return (
       <TextInputStep
+        key="package-add-require"
         stepNum={mode === 'repo' ? 6 : 3}
         total={mode === 'repo' ? REPO_TOTAL : URL_TOTAL}
         label="Require path"
@@ -581,6 +584,7 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
     const n = urlFiles.length;
     return (
       <TextInputStep
+        key={`package-add-file-url-${n}`}
         stepNum={2}
         total={URL_TOTAL}
         label={n === 0 ? 'File URL' : `File URL (${n} added so far)`}
@@ -621,6 +625,7 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
     const suggested = urlFiles.length === 0 ? `lib/${name}` : `lib/${id}/${name}`;
     return (
       <TextInputStep
+        key={`package-add-file-target-${currentUrl}`}
         stepNum={2}
         total={URL_TOTAL}
         label={`Install target for ${name}`}
