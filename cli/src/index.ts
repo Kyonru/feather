@@ -196,9 +196,14 @@ plugin
   .description('Remove an installed plugin')
   .option('--dir <path>', 'Project directory (default: current directory)')
   .option('--install-dir <path>', 'Feather install directory', 'feather')
+  .option('-y, --yes', 'Skip interactive confirmation')
   .action(async (id: string, opts) => {
     const merged = pluginCommandOptions(opts);
-    await pluginRemoveCommand(id, { dir: merged.dir as string | undefined, installDir: merged.installDir as string });
+    await pluginRemoveCommand(id, {
+      dir: merged.dir as string | undefined,
+      installDir: merged.installDir as string,
+      yes: merged.yes as boolean | undefined,
+    });
   });
 
 plugin

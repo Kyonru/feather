@@ -269,6 +269,7 @@ export function BooleanStep({
   hint,
   children,
   defaultYes = true,
+  tone = 'default',
   onConfirm,
   onCancel,
 }: {
@@ -279,6 +280,7 @@ export function BooleanStep({
   hint?: string;
   children?: ReactNode;
   defaultYes?: boolean;
+  tone?: 'default' | 'danger';
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -297,12 +299,12 @@ export function BooleanStep({
   return (
     <Box flexDirection="column">
       <Header step={stepNum} total={total} title={title} />
-      <Text bold>{'  '}{label}</Text>
+      <Text bold color={tone === 'danger' ? 'red' : undefined}>{'  '}{label}</Text>
       {hint && <Hint>{hint}</Hint>}
       {children}
       <Box marginTop={1}>
         <Text>{'  '}</Text>
-        <Text color={yes ? 'cyan' : undefined}>Yes</Text>
+        <Text color={yes ? (tone === 'danger' ? 'red' : 'cyan') : undefined}>Yes</Text>
         <Text dimColor> / </Text>
         <Text color={!yes ? 'cyan' : undefined}>No</Text>
       </Box>

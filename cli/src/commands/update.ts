@@ -1,10 +1,10 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import chalk from "chalk";
 import ora from "ora";
 import { fetchManifest, installCore, installCoreFromLocal, normalizeInstallDir } from "../lib/install.js";
 import { chooseCoreUpdateWorkflow } from "../ui/update-workflow.js";
 import { resolveLocalLuaRoot } from "../lib/paths.js";
+import { statusLine, style } from "../lib/output.js";
 
 export async function updateCommand(
   dir: string,
@@ -14,7 +14,7 @@ export async function updateCommand(
   const installDir = normalizeInstallDir(opts.installDir);
 
   if (!existsSync(join(target, installDir, "init.lua"))) {
-    console.error(chalk.red(`Feather is not installed in ${target}. Run \`feather init\` first.`));
+    console.error(statusLine("error", `Feather is not installed in ${target}. Run \`feather init\` first.`));
     process.exit(1);
   }
 
@@ -25,7 +25,7 @@ export async function updateCommand(
   if (!hasExplicitSource && process.stdin.isTTY) {
     const result = await chooseCoreUpdateWorkflow(branch);
     if (result.cancelled) {
-      console.log(chalk.dim("Update cancelled."));
+      console.log(style.muted("Update cancelled."));
       return;
     }
     useRemote = result.source === "remote";
@@ -45,7 +45,7 @@ export async function updateCommand(
       process.exit(1);
     }
 
-    console.log(chalk.bold("\nDone!") + " Feather core is up to date.\n");
+    console.log(`\n${style.heading("Done!")} Feather core is up to date.\n`);
     return;
   }
 
@@ -71,5 +71,5 @@ export async function updateCommand(
     process.exit(1);
   }
 
-  console.log(chalk.bold("\nDone!") + " Feather core is up to date.\n");
+  console.log(`\n${style.heading("Done!")} Feather core is up to date.\n`);
 }

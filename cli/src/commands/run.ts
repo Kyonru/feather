@@ -1,11 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import chalk from "chalk";
 import { findLoveBinary } from "../lib/love.js";
 import { createShim, shimEnv } from "../lib/shim.js";
 import { loadConfig } from "../lib/config.js";
 import { chooseRunWorkflow } from "../ui/run-workflow.js";
+import { keyValueRows, statusLine, style } from "../lib/output.js";
 
 export interface RunOptions {
   love?: string;
@@ -20,13 +20,13 @@ export interface RunOptions {
 export async function runCommand(gamePath: string | undefined, opts: RunOptions): Promise<void> {
   if (!gamePath) {
     if (!process.stdin.isTTY) {
-      console.error(chalk.red("Game path is required. Use `feather run <game-path>`."));
+      console.error(statusLine("error", "Game path is required. Use `feather run <game-path>`."));
       process.exit(1);
     }
 
     const result = await chooseRunWorkflow();
     if (result.cancelled) {
-      console.log(chalk.dim("Run cancelled."));
+      console.log(style.muted("Run cancelled."));
       return;
     }
 
@@ -46,12 +46,12 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   const absGame = resolve(gamePath);
 
   if (!existsSync(absGame)) {
-    console.error(chalk.red(`Game path not found: ${absGame}`));
+    console.error(statusLine("error", `Game path not found: ${absGame}`));
     process.exit(1);
   }
 
   if (!existsSync(`${absGame}/main.lua`)) {
-    console.error(chalk.red(`No main.lua found in: ${absGame}`));
+    console.error(statusLine("error", `No main.lua found in: ${absGame}`));
     process.exit(1);
   }
 
@@ -59,7 +59,7 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   try {
     loveBin = findLoveBinary(opts.love);
   } catch (err) {
-    console.error(chalk.red((err as Error).message));
+    console.error(statusLine("error", (err as Error).message));
     process.exit(1);
   }
 
@@ -75,10 +75,13 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
     userConfig: userConfig as Record<string, unknown> | undefined,
   });
 
-  console.log(chalk.dim(`[feather] shim → ${shim.dir}`));
-  console.log(chalk.cyan(`[feather] running ${absGame}`));
-  if (opts.gameArgs && opts.gameArgs.length > 0) {
-    console.log(chalk.dim(`[feather] args → ${opts.gameArgs.join(" ")}`));
+  console.log(style.info("Feather run"));
+  for (const row of keyValueRows([
+    ["Game", absGame],
+    ["Shim", shim.dir],
+    ["Args", opts.gameArgs?.join(" ")],
+  ])) {
+    console.log(row);
   }
 
   const env = shimEnv(absGame, sessionName);
@@ -91,7 +94,7 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   shim.cleanup();
 
   if (result.error) {
-    console.error(chalk.red(`Failed to launch love: ${result.error.message}`));
+    console.error(statusLine("error", `Failed to launch love: ${result.error.message}`));
     process.exit(1);
   }
 

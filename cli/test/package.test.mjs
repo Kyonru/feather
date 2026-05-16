@@ -200,6 +200,31 @@ test('install --from-url: missing --allow-untrusted exits 1 with warning', () =>
   assert.ok(stdout.includes('NOT been reviewed') || stdout.includes('allow-untrusted'));
 });
 
+test('add: non-interactive terminal exits cleanly', () => {
+  const dir = makeTmp();
+  const { stdout, stderr, exitCode } = run(['package', 'add', '--dir', dir]);
+  assert.equal(exitCode, 1);
+  assert.ok(stdout.includes('interactive terminal'));
+  assert.equal(stderr.includes('Raw mode is not supported'), false);
+});
+
+test('install --from-url: --yes alone does not bypass untrusted source', () => {
+  const dir = makeTmp();
+  const { stdout, exitCode } = run([
+    'package',
+    'install',
+    '--from-url',
+    'https://example.com/helper.lua',
+    '--target',
+    'lib/helper.lua',
+    '--yes',
+    '--dir',
+    dir,
+  ]);
+  assert.equal(exitCode, 1);
+  assert.ok(stdout.includes('allow-untrusted') || stdout.includes('untrusted'));
+});
+
 test('install --from-url: missing --target exits 1', () => {
   const dir = makeTmp();
   const { stdout, exitCode } = run([
@@ -301,6 +326,24 @@ test('remove: not installed exits 1 with message', () => {
   assert.ok(stdout.includes('not installed'));
 });
 
+test('remove: installed package requires --yes in non-interactive mode', () => {
+  const dir = makeTmp();
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'anim8.lua'), 'return {}');
+  writeLock(dir, {
+    anim8: {
+      version: 'v2.3.1',
+      trust: 'verified',
+      source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
+      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'any' }],
+    },
+  });
+  const { stdout, exitCode } = run(['package', 'remove', 'anim8', '--dir', dir]);
+  assert.equal(exitCode, 1);
+  assert.ok(stdout.includes('--yes'));
+  assert.ok(existsSync(join(dir, 'lib', 'anim8.lua')), 'file should remain');
+});
+
 test('remove: deletes file and removes lockfile entry', () => {
   const dir = makeTmp();
   mkdirSync(join(dir, 'lib'), { recursive: true });
@@ -313,7 +356,7 @@ test('remove: deletes file and removes lockfile entry', () => {
       files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'any' }],
     },
   });
-  const { exitCode } = run(['package', 'remove', 'anim8', '--dir', dir]);
+  const { exitCode } = run(['package', 'remove', 'anim8', '--dir', dir, '--yes']);
   assert.equal(exitCode, 0);
   assert.ok(!existsSync(join(dir, 'lib', 'anim8.lua')), 'file should be deleted');
   const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
@@ -339,7 +382,7 @@ test('remove: does not touch files belonging to other packages', () => {
       files: [{ name: 'bump.lua', target: 'lib/bump.lua', sha256: 'any' }],
     },
   });
-  run(['package', 'remove', 'anim8', '--dir', dir]);
+  run(['package', 'remove', 'anim8', '--dir', dir, '--yes']);
   assert.ok(existsSync(join(dir, 'lib', 'bump.lua')), 'bump.lua must not be touched');
   const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
   assert.ok(lock.packages.bump, 'bump lockfile entry must remain');
@@ -498,7 +541,7 @@ test('remove: url package removes file and lockfile entry', () => {
   writeUrlLock(dir, 'my-helper', [
     { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'any' },
   ]);
-  const { exitCode } = run(['package', 'remove', 'my-helper', '--dir', dir]);
+  const { exitCode } = run(['package', 'remove', 'my-helper', '--dir', dir, '--yes']);
   assert.equal(exitCode, 0);
   assert.ok(!existsSync(join(dir, 'lib', 'helper.lua')), 'file should be deleted');
   const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
@@ -514,10 +557,35 @@ test('remove: url package with multiple files removes all of them', () => {
     { name: 'a.lua', url: 'https://example.com/a.lua', target: 'lib/mypkg/a.lua', sha256: 'any' },
     { name: 'b.lua', url: 'https://example.com/b.lua', target: 'lib/mypkg/b.lua', sha256: 'any' },
   ]);
-  const { exitCode } = run(['package', 'remove', 'mypkg', '--dir', dir]);
+  const { exitCode } = run(['package', 'remove', 'mypkg', '--dir', dir, '--yes']);
   assert.equal(exitCode, 0);
   assert.ok(!existsSync(join(dir, 'lib', 'mypkg', 'a.lua')));
   assert.ok(!existsSync(join(dir, 'lib', 'mypkg', 'b.lua')));
+});
+
+test('plugin remove: --yes removes plugin in non-interactive mode', () => {
+  const dir = makeTmp();
+  const pluginDir = join(dir, 'feather', 'plugins', 'my-plugin');
+  mkdirSync(pluginDir, { recursive: true });
+  writeFileSync(
+    join(pluginDir, 'manifest.lua'),
+    'return { id = "my-plugin", name = "My Plugin", version = "1.0.0" }\n',
+  );
+
+  const { stdout, exitCode } = run(['plugin', 'remove', 'my-plugin', '--dir', dir, '--yes']);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('Removed my-plugin'));
+  assert.ok(!existsSync(pluginDir), 'plugin directory should be deleted');
+});
+
+test('output: NO_COLOR keeps package search readable without ANSI escapes', () => {
+  const { stdout, exitCode } = run(['package', 'search', 'anim', '--offline'], {
+    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+  });
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('anim8'));
+  // eslint-disable-next-line no-control-regex
+  assert.equal(/\x1B\[[0-?]*[ -/]*[@-~]/.test(stdout), false);
 });
 
 test('update: url package is skipped with experimental message', () => {

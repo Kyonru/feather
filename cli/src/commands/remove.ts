@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { normalizeInstallDir } from "../lib/install.js";
 import { chooseRemoveWorkflow, type RemoveTarget } from "../ui/remove-workflow.js";
 import { parseManagedValue } from "../lib/plugin-utils.js";
+import { icon, style } from "../lib/output.js";
 
 export interface RemoveOptions {
   yes?: boolean;
@@ -57,6 +58,7 @@ function discoverTargets(context: RemoveContext, opts: RemoveOptions): RemoveTar
         path: context.mainPath,
         description: "Remove only the FEATHER-INIT require block and DEBUGGER:update hook.",
         defaultSelected: true,
+        dangerous: true,
       });
     }
   }
@@ -69,6 +71,7 @@ function discoverTargets(context: RemoveContext, opts: RemoveOptions): RemoveTar
       path: runtimePath,
       description: "Delete the installed Feather core and plugins directory.",
       defaultSelected: true,
+      dangerous: true,
     });
   }
 
@@ -80,6 +83,7 @@ function discoverTargets(context: RemoveContext, opts: RemoveOptions): RemoveTar
       path: manualPath,
       description: "Delete the generated manual setup file.",
       defaultSelected: true,
+      dangerous: true,
     });
   }
 
@@ -93,6 +97,7 @@ function discoverTargets(context: RemoveContext, opts: RemoveOptions): RemoveTar
         ? "Delete the generated Feather config file."
         : "Delete feather.config.lua. This file does not contain managed metadata.",
       defaultSelected: configSrc.includes("FEATHER-MANAGED-BEGIN"),
+      dangerous: true,
     });
   }
 
@@ -163,7 +168,7 @@ export async function removeCommand(dir: string, opts: RemoveOptions): Promise<v
   for (const id of targetIds) {
     const message = applyTarget(id, context, opts.dryRun === true);
     if (message) {
-      console.log((opts.dryRun ? chalk.dim("dry-run ") : chalk.green("✔ ")) + message);
+      console.log((opts.dryRun ? style.muted("dry-run ") : `${icon.success} `) + message);
     }
   }
 }

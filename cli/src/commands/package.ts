@@ -10,8 +10,10 @@ import { auditLockfile } from '../lib/package/audit.js';
 import { showPackageBrowser } from '../ui/package-workflow.js';
 import { showInstallProgress } from '../ui/package-progress.js';
 import { showAddWizard } from '../ui/package-add.js';
+import { confirmAction } from '../ui/confirm.js';
 import { findProjectDir } from '../lib/paths.js';
 import { trustBadge } from '../lib/trust.js';
+import { icon, keyValueRows, statusLine, style } from '../lib/output.js';
 
 export type PackageSearchOptions = {
   offline?: boolean;
@@ -199,27 +201,42 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
 
   if (opts.fromUrl) {
-    if (!opts.allowUntrusted && !opts.yes) {
+    if (!opts.target) {
       console.log();
-      console.log(chalk.yellow('Installing from untrusted URL'));
-      console.log(`  URL:    ${opts.fromUrl}`);
-      if (!opts.target) {
-        console.log(chalk.red('  --target <path> is required with --from-url'));
-        process.exitCode = 1;
-        return;
-      }
-      console.log(`  Target: ${opts.target}`);
-      console.log();
-      console.log(chalk.red('  This package has NOT been reviewed by the Feather team.'));
-      console.log(chalk.dim('  Use --allow-untrusted to confirm you trust this source.'));
+      console.log(statusLine('error', '--target <path> is required with --from-url'));
       process.exitCode = 1;
       return;
     }
 
-    if (!opts.target) {
-      console.log(chalk.red('--target <path> is required with --from-url'));
-      process.exitCode = 1;
-      return;
+    if (!opts.allowUntrusted) {
+      console.log();
+      console.log(style.warning('Installing from untrusted URL'));
+      for (const row of keyValueRows([
+        ['URL', opts.fromUrl],
+        ['Target', opts.target],
+        ['Trust', 'experimental; not reviewed by the Feather team'],
+      ])) {
+        console.log(row);
+      }
+
+      if (!process.stdin.isTTY || !process.stdout.isTTY) {
+        console.log();
+        console.log(style.danger('Use --allow-untrusted to confirm this source in non-interactive mode.'));
+        process.exitCode = 1;
+        return;
+      }
+
+      const confirmed = await confirmAction({
+        title: 'feather package install',
+        label: 'Install this unreviewed URL?',
+        hint: 'Only continue if you trust the source and target path.',
+        danger: true,
+        rows: [`URL: ${opts.fromUrl}`, `Target: ${opts.target}`],
+      });
+      if (!confirmed) {
+        console.log(style.muted('Install cancelled.'));
+        return;
+      }
     }
 
     const spinner = ora(`Fetching ${opts.fromUrl}…`).start();
@@ -240,20 +257,28 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     if (opts.dryRun) {
       spinner.stop();
       console.log();
-      console.log(chalk.yellow('Dry run — no files written'));
-      console.log(`  URL:     ${opts.fromUrl}`);
-      console.log(`  SHA-256: ${result.sha256}`);
-      console.log(`  Size:    ${result.size} bytes`);
-      console.log(`  Target:  ${result.target}`);
-      console.log(chalk.yellow('  Trust:   experimental ⚠'));
+      console.log(style.warning('Dry run: no files written'));
+      for (const row of keyValueRows([
+        ['URL', opts.fromUrl],
+        ['SHA-256', result.sha256],
+        ['Size', `${result.size} bytes`],
+        ['Target', result.target],
+        ['Trust', 'experimental; not reviewed'],
+      ])) {
+        console.log(row);
+      }
       return;
     }
 
     spinner.succeed('Installed from URL (experimental)');
     console.log();
-    console.log(`  SHA-256: ${result.sha256}`);
-    console.log(`  Target:  ${result.target}`);
-    console.log(chalk.yellow('  Trust:   experimental ⚠  — not reviewed by the Feather team'));
+    for (const row of keyValueRows([
+      ['SHA-256', result.sha256],
+      ['Target', result.target],
+      ['Trust', style.warning('experimental; not reviewed by the Feather team')],
+    ])) {
+      console.log(row);
+    }
     writeLockfile(projectDir, lockfile);
     return;
   }
@@ -453,17 +478,41 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
     return;
   }
 
+  const existingFiles = entry.files.filter((file) => existsSync(join(projectDir, file.target)));
+  if (!opts.yes && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    console.log(style.danger(`Refusing to remove "${name}" without --yes in non-interactive mode.`));
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!opts.yes) {
+    const confirmed = await confirmAction({
+      title: 'feather package remove',
+      label: `Remove package "${name}"?`,
+      hint: 'This deletes installed files and updates feather.lock.json.',
+      danger: true,
+      rows: [
+        ...existingFiles.map((file) => file.target),
+        'feather.lock.json',
+      ],
+    });
+    if (!confirmed) {
+      console.log(chalk.dim('Package remove cancelled.'));
+      return;
+    }
+  }
+
   for (const file of entry.files) {
     const abs = join(projectDir, file.target);
     if (existsSync(abs)) {
       rmSync(abs);
-      console.log(chalk.dim(`  removed ${file.target}`));
+      console.log(style.muted(`  removed ${file.target}`));
     }
   }
 
   removeFromLockfile(lockfile, name);
   writeLockfile(projectDir, lockfile);
-  console.log(`  ${chalk.bold(name)} removed.`);
+  console.log(`  ${icon.success} ${chalk.bold(name)} removed.`);
 }
 
 export type PackageAddOptions = {
@@ -471,6 +520,17 @@ export type PackageAddOptions = {
 };
 
 export async function packageAddCommand(opts: PackageAddOptions = {}): Promise<void> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY || typeof process.stdin.setRawMode !== 'function') {
+    console.log(statusLine('error', '`feather package add` requires an interactive terminal.'));
+    console.log(
+      style.muted(
+        'Run it from a real TTY, or use `feather package install --from-url <url> --target <path> --allow-untrusted` for scripts.',
+      ),
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
   const lockfile = readLockfile(projectDir);
   await showAddWizard({ projectDir, lockfile });

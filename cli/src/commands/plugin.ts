@@ -11,8 +11,10 @@ import {
   normalizeInstallDir,
 } from "../lib/install.js";
 import { choosePluginUpdateWorkflow, choosePluginWorkflow } from "../ui/plugin-workflow.js";
+import { confirmAction } from "../ui/confirm.js";
 import { findProjectDir, resolveLocalLuaRoot } from "../lib/paths.js";
 import { findInstalledPluginDirs, readPluginManifest } from "../lib/plugin-utils.js";
+import { icon, statusLine, style, table } from "../lib/output.js";
 
 function pluginsDir(projectDir: string, installDir = "feather"): string {
   return join(projectDir, normalizeInstallDir(installDir), "plugins");
@@ -45,13 +47,23 @@ export async function pluginListCommand(dir?: string, installDir = "feather"): P
   }
 
   console.log(chalk.bold(`\nInstalled plugins (${dirs.length})\n`));
-  for (const dir of dirs) {
+  const rows = dirs.map((dir) => {
     const meta = readPluginManifest(dir);
-    if (meta) {
-      console.log(`  ${chalk.cyan(meta.id.padEnd(24))} ${chalk.dim(meta.version.padEnd(8))} ${meta.name}`);
-    } else {
-      console.log(`  ${chalk.cyan(dir.replace(dirPath, "").replace(/^[/\\]/, ""))}`);
-    }
+    return {
+      id: meta?.id ?? dir.replace(dirPath, "").replace(/^[/\\]/, ""),
+      version: meta?.version ?? "",
+      name: meta?.name ?? "",
+    };
+  });
+  for (const line of table({
+    columns: [
+      { key: "id", label: "ID", color: (value) => chalk.cyan(value) },
+      { key: "version", label: "VERSION", color: (value) => chalk.dim(value) },
+      { key: "name", label: "NAME" },
+    ],
+    rows,
+  })) {
+    console.log(line);
   }
   console.log();
 }
@@ -111,17 +123,40 @@ export async function pluginInstallCommand(
   }
 }
 
-export async function pluginRemoveCommand(pluginId: string, opts: { dir?: string; installDir?: string }): Promise<void> {
+export async function pluginRemoveCommand(
+  pluginId: string,
+  opts: { dir?: string; installDir?: string; yes?: boolean },
+): Promise<void> {
   const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
   const pluginDir = join(pluginsDir(projectDir, opts.installDir), pluginId.replace(/\./g, "/"));
 
   if (!existsSync(pluginDir)) {
-    console.error(chalk.red(`Plugin not found: ${pluginId}`));
+    console.error(statusLine("error", `Plugin not found: ${pluginId}`));
     process.exit(1);
   }
 
+  if (!opts.yes && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    console.log(style.danger(`Refusing to remove "${pluginId}" without --yes in non-interactive mode.`));
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!opts.yes) {
+    const confirmed = await confirmAction({
+      title: "feather plugin remove",
+      label: `Remove plugin "${pluginId}"?`,
+      hint: "This recursively deletes the installed plugin directory.",
+      danger: true,
+      rows: [pluginDir],
+    });
+    if (!confirmed) {
+      console.log(chalk.dim("Plugin remove cancelled."));
+      return;
+    }
+  }
+
   rmSync(pluginDir, { recursive: true, force: true });
-  console.log(chalk.green("✔") + ` Removed ${pluginId}`);
+  console.log(`${icon.success} Removed ${pluginId}`);
 }
 
 export async function pluginUpdateCommand(
@@ -261,6 +296,6 @@ export async function pluginWorkflowCommand(opts: {
   }
 
   for (const id of result.pluginIds) {
-    await pluginRemoveCommand(id, { dir: projectDir, installDir });
+    await pluginRemoveCommand(id, { dir: projectDir, installDir, yes: true });
   }
 }

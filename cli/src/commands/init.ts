@@ -16,6 +16,7 @@ import { configTemplate, luaKey, luaValue } from '../lib/config.js';
 import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init-mode.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
+import { icon, statusLine, style } from '../lib/output.js';
 
 export interface InitOptions {
   branch?: string;
@@ -78,7 +79,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   const target = resolve(dir);
 
   if (!existsSync(join(target, 'main.lua'))) {
-    console.error(chalk.red(`No main.lua found in ${target}. Is this a love2d project?`));
+    console.error(statusLine('error', `No main.lua found in ${target}. Is this a love2d project?`));
     process.exit(1);
   }
 
@@ -106,15 +107,15 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
       installDir,
       source: useRemote ? `github:${setup.branch || opts.branch || 'main'}` : 'local',
     });
-    console.log('\n' + chalk.bold('Done!') + ' Run this project through Feather CLI.\n');
-    console.log(chalk.dim(`  feather run ${dir}`));
-    console.log(chalk.dim('  Use `--config <path>` if feather.config.lua lives elsewhere.\n'));
+    console.log(`\n${style.heading('Done!')} Run this project through Feather CLI.\n`);
+    console.log(style.muted(`  feather run ${dir}`));
+    console.log(style.muted('  Use `--config <path>` if feather.config.lua lives elsewhere.\n'));
     return;
   }
 
   if (alreadyInstalled) {
-    console.log(chalk.yellow('Feather is already installed in this project.'));
-    console.log(chalk.dim('Run `feather update` to update to the latest version.'));
+    console.log(style.warning('Feather is already installed in this project.'));
+    console.log(style.muted('Run `feather update` to update to the latest version.'));
   }
 
   const branch = setup.branch || opts.branch || 'main';
@@ -197,9 +198,9 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   if (mode === 'auto') {
     const patched = patchMainLua(mainPath, installDir);
     if (patched) {
-      console.log(chalk.green('✔') + ' Patched main.lua with feather.auto require');
+      console.log(`${icon.success} Patched main.lua with feather.auto require`);
     } else {
-      console.log(chalk.dim('  main.lua already references feather — skipped patch'));
+      console.log(style.muted('  main.lua already references feather — skipped patch'));
     }
   } else if (mode === 'manual') {
     const pluginIds =
@@ -212,15 +213,15 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
     const patched = patchMainLuaForManual(mainPath);
 
     if (created) {
-      console.log(chalk.green('✔') + ' Created feather.debugger.lua');
+      console.log(`${icon.success} Created feather.debugger.lua`);
     } else {
-      console.log(chalk.dim('  feather.debugger.lua already exists — skipped'));
+      console.log(style.muted('  feather.debugger.lua already exists — skipped'));
     }
 
     if (patched) {
-      console.log(chalk.green('✔') + ' Patched main.lua with feather.debugger.lua loader');
+      console.log(`${icon.success} Patched main.lua with feather.debugger.lua loader`);
     } else {
-      console.log(chalk.dim('  main.lua already references Feather — skipped patch'));
+      console.log(style.muted('  main.lua already references Feather — skipped patch'));
     }
   }
 
@@ -231,12 +232,12 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
     manualEntrypoint: mode === 'manual' ? 'feather.debugger.lua' : undefined,
   });
 
-  console.log('\n' + chalk.bold('Done!') + ' Start the Feather desktop app, then run your game.\n');
+  console.log(`\n${style.heading('Done!')} Start the Feather desktop app, then run your game.\n`);
 
   if (mode === 'manual') {
-    console.log(chalk.dim('  Manual setup lives in feather.debugger.lua and is loaded from main.lua.\n'));
+    console.log(style.muted('  Manual setup lives in feather.debugger.lua and is loaded from main.lua.\n'));
   } else {
-    console.log(chalk.dim('  Tip: use `feather run .` to inject without touching game code.\n'));
+    console.log(style.muted('  Tip: use `feather run .` to inject without touching game code.\n'));
   }
 }
 
@@ -248,9 +249,9 @@ function writeConfig(
   const configPath = join(target, 'feather.config.lua');
   if (!existsSync(configPath)) {
     writeFileSync(configPath, configTemplate(config, context));
-    console.log(chalk.green('✔') + ' Created feather.config.lua');
+    console.log(`${icon.success} Created feather.config.lua`);
   } else {
-    console.log(chalk.dim('  feather.config.lua already exists — skipped'));
+    console.log(style.muted('  feather.config.lua already exists — skipped'));
   }
 }
 

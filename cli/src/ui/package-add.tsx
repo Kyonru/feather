@@ -332,6 +332,7 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
   // Repo flow
   const [repoName, setRepoName] = useState('');
   const [tag, setTag] = useState('');
+  const [commitSha, setCommitSha] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [tagOptions, setTagOptions] = useState<string[]>([]);
   const [tagLabels, setTagLabels] = useState<string[]>([]);
@@ -415,6 +416,7 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
   if (step === 'fetch-tags') {
     return (
       <AutoStep
+        key="fetch-tags"
         label={`Fetching tags for ${repoName}…`}
         run={async () => {
           const { values, labels } = await fetchRepoMeta(repoName);
@@ -448,9 +450,11 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
   if (step === 'resolve-commit') {
     return (
       <AutoStep
+        key="resolve-commit"
         label={`Resolving ${tag} to commit SHA…`}
         run={async () => {
           const sha = await fetchCommitSha(repoName, tag);
+          setCommitSha(sha);
           setBaseUrl(`https://raw.githubusercontent.com/${repoName}/${sha}/`);
           setStep('fetch-files');
         }}
@@ -462,9 +466,10 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
   if (step === 'fetch-files') {
     return (
       <AutoStep
-        label={`Fetching file list for ${repoName}@${tag}…`}
+        key="fetch-files"
+        label={`Fetching file list for ${repoName}@${commitSha.slice(0, 12)}…`}
         run={async () => {
-          const files = await fetchLuaFiles(repoName, tag);
+          const files = await fetchLuaFiles(repoName, commitSha);
           if (files.length === 0) throw new Error('No .lua files found at this ref.');
           setLuaFiles(files);
           setStep('files');

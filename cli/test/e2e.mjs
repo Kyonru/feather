@@ -171,7 +171,7 @@ try {
     const pkgDir = mkdtempSync(join(tmpdir(), `feather-pkg-${pkgId}-`));
 
     // install
-    run(['package', 'install', pkgId, '--dir', pkgDir]);
+    run(['package', 'install', pkgId, '--offline', '--dir', pkgDir]);
 
     // every file must exist on disk
     for (const file of entry.install.files) {
@@ -198,7 +198,7 @@ try {
     }
 
     // remove
-    run(['package', 'remove', pkgId, '--dir', pkgDir]);
+    run(['package', 'remove', pkgId, '--dir', pkgDir, '--yes']);
     for (const file of entry.install.files) {
       assert(!existsSync(join(pkgDir, file.target)), `${pkgId}: ${file.target} still on disk after remove`);
     }

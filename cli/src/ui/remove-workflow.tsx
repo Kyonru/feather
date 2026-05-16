@@ -8,6 +8,7 @@ export type RemoveTarget = {
   path: string;
   description: string;
   defaultSelected: boolean;
+  dangerous?: boolean;
 };
 
 export type RemoveWorkflowResult =
@@ -70,6 +71,9 @@ function RemoveWorkflow({
     return (
       <BooleanStep
         label="Remove selected Feather files and markers?"
+        hint="This changes files in your project."
+        tone="danger"
+        defaultYes={false}
         onConfirm={() => finish({ cancelled: false, targetIds: [...selected] })}
         onCancel={() => finish({ cancelled: true })}
       >
@@ -87,7 +91,7 @@ function RemoveWorkflow({
         {rows.length === 0 ? <Text color="gray">No managed Feather files or markers were found.</Text> : null}
         {rows.map((target, index) => (
           <Box key={target.id} flexDirection="column">
-            <Text color={index === cursor ? "cyan" : undefined}>
+            <Text color={target.dangerous ? "red" : index === cursor ? "cyan" : undefined}>
               {index === cursor ? "❯" : " "} {selected.has(target.id) ? "◉" : "○"} {target.label}: {target.path}
             </Text>
             <Text color="gray">  {target.description}</Text>

@@ -7,6 +7,7 @@ import { findLoveBinary, getLoveVersion } from "../lib/love.js";
 import { loadConfig } from "../lib/config.js";
 import { normalizeInstallDir } from "../lib/install.js";
 import { parseManagedValue, findInstalledPluginDirs, readPluginManifest } from "../lib/plugin-utils.js";
+import { icon as statusIcon, style } from "../lib/output.js";
 
 type Severity = "pass" | "warn" | "fail" | "info";
 
@@ -44,10 +45,10 @@ function add(
 }
 
 function icon(severity: Severity): string {
-  if (severity === "pass") return chalk.green("✔");
-  if (severity === "warn") return chalk.yellow("!");
-  if (severity === "fail") return chalk.red("✖");
-  return chalk.cyan("i");
+  if (severity === "pass") return statusIcon.success;
+  if (severity === "warn") return statusIcon.warning;
+  if (severity === "fail") return statusIcon.error;
+  return statusIcon.info;
 }
 
 function colorLabel(severity: Severity, label: string): string {
@@ -108,8 +109,8 @@ function isWeakApiKey(value: unknown): boolean {
 }
 
 function renderReport(checks: DoctorCheck[], projectDir: string): void {
-  console.log(chalk.bold("\nFeather doctor\n"));
-  console.log(chalk.dim(`Project: ${projectDir}\n`));
+  console.log(style.heading("\nFeather doctor\n"));
+  console.log(style.muted(`Project: ${projectDir}\n`));
 
   const groups = [...new Set(checks.map((check) => check.group))];
   for (const group of groups) {
