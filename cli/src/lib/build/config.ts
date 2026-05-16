@@ -3,17 +3,46 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { assertNoSymlinkEscape, assertSafeRelativePath, isPathInside } from '../path-safety.js';
 
 export const buildTargets = ['web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos'] as const;
-export const supportedBuildTargets = ['web', 'windows', 'macos', 'linux', 'steamos'] as const;
+export const supportedBuildTargets = ['web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos'] as const;
 export const uploadTargets = ['itch', 'steam'] as const;
 
 export type BuildTarget = typeof buildTargets[number];
 export type SupportedBuildTarget = typeof supportedBuildTargets[number];
 export type UploadTarget = typeof uploadTargets[number];
 
+export type AndroidBuildTargetConfig = {
+  productId?: string;
+  loveAndroidDir?: string;
+  displayName?: string;
+  orientation?: string;
+  recordAudio?: boolean;
+  versionCode?: number;
+  versionName?: string;
+  gradleTask?: string;
+  artifactPath?: string;
+};
+
+export type IosBuildTargetConfig = {
+  productId?: string;
+  loveIosDir?: string;
+  bundleIdentifier?: string;
+  displayName?: string;
+  scheme?: string;
+  configuration?: string;
+  sdk?: string;
+  derivedDataPath?: string;
+  teamId?: string;
+};
+
 export type FeatherBuildConfig = {
   name?: string;
   version?: string;
   loveVersion?: string;
+  productId?: string;
+  description?: string;
+  company?: string;
+  website?: string;
+  copyright?: string;
   sourceDir?: string;
   outDir?: string;
   include?: string[];
@@ -30,6 +59,8 @@ export type FeatherBuildConfig = {
     macos?: Record<string, unknown>;
     linux?: Record<string, unknown>;
     steamos?: Record<string, unknown>;
+    android?: AndroidBuildTargetConfig;
+    ios?: IosBuildTargetConfig;
   };
   upload?: {
     itch?: {
@@ -47,6 +78,11 @@ export type ResolvedBuildConfig = {
   name: string;
   version: string;
   loveVersion?: string;
+  productId?: string;
+  description?: string;
+  company?: string;
+  website?: string;
+  copyright?: string;
   include: string[];
   exclude: string[];
   icon?: string;
@@ -146,6 +182,11 @@ export function loadBuildConfig(options: LoadBuildConfigOptions = {}): ResolvedB
     name,
     version,
     loveVersion: raw.loveVersion,
+    productId: raw.productId,
+    description: raw.description,
+    company: raw.company,
+    website: raw.website,
+    copyright: raw.copyright,
     include: stringArray(raw.include, 'include'),
     exclude,
     icon: raw.icon,

@@ -146,6 +146,78 @@ function writeFakeLoveJs(dir) {
   return loveJsDir;
 }
 
+function writeFakeLoveAndroid(dir, recordPath = join(dir, 'gradle-record.json')) {
+  const root = join(dir, 'love-android');
+  mkdirSync(join(root, 'app', 'src', 'main', 'res', 'values'), { recursive: true });
+  mkdirSync(join(root, 'app', 'src', 'main'), { recursive: true });
+  writeFileSync(
+    join(root, 'app', 'build.gradle'),
+    `android {
+    namespace "org.love2d.android"
+    defaultConfig {
+        applicationId "org.love2d.android"
+        versionCode 1
+        versionName "0.0.0"
+    }
+}
+`,
+  );
+  writeFileSync(
+    join(root, 'app', 'src', 'main', 'AndroidManifest.xml'),
+    `<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:label="LÖVE">
+        <activity android:name=".GameActivity" android:screenOrientation="portrait" />
+    </application>
+</manifest>
+`,
+  );
+  writeFileSync(join(root, 'app', 'src', 'main', 'res', 'values', 'strings.xml'), '<resources><string name="app_name">LÖVE</string></resources>\n');
+  const gradlew = join(root, 'gradlew');
+  writeFileSync(
+    gradlew,
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+const cwd = process.cwd();
+const apk = path.join(cwd, 'app', 'build', 'outputs', 'apk', 'embed', 'debug', 'app-embed-debug.apk');
+fs.mkdirSync(path.dirname(apk), { recursive: true });
+fs.writeFileSync(apk, 'fake apk');
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
+  argv: process.argv.slice(2),
+  embeddedLoveExists: fs.existsSync(path.join(cwd, 'app', 'src', 'embed', 'assets', 'game.love')),
+  gradle: fs.readFileSync(path.join(cwd, 'app', 'build.gradle'), 'utf8'),
+  manifest: fs.readFileSync(path.join(cwd, 'app', 'src', 'main', 'AndroidManifest.xml'), 'utf8'),
+}, null, 2));
+process.exit(0);
+`,
+  );
+  chmodSync(gradlew, 0o755);
+  return { root, recordPath };
+}
+
+function writeFakeLoveIos(dir) {
+  const root = join(dir, 'love-ios');
+  const projectDir = join(root, 'platform', 'xcode', 'love.xcodeproj');
+  mkdirSync(projectDir, { recursive: true });
+  writeFileSync(
+    join(projectDir, 'project.pbxproj'),
+    `// !$*UTF8*$!
+{
+/* Begin PBXBuildFile section */
+/* End PBXBuildFile section */
+/* Begin PBXFileReference section */
+/* End PBXFileReference section */
+    1234567890ABCDEF00000001 /* Resources */ = {
+        isa = PBXResourcesBuildPhase;
+        files = (
+        );
+    };
+}
+`,
+  );
+  return root;
+}
+
 function writeBuildConfig(dir, config) {
   writeFileSync(join(dir, 'feather.build.json'), `${JSON.stringify(config, null, 2)}\n`);
 }
@@ -609,12 +681,118 @@ process.exit(0);
   assert.ok(record.argv.includes('Desktop Game'));
 });
 
-test('build: unsupported mobile targets fail with planned-support guidance', () => {
+test('build android: injects game.love, runs Gradle, copies APK, and writes manifest', () => {
   const dir = makeTmp();
   writeGame(dir);
+  const { recordPath } = writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Mobile Game',
+    version: '1.2.3',
+    productId: 'com.example.mobilegame',
+    targets: {
+      android: {
+        loveAndroidDir: 'love-android',
+        displayName: 'Mobile Game Dev',
+        orientation: 'landscape',
+        recordAudio: true,
+        versionCode: 7,
+        versionName: '1.2.3-dev',
+      },
+    },
+  });
+
   const result = run(['build', 'android', '--dir', dir, '--json']);
-  assert.equal(result.exitCode, 1);
-  assert.ok(outputOf(result).includes('planned but not supported yet'));
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.target, 'android');
+  assert.equal(existsSync(join(dir, 'builds', 'mobile-game-1.2.3.love')), true);
+  assert.equal(existsSync(join(dir, 'builds', 'mobile-game-1.2.3-android.apk')), true);
+  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'apk'), true);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.deepEqual(record.argv, ['assembleEmbedRecordDebug']);
+  assert.equal(record.embeddedLoveExists, true);
+  assert.ok(record.gradle.includes('applicationId "com.example.mobilegame"'));
+  assert.ok(record.gradle.includes('versionCode 7'));
+  assert.ok(record.gradle.includes('versionName "1.2.3-dev"'));
+  assert.ok(record.manifest.includes('android:label="Mobile Game Dev"'));
+  assert.ok(record.manifest.includes('android:screenOrientation="landscape"'));
+  assert.ok(record.manifest.includes('android.permission.RECORD_AUDIO'));
+  const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
+  assert.equal(manifest.target, 'android');
+  assert.equal(manifest.artifacts.some((artifact) => artifact.type === 'apk'), true);
+});
+
+test('build ios: injects game.love, runs xcodebuild, copies app, and writes manifest', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'iOS Game',
+    version: '5.0.0',
+    targets: {
+      ios: {
+        loveIosDir: 'love-ios',
+        bundleIdentifier: 'com.example.iosgame',
+        displayName: 'iOS Game Dev',
+      },
+    },
+  });
+  const recordPath = join(dir, 'xcodebuild-record.json');
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+if (process.argv.includes('-version')) {
+  console.log('Xcode 99.0');
+  process.exit(0);
+}
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+const derivedData = args[args.indexOf('-derivedDataPath') + 1];
+const app = path.join(derivedData, 'Build', 'Products', 'Debug-iphonesimulator', 'love-ios.app');
+fs.mkdirSync(app, { recursive: true });
+fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
+  argv: args,
+  gameLoveExists: fs.existsSync(path.join(process.cwd(), 'platform', 'xcode', 'game.love')),
+  projectContainsGameLove: fs.readFileSync(path.join(process.cwd(), 'platform', 'xcode', 'love.xcodeproj', 'project.pbxproj'), 'utf8').includes('game.love'),
+}, null, 2));
+process.exit(0);
+`);
+
+  const result = run(['build', 'ios', '--dir', dir, '--json'], { env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.target, 'ios');
+  assert.equal(existsSync(join(dir, 'builds', 'ios-game-5.0.0.love')), true);
+  assert.equal(existsSync(join(dir, 'builds', 'ios-game-5.0.0-ios.app')), true);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(record.argv.includes('-scheme'));
+  assert.ok(record.argv.includes('love-ios'));
+  assert.ok(record.argv.includes('-sdk'));
+  assert.ok(record.argv.includes('iphonesimulator'));
+  assert.ok(record.argv.includes('PRODUCT_BUNDLE_IDENTIFIER=com.example.iosgame'));
+  assert.ok(record.argv.includes('INFOPLIST_KEY_CFBundleDisplayName=iOS Game Dev'));
+  assert.equal(record.gameLoveExists, true);
+  assert.equal(record.projectContainsGameLove, true);
+  const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
+  assert.equal(manifest.target, 'ios');
+  assert.equal(manifest.artifacts.some((artifact) => artifact.type === 'app'), true);
+});
+
+test('build mobile: missing native template paths fail with actionable errors', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+
+  const android = run(['build', 'android', '--dir', dir, '--json']);
+  assert.equal(android.exitCode, 1);
+  assert.ok(outputOf(android).includes('targets.android.loveAndroidDir'));
+
+  const ios = run(['build', 'ios', '--dir', dir, '--json'], { env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_TEST_ALLOW_IOS_BUILD: '1' } });
+  assert.equal(ios.exitCode, 1);
+  assert.ok(outputOf(ios).includes('targets.ios.loveIosDir'));
 });
 
 test('build: production preflight blocks unsafe Feather config unless explicitly allowed', () => {
@@ -730,6 +908,71 @@ test('doctor: build and upload target checks report missing and configured depen
   assert.equal(labels.get('love.js player')?.severity, 'pass');
   assert.equal(labels.get('butler')?.severity, 'pass');
   assert.equal(labels.get('BUTLER_API_KEY')?.severity, 'pass');
+});
+
+test('doctor: android build target reports template and local tool setup', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Android Doctor Game', version: '1.0.0' });
+  const { parsed: missing } = parseDoctorJsonResult(dir, ['--build-target', 'android']);
+  const missingLabels = new Map(missing.checks.map((check) => [check.label, check]));
+  assert.equal(missingLabels.get('love-android template')?.severity, 'fail');
+  assert.equal(missingLabels.get('Android Gradle wrapper')?.severity, 'fail');
+  assert.ok(missingLabels.get('love-android template')?.fix.includes('targets.android.loveAndroidDir'));
+
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Android Doctor Game',
+    version: '1.0.0',
+    productId: 'com.example.androiddoctor',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+  const { binDir } = writeFakeCommand(dir, 'java', `console.error('java version "17.0.0"'); process.exit(0);`);
+  const configured = run(['doctor', dir, '--json', '--build-target', 'android'], {
+    env: envWithPath(binDir, { ANDROID_HOME: join(dir, 'android-sdk') }),
+  });
+  assert.equal(configured.stdout.trim().startsWith('{'), true, outputOf(configured));
+  const parsed = JSON.parse(configured.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('love-android template')?.severity, 'pass');
+  assert.equal(labels.get('Android Gradle wrapper')?.severity, 'pass');
+  assert.equal(labels.get('JDK')?.severity, 'pass');
+  assert.equal(labels.get('Android SDK')?.severity, 'pass');
+  assert.equal(labels.get('Android product id')?.severity, 'pass');
+  assert.equal(labels.get('Android signing')?.severity, 'warn');
+});
+
+test('doctor: ios build target reports platform, template, Xcode, and signing hints', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'iOS Doctor Game', version: '1.0.0' });
+  const { parsed: missing } = parseDoctorJsonResult(dir, ['--build-target', 'ios']);
+  const missingLabels = new Map(missing.checks.map((check) => [check.label, check]));
+  assert.equal(missingLabels.get('LÖVE iOS template')?.severity, 'fail');
+  assert.equal(missingLabels.get('LÖVE iOS Xcode project')?.severity, 'fail');
+
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'iOS Doctor Game',
+    version: '1.0.0',
+    targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.iosdoctor' } },
+  });
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `console.log('Xcode 99.0'); process.exit(0);`);
+  const configured = run(['doctor', dir, '--json', '--build-target', 'ios'], { env: envWithPath(binDir) });
+  assert.equal(configured.stdout.trim().startsWith('{'), true, outputOf(configured));
+  const parsed = JSON.parse(configured.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('xcodebuild')?.severity, 'pass');
+  assert.equal(labels.get('LÖVE iOS template')?.severity, 'pass');
+  assert.equal(labels.get('LÖVE iOS Xcode project')?.severity, 'pass');
+  assert.equal(labels.get('iOS bundle id')?.severity, 'pass');
+  assert.equal(labels.get('iOS signing team')?.severity, 'warn');
+  if (process.platform === 'darwin') {
+    assert.equal(labels.get('macOS host')?.severity, 'pass');
+  } else {
+    assert.equal(labels.get('macOS host')?.severity, 'fail');
+    assert.equal(configured.exitCode, 1, outputOf(configured));
+  }
 });
 
 test('command runtime redacts API keys from compact and debug errors', async () => {

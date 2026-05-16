@@ -119,7 +119,7 @@ feather build web --dir path/to/my-game --json
 feather upload itch web --dir path/to/my-game --dry-run --json
 ```
 
-Web builds package a local love.js player; desktop targets delegate packaging to `love-release`; Itch uploads use Butler. Android, iOS, and Steam upload are intentionally planned-support paths until their release flows are hardened.
+Web builds package a local love.js player; Android and iOS create dev artifacts from configured local LÖVE native templates; desktop targets delegate packaging to `love-release`; Itch uploads use Butler. Signed mobile releases and Steam upload are intentionally later phases until those release flows are hardened.
 
 ---
 

@@ -333,28 +333,48 @@ Doctor passed with 1 warning.
 
 ### `feather build <target>`
 
-Build a LÖVE game into local release artifacts. V1 supports `web`, `windows`, `macos`, `linux`, and `steamos`; `android` and `ios` are registered so scripts can target the stable command surface, but they currently return planned-support errors.
+Build a LÖVE game into local release artifacts. V1 supports `web`, `android`, `ios`, `windows`, `macos`, `linux`, and `steamos`. Android and iOS support creates development artifacts from local native template checkouts; signed release APK/AAB, IPA export, notarization, and store upload are later phases.
 
 ```bash
 feather build web --dir path/to/my-game
+feather build android --dir path/to/my-game
+feather build ios --dir path/to/my-game
 feather build linux --dir path/to/my-game
 feather build steamos --dir path/to/my-game --json
 feather build web --dry-run
 feather build web --allow-unsafe
 ```
 
-Builds read `feather.build.json` from the project root. Missing config is allowed for simple desktop builds, but web builds need a local love.js player directory and uploads need store metadata.
+Builds read `feather.build.json` from the project root. Missing config is allowed for simple desktop builds, but web builds need a local love.js player directory, mobile builds need local LÖVE native template paths, and uploads need store metadata.
 
 ```json
 {
   "name": "My Game",
   "version": "1.0.0",
+  "productId": "com.example.mygame",
+  "company": "Example Studio",
+  "website": "https://example.com",
   "sourceDir": ".",
   "outDir": "builds",
   "exclude": ["screenshots/**", "tmp/**"],
   "targets": {
     "web": {
       "loveJsDir": "vendor/love.js"
+    },
+    "android": {
+      "loveAndroidDir": "vendor/love-android",
+      "displayName": "My Game",
+      "orientation": "landscape",
+      "recordAudio": false,
+      "versionCode": 1,
+      "versionName": "1.0.0"
+    },
+    "ios": {
+      "loveIosDir": "vendor/love-ios",
+      "bundleIdentifier": "com.example.mygame",
+      "displayName": "My Game",
+      "scheme": "love-ios",
+      "sdk": "iphonesimulator"
     }
   },
   "upload": {
@@ -376,6 +396,8 @@ Build behavior:
 - runs a production safety preflight unless `--allow-unsafe` is passed
 - writes `feather-build-manifest.json` in the output directory
 - packages `web` by copying the configured love.js player, adding `game.love`, patching the page title/game URL, and creating an HTML zip
+- packages `android` by copying a configured love-android checkout, embedding `game.love`, patching obvious app metadata, running Gradle, and copying the APK
+- packages `ios` on macOS by copying a configured LÖVE iOS source tree, embedding `game.love`, running `xcodebuild`, and copying the `.app`
 - delegates desktop targets to `love-release`; `steamos` uses the Linux packaging path with Steam-friendly target naming
 
 **Options:**

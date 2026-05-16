@@ -20,7 +20,7 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 - 🖼️ **Asset inspector** — Browse loaded textures, fonts, and audio sources with previews, zoom, pan, and pixel grid.
 - 📁 **Log file viewer** — Open `.featherlog` files for offline inspection.
 - 🖥️ **CLI-first workflow** — `feather init`, `feather run`, and `feather remove` manage setup and cleanup.
-- 🚢 **Build/upload helpers** — `feather build` creates local web/desktop release artifacts and `feather upload itch` pushes them with Butler.
+- 🚢 **Build/upload helpers** — `feather build` creates local web, mobile dev, and desktop artifacts and `feather upload itch` pushes them with Butler.
 - ⚡ **Guarded in-game setup** — Generated imports load only when `USE_DEBUGGER` is enabled.
 - 📦 **Config file support** — `feather.config.lua` keeps project settings outside game code.
 

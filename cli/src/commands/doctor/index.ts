@@ -196,6 +196,117 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             loveJsDir ?? 'not configured',
             'Set targets.web.loveJsDir in feather.build.json to a local love.js checkout or build output.',
           );
+        } else if (opts.buildTarget === 'android') {
+          const androidConfig = buildConfig.targets.android ?? {};
+          const loveAndroidDir = androidConfig.loveAndroidDir ? resolve(projectDir, androidConfig.loveAndroidDir) : '';
+          const hasLoveAndroidDir = Boolean(loveAndroidDir && existsSync(loveAndroidDir));
+          add(
+            checks,
+            'Build',
+            'love-android template',
+            hasLoveAndroidDir ? 'pass' : 'fail',
+            androidConfig.loveAndroidDir ?? 'not configured',
+            'Set targets.android.loveAndroidDir in feather.build.json to a local love-android checkout.',
+          );
+          const gradleWrapper = hasLoveAndroidDir && (existsSync(join(loveAndroidDir, 'gradlew')) || existsSync(join(loveAndroidDir, 'gradlew.bat')));
+          add(
+            checks,
+            'Build',
+            'Android Gradle wrapper',
+            gradleWrapper ? 'pass' : 'fail',
+            gradleWrapper ? loveAndroidDir : 'not found',
+            'Use a love-android checkout that includes gradlew, or restore the Gradle wrapper files.',
+          );
+          const java = commandVersion('java', ['-version']);
+          add(
+            checks,
+            'Build',
+            'JDK',
+            java ? 'pass' : 'fail',
+            java ?? 'not found',
+            'Install a JDK compatible with the configured Android Gradle Plugin and make sure java is on PATH.',
+          );
+          const androidSdk = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT;
+          add(
+            checks,
+            'Build',
+            'Android SDK',
+            androidSdk ? 'pass' : 'fail',
+            androidSdk ?? 'ANDROID_HOME/ANDROID_SDK_ROOT missing',
+            'Install Android SDK command-line tools and set ANDROID_HOME or ANDROID_SDK_ROOT.',
+          );
+          const productId = androidConfig.productId ?? buildConfig.productId;
+          add(
+            checks,
+            'Build',
+            'Android product id',
+            productId ? 'pass' : 'warn',
+            productId ?? 'missing',
+            'Set productId or targets.android.productId in feather.build.json.',
+          );
+          add(
+            checks,
+            'Build',
+            'Android signing',
+            'warn',
+            'debug/dev build',
+            'Signed release APK/AAB support is a later phase; use native Android signing for store releases.',
+          );
+        } else if (opts.buildTarget === 'ios') {
+          const iosConfig = buildConfig.targets.ios ?? {};
+          const loveIosDir = iosConfig.loveIosDir ? resolve(projectDir, iosConfig.loveIosDir) : '';
+          const hasLoveIosDir = Boolean(loveIosDir && existsSync(loveIosDir));
+          add(
+            checks,
+            'Build',
+            'macOS host',
+            process.platform === 'darwin' ? 'pass' : 'fail',
+            process.platform,
+            'iOS builds require macOS with Xcode.',
+          );
+          const xcodebuild = commandVersion('xcodebuild', ['-version']);
+          add(
+            checks,
+            'Build',
+            'xcodebuild',
+            xcodebuild ? 'pass' : 'fail',
+            xcodebuild ?? 'not found',
+            'Install Xcode and command line tools, then run `xcode-select --install` if needed.',
+          );
+          add(
+            checks,
+            'Build',
+            'LÖVE iOS template',
+            hasLoveIosDir ? 'pass' : 'fail',
+            iosConfig.loveIosDir ?? 'not configured',
+            'Set targets.ios.loveIosDir in feather.build.json to a local LÖVE iOS source checkout.',
+          );
+          const xcodeProject = hasLoveIosDir && existsSync(join(loveIosDir, 'platform', 'xcode', 'love.xcodeproj'));
+          add(
+            checks,
+            'Build',
+            'LÖVE iOS Xcode project',
+            xcodeProject ? 'pass' : 'fail',
+            xcodeProject ? join(loveIosDir, 'platform', 'xcode', 'love.xcodeproj') : 'not found',
+            'Use a LÖVE iOS source tree that includes platform/xcode/love.xcodeproj.',
+          );
+          const bundleId = iosConfig.bundleIdentifier ?? iosConfig.productId ?? buildConfig.productId;
+          add(
+            checks,
+            'Build',
+            'iOS bundle id',
+            bundleId ? 'pass' : 'warn',
+            bundleId ?? 'missing',
+            'Set productId, targets.ios.productId, or targets.ios.bundleIdentifier in feather.build.json.',
+          );
+          add(
+            checks,
+            'Build',
+            'iOS signing team',
+            iosConfig.teamId ? 'pass' : 'warn',
+            iosConfig.teamId ?? 'missing',
+            'Set targets.ios.teamId for device builds; simulator debug builds can usually omit it.',
+          );
         } else if (isSupportedBuildTarget(opts.buildTarget)) {
           const loveRelease = commandVersion('love-release', ['--version']);
           add(
