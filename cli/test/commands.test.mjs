@@ -149,6 +149,7 @@ function writeFakeLoveJs(dir) {
 function writeFakeLoveAndroid(dir, options = {}) {
   const recordPath = options.recordPath ?? join(dir, 'gradle-record.json');
   const apkRel = options.apkRel ?? 'app/build/outputs/apk/embed/debug/app-embed-debug.apk';
+  const aabRel = options.aabRel ?? 'app/build/outputs/bundle/embedRelease/app-embed-release.aab';
   const manifestPermission = options.recordAudioPermission
     ? '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
     : '';
@@ -188,12 +189,23 @@ const cwd = process.cwd();
 const apk = path.join(cwd, ${JSON.stringify(apkRel)});
 fs.mkdirSync(path.dirname(apk), { recursive: true });
 fs.writeFileSync(apk, 'fake apk');
-fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
+const aab = path.join(cwd, ${JSON.stringify(aabRel)});
+fs.mkdirSync(path.dirname(aab), { recursive: true });
+fs.writeFileSync(aab, 'fake aab');
+const previous = fs.existsSync(${JSON.stringify(recordPath)})
+  ? JSON.parse(fs.readFileSync(${JSON.stringify(recordPath)}, 'utf8'))
+  : { records: [] };
+const entry = {
   argv: process.argv.slice(2),
   embeddedLoveExists: fs.existsSync(path.join(cwd, 'app', 'src', 'embed', 'assets', 'game.love')),
   gradle: fs.readFileSync(path.join(cwd, 'app', 'build.gradle'), 'utf8'),
   manifest: fs.readFileSync(path.join(cwd, 'app', 'src', 'main', 'AndroidManifest.xml'), 'utf8'),
-}, null, 2));
+  signingProperties: fs.existsSync(path.join(cwd, 'feather-signing.properties'))
+    ? fs.readFileSync(path.join(cwd, 'feather-signing.properties'), 'utf8')
+    : '',
+};
+previous.records.push(entry);
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ ...entry, records: previous.records }, null, 2));
 process.exit(0);
 `,
   );
@@ -715,6 +727,22 @@ test('build validation: rejects bad mobile config values and unsafe native paths
     'targets.android.orientation',
     'targets.android.gradleTask',
   ]);
+  const androidReleaseIssues = validateAndroidBuildConfig({
+    ...baseConfig,
+    targets: {
+      android: {
+        release: {
+          bundleTask: 'bundle release',
+          apkArtifactPath: '',
+          storePasswordEnv: '1BAD_ENV',
+          keyPasswordEnv: 'GOOD_ENV',
+        },
+      },
+    },
+  }, true);
+  assert.ok(androidReleaseIssues.some((issue) => issue.field === 'targets.android.release.bundleTask'));
+  assert.ok(androidReleaseIssues.some((issue) => issue.field === 'targets.android.release.apkArtifactPath'));
+  assert.ok(androidReleaseIssues.some((issue) => issue.field === 'targets.android.release.storePasswordEnv'));
 
   const iosIssues = validateIosBuildConfig({
     ...baseConfig,
@@ -725,7 +753,25 @@ test('build validation: rejects bad mobile config values and unsafe native paths
     'targets.ios.scheme',
     'targets.ios.derivedDataPath',
   ]);
+  const iosReleaseIssues = validateIosBuildConfig({
+    ...baseConfig,
+    targets: { ios: { release: { exportMethod: 'side-load', signingStyle: 'sometimes', teamId: 'BAD TEAM' } } },
+  }, true);
+  assert.ok(iosReleaseIssues.some((issue) => issue.field === 'targets.ios.release.exportMethod'));
+  assert.ok(iosReleaseIssues.some((issue) => issue.field === 'targets.ios.release.signingStyle'));
+  assert.ok(iosReleaseIssues.some((issue) => issue.field === 'targets.ios.release.teamId'));
   assert.throws(() => resolveWorkspacePath('/tmp/native-work', '../escape.apk', 'Artifact'), /native build workspace/);
+});
+
+test('build release: non-mobile targets fail cleanly', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeBuildConfig(dir, { name: 'Web Release', version: '1.0.0', targets: { web: { loveJsDir: 'love.js' } } });
+
+  const result = run(['build', 'web', '--dir', dir, '--release', '--json']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Release mode is currently supported only for android and ios'));
 });
 
 test('build android: invalid config fails before staging or writing artifacts', () => {
@@ -819,6 +865,61 @@ test('build android: honors gradleTask, custom artifactPath, and removes microph
   assert.equal(record.manifest.includes('android.permission.INTERNET'), true);
 });
 
+test('build android --release: runs bundle/apk tasks, copies artifacts, and keeps signing secrets out of output', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'release.keystore'), 'fake keystore');
+  const { recordPath } = writeFakeLoveAndroid(dir, {
+    recordAudioPermission: true,
+    aabRel: 'app/build/outputs/custom/store-release.aab',
+    apkRel: 'app/build/outputs/custom/store-release.apk',
+  });
+  writeBuildConfig(dir, {
+    name: 'Store Android',
+    version: '3.0.0',
+    productId: 'com.example.storeandroid',
+    targets: {
+      android: {
+        loveAndroidDir: 'love-android',
+        recordAudio: true,
+        release: {
+          bundleTask: ':app:bundleStoreRelease',
+          apkTask: ':app:assembleStoreRelease',
+          bundleArtifactPath: 'app/build/outputs/custom/store-release.aab',
+          apkArtifactPath: 'app/build/outputs/custom/store-release.apk',
+          keystorePath: 'release.keystore',
+          keyAlias: 'release-key',
+          storePasswordEnv: 'FEATHER_TEST_STORE_PASSWORD',
+          keyPasswordEnv: 'FEATHER_TEST_KEY_PASSWORD',
+        },
+      },
+    },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--release', '--json'], {
+    env: {
+      ...process.env,
+      NO_COLOR: '1',
+      FORCE_COLOR: '0',
+      FEATHER_TEST_STORE_PASSWORD: 'store-secret',
+      FEATHER_TEST_KEY_PASSWORD: 'key-secret',
+    },
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  assert.equal(outputOf(result).includes('store-secret'), false);
+  assert.equal(outputOf(result).includes('key-secret'), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'aab'), true);
+  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'apk'), true);
+  assert.equal(existsSync(join(dir, 'builds', 'store-android-3.0.0-android.aab')), true);
+  assert.equal(existsSync(join(dir, 'builds', 'store-android-3.0.0-android.apk')), true);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.deepEqual(record.records.map((entry) => entry.argv[0]), [':app:bundleStoreRelease', ':app:assembleStoreRelease']);
+  assert.ok(record.signingProperties.includes('keyAlias=release-key'));
+  assert.ok(record.signingProperties.includes('storePassword=store-secret'));
+});
+
 test('build ios: invalid bundle id fails before xcodebuild', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -908,15 +1009,89 @@ process.exit(0);
   assert.equal(manifest.artifacts.some((artifact) => artifact.type === 'app'), true);
 });
 
+test('build ios --release: archives, exports IPA, and writes release manifest artifacts', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Release iOS',
+    version: '6.0.0',
+    targets: {
+      ios: {
+        loveIosDir: 'love-ios',
+        bundleIdentifier: 'com.example.releaseios',
+        displayName: 'Release iOS',
+        scheme: 'ReleaseGame',
+        release: {
+          archivePath: 'builds/native-release.xcarchive',
+          exportPath: 'builds/native-export',
+          exportMethod: 'app-store-connect',
+          signingStyle: 'manual',
+          provisioningProfileSpecifier: 'Release Profile',
+          teamId: 'TEAM12345',
+          configuration: 'Release',
+          sdk: 'iphoneos',
+        },
+      },
+    },
+  });
+  const recordPath = join(dir, 'xcodebuild-release-record.json');
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+if (process.argv.includes('-version')) {
+  console.log('Xcode 99.0');
+  process.exit(0);
+}
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+const previous = fs.existsSync(${JSON.stringify(recordPath)})
+  ? JSON.parse(fs.readFileSync(${JSON.stringify(recordPath)}, 'utf8'))
+  : { records: [] };
+if (args.includes('archive')) {
+  const archivePath = args[args.indexOf('-archivePath') + 1];
+  fs.mkdirSync(archivePath, { recursive: true });
+  fs.writeFileSync(path.join(archivePath, 'Info.plist'), 'fake archive');
+}
+if (args.includes('-exportArchive')) {
+  const exportPath = args[args.indexOf('-exportPath') + 1];
+  const exportOptions = args[args.indexOf('-exportOptionsPlist') + 1];
+  fs.mkdirSync(exportPath, { recursive: true });
+  fs.writeFileSync(path.join(exportPath, 'Release iOS.ipa'), 'fake ipa');
+  previous.exportOptions = fs.readFileSync(exportOptions, 'utf8');
+}
+previous.records.push({ argv: args });
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
+process.exit(0);
+`);
+
+  const result = run(['build', 'ios', '--dir', dir, '--release', '--json'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'xcarchive'), true);
+  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'ipa'), true);
+  assert.equal(existsSync(join(dir, 'builds', 'release-ios-6.0.0-ios.xcarchive')), true);
+  assert.equal(existsSync(join(dir, 'builds', 'release-ios-6.0.0-ios.ipa')), true);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(record.records[0].argv.includes('archive'));
+  assert.ok(record.records[0].argv.includes('DEVELOPMENT_TEAM=TEAM12345'));
+  assert.ok(record.records[1].argv.includes('-exportArchive'));
+  assert.ok(record.exportOptions.includes('<string>app-store-connect</string>'));
+  assert.ok(record.exportOptions.includes('<string>manual</string>'));
+  assert.ok(record.exportOptions.includes('Release Profile'));
+});
+
 test('build mobile: missing native template paths fail with actionable errors', () => {
   const dir = makeTmp();
   writeGame(dir);
 
-  const android = run(['build', 'android', '--dir', dir, '--json']);
+  const android = run(['build', 'android', '--dir', dir, '--allow-unsafe', '--json']);
   assert.equal(android.exitCode, 1);
   assert.ok(outputOf(android).includes('targets.android.loveAndroidDir'));
 
-  const ios = run(['build', 'ios', '--dir', dir, '--json'], { env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_TEST_ALLOW_IOS_BUILD: '1' } });
+  const ios = run(['build', 'ios', '--dir', dir, '--allow-unsafe', '--json'], { env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_TEST_ALLOW_IOS_BUILD: '1' } });
   assert.equal(ios.exitCode, 1);
   assert.ok(outputOf(ios).includes('targets.ios.loveIosDir'));
 });
@@ -1102,6 +1277,36 @@ test('doctor: mobile build target reports config validation failures', () => {
   assert.equal(labels.get('Android product id')?.severity, 'fail');
 });
 
+test('doctor: android release reports missing signing environment', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeFileSync(join(dir, 'release.keystore'), 'fake keystore');
+  writeBuildConfig(dir, {
+    name: 'Doctor Android Release',
+    version: '1.0.0',
+    productId: 'com.example.doctorandroidrelease',
+    targets: {
+      android: {
+        loveAndroidDir: 'love-android',
+        release: {
+          keystorePath: 'release.keystore',
+          keyAlias: 'release-key',
+          storePasswordEnv: 'FEATHER_MISSING_STORE_PASSWORD',
+          keyPasswordEnv: 'FEATHER_MISSING_KEY_PASSWORD',
+        },
+      },
+    },
+  });
+
+  const { result, parsed } = parseDoctorJsonResult(dir, ['--build-target', 'android', '--release']);
+  assert.equal(result.exitCode, 1);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Android config')?.severity, 'pass');
+  assert.equal(labels.get('Android signing')?.severity, 'fail');
+  assert.ok(labels.get('Android signing')?.detail.includes('FEATHER_MISSING_STORE_PASSWORD'));
+});
+
 test('doctor: ios build target reports platform, template, Xcode, and signing hints', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -1133,6 +1338,35 @@ test('doctor: ios build target reports platform, template, Xcode, and signing hi
     assert.equal(labels.get('macOS host')?.severity, 'fail');
     assert.equal(configured.exitCode, 1, outputOf(configured));
   }
+});
+
+test('doctor: ios release reports export options and release signing hints', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Doctor iOS Release',
+    version: '1.0.0',
+    targets: {
+      ios: {
+        loveIosDir: 'love-ios',
+        bundleIdentifier: 'com.example.doctoriosrelease',
+        release: {
+          exportMethod: 'app-store-connect',
+          signingStyle: 'manual',
+          teamId: 'TEAM12345',
+        },
+      },
+    },
+  });
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `console.log('Xcode 99.0'); process.exit(0);`);
+  const result = run(['doctor', dir, '--json', '--build-target', 'ios', '--release'], { env: envWithPath(binDir) });
+  assert.equal(result.stdout.trim().startsWith('{'), true, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('iOS config')?.severity, 'pass');
+  assert.equal(labels.get('iOS signing team')?.severity, 'pass');
+  assert.equal(labels.get('iOS export options')?.severity, 'pass');
 });
 
 test('command runtime redacts API keys from compact and debug errors', async () => {

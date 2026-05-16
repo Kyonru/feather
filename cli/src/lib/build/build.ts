@@ -30,6 +30,7 @@ export type BuildOptions = LoadBuildConfigOptions & {
   clean?: boolean;
   dryRun?: boolean;
   allowUnsafe?: boolean;
+  release?: boolean;
 };
 
 export type BuildResult = {
@@ -81,6 +82,8 @@ export function assertProductionBuildSafe(config: ResolvedBuildConfig, allowUnsa
 
 export function planBuild(options: BuildOptions): Omit<Extract<BuildResult, { ok: true }>, 'artifacts'> & { artifacts: BuildArtifact[] } {
   const config = loadBuildConfig(options);
+  assertReleaseTargetSupported(options.target, Boolean(options.release));
+  assertBuildConfigValidForTarget(config, options.target, Boolean(options.release));
   return {
     ok: true,
     dryRun: true,
@@ -90,7 +93,7 @@ export function planBuild(options: BuildOptions): Omit<Extract<BuildResult, { ok
     name: config.name,
     version: config.version,
     files: listProjectFiles(config),
-    artifacts: plannedArtifacts(config, options.target),
+    artifacts: plannedArtifacts(config, options.target, Boolean(options.release)),
     manifestPath: latestManifestPath(config.outDir),
   };
 }
@@ -98,8 +101,9 @@ export function planBuild(options: BuildOptions): Omit<Extract<BuildResult, { ok
 export function runBuild(options: BuildOptions): BuildResult {
   try {
     assertBuildTargetSupported(options.target);
+    assertReleaseTargetSupported(options.target, Boolean(options.release));
     const config = loadBuildConfig(options);
-    assertBuildConfigValidForTarget(config, options.target);
+    assertBuildConfigValidForTarget(config, options.target, Boolean(options.release));
     assertProductionBuildSafe(config, options.allowUnsafe);
     assertNoSymlinkEscape(config.projectDir, config.outDir, 'Build output directory');
 
@@ -112,9 +116,9 @@ export function runBuild(options: BuildOptions): BuildResult {
       const artifacts = options.target === 'web'
         ? buildWeb(config, staged.dir)
         : options.target === 'android'
-          ? buildAndroid(config, staged.dir)
+          ? buildAndroid(config, staged.dir, { release: Boolean(options.release) })
           : options.target === 'ios'
-            ? buildIos(config, staged.dir)
+            ? buildIos(config, staged.dir, { release: Boolean(options.release) })
             : buildDesktop(config, options.target, staged.dir);
       const manifest: BuildManifest = {
         name: config.name,
@@ -144,7 +148,13 @@ export function runBuild(options: BuildOptions): BuildResult {
   }
 }
 
-function plannedArtifacts(config: ResolvedBuildConfig, target: BuildTarget): BuildArtifact[] {
+function assertReleaseTargetSupported(target: BuildTarget, release: boolean): void {
+  if (release && target !== 'android' && target !== 'ios') {
+    throw new Error('Release mode is currently supported only for android and ios builds.');
+  }
+}
+
+function plannedArtifacts(config: ResolvedBuildConfig, target: BuildTarget, release = false): BuildArtifact[] {
   const base = artifactBaseName(config);
   if (target === 'web') {
     return [
@@ -154,12 +164,26 @@ function plannedArtifacts(config: ResolvedBuildConfig, target: BuildTarget): Bui
     ];
   }
   if (target === 'android') {
+    if (release) {
+      return [
+        { target, type: 'love', path: join(config.outDir, `${base}.love`) },
+        { target, type: 'aab', path: join(config.outDir, `${base}-android.aab`) },
+        { target, type: 'apk', path: join(config.outDir, `${base}-android.apk`) },
+      ];
+    }
     return [
       { target, type: 'love', path: join(config.outDir, `${base}.love`) },
       { target, type: 'apk', path: join(config.outDir, `${base}-android.apk`) },
     ];
   }
   if (target === 'ios') {
+    if (release) {
+      return [
+        { target, type: 'love', path: join(config.outDir, `${base}.love`) },
+        { target, type: 'xcarchive', path: join(config.outDir, `${base}-ios.xcarchive`) },
+        { target, type: 'ipa', path: join(config.outDir, `${base}-ios.ipa`) },
+      ];
+    }
     return [
       { target, type: 'love', path: join(config.outDir, `${base}.love`) },
       { target, type: 'app', path: join(config.outDir, `${base}-ios.app`) },

@@ -23,6 +23,7 @@ export type DoctorOptions = {
   security?: boolean;
   buildTarget?: string;
   uploadTarget?: string;
+  release?: boolean;
 };
 
 export const severityOrder: Record<Severity, number> = {

@@ -26,6 +26,7 @@ export type BuildCommandOptions = {
   dryRun?: boolean;
   json?: boolean;
   allowUnsafe?: boolean;
+  release?: boolean;
 };
 
 export async function buildCommand(targetValue: string, opts: BuildCommandOptions = {}): Promise<void> {
@@ -44,6 +45,7 @@ export async function buildCommand(targetValue: string, opts: BuildCommandOption
     clean: opts.clean,
     dryRun: opts.dryRun,
     allowUnsafe: opts.allowUnsafe,
+    release: opts.release,
   });
 
   if (!result.ok) {

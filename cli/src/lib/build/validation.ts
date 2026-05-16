@@ -8,6 +8,19 @@ const IOS_BUNDLE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9-]*(\.[A-Za-z0-9][A-Za-z0-9-]*)+
 const GRADLE_TASK_RE = /^[A-Za-z0-9:_-]+$/;
 const XCODE_VALUE_RE = /^[A-Za-z0-9_. -]+$/;
 const TEAM_ID_RE = /^[A-Za-z0-9]+$/;
+const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const IOS_EXPORT_METHODS = new Set([
+  'app-store',
+  'app-store-connect',
+  'ad-hoc',
+  'enterprise',
+  'development',
+  'developer-id',
+  'mac-application',
+  'release-testing',
+  'debugging',
+]);
+const IOS_SIGNING_STYLES = new Set(['automatic', 'manual']);
 const ANDROID_ORIENTATIONS = new Set([
   'unspecified',
   'landscape',
@@ -33,14 +46,14 @@ export type BuildValidationIssue = {
   message: string;
 };
 
-export function validateBuildConfigForTarget(config: ResolvedBuildConfig, target: BuildTarget): BuildValidationIssue[] {
-  if (target === 'android') return validateAndroidBuildConfig(config);
-  if (target === 'ios') return validateIosBuildConfig(config);
+export function validateBuildConfigForTarget(config: ResolvedBuildConfig, target: BuildTarget, release = false): BuildValidationIssue[] {
+  if (target === 'android') return validateAndroidBuildConfig(config, release);
+  if (target === 'ios') return validateIosBuildConfig(config, release);
   return [];
 }
 
-export function assertBuildConfigValidForTarget(config: ResolvedBuildConfig, target: BuildTarget): void {
-  const issues = validateBuildConfigForTarget(config, target);
+export function assertBuildConfigValidForTarget(config: ResolvedBuildConfig, target: BuildTarget, release = false): void {
+  const issues = validateBuildConfigForTarget(config, target, release);
   if (issues.length === 0) return;
   throw new Error([
     `Invalid ${target} build config.`,
@@ -48,8 +61,9 @@ export function assertBuildConfigValidForTarget(config: ResolvedBuildConfig, tar
   ].join('\n'));
 }
 
-export function validateAndroidBuildConfig(config: ResolvedBuildConfig): BuildValidationIssue[] {
+export function validateAndroidBuildConfig(config: ResolvedBuildConfig, release = false): BuildValidationIssue[] {
   const android = config.targets.android ?? {};
+  const releaseConfig = android.release ?? {};
   const issues: BuildValidationIssue[] = [];
   const productId = android.productId ?? config.productId ?? defaultProductId(config, 'android');
   if (!ANDROID_PRODUCT_ID_RE.test(productId)) {
@@ -90,11 +104,59 @@ export function validateAndroidBuildConfig(config: ResolvedBuildConfig): BuildVa
   if (android.artifactPath !== undefined) {
     validateRelativePathish(android.artifactPath, 'targets.android.artifactPath', 'android', issues);
   }
+  if (release) {
+    for (const [field, value] of [
+      ['targets.android.release.bundleTask', releaseConfig.bundleTask],
+      ['targets.android.release.apkTask', releaseConfig.apkTask],
+    ] as const) {
+      if (value !== undefined && (!isNonEmptySingleLine(value) || !GRADLE_TASK_RE.test(value))) {
+        issues.push({
+          target: 'android',
+          field,
+          message: 'Use a Gradle task name containing only letters, numbers, colon, underscore, or dash.',
+        });
+      }
+    }
+    for (const [field, value] of [
+      ['targets.android.release.bundleArtifactPath', releaseConfig.bundleArtifactPath],
+      ['targets.android.release.apkArtifactPath', releaseConfig.apkArtifactPath],
+      ['targets.android.release.keystorePath', releaseConfig.keystorePath],
+    ] as const) {
+      if (value !== undefined) validateRelativePathish(value, field, 'android', issues);
+    }
+    const signingFields = [
+      releaseConfig.keystorePath,
+      releaseConfig.keyAlias,
+      releaseConfig.storePasswordEnv,
+      releaseConfig.keyPasswordEnv,
+    ];
+    if (signingFields.some((value) => value !== undefined)) {
+      for (const [field, value] of [
+        ['targets.android.release.keystorePath', releaseConfig.keystorePath],
+        ['targets.android.release.keyAlias', releaseConfig.keyAlias],
+        ['targets.android.release.storePasswordEnv', releaseConfig.storePasswordEnv],
+        ['targets.android.release.keyPasswordEnv', releaseConfig.keyPasswordEnv],
+      ] as const) {
+        if (value === undefined || !isNonEmptySingleLine(value)) {
+          issues.push({ target: 'android', field, message: 'Required when Android release signing is configured.' });
+        }
+      }
+      for (const [field, value] of [
+        ['targets.android.release.storePasswordEnv', releaseConfig.storePasswordEnv],
+        ['targets.android.release.keyPasswordEnv', releaseConfig.keyPasswordEnv],
+      ] as const) {
+        if (value !== undefined && !ENV_NAME_RE.test(value)) {
+          issues.push({ target: 'android', field, message: 'Use a valid environment variable name.' });
+        }
+      }
+    }
+  }
   return issues;
 }
 
-export function validateIosBuildConfig(config: ResolvedBuildConfig): BuildValidationIssue[] {
+export function validateIosBuildConfig(config: ResolvedBuildConfig, release = false): BuildValidationIssue[] {
   const ios = config.targets.ios ?? {};
+  const releaseConfig = ios.release ?? {};
   const issues: BuildValidationIssue[] = [];
   const bundleId = ios.bundleIdentifier ?? ios.productId ?? config.productId ?? defaultProductId(config, 'ios');
   if (!IOS_BUNDLE_ID_RE.test(bundleId)) {
@@ -132,6 +194,45 @@ export function validateIosBuildConfig(config: ResolvedBuildConfig): BuildValida
         target: 'ios',
         field: 'targets.ios.derivedDataPath',
         message: (err as Error).message,
+      });
+    }
+  }
+  if (release) {
+    for (const [field, value] of [
+      ['targets.ios.release.archivePath', releaseConfig.archivePath],
+      ['targets.ios.release.exportPath', releaseConfig.exportPath],
+      ['targets.ios.release.exportOptionsPlist', releaseConfig.exportOptionsPlist],
+    ] as const) {
+      if (value !== undefined) validateRelativePathish(value, field, 'ios', issues);
+    }
+    for (const [field, value] of [
+      ['targets.ios.release.configuration', releaseConfig.configuration],
+      ['targets.ios.release.sdk', releaseConfig.sdk],
+      ['targets.ios.release.provisioningProfileSpecifier', releaseConfig.provisioningProfileSpecifier],
+    ] as const) {
+      if (value !== undefined && (!isNonEmptySingleLine(value) || !XCODE_VALUE_RE.test(value))) {
+        issues.push({ target: 'ios', field, message: 'Use a non-empty Xcode value without shell metacharacters.' });
+      }
+    }
+    if (releaseConfig.teamId !== undefined && (!isNonEmptySingleLine(releaseConfig.teamId) || !TEAM_ID_RE.test(releaseConfig.teamId))) {
+      issues.push({
+        target: 'ios',
+        field: 'targets.ios.release.teamId',
+        message: 'Use an Apple team id containing only letters and numbers.',
+      });
+    }
+    if (releaseConfig.exportMethod !== undefined && !IOS_EXPORT_METHODS.has(releaseConfig.exportMethod)) {
+      issues.push({
+        target: 'ios',
+        field: 'targets.ios.release.exportMethod',
+        message: `Use one of: ${[...IOS_EXPORT_METHODS].join(', ')}.`,
+      });
+    }
+    if (releaseConfig.signingStyle !== undefined && !IOS_SIGNING_STYLES.has(releaseConfig.signingStyle)) {
+      issues.push({
+        target: 'ios',
+        field: 'targets.ios.release.signingStyle',
+        message: 'Use automatic or manual.',
       });
     }
   }

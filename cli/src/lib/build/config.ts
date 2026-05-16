@@ -20,6 +20,16 @@ export type AndroidBuildTargetConfig = {
   versionName?: string;
   gradleTask?: string;
   artifactPath?: string;
+  release?: {
+    bundleTask?: string;
+    apkTask?: string;
+    bundleArtifactPath?: string;
+    apkArtifactPath?: string;
+    keystorePath?: string;
+    keyAlias?: string;
+    storePasswordEnv?: string;
+    keyPasswordEnv?: string;
+  };
 };
 
 export type IosBuildTargetConfig = {
@@ -32,6 +42,17 @@ export type IosBuildTargetConfig = {
   sdk?: string;
   derivedDataPath?: string;
   teamId?: string;
+  release?: {
+    archivePath?: string;
+    exportPath?: string;
+    exportOptionsPlist?: string;
+    exportMethod?: string;
+    signingStyle?: string;
+    provisioningProfileSpecifier?: string;
+    teamId?: string;
+    configuration?: string;
+    sdk?: string;
+  };
 };
 
 export type FeatherBuildConfig = {

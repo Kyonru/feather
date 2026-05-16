@@ -333,12 +333,14 @@ Doctor passed with 1 warning.
 
 ### `feather build <target>`
 
-Build a LÖVE game into local release artifacts. V1 supports `web`, `android`, `ios`, `windows`, `macos`, `linux`, and `steamos`. Android and iOS support creates development artifacts from local native template checkouts; signed release APK/AAB, IPA export, notarization, and store upload are later phases.
+Build a LÖVE game into local artifacts. V1 supports `web`, `android`, `ios`, `windows`, `macos`, `linux`, and `steamos`. Android and iOS default to development builds from local native template checkouts; `--release` produces signed/store-oriented mobile artifacts. Notarization, Play Console/App Store upload, and Steam upload are later phases.
 
 ```bash
 feather build web --dir path/to/my-game
 feather build android --dir path/to/my-game
+feather build android --dir path/to/my-game --release
 feather build ios --dir path/to/my-game
+feather build ios --dir path/to/my-game --release
 feather build linux --dir path/to/my-game
 feather build steamos --dir path/to/my-game --json
 feather build web --dry-run
@@ -367,14 +369,29 @@ Builds read `feather.build.json` from the project root. Missing config is allowe
       "orientation": "landscape",
       "recordAudio": false,
       "versionCode": 1,
-      "versionName": "1.0.0"
+      "versionName": "1.0.0",
+      "release": {
+        "bundleTask": "bundleEmbedNoRecordRelease",
+        "apkTask": "assembleEmbedNoRecordRelease",
+        "keystorePath": "signing/release.keystore",
+        "keyAlias": "release",
+        "storePasswordEnv": "ANDROID_STORE_PASSWORD",
+        "keyPasswordEnv": "ANDROID_KEY_PASSWORD"
+      }
     },
     "ios": {
       "loveIosDir": "vendor/love-ios",
       "bundleIdentifier": "com.example.mygame",
       "displayName": "My Game",
       "scheme": "love-ios",
-      "sdk": "iphonesimulator"
+      "sdk": "iphonesimulator",
+      "teamId": "ABCDE12345",
+      "release": {
+        "exportMethod": "app-store-connect",
+        "signingStyle": "manual",
+        "provisioningProfileSpecifier": "My Game App Store",
+        "teamId": "ABCDE12345"
+      }
     }
   },
   "upload": {
@@ -398,6 +415,8 @@ Build behavior:
 - packages `web` by copying the configured love.js player, adding `game.love`, patching the page title/game URL, and creating an HTML zip
 - packages `android` by copying a configured love-android checkout, embedding `game.love`, patching obvious app metadata, running Gradle, and copying the APK
 - packages `ios` on macOS by copying a configured LÖVE iOS source tree, embedding `game.love`, running `xcodebuild`, and copying the `.app`
+- `--release` on Android produces `.aab` and `.apk` artifacts; signing passwords are read from environment variables named in config
+- `--release` on iOS produces `.xcarchive` and `.ipa` artifacts through `xcodebuild archive` and `-exportArchive`
 - delegates desktop targets to `love-release`; `steamos` uses the Linux packaging path with Steam-friendly target naming
 
 **Options:**
@@ -413,6 +432,7 @@ Build behavior:
 | `--dry-run`         | Show planned files/artifacts without writing them.                |
 | `--json`            | Print machine-readable output only.                               |
 | `--allow-unsafe`    | Skip the production safety preflight for intentional dev builds.  |
+| `--release`         | Build Android/iOS release artifacts instead of dev artifacts.     |
 
 Run `feather doctor --build-target <target>` to see missing local dependencies and exact setup guidance before building.
 
@@ -420,9 +440,9 @@ Mobile build notes:
 
 - Android builds expect `targets.android.loveAndroidDir` to point at a local love-android checkout with `gradlew`.
 - iOS builds expect `targets.ios.loveIosDir` to point at a local LÖVE iOS source tree with `platform/xcode/love.xcodeproj`.
-- `feather doctor --build-target android` validates product id, Gradle wrapper, JDK, and Android SDK environment.
-- `feather doctor --build-target ios` validates bundle id, macOS/Xcode setup, template path, and signing hints.
-- These are development builds; signed Android release/AAB and iOS archive/export flows are intentionally separate later work.
+- `feather doctor --build-target android --release` validates product id, Gradle wrapper, JDK, Android SDK, and signing env setup.
+- `feather doctor --build-target ios --release` validates bundle id, macOS/Xcode setup, template path, export options, and signing hints.
+- Play Console and App Store upload are not included in this pass.
 
 ---
 

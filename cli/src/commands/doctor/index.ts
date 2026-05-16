@@ -187,7 +187,17 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       );
 
       if (opts.buildTarget && isBuildTarget(opts.buildTarget)) {
-        const configIssues = validateBuildConfigForTarget(buildConfig, opts.buildTarget);
+        const configIssues = validateBuildConfigForTarget(buildConfig, opts.buildTarget, Boolean(opts.release));
+        if (opts.release && opts.buildTarget !== 'android' && opts.buildTarget !== 'ios') {
+          add(
+            checks,
+            'Build',
+            'Release mode',
+            'fail',
+            opts.buildTarget,
+            'Release mode is currently supported only for android and ios builds.',
+          );
+        }
         if (opts.buildTarget === 'android' || opts.buildTarget === 'ios') {
           add(
             checks,
@@ -260,9 +270,11 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             checks,
             'Build',
             'Android signing',
-            'warn',
-            'debug/dev build',
-            'Signed release APK/AAB support is a later phase; use native Android signing for store releases.',
+            opts.release ? androidReleaseSigningSeverity(buildConfig) : 'warn',
+            opts.release ? androidReleaseSigningDetail(buildConfig) : 'debug/dev build',
+            opts.release
+              ? androidReleaseSigningFix(buildConfig)
+              : 'Use --release to check signed AAB/APK setup.',
           );
         } else if (opts.buildTarget === 'ios') {
           const iosConfig = buildConfig.targets.ios ?? {};
@@ -315,10 +327,24 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             checks,
             'Build',
             'iOS signing team',
-            iosConfig.teamId ? 'pass' : 'warn',
-            iosConfig.teamId ?? 'missing',
-            'Set targets.ios.teamId for device builds; simulator debug builds can usually omit it.',
+            opts.release
+              ? ((iosConfig.release?.teamId ?? iosConfig.teamId) ? 'pass' : 'warn')
+              : (iosConfig.teamId ? 'pass' : 'warn'),
+            opts.release ? (iosConfig.release?.teamId ?? iosConfig.teamId ?? 'missing') : (iosConfig.teamId ?? 'missing'),
+            opts.release
+              ? 'Set targets.ios.release.teamId or targets.ios.teamId if your export requires a team.'
+              : 'Set targets.ios.teamId for device builds; simulator debug builds can usually omit it.',
           );
+          if (opts.release) {
+            add(
+              checks,
+              'Build',
+              'iOS export options',
+              iosConfig.release?.exportOptionsPlist || iosConfig.release?.exportMethod ? 'pass' : 'warn',
+              iosConfig.release?.exportOptionsPlist ?? iosConfig.release?.exportMethod ?? 'generated development export options',
+              'Set targets.ios.release.exportOptionsPlist or exportMethod for App Store/TestFlight exports.',
+            );
+          }
         } else if (isSupportedBuildTarget(opts.buildTarget)) {
           const loveRelease = commandVersion('love-release', ['--version']);
           add(
@@ -896,4 +922,43 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   if (failures.length > 0) {
     fail('', { silent: true });
   }
+}
+
+function androidReleaseSigningSeverity(buildConfig: ReturnType<typeof loadBuildConfig>): DoctorCheck['severity'] {
+  const release = buildConfig.targets.android?.release;
+  if (!release) return 'warn';
+  const signingConfigured = Boolean(release.keystorePath || release.keyAlias || release.storePasswordEnv || release.keyPasswordEnv);
+  if (!signingConfigured) return 'warn';
+  const keystorePath = release.keystorePath ? resolve(buildConfig.projectDir, release.keystorePath) : '';
+  const missingEnv = [
+    release.storePasswordEnv && process.env[release.storePasswordEnv] ? '' : release.storePasswordEnv,
+    release.keyPasswordEnv && process.env[release.keyPasswordEnv] ? '' : release.keyPasswordEnv,
+  ].filter(Boolean);
+  return missingEnv.length === 0 && release.keystorePath && existsSync(keystorePath) && release.keyAlias ? 'pass' : 'fail';
+}
+
+function androidReleaseSigningDetail(buildConfig: ReturnType<typeof loadBuildConfig>): string {
+  const release = buildConfig.targets.android?.release;
+  if (!release) return 'not configured';
+  const signingConfigured = Boolean(release.keystorePath || release.keyAlias || release.storePasswordEnv || release.keyPasswordEnv);
+  if (!signingConfigured) return 'not configured';
+  const keystorePath = release.keystorePath ? resolve(buildConfig.projectDir, release.keystorePath) : '';
+  const missing = [
+    release.keystorePath ? '' : 'keystorePath',
+    release.keystorePath && !existsSync(keystorePath) ? 'keystore file' : '',
+    release.keyAlias ? '' : 'keyAlias',
+    release.storePasswordEnv ? '' : 'storePasswordEnv',
+    release.keyPasswordEnv ? '' : 'keyPasswordEnv',
+    release.storePasswordEnv && process.env[release.storePasswordEnv] ? '' : release.storePasswordEnv,
+    release.keyPasswordEnv && process.env[release.keyPasswordEnv] ? '' : release.keyPasswordEnv,
+  ].filter(Boolean);
+  return missing.length === 0 ? 'configured' : `missing ${missing.join(', ')}`;
+}
+
+function androidReleaseSigningFix(buildConfig: ReturnType<typeof loadBuildConfig>): string {
+  const release = buildConfig.targets.android?.release;
+  if (!release || !(release.keystorePath || release.keyAlias || release.storePasswordEnv || release.keyPasswordEnv)) {
+    return 'Set targets.android.release keystore fields to create signed release artifacts.';
+  }
+  return 'Set Android signing config paths in feather.build.json and provide password environment variables in your shell or CI.';
 }

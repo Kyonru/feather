@@ -117,6 +117,7 @@ program
   .option('--security', 'Print security-focused diagnostics; use with --json for automation')
   .option('--build-target <target>', 'Check dependencies for a build target')
   .option('--upload-target <target>', 'Check dependencies for an upload target')
+  .option('--release', 'Include mobile release build checks with --build-target')
   .action((dir: string | undefined, opts) => runCliAction(() => doctorCommand(dir, {
       installDir: opts.installDir as string | undefined,
       host: opts.host as string | undefined,
@@ -126,6 +127,7 @@ program
       security: opts.security as boolean | undefined,
       buildTarget: opts.buildTarget as string | undefined,
       uploadTarget: opts.uploadTarget as string | undefined,
+      release: opts.release as boolean | undefined,
     })));
 
 program
@@ -140,6 +142,7 @@ program
   .option('--dry-run', 'Show the build plan without writing artifacts')
   .option('--json', 'Output machine-readable JSON')
   .option('--allow-unsafe', 'Allow production-unsafe Feather config during build')
+  .option('--release', 'Build signed/store-oriented mobile release artifacts')
   .action((target: string, opts) => runCliAction(() => buildCommand(target, {
       dir: opts.dir as string | undefined,
       config: opts.config as string | undefined,
@@ -150,6 +153,7 @@ program
       dryRun: opts.dryRun as boolean | undefined,
       json: opts.json as boolean | undefined,
       allowUnsafe: opts.allowUnsafe as boolean | undefined,
+      release: opts.release as boolean | undefined,
     })));
 
 program

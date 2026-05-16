@@ -66,6 +66,8 @@ feather doctor path/to/my-game --upload-target itch
 
 For mobile setup, start with `feather doctor path/to/my-game --build-target android` or `--build-target ios`. Doctor checks the native template path, product/bundle id, local build tools, and the common environment variables before the build command stages or writes artifacts.
 
+Use `feather build android --release` for Android AAB/APK release artifacts and `feather build ios --release` for iOS archive/IPA artifacts. Keep signing file paths in `feather.build.json`, but put passwords in environment variables referenced by the config so secrets are not committed or printed.
+
 For CI or release scripts that need a security-only JSON report:
 
 ```bash
