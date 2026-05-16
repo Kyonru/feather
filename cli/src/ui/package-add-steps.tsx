@@ -1,7 +1,4 @@
 import { Box, Text, useInput } from 'ink';
-import { useEffect, useState } from 'react';
-import { installCustomRepoPackage, installCustomUrlPackage } from '../lib/package/custom-add.js';
-import type { Lockfile } from '../lib/package/lockfile.js';
 import type { UrlFile } from './components.js';
 import { REPO_TOTAL, URL_TOTAL } from './package-add-helpers.js';
 
@@ -114,90 +111,6 @@ export function UrlConfirmStep({
       <Box marginTop={1}>
         <Text dimColor>{'  y/Enter = install · n/Esc = abort'}</Text>
       </Box>
-    </Box>
-  );
-}
-
-export function InstallStep({
-  id,
-  repoName,
-  tag,
-  baseUrl,
-  selectedFiles,
-  targetMap,
-  projectDir,
-  lockfile,
-  onDone,
-  onError,
-}: {
-  id: string;
-  repoName: string;
-  tag: string;
-  baseUrl: string;
-  selectedFiles: string[];
-  targetMap: Record<string, string>;
-  projectDir: string;
-  lockfile: Lockfile;
-  onDone: () => void;
-  onError: (msg: string) => void;
-}) {
-  const [current, setCurrent] = useState('');
-  useEffect(() => {
-    const run = async () => {
-      const result = await installCustomRepoPackage({
-        id,
-        repoName,
-        tag,
-        baseUrl,
-        selectedFiles,
-        targetMap,
-        projectDir,
-        lockfile,
-        onFileStart: setCurrent,
-      });
-      if (!result.ok) throw new Error(result.error ?? 'Install failed');
-      onDone();
-    };
-    run().catch((err: Error) => onError(err.message));
-  }, []);
-  return (
-    <Box flexDirection="column" paddingLeft={2}>
-      <Text color="cyan">{current ? `Installing ${current}…` : 'Installing…'}</Text>
-    </Box>
-  );
-}
-
-export function WriteStep({
-  id,
-  urlFiles,
-  projectDir,
-  lockfile,
-  onDone,
-  onError,
-}: {
-  id: string;
-  urlFiles: UrlFile[];
-  projectDir: string;
-  lockfile: Lockfile;
-  onDone: () => void;
-  onError: (msg: string) => void;
-}) {
-  useEffect(() => {
-    const run = async () => {
-      const result = await installCustomUrlPackage({
-        id,
-        urlFiles,
-        projectDir,
-        lockfile,
-      });
-      if (!result.ok) throw new Error(result.error ?? 'Install failed');
-      onDone();
-    };
-    run().catch((err: Error) => onError(err.message));
-  }, []);
-  return (
-    <Box flexDirection="column" paddingLeft={2}>
-      <Text color="cyan">Installing…</Text>
     </Box>
   );
 }

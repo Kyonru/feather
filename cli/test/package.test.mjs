@@ -828,6 +828,158 @@ function emptyLockfile() {
   return { lockfileVersion: 1, generatedAt: new Date(0).toISOString(), packages: {} };
 }
 
+function initSetupState(overrides = {}) {
+  return {
+    mode: 'auto',
+    installSource: 'local',
+    branch: 'main',
+    installDir: 'feather',
+    installPlugins: true,
+    pluginPromptsEnabled: true,
+    include: new Set(),
+    exclude: new Set(['console']),
+    advanced: false,
+    sessionName: 'My Game',
+    host: '127.0.0.1',
+    port: '4004',
+    socketModeIndex: 0,
+    baseDir: '',
+    sampleRate: '1',
+    updateInterval: '0.1',
+    maxTempLogs: '200',
+    outputDir: 'logs',
+    retryInterval: '5',
+    connectTimeout: '2',
+    errorWait: '3',
+    binaryTextThreshold: '4096',
+    deviceId: '',
+    capabilities: 'all',
+    toggles: new Set(['debug', 'wrapPrint', 'defaultObservers']),
+    needsApiKey: false,
+    apiKey: '',
+    appIdInput: 'feather-app-test',
+    ...overrides,
+  };
+}
+
+test('package add: repo plan converts to custom install input', async () => {
+  const { packageAddPlanFiles, toCustomRepoPackageInput } = await import('../dist/lib/package/add-plan.js');
+  const lockfile = emptyLockfile();
+  const plan = {
+    kind: 'repo',
+    id: 'my-pkg',
+    requirePath: 'lib.my-pkg.init',
+    repoName: 'me/pkg',
+    tag: 'v1.0.0',
+    baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+    selectedFiles: ['init.lua', 'util.lua'],
+    targetMap: { 'init.lua': 'lib/my-pkg/init.lua', 'util.lua': 'lib/my-pkg/util.lua' },
+  };
+
+  assert.deepEqual(packageAddPlanFiles(plan), [
+    { name: 'init.lua', target: 'lib/my-pkg/init.lua' },
+    { name: 'util.lua', target: 'lib/my-pkg/util.lua' },
+  ]);
+  assert.deepEqual(toCustomRepoPackageInput({ plan, projectDir: '/tmp/game', lockfile }), {
+    id: 'my-pkg',
+    repoName: 'me/pkg',
+    tag: 'v1.0.0',
+    baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+    selectedFiles: ['init.lua', 'util.lua'],
+    targetMap: { 'init.lua': 'lib/my-pkg/init.lua', 'util.lua': 'lib/my-pkg/util.lua' },
+    projectDir: '/tmp/game',
+    lockfile,
+    onFileStart: undefined,
+  });
+});
+
+test('package add: url plan converts to custom install input', async () => {
+  const { packageAddPlanFiles, toCustomUrlPackageInput } = await import('../dist/lib/package/add-plan.js');
+  const lockfile = emptyLockfile();
+  const urlFiles = [
+    {
+      name: 'helper.lua',
+      url: 'https://example.com/helper.lua',
+      sha256: sha256('return {}'),
+      target: 'lib/helper.lua',
+      buffer: Buffer.from('return {}'),
+    },
+  ];
+  const plan = { kind: 'url', id: 'helper', requirePath: 'lib.helper', urlFiles };
+
+  assert.deepEqual(packageAddPlanFiles(plan), [{ name: 'helper.lua', target: 'lib/helper.lua' }]);
+  assert.deepEqual(toCustomUrlPackageInput({ plan, projectDir: '/tmp/game', lockfile }), {
+    id: 'helper',
+    urlFiles,
+    projectDir: '/tmp/game',
+    lockfile,
+  });
+});
+
+test('package add: failed plan install does not write lockfile', async () => {
+  const dir = makeTmp();
+  const { installPackageAddPlan } = await import('../dist/lib/package/add-plan.js');
+
+  await withFetchMock(
+    async () => new Response('missing', { status: 404 }),
+    async () => {
+      const result = await installPackageAddPlan({
+        projectDir: dir,
+        lockfile: emptyLockfile(),
+        plan: {
+          kind: 'repo',
+          id: 'my-pkg',
+          requirePath: 'lib.my-pkg.init',
+          repoName: 'me/pkg',
+          tag: 'v1.0.0',
+          baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+          selectedFiles: ['init.lua'],
+          targetMap: { 'init.lua': 'lib/my-pkg/init.lua' },
+        },
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(existsSync(join(dir, 'feather.lock.json')), false);
+    },
+  );
+});
+
+test('init mode: config builder preserves cli and advanced setup values', async () => {
+  const { buildInitSetup } = await import('../dist/ui/init-mode-config.js');
+  const setup = buildInitSetup(
+    initSetupState({
+      mode: 'cli',
+      installSource: 'remote',
+      branch: 'dev',
+      installDir: '',
+      installPlugins: true,
+      include: new Set(['console']),
+      exclude: new Set(),
+      advanced: true,
+      port: '5000',
+      socketModeIndex: 1,
+      capabilities: 'logs, assets',
+      toggles: new Set(['debug', 'captureScreenshot']),
+      needsApiKey: true,
+      apiKey: 'StrongSecret123!',
+      appIdInput: '',
+    }),
+  );
+
+  assert.equal(setup.mode, 'cli');
+  assert.equal(setup.source, 'remote');
+  assert.equal(setup.branch, 'dev');
+  assert.equal(setup.installDir, 'feather');
+  assert.deepEqual(setup.config.include, ['console']);
+  assert.equal(setup.config.port, 5000);
+  assert.equal(setup.config.mode, 'disk');
+  assert.deepEqual(setup.config.capabilities, ['logs', 'assets']);
+  assert.equal(setup.config.captureScreenshot, true);
+  assert.equal(setup.config.apiKey, 'StrongSecret123!');
+  assert.deepEqual(setup.config.pluginOptions, { console: { evalEnabled: true } });
+  assert.equal(setup.config.__DANGEROUS_INSECURE_CONNECTION__, true);
+});
+
 test('custom add: repo install writes selected files and lockfile metadata', async () => {
   const dir = makeTmp();
   const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');

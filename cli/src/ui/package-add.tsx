@@ -1,5 +1,6 @@
 import { render, Text, Box, useApp } from 'ink';
 import { useState } from 'react';
+import type { PackageAddPlan } from '../lib/package/add-plan.js';
 import type { Lockfile } from '../lib/package/lockfile.js';
 import {
   type UrlFile,
@@ -14,7 +15,7 @@ import {
 import { fetchCommitSha, fetchLuaFiles } from '../lib/github.js';
 import { fileNameFromUrl } from '../lib/url.js';
 import { fetchRepoMeta, REPO_TOTAL, URL_TOTAL } from './package-add-helpers.js';
-import { DoneStep, InstallStep, RepoConfirmStep, UrlConfirmStep, WriteStep } from './package-add-steps.js';
+import { RepoConfirmStep, UrlConfirmStep } from './package-add-steps.js';
 
 type Step =
   | 'choose'
@@ -32,12 +33,9 @@ type Step =
   | 'file-more'
   | 'require'
   | 'confirm'
-  | 'install'
-  | 'write'
-  | 'done'
   | 'error';
 
-function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfile }) {
+function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: PackageAddPlan | null) => void }) {
   const { exit } = useApp();
   const [step, setStep] = useState<Step>('choose');
   const [mode, setMode] = useState<'repo' | 'url' | null>(null);
@@ -70,10 +68,10 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
     setStep('error');
   };
 
-  const doneFiles =
-    mode === 'repo'
-      ? selectedFiles.map((f) => ({ name: f, target: targetMap[f] ?? f }))
-      : urlFiles.map((f) => ({ name: f.name, target: f.target }));
+  const finishWithPlan = (plan: PackageAddPlan | null) => {
+    onPlan(plan);
+    exit();
+  };
 
   if (step === 'choose') {
     return (
@@ -259,11 +257,19 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
           tag={tag}
           selectedFiles={selectedFiles}
           targetMap={targetMap}
-          onConfirm={() => setStep('install')}
-          onAbort={() => {
-            setErrorMsg('Aborted.');
-            setStep('error');
-          }}
+          onConfirm={() =>
+            finishWithPlan({
+              kind: 'repo',
+              id,
+              requirePath,
+              repoName,
+              tag,
+              baseUrl,
+              selectedFiles,
+              targetMap,
+            })
+          }
+          onAbort={() => finishWithPlan(null)}
         />
       );
     }
@@ -271,28 +277,15 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
       <UrlConfirmStep
         id={id}
         urlFiles={urlFiles}
-        onConfirm={() => setStep('write')}
-        onAbort={() => {
-          setErrorMsg('Aborted.');
-          setStep('error');
-        }}
-      />
-    );
-  }
-
-  if (step === 'install') {
-    return (
-      <InstallStep
-        id={id}
-        repoName={repoName}
-        tag={tag}
-        baseUrl={baseUrl}
-        selectedFiles={selectedFiles}
-        targetMap={targetMap}
-        projectDir={projectDir}
-        lockfile={lockfile}
-        onDone={() => setStep('done')}
-        onError={handleError}
+        onConfirm={() =>
+          finishWithPlan({
+            kind: 'url',
+            id,
+            requirePath,
+            urlFiles,
+          })
+        }
+        onAbort={() => finishWithPlan(null)}
       />
     );
   }
@@ -373,23 +366,6 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
     );
   }
 
-  if (step === 'write') {
-    return (
-      <WriteStep
-        id={id}
-        urlFiles={urlFiles}
-        projectDir={projectDir}
-        lockfile={lockfile}
-        onDone={() => setStep('done')}
-        onError={handleError}
-      />
-    );
-  }
-
-  if (step === 'done') {
-    return <DoneStep id={id} files={doneFiles} requirePath={requirePath} onExit={exit} />;
-  }
-
   return (
     <Box flexDirection="column" paddingLeft={2} paddingTop={1}>
       <Text color="red" bold>
@@ -400,9 +376,11 @@ function Wizard({ projectDir, lockfile }: { projectDir: string; lockfile: Lockfi
   );
 }
 
-export async function showAddWizard(opts: { projectDir: string; lockfile: Lockfile }): Promise<void> {
-  const { waitUntilExit } = render(<Wizard projectDir={opts.projectDir} lockfile={opts.lockfile} />, {
+export async function showAddWizard(opts: { projectDir: string; lockfile: Lockfile }): Promise<PackageAddPlan | null> {
+  let plan: PackageAddPlan | null = null;
+  const { waitUntilExit } = render(<Wizard lockfile={opts.lockfile} onPlan={(nextPlan) => (plan = nextPlan)} />, {
     alternateScreen: true,
   });
   await waitUntilExit();
+  return plan;
 }

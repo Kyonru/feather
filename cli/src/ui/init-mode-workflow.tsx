@@ -1,382 +1,36 @@
-import React, { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Box, Text, render, useApp, useInput } from "ink";
 import { copyToClipboard } from "../lib/clipboard.js";
-import { pluginCatalog } from "../generated/plugin-catalog.js";
-
-export type InitMode = "cli" | "auto" | "manual";
-
-export type InitSetup = {
-  mode: InitMode;
-  source: "local" | "remote";
-  branch: string;
-  installDir: string;
-  installPlugins: boolean;
-  config: Record<string, unknown>;
-  exclude: string[];
-};
-
-type Phase =
-  | "mode"
-  | "installDir"
-  | "source"
-  | "branch"
-  | "sessionName"
-  | "installPlugins"
-  | "include"
-  | "exclude"
-  | "advanced"
-  | "host"
-  | "port"
-  | "modeConfig"
-  | "baseDir"
-  | "sampleRate"
-  | "updateInterval"
-  | "maxTempLogs"
-  | "outputDir"
-  | "retryInterval"
-  | "connectTimeout"
-  | "errorWait"
-  | "binaryTextThreshold"
-  | "deviceId"
-  | "capabilities"
-  | "toggles"
-  | "apiKey"
-  | "appId"
-  | "summary";
-
-type Option<T extends string = string> = {
-  value: T;
-  label: string;
-  description?: string;
-};
-
-type Tone = "info" | "success" | "warning" | "danger";
-
-type SummaryRow = {
-  id: string;
-  label: string;
-  value: ReactNode;
-  tone?: Tone;
-};
-
-const dangerousInsecureConnection = "__DANGEROUS_INSECURE_CONNECTION__";
-const dangerousPluginIds = new Set(["console", "hot-reload"]);
-const dangerousToggleIds = new Set(["debugger", "captureScreenshot"]);
-const warningToggleIds = new Set(["autoRegisterErrorHandler", "writeToDisk"]);
-
-const toneColor = (tone?: Tone) => {
-  if (tone === "danger") return "red";
-  if (tone === "warning") return "yellow";
-  if (tone === "success") return "green";
-  if (tone === "info") return "cyan";
-  return undefined;
-};
-
-const pluginTone = (value: string): Tone | undefined => (dangerousPluginIds.has(value) ? "danger" : undefined);
-const toggleTone = (value: string): Tone | undefined => {
-  if (dangerousToggleIds.has(value)) return "danger";
-  if (warningToggleIds.has(value)) return "warning";
-  return undefined;
-};
-
-const modes: Option<InitMode>[] = [
-  {
-    value: "cli",
-    label: "CLI injection",
-    description: "Create feather.config.lua only. Run with `feather run .`.",
-  },
-  {
-    value: "auto",
-    label: "Auto require",
-    description: 'Patch main.lua with a USE_DEBUGGER-guarded require("feather.auto").',
-  },
-  {
-    value: "manual",
-    label: "Manual setup",
-    description: "Create feather.debugger.lua and load it when USE_DEBUGGER is set.",
-  },
-];
-
-const installSources: Option<"local" | "remote">[] = [
-  {
-    value: "local",
-    label: "Bundled/local copy",
-    description: "Copy the CLI-bundled Lua runtime, or src-lua when running from the repo.",
-  },
-  {
-    value: "remote",
-    label: "GitHub download",
-    description: "Fetch files from GitHub using the selected branch or tag.",
-  },
-];
-
-const pluginToOption = (plugin: (typeof pluginCatalog)[number]): Option => ({
-  value: plugin.id,
-  label: plugin.name,
-  description: plugin.description,
-});
-
-const optionalPlugins: Option[] = pluginCatalog.filter((plugin) => plugin.optIn).map(pluginToOption);
-const skipPluginOptions: Option[] = pluginCatalog.map(pluginToOption);
-const defaultSkippedPlugins = new Set(["console", "hot-reload", "hump.signal", "lua-state-machine"]);
-
-const configToggles: Option[] = [
-  { value: "debug", label: "Enable Feather", description: "Set debug = true." },
-  { value: "wrapPrint", label: "Wrap print()", description: "Send print output to Logs." },
-  { value: "defaultObservers", label: "Default observers", description: "Capture built-in runtime observers." },
-  {
-    value: "autoRegisterErrorHandler",
-    label: "Error handler",
-    description: "Capture Lua errors before LÖVE shows its handler.",
-  },
-  { value: "writeToDisk", label: "Write logs to disk", description: "Persist .featherlog files." },
-  { value: "debugger", label: "Step debugger", description: "Enable debugger commands by default." },
-  { value: "captureScreenshot", label: "Error screenshots", description: "Capture screenshots on errors." },
-  { value: "assetPreview", label: "Asset previews", description: "Track loaded assets for the Assets tab." },
-];
-
-const numberPhases = new Set<Phase>([
-  "port",
-  "sampleRate",
-  "updateInterval",
-  "maxTempLogs",
-  "retryInterval",
-  "connectTimeout",
-  "errorWait",
-  "binaryTextThreshold",
-]);
-
-const textPromptTitles: Partial<Record<Phase, string>> = {
-  installDir: "Install directory",
-  branch: "GitHub branch or tag",
-  sessionName: "Session name shown in Feather",
-  host: "Desktop host",
-  port: "Desktop WebSocket port",
-  baseDir: "Base directory for file links",
-  sampleRate: "Sample rate in seconds",
-  updateInterval: "Update interval in seconds",
-  maxTempLogs: "Max temporary logs",
-  outputDir: "Output directory for logs",
-  retryInterval: "Reconnect interval in seconds",
-  connectTimeout: "Connect timeout in seconds",
-  errorWait: "Error delivery wait in seconds",
-  binaryTextThreshold: "Binary text threshold in bytes",
-  deviceId: "Device ID override",
-  capabilities: 'Capabilities ("all" or comma-separated)',
-};
-
-const isStrongApiKey = (value: string) => {
-  if (value.length < 16) return false;
-  if (/^(password|secret|changeme|dev|test|console|apikey)$/i.test(value)) return false;
-
-  const classes = [
-    /[a-z]/.test(value),
-    /[A-Z]/.test(value),
-    /\d/.test(value),
-    /[^A-Za-z0-9]/.test(value),
-  ].filter(Boolean).length;
-
-  return classes >= 3 || value.length >= 24;
-};
-
-const numericValue = (value: string, fallback: number) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const parseCapabilities = (value: string): string[] | "all" => {
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.toLowerCase() === "all") return "all";
-  return trimmed
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-function DangerousName({ children }: { children: string }) {
-  return (
-    <Text color="red" bold>
-      {children}
-    </Text>
-  );
-}
-
-function NameList({
-  values,
-  getTone,
-}: {
-  values: string[];
-  getTone?: (value: string) => Tone | undefined;
-}) {
-  if (values.length === 0) return <Text color="gray">(none)</Text>;
-
-  return (
-    <>
-      {values.map((value, index) => (
-        <React.Fragment key={value}>
-          {index > 0 ? <Text color="gray">, </Text> : null}
-          <Text color={toneColor(getTone?.(value))}>{value}</Text>
-        </React.Fragment>
-      ))}
-    </>
-  );
-}
-
-function SummaryValue({ value, tone }: { value: ReactNode; tone?: Tone }) {
-  if (typeof value === "string") return <Text color={toneColor(tone)}>{value}</Text>;
-  return <>{value}</>;
-}
-
-function SummaryRows({ rows }: { rows: SummaryRow[] }) {
-  return (
-    <Box flexDirection="column">
-      {rows.map((row) => (
-        <Text key={row.id}>
-          <Text color="gray">{row.label.padEnd(17)}</Text>
-          <SummaryValue value={row.value} tone={row.tone} />
-        </Text>
-      ))}
-    </Box>
-  );
-}
-
-function InfoPanel({
-  title,
-  tone = "info",
-  children,
-}: {
-  title: string;
-  tone?: Tone;
-  children: ReactNode;
-}) {
-  return (
-    <Box flexDirection="column">
-      <Text color={toneColor(tone)} bold>
-        {title}
-      </Text>
-      <Box flexDirection="column" paddingLeft={2}>
-        {children}
-      </Box>
-    </Box>
-  );
-}
-
-function cursorLine(active: boolean, text: string, description?: string, tone?: Tone) {
-  return (
-    <Box flexDirection="column">
-      <Text>
-        <Text color={active ? "cyan" : undefined}>{active ? "❯" : " "}</Text>{" "}
-        <Text color={toneColor(tone) ?? (active ? "cyan" : undefined)}>{text}</Text>
-      </Text>
-      {description ? <Text color="gray">  {description}</Text> : null}
-    </Box>
-  );
-}
-
-function TextInputPrompt({
-  title,
-  value,
-  placeholder,
-  secure,
-  error,
-}: {
-  title: string;
-  value: string;
-  placeholder?: string;
-  secure?: boolean;
-  error?: string;
-}) {
-  const shown = secure && value ? "•".repeat(value.length) : value;
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Text>
-        <Text color={value ? "cyan" : "gray"}>{shown || placeholder || " "}</Text>
-      </Text>
-      {error ? <Text color="red">{error}</Text> : <Text color="gray">←→ move · Backspace delete · Enter confirm</Text>}
-    </Box>
-  );
-}
-
-function SingleSelect<T extends string>({
-  title,
-  options,
-  selected,
-  getTone,
-}: {
-  title: string;
-  options: Option<T>[];
-  selected: number;
-  getTone?: (option: Option<T>) => Tone | undefined;
-}) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Box flexDirection="column">
-        {options.map((option, index) => (
-          <Box key={option.value}>
-            {cursorLine(index === selected, `${index + 1}. ${option.label}`, option.description, getTone?.(option))}
-          </Box>
-        ))}
-      </Box>
-      <Text color="gray">↑↓ or j/k navigate · 1-{options.length} jump · Enter select</Text>
-    </Box>
-  );
-}
-
-function MultiSelect({
-  title,
-  options,
-  selected,
-  cursor,
-  getTone,
-  hint = "↑↓ or j/k navigate · Space toggle · a select all · Enter confirm",
-}: {
-  title: string;
-  options: Option[];
-  selected: Set<string>;
-  cursor: number;
-  getTone?: (option: Option) => Tone | undefined;
-  hint?: string;
-}) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Box flexDirection="column">
-        {options.length === 0 ? <Text color="gray">No options available.</Text> : null}
-        {options.map((option, index) => {
-          const tone = getTone?.(option);
-          return (
-            <Box key={option.value} flexDirection="column">
-              <Text>
-                <Text color={index === cursor ? "cyan" : undefined}>
-                  {index === cursor ? "❯" : " "} {selected.has(option.value) ? "◉" : "○"}
-                </Text>{" "}
-                <Text color={toneColor(tone) ?? (index === cursor ? "cyan" : undefined)}>{option.label}</Text>
-              </Text>
-              {option.description ? <Text color="gray">  {option.description}</Text> : null}
-            </Box>
-          );
-        })}
-      </Box>
-      <Text color="gray">{hint}</Text>
-    </Box>
-  );
-}
-
-function ConfirmPrompt({ title, value }: { title: string; value: boolean }) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Text>
-        <Text color={value ? "cyan" : undefined}>Yes</Text>
-        <Text> / </Text>
-        <Text color={!value ? "cyan" : undefined}>No</Text>
-      </Text>
-      <Text color="gray">y/← = yes · n/→ = no · Enter confirm</Text>
-    </Box>
-  );
-}
+import { buildInitSetup } from "./init-mode-config.js";
+import {
+  configToggles,
+  dangerousInsecureConnection,
+  defaultSkippedPlugins,
+  installSources,
+  isStrongApiKey,
+  modes,
+  numberPhases,
+  optionalPlugins,
+  pluginTone,
+  skipPluginOptions,
+  textPromptTitles,
+  toggleTone,
+  type InitMode,
+  type InitSetup,
+  type Phase,
+  type SummaryRow,
+} from "./init-mode-model.js";
+import {
+  ConfirmPrompt,
+  DangerousName,
+  InfoPanel,
+  MultiSelect,
+  NameList,
+  SingleSelect,
+  SummaryRows,
+  TextInputPrompt,
+} from "./init-mode-prompts.js";
+import { buildInitSummaryRows } from "./init-mode-summary.js";
 
 function InitSetupPrompt({
   defaultMode,
@@ -457,58 +111,36 @@ function InitSetupPrompt({
   const nextAfterToggles = () => setPhase(needsApiKey ? "apiKey" : "appId");
 
   const finish = () => {
-    const config: Record<string, unknown> = {};
-    if (sessionName.trim()) config.sessionName = sessionName.trim();
-    if (pluginPromptsEnabled && include.size > 0) config.include = [...include];
-    if (pluginPromptsEnabled && exclude.size > 0) config.exclude = [...exclude];
-
-    if (advanced) {
-      config.debug = toggles.has("debug");
-      config.host = host.trim() || "127.0.0.1";
-      config.port = numericValue(port, 4004);
-      config.mode = socketModeIndex === 0 ? "socket" : "disk";
-      if (baseDir.trim()) config.baseDir = baseDir.trim();
-      config.wrapPrint = toggles.has("wrapPrint");
-      config.maxTempLogs = numericValue(maxTempLogs, 200);
-      config.sampleRate = numericValue(sampleRate, 1);
-      config.updateInterval = numericValue(updateInterval, 0.1);
-      config.defaultObservers = toggles.has("defaultObservers");
-      config.errorWait = numericValue(errorWait, 3);
-      config.autoRegisterErrorHandler = toggles.has("autoRegisterErrorHandler");
-      config.captureScreenshot = toggles.has("captureScreenshot");
-      config.writeToDisk = toggles.has("writeToDisk");
-      config.outputDir = outputDir.trim() || "logs";
-      config.capabilities = parseCapabilities(capabilities);
-      config.retryInterval = numericValue(retryInterval, 5);
-      config.connectTimeout = numericValue(connectTimeout, 2);
-      config.debugger = toggles.has("debugger");
-      config.assetPreview = toggles.has("assetPreview");
-      config.binaryTextThreshold = numericValue(binaryTextThreshold, 4096);
-      if (deviceId.trim()) config.deviceId = deviceId.trim();
-    }
-
-    if (needsApiKey) {
-      config.apiKey = apiKey;
-      config.pluginOptions = {
-        console: { evalEnabled: true },
-      };
-    }
-
-    if (appIdInput.trim()) {
-      config.appId = appIdInput.trim();
-    } else {
-      config.__DANGEROUS_INSECURE_CONNECTION__ = true;
-    }
-
-    onComplete({
+    onComplete(buildInitSetup({
       mode,
-      source: installSource,
-      branch: branch.trim() || "main",
-      installDir: installDir.trim() || "feather",
+      installSource,
+      branch,
+      installDir,
       installPlugins,
-      config,
-      exclude: pluginPromptsEnabled ? [...exclude] : [],
-    });
+      pluginPromptsEnabled,
+      include,
+      exclude,
+      advanced,
+      sessionName,
+      host,
+      port,
+      socketModeIndex,
+      baseDir,
+      sampleRate,
+      updateInterval,
+      maxTempLogs,
+      outputDir,
+      retryInterval,
+      connectTimeout,
+      errorWait,
+      binaryTextThreshold,
+      deviceId,
+      capabilities,
+      toggles,
+      needsApiKey,
+      apiKey,
+      appIdInput,
+    }));
     exit();
   };
 
@@ -712,60 +344,23 @@ function InitSetupPrompt({
     if (key.return) finish();
   });
 
-  const summary = useMemo<SummaryRow[]>(() => {
-    const includeList = [...include];
-    const excludeList = [...exclude];
-    const rows: SummaryRow[] = [
-      { id: "mode", label: "Mode", value: modes[modeIndex].label },
-      {
-        id: "install-dir",
-        label: "Install dir",
-        value: installsFiles ? `${installDir || "feather"}/` : "bundled CLI runtime",
-      },
-      installsFiles ? { id: "source", label: "Source", value: installSources[sourceIndex].label } : undefined,
-      installsFiles && installSource === "remote" ? { id: "branch", label: "Branch", value: branch || "main" } : undefined,
-      installsFiles ? { id: "plugins", label: "Install plugins", value: installPlugins ? "yes" : "no" } : undefined,
-      { id: "session", label: "Session", value: sessionName || "(default)" },
-      pluginPromptsEnabled
-        ? { id: "include", label: "Include", value: <NameList values={includeList} getTone={pluginTone} /> }
-        : undefined,
-      pluginPromptsEnabled
-        ? { id: "exclude", label: "Exclude", value: <NameList values={excludeList} getTone={pluginTone} /> }
-        : undefined,
-      { id: "advanced", label: "Advanced config", value: advanced ? "yes" : "no", tone: advanced ? "warning" : undefined },
-    ].filter(Boolean) as SummaryRow[];
-
-    if (needsApiKey) {
-      rows.push({
-        id: "api-key",
-        label: "Console API key",
-        value:
-          apiKeyCopied === true
-            ? "set and copied to clipboard"
-            : apiKeyCopied === false
-              ? "set (clipboard copy unavailable)"
-              : "set",
-        tone: "success",
-      });
-    }
-    rows.push(
-      appIdInput.trim()
-        ? { id: "app-id", label: "App ID", value: appIdInput.trim(), tone: "success" }
-        : {
-            id: "app-id",
-            label: "App ID",
-            value: (
-              <>
-                <Text>not set → </Text>
-                <DangerousName>{dangerousInsecureConnection}</DangerousName>
-                <Text color="red"> = true</Text>
-              </>
-            ),
-            tone: "danger",
-          },
-    );
-    return rows;
-  }, [
+  const summary = useMemo<SummaryRow[]>(() => buildInitSummaryRows({
+    advanced,
+    apiKeyCopied,
+    appIdInput,
+    branch,
+    exclude,
+    include,
+    installDir,
+    installPlugins,
+    installsFiles,
+    installSource,
+    modeIndex,
+    needsApiKey,
+    pluginPromptsEnabled,
+    sessionName,
+    sourceIndex,
+  }), [
     advanced,
     apiKeyCopied,
     appIdInput,
