@@ -11,13 +11,22 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-const CLI = fileURLToPath(new URL('../dist/index.js', import.meta.url));
-const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+const CLI = fileURLToPath(new URL('../../dist/index.js', import.meta.url));
+const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const LOCAL_SRC = join(ROOT, 'src-lua');
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 
@@ -747,7 +756,7 @@ test('command errors: central handler writes compact stderr and exit code', () =
 });
 
 test('registry validation rejects targets outside the project', async () => {
-  const { validateRegistry } = await import('../dist/lib/package/registry.js');
+  const { validateRegistry } = await import('../../dist/lib/package/registry.js');
   assert.throws(
     () =>
       validateRegistry({
@@ -1060,7 +1069,7 @@ function initSetupState(overrides = {}) {
 }
 
 test('package add: repo plan converts to custom install input', async () => {
-  const { packageAddPlanFiles, toCustomRepoPackageInput } = await import('../dist/lib/package/add-plan.js');
+  const { packageAddPlanFiles, toCustomRepoPackageInput } = await import('../../dist/lib/package/add-plan.js');
   const lockfile = emptyLockfile();
   const commitSha = '0123456789abcdef0123456789abcdef01234567';
   const plan = {
@@ -1094,7 +1103,7 @@ test('package add: repo plan converts to custom install input', async () => {
 });
 
 test('package add: url plan converts to custom install input', async () => {
-  const { packageAddPlanFiles, toCustomUrlPackageInput } = await import('../dist/lib/package/add-plan.js');
+  const { packageAddPlanFiles, toCustomUrlPackageInput } = await import('../../dist/lib/package/add-plan.js');
   const lockfile = emptyLockfile();
   const urlFiles = [
     {
@@ -1118,7 +1127,7 @@ test('package add: url plan converts to custom install input', async () => {
 
 test('package add: failed plan install does not write lockfile', async () => {
   const dir = makeTmp();
-  const { installPackageAddPlan } = await import('../dist/lib/package/add-plan.js');
+  const { installPackageAddPlan } = await import('../../dist/lib/package/add-plan.js');
 
   await withFetchMock(
     async () => new Response('missing', { status: 404 }),
@@ -1146,7 +1155,7 @@ test('package add: failed plan install does not write lockfile', async () => {
 });
 
 test('init mode: config builder preserves cli and advanced setup values', async () => {
-  const { buildInitSetup } = await import('../dist/ui/init/config.js');
+  const { buildInitSetup } = await import('../../dist/ui/init/config.js');
   const setup = buildInitSetup(
     initSetupState({
       mode: 'cli',
@@ -1183,7 +1192,7 @@ test('init mode: config builder preserves cli and advanced setup values', async 
 
 test('custom add: repo install writes selected files and lockfile metadata', async () => {
   const dir = makeTmp();
-  const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+  const { installCustomRepoPackage } = await import('../../dist/lib/package/custom-add.js');
   const commitSha = '0123456789abcdef0123456789abcdef01234567';
   const files = new Map([
     [`https://raw.githubusercontent.com/me/pkg/${commitSha}/init.lua`, 'return "init"'],
@@ -1224,7 +1233,7 @@ test('custom add: repo install writes selected files and lockfile metadata', asy
 
 test('custom add: URL install writes buffered files and lockfile metadata', async () => {
   const dir = makeTmp();
-  const { installCustomUrlPackage } = await import('../dist/lib/package/custom-add.js');
+  const { installCustomUrlPackage } = await import('../../dist/lib/package/custom-add.js');
   const buffer = Buffer.from('return "helper"');
   const otherBuffer = Buffer.from('return "other"');
   const result = await installCustomUrlPackage({
@@ -1264,7 +1273,7 @@ test('custom add: URL install writes buffered files and lockfile metadata', asyn
 });
 
 test('custom add: lockfile source validation rejects malformed optional provenance', async () => {
-  const { validateLockfileSource } = await import('../dist/lib/package/lockfile.js');
+  const { validateLockfileSource } = await import('../../dist/lib/package/lockfile.js');
 
   assert.throws(
     () => validateLockfileSource({ repo: 'me/pkg', tag: 'main', commitSha: 'abc123' }),
@@ -1282,7 +1291,7 @@ test('custom add: lockfile source validation rejects malformed optional provenan
 
 test('custom add: invalid repo commit provenance is rejected before fetch or write', async () => {
   const dir = makeTmp();
-  const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+  const { installCustomRepoPackage } = await import('../../dist/lib/package/custom-add.js');
   let fetchCalled = false;
 
   await withFetchMock(
@@ -1313,7 +1322,7 @@ test('custom add: invalid repo commit provenance is rejected before fetch or wri
 
 test('restore: old url source-only lockfiles remain compatible', async () => {
   const dir = makeTmp();
-  const { restorePackage } = await import('../dist/lib/package/install.js');
+  const { restorePackage } = await import('../../dist/lib/package/install.js');
   const content = 'return "old url"';
 
   await withFetchMock(
@@ -1342,7 +1351,7 @@ test('restore: old url source-only lockfiles remain compatible', async () => {
 
 test('restore: enriched url lockfiles still prefer per-file URLs', async () => {
   const dir = makeTmp();
-  const { restorePackage } = await import('../dist/lib/package/install.js');
+  const { restorePackage } = await import('../../dist/lib/package/install.js');
   const files = new Map([
     ['https://example.com/a.lua', 'return "a"'],
     ['https://example.com/b.lua', 'return "b"'],
@@ -1385,7 +1394,7 @@ test('restore: enriched url lockfiles still prefer per-file URLs', async () => {
 
 test('restore: old repo lockfiles without commitSha remain compatible', async () => {
   const dir = makeTmp();
-  const { restorePackage } = await import('../dist/lib/package/install.js');
+  const { restorePackage } = await import('../../dist/lib/package/install.js');
   const content = 'return "repo"';
 
   await withFetchMock(
@@ -1414,7 +1423,7 @@ test('restore: old repo lockfiles without commitSha remain compatible', async ()
 
 test('custom add: escaping target is rejected before fetch or write', async () => {
   const dir = makeTmp();
-  const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+  const { installCustomRepoPackage } = await import('../../dist/lib/package/custom-add.js');
   let fetchCalled = false;
 
   await withFetchMock(
@@ -1445,7 +1454,7 @@ test('custom add: escaping target is rejected before fetch or write', async () =
 
 test('custom add: failed repo fetch does not write lockfile', async () => {
   const dir = makeTmp();
-  const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+  const { installCustomRepoPackage } = await import('../../dist/lib/package/custom-add.js');
 
   await withFetchMock(
     async () => new Response('missing', { status: 500 }),
@@ -1467,4 +1476,80 @@ test('custom add: failed repo fetch does not write lockfile', async () => {
       assert.equal(existsSync(join(dir, 'feather.lock.json')), false);
     },
   );
+});
+
+test('package registry: top-level packages resolve offline in dry-run mode', () => {
+  const registryPath = join(ROOT, 'cli', 'dist', 'generated', 'registry.json');
+  assert.ok(existsSync(registryPath), 'cli/dist/generated/registry.json missing; run build first');
+  const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+  const topLevel = Object.entries(registry.packages).filter(([, entry]) => !entry.parent);
+  assert.ok(topLevel.length > 0, 'registry should include top-level packages');
+
+  for (const [pkgId] of topLevel) {
+    const pkgDir = makeTmp();
+
+    const install = run(['package', 'install', pkgId, '--dry-run', '--offline', '--dir', pkgDir]);
+    assert.equal(install.exitCode, 0, `${pkgId} dry-run failed:\n${outputOf(install)}`);
+    assert.ok(install.stdout.includes(pkgId), `${pkgId}: dry-run output should mention package`);
+    assert.ok(install.stdout.includes('Dry run'), `${pkgId}: dry-run output should label the plan`);
+    assert.equal(existsSync(join(pkgDir, 'feather.lock.json')), false, `${pkgId}: dry-run must not write lockfile`);
+
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(pkgDir, { recursive: true, force: true });
+    }
+  }
+});
+
+test('remove: refuses runtime symlink escaping project', () => {
+  const dir = makeTmp();
+  const outside = join(makeTmp(), 'outside-runtime');
+  writeGame(dir);
+  mkdirSync(join(outside, 'feather', 'lib'), { recursive: true });
+  writeFileSync(join(outside, 'feather', 'init.lua'), 'FEATHER_VERSION_NAME = "test"\nreturn {}\n');
+  symlinkSync(join(outside, 'feather'), join(dir, 'feather'), 'dir');
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    [
+      '-- FEATHER-MANAGED-BEGIN',
+      '-- mode: auto',
+      '-- installDir: feather',
+      '-- manualEntrypoint: (none)',
+      '-- FEATHER-MANAGED-END',
+      'return { appId = "feather-app-test" }',
+      '',
+    ].join('\n'),
+  );
+
+  const result = run(['remove', dir, '--yes']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Runtime remove target resolves outside project root'));
+  assert.equal(existsSync(join(outside, 'feather', 'init.lua')), true);
+});
+
+test('package remove: refuses lockfile target through symlink escaping project', () => {
+  const dir = makeTmp();
+  const outside = join(makeTmp(), 'outside-lib');
+  mkdirSync(outside, { recursive: true });
+  writeFileSync(join(outside, 'helper.lua'), 'return {}\n');
+  symlinkSync(outside, join(dir, 'lib'), 'dir');
+  writeLock(dir, {
+    helper: {
+      version: 'url',
+      trust: 'experimental',
+      source: { url: 'https://example.com/helper.lua' },
+      files: [
+        {
+          name: 'helper.lua',
+          url: 'https://example.com/helper.lua',
+          target: 'lib/helper.lua',
+          sha256: sha256('return {}\n'),
+        },
+      ],
+    },
+  });
+
+  const result = run(['package', 'remove', 'helper', '--dir', dir, '--yes']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Refusing to remove unsafe package target: lib/helper.lua'));
+  assert.equal(existsSync(join(outside, 'helper.lua')), true);
 });

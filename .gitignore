@@ -31,3 +31,4 @@ test-results/
 .env
 builds/
 vendor/
+feather.build.json
