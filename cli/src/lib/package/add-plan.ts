@@ -14,6 +14,7 @@ export type PackageAddRepoPlan = {
   requirePath: string;
   repoName: string;
   tag: string;
+  commitSha: string;
   baseUrl: string;
   selectedFiles: string[];
   targetMap: Record<string, string>;
@@ -45,6 +46,7 @@ export function toCustomRepoPackageInput(input: {
     id: input.plan.id,
     repoName: input.plan.repoName,
     tag: input.plan.tag,
+    commitSha: input.plan.commitSha,
     baseUrl: input.plan.baseUrl,
     selectedFiles: input.plan.selectedFiles,
     targetMap: input.plan.targetMap,

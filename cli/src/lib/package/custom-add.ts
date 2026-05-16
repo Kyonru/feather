@@ -21,6 +21,7 @@ export type CustomRepoPackageInput = {
   id: string;
   repoName: string;
   tag: string;
+  commitSha?: string;
   baseUrl: string;
   selectedFiles: string[];
   targetMap: Record<string, string>;
@@ -28,6 +29,8 @@ export type CustomRepoPackageInput = {
   lockfile: Lockfile;
   onFileStart?: (name: string) => void;
 };
+
+const COMMIT_SHA_RE = /^[a-f0-9]{40}$/i;
 
 export type CustomUrlFileInput = {
   name: string;
@@ -55,6 +58,10 @@ function validateTargets(projectDir: string, files: Array<{ target: string }>): 
 }
 
 export async function installCustomRepoPackage(input: CustomRepoPackageInput): Promise<CustomPackageInstallResult> {
+  if (input.commitSha !== undefined && !COMMIT_SHA_RE.test(input.commitSha)) {
+    return { ok: false, files: [], error: "commitSha must be a 40-character SHA" };
+  }
+
   const plannedFiles = input.selectedFiles.map((name) => ({
     name,
     target: input.targetMap[name] ?? name,
@@ -87,7 +94,11 @@ export async function installCustomRepoPackage(input: CustomRepoPackageInput): P
   addToLockfile(input.lockfile, input.id, {
     version: input.tag,
     trust: "experimental",
-    source: { repo: input.repoName, tag: input.tag },
+    source: {
+      repo: input.repoName,
+      tag: input.tag,
+      ...(input.commitSha ? { resolvedRef: input.commitSha, commitSha: input.commitSha } : {}),
+    },
     files: lockedFiles,
   });
   writeLockfile(input.projectDir, input.lockfile);
@@ -120,7 +131,11 @@ export async function installCustomUrlPackage(input: CustomUrlPackageInput): Pro
   addToLockfile(input.lockfile, input.id, {
     version: "url",
     trust: "experimental",
-    source: { url: input.urlFiles[0]!.url },
+    source: {
+      kind: "url",
+      url: input.urlFiles[0]!.url,
+      urls: input.urlFiles.map((file) => file.url),
+    },
     files: lockedFiles,
   });
   writeLockfile(input.projectDir, input.lockfile);

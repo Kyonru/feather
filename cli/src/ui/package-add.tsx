@@ -264,6 +264,7 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
               requirePath,
               repoName,
               tag,
+              commitSha,
               baseUrl,
               selectedFiles,
               targetMap,

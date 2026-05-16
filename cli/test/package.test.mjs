@@ -902,13 +902,15 @@ function initSetupState(overrides = {}) {
 test('package add: repo plan converts to custom install input', async () => {
   const { packageAddPlanFiles, toCustomRepoPackageInput } = await import('../dist/lib/package/add-plan.js');
   const lockfile = emptyLockfile();
+  const commitSha = '0123456789abcdef0123456789abcdef01234567';
   const plan = {
     kind: 'repo',
     id: 'my-pkg',
     requirePath: 'lib.my-pkg.init',
     repoName: 'me/pkg',
     tag: 'v1.0.0',
-    baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+    commitSha,
+    baseUrl: `https://raw.githubusercontent.com/me/pkg/${commitSha}/`,
     selectedFiles: ['init.lua', 'util.lua'],
     targetMap: { 'init.lua': 'lib/my-pkg/init.lua', 'util.lua': 'lib/my-pkg/util.lua' },
   };
@@ -921,7 +923,8 @@ test('package add: repo plan converts to custom install input', async () => {
     id: 'my-pkg',
     repoName: 'me/pkg',
     tag: 'v1.0.0',
-    baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+    commitSha,
+    baseUrl: `https://raw.githubusercontent.com/me/pkg/${commitSha}/`,
     selectedFiles: ['init.lua', 'util.lua'],
     targetMap: { 'init.lua': 'lib/my-pkg/init.lua', 'util.lua': 'lib/my-pkg/util.lua' },
     projectDir: '/tmp/game',
@@ -969,6 +972,7 @@ test('package add: failed plan install does not write lockfile', async () => {
           requirePath: 'lib.my-pkg.init',
           repoName: 'me/pkg',
           tag: 'v1.0.0',
+          commitSha: '0123456789abcdef0123456789abcdef01234567',
           baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
           selectedFiles: ['init.lua'],
           targetMap: { 'init.lua': 'lib/my-pkg/init.lua' },
@@ -1020,9 +1024,10 @@ test('init mode: config builder preserves cli and advanced setup values', async 
 test('custom add: repo install writes selected files and lockfile metadata', async () => {
   const dir = makeTmp();
   const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+  const commitSha = '0123456789abcdef0123456789abcdef01234567';
   const files = new Map([
-    ['https://raw.githubusercontent.com/me/pkg/abc123/init.lua', 'return "init"'],
-    ['https://raw.githubusercontent.com/me/pkg/abc123/util.lua', 'return "util"'],
+    [`https://raw.githubusercontent.com/me/pkg/${commitSha}/init.lua`, 'return "init"'],
+    [`https://raw.githubusercontent.com/me/pkg/${commitSha}/util.lua`, 'return "util"'],
   ]);
 
   await withFetchMock(
@@ -1035,7 +1040,8 @@ test('custom add: repo install writes selected files and lockfile metadata', asy
         id: 'my-pkg',
         repoName: 'me/pkg',
         tag: 'v1.0.0',
-        baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+        commitSha,
+        baseUrl: `https://raw.githubusercontent.com/me/pkg/${commitSha}/`,
         selectedFiles: ['init.lua', 'util.lua'],
         targetMap: { 'init.lua': 'lib/my-pkg/init.lua', 'util.lua': 'lib/my-pkg/util.lua' },
         projectDir: dir,
@@ -1049,9 +1055,9 @@ test('custom add: repo install writes selected files and lockfile metadata', asy
       const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
       assert.equal(lock.packages['my-pkg'].version, 'v1.0.0');
       assert.equal(lock.packages['my-pkg'].trust, 'experimental');
-      assert.deepEqual(lock.packages['my-pkg'].source, { repo: 'me/pkg', tag: 'v1.0.0' });
+      assert.deepEqual(lock.packages['my-pkg'].source, { repo: 'me/pkg', tag: 'v1.0.0', resolvedRef: commitSha, commitSha });
       assert.equal(lock.packages['my-pkg'].files.length, 2);
-      assert.equal(lock.packages['my-pkg'].files[0].url, 'https://raw.githubusercontent.com/me/pkg/abc123/init.lua');
+      assert.equal(lock.packages['my-pkg'].files[0].url, `https://raw.githubusercontent.com/me/pkg/${commitSha}/init.lua`);
     },
   );
 });
@@ -1060,6 +1066,7 @@ test('custom add: URL install writes buffered files and lockfile metadata', asyn
   const dir = makeTmp();
   const { installCustomUrlPackage } = await import('../dist/lib/package/custom-add.js');
   const buffer = Buffer.from('return "helper"');
+  const otherBuffer = Buffer.from('return "other"');
   const result = await installCustomUrlPackage({
     id: 'my-helper',
     urlFiles: [
@@ -1069,6 +1076,13 @@ test('custom add: URL install writes buffered files and lockfile metadata', asyn
         sha256: 'stale-sha-is-recomputed',
         target: 'lib/helper.lua',
         buffer,
+      },
+      {
+        name: 'other.lua',
+        url: 'https://example.com/other.lua',
+        sha256: 'stale-sha-is-recomputed',
+        target: 'lib/other.lua',
+        buffer: otherBuffer,
       },
     ],
     projectDir: dir,
@@ -1080,8 +1094,162 @@ test('custom add: URL install writes buffered files and lockfile metadata', asyn
   const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
   assert.equal(lock.packages['my-helper'].version, 'url');
   assert.equal(lock.packages['my-helper'].trust, 'experimental');
-  assert.deepEqual(lock.packages['my-helper'].source, { url: 'https://example.com/helper.lua' });
+  assert.deepEqual(lock.packages['my-helper'].source, {
+    kind: 'url',
+    url: 'https://example.com/helper.lua',
+    urls: ['https://example.com/helper.lua', 'https://example.com/other.lua'],
+  });
   assert.equal(lock.packages['my-helper'].files[0].sha256, sha256(buffer));
+  assert.equal(lock.packages['my-helper'].files[1].url, 'https://example.com/other.lua');
+});
+
+test('custom add: lockfile source validation rejects malformed optional provenance', async () => {
+  const { validateLockfileSource } = await import('../dist/lib/package/lockfile.js');
+
+  assert.throws(
+    () => validateLockfileSource({ repo: 'me/pkg', tag: 'main', commitSha: 'abc123' }),
+    /commitSha/,
+  );
+  assert.throws(
+    () => validateLockfileSource({ kind: 'url', url: 'https://example.com/helper.lua', urls: [] }),
+    /source\.urls/,
+  );
+  assert.throws(
+    () => validateLockfileSource({ kind: 'url', url: 'https://example.com/helper.lua', urls: [''] }),
+    /source\.urls/,
+  );
+});
+
+test('custom add: invalid repo commit provenance is rejected before fetch or write', async () => {
+  const dir = makeTmp();
+  const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+  let fetchCalled = false;
+
+  await withFetchMock(
+    async () => {
+      fetchCalled = true;
+      return new Response('return {}');
+    },
+    async () => {
+      const result = await installCustomRepoPackage({
+        id: 'bad-sha',
+        repoName: 'me/pkg',
+        tag: 'main',
+        commitSha: 'abc123',
+        baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+        selectedFiles: ['init.lua'],
+        targetMap: { 'init.lua': 'lib/init.lua' },
+        projectDir: dir,
+        lockfile: emptyLockfile(),
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(fetchCalled, false);
+      assert.match(result.error, /commitSha/);
+      assert.equal(existsSync(join(dir, 'feather.lock.json')), false);
+    },
+  );
+});
+
+test('restore: old url source-only lockfiles remain compatible', async () => {
+  const dir = makeTmp();
+  const { restorePackage } = await import('../dist/lib/package/install.js');
+  const content = 'return "old url"';
+
+  await withFetchMock(
+    async (url) => {
+      assert.equal(String(url), 'https://example.com/helper.lua');
+      return new Response(content);
+    },
+    async () => {
+      const result = await restorePackage(
+        'my-helper',
+        {
+          version: 'url',
+          trust: 'experimental',
+          source: { url: 'https://example.com/helper.lua' },
+          files: [{ name: 'helper.lua', target: 'lib/helper.lua', sha256: sha256(content) }],
+          installedAt: new Date(0).toISOString(),
+        },
+        { projectDir: dir },
+      );
+
+      assert.equal(result.ok, true);
+      assert.equal(readFileSync(join(dir, 'lib', 'helper.lua'), 'utf8'), content);
+    },
+  );
+});
+
+test('restore: enriched url lockfiles still prefer per-file URLs', async () => {
+  const dir = makeTmp();
+  const { restorePackage } = await import('../dist/lib/package/install.js');
+  const files = new Map([
+    ['https://example.com/a.lua', 'return "a"'],
+    ['https://example.com/b.lua', 'return "b"'],
+  ]);
+  const fetched = [];
+
+  await withFetchMock(
+    async (url) => {
+      fetched.push(String(url));
+      const body = files.get(String(url));
+      return body === undefined ? new Response('missing', { status: 404 }) : new Response(body);
+    },
+    async () => {
+      const result = await restorePackage(
+        'mypkg',
+        {
+          version: 'url',
+          trust: 'experimental',
+          source: {
+            kind: 'url',
+            url: 'https://example.com/primary.lua',
+            urls: ['https://example.com/a.lua', 'https://example.com/b.lua'],
+          },
+          files: [
+            { name: 'a.lua', url: 'https://example.com/a.lua', target: 'lib/mypkg/a.lua', sha256: sha256('return "a"') },
+            { name: 'b.lua', url: 'https://example.com/b.lua', target: 'lib/mypkg/b.lua', sha256: sha256('return "b"') },
+          ],
+          installedAt: new Date(0).toISOString(),
+        },
+        { projectDir: dir },
+      );
+
+      assert.equal(result.ok, true);
+      assert.deepEqual(fetched, ['https://example.com/a.lua', 'https://example.com/b.lua']);
+      assert.equal(readFileSync(join(dir, 'lib', 'mypkg', 'a.lua'), 'utf8'), 'return "a"');
+      assert.equal(readFileSync(join(dir, 'lib', 'mypkg', 'b.lua'), 'utf8'), 'return "b"');
+    },
+  );
+});
+
+test('restore: old repo lockfiles without commitSha remain compatible', async () => {
+  const dir = makeTmp();
+  const { restorePackage } = await import('../dist/lib/package/install.js');
+  const content = 'return "repo"';
+
+  await withFetchMock(
+    async (url) => {
+      assert.equal(String(url), 'https://raw.githubusercontent.com/me/pkg/main/init.lua');
+      return new Response(content);
+    },
+    async () => {
+      const result = await restorePackage(
+        'my-pkg',
+        {
+          version: 'main',
+          trust: 'experimental',
+          source: { repo: 'me/pkg', tag: 'main' },
+          files: [{ name: 'init.lua', target: 'lib/init.lua', sha256: sha256(content) }],
+          installedAt: new Date(0).toISOString(),
+        },
+        { projectDir: dir },
+      );
+
+      assert.equal(result.ok, true);
+      assert.equal(readFileSync(join(dir, 'lib', 'init.lua'), 'utf8'), content);
+    },
+  );
 });
 
 test('custom add: escaping target is rejected before fetch or write', async () => {
