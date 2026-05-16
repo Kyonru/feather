@@ -20,6 +20,15 @@ export type StagedProject = {
   cleanup: () => void;
 };
 
+export function removePath(path: string): void {
+  rmSync(path, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100,
+  });
+}
+
 function patternToRegExp(pattern: string): RegExp {
   const normalized = pattern.replace(/\\/g, '/').replace(/^\/+/, '');
   const escaped = normalized
@@ -83,7 +92,7 @@ export function stageProject(config: ResolvedBuildConfig): StagedProject {
   return {
     dir: stageDir,
     files,
-    cleanup: () => rmSync(root, { recursive: true, force: true }),
+    cleanup: () => removePath(root),
   };
 }
 

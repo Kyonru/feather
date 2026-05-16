@@ -46,13 +46,15 @@ program
 program
   .command('run [game-path] [game-args...]')
   .description('Inject Feather into a Love2D game and run it')
-  .option('--target <target>', 'Run target: desktop, android, or ios', 'desktop')
+  .option('--target <target>', 'Run target: desktop, web, android, or ios', 'desktop')
   .option('--device <id>', 'Android device serial or iOS simulator UDID')
-  .option('--build-config <path>', 'Path to feather.build.json for mobile run')
-  .option('--out-dir <path>', 'Build output directory for mobile run')
-  .option('--clean', 'Remove the output directory before mobile build')
+  .option('--build-config <path>', 'Path to feather.build.json for web/mobile run')
+  .option('--out-dir <path>', 'Build output directory for web/mobile run')
+  .option('--clean', 'Remove the output directory before web/mobile build')
   .option('--no-cache', 'Disable Android/iOS dev native build cache')
-  .option('--verbose', 'Show Android/iOS build commands and native tool output')
+  .option('--verbose', 'Show web/mobile build commands and native tool output')
+  .option('--web-host <host>', 'Host for web run static server', '127.0.0.1')
+  .option('--web-port <port>', 'Port for web run static server', (value) => Number(value), 8000)
   .option('--no-adb-reverse', 'Skip adb reverse setup for Android mobile run')
   .option('--port <port>', 'Feather desktop port for Android adb reverse', (value) => Number(value))
   .option('--love <path>', 'Path to the love2d binary (overrides auto-detect)')
@@ -67,13 +69,15 @@ program
   .option('--plugins-dir <path>', 'Use a custom plugins directory instead of the bundled one')
   .action((gamePath: string | undefined, gameArgs: string[], opts) => runCliAction(() => runCommand(gamePath, {
       love: opts.love as string | undefined,
-      target: opts.target as 'desktop' | 'android' | 'ios' | undefined,
+      target: opts.target as 'desktop' | 'web' | 'android' | 'ios' | undefined,
       device: opts.device as string | undefined,
       buildConfig: opts.buildConfig as string | undefined,
       outDir: opts.outDir as string | undefined,
       clean: opts.clean as boolean | undefined,
       noCache: opts.cache === false,
       verbose: opts.verbose as boolean | undefined,
+      webHost: opts.webHost as string | undefined,
+      webPort: opts.webPort as number | undefined,
       adbReverse: opts.adbReverse as boolean | undefined,
       port: opts.port as number | undefined,
       sessionName: opts.sessionName as string | undefined,
@@ -229,12 +233,13 @@ const buildVendor = build
 
 buildVendor
   .command('add [targets...]')
-  .description('Fetch build vendors: android, ios, mobile, or all')
+  .description('Fetch build vendors: web, android, ios, mobile, or all')
   .allowUnknownOption()
   .option('--dir <path>', 'Project directory (default: current directory)')
   .option('--config <path>', 'Path to feather.build.json')
   .option('--vendor-dir <path>', 'Vendor directory inside the project', 'vendor')
   .option('--ref <ref>', 'LÖVE version/tag/ref for all vendors')
+  .option('--web-ref <ref>', 'love.js vendor branch/tag/ref override')
   .option('--android-ref <ref>', 'Android vendor branch/tag/ref override')
   .option('--ios-ref <ref>', 'iOS vendor branch/tag/ref override')
   .option('--force', 'Replace existing vendor directories or conflicting config paths')
@@ -246,6 +251,7 @@ buildVendor
     config: opts.config as string | undefined,
     vendorDir: opts.vendorDir as string | undefined,
     ref: opts.ref as string | undefined,
+    webRef: opts.webRef as string | undefined,
     androidRef: opts.androidRef as string | undefined,
     iosRef: opts.iosRef as string | undefined,
     force: opts.force as boolean | undefined,

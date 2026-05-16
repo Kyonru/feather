@@ -7,13 +7,12 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
-  rmSync,
   writeFileSync,
   type Dirent,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import { copyDirectory } from './files.js';
+import { copyDirectory, removePath } from './files.js';
 
 export type NativeBuildLogger = (message: string) => void;
 
@@ -53,7 +52,7 @@ export function createNativeWorkspace(
     const hit = existsSync(dir) && cache.requiredPaths?.every((path) => existsSync(join(dir, path))) !== false;
     logNativeStep(cache.log, `Build cache: ${hit ? 'hit' : 'miss'} ${root}`);
     if (!hit) {
-      rmSync(root, { recursive: true, force: true });
+      removePath(root);
       mkdirSync(root, { recursive: true });
       copyDirectory(templateDir, dir);
     }
@@ -72,7 +71,7 @@ export function createNativeWorkspace(
     root,
     dir,
     cache: { enabled: false, hit: false },
-    cleanup: () => rmSync(root, { recursive: true, force: true }),
+    cleanup: () => removePath(root),
   };
 }
 

@@ -216,7 +216,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             'love.js player',
             loveJsDir && existsSync(resolve(projectDir, loveJsDir)) ? 'pass' : 'fail',
             loveJsDir ?? 'not configured',
-            'Set targets.web.loveJsDir in feather.build.json to a local love.js checkout or build output.',
+            `Run \`feather build vendor add web --dir ${projectDir}\` or set targets.web.loveJsDir in feather.build.json to a local love.js checkout or build output.`,
           );
         } else if (opts.buildTarget === 'android') {
           const androidConfig = buildConfig.targets.android ?? {};

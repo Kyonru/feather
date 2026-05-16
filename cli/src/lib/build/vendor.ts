@@ -16,15 +16,16 @@ import {
 } from './config.js';
 import { assertNoSymlinkEscape, assertSafeRelativePath, isPathInside } from '../path-safety.js';
 
-export const buildVendorTargets = ['android', 'ios', 'mobile', 'all'] as const;
+export const buildVendorTargets = ['web', 'android', 'ios', 'mobile', 'all'] as const;
 export type BuildVendorTargetInput = typeof buildVendorTargets[number];
-export type ConcreteBuildVendorTarget = 'android' | 'ios';
+export type ConcreteBuildVendorTarget = 'web' | 'android' | 'ios';
 
 export type BuildVendorAddOptions = {
   projectDir?: string;
   configPath?: string;
   vendorDir?: string;
   ref?: string;
+  webRef?: string;
   androidRef?: string;
   iosRef?: string;
   force?: boolean;
@@ -77,6 +78,8 @@ export type BuildVendorListResult = {
 };
 
 const DEFAULT_LOVE_VERSION = '11.5';
+const DEFAULT_LOVE_JS_REF = 'main';
+const LOVE_JS_REPO = 'https://github.com/2dengine/love.js';
 const LOVE_ANDROID_REPO = 'https://github.com/love2d/love-android';
 const LOVE_REPO = 'https://github.com/love2d/love';
 
@@ -102,9 +105,7 @@ export async function addBuildVendors(targets: BuildVendorTargetInput[], options
       configPath,
       vendorDir,
       loveVersion,
-      ref: target === 'android'
-        ? sanitizeRef(options.androidRef ?? options.ref ?? config.loveVersion ?? DEFAULT_LOVE_VERSION, 'Android vendor ref')
-        : sanitizeRef(options.iosRef ?? options.ref ?? config.loveVersion ?? DEFAULT_LOVE_VERSION, 'iOS vendor ref'),
+      ref: vendorRef(target, options, config.loveVersion),
       force: Boolean(options.force),
       dryRun: Boolean(options.dryRun),
       updateConfig: options.updateConfig !== false,
@@ -126,7 +127,7 @@ export function listBuildVendors(options: BuildVendorListOptions = {}): BuildVen
   const raw = readBuildConfig(projectDir, options.configPath);
   const configPath = buildConfigPath(projectDir, options.configPath);
   const vendorDir = resolveVendorDir(projectDir, options.vendorDir ?? 'vendor');
-  const vendors = (['android', 'ios'] as const).map((target) => vendorStatus(projectDir, raw, vendorDir, target));
+  const vendors = (['web', 'android', 'ios'] as const).map((target) => vendorStatus(projectDir, raw, vendorDir, target));
   return { ok: true, projectDir, configPath, vendors };
 }
 
@@ -137,6 +138,7 @@ function expandVendorTargets(targets: BuildVendorTargetInput[]): ConcreteBuildVe
     if (target === 'mobile' || target === 'all') {
       expanded.add('android');
       expanded.add('ios');
+      if (target === 'all') expanded.add('web');
     } else {
       expanded.add(target);
     }
@@ -158,19 +160,15 @@ type AddSingleVendorInput = {
 };
 
 async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendorResult> {
-  const defaultRelativePath = input.target === 'android'
-    ? relativeProjectPath(input.projectDir, join(input.vendorDir, 'love-android'))
-    : relativeProjectPath(input.projectDir, join(input.vendorDir, 'love-ios'));
-  const configuredPath = input.target === 'android'
-    ? input.raw.targets?.android?.loveAndroidDir
-    : input.raw.targets?.ios?.loveIosDir;
+  const defaultRelativePath = defaultVendorRelativePath(input.projectDir, input.vendorDir, input.target);
+  const configuredPath = configuredVendorPath(input.raw, input.target);
   if (configuredPath && configuredPath !== defaultRelativePath && !input.force) {
     throw new Error(`${input.target} vendor is already configured at ${configuredPath}. Use --force to replace it with ${defaultRelativePath}.`);
   }
 
   const targetPath = resolveProjectVendorPath(input.projectDir, configuredPath && !input.force ? configuredPath : defaultRelativePath, `${input.target} vendor directory`);
   const relativePath = relativeProjectPath(input.projectDir, targetPath);
-  const repo = input.target === 'android' ? LOVE_ANDROID_REPO : LOVE_REPO;
+  const repo = vendorRepo(input.target);
   const actions: string[] = [];
 
   if (existsSync(targetPath) && !input.force) {
@@ -212,17 +210,13 @@ async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendor
 }
 
 function vendorStatus(projectDir: string, raw: FeatherBuildConfig, vendorDir: string, target: ConcreteBuildVendorTarget): BuildVendorListEntry {
-  const configuredPath = target === 'android'
-    ? raw.targets?.android?.loveAndroidDir
-    : raw.targets?.ios?.loveIosDir;
-  const fallback = target === 'android' ? join(vendorDir, 'love-android') : join(vendorDir, 'love-ios');
+  const configuredPath = configuredVendorPath(raw, target);
+  const fallback = join(projectDir, defaultVendorRelativePath(projectDir, vendorDir, target));
   const path = configuredPath
     ? resolveProjectVendorPath(projectDir, configuredPath, `${target} vendor directory`)
     : fallback;
   const exists = existsSync(path);
-  const valid = target === 'android'
-    ? existsSync(join(path, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew')) || existsSync(join(path, 'gradlew')) || existsSync(join(path, 'gradlew.bat'))
-    : existsSync(join(path, 'platform', 'xcode', 'love.xcodeproj'));
+  const valid = vendorPathValid(path, target);
   return {
     target,
     path,
@@ -233,6 +227,43 @@ function vendorStatus(projectDir: string, raw: FeatherBuildConfig, vendorDir: st
     valid,
     detail: valid ? 'ready' : exists ? 'present but missing expected build files' : 'missing',
   };
+}
+
+function vendorRef(target: ConcreteBuildVendorTarget, options: BuildVendorAddOptions, loveVersion: string | undefined): string {
+  if (target === 'web') {
+    return sanitizeRef(options.webRef ?? options.ref ?? DEFAULT_LOVE_JS_REF, 'love.js vendor ref');
+  }
+  if (target === 'android') {
+    return sanitizeRef(options.androidRef ?? options.ref ?? loveVersion ?? DEFAULT_LOVE_VERSION, 'Android vendor ref');
+  }
+  return sanitizeRef(options.iosRef ?? options.ref ?? loveVersion ?? DEFAULT_LOVE_VERSION, 'iOS vendor ref');
+}
+
+function defaultVendorRelativePath(projectDir: string, vendorDir: string, target: ConcreteBuildVendorTarget): string {
+  const dirname = target === 'web' ? 'love.js' : target === 'android' ? 'love-android' : 'love-ios';
+  return relativeProjectPath(projectDir, join(vendorDir, dirname));
+}
+
+function configuredVendorPath(raw: FeatherBuildConfig, target: ConcreteBuildVendorTarget): string | undefined {
+  if (target === 'web') return raw.targets?.web?.loveJsDir;
+  if (target === 'android') return raw.targets?.android?.loveAndroidDir;
+  return raw.targets?.ios?.loveIosDir;
+}
+
+function vendorRepo(target: ConcreteBuildVendorTarget): string {
+  if (target === 'web') return LOVE_JS_REPO;
+  if (target === 'android') return LOVE_ANDROID_REPO;
+  return LOVE_REPO;
+}
+
+function vendorPathValid(path: string, target: ConcreteBuildVendorTarget): boolean {
+  if (target === 'web') {
+    return existsSync(join(path, 'index.html')) && (existsSync(join(path, 'player.js')) || existsSync(join(path, 'player.min.js')));
+  }
+  if (target === 'android') {
+    return existsSync(join(path, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew')) || existsSync(join(path, 'gradlew')) || existsSync(join(path, 'gradlew.bat'));
+  }
+  return existsSync(join(path, 'platform', 'xcode', 'love.xcodeproj'));
 }
 
 function resolveVendorDir(projectDir: string, vendorDir: string): string {
@@ -372,10 +403,16 @@ function updateVendorConfig(
       ...(raw.targets ?? {}),
       [target]: {
         ...((raw.targets ?? {})[target] ?? {}),
-        [target === 'android' ? 'loveAndroidDir' : 'loveIosDir']: relativePath,
+        [vendorConfigKey(target)]: relativePath,
       },
     },
   };
   mkdirSync(dirname(configPath), { recursive: true });
   writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`);
+}
+
+function vendorConfigKey(target: ConcreteBuildVendorTarget): 'loveJsDir' | 'loveAndroidDir' | 'loveIosDir' {
+  if (target === 'web') return 'loveJsDir';
+  if (target === 'android') return 'loveAndroidDir';
+  return 'loveIosDir';
 }

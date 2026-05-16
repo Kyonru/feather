@@ -12,7 +12,7 @@ feather run path/to/my-game
 A new session tab appears in the Feather desktop app automatically. No `require` calls, no `DEBUGGER:update(dt)` — the CLI handles everything.
 
 > [!NOTE]
-> Use plain `feather run` for local desktop iteration where the CLI launches LÖVE directly.
+> Use plain `feather run` for local desktop iteration where the CLI launches LÖVE directly. Use `feather run --target web` when you want a served love.js dev artifact.
 
 > [!IMPORTANT]
 > For Android and iOS dev loops, `feather run path/to/my-game --target android|ios` can build the configured native template, install it, and launch it. For handhelds, Steam Deck, or another computer, embed Feather into the game instead.
@@ -45,7 +45,7 @@ USE_DEBUGGER=1 love .
 ```
 
 > [!TIP]
-> `feather run --target android` runs ADB reverse by default, so `host = "127.0.0.1"` can still work over USB. Mobile dev runs embed Feather and your selected `feather.config.lua` into the temporary `.love` archive; pass `--no-debugger` to build/install raw source instead. For Wi-Fi devices, Steam Deck, or another computer, use the LAN IP shown in Feather Settings.
+> `feather run --target android` runs ADB reverse by default, so `host = "127.0.0.1"` can still work over USB. Web and mobile dev runs embed Feather and your selected `feather.config.lua` into the temporary `.love` archive; pass `--no-debugger` to build/serve/install raw source instead. For Wi-Fi devices, Steam Deck, or another computer, use the LAN IP shown in Feather Settings.
 
 See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
 
@@ -64,11 +64,14 @@ feather doctor path/to/my-game --upload-target itch
 
 `feather build` supports web, Android, iOS, Windows, macOS, Linux, and SteamOS artifacts. Web builds need a local love.js player directory configured in `feather.build.json`; Android/iOS builds need local love-android or LÖVE iOS template paths; desktop builds expect `love-release` on `PATH`. `feather upload itch` expects Butler on `PATH` and either `BUTLER_API_KEY` in CI or a local `butler login` session.
 
-For mobile setup, run `feather build vendor add mobile --dir path/to/my-game` to fetch official LÖVE template checkouts into `vendor/` and update `feather.build.json`. Then run `feather doctor path/to/my-game --build-target android` or `--build-target ios`. Doctor checks the native template path, product/bundle id, local build tools, and the common environment variables before the build or run command stages or writes artifacts. Vendor fetching does not install Android SDK, JDK, Xcode, or signing assets.
+For web/mobile setup, run `feather build vendor add web --dir path/to/my-game` for love.js or `feather build vendor add mobile --dir path/to/my-game` for Android/iOS templates. Both commands fetch vendor checkouts into `vendor/` and update `feather.build.json`. Then run `feather doctor path/to/my-game --build-target web`, `--build-target android`, or `--build-target ios`. Doctor checks the configured vendor paths, product/bundle id where relevant, local build tools, and the common environment variables before the build or run command stages or writes artifacts. Vendor fetching does not install Android SDK, JDK, Xcode, or signing assets.
 
-Mobile dev run examples:
+Web/mobile dev run examples:
 
 ```bash
+feather run path/to/my-game --target web
+feather run path/to/my-game --target web --web-port 3000
+feather run path/to/my-game --target web --no-debugger
 feather run path/to/my-game --target android
 feather run path/to/my-game --target android --device emulator-5554
 feather run path/to/my-game --target android --no-debugger

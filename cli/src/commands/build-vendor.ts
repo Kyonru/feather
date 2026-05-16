@@ -21,6 +21,7 @@ export type BuildVendorCommandOptions = {
   config?: string;
   vendorDir?: string;
   ref?: string;
+  webRef?: string;
   androidRef?: string;
   iosRef?: string;
   force?: boolean;
@@ -49,6 +50,7 @@ export async function buildVendorAddCommand(targetValues: string[], opts: BuildV
       configPath: opts.config,
       vendorDir: opts.vendorDir,
       ref: opts.ref,
+      webRef: opts.webRef,
       androidRef: opts.androidRef,
       iosRef: opts.iosRef,
       force: opts.force,

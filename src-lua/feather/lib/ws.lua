@@ -14,7 +14,7 @@ Usage:
 ]]
 
 local socket = require("socket")
-local bit = require("bit")
+local bit = require((FEATHER_PATH or "feather") .. ".lib.bit")
 local band, bor, bxor = bit.band, bit.bor, bit.bxor
 local shl, shr = bit.lshift, bit.rshift
 

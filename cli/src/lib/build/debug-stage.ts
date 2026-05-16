@@ -31,11 +31,11 @@ export function embedMobileDebuggerStage(
 
   const originalMain = join(stageDir, 'main.lua');
   if (!existsSync(originalMain)) {
-    throw new Error('Mobile debugger embedding requires main.lua in the staged game.');
+    throw new Error('Feather debugger embedding requires main.lua in the staged game.');
   }
   const relocatedMain = join(stageDir, '.feather-main.lua');
   if (existsSync(relocatedMain)) {
-    throw new Error('Mobile debugger embedding cannot use .feather-main.lua because that file already exists in the game.');
+    throw new Error('Feather debugger embedding cannot use .feather-main.lua because that file already exists in the game.');
   }
 
   const featherDir = featherRoot(options.featherOverride);
@@ -92,7 +92,7 @@ function resolveRuntimeConfig(config: ResolvedBuildConfig, override: string | un
 function generatedMobileConfig(name: string): string {
   return [
     '-- feather.config.lua',
-    '-- Generated only inside Feather mobile dev build staging.',
+    '-- Generated only inside Feather dev build staging.',
     '-- The source project is not modified.',
     'return {',
     `  sessionName = ${JSON.stringify(name)},`,
@@ -115,7 +115,7 @@ function generatedMobileConfig(name: string): string {
 
 function mobileMainWrapper(): string {
   return [
-    '-- Feather mobile debugger injector - generated in build staging only.',
+    '-- Feather debugger injector - generated in build staging only.',
     'FEATHER_PATH = "feather"',
     'FEATHER_PLUGIN_PATH = ""',
     '',

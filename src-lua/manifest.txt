@@ -9,6 +9,7 @@ core:feather/debugger.lua
 core:feather/error_handler.lua
 core:feather/init.lua
 core:feather/lib/base64.lua
+core:feather/lib/bit.lua
 core:feather/lib/class.lua
 core:feather/lib/inspect.lua
 core:feather/lib/json.lua

@@ -116,11 +116,12 @@ If you use Feather's local release helpers, keep release metadata in `feather.bu
 
 ```bash
 feather build web --dir path/to/my-game --json
+feather build vendor add web --dir path/to/my-game --json
 feather build vendor add mobile --dir path/to/my-game --json
 feather upload itch web --dir path/to/my-game --dry-run --json
 ```
 
-Web builds package a local love.js player; `build vendor add mobile` fetches official Android/iOS LÖVE templates into `vendor/`; desktop targets delegate packaging to `love-release`; Itch uploads use Butler. Mobile release mode is opt-in with `--release` and produces Android AAB/APK or iOS archive/IPA artifacts. Play Console, App Store, and Steam upload are intentionally later phases until those release flows are hardened.
+Web builds package a local love.js player; `build vendor add web` fetches love.js into `vendor/`; `build vendor add mobile` fetches official Android/iOS LÖVE templates; desktop targets delegate packaging to `love-release`; Itch uploads use Butler. Mobile release mode is opt-in with `--release` and produces Android AAB/APK or iOS archive/IPA artifacts. Play Console, App Store, and Steam upload are intentionally later phases until those release flows are hardened.
 
 ---
 

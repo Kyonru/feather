@@ -3,7 +3,7 @@
 --- Optimised: builds 4-char chunks via pre-computed lookup table to avoid
 --- per-character string.sub calls (≈4× faster on large payloads).
 
-local bit = require("bit")
+local bit = require((FEATHER_PATH or "feather") .. ".lib.bit")
 local band = bit.band
 local shr = bit.rshift
 

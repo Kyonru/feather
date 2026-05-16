@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   chmodSync,
@@ -43,6 +43,60 @@ function run(args, extra = {}) {
     stderr: result.stderr ?? '',
     exitCode: result.status ?? 1,
   };
+}
+
+function spawnCli(args, extra = {}) {
+  const child = spawn(process.execPath, [CLI, ...args], {
+    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+    ...extra,
+  });
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  return child;
+}
+
+function waitForOutput(child, pattern, timeoutMs = 10000) {
+  return new Promise((resolveWait, rejectWait) => {
+    let output = '';
+    const timer = setTimeout(() => {
+      rejectWait(new Error(`Timed out waiting for ${pattern}. Output:\n${output}`));
+    }, timeoutMs);
+    const onData = (chunk) => {
+      output += chunk;
+      if (pattern.test(output)) {
+        clearTimeout(timer);
+        cleanup();
+        resolveWait(output);
+      }
+    };
+    const onExit = (code) => {
+      clearTimeout(timer);
+      cleanup();
+      rejectWait(new Error(`Process exited with ${code} before ${pattern}. Output:\n${output}`));
+    };
+    const cleanup = () => {
+      child.stdout.off('data', onData);
+      child.stderr.off('data', onData);
+      child.off('exit', onExit);
+    };
+    child.stdout.on('data', onData);
+    child.stderr.on('data', onData);
+    child.once('exit', onExit);
+  });
+}
+
+function stopChild(child) {
+  return new Promise((resolveStop) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resolveStop();
+      return;
+    }
+    child.once('exit', () => resolveStop());
+    child.kill('SIGTERM');
+    setTimeout(() => {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+    }, 2000).unref();
+  });
 }
 
 function outputOf(result) {
@@ -183,7 +237,10 @@ if (args[0] !== 'clone') {
 const target = args[args.length - 1];
 const repo = args[args.length - 2];
 fs.mkdirSync(target, { recursive: true });
-if (repo.includes('love-android')) {
+if (repo.includes('love.js')) {
+  fs.writeFileSync(path.join(target, 'index.html'), '<!doctype html><script src="player.js?g=nogame.love"></script>');
+  fs.writeFileSync(path.join(target, 'player.js'), 'console.log("love.js");\\n');
+} else if (repo.includes('love-android')) {
   fs.writeFileSync(path.join(target, 'gradlew'), '#!/bin/sh\\n');
   fs.mkdirSync(path.join(target, 'app', 'src', 'embed', 'assets'), { recursive: true });
 } else if (repo.includes('love')) {
@@ -608,7 +665,7 @@ test('run --target android: uses root build config for a nested game path', () =
     productId: 'com.example.nestedandroid',
     targets: { android: { loveAndroidDir: 'love-android' } },
   });
-  const { binDir, recordPath } = writeFakeAdb(dir);
+  const { binDir } = writeFakeAdb(dir);
 
   const result = run(['run', gameDir, '--target', 'android', '--no-adb-reverse'], {
     cwd: dir,
@@ -1146,7 +1203,6 @@ test('doctor --production fails unmanaged embedded runtime', () => {
 test('build web: creates love archive, love.js html package, zip, and manifest', () => {
   const dir = makeTmp();
   writeGame(dir);
-  const loveJsDir = writeFakeLoveJs(dir);
   writeBuildConfig(dir, {
     name: 'Command Game',
     version: '1.2.3',
@@ -1167,8 +1223,94 @@ test('build web: creates love archive, love.js html package, zip, and manifest',
   const index = readFileSync(join(dir, 'builds', 'command-game-1.2.3-html', 'index.html'), 'utf8');
   assert.ok(index.includes('<title>Command Game</title>'));
   assert.ok(index.includes('player.min.js?g=game.love'));
+  assert.equal(index.includes('href="/play/"'), false);
   const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
   assert.equal(manifest.target, 'web');
+});
+
+test('run --target web: builds, embeds Feather, serves generated html, and stays running', async () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), `return {
+  sessionName = "Web Custom",
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  debugOverlay = { visible = false },
+}
+`);
+  writeBuildConfig(dir, {
+    name: 'Run Web',
+    version: '1.0.0',
+    targets: { web: { loveJsDir: 'love.js' } },
+  });
+
+  const child = spawnCli(['run', dir, '--target', 'web', '--web-port', '0', '--config', join(dir, 'feather.config.lua')], {
+    env: envWithPath('', { FEATHER_TEST_WEB_RUN_NO_SERVER: '1' }),
+  });
+  try {
+    const output = await waitForOutput(child, /Debugger\s+enabled/);
+    assert.match(output, /Serving web build/);
+    assert.match(output, /Debugger\s+enabled/);
+    assert.equal(existsSync(join(dir, 'builds', 'run-web-1.0.0-html', 'index.html')), true);
+    const entries = readStoredZipEntries(join(dir, 'builds', 'run-web-1.0.0.love'));
+    assert.equal(entries.has('main.lua'), true);
+    assert.equal(entries.has('.feather-main.lua'), true);
+    assert.equal(entries.has('feather/auto.lua'), true);
+    assert.equal(entries.has('feather/core/debug_overlay.lua'), true);
+    assert.match(entries.get('feather.config.lua').toString('utf8'), /sessionName\s*=\s*"Web Custom"/);
+    assert.match(entries.get('feather.config.lua').toString('utf8'), /debugOverlay\s*=\s*\{/);
+  } finally {
+    await stopChild(child);
+  }
+});
+
+test('run --target web --no-debugger: builds and serves raw source', async () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeBuildConfig(dir, {
+    name: 'Run Web Raw',
+    version: '1.0.0',
+    targets: { web: { loveJsDir: 'love.js' } },
+  });
+
+  const child = spawnCli(['run', dir, '--target', 'web', '--web-port', '0', '--no-debugger'], {
+    env: envWithPath('', { FEATHER_TEST_WEB_RUN_NO_SERVER: '1' }),
+  });
+  try {
+    const output = await waitForOutput(child, /Debugger\s+disabled/);
+    assert.match(output, /Debugger\s+disabled/);
+    const entries = readStoredZipEntries(join(dir, 'builds', 'run-web-raw-1.0.0.love'));
+    assert.equal(entries.has('main.lua'), true);
+    assert.equal(entries.has('.feather-main.lua'), false);
+    assert.equal(entries.has('feather/auto.lua'), false);
+  } finally {
+    await stopChild(child);
+  }
+});
+
+test('run --target web: rejects forwarded game arguments', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeBuildConfig(dir, {
+    name: 'Run Web Args',
+    version: '1.0.0',
+    targets: { web: { loveJsDir: 'love.js' } },
+  });
+
+  const result = run(['run', dir, '--target', 'web', '--', '--foo']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Web run does not support forwarded game arguments yet.'));
+});
+
+test('run --target web: missing love.js config exits with web build guidance', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+
+  const result = run(['run', dir, '--target', 'web']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Web build requires targets.web.loveJsDir'));
 });
 
 test('build linux: delegates desktop packaging to love-release and writes manifest', () => {
@@ -1294,6 +1436,28 @@ test('build vendor add android --json: clones vendor and updates config', () => 
   assert.ok(records.some((record) => record.args.includes('https://github.com/love2d/love-android')));
 });
 
+test('build vendor add web --json: clones love.js vendor and updates config', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor Web', version: '1.0.0', loveVersion: '11.5' });
+  const { binDir, recordPath } = writeFakeVendorGit(dir);
+
+  const result = run(['build', 'vendor', 'add', 'web', '--dir', dir, '--json'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.vendors[0].target, 'web');
+  assert.equal(parsed.vendors[0].relativePath, 'vendor/love.js');
+  assert.equal(parsed.vendors[0].ref, 'main');
+  assert.equal(parsed.vendors[0].configUpdated, true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love.js', 'index.html')), true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love.js', 'player.js')), true);
+  const config = JSON.parse(readFileSync(join(dir, 'feather.build.json'), 'utf8'));
+  assert.equal(config.targets.web.loveJsDir, 'vendor/love.js');
+  const records = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(records.some((record) => record.args.includes('https://github.com/2dengine/love.js')));
+});
+
 test('build vendor add ios --json: clones vendor, installs Apple libraries, and updates config', async () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -1328,6 +1492,18 @@ test('build vendor add mobile --dry-run --json: reports planned vendors without 
   assert.deepEqual(parsed.vendors.map((vendor) => vendor.target), ['android', 'ios']);
   assert.equal(existsSync(join(dir, 'vendor')), false);
   assert.equal(existsSync(join(dir, 'feather.build.json')), false);
+});
+
+test('build vendor add all --dry-run --json: includes web and mobile vendors', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+
+  const result = run(['build', 'vendor', 'add', 'all', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.deepEqual(parsed.vendors.map((vendor) => vendor.target), ['android', 'ios', 'web']);
+  assert.equal(existsSync(join(dir, 'vendor')), false);
 });
 
 test('build vendor add --no-config: fetches vendor without writing build config', () => {
@@ -1367,9 +1543,11 @@ test('build vendor add: existing directories and conflicting config require --fo
 test('build vendor list --json: reports configured, missing, and valid vendors', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFakeLoveJs(dir);
   writeFakeLoveAndroid(dir);
   writeBuildConfig(dir, {
     targets: {
+      web: { loveJsDir: 'love.js' },
       android: { loveAndroidDir: 'love-android' },
       ios: { loveIosDir: 'vendor/love-ios' },
     },
@@ -1380,6 +1558,7 @@ test('build vendor list --json: reports configured, missing, and valid vendors',
   assert.equal(ANSI_RE.test(result.stdout), false);
   const parsed = JSON.parse(result.stdout);
   const labels = new Map(parsed.vendors.map((vendor) => [vendor.target, vendor]));
+  assert.equal(labels.get('web').valid, true);
   assert.equal(labels.get('android').valid, true);
   assert.equal(labels.get('ios').exists, false);
   assert.equal(labels.get('ios').detail, 'missing');

@@ -29,7 +29,7 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 ## Quick Start
 
 > [!IMPORTANT]
-> For quick local desktop iteration, use `feather run path/to/my-game` without changing game code. For Android and iOS dev loops, `feather run path/to/my-game --target android|ios` builds the configured native template, installs it, and launches it on a device or simulator.
+> For quick local desktop iteration, use `feather run path/to/my-game` without changing game code. For web dev loops, `feather run path/to/my-game --target web` builds and serves a local love.js artifact. For Android and iOS dev loops, `feather run path/to/my-game --target android|ios` builds the configured native template, installs it, and launches it on a device or simulator.
 
 ### Option A — CLI injection (no game-side changes)
 
@@ -37,6 +37,7 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 npm install -g @kyonru/feather
 feather init path/to/my-game
 feather run path/to/my-game
+feather run path/to/my-game --target web
 feather run path/to/my-game --target android
 ```
 
@@ -54,7 +55,7 @@ USE_DEBUGGER=1 love path/to/my-game
 ```
 
 > [!IMPORTANT]
-> Use this for handhelds, Steam Deck, or a second computer. Android/iOS can also use `feather run --target android|ios` once mobile build templates are configured.
+> Use this for handhelds, Steam Deck, or a second computer. Web can use `feather run --target web` once love.js is configured, and Android/iOS can use `feather run --target android|ios` once mobile build templates are configured.
 
 `feather init` creates `feather.config.lua`:
 

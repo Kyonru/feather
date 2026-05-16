@@ -38,11 +38,35 @@ local function toFsPath(modulePath)
   return modulePath:gsub("%.$", ""):gsub("%.", "/")
 end
 
+local function getInfo(fsPath)
+  if not love or not love.filesystem or not love.filesystem.getInfo then
+    return nil
+  end
+  local ok, info = pcall(love.filesystem.getInfo, fsPath)
+  if ok then
+    return info
+  end
+  return nil
+end
+
+local function isDirectory(fsPath)
+  local info = getInfo(fsPath)
+  return info and info.type == "directory"
+end
+
+local function isFile(fsPath)
+  local info = getInfo(fsPath)
+  return info and info.type == "file"
+end
+
 --- Load a manifest.lua from a filesystem path.
 ---@param fsPath string  Absolute-ish path understood by love.filesystem
 ---@return table|nil
 local function loadManifest(fsPath)
   if not love or not love.filesystem then
+    return nil
+  end
+  if love.filesystem.getInfo and not isFile(fsPath) then
     return nil
   end
   local chunk, _ = love.filesystem.load(fsPath)
@@ -101,30 +125,36 @@ local function scanPlugins()
   if not love or not love.filesystem then
     return entries
   end
-  local items = love.filesystem.getDirectoryItems(fsDir)
+  local ok, items = pcall(love.filesystem.getDirectoryItems, fsDir)
+  if not ok then
+    return entries
+  end
   if not items then
     return entries
   end
 
   for _, dirName in ipairs(items) do
-    local manifest = loadManifest(fsDir .. "/" .. dirName .. "/manifest.lua")
-    if manifest and manifest.id then
-      local mod = tryRequire(pluginModPath .. manifest.id)
-      entries[#entries + 1] = {
-        mod = mod,
-        id = manifest.id,
-        opts = manifest.opts or {},
-        optIn = manifest.optIn or false,
-        disabled = manifest.disabled ~= false,
-        capabilities = manifest.capabilities or {},
-        compatibility = {
-          api = manifest.api,
-          minApi = manifest.minApi,
-          maxApi = manifest.maxApi,
-          name = manifest.name,
-          version = manifest.version,
-        },
-      }
+    local pluginDir = fsDir .. "/" .. dirName
+    if isDirectory(pluginDir) then
+      local manifest = loadManifest(pluginDir .. "/manifest.lua")
+      if manifest and manifest.id then
+        local mod = tryRequire(pluginModPath .. manifest.id)
+        entries[#entries + 1] = {
+          mod = mod,
+          id = manifest.id,
+          opts = manifest.opts or {},
+          optIn = manifest.optIn or false,
+          disabled = manifest.disabled ~= false,
+          capabilities = manifest.capabilities or {},
+          compatibility = {
+            api = manifest.api,
+            minApi = manifest.minApi,
+            maxApi = manifest.maxApi,
+            name = manifest.name,
+            version = manifest.version,
+          },
+        }
+      end
     end
   end
 

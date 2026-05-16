@@ -8,6 +8,7 @@ import { chooseRunWorkflow } from "../ui/run-workflow.js";
 import { fail } from "../lib/command.js";
 import { printInfo, printKeyValues, printMuted, printStatus } from "../lib/output.js";
 import { runMobile, type MobileRunTarget } from "../lib/run/mobile.js";
+import { runWeb } from "../lib/run/web.js";
 import { isPathInside } from "../lib/path-safety.js";
 
 export interface RunOptions {
@@ -19,13 +20,15 @@ export interface RunOptions {
   featherPath?: string;
   pluginsDir?: string;
   gameArgs?: string[];
-  target?: "desktop" | MobileRunTarget;
+  target?: "desktop" | "web" | MobileRunTarget;
   device?: string;
   buildConfig?: string;
   outDir?: string;
   clean?: boolean;
   noCache?: boolean;
   verbose?: boolean;
+  webHost?: string;
+  webPort?: number;
   adbReverse?: boolean;
   port?: number;
 }
@@ -33,11 +36,14 @@ export interface RunOptions {
 export async function runCommand(gamePath: string | undefined, opts: RunOptions): Promise<void | number> {
   const target = opts.target ?? "desktop";
   const debuggerEnabled = opts.debugger !== false;
-  if (!["desktop", "android", "ios"].includes(target)) {
-    fail("Run target must be one of: desktop, android, ios.");
+  if (!["desktop", "web", "android", "ios"].includes(target)) {
+    fail("Run target must be one of: desktop, web, android, ios.");
   }
   if (opts.port !== undefined && (!Number.isInteger(opts.port) || opts.port < 1 || opts.port > 65535)) {
     fail("Port must be a number between 1 and 65535.");
+  }
+  if (opts.webPort !== undefined && (!Number.isInteger(opts.webPort) || opts.webPort < 0 || opts.webPort > 65535)) {
+    fail("Web port must be a number between 0 and 65535.");
   }
 
   if (!gamePath) {
@@ -85,11 +91,47 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
 
   const userConfig = loadConfig(absGame, opts.config) ?? undefined;
 
+  if (target === "web") {
+    if ((opts.gameArgs?.length ?? 0) > 0) {
+      fail("Web run does not support forwarded game arguments yet.");
+    }
+    const buildContext = resolveRunBuildContext(absGame, opts.buildConfig);
+    try {
+      printInfo("Feather run web");
+      const result = await runWeb({
+        projectDir: buildContext.projectDir,
+        configPath: buildContext.configPath,
+        sourceDir: buildContext.sourceDir,
+        outDir: opts.outDir,
+        clean: opts.clean,
+        debugger: debuggerEnabled,
+        runtimeConfigPath: opts.config,
+        noPlugins: opts.noPlugins,
+        featherOverride: opts.featherPath,
+        pluginsOverride: opts.pluginsDir,
+        verbose: opts.verbose,
+        host: opts.webHost,
+        port: opts.webPort,
+      });
+      printStatus("success", "Serving web build");
+      printKeyValues([
+        ["Game", absGame],
+        ["HTML", result.htmlDir],
+        ["URL", result.url],
+        ["Debugger", result.debugger ? "enabled" : "disabled"],
+      ]);
+      await result.wait;
+      return;
+    } catch (err) {
+      fail((err as Error).message, { cause: err });
+    }
+  }
+
   if (target === "android" || target === "ios") {
     if ((opts.gameArgs?.length ?? 0) > 0) {
       fail("Mobile run does not support forwarded game arguments yet.");
     }
-    const buildContext = resolveMobileBuildContext(absGame, opts.buildConfig);
+    const buildContext = resolveRunBuildContext(absGame, opts.buildConfig);
     try {
       printInfo(`Feather run ${target}`);
       const result = runMobile({
@@ -185,7 +227,7 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   return result.status ?? 0;
 }
 
-function resolveMobileBuildContext(absGame: string, buildConfig: string | undefined): {
+function resolveRunBuildContext(absGame: string, buildConfig: string | undefined): {
   projectDir: string;
   configPath?: string;
   sourceDir?: string;

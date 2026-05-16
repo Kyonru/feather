@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assertNoSymlinkEscape } from '../path-safety.js';
 import {
@@ -6,6 +6,7 @@ import {
   fileSize,
   latestManifestPath,
   listProjectFiles,
+  removePath,
   stageProject,
   writeJson,
   type BuildArtifact,
@@ -35,6 +36,7 @@ export type BuildOptions = LoadBuildConfigOptions & {
   release?: boolean;
   noCache?: boolean;
   debugger?: boolean;
+  embedDebugger?: boolean;
   runtimeConfigPath?: string;
   noPlugins?: boolean;
   featherOverride?: string;
@@ -121,18 +123,18 @@ export function runBuild(options: BuildOptions): BuildResult {
     if (options.dryRun) return planBuild(options);
     const log = options.verbose ? options.log : undefined;
     const mobileDevBuild = (options.target === 'android' || options.target === 'ios') && !options.release;
+    const debuggerEmbedBuild = options.embedDebugger === true || mobileDevBuild;
     if (options.clean && mobileDevBuild && !options.noCache) {
       log?.('Build cache: reset by --clean');
     }
-    if (options.clean) rmSync(config.outDir, { recursive: true, force: true });
+    if (options.clean) removePath(config.outDir);
     mkdirSync(config.outDir, { recursive: true });
 
     const staged = stageProject(config);
     log?.(`Staged ${staged.files.length} files from ${config.sourceDir}`);
     try {
       let cache: NativeCacheInfo | undefined;
-      const mobileDevBuild = (options.target === 'android' || options.target === 'ios') && !options.release;
-      const debugStage = mobileDevBuild
+      const debugStage = debuggerEmbedBuild
         ? embedMobileDebuggerStage(config, staged.dir, {
             enabled: options.debugger !== false,
             runtimeConfigPath: options.runtimeConfigPath,
@@ -143,7 +145,7 @@ export function runBuild(options: BuildOptions): BuildResult {
         : undefined;
       if (debugStage?.enabled) {
         log?.(`Embedded Feather debugger runtime${debugStage.configPath ? ` with ${debugStage.configPath}` : ' with generated dev config'}`);
-      } else if (mobileDevBuild) {
+      } else if (debuggerEmbedBuild) {
         log?.('Feather debugger embedding: disabled');
       }
       const artifacts = options.target === 'web'

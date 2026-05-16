@@ -38,6 +38,7 @@ function patchLoveJsIndex(indexPath: string, title: string): void {
   if (next === existing && !/<title>/i.test(next)) {
     next = next.replace(/<head[^>]*>/i, (match) => `${match}<title>${escapeHtml(title)}</title>`);
   }
+  next = normalizeBaseHref(next);
   next = next.replace(/player(?:\.min)?\.js(?:\?g=[^"']*)?/g, (match) => {
     const script = match.startsWith('player.min') ? 'player.min.js' : 'player.js';
     return `${script}?g=game.love`;
@@ -46,6 +47,13 @@ function patchLoveJsIndex(indexPath: string, title: string): void {
     next = next.replace('</body>', '<script src="player.min.js?g=game.love"></script></body>');
   }
   writeFileSync(indexPath, next);
+}
+
+function normalizeBaseHref(html: string): string {
+  if (/<base\s+href=/i.test(html)) {
+    return html.replace(/<base\s+href=["'][^"']*["']\s*\/?>/i, '<base href="./">');
+  }
+  return html;
 }
 
 function escapeHtml(value: string): string {

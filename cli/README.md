@@ -13,12 +13,13 @@ The Feather CLI lets you run and debug LÖVE games **without modifying your game
 ```bash
 feather run
 feather run path/to/my-game
+feather run path/to/my-game --target web
 feather run path/to/my-game --target android
 feather run path/to/my-game --target ios
 ```
 
 > [!IMPORTANT]
-> `feather run` launches desktop games directly. For Android and iOS dev loops it builds the configured native template, installs the artifact, and launches it on a connected device or simulator.
+> `feather run` launches desktop games directly. For web dev loops it builds and serves a local love.js artifact. For Android and iOS dev loops it builds the configured native template, installs the artifact, and launches it on a connected device or simulator.
 
 ---
 
@@ -80,6 +81,9 @@ feather run . --no-debugger               # launch without Feather injection
 feather run . --love /usr/bin/love        # override love2d binary
 feather run . --plugins-dir ./my-plugins  # use a custom plugins directory
 feather run . -- --level dev              # pass args through to the game
+feather run . --target web                # build love.js output and serve it locally
+feather run . --target web --web-port 3000
+feather run . --target web --no-debugger  # serve raw source without Feather embed
 feather run . --target android            # build, install, adb reverse, and launch Android
 feather run . --target android --device emulator-5554
 feather run . --target android --verbose  # show Gradle/ADB commands and output
@@ -103,19 +107,21 @@ When `game-path` is omitted in an interactive terminal, Feather opens an Ink wor
 | `--config <path>`       | Explicit path to a `feather.config.lua` file.                                                   |
 | `--feather-path <path>` | Use a local feather install instead of the CLI's bundled copy.                                  |
 | `--plugins-dir <path>`  | Use a custom plugins directory instead of the CLI's bundled plugins.                            |
-| `--target <target>`     | Run target: `desktop`, `android`, or `ios`. Defaults to `desktop`.                              |
+| `--target <target>`     | Run target: `desktop`, `web`, `android`, or `ios`. Defaults to `desktop`.                       |
 | `--device <id>`         | Android device serial or iOS simulator UDID. iOS defaults to `booted`.                          |
-| `--build-config <path>` | Path to `feather.build.json` for mobile run.                                                    |
-| `--out-dir <path>`      | Build output directory for mobile run.                                                          |
-| `--clean`               | Remove the output directory before the mobile build.                                            |
+| `--build-config <path>` | Path to `feather.build.json` for web/mobile run.                                                |
+| `--out-dir <path>`      | Build output directory for web/mobile run.                                                      |
+| `--clean`               | Remove the output directory before the web/mobile build.                                        |
 | `--no-cache`            | Disable Android/iOS dev native build cache for this run.                                        |
-| `--verbose`             | Show Android/iOS build, install, and launch commands plus native tool output.                   |
+| `--verbose`             | Show web/mobile build steps plus Android/iOS install and launch commands.                       |
 | `--no-adb-reverse`      | Skip Android `adb reverse` setup.                                                               |
 | `--port <port>`         | Port used for Android `adb reverse`; defaults to `feather.config.lua` `port` or `4004`.         |
+| `--web-host <host>`     | Host used by the web dev server. Defaults to `127.0.0.1`.                                       |
+| `--web-port <port>`     | Port used by the web dev server. Defaults to `8000`; use `0` for an OS-assigned port.           |
 
 Use `--` to separate Feather CLI options from arguments intended for the LÖVE game. Everything after `--` is passed to `love` after the generated shim path.
 
-Mobile run is dev-only in V1 and does not forward game arguments. By default it embeds the bundled Feather runtime, bundled plugins, and the selected `feather.config.lua` into the temporary `.love` archive before installing. Android requires `adb`, a configured `targets.android.loveAndroidDir`, and USB debugging or an emulator. iOS requires macOS, Xcode, a configured `targets.ios.loveIosDir`, and a booted simulator.
+Web and mobile run are dev-only in V1 and do not forward game arguments. By default they embed the bundled Feather runtime, bundled plugins, and the selected `feather.config.lua` into the temporary `.love` archive before serving or installing. Web requires a configured `targets.web.loveJsDir`. Android requires `adb`, a configured `targets.android.loveAndroidDir`, and USB debugging or an emulator. iOS requires macOS, Xcode, a configured `targets.ios.loveIosDir`, and a booted simulator.
 
 **Project config file:**
 
@@ -360,6 +366,7 @@ Build a LÖVE game into local artifacts. V1 supports `web`, `android`, `ios`, `w
 
 ```bash
 feather build web --dir path/to/my-game
+feather build vendor add web --dir path/to/my-game
 feather build vendor add mobile --dir path/to/my-game
 feather build android --dir path/to/my-game
 feather build android --dir path/to/my-game --verbose
@@ -378,16 +385,18 @@ feather build web --allow-unsafe
 
 Builds read `feather.build.json` from the project root. Missing config is allowed for simple desktop builds, but web builds need a local love.js player directory, mobile builds need local LÖVE native template paths, and uploads need store metadata.
 
-To fetch the mobile native templates locally:
+To fetch web/mobile build vendors locally:
 
 ```bash
+feather build vendor add web
 feather build vendor add mobile
+feather build vendor add all --json
 feather build vendor add android --ref 11.5
 feather build vendor add ios --ref 11.5 --json
 feather build vendor list
 ```
 
-`build vendor add` clones official LÖVE vendor sources into `vendor/` and updates `feather.build.json` by default. Android fetches `love2d/love-android` with submodules. iOS fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode tree. The version comes from `loveVersion` or `--ref`, falling back to `11.5`.
+`build vendor add` clones LÖVE build vendor sources into `vendor/` and updates `feather.build.json` by default. Web fetches `2dengine/love.js` into `vendor/love.js`. Android fetches `love2d/love-android` with submodules. iOS fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode tree. Mobile versions come from `loveVersion` or `--ref`, falling back to `11.5`; web defaults to the love.js `main` branch unless `--web-ref` or `--ref` is passed.
 
 ```json
 {
