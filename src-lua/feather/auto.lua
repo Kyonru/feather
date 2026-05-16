@@ -166,10 +166,7 @@ function auto.setup(config)
 
   local plugins = {}
   for _, entry in ipairs(scanPlugins()) do
-    if entry.mod and not exclude[entry.id] then
-      if entry.optIn and not include[entry.id] then
-        goto continue
-      end
+    if entry.mod and not exclude[entry.id] and not (entry.optIn and not include[entry.id]) then
       local opts = entry.opts
       if pluginOptions[entry.id] then
         opts = {}
@@ -190,7 +187,6 @@ function auto.setup(config)
         entry.compatibility
       )
     end
-    ::continue::
   end
 
   -- Append any extra user plugins

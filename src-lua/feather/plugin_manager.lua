@@ -167,65 +167,63 @@ function FeatherPluginManager:init(feather, logger, observer)
         type = "error",
         str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. message,
       })
-      goto continue
-    end
-
-    local ok, pluginInstance = xpcall(plugin.plugin, function(err)
-      return type(err) == "string" and debug.traceback(err, 2) or debug.traceback(tostring(err), 2)
-    end, {
-      options = plugin.options,
-      feather = feather,
-      logger = logger,
-      observer = observer,
-      api = compatibility.api,
-      minApi = compatibility.minApi,
-      maxApi = compatibility.maxApi,
-    })
-
-    if ok then
-      local supported = true
-      if pluginInstance and pluginInstance.isSupported then
-        supported = pluginInstance:isSupported(feather.version)
-      end
-      table.insert(self.plugins, {
-        instance = pluginInstance,
-        identifier = plugin.identifier,
-        disabled = plugin.disabled or not supported or false,
-        incompatible = not supported,
-        incompatibilityReason = (not supported) and describeApiCompatibility(compatibility, feather.version) or nil,
-        capabilities = plugin.capabilities or {},
-        compatibility = compatibility,
-        name = plugin.name,
-        version = plugin.version,
+    else
+      local ok, pluginInstance = xpcall(plugin.plugin, function(err)
+        return type(err) == "string" and debug.traceback(err, 2) or debug.traceback(tostring(err), 2)
+      end, {
+        options = plugin.options,
+        feather = feather,
+        logger = logger,
+        observer = observer,
+        api = compatibility.api,
+        minApi = compatibility.minApi,
+        maxApi = compatibility.maxApi,
       })
 
-      if not supported then
-        self.logger:log({
-          type = "error",
-          str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. describeApiCompatibility(compatibility, feather.version),
+      if ok then
+        local supported = true
+        if pluginInstance and pluginInstance.isSupported then
+          supported = pluginInstance:isSupported(feather.version)
+        end
+        table.insert(self.plugins, {
+          instance = pluginInstance,
+          identifier = plugin.identifier,
+          disabled = plugin.disabled or not supported or false,
+          incompatible = not supported,
+          incompatibilityReason = (not supported) and describeApiCompatibility(compatibility, feather.version) or nil,
+          capabilities = plugin.capabilities or {},
+          compatibility = compatibility,
+          name = plugin.name,
+          version = plugin.version,
         })
-      end
 
-      -- Warn if a plugin requests a capability not in the user's allowlist
-      if allowedPerms and allowedPerms ~= "all" then
-        for _, perm in ipairs(plugin.capabilities or {}) do
-          if not allowedPerms[perm] then
-            self.logger:log({
-              type = "error",
-              str = "[Plugin "
-                .. plugin.identifier
-                .. "] requests capability '"
-                .. perm
-                .. "' which is not in the allowlist",
-            })
+        if not supported then
+          self.logger:log({
+            type = "error",
+            str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. describeApiCompatibility(compatibility, feather.version),
+          })
+        end
+
+        -- Warn if a plugin requests a capability not in the user's allowlist
+        if allowedPerms and allowedPerms ~= "all" then
+          for _, perm in ipairs(plugin.capabilities or {}) do
+            if not allowedPerms[perm] then
+              self.logger:log({
+                type = "error",
+                str = "[Plugin "
+                  .. plugin.identifier
+                  .. "] requests capability '"
+                  .. perm
+                  .. "' which is not in the allowlist",
+              })
+            end
           end
         end
+      else
+        -- pluginInstance is the formatted error+traceback string from the xpcall handler
+        self.logger:log({ type = "error", str = tostring(pluginInstance) })
       end
-    else
-      -- pluginInstance is the formatted error+traceback string from the xpcall handler
-      self.logger:log({ type = "error", str = tostring(pluginInstance) })
     end
-    ::continue::
   end
 end
 
