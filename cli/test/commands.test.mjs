@@ -104,6 +104,13 @@ function parseDoctorJson(dir, extra = []) {
   return JSON.parse(result.stdout);
 }
 
+function parseDoctorJsonResult(dir, extra = []) {
+  const result = run(['doctor', dir, '--json', ...extra]);
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  assert.equal(result.stdout.trim().startsWith('{'), true, outputOf(result));
+  return { result, parsed: JSON.parse(result.stdout) };
+}
+
 test('run: non-interactive missing game path exits with compact error', () => {
   const result = run(['run']);
   assert.equal(result.exitCode, 1);
@@ -254,6 +261,86 @@ test('doctor: human output honors NO_COLOR', () => {
   assert.equal(ANSI_RE.test(result.stdout), false);
   assert.ok(result.stdout.includes('Plugin console'));
   assert.ok(result.stdout.includes('feather plugin install console'));
+});
+
+test('doctor --production fails unsafe remote-control and production settings', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  host = "0.0.0.0",
+  include = { "console", "hot-reload" },
+  apiKey = "dev",
+  captureScreenshot = true,
+  writeToDisk = true,
+  debugger = {
+    enabled = true,
+    hotReload = {
+      enabled = true,
+      allow = { "game.*" },
+      persistToDisk = true,
+    },
+  },
+}
+`,
+  );
+
+  const { result, parsed } = parseDoctorJsonResult(dir, ['--production']);
+  assert.equal(result.exitCode, 1);
+  assert.equal(parsed.production, true);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  for (const label of [
+    '__DANGEROUS_INSECURE_CONNECTION__',
+    'Desktop App ID',
+    'captureScreenshot',
+    'Hot reload',
+    'Hot reload allowlist',
+    'Hot reload persistence',
+    'Console API key',
+    'Step debugger',
+    'Disk logging',
+    'Network host exposure',
+  ]) {
+    assert.equal(labels.get(label)?.severity, 'fail', `${label} should fail in production`);
+  }
+});
+
+test('doctor --json keeps unsafe settings warning-oriented outside production', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  host = "0.0.0.0",
+  include = { "console" },
+  apiKey = "dev",
+}
+`,
+  );
+
+  const { result, parsed } = parseDoctorJsonResult(dir);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(parsed.production, false);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('__DANGEROUS_INSECURE_CONNECTION__')?.severity, 'warn');
+  assert.equal(labels.get('Console API key')?.severity, 'warn');
+  assert.equal(labels.get('Network host exposure')?.severity, 'warn');
+});
+
+test('doctor --production fails unmanaged embedded runtime', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeMinimalRuntime(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890", mode = "socket" }\n');
+
+  const { result, parsed } = parseDoctorJsonResult(dir, ['--production']);
+  assert.equal(result.exitCode, 1);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Managed runtime')?.severity, 'fail');
+  assert.ok(labels.get('Managed runtime')?.fix.includes('feather init'));
 });
 
 test('command runtime: unexpected errors render compact stderr and exit 1', async () => {

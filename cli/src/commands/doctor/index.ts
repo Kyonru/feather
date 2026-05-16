@@ -16,8 +16,12 @@ import {
   commandVersion,
   configArrayValues,
   hasConfigArrayValue,
+  isLanHost,
+  isLoopbackHost,
+  isWildcardHost,
   isWeakApiKey,
   luaBoolEnabled,
+  luaStringValue,
   portReachable,
   readIfExists,
   shellArg,
@@ -33,6 +37,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   const projectDir = gamePath ? resolve(gamePath) : process.cwd();
   const installDir = normalizeInstallDir(opts.installDir ?? 'feather');
   const checks: DoctorCheck[] = [];
+  const productionSeverity = (unsafe: boolean): DoctorCheck['severity'] => unsafe ? (opts.production ? 'fail' : 'warn') : 'pass';
 
   const nodeVersion = process.versions.node;
   const [major] = nodeVersion.split('.').map(Number);
@@ -115,6 +120,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   const managedMode = configSource ? parseManagedValue(configSource, 'mode') : null;
   const managedInstallDir = configSource ? parseManagedValue(configSource, 'installDir') : null;
   const effectiveInstallDir = normalizeInstallDir(opts.installDir ?? managedInstallDir ?? installDir);
+  const mode = typeof config?.mode === 'string' ? config.mode : 'socket';
   if (managedMode) {
     add(checks, 'Project', 'Managed init metadata', 'pass', `mode=${managedMode}, installDir=${managedInstallDir ?? effectiveInstallDir}`);
   } else if (configSource) {
@@ -236,9 +242,20 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       checks,
       'Safety',
       '__DANGEROUS_INSECURE_CONNECTION__',
-      insecureConnection ? 'warn' : 'pass',
+      productionSeverity(insecureConnection),
       insecureConnection ? 'enabled' : 'disabled',
       insecureConnection ? 'Set appId in feather.config.lua and remove __DANGEROUS_INSECURE_CONNECTION__ before sharing or shipping.' : undefined,
+    );
+
+    const appId = typeof config?.appId === 'string' ? config.appId.trim() : '';
+    const appIdMissing = mode !== 'disk' && !appId;
+    add(
+      checks,
+      'Safety',
+      'Desktop App ID',
+      appIdMissing ? (opts.production ? 'fail' : 'warn') : 'pass',
+      appIdMissing ? 'missing' : mode === 'disk' ? 'not needed for disk mode' : 'configured',
+      appIdMissing ? 'Set appId in feather.config.lua before shipping socket/network builds.' : undefined,
     );
 
     const captureScreenshot = luaBoolEnabled(activeConfigSource, 'captureScreenshot');
@@ -246,7 +263,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       checks,
       'Safety',
       'captureScreenshot',
-      captureScreenshot ? 'warn' : 'pass',
+      productionSeverity(captureScreenshot),
       captureScreenshot ? 'enabled' : 'disabled',
       captureScreenshot ? 'Set captureScreenshot = false in feather.config.lua unless you need visual error context.' : undefined,
     );
@@ -259,12 +276,12 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       checks,
       'Safety',
       'Hot reload',
-      hotReloadEnabled ? 'warn' : 'pass',
+      productionSeverity(hotReloadEnabled),
       hotReloadEnabled ? 'enabled' : 'disabled',
       hotReloadEnabled ? 'Set debugger.hotReload.enabled = false in feather.config.lua before shipping.' : undefined,
     );
     if (hotReloadEnabled && broadHotReload) {
-      add(checks, 'Safety', 'Hot reload allowlist', 'warn', 'contains wildcard', 'Replace wildcard hot reload allow entries with exact module names in feather.config.lua.');
+      add(checks, 'Safety', 'Hot reload allowlist', opts.production ? 'fail' : 'warn', 'contains wildcard', 'Replace wildcard hot reload allow entries with exact module names in feather.config.lua.');
     }
     if (hotReloadEnabled && !hotReloadPluginIncluded) {
       add(
@@ -277,7 +294,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       );
     }
     if (hotReloadEnabled && persistToDisk) {
-      add(checks, 'Safety', 'Hot reload persistence', 'warn', 'persistToDisk=true', 'Set debugger.hotReload.persistToDisk = false in feather.config.lua.');
+      add(checks, 'Safety', 'Hot reload persistence', opts.production ? 'fail' : 'warn', 'persistToDisk=true', 'Set debugger.hotReload.persistToDisk = false in feather.config.lua.');
     }
 
     const consoleIncluded = hasConfigArrayValue(activeConfigSource, 'include', 'console') || pluginDirs.some((dir) => readPluginManifest(dir)?.id === 'console');
@@ -287,18 +304,18 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         checks,
         'Safety',
         'Console API key',
-        isWeakApiKey(apiKey) ? 'warn' : 'pass',
+        isWeakApiKey(apiKey) ? (opts.production ? 'fail' : 'warn') : 'pass',
         isWeakApiKey(apiKey) ? 'missing or weak' : 'configured',
         isWeakApiKey(apiKey) ? 'Set apiKey to a strong per-session secret in feather.config.lua when using Console.' : undefined,
       );
     }
 
-    const debuggerEnabled = luaBoolEnabled(activeConfigSource, 'debugger');
+    const debuggerEnabled = luaBoolEnabled(activeConfigSource, 'debugger') || /debugger\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
     add(
       checks,
       'Safety',
       'Step debugger',
-      debuggerEnabled ? 'warn' : 'pass',
+      productionSeverity(debuggerEnabled),
       debuggerEnabled ? 'enabled' : 'disabled',
       debuggerEnabled ? 'Set debugger = false in feather.config.lua unless this is a trusted development session.' : undefined,
     );
@@ -308,9 +325,18 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       checks,
       'Safety',
       'Disk logging',
-      writeToDisk ? 'warn' : 'pass',
+      productionSeverity(writeToDisk),
       writeToDisk ? 'enabled' : 'disabled',
       writeToDisk ? 'Set writeToDisk = false in feather.config.lua before committing or sharing the project.' : undefined,
+    );
+  } else if (mode !== 'disk') {
+    add(
+      checks,
+      'Safety',
+      'Desktop App ID',
+      opts.production ? 'fail' : 'warn',
+      'missing',
+      'Create feather.config.lua with a strong appId before shipping socket/network builds.',
     );
   }
 
@@ -390,8 +416,39 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   }
 
   const configuredPort = opts.port ?? (typeof config?.port === 'number' ? config.port : 4004);
-  const configuredHost = opts.host ?? '127.0.0.1';
-  const mode = typeof config?.mode === 'string' ? config.mode : 'socket';
+  const configuredHost = opts.host ?? (typeof config?.host === 'string' ? config.host : luaStringValue(activeConfigSource, 'host')) ?? '127.0.0.1';
+  if (mode !== 'disk') {
+    const wildcardHost = isWildcardHost(configuredHost);
+    const lanHost = isLanHost(configuredHost);
+    const loopbackHost = isLoopbackHost(configuredHost);
+    const weakNetworkAuth = !configSource || luaBoolEnabled(activeConfigSource, '__DANGEROUS_INSECURE_CONNECTION__') || !config?.appId;
+    add(
+      checks,
+      'Safety',
+      'Network host exposure',
+      wildcardHost || (lanHost && weakNetworkAuth) || (!loopbackHost && opts.production && weakNetworkAuth) ? (opts.production ? 'fail' : 'warn') : 'pass',
+      wildcardHost ? configuredHost : lanHost ? `${configuredHost} (LAN)` : loopbackHost ? configuredHost : `${configuredHost} (non-loopback)`,
+      wildcardHost
+        ? 'Use host = "127.0.0.1" for local development, or configure a strong appId before exposing Feather on a network.'
+        : lanHost && weakNetworkAuth
+          ? 'Set a strong appId before using a LAN-facing Feather host.'
+          : !loopbackHost && weakNetworkAuth
+            ? 'Use a loopback host or set a strong appId before shipping.'
+            : undefined,
+    );
+  }
+
+  if (opts.production && hasRuntime && (!configSource || !managedMode)) {
+    add(
+      checks,
+      'Safety',
+      'Managed runtime',
+      'fail',
+      'runtime present without managed init metadata',
+      'Run `feather init` to regenerate managed metadata, or remove the embedded Feather runtime before shipping.',
+    );
+  }
+
   if (mode === 'disk') {
     add(checks, 'Connectivity', 'WebSocket mode', 'info', 'disk mode', 'Desktop WebSocket connectivity is not used in disk mode.');
   } else {
@@ -410,7 +467,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   const warnings = checks.filter((check) => check.severity === 'warn');
 
   if (opts.json) {
-    printJson({ projectDir, installDir: effectiveInstallDir, failures: failures.length, warnings: warnings.length, checks });
+    printJson({ projectDir, installDir: effectiveInstallDir, production: Boolean(opts.production), failures: failures.length, warnings: warnings.length, checks });
   } else {
     renderReport(checks, projectDir);
   }

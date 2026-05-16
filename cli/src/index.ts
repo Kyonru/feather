@@ -108,14 +108,16 @@ program
   .command('doctor [dir]')
   .description('Check the environment and project setup')
   .option('--install-dir <path>', 'Feather install directory override')
-  .option('--host <host>', 'Host to check for the Feather desktop WebSocket', '127.0.0.1')
+  .option('--host <host>', 'Host to check for the Feather desktop WebSocket')
   .option('--port <port>', 'Port to check for the Feather desktop WebSocket', (value) => Number(value))
   .option('--json', 'Print machine-readable diagnostics')
+  .option('--production', 'Fail when project settings are unsafe for production builds')
   .action((dir: string | undefined, opts) => runCliAction(() => doctorCommand(dir, {
       installDir: opts.installDir as string | undefined,
       host: opts.host as string | undefined,
       port: opts.port as number | undefined,
       json: opts.json as boolean | undefined,
+      production: opts.production as boolean | undefined,
     })));
 
 program

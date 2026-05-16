@@ -19,6 +19,7 @@ export type DoctorOptions = {
   host?: string;
   port?: number;
   json?: boolean;
+  production?: boolean;
 };
 
 export const severityOrder: Record<Severity, number> = {
@@ -80,6 +81,11 @@ export function luaBoolEnabled(src: string, key: string): boolean {
   return new RegExp(`${key}\\s*=\\s*true\\b`).test(src);
 }
 
+export function luaStringValue(src: string, key: string): string | null {
+  const match = src.match(new RegExp(`${key}\\s*=\\s*["']([^"']*)["']`));
+  return match?.[1] ?? null;
+}
+
 export function hasConfigArrayValue(src: string, key: string, value: string): boolean {
   const match = src.match(new RegExp(`${key}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
   return match ? new RegExp(`["']${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(match[1]) : false;
@@ -93,6 +99,25 @@ export function configArrayValues(src: string, key: string): string[] {
 
 export function isWeakApiKey(value: unknown): boolean {
   return typeof value !== 'string' || value.trim().length < 24 || value === 'change-me' || value === 'dev';
+}
+
+export function isLoopbackHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+}
+
+export function isWildcardHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return normalized === '0.0.0.0' || normalized === '::';
+}
+
+export function isLanHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  if (isLoopbackHost(normalized) || isWildcardHost(normalized)) return false;
+  if (/^10\./.test(normalized)) return true;
+  if (/^192\.168\./.test(normalized)) return true;
+  const match = normalized.match(/^172\.(\d+)\./);
+  return match ? Number(match[1]) >= 16 && Number(match[1]) <= 31 : false;
 }
 
 export function shellArg(value: string): string {
