@@ -149,6 +149,10 @@ export async function removeCommand(dir: string, opts: RemoveOptions): Promise<v
     return;
   }
 
+  if (!opts.yes && !opts.dryRun && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    fail("Refusing to remove Feather files without --yes in non-interactive mode.");
+  }
+
   let targetIds = targets.filter((target) => target.defaultSelected).map((target) => target.id);
   if (!opts.yes && process.stdin.isTTY) {
     const result = await chooseRemoveWorkflow(targets);

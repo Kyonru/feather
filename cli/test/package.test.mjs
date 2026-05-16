@@ -17,6 +17,8 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const CLI = fileURLToPath(new URL('../dist/index.js', import.meta.url));
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+const LOCAL_SRC = join(ROOT, 'src-lua');
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 
 /** Run the CLI and return { stdout, stderr, exitCode }. Never throws. */
@@ -37,6 +39,10 @@ function makeTmp() {
   return mkdtempSync(join(tmpdir(), 'feather-e2e-'));
 }
 
+function outputOf(result) {
+  return `${result.stdout}\n${result.stderr}`;
+}
+
 /**
  * Write a minimal feather.lock.json to dir.
  * @param {string} dir
@@ -44,6 +50,18 @@ function makeTmp() {
  */
 function writeLock(dir, packages) {
   writeFileSync(join(dir, 'feather.lock.json'), JSON.stringify({ lockfileVersion: 1, packages }, null, 2));
+}
+
+function writeGame(dir) {
+  writeFileSync(
+    join(dir, 'main.lua'),
+    `function love.update(dt)
+end
+
+function love.draw()
+end
+`,
+  );
 }
 
 test('search: no query lists all registry packages', () => {
@@ -108,9 +126,9 @@ test('info: shows package details for known package', () => {
 
 test('info: unknown package exits 1 with message', () => {
   const dir = makeTmp();
-  const { stdout, exitCode } = run(['package', 'info', 'zzz_no_such_pkg', '--offline', '--dir', dir]);
-  assert.equal(exitCode, 1);
-  assert.ok(stdout.includes('not found'));
+  const result = run(['package', 'info', 'zzz_no_such_pkg', '--offline', '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('not found'));
 });
 
 test('install: no names + no lockfile prints empty hint and exits 0', () => {
@@ -179,9 +197,9 @@ test('install: already-installed package is skipped', () => {
 
 test('install: version override without --allow-untrusted exits 1', () => {
   const dir = makeTmp();
-  const { stdout, exitCode } = run(['package', 'install', 'anim8@v2.2.0', '--offline', '--dir', dir]);
-  assert.equal(exitCode, 1);
-  assert.ok(stdout.includes('allow-untrusted'));
+  const result = run(['package', 'install', 'anim8@v2.2.0', '--offline', '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('allow-untrusted'));
 });
 
 test('install --from-url: missing --allow-untrusted exits 1 with warning', () => {
@@ -227,7 +245,7 @@ test('install --from-url: --yes alone does not bypass untrusted source', () => {
 
 test('install --from-url: missing --target exits 1', () => {
   const dir = makeTmp();
-  const { stdout, exitCode } = run([
+  const result = run([
     'package',
     'install',
     '--from-url',
@@ -236,8 +254,8 @@ test('install --from-url: missing --target exits 1', () => {
     '--dir',
     dir,
   ]);
-  assert.equal(exitCode, 1);
-  assert.ok(stdout.includes('--target'));
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('--target'));
 });
 
 test('audit: no packages installed prints hint', () => {
@@ -321,9 +339,9 @@ test('audit --json: outputs valid JSON', () => {
 
 test('remove: not installed exits 1 with message', () => {
   const dir = makeTmp();
-  const { stdout, exitCode } = run(['package', 'remove', 'anim8', '--dir', dir]);
-  assert.equal(exitCode, 1);
-  assert.ok(stdout.includes('not installed'));
+  const result = run(['package', 'remove', 'anim8', '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('not installed'));
 });
 
 test('remove: installed package requires --yes in non-interactive mode', () => {
@@ -338,9 +356,9 @@ test('remove: installed package requires --yes in non-interactive mode', () => {
       files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'any' }],
     },
   });
-  const { stdout, exitCode } = run(['package', 'remove', 'anim8', '--dir', dir]);
-  assert.equal(exitCode, 1);
-  assert.ok(stdout.includes('--yes'));
+  const result = run(['package', 'remove', 'anim8', '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('--yes'));
   assert.ok(existsSync(join(dir, 'lib', 'anim8.lua')), 'file should remain');
 });
 
@@ -406,9 +424,9 @@ test('update: specific name not in lockfile exits 1', () => {
       files: [],
     },
   });
-  const { stdout, exitCode } = run(['package', 'update', 'anim8', '--offline', '--dir', dir]);
-  assert.equal(exitCode, 1);
-  assert.ok(stdout.includes('not installed'));
+  const result = run(['package', 'update', 'anim8', '--offline', '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('not installed'));
 });
 
 test('update: already up-to-date package is reported', () => {
@@ -517,7 +535,8 @@ test('audit: multi-file url package all verified', () => {
   ]);
   const { stdout, exitCode } = run(['package', 'audit', '--dir', dir]);
   assert.equal(exitCode, 0, `unexpected failure:\n${stdout}`);
-  assert.equal((stdout.match(/✔/g) ?? []).length, 2, 'both files should be verified');
+  assert.match(stdout, /lib\/mypkg\/a\.lua\s+verified/);
+  assert.match(stdout, /lib\/mypkg\/b\.lua\s+verified/);
 });
 
 test('install (no args): url package already on disk with correct hash is skipped', () => {
@@ -656,6 +675,143 @@ test('audit --json: url package included in output', () => {
   const entry = parsed.find((r) => r.id === 'my-helper');
   assert.ok(entry, 'my-helper should appear in audit output');
   assert.equal(entry.status, 'verified');
+});
+
+test('command errors: central handler writes compact stderr and exit code', () => {
+  const dir = makeTmp();
+  const result = run(['package', 'info', 'zzz_no_such_pkg', '--offline', '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(result.stderr.includes('not found'));
+  assert.equal(result.stderr.includes('Error:'), false);
+});
+
+test('registry validation rejects targets outside the project', async () => {
+  const { validateRegistry } = await import('../dist/lib/package/registry.js');
+  assert.throws(
+    () =>
+      validateRegistry({
+        version: 1,
+        updatedAt: '2026-05-16',
+        packages: {
+          escape: {
+            type: 'love2d-library',
+            trust: 'verified',
+            description: 'bad target',
+            tags: [],
+            source: {
+              repo: 'owner/repo',
+              tag: 'main',
+              baseUrl: 'https://raw.githubusercontent.com/owner/repo/0123456789abcdef0123456789abcdef01234567/',
+              commitSha: '0123456789abcdef0123456789abcdef01234567',
+            },
+            install: {
+              files: [{ name: 'escape.lua', target: '../escape.lua', sha256: 'a'.repeat(64) }],
+            },
+            require: 'escape',
+          },
+        },
+      }),
+    /escapes project root/,
+  );
+});
+
+test('init: --yes --mode auto patches main.lua with guarded markers', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const { exitCode } = run([
+    'init',
+    dir,
+    '--mode',
+    'auto',
+    '--local-src',
+    LOCAL_SRC,
+    '--install-dir',
+    'feather',
+    '--no-plugins',
+    '--yes',
+  ]);
+  assert.equal(exitCode, 0);
+  const main = readFileSync(join(dir, 'main.lua'), 'utf8');
+  assert.ok(main.includes('FEATHER-INIT-BEGIN require'));
+  assert.ok(main.includes('USE_DEBUGGER'));
+});
+
+test('remove: non-interactive destructive remove requires --yes', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  run([
+    'init',
+    dir,
+    '--mode',
+    'auto',
+    '--local-src',
+    LOCAL_SRC,
+    '--install-dir',
+    'feather',
+    '--no-plugins',
+    '--yes',
+  ]);
+  const result = run(['remove', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('--yes'));
+  assert.ok(existsSync(join(dir, 'feather.config.lua')));
+});
+
+test('remove: dry-run does not delete files or edit main.lua', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  run([
+    'init',
+    dir,
+    '--mode',
+    'auto',
+    '--local-src',
+    LOCAL_SRC,
+    '--install-dir',
+    'feather',
+    '--no-plugins',
+    '--yes',
+  ]);
+  const beforeMain = readFileSync(join(dir, 'main.lua'), 'utf8');
+  const { exitCode } = run(['remove', dir, '--dry-run']);
+  assert.equal(exitCode, 0);
+  assert.equal(readFileSync(join(dir, 'main.lua'), 'utf8'), beforeMain);
+  assert.ok(existsSync(join(dir, 'feather')));
+  assert.ok(existsSync(join(dir, 'feather.config.lua')));
+});
+
+test('doctor --json reports package audit problems and unsafe config flags', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  include = { "console" },
+  apiKey = "dev",
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  debugger = true,
+  captureScreenshot = true,
+  writeToDisk = true,
+}
+`,
+  );
+  writeLock(dir, {
+    helper: {
+      version: 'url',
+      trust: 'experimental',
+      source: { url: 'https://example.com/helper.lua' },
+      files: [{ name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('expected') }],
+    },
+  });
+  const result = run(['doctor', dir, '--json']);
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Package file integrity').severity, 'warn');
+  assert.equal(labels.get('__DANGEROUS_INSECURE_CONNECTION__').severity, 'warn');
+  assert.equal(labels.get('Console API key').severity, 'warn');
+  assert.equal(labels.get('Step debugger').severity, 'warn');
+  assert.equal(labels.get('captureScreenshot').severity, 'warn');
+  assert.equal(labels.get('Disk logging').severity, 'warn');
 });
 
 async function withFetchMock(mock, runTest) {
