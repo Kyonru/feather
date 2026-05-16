@@ -6,6 +6,8 @@ import { initCommand } from './commands/init.js';
 import { removeCommand } from './commands/remove.js';
 import { doctorCommand } from './commands/doctor.js';
 import { updateCommand } from './commands/update.js';
+import { buildCommand } from './commands/build.js';
+import { uploadCommand } from './commands/upload.js';
 import {
   pluginListCommand,
   pluginInstallCommand,
@@ -113,6 +115,8 @@ program
   .option('--json', 'Print machine-readable diagnostics')
   .option('--production', 'Fail when project settings are unsafe for production builds')
   .option('--security', 'Print security-focused diagnostics; use with --json for automation')
+  .option('--build-target <target>', 'Check dependencies for a build target')
+  .option('--upload-target <target>', 'Check dependencies for an upload target')
   .action((dir: string | undefined, opts) => runCliAction(() => doctorCommand(dir, {
       installDir: opts.installDir as string | undefined,
       host: opts.host as string | undefined,
@@ -120,6 +124,56 @@ program
       json: opts.json as boolean | undefined,
       production: opts.production as boolean | undefined,
       security: opts.security as boolean | undefined,
+      buildTarget: opts.buildTarget as string | undefined,
+      uploadTarget: opts.uploadTarget as string | undefined,
+    })));
+
+program
+  .command('build <target>')
+  .description('Build a LÖVE game for web, desktop, or planned mobile targets')
+  .option('--dir <path>', 'Project directory (default: current directory)')
+  .option('--config <path>', 'Path to feather.build.json')
+  .option('--out-dir <path>', 'Build output directory')
+  .option('--name <name>', 'Build product name')
+  .option('--version <version>', 'Build product version')
+  .option('--clean', 'Remove the output directory before building')
+  .option('--dry-run', 'Show the build plan without writing artifacts')
+  .option('--json', 'Output machine-readable JSON')
+  .option('--allow-unsafe', 'Allow production-unsafe Feather config during build')
+  .action((target: string, opts) => runCliAction(() => buildCommand(target, {
+      dir: opts.dir as string | undefined,
+      config: opts.config as string | undefined,
+      outDir: opts.outDir as string | undefined,
+      name: opts.name as string | undefined,
+      version: opts.version as string | undefined,
+      clean: opts.clean as boolean | undefined,
+      dryRun: opts.dryRun as boolean | undefined,
+      json: opts.json as boolean | undefined,
+      allowUnsafe: opts.allowUnsafe as boolean | undefined,
+    })));
+
+program
+  .command('upload <target> [build-target]')
+  .description('Upload built artifacts to itch.io or planned store targets')
+  .option('--dir <path>', 'Project directory (default: current directory)')
+  .option('--config <path>', 'Path to feather.build.json')
+  .option('--build-dir <path>', 'Directory containing feather-build-manifest.json')
+  .option('--channel <name>', 'Upload channel override')
+  .option('--user-version <version>', 'Store-facing version override')
+  .option('--dry-run', 'Show the upload plan without running the uploader')
+  .option('--if-changed', 'Pass --if-changed to supported uploaders')
+  .option('--hidden', 'Pass --hidden to supported uploaders')
+  .option('--json', 'Output machine-readable JSON')
+  .action((target: string, buildTarget: string | undefined, opts) => runCliAction(() => uploadCommand(target, buildTarget, {
+      dir: opts.dir as string | undefined,
+      config: opts.config as string | undefined,
+      buildDir: opts.buildDir as string | undefined,
+      channel: opts.channel as string | undefined,
+      userVersion: opts.userVersion as string | undefined,
+      dryRun: opts.dryRun as boolean | undefined,
+      ifChanged: opts.ifChanged as boolean | undefined,
+      hidden: opts.hidden as boolean | undefined,
+      json: opts.json as boolean | undefined,
     })));
 
 program

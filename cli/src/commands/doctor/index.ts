@@ -6,6 +6,15 @@ import { normalizeInstallDir } from '../../lib/install.js';
 import { fail } from '../../lib/command.js';
 import { printJson } from '../../lib/output.js';
 import { findSymlinkEscapes } from '../../lib/path-safety.js';
+import {
+  buildTargets,
+  isBuildTarget,
+  isSupportedBuildTarget,
+  isUploadTarget,
+  loadBuildConfig,
+  outDirWritableDetail,
+  uploadTargets,
+} from '../../lib/build/config.js';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntrySourceSummary, lockfileUrlFindings } from '../../lib/package/provenance.js';
@@ -98,6 +107,52 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
 
   add(checks, 'Environment', 'Platform', 'info', `${process.platform} ${process.arch}`);
 
+  if (opts.buildTarget) {
+    if (!isBuildTarget(opts.buildTarget)) {
+      add(
+        checks,
+        'Build',
+        'Build target',
+        'fail',
+        opts.buildTarget,
+        `Use one of: ${buildTargets.join(', ')}.`,
+      );
+    } else {
+      add(
+        checks,
+        'Build',
+        'Build target',
+        isSupportedBuildTarget(opts.buildTarget) ? 'pass' : 'warn',
+        opts.buildTarget,
+        isSupportedBuildTarget(opts.buildTarget)
+          ? undefined
+          : `${opts.buildTarget} support is planned; use web, windows, macos, linux, or steamos for now.`,
+      );
+    }
+  }
+
+  if (opts.uploadTarget) {
+    if (!isUploadTarget(opts.uploadTarget)) {
+      add(
+        checks,
+        'Upload',
+        'Upload target',
+        'fail',
+        opts.uploadTarget,
+        `Use one of: ${uploadTargets.join(', ')}.`,
+      );
+    } else {
+      add(
+        checks,
+        'Upload',
+        'Upload target',
+        opts.uploadTarget === 'itch' ? 'pass' : 'warn',
+        opts.uploadTarget,
+        opts.uploadTarget === 'itch' ? undefined : 'Steam upload support is planned; use itch for now.',
+      );
+    }
+  }
+
   const hasProjectDir = existsSync(projectDir);
   add(
     checks,
@@ -107,6 +162,94 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     projectDir,
     hasProjectDir ? undefined : 'Pass the game directory to `feather doctor <dir>`.',
   );
+
+  if (hasProjectDir && (opts.buildTarget || opts.uploadTarget)) {
+    try {
+      const buildConfig = loadBuildConfig({ projectDir });
+      const configExists = existsSync(buildConfig.configPath);
+      add(
+        checks,
+        'Build',
+        'feather.build.json',
+        configExists ? 'pass' : 'warn',
+        configExists ? buildConfig.configPath : 'missing',
+        configExists ? undefined : 'Create feather.build.json to share local and CI build settings.',
+      );
+      const writable = outDirWritableDetail(buildConfig.outDir);
+      add(
+        checks,
+        'Build',
+        'Build output directory',
+        writable.ok ? 'pass' : 'fail',
+        writable.detail,
+        writable.ok ? undefined : 'Choose a writable outDir in feather.build.json or pass --out-dir.',
+      );
+
+      if (opts.buildTarget && isBuildTarget(opts.buildTarget)) {
+        if (opts.buildTarget === 'web') {
+          const loveJsDir = buildConfig.targets.web?.loveJsDir;
+          add(
+            checks,
+            'Build',
+            'love.js player',
+            loveJsDir && existsSync(resolve(projectDir, loveJsDir)) ? 'pass' : 'fail',
+            loveJsDir ?? 'not configured',
+            'Set targets.web.loveJsDir in feather.build.json to a local love.js checkout or build output.',
+          );
+        } else if (isSupportedBuildTarget(opts.buildTarget)) {
+          const loveRelease = commandVersion('love-release', ['--version']);
+          add(
+            checks,
+            'Build',
+            'love-release',
+            loveRelease ? 'pass' : 'fail',
+            loveRelease ? loveRelease : 'not found',
+            loveRelease ? undefined : 'Install with `luarocks install love-release` and make sure love-release is on PATH.',
+          );
+          const luarocks = commandVersion('luarocks', ['--version']);
+          add(
+            checks,
+            'Build',
+            'LuaRocks',
+            luarocks ? 'pass' : 'warn',
+            luarocks ? luarocks : 'not found',
+            luarocks ? undefined : 'Install LuaRocks if you need to install love-release locally.',
+          );
+        }
+      }
+
+      if (opts.uploadTarget === 'itch') {
+        const itchProject = buildConfig.upload.itch?.project;
+        add(
+          checks,
+          'Upload',
+          'Itch project',
+          itchProject ? 'pass' : 'fail',
+          itchProject ?? 'missing',
+          'Set upload.itch.project in feather.build.json, for example "user/game".',
+        );
+        const butler = commandVersion('butler', ['--version']);
+        add(
+          checks,
+          'Upload',
+          'butler',
+          butler ? 'pass' : 'fail',
+          butler ? butler : 'not found',
+          butler ? undefined : 'Install butler from https://itch.io/docs/butler/ and make sure it is on PATH.',
+        );
+        add(
+          checks,
+          'Upload',
+          'BUTLER_API_KEY',
+          process.env.BUTLER_API_KEY ? 'pass' : 'warn',
+          process.env.BUTLER_API_KEY ? 'configured' : 'missing',
+          process.env.BUTLER_API_KEY ? undefined : 'Set BUTLER_API_KEY in CI or run `butler login` locally.',
+        );
+      }
+    } catch (err) {
+      add(checks, 'Build', 'feather.build.json', 'fail', (err as Error).message, 'Fix feather.build.json before building or uploading.');
+    }
+  }
 
   const mainPath = join(projectDir, 'main.lua');
   const mainSource = readIfExists(mainPath);

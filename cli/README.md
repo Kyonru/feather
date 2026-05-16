@@ -284,6 +284,8 @@ feather doctor . --host 127.0.0.1 --port 4004
 feather doctor . --json
 feather doctor . --production
 feather doctor . --security --json
+feather doctor . --build-target web
+feather doctor . --upload-target itch
 ```
 
 Doctor checks:
@@ -294,6 +296,7 @@ Doctor checks:
 - installed plugin manifests
 - missing, unknown, malformed, or development-only plugins
 - package lockfile integrity, version drift, and source provenance
+- build/upload dependencies when `--build-target` or `--upload-target` is provided
 - `USE_DEBUGGER` guards and `FEATHER-INIT` markers
 - risky settings such as hot reload, screenshot capture, and Console API keys
 - Feather desktop WebSocket reachability
@@ -325,6 +328,108 @@ Safety
 
 Doctor passed with 1 warning.
 ```
+
+---
+
+### `feather build <target>`
+
+Build a LÖVE game into local release artifacts. V1 supports `web`, `windows`, `macos`, `linux`, and `steamos`; `android` and `ios` are registered so scripts can target the stable command surface, but they currently return planned-support errors.
+
+```bash
+feather build web --dir path/to/my-game
+feather build linux --dir path/to/my-game
+feather build steamos --dir path/to/my-game --json
+feather build web --dry-run
+feather build web --allow-unsafe
+```
+
+Builds read `feather.build.json` from the project root. Missing config is allowed for simple desktop builds, but web builds need a local love.js player directory and uploads need store metadata.
+
+```json
+{
+  "name": "My Game",
+  "version": "1.0.0",
+  "sourceDir": ".",
+  "outDir": "builds",
+  "exclude": ["screenshots/**", "tmp/**"],
+  "targets": {
+    "web": {
+      "loveJsDir": "vendor/love.js"
+    }
+  },
+  "upload": {
+    "itch": {
+      "project": "my-user/my-game",
+      "channels": {
+        "web": "html5",
+        "linux": "linux"
+      }
+    }
+  }
+}
+```
+
+Build behavior:
+
+- creates a deterministic `.love` archive from the staged project
+- excludes `.git`, `node_modules`, `.featherlog`, build output, and Feather runtime/config files by default
+- runs a production safety preflight unless `--allow-unsafe` is passed
+- writes `feather-build-manifest.json` in the output directory
+- packages `web` by copying the configured love.js player, adding `game.love`, patching the page title/game URL, and creating an HTML zip
+- delegates desktop targets to `love-release`; `steamos` uses the Linux packaging path with Steam-friendly target naming
+
+**Options:**
+
+| Option              | Description                                                       |
+| ------------------- | ----------------------------------------------------------------- |
+| `--dir <path>`      | Project directory (default: current directory).                   |
+| `--config <path>`   | Path to `feather.build.json`.                                     |
+| `--out-dir <path>`  | Build output directory override.                                  |
+| `--name <name>`     | Product name override.                                            |
+| `--version <value>` | Product version override.                                         |
+| `--clean`           | Remove the output directory before building.                      |
+| `--dry-run`         | Show planned files/artifacts without writing them.                |
+| `--json`            | Print machine-readable output only.                               |
+| `--allow-unsafe`    | Skip the production safety preflight for intentional dev builds.  |
+
+Run `feather doctor --build-target <target>` to see missing local dependencies and exact setup guidance before building.
+
+---
+
+### `feather upload <itch|steam>`
+
+Upload a built artifact. V1 supports Itch through `butler`; Steam is registered but returns a planned-support error.
+
+```bash
+feather upload itch web --dir path/to/my-game
+feather upload itch web --channel html5 --if-changed
+feather upload itch web --dry-run --json
+feather upload steam linux
+```
+
+`feather upload itch` reads `feather-build-manifest.json`, chooses the artifact for the requested build target, and runs:
+
+```bash
+butler push <artifact> <user/game>:<channel> --userversion <version>
+```
+
+The Itch project and default channels come from `feather.build.json`. Use `--channel` or `--user-version` to override them in CI.
+
+**Options:**
+
+| Option                     | Description                                         |
+| -------------------------- | --------------------------------------------------- |
+| `--dir <path>`             | Project directory (default: current directory).     |
+| `--config <path>`          | Path to `feather.build.json`.                       |
+| `--build-dir <path>`       | Directory containing `feather-build-manifest.json`. |
+| `--channel <name>`         | Upload channel override.                            |
+| `--user-version <version>` | Store-facing version override.                      |
+| `--dry-run`                | Show the upload command without running it.         |
+| `--if-changed`             | Pass `--if-changed` to supported uploaders.         |
+| `--hidden`                 | Pass `--hidden` to supported uploaders.             |
+| `--json`                   | Print machine-readable output only.                 |
+
+Run `feather doctor --upload-target itch` to check for `butler`, Itch project config, and CI auth hints. Use `BUTLER_API_KEY` in CI or `butler login` locally.
 
 ---
 

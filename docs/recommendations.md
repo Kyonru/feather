@@ -99,6 +99,7 @@ Run doctor as a release gate before packaging:
 
 ```bash
 feather doctor path/to/my-game --production
+feather doctor path/to/my-game --build-target web
 ```
 
 `--production` exits with code `1` for release blockers such as insecure connections, weak Console auth, hot reload, debugger/screenshot/disk persistence settings, network exposure with weak auth, or unmanaged embedded Feather runtime.
@@ -110,6 +111,15 @@ feather doctor path/to/my-game --security --json
 ```
 
 The security report includes config posture, plugin trust, package provenance, and network exposure. It redacts sensitive values such as `apiKey`.
+
+If you use Feather's local release helpers, keep release metadata in `feather.build.json` and let doctor check the target-specific tools before CI runs the build:
+
+```bash
+feather build web --dir path/to/my-game --json
+feather upload itch web --dir path/to/my-game --dry-run --json
+```
+
+Web builds package a local love.js player; desktop targets delegate packaging to `love-release`; Itch uploads use Butler. Android, iOS, and Steam upload are intentionally planned-support paths until their release flows are hardened.
 
 ---
 

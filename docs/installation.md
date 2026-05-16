@@ -55,6 +55,15 @@ Before sharing or packaging a managed project, run:
 feather doctor path/to/my-game --production
 ```
 
+To check release dependencies for Feather's local build/upload helpers:
+
+```bash
+feather doctor path/to/my-game --build-target web
+feather doctor path/to/my-game --upload-target itch
+```
+
+`feather build` supports web, Windows, macOS, Linux, and SteamOS artifacts. Web builds need a local love.js player directory configured in `feather.build.json`; desktop builds expect `love-release` on `PATH`. `feather upload itch` expects Butler on `PATH` and either `BUTLER_API_KEY` in CI or a local `butler login` session.
+
 For CI or release scripts that need a security-only JSON report:
 
 ```bash

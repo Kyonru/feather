@@ -17,7 +17,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { delimiter, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const CLI = fileURLToPath(new URL('../dist/index.js', import.meta.url));
@@ -114,6 +114,40 @@ process.exit(${JSON.stringify(exitCode)});
   );
   chmodSync(fakePath, 0o755);
   return { fakePath, recordPath };
+}
+
+function writeFakeCommand(dir, name, script) {
+  const binDir = join(dir, 'bin');
+  mkdirSync(binDir, { recursive: true });
+  const commandPath = join(binDir, name);
+  writeFileSync(commandPath, `#!/usr/bin/env node\n${script}\n`);
+  chmodSync(commandPath, 0o755);
+  return { binDir, commandPath };
+}
+
+function envWithPath(binDir, extra = {}) {
+  return {
+    ...process.env,
+    NO_COLOR: '1',
+    FORCE_COLOR: '0',
+    PATH: `${binDir}${delimiter}${process.env.PATH ?? ''}`,
+    ...extra,
+  };
+}
+
+function writeFakeLoveJs(dir) {
+  const loveJsDir = join(dir, 'love.js');
+  mkdirSync(loveJsDir, { recursive: true });
+  writeFileSync(
+    join(loveJsDir, 'index.html'),
+    '<!doctype html><html><head><title>löve.js</title></head><body><script src="player.min.js"></script></body></html>',
+  );
+  writeFileSync(join(loveJsDir, 'player.min.js'), 'console.log("love.js");\n');
+  return loveJsDir;
+}
+
+function writeBuildConfig(dir, config) {
+  writeFileSync(join(dir, 'feather.build.json'), `${JSON.stringify(config, null, 2)}\n`);
 }
 
 function parseDoctorJson(dir, extra = []) {
@@ -518,6 +552,184 @@ test('doctor --production fails unmanaged embedded runtime', () => {
   const labels = new Map(parsed.checks.map((check) => [check.label, check]));
   assert.equal(labels.get('Managed runtime')?.severity, 'fail');
   assert.ok(labels.get('Managed runtime')?.fix.includes('feather init'));
+});
+
+test('build web: creates love archive, love.js html package, zip, and manifest', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const loveJsDir = writeFakeLoveJs(dir);
+  writeBuildConfig(dir, {
+    name: 'Command Game',
+    version: '1.2.3',
+    targets: { web: { loveJsDir: 'love.js' } },
+    upload: { itch: { project: 'tester/command-game', channels: { web: 'html5' } } },
+  });
+
+  const result = run(['build', 'web', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.target, 'web');
+  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'love'), true);
+  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'zip'), true);
+  assert.equal(existsSync(join(dir, 'builds', 'command-game-1.2.3.love')), true);
+  assert.equal(existsSync(join(dir, 'builds', 'command-game-1.2.3-html.zip')), true);
+  const index = readFileSync(join(dir, 'builds', 'command-game-1.2.3-html', 'index.html'), 'utf8');
+  assert.ok(index.includes('<title>Command Game</title>'));
+  assert.ok(index.includes('player.min.js?g=game.love'));
+  const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
+  assert.equal(manifest.target, 'web');
+});
+
+test('build linux: delegates desktop packaging to love-release and writes manifest', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Desktop Game', version: '2.0.0' });
+const recordPath = join(dir, 'love-release-record.json');
+  const { binDir } = writeFakeCommand(dir, 'love-release', `
+if (process.argv.length === 3 && process.argv[2] === '--version') {
+  console.log('love-release test');
+  process.exit(0);
+}
+const fs = require('node:fs');
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: process.argv.slice(2) }, null, 2));
+process.exit(0);
+`);
+
+  const result = run(['build', 'linux', '--dir', dir, '--json'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0.love')), true);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(record.argv.includes('--target'));
+  assert.ok(record.argv.includes('linux'));
+  assert.ok(record.argv.includes('--name'));
+  assert.ok(record.argv.includes('Desktop Game'));
+});
+
+test('build: unsupported mobile targets fail with planned-support guidance', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const result = run(['build', 'android', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('planned but not supported yet'));
+});
+
+test('build: production preflight blocks unsafe Feather config unless explicitly allowed', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeBuildConfig(dir, { name: 'Unsafe Game', version: '1.0.0', targets: { web: { loveJsDir: 'love.js' } } });
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { include = { "console" }, apiKey = "dev" }\n');
+
+  const blocked = run(['build', 'web', '--dir', dir, '--json']);
+  assert.equal(blocked.exitCode, 1);
+  assert.ok(outputOf(blocked).includes('Production build preflight failed'));
+
+  const allowed = run(['build', 'web', '--dir', dir, '--json', '--allow-unsafe']);
+  assert.equal(allowed.exitCode, 0, outputOf(allowed));
+  assert.equal(JSON.parse(allowed.stdout).ok, true);
+});
+
+test('upload itch: dry-run uses build manifest and configured channel', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeBuildConfig(dir, {
+    name: 'Upload Game',
+    version: '3.4.5',
+    targets: { web: { loveJsDir: 'love.js' } },
+    upload: { itch: { project: 'tester/upload-game', channels: { web: 'html5' } } },
+  });
+  const build = run(['build', 'web', '--dir', dir, '--json']);
+  assert.equal(build.exitCode, 0, outputOf(build));
+
+  const result = run(['upload', 'itch', 'web', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.dryRun, true);
+  assert.equal(parsed.project, 'tester/upload-game');
+  assert.equal(parsed.channel, 'html5');
+  assert.equal(parsed.userVersion, '3.4.5');
+  assert.deepEqual(parsed.command.slice(0, 2), ['butler', 'push']);
+});
+
+test('upload itch: fake butler receives artifact, channel, version, and flags', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeBuildConfig(dir, {
+    name: 'Butler Game',
+    version: '4.0.0',
+    targets: { web: { loveJsDir: 'love.js' } },
+    upload: { itch: { project: 'tester/butler-game', channels: { web: 'html5' } } },
+  });
+  const build = run(['build', 'web', '--dir', dir, '--json']);
+  assert.equal(build.exitCode, 0, outputOf(build));
+  const recordPath = join(dir, 'butler-record.json');
+  const { binDir } = writeFakeCommand(dir, 'butler', `
+if (process.argv.includes('--version')) {
+  console.log('butler test');
+  process.exit(0);
+}
+const fs = require('node:fs');
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: process.argv.slice(2) }, null, 2));
+process.exit(0);
+`);
+
+  const result = run(['upload', 'itch', 'web', '--dir', dir, '--if-changed', '--hidden', '--json'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(record.argv[0], 'push');
+  assert.ok(record.argv[1].endsWith('butler-game-4.0.0.love') || record.argv[1].endsWith('butler-game-4.0.0-html.zip'));
+  assert.equal(record.argv[2], 'tester/butler-game:html5');
+  assert.ok(record.argv.includes('--userversion'));
+  assert.ok(record.argv.includes('4.0.0'));
+  assert.ok(record.argv.includes('--if-changed'));
+  assert.ok(record.argv.includes('--hidden'));
+});
+
+test('upload steam: planned target fails cleanly', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const result = run(['upload', 'steam', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('planned but not supported yet'));
+});
+
+test('doctor: build and upload target checks report missing and configured dependencies', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, {
+    name: 'Doctor Build Game',
+    version: '1.0.0',
+    upload: { itch: { project: 'tester/doctor-build-game' } },
+  });
+  const { parsed: missing } = parseDoctorJsonResult(dir, ['--build-target', 'web', '--upload-target', 'itch']);
+  const missingLabels = new Map(missing.checks.map((check) => [check.label, check]));
+  assert.equal(missingLabels.get('love.js player')?.severity, 'fail');
+  assert.equal(missingLabels.get('butler')?.severity, 'fail');
+  assert.ok(missingLabels.get('love.js player')?.fix.includes('targets.web.loveJsDir'));
+
+  writeFakeLoveJs(dir);
+  writeBuildConfig(dir, {
+    name: 'Doctor Build Game',
+    version: '1.0.0',
+    targets: { web: { loveJsDir: 'love.js' } },
+    upload: { itch: { project: 'tester/doctor-build-game' } },
+  });
+  const { binDir } = writeFakeCommand(dir, 'butler', `console.log('butler test'); process.exit(0);`);
+  const configured = run(['doctor', dir, '--json', '--build-target', 'web', '--upload-target', 'itch'], { env: envWithPath(binDir, { BUTLER_API_KEY: 'test-key' }) });
+  assert.equal(configured.exitCode, 0, outputOf(configured));
+  const parsed = JSON.parse(configured.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('love.js player')?.severity, 'pass');
+  assert.equal(labels.get('butler')?.severity, 'pass');
+  assert.equal(labels.get('BUTLER_API_KEY')?.severity, 'pass');
 });
 
 test('command runtime redacts API keys from compact and debug errors', async () => {

@@ -20,6 +20,7 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 - 🖼️ **Asset inspector** — Browse loaded textures, fonts, and audio sources with previews, zoom, pan, and pixel grid.
 - 📁 **Log file viewer** — Open `.featherlog` files for offline inspection.
 - 🖥️ **CLI-first workflow** — `feather init`, `feather run`, and `feather remove` manage setup and cleanup.
+- 🚢 **Build/upload helpers** — `feather build` creates local web/desktop release artifacts and `feather upload itch` pushes them with Butler.
 - ⚡ **Guarded in-game setup** — Generated imports load only when `USE_DEBUGGER` is enabled.
 - 📦 **Config file support** — `feather.config.lua` keeps project settings outside game code.
 
@@ -82,6 +83,9 @@ Before shipping a production build:
 
 ```bash
 feather doctor path/to/my-game --production
+feather doctor path/to/my-game --build-target web --upload-target itch
+feather build web --dir path/to/my-game
+feather upload itch web --dir path/to/my-game --dry-run
 feather remove --dry-run
 feather remove --yes
 ```
@@ -90,7 +94,7 @@ feather remove --yes
 
 ## Documentation
 
-- [CLI](cli.md) — Run games without touching their code, `feather run`, `feather init`, `feather doctor`
+- [CLI](cli.md) — Run games without touching their code, `feather run`, `feather init`, `feather doctor`, `feather build`, `feather upload`
 - [Installation](installation.md) — Download, install script, LuaRocks, custom paths
 - [Configuration](configuration.md) — All config options, connecting, mobile debugging
 - [Usage](usage.md) — Observers, logging, console / REPL, step debugger

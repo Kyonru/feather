@@ -21,6 +21,8 @@ export type DoctorOptions = {
   json?: boolean;
   production?: boolean;
   security?: boolean;
+  buildTarget?: string;
+  uploadTarget?: string;
 };
 
 export const severityOrder: Record<Severity, number> = {
