@@ -7,6 +7,7 @@ import { removeCommand } from './commands/remove.js';
 import { doctorCommand } from './commands/doctor.js';
 import { updateCommand } from './commands/update.js';
 import { buildCommand } from './commands/build.js';
+import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
 import { uploadCommand } from './commands/upload.js';
 import {
   pluginListCommand,
@@ -130,20 +131,25 @@ program
       release: opts.release as boolean | undefined,
     })));
 
-program
-  .command('build <target>')
-  .description('Build a LÖVE game for web, mobile dev, or desktop targets')
-  .option('--dir <path>', 'Project directory (default: current directory)')
-  .option('--config <path>', 'Path to feather.build.json')
-  .option('--out-dir <path>', 'Build output directory')
-  .option('--name <name>', 'Build product name')
-  .option('--version <version>', 'Build product version')
-  .option('--clean', 'Remove the output directory before building')
-  .option('--dry-run', 'Show the build plan without writing artifacts')
-  .option('--json', 'Output machine-readable JSON')
-  .option('--allow-unsafe', 'Allow production-unsafe Feather config during build')
-  .option('--release', 'Build signed/store-oriented mobile release artifacts')
-  .action((target: string, opts) => runCliAction(() => buildCommand(target, {
+const build = program
+  .command('build')
+  .description('Build a LÖVE game for web, mobile dev, or desktop targets');
+
+function addBuildTargetCommand(target: string): void {
+  build
+    .command(target)
+    .description(`Build a LÖVE game for ${target}`)
+    .option('--dir <path>', 'Project directory (default: current directory)')
+    .option('--config <path>', 'Path to feather.build.json')
+    .option('--out-dir <path>', 'Build output directory')
+    .option('--name <name>', 'Build product name')
+    .option('--version <version>', 'Build product version')
+    .option('--clean', 'Remove the output directory before building')
+    .option('--dry-run', 'Show the build plan without writing artifacts')
+    .option('--json', 'Output machine-readable JSON')
+    .option('--allow-unsafe', 'Allow production-unsafe Feather config during build')
+    .option('--release', 'Build signed/store-oriented mobile release artifacts')
+    .action((opts) => runCliAction(() => buildCommand(target, {
       dir: opts.dir as string | undefined,
       config: opts.config as string | undefined,
       outDir: opts.outDir as string | undefined,
@@ -155,6 +161,56 @@ program
       allowUnsafe: opts.allowUnsafe as boolean | undefined,
       release: opts.release as boolean | undefined,
     })));
+}
+
+for (const target of ['web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos']) {
+  addBuildTargetCommand(target);
+}
+
+const buildVendor = build
+  .command('vendor')
+  .description('Fetch and inspect local build vendor templates');
+
+buildVendor
+  .command('add [targets...]')
+  .description('Fetch build vendors: android, ios, mobile, or all')
+  .allowUnknownOption()
+  .option('--dir <path>', 'Project directory (default: current directory)')
+  .option('--config <path>', 'Path to feather.build.json')
+  .option('--vendor-dir <path>', 'Vendor directory inside the project', 'vendor')
+  .option('--ref <ref>', 'LÖVE version/tag/ref for all vendors')
+  .option('--android-ref <ref>', 'Android vendor branch/tag/ref override')
+  .option('--ios-ref <ref>', 'iOS vendor branch/tag/ref override')
+  .option('--force', 'Replace existing vendor directories or conflicting config paths')
+  .option('--dry-run', 'Show planned vendor changes without writing files')
+  .option('--json', 'Output machine-readable JSON')
+  .addHelpText('after', '\n  --no-config              Do not update feather.build.json')
+  .action((targets: string[], opts) => runCliAction(() => buildVendorAddCommand(targets.filter((target) => target !== '--no-config'), {
+    dir: opts.dir as string | undefined,
+    config: opts.config as string | undefined,
+    vendorDir: opts.vendorDir as string | undefined,
+    ref: opts.ref as string | undefined,
+    androidRef: opts.androidRef as string | undefined,
+    iosRef: opts.iosRef as string | undefined,
+    force: opts.force as boolean | undefined,
+    dryRun: opts.dryRun as boolean | undefined,
+    json: opts.json as boolean | undefined,
+    configUpdate: !process.argv.includes('--no-config'),
+  })));
+
+buildVendor
+  .command('list')
+  .description('List configured build vendors')
+  .option('--dir <path>', 'Project directory (default: current directory)')
+  .option('--config <path>', 'Path to feather.build.json')
+  .option('--vendor-dir <path>', 'Vendor directory inside the project', 'vendor')
+  .option('--json', 'Output machine-readable JSON')
+  .action((opts) => runCliAction(() => buildVendorListCommand({
+    dir: opts.dir as string | undefined,
+    config: opts.config as string | undefined,
+    vendorDir: opts.vendorDir as string | undefined,
+    json: opts.json as boolean | undefined,
+  })));
 
 program
   .command('upload <target> [build-target]')

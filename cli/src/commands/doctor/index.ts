@@ -228,7 +228,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             'love-android template',
             hasLoveAndroidDir ? 'pass' : 'fail',
             androidConfig.loveAndroidDir ?? 'not configured',
-            'Set targets.android.loveAndroidDir in feather.build.json to a local love-android checkout.',
+            hasLoveAndroidDir ? undefined : `Run \`feather build vendor add android --dir ${projectDir}\` or set targets.android.loveAndroidDir in feather.build.json.`,
           );
           const gradleWrapper = hasLoveAndroidDir && (existsSync(join(loveAndroidDir, 'gradlew')) || existsSync(join(loveAndroidDir, 'gradlew.bat')));
           add(
@@ -303,7 +303,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             'LÖVE iOS template',
             hasLoveIosDir ? 'pass' : 'fail',
             iosConfig.loveIosDir ?? 'not configured',
-            'Set targets.ios.loveIosDir in feather.build.json to a local LÖVE iOS source checkout.',
+            hasLoveIosDir ? undefined : `Run \`feather build vendor add ios --dir ${projectDir}\` or set targets.ios.loveIosDir in feather.build.json.`,
           );
           const xcodeProject = hasLoveIosDir && existsSync(join(loveIosDir, 'platform', 'xcode', 'love.xcodeproj'));
           add(

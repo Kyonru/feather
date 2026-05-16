@@ -337,6 +337,7 @@ Build a LÖVE game into local artifacts. V1 supports `web`, `android`, `ios`, `w
 
 ```bash
 feather build web --dir path/to/my-game
+feather build vendor add mobile --dir path/to/my-game
 feather build android --dir path/to/my-game
 feather build android --dir path/to/my-game --release
 feather build ios --dir path/to/my-game
@@ -348,6 +349,17 @@ feather build web --allow-unsafe
 ```
 
 Builds read `feather.build.json` from the project root. Missing config is allowed for simple desktop builds, but web builds need a local love.js player directory, mobile builds need local LÖVE native template paths, and uploads need store metadata.
+
+To fetch the mobile native templates locally:
+
+```bash
+feather build vendor add mobile
+feather build vendor add android --ref 11.5
+feather build vendor add ios --ref 11.5 --json
+feather build vendor list
+```
+
+`build vendor add` clones official LÖVE vendor sources into `vendor/` and updates `feather.build.json` by default. Android fetches `love2d/love-android` with submodules. iOS fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode tree. The version comes from `loveVersion` or `--ref`, falling back to `11.5`.
 
 ```json
 {
@@ -440,6 +452,7 @@ Mobile build notes:
 
 - Android builds expect `targets.android.loveAndroidDir` to point at a local love-android checkout with `gradlew`.
 - iOS builds expect `targets.ios.loveIosDir` to point at a local LÖVE iOS source tree with `platform/xcode/love.xcodeproj`.
+- `feather build vendor add mobile` fetches those template checkouts, but it does not install Android SDK, JDK, Xcode, or signing assets.
 - `feather doctor --build-target android --release` validates product id, Gradle wrapper, JDK, Android SDK, and signing env setup.
 - `feather doctor --build-target ios --release` validates bundle id, macOS/Xcode setup, template path, export options, and signing hints.
 - Play Console and App Store upload are not included in this pass.

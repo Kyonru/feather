@@ -125,6 +125,39 @@ function writeFakeCommand(dir, name, script) {
   return { binDir, commandPath };
 }
 
+function writeFakeVendorGit(dir) {
+  const recordPath = join(dir, 'git-record.json');
+  const { binDir } = writeFakeCommand(dir, 'git', `
+const fs = require('fs');
+const path = require('path');
+const args = process.argv.slice(2);
+const recordPath = ${JSON.stringify(recordPath)};
+const records = fs.existsSync(recordPath) ? JSON.parse(fs.readFileSync(recordPath, 'utf8')) : [];
+records.push({ args });
+fs.writeFileSync(recordPath, JSON.stringify(records, null, 2));
+if (args[0] === '--version') {
+  console.log('git version test');
+  process.exit(0);
+}
+if (args[0] !== 'clone') {
+  console.error('unexpected git args ' + args.join(' '));
+  process.exit(1);
+}
+const target = args[args.length - 1];
+const repo = args[args.length - 2];
+fs.mkdirSync(target, { recursive: true });
+if (repo.includes('love-android')) {
+  fs.writeFileSync(path.join(target, 'gradlew'), '#!/bin/sh\\n');
+  fs.mkdirSync(path.join(target, 'app', 'src', 'embed', 'assets'), { recursive: true });
+} else if (repo.includes('love')) {
+  fs.mkdirSync(path.join(target, 'platform', 'xcode', 'love.xcodeproj'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'platform', 'xcode', 'love.xcodeproj', 'project.pbxproj'), '');
+}
+process.exit(0);
+`);
+  return { binDir, recordPath };
+}
+
 function envWithPath(binDir, extra = {}) {
   return {
     ...process.env,
@@ -238,6 +271,16 @@ function writeFakeLoveIos(dir) {
 
 function writeBuildConfig(dir, config) {
   writeFileSync(join(dir, 'feather.build.json'), `${JSON.stringify(config, null, 2)}\n`);
+}
+
+async function writeFakeAppleLibrariesZip(dir) {
+  const { createZipBuffer } = await import('../dist/lib/build/archive.js');
+  const zipPath = join(dir, 'love-apple-libraries.zip');
+  writeFileSync(zipPath, createZipBuffer([
+    { name: 'iOS/libraries/liblove-test.a', data: Buffer.from('ios lib') },
+    { name: 'shared/test-shared.txt', data: Buffer.from('shared lib') },
+  ]));
+  return zipPath;
 }
 
 function parseDoctorJson(dir, extra = []) {
@@ -774,6 +817,129 @@ test('build release: non-mobile targets fail cleanly', () => {
   assert.ok(outputOf(result).includes('Release mode is currently supported only for android and ios'));
 });
 
+test('build vendor add android --json: clones vendor and updates config', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor Android', version: '1.0.0', loveVersion: '11.5' });
+  const { binDir, recordPath } = writeFakeVendorGit(dir);
+
+  const result = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--json'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.vendors[0].target, 'android');
+  assert.equal(parsed.vendors[0].relativePath, 'vendor/love-android');
+  assert.equal(parsed.vendors[0].configUpdated, true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-android', 'gradlew')), true);
+  const config = JSON.parse(readFileSync(join(dir, 'feather.build.json'), 'utf8'));
+  assert.equal(config.targets.android.loveAndroidDir, 'vendor/love-android');
+  const records = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(records.some((record) => record.args.includes('--recurse-submodules')));
+  assert.ok(records.some((record) => record.args.includes('https://github.com/love2d/love-android')));
+});
+
+test('build vendor add ios --json: clones vendor, installs Apple libraries, and updates config', async () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor iOS', version: '1.0.0', loveVersion: '11.5' });
+  const { binDir, recordPath } = writeFakeVendorGit(dir);
+  const zipPath = await writeFakeAppleLibrariesZip(dir);
+
+  const result = run(['build', 'vendor', 'add', 'ios', '--dir', dir, '--json'], {
+    env: envWithPath(binDir, { FEATHER_TEST_LOVE_APPLE_LIBRARIES_ZIP: zipPath }),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.vendors[0].target, 'ios');
+  assert.equal(parsed.vendors[0].relativePath, 'vendor/love-ios');
+  assert.equal(existsSync(join(dir, 'vendor', 'love-ios', 'platform', 'xcode', 'ios', 'libraries', 'liblove-test.a')), true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-ios', 'platform', 'xcode', 'shared', 'test-shared.txt')), true);
+  const config = JSON.parse(readFileSync(join(dir, 'feather.build.json'), 'utf8'));
+  assert.equal(config.targets.ios.loveIosDir, 'vendor/love-ios');
+  const records = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(records.some((record) => record.args.includes('https://github.com/love2d/love')));
+});
+
+test('build vendor add mobile --dry-run --json: reports planned vendors without writing', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+
+  const result = run(['build', 'vendor', 'add', 'mobile', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.deepEqual(parsed.vendors.map((vendor) => vendor.target), ['android', 'ios']);
+  assert.equal(existsSync(join(dir, 'vendor')), false);
+  assert.equal(existsSync(join(dir, 'feather.build.json')), false);
+});
+
+test('build vendor add --no-config: fetches vendor without writing build config', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const { binDir } = writeFakeVendorGit(dir);
+
+  const result = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--no-config', '--json'], { env: envWithPath(binDir) });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(existsSync(join(dir, 'vendor', 'love-android', 'gradlew')), true);
+  assert.equal(existsSync(join(dir, 'feather.build.json')), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.vendors[0].configUpdated, false);
+});
+
+test('build vendor add: existing directories and conflicting config require --force', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  mkdirSync(join(dir, 'vendor', 'love-android'), { recursive: true });
+
+  const existing = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--json']);
+  assert.equal(existing.exitCode, 1);
+  assert.ok(outputOf(existing).includes('--force'));
+
+  writeBuildConfig(dir, { targets: { android: { loveAndroidDir: 'native/love-android' } } });
+  const conflict = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(conflict.exitCode, 1);
+  assert.ok(outputOf(conflict).includes('already configured'));
+
+  const { binDir } = writeFakeVendorGit(dir);
+  const forced = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--force', '--json'], { env: envWithPath(binDir) });
+  assert.equal(forced.exitCode, 0, outputOf(forced));
+  const config = JSON.parse(readFileSync(join(dir, 'feather.build.json'), 'utf8'));
+  assert.equal(config.targets.android.loveAndroidDir, 'vendor/love-android');
+});
+
+test('build vendor list --json: reports configured, missing, and valid vendors', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    targets: {
+      android: { loveAndroidDir: 'love-android' },
+      ios: { loveIosDir: 'vendor/love-ios' },
+    },
+  });
+
+  const result = run(['build', 'vendor', 'list', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.vendors.map((vendor) => [vendor.target, vendor]));
+  assert.equal(labels.get('android').valid, true);
+  assert.equal(labels.get('ios').exists, false);
+  assert.equal(labels.get('ios').detail, 'missing');
+});
+
+test('build vendor add: missing git produces compact actionable error', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+
+  const result = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--json'], {
+    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', PATH: '' },
+  });
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('git is required'));
+});
+
 test('build android: invalid config fails before staging or writing artifacts', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -1235,6 +1401,7 @@ test('doctor: android build target reports template and local tool setup', () =>
   assert.equal(missingLabels.get('love-android template')?.severity, 'fail');
   assert.equal(missingLabels.get('Android Gradle wrapper')?.severity, 'fail');
   assert.ok(missingLabels.get('love-android template')?.fix.includes('targets.android.loveAndroidDir'));
+  assert.ok(missingLabels.get('love-android template')?.fix.includes('feather build vendor add android'));
 
   writeFakeLoveAndroid(dir);
   writeBuildConfig(dir, {
@@ -1315,6 +1482,7 @@ test('doctor: ios build target reports platform, template, Xcode, and signing hi
   const missingLabels = new Map(missing.checks.map((check) => [check.label, check]));
   assert.equal(missingLabels.get('LÖVE iOS template')?.severity, 'fail');
   assert.equal(missingLabels.get('LÖVE iOS Xcode project')?.severity, 'fail');
+  assert.ok(missingLabels.get('LÖVE iOS template')?.fix.includes('feather build vendor add ios'));
 
   writeFakeLoveIos(dir);
   writeBuildConfig(dir, {

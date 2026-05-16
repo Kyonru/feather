@@ -62,9 +62,9 @@ feather doctor path/to/my-game --build-target web
 feather doctor path/to/my-game --upload-target itch
 ```
 
-`feather build` supports web, Android, iOS, Windows, macOS, Linux, and SteamOS artifacts. Web builds need a local love.js player directory configured in `feather.build.json`; Android/iOS dev builds need local love-android or LÖVE iOS template paths; desktop builds expect `love-release` on `PATH`. `feather upload itch` expects Butler on `PATH` and either `BUTLER_API_KEY` in CI or a local `butler login` session.
+`feather build` supports web, Android, iOS, Windows, macOS, Linux, and SteamOS artifacts. Web builds need a local love.js player directory configured in `feather.build.json`; Android/iOS builds need local love-android or LÖVE iOS template paths; desktop builds expect `love-release` on `PATH`. `feather upload itch` expects Butler on `PATH` and either `BUTLER_API_KEY` in CI or a local `butler login` session.
 
-For mobile setup, start with `feather doctor path/to/my-game --build-target android` or `--build-target ios`. Doctor checks the native template path, product/bundle id, local build tools, and the common environment variables before the build command stages or writes artifacts.
+For mobile setup, run `feather build vendor add mobile --dir path/to/my-game` to fetch official LÖVE template checkouts into `vendor/` and update `feather.build.json`. Then run `feather doctor path/to/my-game --build-target android` or `--build-target ios`. Doctor checks the native template path, product/bundle id, local build tools, and the common environment variables before the build command stages or writes artifacts. Vendor fetching does not install Android SDK, JDK, Xcode, or signing assets.
 
 Use `feather build android --release` for Android AAB/APK release artifacts and `feather build ios --release` for iOS archive/IPA artifacts. Keep signing file paths in `feather.build.json`, but put passwords in environment variables referenced by the config so secrets are not committed or printed.
 
