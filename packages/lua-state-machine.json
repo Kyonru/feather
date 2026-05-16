@@ -1,0 +1,29 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A finite state machine lua micro framework",
+  "tags": [
+    "state",
+    "machine",
+    "finite"
+  ],
+  "homepage": "https://github.com/kyleconroy/lua-state-machine",
+  "license": "MIT",
+  "source": {
+    "repo": "kyleconroy/lua-state-machine",
+    "tag": "master",
+    "baseUrl": "https://raw.githubusercontent.com/kyleconroy/lua-state-machine/96fc10ee123479cf2e5fb8ffe9cdde2fd6df0877/",
+    "commitSha": "96fc10ee123479cf2e5fb8ffe9cdde2fd6df0877"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "statemachine.lua",
+        "sha256": "95affa1ad7a9e2a4629cce4b321fbf49cf521cce6e9be5e92f035f7e64f9275c",
+        "target": "lib/statemachine.lua"
+      }
+    ]
+  },
+  "require": "lib.statemachine",
+  "example": "local lua_state_machine = require('lib.statemachine')"
+}

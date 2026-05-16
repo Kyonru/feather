@@ -8,7 +8,7 @@ export type LockfileEntry = {
   source:
     | { repo: string; tag: string }
     | { url: string };
-  files: { name: string; target: string; sha256: string }[];
+  files: { name: string; url?: string; target: string; sha256: string }[];
   installedAt: string;
 };
 

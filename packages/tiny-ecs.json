@@ -1,0 +1,35 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "ECS for Lua",
+  "tags": [
+    "ecs",
+    "entity",
+    "component",
+    "system"
+  ],
+  "homepage": "https://github.com/bakpakin/tiny-ecs",
+  "license": "MIT",
+  "source": {
+    "repo": "bakpakin/tiny-ecs",
+    "tag": "master",
+    "commitSha": "821914795db365d73dcb973b4a54741423650dc9",
+    "baseUrl": "https://raw.githubusercontent.com/bakpakin/tiny-ecs/821914795db365d73dcb973b4a54741423650dc9/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "init.lua",
+        "sha256": "73461b847b513ac10aeb0c65366de52940fd736d2c7026d06c0425ea78b2b175",
+        "target": "lib/tiny-ecs/init.lua"
+      },
+      {
+        "name": "tiny.lua",
+        "sha256": "a766b6a35949546746d041e9f4806a4ea068605b9657e2c7dedbc636c2cdf805",
+        "target": "lib/tiny-ecs/tiny.lua"
+      }
+    ]
+  },
+  "require": "lib.tiny-ecs",
+  "example": "local tiny_ecs = require('lib.tiny-ecs')"
+}

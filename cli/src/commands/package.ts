@@ -9,17 +9,9 @@ import { installFromUrl, restorePackage } from '../lib/package/install.js';
 import { auditLockfile } from '../lib/package/audit.js';
 import { showPackageBrowser } from '../ui/package-workflow.js';
 import { showInstallProgress } from '../ui/package-progress.js';
-
-function findProjectDir(cwd = process.cwd()): string {
-  if (existsSync(join(cwd, 'main.lua'))) return cwd;
-  return cwd;
-}
-
-function trustBadge(trust: string): string {
-  if (trust === 'verified') return chalk.green('[verified]');
-  if (trust === 'known') return chalk.yellow('[known]');
-  return chalk.red('[experimental]');
-}
+import { showAddWizard } from '../ui/package-add.js';
+import { findProjectDir } from '../lib/paths.js';
+import { trustBadge } from '../lib/trust.js';
 
 export type PackageSearchOptions = {
   offline?: boolean;
@@ -173,6 +165,7 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   console.log(`  Source:   ${chalk.cyan(`github.com/${entry.source.repo}`)}`);
   console.log(`  Version:  ${entry.source.tag}`);
   console.log(`  Tags:     ${entry.tags.join(', ') || '—'}`);
+  if (entry.license) console.log(`  License:  ${entry.license}`);
   if (entry.homepage) console.log(`  Docs:     ${chalk.cyan(entry.homepage)}`);
   if (installed) {
     console.log(`  Status:   ${chalk.green('installed')} @ ${installed.version}`);
@@ -471,6 +464,16 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
   removeFromLockfile(lockfile, name);
   writeLockfile(projectDir, lockfile);
   console.log(`  ${chalk.bold(name)} removed.`);
+}
+
+export type PackageAddOptions = {
+  dir?: string;
+};
+
+export async function packageAddCommand(opts: PackageAddOptions = {}): Promise<void> {
+  const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
+  const lockfile = readLockfile(projectDir);
+  await showAddWizard({ projectDir, lockfile });
 }
 
 export type PackageAuditOptions = {

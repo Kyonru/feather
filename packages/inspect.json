@@ -2,16 +2,25 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "Human-readable table serializer and pretty-printer for Lua. Useful for debugging.",
-  "tags": ["debug", "utilities"],
+  "tags": [
+    "debug",
+    "utilities"
+  ],
   "homepage": "https://github.com/kikito/inspect.lua",
+  "license": "MIT",
   "source": {
     "repo": "kikito/inspect.lua",
     "tag": "master",
-    "baseUrl": "https://raw.githubusercontent.com/kikito/inspect.lua/master/"
+    "baseUrl": "https://raw.githubusercontent.com/kikito/inspect.lua/a8ca3120dfec48801036eaeff9335ab7a096dd24/",
+    "commitSha": "a8ca3120dfec48801036eaeff9335ab7a096dd24"
   },
   "install": {
     "files": [
-      { "name": "inspect.lua", "sha256": "656e4be83802750cfe13156810f7990d49893c86518ed5d882f0709d2901dfc5", "target": "lib/inspect.lua" }
+      {
+        "name": "inspect.lua",
+        "sha256": "656e4be83802750cfe13156810f7990d49893c86518ed5d882f0709d2901dfc5",
+        "target": "lib/inspect.lua"
+      }
     ]
   },
   "require": "lib.inspect",

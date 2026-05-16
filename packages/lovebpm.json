@@ -1,0 +1,32 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A LÖVE library for syncing events to the BPM of an audio track",
+  "tags": [
+    "music",
+    "sound",
+    "audio",
+    "track",
+    "bpm",
+    "events"
+  ],
+  "homepage": "https://github.com/rxi/lovebpm",
+  "license": "MIT",
+  "source": {
+    "repo": "rxi/lovebpm",
+    "tag": "master",
+    "commitSha": "22f8537083818ebfc2a0788fbec3e991894371f9",
+    "baseUrl": "https://raw.githubusercontent.com/rxi/lovebpm/22f8537083818ebfc2a0788fbec3e991894371f9/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "lovebpm.lua",
+        "sha256": "fe3bb0fa97f79c0ff8e32810a16473bbe7677b1d21b753aeec1e35ac8f86b00c",
+        "target": "lib/lovebpm.lua"
+      }
+    ]
+  },
+  "require": "lib.lovebpm",
+  "example": "local lovebpm = require('lib.lovebpm')"
+}

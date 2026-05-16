@@ -74,10 +74,11 @@ export async function installPackage(
   const lockedFiles: LockfileEntry["files"] = [];
 
   const src = pkg.entry.source;
-  const effectiveTag = pkg.versionOverride ?? src.tag;
-  const baseUrl = pkg.versionOverride
-    ? src.baseUrl.replace(src.tag, pkg.versionOverride)
-    : src.baseUrl;
+  const effectiveTag = pkg.versionOverride ?? src.tag ?? 'url';
+  const baseUrl =
+    pkg.versionOverride && src.baseUrl && src.tag
+      ? src.baseUrl.replace(src.tag, pkg.versionOverride)
+      : (src.baseUrl ?? '');
 
   for (const file of pkg.files) {
     const relTarget = targetOverride
@@ -90,7 +91,7 @@ export async function installPackage(
       continue;
     }
 
-    const url = baseUrl + file.name;
+    const url = file.url ?? baseUrl + file.name;
 
     if (dryRun) {
       fileResults.push({ name: file.name, target: relTarget, sha256: file.sha256, ok: true });
@@ -135,7 +136,7 @@ export async function installPackage(
       parent: pkg.entry.parent,
       version: effectiveTag,
       trust: pkg.versionOverride ? "experimental" : pkg.entry.trust,
-      source: { repo: src.repo, tag: effectiveTag },
+      source: { repo: src.repo ?? pkg.id, tag: effectiveTag },
       files: lockedFiles,
     });
   }
@@ -232,9 +233,10 @@ export async function restorePackage(
 
     onFileStart?.(file.name);
 
-    const url = "url" in entry.source
-      ? entry.source.url
-      : `https://raw.githubusercontent.com/${entry.source.repo}/${entry.source.tag}/${file.name}`;
+    const url = file.url
+      ?? ("url" in entry.source
+        ? entry.source.url
+        : `https://raw.githubusercontent.com/${entry.source.repo}/${entry.source.tag}/${file.name}`);
 
     const result = await downloadVerified(url, file.sha256);
     if ("error" in result) {

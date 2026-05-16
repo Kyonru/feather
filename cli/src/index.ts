@@ -20,6 +20,7 @@ import {
   packageUpdateCommand,
   packageRemoveCommand,
   packageAuditCommand,
+  packageAddCommand,
 } from './commands/package.js';
 import type { InitMode } from './ui/init-mode.js';
 
@@ -222,6 +223,14 @@ plugin
   });
 
 const pkg = program.command('package').description('Install and manage LÖVE packages from the Feather catalog');
+
+pkg
+  .command('add')
+  .description('Interactively install a custom dependency from URL(s)')
+  .option('--dir <path>', 'Project directory')
+  .action(async (opts) => {
+    await packageAddCommand({ dir: opts.dir as string | undefined });
+  });
 
 pkg
   .command('search [query]')

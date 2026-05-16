@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-12",
+  "updatedAt": "2026-05-16",
   "packages": {
     "anim8": {
       "type": "love2d-library",
@@ -11,10 +11,12 @@
         "sprites"
       ],
       "homepage": "https://github.com/kikito/anim8",
+      "license": "MIT",
       "source": {
         "repo": "kikito/anim8",
         "tag": "v2.3.1",
-        "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/v2.3.1/"
+        "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/c1c12ec45fde28ffd2d6967675adcb3c3e501fa7/",
+        "commitSha": "c1c12ec45fde28ffd2d6967675adcb3c3e501fa7"
       },
       "install": {
         "files": [
@@ -28,6 +30,91 @@
       "require": "lib.anim8",
       "example": "local anim8 = require('lib.anim8')"
     },
+    "baton": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "An input library for LÖVE.",
+      "tags": [
+        "input",
+        "controller",
+        "keyboard",
+        "mouse",
+        "touch"
+      ],
+      "homepage": "https://github.com/tesselode/baton",
+      "license": "MIT",
+      "source": {
+        "repo": "tesselode/baton",
+        "tag": "v1.0.2",
+        "baseUrl": "https://raw.githubusercontent.com/tesselode/baton/3defe19f8f0da1a457ba86095e6f6a3c7ee6a8e9/",
+        "commitSha": "3defe19f8f0da1a457ba86095e6f6a3c7ee6a8e9"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "baton.lua",
+            "sha256": "5dee8e0984badef516d1a42f5996b8fae332363399940241fb82abeb5ae648f7",
+            "target": "lib/baton.lua"
+          }
+        ]
+      },
+      "require": "lib.baton",
+      "example": "local baton = require('lib.baton')"
+    },
+    "beehive": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A behavior tree implementation in lua.",
+      "tags": [
+        "ai",
+        "behavior",
+        "tree"
+      ],
+      "homepage": "https://github.com/drhayes/beehive.lua",
+      "license": "MIT",
+      "source": {
+        "repo": "drhayes/beehive.lua",
+        "tag": "main",
+        "baseUrl": "https://raw.githubusercontent.com/drhayes/beehive.lua/00877150688ce42fffbaeeb76d7a4cb87e88da60/",
+        "commitSha": "00877150688ce42fffbaeeb76d7a4cb87e88da60"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "beehive/fail.lua",
+            "sha256": "8ffc086030857f311398ce2abc578f574c0303364e3f68a3e78e84fb00a9e41e",
+            "target": "lib/beehive/fail.lua"
+          },
+          {
+            "name": "beehive/invert.lua",
+            "sha256": "cb11cc9564409a5419ad113155e357c968e8c6f38ec10cae55403e5ac488040e",
+            "target": "lib/beehive/invert.lua"
+          },
+          {
+            "name": "beehive/parallel.lua",
+            "sha256": "fdeeadcf6e437a0d11bfcd4019a50aaac34cb969d72bfa10cf6cb69ee570fe4f",
+            "target": "lib/beehive/parallel.lua"
+          },
+          {
+            "name": "beehive/repeat.lua",
+            "sha256": "fd4a75cfbba982ba4436716b12ca5a102e13b1bcf6f630a3c162ee7ad1afff38",
+            "target": "lib/beehive/repeat.lua"
+          },
+          {
+            "name": "beehive/selector.lua",
+            "sha256": "0b46e7085065e89bd8488a0c1edaf335640c01c8d04b4fe302e8b02556f16b83",
+            "target": "lib/beehive/selector.lua"
+          },
+          {
+            "name": "beehive/sequence.lua",
+            "sha256": "80ee98a5a1f8fd302bb2b0452b145051c4094cd4f776453eb0df7a10aef2ae15",
+            "target": "lib/beehive/sequence.lua"
+          }
+        ]
+      },
+      "require": "lib.beehive.fail",
+      "example": "local beehive = require('lib.beehive.fail')"
+    },
     "bump": {
       "type": "love2d-library",
       "trust": "verified",
@@ -37,10 +124,12 @@
         "physics"
       ],
       "homepage": "https://github.com/kikito/bump.lua",
+      "license": "MIT",
       "source": {
         "repo": "kikito/bump.lua",
         "tag": "v3.1.7",
-        "baseUrl": "https://raw.githubusercontent.com/kikito/bump.lua/v3.1.7/"
+        "baseUrl": "https://raw.githubusercontent.com/kikito/bump.lua/72d6b13dfa525564f6e1a533d71eaa8235a5e96c/",
+        "commitSha": "72d6b13dfa525564f6e1a533d71eaa8235a5e96c"
       },
       "install": {
         "files": [
@@ -54,6 +143,35 @@
       "require": "lib.bump",
       "example": "local bump = require('lib.bump')"
     },
+    "cargo": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "LÖVE asset manager",
+      "tags": [
+        "asset",
+        "manager",
+        "loader"
+      ],
+      "homepage": "https://github.com/bjornbytes/cargo",
+      "license": "MIT",
+      "source": {
+        "repo": "bjornbytes/cargo",
+        "tag": "v0.1.1",
+        "baseUrl": "https://raw.githubusercontent.com/bjornbytes/cargo/8014bc0ad7d4639c112e5d00fac6c9ac68b0d696/",
+        "commitSha": "8014bc0ad7d4639c112e5d00fac6c9ac68b0d696"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "cargo.lua",
+            "sha256": "50749991281b9052e8f449c55d5bda0c5855f73c9264adb3f42077cf3ff0ab96",
+            "target": "lib/cargo.lua"
+          }
+        ]
+      },
+      "require": "lib.cargo",
+      "example": "local cargo = require('lib.cargo')"
+    },
     "classic": {
       "type": "love2d-library",
       "trust": "verified",
@@ -63,10 +181,12 @@
         "utilities"
       ],
       "homepage": "https://github.com/rxi/classic",
+      "license": "MIT",
       "source": {
         "repo": "rxi/classic",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/rxi/classic/master/"
+        "baseUrl": "https://raw.githubusercontent.com/rxi/classic/e5610756c98ac2f8facd7ab90c94e1a097ecd2c6/",
+        "commitSha": "e5610756c98ac2f8facd7ab90c94e1a097ecd2c6"
       },
       "install": {
         "files": [
@@ -89,10 +209,12 @@
         "tweening"
       ],
       "homepage": "https://github.com/rxi/flux",
+      "license": "MIT",
       "source": {
         "repo": "rxi/flux",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/rxi/flux/master/"
+        "baseUrl": "https://raw.githubusercontent.com/rxi/flux/bb330231b87eabf84fbd68322f13a6320db30a41/",
+        "commitSha": "bb330231b87eabf84fbd68322f13a6320db30a41"
       },
       "install": {
         "files": [
@@ -105,6 +227,64 @@
       },
       "require": "lib.flux",
       "example": "local flux = require('lib.flux')"
+    },
+    "g3d": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Simple and easy 3D engine for LÖVE.",
+      "tags": [
+        "3d",
+        "engine"
+      ],
+      "homepage": "https://github.com/groverburger/g3d",
+      "license": "MIT",
+      "source": {
+        "repo": "groverburger/g3d",
+        "tag": "master",
+        "commitSha": "639120acd754dc5c34402e41eb1687b1a5a3ffa8",
+        "baseUrl": "https://raw.githubusercontent.com/groverburger/g3d/639120acd754dc5c34402e41eb1687b1a5a3ffa8/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "g3d/camera.lua",
+            "sha256": "4aa73b340ef09168ff22574bc2e9f5ea8c0f6f4561f38215ed9d0ae268897dc6",
+            "target": "lib/g3d/camera.lua"
+          },
+          {
+            "name": "g3d/collisions.lua",
+            "sha256": "f93b0806e75f570a41e35d1a45978bf3217e7ca970d442ef9b18dea8aeef0850",
+            "target": "lib/g3d/collisions.lua"
+          },
+          {
+            "name": "g3d/init.lua",
+            "sha256": "02f5c867264b8ca1d4501a4b7537aba35600d013950bc3d05e9b3b372e6a4dc6",
+            "target": "lib/g3d/init.lua"
+          },
+          {
+            "name": "g3d/matrices.lua",
+            "sha256": "c6579f4c87032bfd0562a679ce261e51c6c42e4a6a69e05102de087e15625f9a",
+            "target": "lib/g3d/matrices.lua"
+          },
+          {
+            "name": "g3d/model.lua",
+            "sha256": "c52054e0d5db5688417712449606bfd1eaedcdc85a5a4fc3eebf482f2d38360b",
+            "target": "lib/g3d/model.lua"
+          },
+          {
+            "name": "g3d/objloader.lua",
+            "sha256": "208002fe5edd9ef05ebd710f0a07701f2fbadfc3cf74059cd701832f195c633e",
+            "target": "lib/g3d/objloader.lua"
+          },
+          {
+            "name": "g3d/vectors.lua",
+            "sha256": "4d23c3334fa1e6b43fbf7bf4fe00969480ee6a4c82a7007f87b3e10df42c411e",
+            "target": "lib/g3d/vectors.lua"
+          }
+        ]
+      },
+      "require": "lib.g3d",
+      "example": "local g3d = require('lib.g3d')"
     },
     "hump.camera": {
       "parent": "hump",
@@ -119,10 +299,12 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -149,10 +331,12 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -179,10 +363,12 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -209,10 +395,12 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -239,10 +427,12 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -269,10 +459,12 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -298,10 +490,12 @@
         "math"
       ],
       "homepage": "https://github.com/vrld/hump",
+      "license": "MIT",
       "source": {
         "repo": "vrld/hump",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/master/"
+        "baseUrl": "https://raw.githubusercontent.com/vrld/hump/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/",
+        "commitSha": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4"
       },
       "install": {
         "files": [
@@ -357,10 +551,12 @@
         "utilities"
       ],
       "homepage": "https://github.com/kikito/inspect.lua",
+      "license": "MIT",
       "source": {
         "repo": "kikito/inspect.lua",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/kikito/inspect.lua/master/"
+        "baseUrl": "https://raw.githubusercontent.com/kikito/inspect.lua/a8ca3120dfec48801036eaeff9335ab7a096dd24/",
+        "commitSha": "a8ca3120dfec48801036eaeff9335ab7a096dd24"
       },
       "install": {
         "files": [
@@ -374,6 +570,764 @@
       "require": "lib.inspect",
       "example": "local inspect = require('lib.inspect')"
     },
+    "knife.base": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — base module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/base.lua",
+            "sha256": "9cdc89da1a37296aa0f57c1f28c4123be6052604ca2b60306a98e926666e2fd1",
+            "target": "lib/knife/base.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.base",
+      "example": "local base = require('lib.knife.base')"
+    },
+    "knife.behavior": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — behavior module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/behavior.lua",
+            "sha256": "9ee69bf0b7966061e75716811727138772dc766ba8d03ed6a5d98df3491967e4",
+            "target": "lib/knife/behavior.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.behavior",
+      "example": "local behavior = require('lib.knife.behavior')"
+    },
+    "knife.bind": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — bind module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/bind.lua",
+            "sha256": "01923de7538a127d4bdc23ec6dccea9c791928e88dcd61dd4cd7cc97287c639a",
+            "target": "lib/knife/bind.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.bind",
+      "example": "local bind = require('lib.knife.bind')"
+    },
+    "knife.chain": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — chain module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/chain.lua",
+            "sha256": "70143d8618f7be18025da8cc073714fe1c3c3a2d173c2d04f415e9d0d85bd964",
+            "target": "lib/knife/chain.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.chain",
+      "example": "local chain = require('lib.knife.chain')"
+    },
+    "knife.convoke": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — convoke module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/convoke.lua",
+            "sha256": "76c1862861999b8523cb060c964fded1986dbcd04c08610e9547bddcef751776",
+            "target": "lib/knife/convoke.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.convoke",
+      "example": "local convoke = require('lib.knife.convoke')"
+    },
+    "knife.event": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — event module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/event.lua",
+            "sha256": "962e2f6b47fc6a81cdc07d28d5fef6cd40132dcb28fd3d34c834616cd15be74f",
+            "target": "lib/knife/event.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.event",
+      "example": "local event = require('lib.knife.event')"
+    },
+    "knife.gun": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — gun module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/gun.lua",
+            "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
+            "target": "lib/knife/gun.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.gun",
+      "example": "local gun = require('lib.knife.gun')"
+    },
+    "knife.memoize": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — memoize module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/memoize.lua",
+            "sha256": "45c857737cf3b3c4e7bd3994c882a142761153932ba4695b57aa4eb9198ccfd0",
+            "target": "lib/knife/memoize.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.memoize",
+      "example": "local memoize = require('lib.knife.memoize')"
+    },
+    "knife.serialize": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — serialize module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/serialize.lua",
+            "sha256": "472901fa35c502af4bfddc2ee0cc723dc91fb5ffbd06ddde22fa512bd94c4870",
+            "target": "lib/knife/serialize.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.serialize",
+      "example": "local serialize = require('lib.knife.serialize')"
+    },
+    "knife.system": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — system module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/system.lua",
+            "sha256": "bc9d8981679bdb752f4e1b2031f42b6e08a40f411981f23f6f148588edb23ea2",
+            "target": "lib/knife/system.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.system",
+      "example": "local system = require('lib.knife.system')"
+    },
+    "knife.test": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — test module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/test.lua",
+            "sha256": "581c6c679cf5b711068880b36c242da9a4648c1525a9d615bbaeed0f79b4dbcd",
+            "target": "lib/knife/test.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.test",
+      "example": "local test = require('lib.knife.test')"
+    },
+    "knife.timer": {
+      "parent": "knife",
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "knife — timer module",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/timer.lua",
+            "sha256": "6c0a1f59404f7c1e3612afc80fb443b543546a5aa14a1d200a679e8684b5aaac",
+            "target": "lib/knife/timer.lua"
+          }
+        ]
+      },
+      "require": "lib.knife.timer",
+      "example": "local timer = require('lib.knife.timer')"
+    },
+    "knife": {
+      "type": "love2d-library",
+      "trust": "known",
+      "description": "A collection of useful micro-modules for Lua.",
+      "tags": [
+        "class",
+        "oop",
+        "behavior",
+        "ai",
+        "state",
+        "machine",
+        "bind",
+        "chain",
+        "coroutines",
+        "event",
+        "memoize",
+        "entity",
+        "test",
+        "timer"
+      ],
+      "homepage": "https://github.com/airstruck/knife",
+      "license": "MIT",
+      "source": {
+        "repo": "airstruck/knife",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
+        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "knife/base.lua",
+            "sha256": "9cdc89da1a37296aa0f57c1f28c4123be6052604ca2b60306a98e926666e2fd1",
+            "target": "lib/knife/base.lua"
+          },
+          {
+            "name": "knife/behavior.lua",
+            "sha256": "9ee69bf0b7966061e75716811727138772dc766ba8d03ed6a5d98df3491967e4",
+            "target": "lib/knife/behavior.lua"
+          },
+          {
+            "name": "knife/bind.lua",
+            "sha256": "01923de7538a127d4bdc23ec6dccea9c791928e88dcd61dd4cd7cc97287c639a",
+            "target": "lib/knife/bind.lua"
+          },
+          {
+            "name": "knife/chain.lua",
+            "sha256": "70143d8618f7be18025da8cc073714fe1c3c3a2d173c2d04f415e9d0d85bd964",
+            "target": "lib/knife/chain.lua"
+          },
+          {
+            "name": "knife/convoke.lua",
+            "sha256": "76c1862861999b8523cb060c964fded1986dbcd04c08610e9547bddcef751776",
+            "target": "lib/knife/convoke.lua"
+          },
+          {
+            "name": "knife/event.lua",
+            "sha256": "962e2f6b47fc6a81cdc07d28d5fef6cd40132dcb28fd3d34c834616cd15be74f",
+            "target": "lib/knife/event.lua"
+          },
+          {
+            "name": "knife/gun.lua",
+            "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
+            "target": "lib/knife/gun.lua"
+          },
+          {
+            "name": "knife/memoize.lua",
+            "sha256": "45c857737cf3b3c4e7bd3994c882a142761153932ba4695b57aa4eb9198ccfd0",
+            "target": "lib/knife/memoize.lua"
+          },
+          {
+            "name": "knife/serialize.lua",
+            "sha256": "472901fa35c502af4bfddc2ee0cc723dc91fb5ffbd06ddde22fa512bd94c4870",
+            "target": "lib/knife/serialize.lua"
+          },
+          {
+            "name": "knife/system.lua",
+            "sha256": "bc9d8981679bdb752f4e1b2031f42b6e08a40f411981f23f6f148588edb23ea2",
+            "target": "lib/knife/system.lua"
+          },
+          {
+            "name": "knife/test.lua",
+            "sha256": "581c6c679cf5b711068880b36c242da9a4648c1525a9d615bbaeed0f79b4dbcd",
+            "target": "lib/knife/test.lua"
+          },
+          {
+            "name": "knife/timer.lua",
+            "sha256": "6c0a1f59404f7c1e3612afc80fb443b543546a5aa14a1d200a679e8684b5aaac",
+            "target": "lib/knife/timer.lua"
+          }
+        ]
+      },
+      "subpackages": [
+        "knife.base",
+        "knife.behavior",
+        "knife.bind",
+        "knife.chain",
+        "knife.convoke",
+        "knife.event",
+        "knife.gun",
+        "knife.memoize",
+        "knife.serialize",
+        "knife.system",
+        "knife.test",
+        "knife.timer"
+      ],
+      "require": "lib.knife.base",
+      "example": "local knife = require('lib.knife.base')"
+    },
+    "love-dialogue": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Dialogue based Game Engine for Love2d with custom scripting language for dialogues",
+      "tags": [
+        "text",
+        "dialogue",
+        "system",
+        "tag",
+        "talk"
+      ],
+      "homepage": "https://github.com/Miisan-png/Love-Dialogue",
+      "license": "unknown",
+      "source": {
+        "repo": "Miisan-png/Love-Dialogue",
+        "tag": "main",
+        "baseUrl": "https://raw.githubusercontent.com/Miisan-png/Love-Dialogue/1d1cbd1f6730fbaf73fab18a2d33ee3525abfb75/",
+        "commitSha": "1d1cbd1f6730fbaf73fab18a2d33ee3525abfb75"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "LoveDialogue/9patch.lua",
+            "sha256": "dd882490cab2a6850b4b5f95a3fc1845b090a37773fcd4347d5bb496efe2839b",
+            "target": "lib/love-dialogue/9patch.lua"
+          },
+          {
+            "name": "LoveDialogue/DialogueConstants.lua",
+            "sha256": "9335210bfd61d9e39fcfdbd7ca6c7e55f5897565848260dffd3080e62ee9d0c5",
+            "target": "lib/love-dialogue/DialogueConstants.lua"
+          },
+          {
+            "name": "LoveDialogue/Logic.lua",
+            "sha256": "85701aa89d7892f5a55095b70a992036a241504e3470caeb58caae7f886b434f",
+            "target": "lib/love-dialogue/Logic.lua"
+          },
+          {
+            "name": "LoveDialogue/LoveCharacter.lua",
+            "sha256": "b606202a72f9b9c349bcee793bd6bfc7a36cc64059480a5a4071f81ba442d7d6",
+            "target": "lib/love-dialogue/LoveCharacter.lua"
+          },
+          {
+            "name": "LoveDialogue/LoveDialogue.lua",
+            "sha256": "9bea894af34bca1db4f04e94c38fd8800a36093bac8730f5f32c5b963a9b7043",
+            "target": "lib/love-dialogue/LoveDialogue.lua"
+          },
+          {
+            "name": "LoveDialogue/LoveDialogueParser.lua",
+            "sha256": "35548075414928e077b9d8136186444fbcbfb11c89c8b92eb92487e1cc78bddc",
+            "target": "lib/love-dialogue/LoveDialogueParser.lua"
+          },
+          {
+            "name": "LoveDialogue/PluginManager.lua",
+            "sha256": "c66684888259a4eea25546369ffe9c8540f778b4e16fa5adad2a5fe3cda1dc8c",
+            "target": "lib/love-dialogue/PluginManager.lua"
+          },
+          {
+            "name": "LoveDialogue/ResourceManager.lua",
+            "sha256": "5366b1bdb8a033fc1c2bfd787c326f1031aa9e285ff73c8c4695ac8e97dd32bb",
+            "target": "lib/love-dialogue/ResourceManager.lua"
+          },
+          {
+            "name": "LoveDialogue/TextEffects.lua",
+            "sha256": "399aacf0ff2e8f8615692ef86a184f5e2b730f0ab1fc5961e24ee8a8564f11d6",
+            "target": "lib/love-dialogue/TextEffects.lua"
+          },
+          {
+            "name": "LoveDialogue/ThemeParser.lua",
+            "sha256": "1303f4057eb47c9606c66560207308b7cc6b2ca12d4bcb98ee9c023d29e03af9",
+            "target": "lib/love-dialogue/ThemeParser.lua"
+          },
+          {
+            "name": "LoveDialogue/Transition.lua",
+            "sha256": "296a3c8f33d184387487d46e6f5b22205a565293cdbb2226eaab6052e2ef5d84",
+            "target": "lib/love-dialogue/Transition.lua"
+          },
+          {
+            "name": "LoveDialogue/Tween.lua",
+            "sha256": "2d5be30a9a4d3132373505c3ebde532ffe3009db2e7f8b9ce45680f01f5fef0f",
+            "target": "lib/love-dialogue/Tween.lua"
+          },
+          {
+            "name": "LoveDialogue/init.lua",
+            "sha256": "23f6c1bf3ac8e9d9d99443caa750acee158a415242208e93f8e4f21893b5df79",
+            "target": "lib/love-dialogue/init.lua"
+          },
+          {
+            "name": "LoveDialogue/plugins/DebugPlugin.lua",
+            "sha256": "5dc1d9f7a01d9f2e92aff9647ba43742cebb4095c17a4a48a2d698b9c638cebd",
+            "target": "lib/love-dialogue/plugins/DebugPlugin.lua"
+          }
+        ]
+      },
+      "require": "lib.love-dialogue",
+      "example": "local love_dialogue = require('lib.love-dialogue')"
+    },
+    "lovebpm": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A LÖVE library for syncing events to the BPM of an audio track",
+      "tags": [
+        "music",
+        "sound",
+        "audio",
+        "track",
+        "bpm",
+        "events"
+      ],
+      "homepage": "https://github.com/rxi/lovebpm",
+      "license": "MIT",
+      "source": {
+        "repo": "rxi/lovebpm",
+        "tag": "master",
+        "commitSha": "22f8537083818ebfc2a0788fbec3e991894371f9",
+        "baseUrl": "https://raw.githubusercontent.com/rxi/lovebpm/22f8537083818ebfc2a0788fbec3e991894371f9/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "lovebpm.lua",
+            "sha256": "fe3bb0fa97f79c0ff8e32810a16473bbe7677b1d21b753aeec1e35ac8f86b00c",
+            "target": "lib/lovebpm.lua"
+          }
+        ]
+      },
+      "require": "lib.lovebpm",
+      "example": "local lovebpm = require('lib.lovebpm')"
+    },
+    "lua-state-machine": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A finite state machine lua micro framework",
+      "tags": [
+        "state",
+        "machine",
+        "finite"
+      ],
+      "homepage": "https://github.com/kyleconroy/lua-state-machine",
+      "license": "MIT",
+      "source": {
+        "repo": "kyleconroy/lua-state-machine",
+        "tag": "master",
+        "baseUrl": "https://raw.githubusercontent.com/kyleconroy/lua-state-machine/96fc10ee123479cf2e5fb8ffe9cdde2fd6df0877/",
+        "commitSha": "96fc10ee123479cf2e5fb8ffe9cdde2fd6df0877"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "statemachine.lua",
+            "sha256": "95affa1ad7a9e2a4629cce4b321fbf49cf521cce6e9be5e92f035f7e64f9275c",
+            "target": "lib/statemachine.lua"
+          }
+        ]
+      },
+      "require": "lib.statemachine",
+      "example": "local lua_state_machine = require('lib.statemachine')"
+    },
     "lume": {
       "type": "love2d-library",
       "trust": "verified",
@@ -383,10 +1337,12 @@
         "math"
       ],
       "homepage": "https://github.com/rxi/lume",
+      "license": "MIT",
       "source": {
         "repo": "rxi/lume",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/rxi/lume/master/"
+        "baseUrl": "https://raw.githubusercontent.com/rxi/lume/98847e7812cf28d3d64b289b03fad71dc704547d/",
+        "commitSha": "98847e7812cf28d3d64b289b03fad71dc704547d"
       },
       "install": {
         "files": [
@@ -409,10 +1365,12 @@
         "utilities"
       ],
       "homepage": "https://github.com/kikito/middleclass",
+      "license": "MIT",
       "source": {
         "repo": "kikito/middleclass",
         "tag": "v4.1.1",
-        "baseUrl": "https://raw.githubusercontent.com/kikito/middleclass/v4.1.1/"
+        "baseUrl": "https://raw.githubusercontent.com/kikito/middleclass/dc0fb3612da5d41866a2f06076a4ecea5614ef78/",
+        "commitSha": "dc0fb3612da5d41866a2f06076a4ecea5614ef78"
       },
       "install": {
         "files": [
@@ -435,10 +1393,12 @@
         "resolution"
       ],
       "homepage": "https://github.com/Ulydev/push",
+      "license": "MIT",
       "source": {
         "repo": "Ulydev/push",
         "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/Ulydev/push/master/"
+        "baseUrl": "https://raw.githubusercontent.com/Ulydev/push/9c165816a14c868339c3cd0d22eed65c313c8bf8/",
+        "commitSha": "9c165816a14c868339c3cd0d22eed65c313c8bf8"
       },
       "install": {
         "files": [
@@ -452,31 +1412,92 @@
       "require": "lib.push",
       "example": "local push = require('lib.push')"
     },
-    "sti": {
+    "shove": {
       "type": "love2d-library",
-      "trust": "known",
-      "description": "Simple Tiled Implementation — loads and renders Tiled maps (.tmx) in LÖVE.",
+      "trust": "verified",
+      "description": "A powerful resolution-handler and rendering library for LÖVE 📐",
       "tags": [
-        "maps",
-        "tiled",
-        "tilemaps"
+        "resolution",
+        "gamedev",
+        "performance",
+        "lua",
+        "rendering",
+        "aspect-ratio",
+        "game-development",
+        "love2d",
+        "layers",
+        "pixel-perfect",
+        "scaling",
+        "love2d-framework"
       ],
-      "homepage": "https://github.com/karai17/Simple-Tiled-Implementation",
+      "homepage": "https://github.com/oval-tutu/shove",
+      "license": "MIT",
       "source": {
-        "repo": "karai17/Simple-Tiled-Implementation",
-        "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/master/"
+        "repo": "oval-tutu/shove",
+        "tag": "1.0.6",
+        "baseUrl": "https://raw.githubusercontent.com/oval-tutu/shove/ee1dedbca78ca988589edd4c5314d7e662223973/",
+        "commitSha": "ee1dedbca78ca988589edd4c5314d7e662223973"
       },
       "install": {
         "files": [
           {
+            "name": "shove-profiler.lua",
+            "sha256": "8c2c78a0d4dac5afaa3e487648c1e12fad632bd8971dd21424da765ac0135e88",
+            "target": "lib/shove/profiler.lua"
+          },
+          {
+            "name": "shove.lua",
+            "sha256": "151b3bb65aa33114189bd7a2abe23b61acb58bd0530e4a3a92531ee0502e4903",
+            "target": "lib/shove/init.lua"
+          }
+        ]
+      },
+      "require": "lib.shove",
+      "example": "local shove = require('lib.shove')"
+    },
+    "sti": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Simple Tiled Implementation — loads and renders Tiled maps (.tmx) in LÖVE.",
+      "tags": [
+        "sprites",
+        "maps",
+        "tiles",
+        "tiled"
+      ],
+      "homepage": "https://github.com/karai17/Simple-Tiled-Implementation",
+      "license": "NOASSERTION",
+      "source": {
+        "repo": "karai17/Simple-Tiled-Implementation",
+        "tag": "v1.2.3.0",
+        "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/69cdf8c7565f518c03967d0243cb54d1ee31da4e/",
+        "commitSha": "69cdf8c7565f518c03967d0243cb54d1ee31da4e"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "sti/graphics.lua",
+            "sha256": "c77ed8b4220b2e7c37fdf56612365ce3520ea8183deee92e2f337691f7d20b14",
+            "target": "lib/sti/graphics.lua"
+          },
+          {
             "name": "sti/init.lua",
-            "sha256": "b7542ac156b3c2ee24d256ce260f73dc01ab2d1245c4eb4b14c92fcdf487c814",
+            "sha256": "b65f9cc816bd666bf1ba42b4f50ee14d5fa83f22b3f121eb0b0f07c14ecb8df7",
             "target": "lib/sti/init.lua"
           },
           {
+            "name": "sti/plugins/box2d.lua",
+            "sha256": "5206a9528eeaf19a12b9512f2b8ca2fa9e2af7e3a634eb084b4dd9c0ac070205",
+            "target": "lib/sti/plugins/box2d.lua"
+          },
+          {
+            "name": "sti/plugins/bump.lua",
+            "sha256": "0c2bc5c882aeab0e2dc5ad1019a83aab72ccfe25ef6d9b105b8cb924d2feaab5",
+            "target": "lib/sti/plugins/bump.lua"
+          },
+          {
             "name": "sti/utils.lua",
-            "sha256": "ba8abf5a3f5680c6a020234afc248c4fb8945cda993d4cd82b292510e4dab17c",
+            "sha256": "6993cfde776ec0d1dae4ee53cec8df36fe37801dcf6858f51e443fe65f4ad4c9",
             "target": "lib/sti/utils.lua"
           }
         ]
@@ -484,31 +1505,86 @@
       "require": "lib.sti",
       "example": "local sti = require('lib.sti')"
     },
-    "windfield": {
+    "sysl-text": {
       "type": "love2d-library",
-      "trust": "known",
-      "description": "A physics module for LÖVE that makes Box2D easier to use. Wraps love.physics with a simpler API.",
+      "trust": "verified",
+      "description": "Text rendering with tag support",
       "tags": [
-        "physics",
-        "box2d"
+        "text",
+        "draw",
+        "love2d",
+        "textboxes",
+        "sprite-text"
       ],
-      "homepage": "https://github.com/SSYGEN/windfield",
+      "homepage": "https://github.com/sysl-dev/SYSL-Text",
+      "license": "MIT",
       "source": {
-        "repo": "SSYGEN/windfield",
-        "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/SSYGEN/windfield/master/"
+        "repo": "sysl-dev/SYSL-Text",
+        "tag": "v2.2",
+        "baseUrl": "https://raw.githubusercontent.com/sysl-dev/SYSL-Text/6c9b95047cb8650344e90224cd56bd00c5132d97/",
+        "commitSha": "6c9b95047cb8650344e90224cd56bd00c5132d97"
       },
       "install": {
         "files": [
           {
-            "name": "windfield/init.lua",
-            "sha256": "687c789dceeba3ebb6f5b152b94e9c085268695ed8cc578780d24ec1696f0388",
-            "target": "lib/windfield/init.lua"
+            "name": "example/library/slog-frame.lua",
+            "sha256": "d37119014d865d4e829a2757d8ec2974c3991afdcbcafe558decafb651066c5e",
+            "target": "lib/sysl-text/slog-frame.lua"
+          },
+          {
+            "name": "example/library/slog-icon.lua",
+            "sha256": "bf48f58f25930d20a367361ef5decceb4e8e377aed27093e3ea9f5a2c34dfc1a",
+            "target": "lib/sysl-text/slog-icon.lua"
+          },
+          {
+            "name": "example/library/slog-pixel.lua",
+            "sha256": "c95586e30a45ea9b5b49dfca1089c61c9ec1a59981e9526febdc56ae5354e925",
+            "target": "lib/sysl-text/slog-pixel.lua"
+          },
+          {
+            "name": "example/library/slog-text.lua",
+            "sha256": "10134b45499d925de5b177ae13874fd026dfc476f1eae5ba1b64874a49ec4ad9",
+            "target": "lib/sysl-text/slog-text.lua"
           }
         ]
       },
-      "require": "lib.windfield",
-      "example": "local wf = require('lib.windfield')"
+      "require": "lib.sysl-text.slog-text",
+      "example": "local sysl_text = require('lib.sysl-text.slog-text')"
+    },
+    "tiny-ecs": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "ECS for Lua",
+      "tags": [
+        "ecs",
+        "entity",
+        "component",
+        "system"
+      ],
+      "homepage": "https://github.com/bakpakin/tiny-ecs",
+      "license": "MIT",
+      "source": {
+        "repo": "bakpakin/tiny-ecs",
+        "tag": "master",
+        "commitSha": "821914795db365d73dcb973b4a54741423650dc9",
+        "baseUrl": "https://raw.githubusercontent.com/bakpakin/tiny-ecs/821914795db365d73dcb973b4a54741423650dc9/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "init.lua",
+            "sha256": "73461b847b513ac10aeb0c65366de52940fd736d2c7026d06c0425ea78b2b175",
+            "target": "lib/tiny-ecs/init.lua"
+          },
+          {
+            "name": "tiny.lua",
+            "sha256": "a766b6a35949546746d041e9f4806a4ea068605b9657e2c7dedbc636c2cdf805",
+            "target": "lib/tiny-ecs/tiny.lua"
+          }
+        ]
+      },
+      "require": "lib.tiny-ecs",
+      "example": "local tiny_ecs = require('lib.tiny-ecs')"
     }
   }
 }

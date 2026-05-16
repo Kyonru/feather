@@ -2,16 +2,25 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "Resolution-independence library for LÖVE. Lets you draw at a fixed resolution and scale to any window size.",
-  "tags": ["rendering", "resolution"],
+  "tags": [
+    "rendering",
+    "resolution"
+  ],
   "homepage": "https://github.com/Ulydev/push",
+  "license": "MIT",
   "source": {
     "repo": "Ulydev/push",
     "tag": "master",
-    "baseUrl": "https://raw.githubusercontent.com/Ulydev/push/master/"
+    "baseUrl": "https://raw.githubusercontent.com/Ulydev/push/9c165816a14c868339c3cd0d22eed65c313c8bf8/",
+    "commitSha": "9c165816a14c868339c3cd0d22eed65c313c8bf8"
   },
   "install": {
     "files": [
-      { "name": "push.lua", "sha256": "c5702771a3275ce3e3909a8414d1fe76024b30ca3943382d06a9b54f5ee3c517", "target": "lib/push.lua" }
+      {
+        "name": "push.lua",
+        "sha256": "c5702771a3275ce3e3909a8414d1fe76024b30ca3943382d06a9b54f5ee3c517",
+        "target": "lib/push.lua"
+      }
     ]
   },
   "require": "lib.push",

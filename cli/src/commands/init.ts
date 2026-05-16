@@ -1,6 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { basename, join, resolve } from 'node:path';
 import chalk from 'chalk';
 import ora from 'ora';
 import {
@@ -16,6 +15,7 @@ import {
 import { configTemplate, luaKey, luaValue } from '../lib/config.js';
 import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init-mode.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
+import { resolveLocalLuaRoot } from '../lib/paths.js';
 
 export interface InitOptions {
   branch?: string;
@@ -29,7 +29,6 @@ export interface InitOptions {
 }
 
 const knownPlugins = pluginCatalog.map((plugin) => plugin.id);
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const toLocalName = (id: string) =>
   id
@@ -73,20 +72,6 @@ function patchMainLuaForManual(mainPath: string): boolean {
 
   writeFileSync(mainPath, out);
   return true;
-}
-
-function bundledLuaRoot(): string {
-  return resolve(__dirname, '../../lua');
-}
-
-function repoLuaRoot(): string | null {
-  const candidate = resolve(__dirname, '../../../src-lua');
-  return existsSync(join(candidate, 'feather', 'init.lua')) ? candidate : null;
-}
-
-function resolveLocalLuaRoot(opts: InitOptions): string {
-  if (opts.localSrc) return resolve(opts.localSrc);
-  return repoLuaRoot() ?? bundledLuaRoot();
 }
 
 export async function initCommand(dir: string, opts: InitOptions): Promise<void> {

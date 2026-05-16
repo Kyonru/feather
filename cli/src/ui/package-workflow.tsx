@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Box, Text, render, useApp, useInput } from 'ink';
 import type { Registry, RegistryEntry } from '../lib/package/registry.js';
 import type { Lockfile, LockfileEntry } from '../lib/package/lockfile.js';
+import { trustLabel, trustColor } from '../lib/trust.js';
 
 export type PackageWorkflowResult = { action: 'install' | 'update' | 'remove'; id: string } | { action: 'cancel' };
 
@@ -18,17 +19,6 @@ const VISIBLE = 14;
 const VER_W = 10;
 const TRUST_W = 13;
 
-function trustLabel(trust: string) {
-  if (trust === 'verified') return 'verified';
-  if (trust === 'known') return 'known';
-  return 'experimental';
-}
-
-function trustColor(trust: string): string {
-  if (trust === 'verified') return 'green';
-  if (trust === 'known') return 'yellow';
-  return 'red';
-}
 
 function PackageWorkflow({
   registry,
@@ -186,6 +176,7 @@ function PackageWorkflow({
         </Box>
         <Text color="gray">{entry.description}</Text>
         <Text color="gray">github.com/{entry.source.repo}</Text>
+        {entry.license ? <Text color="gray">license: {entry.license}</Text> : null}
         {entry.subpackages?.length ? <Text color="gray">modules: {entry.subpackages.join(', ')}</Text> : null}
         <Box flexDirection="column" marginTop={1}>
           {actions.map((act, i) => (
@@ -235,7 +226,7 @@ function PackageWorkflow({
           const prefix = active ? '>> ' : installed ? ' * ' : '   ';
           const nameColor = active ? 'cyan' : hasUpdate ? 'yellow' : installed ? 'green' : undefined;
           const nameText = pkg.id.padEnd(NAME_W);
-          const verText = entry.source.tag.padEnd(VER_W);
+          const verText = (entry.source.tag ?? 'url').padEnd(VER_W);
           const trustText = trustLabel(entry.trust).padEnd(TRUST_W);
 
           return (

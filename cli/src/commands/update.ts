@@ -1,26 +1,10 @@
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
 import { fetchManifest, installCore, installCoreFromLocal, normalizeInstallDir } from "../lib/install.js";
 import { chooseCoreUpdateWorkflow } from "../ui/update-workflow.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-function bundledLuaRoot(): string {
-  return resolve(__dirname, "../../lua");
-}
-
-function repoLuaRoot(): string | null {
-  const candidate = resolve(__dirname, "../../../src-lua");
-  return existsSync(join(candidate, "feather", "init.lua")) ? candidate : null;
-}
-
-function resolveLocalLuaRoot(opts: { localSrc?: string }): string {
-  if (opts.localSrc) return resolve(opts.localSrc);
-  return repoLuaRoot() ?? bundledLuaRoot();
-}
+import { resolveLocalLuaRoot } from "../lib/paths.js";
 
 export async function updateCommand(
   dir: string,
