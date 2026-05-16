@@ -20,6 +20,7 @@ export type DoctorOptions = {
   port?: number;
   json?: boolean;
   production?: boolean;
+  security?: boolean;
 };
 
 export const severityOrder: Record<Severity, number> = {

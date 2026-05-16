@@ -112,12 +112,14 @@ program
   .option('--port <port>', 'Port to check for the Feather desktop WebSocket', (value) => Number(value))
   .option('--json', 'Print machine-readable diagnostics')
   .option('--production', 'Fail when project settings are unsafe for production builds')
+  .option('--security', 'Print security-focused diagnostics; use with --json for automation')
   .action((dir: string | undefined, opts) => runCliAction(() => doctorCommand(dir, {
       installDir: opts.installDir as string | undefined,
       host: opts.host as string | undefined,
       port: opts.port as number | undefined,
       json: opts.json as boolean | undefined,
       production: opts.production as boolean | undefined,
+      security: opts.security as boolean | undefined,
     })));
 
 program

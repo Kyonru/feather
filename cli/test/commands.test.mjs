@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 const CLI = fileURLToPath(new URL('../dist/index.js', import.meta.url));
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const LOCAL_SRC = join(ROOT, 'src-lua');
+// eslint-disable-next-line no-control-regex
 const ANSI_RE = /\x1B\[[0-?]*[ -/]*[@-~]/;
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
@@ -476,6 +477,36 @@ test('doctor --json keeps unsafe settings warning-oriented outside production', 
   assert.equal(labels.get('Network host exposure')?.severity, 'warn');
 });
 
+test('doctor --security --json emits a sterile security report without secrets', () => {
+  const dir = makeTmp();
+  const secret = 'StrongSecretValue1234567890!';
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  appId = "feather-app-test-1234567890",
+  host = "127.0.0.1",
+  include = { "console" },
+  apiKey = "${secret}",
+}
+`,
+  );
+
+  const result = run(['doctor', dir, '--security', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  assert.equal(result.stdout.includes('✔'), false);
+  assert.equal(result.stdout.includes(secret), false);
+
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.security, true);
+  assert.equal(parsed.report.config.apiKeyStatus, 'configured');
+  assert.equal(parsed.report.config.consoleIncluded, true);
+  assert.equal(parsed.report.network.exposure, 'loopback');
+  assert.ok(parsed.checks.every((check) => ['Safety', 'Plugins', 'Packages', 'Runtime', 'Project'].includes(check.group)));
+  assert.equal(parsed.checks.some((check) => check.label === 'Node.js'), false);
+});
+
 test('doctor --production fails unmanaged embedded runtime', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -487,6 +518,32 @@ test('doctor --production fails unmanaged embedded runtime', () => {
   const labels = new Map(parsed.checks.map((check) => [check.label, check]));
   assert.equal(labels.get('Managed runtime')?.severity, 'fail');
   assert.ok(labels.get('Managed runtime')?.fix.includes('feather init'));
+});
+
+test('command runtime redacts API keys from compact and debug errors', async () => {
+  const { runCliAction } = await import('../dist/lib/command.js');
+  const originalError = console.error;
+  const previousExitCode = process.exitCode;
+  const previousDebug = process.env.FEATHER_DEBUG;
+  const secret = 'StrongSecretValue1234567890!';
+  const lines = [];
+  process.env.FEATHER_DEBUG = '1';
+  process.exitCode = undefined;
+  console.error = (line = '') => lines.push(String(line));
+  try {
+    await runCliAction(async () => {
+      throw new Error(`Failed to parse config: apiKey = "${secret}"`);
+    });
+    const output = lines.join('\n');
+    assert.equal(process.exitCode, 1);
+    assert.equal(output.includes(secret), false);
+    assert.ok(output.includes('apiKey = "[redacted]"'));
+  } finally {
+    console.error = originalError;
+    process.exitCode = previousExitCode;
+    if (previousDebug === undefined) delete process.env.FEATHER_DEBUG;
+    else process.env.FEATHER_DEBUG = previousDebug;
+  }
 });
 
 test('command runtime: unexpected errors render compact stderr and exit 1', async () => {

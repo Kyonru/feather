@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import ora, { type Ora } from 'ora';
+import { redactSensitiveText, redactSensitiveValue } from './redact.js';
 
 export const icon = {
   success: chalk.green('✔'),
@@ -27,11 +28,11 @@ export function statusLine(kind: keyof typeof icon, message: string): string {
 }
 
 export function printJson(value: unknown): void {
-  console.log(JSON.stringify(value, null, 2));
+  console.log(JSON.stringify(redactSensitiveValue(value), null, 2));
 }
 
 export function printLine(message = ''): void {
-  console.log(message);
+  console.log(redactSensitiveText(message));
 }
 
 export function printBlank(): void {

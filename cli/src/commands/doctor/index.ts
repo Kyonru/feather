@@ -8,9 +8,9 @@ import { printJson } from '../../lib/output.js';
 import { findSymlinkEscapes } from '../../lib/path-safety.js';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
-import { lockfileUrlFindings } from '../../lib/package/provenance.js';
+import { lockfileEntrySourceSummary, lockfileUrlFindings } from '../../lib/package/provenance.js';
 import { loadRegistry } from '../../lib/package/registry.js';
-import { classifyPluginTrust, dangerousPluginIds, parseManagedValue, findInstalledPluginDirs, pluginTrustLabel, readPluginManifest } from '../../lib/plugin-utils.js';
+import { classifyPluginTrust, dangerousPluginIds, parseManagedValue, findInstalledPluginDirs, pluginTrustLabel, readPluginManifest, type PluginTrust } from '../../lib/plugin-utils.js';
 import { pluginCatalog } from '../../generated/plugin-catalog.js';
 import {
   add,
@@ -32,6 +32,7 @@ import {
   type DoctorOptions,
 } from './checks.js';
 import { renderReport } from './report.js';
+import { buildSecurityReport, securityChecks, type SecurityPackageReport, type SecurityPluginReport } from './security.js';
 
 export type { DoctorOptions } from './checks.js';
 
@@ -40,6 +41,24 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   const installDir = normalizeInstallDir(opts.installDir ?? 'feather');
   const checks: DoctorCheck[] = [];
   const productionSeverity = (unsafe: boolean): DoctorCheck['severity'] => unsafe ? (opts.production ? 'fail' : 'warn') : 'pass';
+  let symlinkEscapeCount = 0;
+  let consoleIncluded = false;
+  let weakApiKey = true;
+  let insecureConnection = false;
+  let appIdMissing = true;
+  let captureScreenshot = false;
+  let hotReloadEnabled = false;
+  let broadHotReload = false;
+  let hotReloadPersistence = false;
+  let debuggerEnabled = false;
+  let writeToDisk = false;
+  let weakNetworkAuth = true;
+  let networkExposure: 'loopback' | 'wildcard' | 'lan' | 'non-loopback' = 'loopback';
+  const missingIncludedPlugins: string[] = [];
+  const unknownIncludedPlugins: string[] = [];
+  const installedPluginReports: SecurityPluginReport[] = [];
+  const packageReports: SecurityPackageReport[] = [];
+  let packageProvenanceFindings: ReturnType<typeof lockfileUrlFindings> = [];
 
   const nodeVersion = process.versions.node;
   const [major] = nodeVersion.split('.').map(Number);
@@ -165,6 +184,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   let pluginRootUnsafe = false;
   if (hasProjectDir) {
     const symlinkEscapes = findSymlinkEscapes(projectDir, [runtimeDir, runtimePluginRoot, sourceTreePluginRoot]);
+    symlinkEscapeCount = symlinkEscapes.length;
     pluginRootUnsafe = symlinkEscapes.some((escape) => resolve(pluginRoot).startsWith(resolve(escape.path)));
     const seenEscapes = new Set<string>();
     for (const escape of symlinkEscapes) {
@@ -185,6 +205,16 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   const installedPlugins = buildPluginIndex(pluginDirs);
   const knownPluginIds = new Set(pluginCatalog.map((plugin) => plugin.id));
   const pluginCatalogById = new Map(pluginCatalog.map((plugin) => [plugin.id, plugin]));
+  for (const dir of pluginDirs) {
+    const manifest = readPluginManifest(dir);
+    const trust: PluginTrust = classifyPluginTrust(manifest, manifest?.id ? pluginCatalogById.get(manifest.id) : null);
+    installedPluginReports.push({
+      id: manifest?.id || dir.split(/[\\/]/).pop() || 'unknown',
+      trust,
+      dangerous: Boolean(manifest?.id && dangerousPluginIds.has(manifest.id)),
+      malformed: trust === 'malformed',
+    });
+  }
   const projectDirArg = shellArg(projectDir);
   const installDirArg = shellArg(effectiveInstallDir);
   if (hasRuntime) {
@@ -247,6 +277,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
 
   for (const id of activeIncludedPluginIds) {
     if (!knownPluginIds.has(id)) {
+      unknownIncludedPlugins.push(id);
       add(
         checks,
         'Plugins',
@@ -259,6 +290,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     }
 
     if (!installedPlugins.has(id)) {
+      missingIncludedPlugins.push(id);
       add(
         checks,
         'Plugins',
@@ -292,7 +324,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   }
 
   if (configSource) {
-    const insecureConnection = luaBoolEnabled(activeConfigSource, '__DANGEROUS_INSECURE_CONNECTION__');
+    insecureConnection = luaBoolEnabled(activeConfigSource, '__DANGEROUS_INSECURE_CONNECTION__');
     add(
       checks,
       'Safety',
@@ -303,7 +335,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     );
 
     const appId = typeof config?.appId === 'string' ? config.appId.trim() : '';
-    const appIdMissing = mode !== 'disk' && !appId;
+    appIdMissing = mode !== 'disk' && !appId;
     add(
       checks,
       'Safety',
@@ -313,7 +345,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       appIdMissing ? 'Set appId in feather.config.lua before shipping socket/network builds.' : undefined,
     );
 
-    const captureScreenshot = luaBoolEnabled(activeConfigSource, 'captureScreenshot');
+    captureScreenshot = luaBoolEnabled(activeConfigSource, 'captureScreenshot');
     add(
       checks,
       'Safety',
@@ -323,10 +355,10 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       captureScreenshot ? 'Set captureScreenshot = false in feather.config.lua unless you need visual error context.' : undefined,
     );
 
-    const hotReloadEnabled = /hotReload\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
+    hotReloadEnabled = /hotReload\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
     const hotReloadPluginIncluded = hasConfigArrayValue(activeConfigSource, 'include', 'hot-reload') || pluginDirs.some((dir) => readPluginManifest(dir)?.id === 'hot-reload');
-    const persistToDisk = /hotReload\s*=\s*\{[\s\S]*?persistToDisk\s*=\s*true/.test(activeConfigSource);
-    const broadHotReload = /allow\s*=\s*\{[\s\S]*["'][^"']+\.\*["']/.test(activeConfigSource);
+    hotReloadPersistence = /hotReload\s*=\s*\{[\s\S]*?persistToDisk\s*=\s*true/.test(activeConfigSource);
+    broadHotReload = /allow\s*=\s*\{[\s\S]*["'][^"']+\.\*["']/.test(activeConfigSource);
     add(
       checks,
       'Safety',
@@ -348,24 +380,25 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         `Run \`feather plugin install hot-reload --dir ${projectDirArg} --install-dir ${installDirArg}\`, or remove debugger.hotReload from feather.config.lua.`,
       );
     }
-    if (hotReloadEnabled && persistToDisk) {
+    if (hotReloadEnabled && hotReloadPersistence) {
       add(checks, 'Safety', 'Hot reload persistence', opts.production ? 'fail' : 'warn', 'persistToDisk=true', 'Set debugger.hotReload.persistToDisk = false in feather.config.lua.');
     }
 
-    const consoleIncluded = hasConfigArrayValue(activeConfigSource, 'include', 'console') || pluginDirs.some((dir) => readPluginManifest(dir)?.id === 'console');
+    consoleIncluded = hasConfigArrayValue(activeConfigSource, 'include', 'console') || pluginDirs.some((dir) => readPluginManifest(dir)?.id === 'console');
     if (consoleIncluded) {
       const apiKey = config?.apiKey;
+      weakApiKey = isWeakApiKey(apiKey);
       add(
         checks,
         'Safety',
         'Console API key',
-        isWeakApiKey(apiKey) ? (opts.production ? 'fail' : 'warn') : 'pass',
-        isWeakApiKey(apiKey) ? 'missing or weak' : 'configured',
-        isWeakApiKey(apiKey) ? 'Set apiKey to a strong per-session secret in feather.config.lua when using Console.' : undefined,
+        weakApiKey ? (opts.production ? 'fail' : 'warn') : 'pass',
+        weakApiKey ? 'missing or weak' : 'configured',
+        weakApiKey ? 'Set apiKey to a strong per-session secret in feather.config.lua when using Console.' : undefined,
       );
     }
 
-    const debuggerEnabled = luaBoolEnabled(activeConfigSource, 'debugger') || /debugger\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
+    debuggerEnabled = luaBoolEnabled(activeConfigSource, 'debugger') || /debugger\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
     add(
       checks,
       'Safety',
@@ -375,7 +408,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       debuggerEnabled ? 'Set debugger = false in feather.config.lua unless this is a trusted development session.' : undefined,
     );
 
-    const writeToDisk = luaBoolEnabled(activeConfigSource, 'writeToDisk');
+    writeToDisk = luaBoolEnabled(activeConfigSource, 'writeToDisk');
     add(
       checks,
       'Safety',
@@ -402,6 +435,14 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       const auditResults = await auditLockfile(projectDir, lockfile);
       const badPackages = new Set(auditResults.filter((result) => result.status !== 'verified').map((result) => result.id));
       const registry = await loadRegistry({ offline: true });
+      for (const [id, entry] of Object.entries(lockfile.packages).sort(([a], [b]) => a.localeCompare(b))) {
+        packageReports.push({
+          id,
+          version: entry.version,
+          trust: entry.trust,
+          source: lockfileEntrySourceSummary(id, entry),
+        });
+      }
       add(
         checks,
         'Packages',
@@ -436,9 +477,9 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         );
       }
 
-      const provenanceFindings = lockfileUrlFindings(lockfile);
-      const provenanceByPackage = new Map<string, typeof provenanceFindings>();
-      for (const finding of provenanceFindings) {
+      packageProvenanceFindings = lockfileUrlFindings(lockfile);
+      const provenanceByPackage = new Map<string, typeof packageProvenanceFindings>();
+      for (const finding of packageProvenanceFindings) {
         provenanceByPackage.set(finding.id, [...(provenanceByPackage.get(finding.id) ?? []), finding]);
       }
       for (const [id, findings] of [...provenanceByPackage.entries()].sort(([a], [b]) => a.localeCompare(b))) {
@@ -494,7 +535,8 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     const wildcardHost = isWildcardHost(configuredHost);
     const lanHost = isLanHost(configuredHost);
     const loopbackHost = isLoopbackHost(configuredHost);
-    const weakNetworkAuth = !configSource || luaBoolEnabled(activeConfigSource, '__DANGEROUS_INSECURE_CONNECTION__') || !config?.appId;
+    networkExposure = wildcardHost ? 'wildcard' : lanHost ? 'lan' : loopbackHost ? 'loopback' : 'non-loopback';
+    weakNetworkAuth = !configSource || luaBoolEnabled(activeConfigSource, '__DANGEROUS_INSECURE_CONNECTION__') || !config?.appId;
     add(
       checks,
       'Safety',
@@ -511,12 +553,12 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     );
   }
 
-  if (opts.production && hasRuntime && (!configSource || !managedMode)) {
+  if ((opts.production || opts.security) && hasRuntime && (!configSource || !managedMode)) {
     add(
       checks,
       'Safety',
       'Managed runtime',
-      'fail',
+      opts.production ? 'fail' : 'warn',
       'runtime present without managed init metadata',
       'Run `feather init` to regenerate managed metadata, or remove the embedded Feather runtime before shipping.',
     );
@@ -536,13 +578,53 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     );
   }
 
-  const failures = checks.filter((check) => check.severity === 'fail');
-  const warnings = checks.filter((check) => check.severity === 'warn');
+  const displayedChecks = opts.security ? securityChecks(checks) : checks;
+  const failures = displayedChecks.filter((check) => check.severity === 'fail');
+  const warnings = displayedChecks.filter((check) => check.severity === 'warn');
+  const securityReport = opts.security
+    ? buildSecurityReport({
+        checks,
+        mode,
+        installDir: effectiveInstallDir,
+        host: configuredHost,
+        port: configuredPort,
+        appIdMissing,
+        consoleIncluded,
+        weakApiKey,
+        insecureConnection,
+        captureScreenshot,
+        hotReloadEnabled,
+        broadHotReload,
+        hotReloadPersistence,
+        debuggerEnabled,
+        writeToDisk,
+        networkExposure,
+        weakNetworkAuth,
+        runtimeEmbedded: hasRuntime,
+        runtimeManaged: Boolean(managedMode),
+        symlinkEscapes: symlinkEscapeCount,
+        includedPlugins: activeIncludedPluginIds,
+        missingIncludedPlugins,
+        unknownIncludedPlugins,
+        installedPlugins: installedPluginReports,
+        packages: packageReports,
+        untrustedPackageSources: packageProvenanceFindings,
+      })
+    : undefined;
 
   if (opts.json) {
-    printJson({ projectDir, installDir: effectiveInstallDir, production: Boolean(opts.production), failures: failures.length, warnings: warnings.length, checks });
+    printJson({
+      projectDir,
+      installDir: effectiveInstallDir,
+      production: Boolean(opts.production),
+      security: Boolean(opts.security),
+      failures: failures.length,
+      warnings: warnings.length,
+      checks: displayedChecks,
+      ...(securityReport ? { report: securityReport } : {}),
+    });
   } else {
-    renderReport(checks, projectDir);
+    renderReport(displayedChecks, projectDir);
   }
 
   if (failures.length > 0) {

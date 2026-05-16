@@ -1,4 +1,5 @@
 import { statusLine, style } from './output.js';
+import { redactSensitiveText } from './redact.js';
 
 export type CliErrorOptions = {
   exitCode?: number;
@@ -33,19 +34,18 @@ export async function runCliAction(action: () => Promise<void | number> | void |
   } catch (err) {
     if (err instanceof CliError) {
       if (!err.silent && err.message) {
-        console.error(statusLine('error', err.message));
-        for (const detail of err.details) console.error(style.muted(`  ${detail}`));
+        console.error(statusLine('error', redactSensitiveText(err.message)));
+        for (const detail of err.details) console.error(style.muted(`  ${redactSensitiveText(detail)}`));
       }
       process.exitCode = err.exitCode;
       return;
     }
 
     const message = err instanceof Error ? err.message : String(err);
-    console.error(statusLine('error', message || 'Unexpected error'));
+    console.error(statusLine('error', redactSensitiveText(message || 'Unexpected error')));
     if (process.env.FEATHER_DEBUG === '1' && err instanceof Error && err.stack) {
-      console.error(style.muted(err.stack));
+      console.error(style.muted(redactSensitiveText(err.stack)));
     }
     process.exitCode = 1;
   }
 }
-

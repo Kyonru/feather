@@ -71,7 +71,7 @@ export function lockfileEntryRequiresUntrustedRepair(id: string, entry: Lockfile
   return entry.trust === "experimental" || lockfileEntryUrlFindings(id, entry).length > 0;
 }
 
-function packageUrlSummary(url: string): string {
+export function packageUrlSummary(url: string): string {
   try {
     const parsed = new URL(url);
     if (parsed.host) return `${parsed.protocol}//${parsed.host}`;
