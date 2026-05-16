@@ -66,13 +66,14 @@ export const useHotReload = () => {
   const configState = useConfigStore((state) => state.config?.debugger?.hotReload);
   const initialState = normalizeHotReloadState(configState);
 
+  /* eslint-disable @tanstack/query/exhaustive-deps */
   const { data } = useQuery<HotReloadState>({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: sessionQueryKey.hotReload(sessionId ?? ''),
     queryFn: () => initialState,
     enabled: false,
     initialData: initialState,
   });
+  /* eslint-enable @tanstack/query/exhaustive-deps */
 
   const sendModule = useMemo(() => {
     return (moduleName: string, source: string) => {

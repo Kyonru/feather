@@ -82,8 +82,8 @@ export const useLogs = (): {
   // so the useSyncExternalStore live path picks them up naturally.
   const fileQueryKey = ['file-reader', overrideLogFile];
 
+  /* eslint-disable @tanstack/query/exhaustive-deps */
   const { isPending } = useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: fileQueryKey,
     queryFn: async (): Promise<null> => {
       if (!sessionId) return null;
@@ -119,6 +119,7 @@ export const useLogs = (): {
     refetchInterval: pausedLogs ? false : 1000,
     enabled: !!overrideLogFile && !!sessionId,
   });
+  /* eslint-enable @tanstack/query/exhaustive-deps */
 
   const logs = filteredLiveLogs;
 
