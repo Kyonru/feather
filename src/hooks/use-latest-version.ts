@@ -11,8 +11,6 @@ export function useLatestVersion(): {
   error: unknown;
   refetch: () => void;
 } {
-  const setLatestVersion = useSettingsStore((state) => state.setIsLatestVersion);
-
   const { isFetching, error, data, refetch } = useQuery({
     queryKey: ['latest-version'],
     queryFn: async () => {
@@ -24,7 +22,7 @@ export function useLatestVersion(): {
 
         const isLatestVersion = isGreaterOrEqual(version, latest);
 
-        setLatestVersion(isLatestVersion);
+        useSettingsStore.getState().setIsLatestVersion(isLatestVersion);
 
         return latest;
       } catch {

@@ -12,7 +12,6 @@ import { useSettingsStore } from '@/store/settings';
 import {
   BookOpenIcon,
   ExternalLinkIcon,
-  LucideGithub,
   HandCoinsIcon,
   HistoryIcon,
   ScrollTextIcon,
@@ -70,7 +69,7 @@ export function AboutModal() {
             className="w-full gap-2 font-semibold"
             onClick={go('https://github.com/Kyonru/feather')}
           >
-            <LucideGithub className="size-4" />
+            <ExternalLinkIcon className="size-4" />
             Star on GitHub
             <ExternalLinkIcon className="size-3 opacity-60" />
           </Button>
