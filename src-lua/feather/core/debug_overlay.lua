@@ -31,9 +31,6 @@ function DebugOverlay:init(feather, config)
   self.touchToggle = withDefault(config.touchToggle, DEFAULTS.touchToggle)
   self.corner = config.corner or DEFAULTS.corner
   self.text = withDefault(config.text, DEFAULTS.text)
-  if love and love.system and love.system.getOS and love.system.getOS() == "iOS" and config.text == nil then
-    self.text = false
-  end
   self._lastTouchTime = 0
   self._doubleTapWindow = config.doubleTapWindow or 0.35
   self._touchSize = config.touchSize or 96

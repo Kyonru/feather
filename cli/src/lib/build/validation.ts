@@ -170,6 +170,7 @@ export function validateIosBuildConfig(config: ResolvedBuildConfig, release = fa
     ['targets.ios.scheme', ios.scheme],
     ['targets.ios.configuration', ios.configuration],
     ['targets.ios.sdk', ios.sdk],
+    ['targets.ios.simulatorArch', ios.simulatorArch],
     ['targets.ios.deploymentTarget', ios.deploymentTarget],
   ] as const) {
     if (value !== undefined && (!isNonEmptySingleLine(value) || !XCODE_VALUE_RE.test(value))) {

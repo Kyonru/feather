@@ -47,6 +47,7 @@ export function buildIos(config: ResolvedBuildConfig, stageDir: string, options:
   }
   const cacheEnabled = !options.release && options.cache !== false;
   logNativeStep(options.log, `iOS template: ${loveIosDir}`);
+  const sdk = iosConfig.sdk ?? 'iphonesimulator';
   const workspace = createNativeWorkspace('feather-ios-', loveIosDir, 'love-ios', {
     enabled: cacheEnabled,
     target: 'ios',
@@ -58,7 +59,8 @@ export function buildIos(config: ResolvedBuildConfig, stageDir: string, options:
       displayName: iosConfig.displayName ?? config.name,
       scheme: iosConfig.scheme ?? 'love-ios',
       configuration: iosConfiguration(config),
-      sdk: iosConfig.sdk ?? 'iphonesimulator',
+      sdk,
+      simulatorArch: sdk.startsWith('iphonesimulator') ? iosSimulatorArch(config) : undefined,
       deploymentTarget: iosConfig.deploymentTarget ?? '12.0',
       teamId: iosConfig.teamId,
       gameLoveResourcePatch: 4,
@@ -246,7 +248,14 @@ function maybeAdHocCodesign(appPath: string, log?: NativeBuildLogger): void {
 }
 
 function iosConfiguration(config: ResolvedBuildConfig): string {
-  return config.targets.ios?.configuration ?? 'Release';
+  const iosConfig = config.targets.ios ?? {};
+  if (iosConfig.configuration) return iosConfig.configuration;
+  const sdk = iosConfig.sdk ?? 'iphonesimulator';
+  return sdk.startsWith('iphonesimulator') ? 'Debug' : 'Release';
+}
+
+function iosSimulatorArch(config: ResolvedBuildConfig): string {
+  return config.targets.ios?.simulatorArch ?? 'x86_64';
 }
 
 function iosSdkBuildFolder(sdk: string): string {
@@ -407,6 +416,9 @@ export function xcodebuildArgs(config: ResolvedBuildConfig, xcodeProject: string
     `IPHONEOS_DEPLOYMENT_TARGET=${iosConfig.deploymentTarget ?? '12.0'}`,
     'OTHER_CFLAGS=-Wno-everything',
   ];
+  if (sdk.startsWith('iphonesimulator')) {
+    args.push(`ARCHS=${iosSimulatorArch(config)}`, 'ONLY_ACTIVE_ARCH=NO');
+  }
   if (iosConfig.teamId) args.push(`DEVELOPMENT_TEAM=${iosConfig.teamId}`);
   if (sdk.startsWith('iphonesimulator') && !iosConfig.teamId) {
     args.push('CODE_SIGN_IDENTITY=', 'CODE_SIGNING_REQUIRED=NO', 'CODE_SIGNING_ALLOWED=NO');

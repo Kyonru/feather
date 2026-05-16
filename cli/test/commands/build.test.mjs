@@ -145,11 +145,12 @@ test('build validation: rejects bad mobile config values and unsafe native paths
 
   const iosIssues = validateIosBuildConfig({
     ...baseConfig,
-    targets: { ios: { bundleIdentifier: 'bad id', scheme: 'bad;', derivedDataPath: '../escape' } },
+    targets: { ios: { bundleIdentifier: 'bad id', scheme: 'bad;', simulatorArch: 'bad;', derivedDataPath: '../escape' } },
   });
   assert.deepEqual(iosIssues.map((issue) => issue.field), [
     'bundleIdentifier',
     'targets.ios.scheme',
+    'targets.ios.simulatorArch',
     'targets.ios.derivedDataPath',
   ]);
   const iosReleaseIssues = validateIosBuildConfig({
