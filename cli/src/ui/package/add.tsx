@@ -1,7 +1,7 @@
 import { render, Text, Box, useApp } from 'ink';
 import { useState } from 'react';
-import type { PackageAddPlan } from '../lib/package/add-plan.js';
-import type { Lockfile } from '../lib/package/lockfile.js';
+import type { PackageAddPlan } from '../../lib/package/add-plan.js';
+import type { Lockfile } from '../../lib/package/lockfile.js';
 import {
   type UrlFile,
   TextInputStep,
@@ -11,11 +11,11 @@ import {
   TargetsStep,
   FileFetchStep,
   FileMoreStep,
-} from './components.js';
-import { fetchCommitSha, fetchLuaFiles } from '../lib/github.js';
-import { fileNameFromUrl } from '../lib/url.js';
-import { fetchRepoMeta, REPO_TOTAL, URL_TOTAL } from './package-add-helpers.js';
-import { RepoConfirmStep, UrlConfirmStep } from './package-add-steps.js';
+} from '../components.js';
+import { fetchCommitSha, fetchLuaFiles } from '../../lib/github.js';
+import { fileNameFromUrl } from '../../lib/url.js';
+import { fetchRepoMeta, REPO_TOTAL, URL_TOTAL } from './add-helpers.js';
+import { RepoConfirmStep, UrlConfirmStep } from './add-steps.js';
 
 type Step =
   | 'choose'

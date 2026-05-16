@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Box, Text, render, useApp, useInput } from 'ink';
-import type { Registry, RegistryEntry } from '../lib/package/registry.js';
-import type { Lockfile, LockfileEntry } from '../lib/package/lockfile.js';
-import { trustLabel, trustColor } from '../lib/trust.js';
+import type { Registry, RegistryEntry } from '../../lib/package/registry.js';
+import type { Lockfile, LockfileEntry } from '../../lib/package/lockfile.js';
+import { trustLabel, trustColor } from '../../lib/trust.js';
 
 export type PackageWorkflowResult = { action: 'install' | 'update' | 'remove'; id: string } | { action: 'cancel' };
 

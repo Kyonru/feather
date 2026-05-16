@@ -23,7 +23,7 @@ import {
   packageAuditCommand,
   packageAddCommand,
 } from './commands/package.js';
-import type { InitMode } from './ui/init-mode.js';
+import type { InitMode } from './ui/init/index.js';
 
 const program = new Command();
 const initModes = new Set(['cli', 'auto', 'manual']);

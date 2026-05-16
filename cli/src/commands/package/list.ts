@@ -3,8 +3,7 @@ import { resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import { icon, printLine, printMuted, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
-import { showPackageBrowser } from '../../ui/package-workflow.js';
-import { showInstallProgress } from '../../ui/package-progress.js';
+import { showInstallProgress, showPackageBrowser } from '../../ui/package/index.js';
 import { packageRemoveCommand } from './remove.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 

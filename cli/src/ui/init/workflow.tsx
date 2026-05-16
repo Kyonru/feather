@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Box, Text, render, useApp, useInput } from "ink";
-import { copyToClipboard } from "../lib/clipboard.js";
-import { buildInitSetup } from "./init-mode-config.js";
+import { copyToClipboard } from "../../lib/clipboard.js";
+import { buildInitSetup } from "./config.js";
 import {
   configToggles,
   dangerousInsecureConnection,
@@ -19,7 +19,7 @@ import {
   type InitSetup,
   type Phase,
   type SummaryRow,
-} from "./init-mode-model.js";
+} from "./model.js";
 import {
   ConfirmPrompt,
   DangerousName,
@@ -29,8 +29,8 @@ import {
   SingleSelect,
   SummaryRows,
   TextInputPrompt,
-} from "./init-mode-prompts.js";
-import { buildInitSummaryRows } from "./init-mode-summary.js";
+} from "./prompts.js";
+import { buildInitSummaryRows } from "./summary.js";
 
 function InitSetupPrompt({
   defaultMode,

@@ -4,7 +4,7 @@ import {
   parseCapabilities,
   type InitMode,
   type InitSetup,
-} from "./init-mode-model.js";
+} from "./model.js";
 
 export type InitSetupState = {
   mode: InitMode;

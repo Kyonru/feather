@@ -2,7 +2,7 @@ import { fail } from '../../lib/command.js';
 import { installPackageAddPlan, packageAddPlanFiles } from '../../lib/package/add-plan.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { createSpinner, printBlank, printKeyValues, printMuted, style } from '../../lib/output.js';
-import { showAddWizard } from '../../ui/package-add.js';
+import { showAddWizard } from '../../ui/package/index.js';
 import { ensurePackageAddInteractive, resolvePackageProjectDir } from './shared.js';
 
 export type PackageAddOptions = {

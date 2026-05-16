@@ -1,4 +1,4 @@
-import { GH_HEADERS } from '../lib/github.js';
+import { GH_HEADERS } from '../../lib/github.js';
 
 export const REPO_TOTAL = 7;
 export const URL_TOTAL = 4;

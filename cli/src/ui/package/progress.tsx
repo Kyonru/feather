@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, render, useApp } from "ink";
-import { SPINNER_FRAMES } from "./components.js";
-import { installPackage } from "../lib/package/install.js";
-import { formatRequireHint } from "../lib/package/resolve.js";
-import type { ResolvedPackage } from "../lib/package/resolve.js";
-import type { Lockfile } from "../lib/package/lockfile.js";
-import type { InstallResult } from "../lib/package/install.js";
+import { SPINNER_FRAMES } from "../components.js";
+import { installPackage } from "../../lib/package/install.js";
+import { formatRequireHint } from "../../lib/package/resolve.js";
+import type { ResolvedPackage } from "../../lib/package/resolve.js";
+import type { Lockfile } from "../../lib/package/lockfile.js";
+import type { InstallResult } from "../../lib/package/install.js";
 
 type FileStatus = "pending" | "downloading" | "ok" | "error";
 type PkgStatus = "pending" | "installing" | "ok" | "error";

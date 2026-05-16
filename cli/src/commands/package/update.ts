@@ -2,7 +2,7 @@ import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import type { ResolvedPackage } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import { printLine, printMuted, printWarning, style } from '../../lib/output.js';
-import { showInstallProgress } from '../../ui/package-progress.js';
+import { showInstallProgress } from '../../ui/package/index.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageUpdateOptions = {

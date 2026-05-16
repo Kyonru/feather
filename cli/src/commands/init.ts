@@ -11,7 +11,7 @@ import {
   normalizeInstallDir,
 } from '../lib/install.js';
 import { configTemplate, luaKey, luaValue } from '../lib/config.js';
-import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init-mode.js';
+import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init/index.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
 import { fail } from '../lib/command.js';

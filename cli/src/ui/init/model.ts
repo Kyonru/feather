@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { pluginCatalog } from "../generated/plugin-catalog.js";
+import { pluginCatalog } from "../../generated/plugin-catalog.js";
 
 export type InitMode = "cli" | "auto" | "manual";
 

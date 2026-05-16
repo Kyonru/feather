@@ -986,7 +986,7 @@ test('package add: failed plan install does not write lockfile', async () => {
 });
 
 test('init mode: config builder preserves cli and advanced setup values', async () => {
-  const { buildInitSetup } = await import('../dist/ui/init-mode-config.js');
+  const { buildInitSetup } = await import('../dist/ui/init/config.js');
   const setup = buildInitSetup(
     initSetupState({
       mode: 'cli',

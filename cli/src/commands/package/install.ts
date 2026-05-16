@@ -18,7 +18,7 @@ import {
 } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { confirmAction } from '../../ui/confirm.js';
-import { showInstallProgress } from '../../ui/package-progress.js';
+import { showInstallProgress } from '../../ui/package/index.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageInstallOptions = {

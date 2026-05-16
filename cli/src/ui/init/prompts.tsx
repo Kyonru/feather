@@ -1,6 +1,6 @@
 import React, { type ReactNode } from "react";
 import { Box, Text } from "ink";
-import { toneColor, type Option, type SummaryRow, type Tone } from "./init-mode-model.js";
+import { toneColor, type Option, type SummaryRow, type Tone } from "./model.js";
 
 export function DangerousName({ children }: { children: string }) {
   return (

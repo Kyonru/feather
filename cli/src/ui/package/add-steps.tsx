@@ -1,6 +1,6 @@
 import { Box, Text, useInput } from 'ink';
-import type { UrlFile } from './components.js';
-import { REPO_TOTAL, URL_TOTAL } from './package-add-helpers.js';
+import type { UrlFile } from '../components.js';
+import { REPO_TOTAL, URL_TOTAL } from './add-helpers.js';
 
 export function RepoConfirmStep({
   id,

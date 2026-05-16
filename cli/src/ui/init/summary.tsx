@@ -5,8 +5,8 @@ import {
   modes,
   pluginTone,
   type SummaryRow,
-} from "./init-mode-model.js";
-import { DangerousName, NameList } from "./init-mode-prompts.js";
+} from "./model.js";
+import { DangerousName, NameList } from "./prompts.js";
 
 export type InitSummaryInput = {
   advanced: boolean;
