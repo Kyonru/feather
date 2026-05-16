@@ -16,6 +16,8 @@ import {
 } from './native.js';
 import { iosBundleIdentifier } from './validation.js';
 
+const XCODEBUILD_MAX_BUFFER = 64 * 1024 * 1024;
+
 export type IosBuildModeOptions = {
   release?: boolean;
   cache?: boolean;
@@ -476,9 +478,17 @@ function runXcodebuild(args: string[], workDir: string, log?: NativeBuildLogger)
     cwd: workDir,
     encoding: streamOutput ? undefined : 'utf8',
     stdio: streamOutput ? 'inherit' : 'pipe',
+    maxBuffer: XCODEBUILD_MAX_BUFFER,
   });
   if (!streamOutput) logNativeOutput(log, result.stdout, result.stderr);
-  if (result.error) throw new Error('xcodebuild not found. Run `feather doctor --build-target ios`.');
+  if (result.error) {
+    const err = result.error as Error & { code?: string };
+    if (err.code === 'ENOENT') {
+      throw new Error('xcodebuild not found. Run `feather doctor --build-target ios`.');
+    }
+    const output = spawnOutput(result);
+    throw new Error([`xcodebuild failed to run: ${err.message}`, output].filter(Boolean).join('\n'));
+  }
   if (result.status !== 0) {
     throw new Error((result.stderr || result.stdout || `xcodebuild failed with exit code ${result.status ?? 'unknown'}`).toString().trim());
   }

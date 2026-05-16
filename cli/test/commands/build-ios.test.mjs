@@ -220,6 +220,38 @@ process.exit(0);
   assert.equal(records[1].gameLoveExists, true);
 });
 
+test('build ios: buffers noisy xcodebuild output in non-verbose mode', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Noisy iOS',
+    version: '1.0.0',
+    targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.noisyios' } },
+  });
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+const derivedData = args[args.indexOf('-derivedDataPath') + 1];
+const configuration = args[args.indexOf('-configuration') + 1] || 'Release';
+const sdk = args[args.indexOf('-sdk') + 1] || 'iphonesimulator';
+const sdkFolder = sdk.startsWith('iphoneos') ? 'iphoneos' : 'iphonesimulator';
+const app = path.join(derivedData, 'Build', 'Products', configuration + '-' + sdkFolder, 'love-ios.app');
+fs.mkdirSync(app, { recursive: true });
+fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+process.stdout.write('x'.repeat(2 * 1024 * 1024));
+process.exit(0);
+`);
+
+  const result = run(['build', 'ios', '--dir', dir, '--no-cache', '--json'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(JSON.parse(result.stdout).ok, true);
+});
+
 test('build ios --verbose: shows native build steps and xcodebuild output', () => {
   const dir = makeTmp();
   writeGame(dir);
