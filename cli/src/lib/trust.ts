@@ -1,9 +1,9 @@
-import chalk from 'chalk';
+import { style } from './output.js';
 
 export function trustBadge(trust: string): string {
-  if (trust === 'verified') return chalk.green('[verified]');
-  if (trust === 'known') return chalk.yellow('[known]');
-  return chalk.red('[experimental]');
+  if (trust === 'verified') return style.success('[verified]');
+  if (trust === 'known') return style.warning('[known]');
+  return style.danger('[experimental]');
 }
 
 export function trustLabel(trust: string): string {

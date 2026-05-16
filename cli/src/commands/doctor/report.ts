@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import { icon as statusIcon, style } from '../../lib/output.js';
 import { type DoctorCheck, type Severity, severityOrder } from './checks.js';
 
@@ -10,10 +9,9 @@ function icon(severity: Severity): string {
 }
 
 function colorLabel(severity: Severity, label: string): string {
-  if (severity === 'pass') return chalk.white(label);
-  if (severity === 'warn') return chalk.yellow(label);
-  if (severity === 'fail') return chalk.red(label);
-  return chalk.white(label);
+  if (severity === 'warn') return style.warning(label);
+  if (severity === 'fail') return style.danger(label);
+  return label;
 }
 
 export function renderReport(checks: DoctorCheck[], projectDir: string): void {
@@ -22,10 +20,10 @@ export function renderReport(checks: DoctorCheck[], projectDir: string): void {
 
   const groups = [...new Set(checks.map((check) => check.group))];
   for (const group of groups) {
-    console.log(chalk.bold(group));
+    console.log(style.heading(group));
     for (const check of checks.filter((item) => item.group === group).sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])) {
-      console.log(`  ${icon(check.severity)} ${colorLabel(check.severity, check.label)}${check.detail ? chalk.dim(`  ${check.detail}`) : ''}`);
-      if (check.fix) console.log(chalk.dim(`    → ${check.fix}`));
+      console.log(`  ${icon(check.severity)} ${colorLabel(check.severity, check.label)}${check.detail ? style.muted(`  ${check.detail}`) : ''}`);
+      if (check.fix) console.log(style.muted(`    → ${check.fix}`));
     }
     console.log();
   }
@@ -35,12 +33,11 @@ export function renderReport(checks: DoctorCheck[], projectDir: string): void {
   const passed = checks.filter((check) => check.severity === 'pass');
 
   if (failures.length > 0) {
-    console.log(chalk.red.bold(`Doctor found ${failures.length} blocker${failures.length === 1 ? '' : 's'}.`));
+    console.log(style.danger(`Doctor found ${failures.length} blocker${failures.length === 1 ? '' : 's'}.`));
   } else if (warnings.length > 0) {
-    console.log(chalk.yellow.bold(`Doctor passed with ${warnings.length} warning${warnings.length === 1 ? '' : 's'}.`));
+    console.log(style.warning(`Doctor passed with ${warnings.length} warning${warnings.length === 1 ? '' : 's'}.`));
   } else {
-    console.log(chalk.green.bold('Doctor found no problems.'));
+    console.log(style.success('Doctor found no problems.'));
   }
-  console.log(chalk.dim(`${passed.length} passed, ${warnings.length} warnings, ${failures.length} failures.\n`));
+  console.log(style.muted(`${passed.length} passed, ${warnings.length} warnings, ${failures.length} failures.\n`));
 }
-

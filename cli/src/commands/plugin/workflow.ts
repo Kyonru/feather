@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+import { style } from '../../lib/output.js';
 import { choosePluginWorkflow } from '../../ui/plugin-workflow.js';
 import { pluginInstallCommand } from './install.js';
 import { pluginListCommand } from './list.js';
@@ -29,7 +29,7 @@ export async function pluginWorkflowCommand(opts: {
   }
 
   if (result.pluginIds.length === 0) {
-    console.log(chalk.dim('No plugins selected.'));
+    console.log(style.muted('No plugins selected.'));
     return;
   }
 
@@ -63,4 +63,3 @@ export async function pluginWorkflowCommand(opts: {
     await pluginRemoveCommand(id, { dir: projectDir, installDir, yes: true });
   }
 }
-
