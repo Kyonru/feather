@@ -657,3 +657,141 @@ test('audit --json: url package included in output', () => {
   assert.ok(entry, 'my-helper should appear in audit output');
   assert.equal(entry.status, 'verified');
 });
+
+async function withFetchMock(mock, runTest) {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = mock;
+  try {
+    await runTest();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+function emptyLockfile() {
+  return { lockfileVersion: 1, generatedAt: new Date(0).toISOString(), packages: {} };
+}
+
+test('custom add: repo install writes selected files and lockfile metadata', async () => {
+  const dir = makeTmp();
+  const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+  const files = new Map([
+    ['https://raw.githubusercontent.com/me/pkg/abc123/init.lua', 'return "init"'],
+    ['https://raw.githubusercontent.com/me/pkg/abc123/util.lua', 'return "util"'],
+  ]);
+
+  await withFetchMock(
+    async (url) => {
+      const body = files.get(String(url));
+      return body === undefined ? new Response('missing', { status: 404 }) : new Response(body);
+    },
+    async () => {
+      const result = await installCustomRepoPackage({
+        id: 'my-pkg',
+        repoName: 'me/pkg',
+        tag: 'v1.0.0',
+        baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+        selectedFiles: ['init.lua', 'util.lua'],
+        targetMap: { 'init.lua': 'lib/my-pkg/init.lua', 'util.lua': 'lib/my-pkg/util.lua' },
+        projectDir: dir,
+        lockfile: emptyLockfile(),
+      });
+
+      assert.equal(result.ok, true);
+      assert.equal(readFileSync(join(dir, 'lib', 'my-pkg', 'init.lua'), 'utf8'), 'return "init"');
+      assert.equal(readFileSync(join(dir, 'lib', 'my-pkg', 'util.lua'), 'utf8'), 'return "util"');
+
+      const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
+      assert.equal(lock.packages['my-pkg'].version, 'v1.0.0');
+      assert.equal(lock.packages['my-pkg'].trust, 'experimental');
+      assert.deepEqual(lock.packages['my-pkg'].source, { repo: 'me/pkg', tag: 'v1.0.0' });
+      assert.equal(lock.packages['my-pkg'].files.length, 2);
+      assert.equal(lock.packages['my-pkg'].files[0].url, 'https://raw.githubusercontent.com/me/pkg/abc123/init.lua');
+    },
+  );
+});
+
+test('custom add: URL install writes buffered files and lockfile metadata', async () => {
+  const dir = makeTmp();
+  const { installCustomUrlPackage } = await import('../dist/lib/package/custom-add.js');
+  const buffer = Buffer.from('return "helper"');
+  const result = await installCustomUrlPackage({
+    id: 'my-helper',
+    urlFiles: [
+      {
+        name: 'helper.lua',
+        url: 'https://example.com/helper.lua',
+        sha256: 'stale-sha-is-recomputed',
+        target: 'lib/helper.lua',
+        buffer,
+      },
+    ],
+    projectDir: dir,
+    lockfile: emptyLockfile(),
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(readFileSync(join(dir, 'lib', 'helper.lua'), 'utf8'), 'return "helper"');
+  const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
+  assert.equal(lock.packages['my-helper'].version, 'url');
+  assert.equal(lock.packages['my-helper'].trust, 'experimental');
+  assert.deepEqual(lock.packages['my-helper'].source, { url: 'https://example.com/helper.lua' });
+  assert.equal(lock.packages['my-helper'].files[0].sha256, sha256(buffer));
+});
+
+test('custom add: escaping target is rejected before fetch or write', async () => {
+  const dir = makeTmp();
+  const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+  let fetchCalled = false;
+
+  await withFetchMock(
+    async () => {
+      fetchCalled = true;
+      return new Response('return {}');
+    },
+    async () => {
+      const result = await installCustomRepoPackage({
+        id: 'escape',
+        repoName: 'me/pkg',
+        tag: 'v1.0.0',
+        baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+        selectedFiles: ['escape.lua'],
+        targetMap: { 'escape.lua': '../escape.lua' },
+        projectDir: dir,
+        lockfile: emptyLockfile(),
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(fetchCalled, false);
+      assert.ok(result.error.includes('escapes project root'));
+      assert.equal(existsSync(join(dir, 'feather.lock.json')), false);
+      assert.equal(existsSync(join(dir, '..', 'escape.lua')), false);
+    },
+  );
+});
+
+test('custom add: failed repo fetch does not write lockfile', async () => {
+  const dir = makeTmp();
+  const { installCustomRepoPackage } = await import('../dist/lib/package/custom-add.js');
+
+  await withFetchMock(
+    async () => new Response('missing', { status: 500 }),
+    async () => {
+      const result = await installCustomRepoPackage({
+        id: 'broken',
+        repoName: 'me/pkg',
+        tag: 'v1.0.0',
+        baseUrl: 'https://raw.githubusercontent.com/me/pkg/abc123/',
+        selectedFiles: ['broken.lua'],
+        targetMap: { 'broken.lua': 'lib/broken.lua' },
+        projectDir: dir,
+        lockfile: emptyLockfile(),
+      });
+
+      assert.equal(result.ok, false);
+      assert.ok(result.error.includes('HTTP 500'));
+      assert.equal(existsSync(join(dir, 'lib', 'broken.lua')), false);
+      assert.equal(existsSync(join(dir, 'feather.lock.json')), false);
+    },
+  );
+});

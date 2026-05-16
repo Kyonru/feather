@@ -1,10 +1,7 @@
 import { render, Text, Box, useInput, useApp } from 'ink';
 import { useState, useEffect } from 'react';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { sha256Buffer } from '../lib/package/checksum.js';
 import type { Lockfile } from '../lib/package/lockfile.js';
-import { addToLockfile, writeLockfile } from '../lib/package/lockfile.js';
+import { installCustomRepoPackage, installCustomUrlPackage } from '../lib/package/custom-add.js';
 import {
   type UrlFile,
   TextInputStep,
@@ -206,26 +203,18 @@ function InstallStep({
   const [current, setCurrent] = useState('');
   useEffect(() => {
     const run = async () => {
-      const lockedFiles: { name: string; url: string; target: string; sha256: string }[] = [];
-      for (const name of selectedFiles) {
-        setCurrent(name);
-        const url = baseUrl + name;
-        const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-        if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-        const buf = Buffer.from(await res.arrayBuffer());
-        const hash = sha256Buffer(buf);
-        const target = targetMap[name]!;
-        mkdirSync(dirname(join(projectDir, target)), { recursive: true });
-        writeFileSync(join(projectDir, target), buf);
-        lockedFiles.push({ name, url, target, sha256: hash });
-      }
-      addToLockfile(lockfile, id, {
-        version: tag,
-        trust: 'experimental',
-        source: { repo: repoName, tag },
-        files: lockedFiles,
+      const result = await installCustomRepoPackage({
+        id,
+        repoName,
+        tag,
+        baseUrl,
+        selectedFiles,
+        targetMap,
+        projectDir,
+        lockfile,
+        onFileStart: setCurrent,
       });
-      writeLockfile(projectDir, lockfile);
+      if (!result.ok) throw new Error(result.error ?? 'Install failed');
       onDone();
     };
     run().catch((err: Error) => onError(err.message));
@@ -254,18 +243,13 @@ function WriteStep({
 }) {
   useEffect(() => {
     const run = async () => {
-      for (const f of urlFiles) {
-        const abs = join(projectDir, f.target);
-        mkdirSync(dirname(abs), { recursive: true });
-        writeFileSync(abs, f.buffer);
-      }
-      addToLockfile(lockfile, id, {
-        version: 'url',
-        trust: 'experimental',
-        source: { url: urlFiles[0]!.url },
-        files: urlFiles.map((f) => ({ name: f.name, url: f.url, target: f.target, sha256: f.sha256 })),
+      const result = await installCustomUrlPackage({
+        id,
+        urlFiles,
+        projectDir,
+        lockfile,
       });
-      writeLockfile(projectDir, lockfile);
+      if (!result.ok) throw new Error(result.error ?? 'Install failed');
       onDone();
     };
     run().catch((err: Error) => onError(err.message));

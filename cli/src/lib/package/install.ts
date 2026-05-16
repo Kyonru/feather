@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve as resolvePath } from "node:path";
+import { dirname, join } from "node:path";
 import { sha256Buffer } from "./checksum.js";
 import { addToLockfile, type Lockfile, type LockfileEntry } from "./lockfile.js";
+import { resolveProjectTarget } from "./target.js";
 import type { ResolvedPackage } from "./resolve.js";
 
 export type InstallOptions = {
@@ -58,12 +59,6 @@ async function downloadLive(url: string, repo: string, version: string): Promise
   return Buffer.from(await res.arrayBuffer());
 }
 
-function safeTarget(projectDir: string, relTarget: string): string | null {
-  const abs = resolvePath(projectDir, relTarget);
-  if (!abs.startsWith(resolvePath(projectDir))) return null;
-  return abs;
-}
-
 export async function installPackage(
   pkg: ResolvedPackage,
   lockfile: Lockfile,
@@ -80,16 +75,29 @@ export async function installPackage(
       ? src.baseUrl.replace(src.tag, pkg.versionOverride)
       : (src.baseUrl ?? '');
 
-  for (const file of pkg.files) {
-    const relTarget = targetOverride
+  const plannedFiles = pkg.files.map((file) => ({
+    file,
+    relTarget: targetOverride
       ? join(targetOverride, file.name.split("/").pop()!)
-      : file.target;
+      : file.target,
+  }));
+  const resolvedTargets: string[] = [];
 
-    const absTarget = safeTarget(projectDir, relTarget);
+  for (const { file, relTarget } of plannedFiles) {
+    const absTarget = resolveProjectTarget(projectDir, relTarget);
     if (!absTarget) {
-      fileResults.push({ name: file.name, target: relTarget, sha256: "", ok: false, error: "Target path escapes project root" });
-      continue;
+      return {
+        id: pkg.id,
+        ok: false,
+        files: [{ name: file.name, target: relTarget, sha256: "", ok: false, error: "Target path escapes project root" }],
+        error: "Target path escapes project root",
+      };
     }
+    resolvedTargets.push(absTarget);
+  }
+
+  for (const [index, { file, relTarget }] of plannedFiles.entries()) {
+    const absTarget = resolvedTargets[index]!;
 
     const url = file.url ?? baseUrl + file.name;
 
@@ -179,7 +187,7 @@ export async function installFromUrl(
     return { ok: true, sha256: hash, size: buf.byteLength, target };
   }
 
-  const absTarget = safeTarget(projectDir, target);
+  const absTarget = resolveProjectTarget(projectDir, target);
   if (!absTarget) return { ok: false, sha256: hash, size: buf.byteLength, target, error: "Target path escapes project root" };
 
   mkdirSync(dirname(absTarget), { recursive: true });
@@ -210,13 +218,23 @@ export async function restorePackage(
 ): Promise<InstallResult> {
   const { projectDir, dryRun, onFileStart, onFileComplete } = opts;
   const fileResults: InstallFileResult[] = [];
+  const resolvedTargets: string[] = [];
 
   for (const file of entry.files) {
-    const absTarget = safeTarget(projectDir, file.target);
+    const absTarget = resolveProjectTarget(projectDir, file.target);
     if (!absTarget) {
-      fileResults.push({ name: file.name, target: file.target, sha256: "", ok: false, error: "Target path escapes project root" });
-      continue;
+      return {
+        id,
+        ok: false,
+        files: [{ name: file.name, target: file.target, sha256: "", ok: false, error: "Target path escapes project root" }],
+        error: "Target path escapes project root",
+      };
     }
+    resolvedTargets.push(absTarget);
+  }
+
+  for (const [index, file] of entry.files.entries()) {
+    const absTarget = resolvedTargets[index]!;
 
     // Skip files already on disk with the correct locked checksum
     if (!dryRun && existsSync(absTarget)) {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { type ReactNode, useMemo, useState } from "react";
 import { Box, Text, render, useApp, useInput } from "ink";
 import { copyToClipboard } from "../lib/clipboard.js";
 import { pluginCatalog } from "../generated/plugin-catalog.js";
@@ -48,6 +48,35 @@ type Option<T extends string = string> = {
   value: T;
   label: string;
   description?: string;
+};
+
+type Tone = "info" | "success" | "warning" | "danger";
+
+type SummaryRow = {
+  id: string;
+  label: string;
+  value: ReactNode;
+  tone?: Tone;
+};
+
+const dangerousInsecureConnection = "__DANGEROUS_INSECURE_CONNECTION__";
+const dangerousPluginIds = new Set(["console", "hot-reload"]);
+const dangerousToggleIds = new Set(["debugger", "captureScreenshot"]);
+const warningToggleIds = new Set(["autoRegisterErrorHandler", "writeToDisk"]);
+
+const toneColor = (tone?: Tone) => {
+  if (tone === "danger") return "red";
+  if (tone === "warning") return "yellow";
+  if (tone === "success") return "green";
+  if (tone === "info") return "cyan";
+  return undefined;
+};
+
+const pluginTone = (value: string): Tone | undefined => (dangerousPluginIds.has(value) ? "danger" : undefined);
+const toggleTone = (value: string): Tone | undefined => {
+  if (dangerousToggleIds.has(value)) return "danger";
+  if (warningToggleIds.has(value)) return "warning";
+  return undefined;
 };
 
 const modes: Option<InitMode>[] = [
@@ -164,11 +193,80 @@ const parseCapabilities = (value: string): string[] | "all" => {
     .filter(Boolean);
 };
 
-function cursorLine(active: boolean, text: string, description?: string) {
+function DangerousName({ children }: { children: string }) {
+  return (
+    <Text color="red" bold>
+      {children}
+    </Text>
+  );
+}
+
+function NameList({
+  values,
+  getTone,
+}: {
+  values: string[];
+  getTone?: (value: string) => Tone | undefined;
+}) {
+  if (values.length === 0) return <Text color="gray">(none)</Text>;
+
+  return (
+    <>
+      {values.map((value, index) => (
+        <React.Fragment key={value}>
+          {index > 0 ? <Text color="gray">, </Text> : null}
+          <Text color={toneColor(getTone?.(value))}>{value}</Text>
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
+
+function SummaryValue({ value, tone }: { value: ReactNode; tone?: Tone }) {
+  if (typeof value === "string") return <Text color={toneColor(tone)}>{value}</Text>;
+  return <>{value}</>;
+}
+
+function SummaryRows({ rows }: { rows: SummaryRow[] }) {
   return (
     <Box flexDirection="column">
-      <Text color={active ? "cyan" : undefined}>
-        {active ? "❯" : " "} {text}
+      {rows.map((row) => (
+        <Text key={row.id}>
+          <Text color="gray">{row.label.padEnd(17)}</Text>
+          <SummaryValue value={row.value} tone={row.tone} />
+        </Text>
+      ))}
+    </Box>
+  );
+}
+
+function InfoPanel({
+  title,
+  tone = "info",
+  children,
+}: {
+  title: string;
+  tone?: Tone;
+  children: ReactNode;
+}) {
+  return (
+    <Box flexDirection="column">
+      <Text color={toneColor(tone)} bold>
+        {title}
+      </Text>
+      <Box flexDirection="column" paddingLeft={2}>
+        {children}
+      </Box>
+    </Box>
+  );
+}
+
+function cursorLine(active: boolean, text: string, description?: string, tone?: Tone) {
+  return (
+    <Box flexDirection="column">
+      <Text>
+        <Text color={active ? "cyan" : undefined}>{active ? "❯" : " "}</Text>{" "}
+        <Text color={toneColor(tone) ?? (active ? "cyan" : undefined)}>{text}</Text>
       </Text>
       {description ? <Text color="gray">  {description}</Text> : null}
     </Box>
@@ -204,17 +302,21 @@ function SingleSelect<T extends string>({
   title,
   options,
   selected,
+  getTone,
 }: {
   title: string;
   options: Option<T>[];
   selected: number;
+  getTone?: (option: Option<T>) => Tone | undefined;
 }) {
   return (
     <Box flexDirection="column" gap={1}>
       <Text bold>{title}</Text>
       <Box flexDirection="column">
         {options.map((option, index) => (
-          <Box key={option.value}>{cursorLine(index === selected, `${index + 1}. ${option.label}`, option.description)}</Box>
+          <Box key={option.value}>
+            {cursorLine(index === selected, `${index + 1}. ${option.label}`, option.description, getTone?.(option))}
+          </Box>
         ))}
       </Box>
       <Text color="gray">↑↓ or j/k navigate · 1-{options.length} jump · Enter select</Text>
@@ -227,12 +329,14 @@ function MultiSelect({
   options,
   selected,
   cursor,
+  getTone,
   hint = "↑↓ or j/k navigate · Space toggle · a select all · Enter confirm",
 }: {
   title: string;
   options: Option[];
   selected: Set<string>;
   cursor: number;
+  getTone?: (option: Option) => Tone | undefined;
   hint?: string;
 }) {
   return (
@@ -240,14 +344,20 @@ function MultiSelect({
       <Text bold>{title}</Text>
       <Box flexDirection="column">
         {options.length === 0 ? <Text color="gray">No options available.</Text> : null}
-        {options.map((option, index) => (
-          <Box key={option.value} flexDirection="column">
-            <Text color={index === cursor ? "cyan" : undefined}>
-              {index === cursor ? "❯" : " "} {selected.has(option.value) ? "◉" : "○"} {option.label}
-            </Text>
-            {option.description ? <Text color="gray">  {option.description}</Text> : null}
-          </Box>
-        ))}
+        {options.map((option, index) => {
+          const tone = getTone?.(option);
+          return (
+            <Box key={option.value} flexDirection="column">
+              <Text>
+                <Text color={index === cursor ? "cyan" : undefined}>
+                  {index === cursor ? "❯" : " "} {selected.has(option.value) ? "◉" : "○"}
+                </Text>{" "}
+                <Text color={toneColor(tone) ?? (index === cursor ? "cyan" : undefined)}>{option.label}</Text>
+              </Text>
+              {option.description ? <Text color="gray">  {option.description}</Text> : null}
+            </Box>
+          );
+        })}
       </Box>
       <Text color="gray">{hint}</Text>
     </Box>
@@ -602,28 +712,58 @@ function InitSetupPrompt({
     if (key.return) finish();
   });
 
-  const summary = useMemo(() => {
-    const rows = [
-      `Mode: ${modes[modeIndex].label}`,
-      installsFiles ? `Install dir: ${installDir || "feather"}/` : "Install dir: bundled CLI runtime",
-      installsFiles ? `Source: ${installSources[sourceIndex].label}` : undefined,
-      installsFiles && installSource === "remote" ? `Branch: ${branch || "main"}` : undefined,
-      installsFiles ? `Install plugins: ${installPlugins ? "yes" : "no"}` : undefined,
-      `Session: ${sessionName || "(default)"}`,
-      pluginPromptsEnabled ? `Include: ${include.size > 0 ? [...include].join(", ") : "(none)"}` : undefined,
-      pluginPromptsEnabled ? `Exclude: ${exclude.size > 0 ? [...exclude].join(", ") : "(none)"}` : undefined,
-      advanced ? "Advanced config: yes" : "Advanced config: no",
-    ].filter(Boolean) as string[];
+  const summary = useMemo<SummaryRow[]>(() => {
+    const includeList = [...include];
+    const excludeList = [...exclude];
+    const rows: SummaryRow[] = [
+      { id: "mode", label: "Mode", value: modes[modeIndex].label },
+      {
+        id: "install-dir",
+        label: "Install dir",
+        value: installsFiles ? `${installDir || "feather"}/` : "bundled CLI runtime",
+      },
+      installsFiles ? { id: "source", label: "Source", value: installSources[sourceIndex].label } : undefined,
+      installsFiles && installSource === "remote" ? { id: "branch", label: "Branch", value: branch || "main" } : undefined,
+      installsFiles ? { id: "plugins", label: "Install plugins", value: installPlugins ? "yes" : "no" } : undefined,
+      { id: "session", label: "Session", value: sessionName || "(default)" },
+      pluginPromptsEnabled
+        ? { id: "include", label: "Include", value: <NameList values={includeList} getTone={pluginTone} /> }
+        : undefined,
+      pluginPromptsEnabled
+        ? { id: "exclude", label: "Exclude", value: <NameList values={excludeList} getTone={pluginTone} /> }
+        : undefined,
+      { id: "advanced", label: "Advanced config", value: advanced ? "yes" : "no", tone: advanced ? "warning" : undefined },
+    ].filter(Boolean) as SummaryRow[];
+
     if (needsApiKey) {
-      rows.push(
-        apiKeyCopied === true
-          ? "Console API key: set and copied to clipboard"
-          : apiKeyCopied === false
-            ? "Console API key: set (clipboard copy unavailable)"
-            : "Console API key: set",
-      );
+      rows.push({
+        id: "api-key",
+        label: "Console API key",
+        value:
+          apiKeyCopied === true
+            ? "set and copied to clipboard"
+            : apiKeyCopied === false
+              ? "set (clipboard copy unavailable)"
+              : "set",
+        tone: "success",
+      });
     }
-    rows.push(appIdInput.trim() ? `App ID: ${appIdInput.trim()}` : "App ID: not set → __DANGEROUS_INSECURE_CONNECTION__ = true (any Feather desktop can connect)");
+    rows.push(
+      appIdInput.trim()
+        ? { id: "app-id", label: "App ID", value: appIdInput.trim(), tone: "success" }
+        : {
+            id: "app-id",
+            label: "App ID",
+            value: (
+              <>
+                <Text>not set → </Text>
+                <DangerousName>{dangerousInsecureConnection}</DangerousName>
+                <Text color="red"> = true</Text>
+              </>
+            ),
+            tone: "danger",
+          },
+    );
     return rows;
   }, [
     advanced,
@@ -646,7 +786,17 @@ function InitSetupPrompt({
   if (phase === "mode") return <SingleSelect title="How should Feather be added to this project?" options={modes} selected={modeIndex} />;
   if (phase === "source") return <SingleSelect title="Where should Feather be installed from?" options={installSources} selected={sourceIndex} />;
   if (phase === "installPlugins") return <ConfirmPrompt title="Install built-in plugins?" value={installPlugins} />;
-  if (phase === "include") return <MultiSelect title="Force-enable optional plugins?" options={optionalPlugins} selected={include} cursor={includeCursor} />;
+  if (phase === "include") {
+    return (
+      <MultiSelect
+        title="Force-enable optional plugins?"
+        options={optionalPlugins}
+        selected={include}
+        cursor={includeCursor}
+        getTone={(option) => pluginTone(option.value)}
+      />
+    );
+  }
   if (phase === "exclude") {
     return (
       <MultiSelect
@@ -654,6 +804,7 @@ function InitSetupPrompt({
         options={skipPluginOptions}
         selected={exclude}
         cursor={excludeCursor}
+        getTone={(option) => pluginTone(option.value)}
       />
     );
   }
@@ -670,20 +821,34 @@ function InitSetupPrompt({
       />
     );
   }
-  if (phase === "toggles") return <MultiSelect title="Toggle runtime options" options={configToggles} selected={toggles} cursor={toggleCursor} />;
+  if (phase === "toggles") {
+    return (
+      <MultiSelect
+        title="Toggle runtime options"
+        options={configToggles}
+        selected={toggles}
+        cursor={toggleCursor}
+        getTone={(option) => toggleTone(option.value)}
+      />
+    );
+  }
   if (phase === "apiKey") {
     return <TextInputPrompt title="Console API key" value={apiKey} secure error={error} placeholder="Strong secret, 16+ chars" />;
   }
   if (phase === "appId") {
     return (
       <Box flexDirection="column" gap={1}>
-        <TextInputPrompt
-          title="Desktop App ID"
-          value={appIdInput}
-          placeholder="feather-app-xxxxxxxx-…  (leave empty to use __DANGEROUS_INSECURE_CONNECTION__ = true)"
-        />
-        <Text color="gray">Find it in the Feather desktop app → Settings → Security → Desktop App ID.</Text>
-        <Text color="gray">If skipped, __DANGEROUS_INSECURE_CONNECTION__ = true is written to feather.config.lua so any Feather desktop can send commands to the game.</Text>
+        <TextInputPrompt title="Desktop App ID" value={appIdInput} placeholder="feather-app-xxxxxxxx-…" />
+        <InfoPanel title="Where to find it" tone="info">
+          <Text color="gray">Feather desktop app → Settings → Security → Desktop App ID.</Text>
+        </InfoPanel>
+        <InfoPanel title="Leaving this blank" tone="danger">
+          <Text>
+            Writes <DangerousName>{dangerousInsecureConnection}</DangerousName>
+            <Text color="red"> = true</Text> to feather.config.lua.
+          </Text>
+          <Text color="gray">Use only for trusted local development. Any Feather desktop can connect to the game.</Text>
+        </InfoPanel>
       </Box>
     );
   }
@@ -692,14 +857,52 @@ function InitSetupPrompt({
     return <TextInputPrompt title={textPromptTitles[phase] ?? "Value"} value={value} placeholder={value || undefined} />;
   }
 
+  const enabledAdvancedOptions = advanced ? configToggles.filter((option) => toggles.has(option.value)).map((option) => option.value) : [];
+  const writesRuntimeFiles = mode !== "cli";
+  const patchesMainLua = mode === "auto";
+
   return (
     <Box flexDirection="column" gap={1}>
-      <Text bold>Ready to initialize Feather</Text>
-      <Box flexDirection="column">
-        {summary.map((row) => (
-          <Text key={row}>{row}</Text>
-        ))}
-      </Box>
+      <Text bold color="cyan">
+        Ready to initialize Feather
+      </Text>
+      <SummaryRows rows={summary} />
+      <InfoPanel title="Files" tone={patchesMainLua ? "warning" : "info"}>
+        {writesRuntimeFiles ? (
+          <>
+            <Text>
+              Runtime files will be written under <Text color="cyan">{installDir || "feather"}/</Text>.
+            </Text>
+            {patchesMainLua ? (
+              <Text color="yellow">main.lua will be patched with a USE_DEBUGGER-guarded require.</Text>
+            ) : (
+              <Text color="gray">feather.debugger.lua will be created for manual loading.</Text>
+            )}
+          </>
+        ) : (
+          <Text color="gray">No runtime files will be copied; the CLI runtime is used at launch.</Text>
+        )}
+      </InfoPanel>
+      <InfoPanel title={appIdInput.trim() ? "Connection" : "Connection risk"} tone={appIdInput.trim() ? "success" : "danger"}>
+        {appIdInput.trim() ? (
+          <Text color="green">Desktop connections are limited to the configured App ID.</Text>
+        ) : (
+          <>
+            <Text>
+              <DangerousName>{dangerousInsecureConnection}</DangerousName>
+              <Text color="red"> is enabled.</Text>
+            </Text>
+            <Text color="gray">Any Feather desktop can send commands to this game while it is running.</Text>
+          </>
+        )}
+      </InfoPanel>
+      {advanced ? (
+        <InfoPanel title="Advanced runtime options" tone="warning">
+          <Text>
+            Enabled: <NameList values={enabledAdvancedOptions} getTone={toggleTone} />
+          </Text>
+        </InfoPanel>
+      ) : null}
       <Text color="gray">Press Enter to continue.</Text>
     </Box>
   );
