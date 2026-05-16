@@ -1,7 +1,7 @@
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import type { ResolvedPackage } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
-import { style } from '../../lib/output.js';
+import { printLine, printMuted, printWarning, style } from '../../lib/output.js';
 import { showInstallProgress } from '../../ui/package-progress.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
@@ -18,7 +18,7 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
 
   const installed = Object.entries(lockfile.packages);
   if (installed.length === 0) {
-    console.log(style.muted('No packages installed.'));
+    printMuted('No packages installed.');
     return;
   }
 
@@ -34,19 +34,19 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
   const toUpdate: ResolvedPackage[] = [];
   for (const [id, current] of targets) {
     if (current.trust === 'experimental') {
-      console.log(style.muted(`  Skipping "${id}" (experimental — re-install with --from-url to update)`));
+      printMuted(`  Skipping "${id}" (experimental — re-install with --from-url to update)`);
       continue;
     }
     const entry = registry.packages[id];
     if (!entry) {
-      console.log(style.warning(`  "${id}" not found in registry — skipping`));
+      printWarning(`  "${id}" not found in registry — skipping`);
       continue;
     }
     if (entry.source.tag === current.version) {
-      console.log(style.muted(`  ${id} is already up to date (${current.version})`));
+      printMuted(`  ${id} is already up to date (${current.version})`);
       continue;
     }
-    console.log(`  ${style.heading(id)}: ${current.version} → ${entry.source.tag}`);
+    printLine(`  ${style.heading(id)}: ${current.version} → ${entry.source.tag}`);
     toUpdate.push({ id, entry, files: entry.install.files });
   }
 

@@ -3,7 +3,19 @@ import { installFromUrl, restorePackage } from '../../lib/package/install.js';
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
-import { createSpinner, icon, keyValueRows, statusLine, style } from '../../lib/output.js';
+import {
+  createSpinner,
+  icon,
+  printBlank,
+  printDanger,
+  printKeyValues,
+  printLine,
+  printMuted,
+  printStatus,
+  printSuccess,
+  printWarning,
+  style,
+} from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { showInstallProgress } from '../../ui/package-progress.js';
@@ -25,25 +37,23 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
 
   if (opts.fromUrl) {
     if (!opts.target) {
-      console.log();
-      console.log(statusLine('error', '--target <path> is required with --from-url'));
+      printBlank();
+      printStatus('error', '--target <path> is required with --from-url');
       fail('', { silent: true });
     }
 
     if (!opts.allowUntrusted) {
-      console.log();
-      console.log(style.warning('Installing from untrusted URL'));
-      for (const row of keyValueRows([
+      printBlank();
+      printWarning('Installing from untrusted URL');
+      printKeyValues([
         ['URL', opts.fromUrl],
         ['Target', opts.target],
         ['Trust', 'experimental; not reviewed by the Feather team'],
-      ])) {
-        console.log(row);
-      }
+      ]);
 
       if (!process.stdin.isTTY || !process.stdout.isTTY) {
-        console.log();
-        console.log(style.danger('Use --allow-untrusted to confirm this source in non-interactive mode.'));
+        printBlank();
+        printDanger('Use --allow-untrusted to confirm this source in non-interactive mode.');
         fail('', { silent: true });
       }
 
@@ -55,7 +65,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
         rows: [`URL: ${opts.fromUrl}`, `Target: ${opts.target}`],
       });
       if (!confirmed) {
-        console.log(style.muted('Install cancelled.'));
+        printMuted('Install cancelled.');
         return;
       }
     }
@@ -76,29 +86,25 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
 
     if (opts.dryRun) {
       spinner.stop();
-      console.log();
-      console.log(style.warning('Dry run: no files written'));
-      for (const row of keyValueRows([
+      printBlank();
+      printWarning('Dry run: no files written');
+      printKeyValues([
         ['URL', opts.fromUrl],
         ['SHA-256', result.sha256],
         ['Size', `${result.size} bytes`],
         ['Target', result.target],
         ['Trust', 'experimental; not reviewed'],
-      ])) {
-        console.log(row);
-      }
+      ]);
       return;
     }
 
     spinner.succeed('Installed from URL (experimental)');
-    console.log();
-    for (const row of keyValueRows([
+    printBlank();
+    printKeyValues([
       ['SHA-256', result.sha256],
       ['Target', result.target],
       ['Trust', style.warning('experimental; not reviewed by the Feather team')],
-    ])) {
-      console.log(row);
-    }
+    ]);
     writeLockfile(projectDir, lockfile);
     return;
   }
@@ -108,23 +114,23 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     const entries = Object.entries(lockfile.packages).filter(([, e]) => !e.parent);
 
     if (entries.length === 0) {
-      console.log(style.muted('feather.lock.json is empty. Run `feather package install <name>` to add packages.'));
+      printMuted('feather.lock.json is empty. Run `feather package install <name>` to add packages.');
       return;
     }
 
-    console.log();
+    printBlank();
     const auditResults = await auditLockfile(projectDir, lockfile);
     const broken = new Set(auditResults.filter((r) => r.status !== 'verified').map((r) => r.id));
 
     if (broken.size === 0) {
-      console.log(style.success(`✔ All ${entries.length} package(s) already up to date.`));
+      printSuccess(`✔ All ${entries.length} package(s) already up to date.`);
       return;
     }
 
     let failed = false;
     for (const [id, entry] of entries) {
       if (!broken.has(id)) {
-        console.log(style.muted(`  ${id} @ ${entry.version} — up to date`));
+        printMuted(`  ${id} @ ${entry.version} — up to date`);
         continue;
       }
       const spinner = createSpinner(`  ${id} @ ${entry.version}`).start();
@@ -137,7 +143,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       }
     }
 
-    console.log();
+    printBlank();
     if (failed) fail('', { silent: true });
     return;
   }
@@ -149,7 +155,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   const { resolved, errors } = resolveMany(names, registry);
 
   if (errors.length) {
-    for (const e of errors) console.log(`  ${icon.error} ${style.danger(e)}`);
+    for (const e of errors) printLine(`  ${icon.error} ${style.danger(e)}`);
     fail('', { silent: true });
   }
 
@@ -157,7 +163,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     if (pkg.versionOverride) return true;
     const existing = lockfile.packages[pkg.id];
     if (existing && existing.version === pkg.entry.source.tag) {
-      console.log(style.muted(`  ${pkg.id} is already installed at ${existing.version}`));
+      printMuted(`  ${pkg.id} is already installed at ${existing.version}`);
       return false;
     }
     return true;
@@ -175,17 +181,17 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   }
 
   if (opts.dryRun) {
-    console.log();
+    printBlank();
     for (const pkg of toInstall) {
       const displayVersion = pkg.versionOverride ?? pkg.entry.source.tag;
-      console.log(`  ${style.heading(pkg.id)}  ${trustBadge(pkg.versionOverride ? 'experimental' : pkg.entry.trust)}`);
-      console.log(`  Source:  github.com/${pkg.entry.source.repo}  Version: ${displayVersion}`);
+      printLine(`  ${style.heading(pkg.id)}  ${trustBadge(pkg.versionOverride ? 'experimental' : pkg.entry.trust)}`);
+      printLine(`  Source:  github.com/${pkg.entry.source.repo}  Version: ${displayVersion}`);
       for (const f of pkg.files) {
-        console.log(`    ${style.muted(f.name)}  →  ${f.target}`);
+        printLine(`    ${style.muted(f.name)}  →  ${f.target}`);
       }
-      console.log();
+      printBlank();
     }
-    console.log(style.warning('Dry run — no files written.'));
+    printWarning('Dry run — no files written.');
     return;
   }
 

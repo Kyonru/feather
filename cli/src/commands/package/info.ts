@@ -1,6 +1,6 @@
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { fail } from '../../lib/command.js';
-import { style } from '../../lib/output.js';
+import { printBlank, printLine, printMuted, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
@@ -23,28 +23,28 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   }
 
   const installed = lockfile.packages[name];
-  console.log();
-  console.log(`${style.heading(name)}  ${trustBadge(entry.trust)}`);
-  console.log(style.muted(entry.description));
-  console.log();
-  console.log(`  Source:   ${style.info(`github.com/${entry.source.repo}`)}`);
-  console.log(`  Version:  ${entry.source.tag}`);
-  console.log(`  Tags:     ${entry.tags.join(', ') || '—'}`);
-  if (entry.license) console.log(`  License:  ${entry.license}`);
-  if (entry.homepage) console.log(`  Docs:     ${style.info(entry.homepage)}`);
+  printBlank();
+  printLine(`${style.heading(name)}  ${trustBadge(entry.trust)}`);
+  printMuted(entry.description);
+  printBlank();
+  printLine(`  Source:   ${style.info(`github.com/${entry.source.repo}`)}`);
+  printLine(`  Version:  ${entry.source.tag}`);
+  printLine(`  Tags:     ${entry.tags.join(', ') || '—'}`);
+  if (entry.license) printLine(`  License:  ${entry.license}`);
+  if (entry.homepage) printLine(`  Docs:     ${style.info(entry.homepage)}`);
   if (installed) {
-    console.log(`  Status:   ${style.success('installed')} @ ${installed.version}`);
+    printLine(`  Status:   ${style.success('installed')} @ ${installed.version}`);
   }
   if (entry.subpackages?.length) {
-    console.log(`  Modules:  ${entry.subpackages.join(', ')}`);
+    printLine(`  Modules:  ${entry.subpackages.join(', ')}`);
   }
-  console.log();
-  console.log('  Files to install:');
+  printBlank();
+  printLine('  Files to install:');
   for (const f of entry.install.files) {
-    console.log(`    ${style.muted(f.name)}  →  ${f.target}`);
+    printLine(`    ${style.muted(f.name)}  →  ${f.target}`);
   }
-  console.log();
-  console.log('  Usage:');
-  console.log(`    ${style.info(entry.example ?? `local lib = require("${entry.require}")`)}`);
-  console.log();
+  printBlank();
+  printLine('  Usage:');
+  printLine(`    ${style.info(entry.example ?? `local lib = require("${entry.require}")`)}`);
+  printBlank();
 }

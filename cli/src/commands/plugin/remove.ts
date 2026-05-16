@@ -1,7 +1,7 @@
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fail } from '../../lib/command.js';
-import { icon, style } from '../../lib/output.js';
+import { icon, printLine, printMuted } from '../../lib/output.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { pluginsDir, resolvePluginProjectDir } from './shared.js';
 
@@ -29,11 +29,11 @@ export async function pluginRemoveCommand(
       rows: [pluginDir],
     });
     if (!confirmed) {
-      console.log(style.muted('Plugin remove cancelled.'));
+      printMuted('Plugin remove cancelled.');
       return;
     }
   }
 
   rmSync(pluginDir, { recursive: true, force: true });
-  console.log(`${icon.success} Removed ${pluginId}`);
+  printLine(`${icon.success} Removed ${pluginId}`);
 }

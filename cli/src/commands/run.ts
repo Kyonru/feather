@@ -6,7 +6,7 @@ import { createShim, shimEnv } from "../lib/shim.js";
 import { loadConfig } from "../lib/config.js";
 import { chooseRunWorkflow } from "../ui/run-workflow.js";
 import { fail } from "../lib/command.js";
-import { keyValueRows, style } from "../lib/output.js";
+import { printInfo, printKeyValues, printMuted } from "../lib/output.js";
 
 export interface RunOptions {
   love?: string;
@@ -26,7 +26,7 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
 
     const result = await chooseRunWorkflow();
     if (result.cancelled) {
-      console.log(style.muted("Run cancelled."));
+      printMuted("Run cancelled.");
       return;
     }
 
@@ -72,14 +72,12 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
     userConfig: userConfig as Record<string, unknown> | undefined,
   });
 
-  console.log(style.info("Feather run"));
-  for (const row of keyValueRows([
+  printInfo("Feather run");
+  printKeyValues([
     ["Game", absGame],
     ["Shim", shim.dir],
     ["Args", opts.gameArgs?.join(" ")],
-  ])) {
-    console.log(row);
-  }
+  ]);
 
   const env = shimEnv(absGame, sessionName);
 

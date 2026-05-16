@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -62,6 +62,14 @@ function love.draw()
 end
 `,
   );
+}
+
+function sourceFiles(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    return /\.(ts|tsx)$/.test(entry.name) ? [path] : [];
+  });
 }
 
 test('search: no query lists all registry packages', () => {
@@ -607,6 +615,24 @@ test('output: NO_COLOR keeps package search readable without ANSI escapes', () =
   assert.equal(/\x1B\[[0-?]*[ -/]*[@-~]/.test(stdout), false);
 });
 
+test('output: command and lib sources route terminal writes through output helpers', () => {
+  const allowed = new Set([
+    join(ROOT, 'cli', 'src', 'lib', 'output.ts'),
+    join(ROOT, 'cli', 'src', 'lib', 'command.ts'),
+  ]);
+  const files = [
+    ...sourceFiles(join(ROOT, 'cli', 'src', 'commands')),
+    ...sourceFiles(join(ROOT, 'cli', 'src', 'lib')),
+  ].filter((file) => !allowed.has(file));
+
+  const offenders = files.flatMap((file) => {
+    const source = readFileSync(file, 'utf8');
+    return source.match(/console\.(?:log|error)\s*\(/) ? [file.replace(`${ROOT}/`, '')] : [];
+  });
+
+  assert.deepEqual(offenders, []);
+});
+
 test('update: url package is skipped with experimental message', () => {
   const dir = makeTmp();
   writeUrlLock(dir, 'my-helper', [
@@ -812,6 +838,17 @@ test('doctor --json reports package audit problems and unsafe config flags', () 
   assert.equal(labels.get('Step debugger').severity, 'warn');
   assert.equal(labels.get('captureScreenshot').severity, 'warn');
   assert.equal(labels.get('Disk logging').severity, 'warn');
+});
+
+test('doctor: human report includes grouped checks and summary', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test" }\n');
+  const result = run(['doctor', dir]);
+  assert.match(result.stdout, /Feather doctor/);
+  assert.match(result.stdout, /Environment/);
+  assert.match(result.stdout, /Project/);
+  assert.match(result.stdout, /passed, .* warnings, .* failures/);
 });
 
 async function withFetchMock(mock, runTest) {

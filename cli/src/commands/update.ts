@@ -4,7 +4,7 @@ import { fetchManifest, installCore, installCoreFromLocal, normalizeInstallDir }
 import { chooseCoreUpdateWorkflow } from "../ui/update-workflow.js";
 import { resolveLocalLuaRoot } from "../lib/paths.js";
 import { fail } from "../lib/command.js";
-import { createSpinner, style } from "../lib/output.js";
+import { createSpinner, printLine, printMuted, style } from "../lib/output.js";
 
 export async function updateCommand(
   dir: string,
@@ -24,7 +24,7 @@ export async function updateCommand(
   if (!hasExplicitSource && process.stdin.isTTY) {
     const result = await chooseCoreUpdateWorkflow(branch);
     if (result.cancelled) {
-      console.log(style.muted("Update cancelled."));
+      printMuted("Update cancelled.");
       return;
     }
     useRemote = result.source === "remote";
@@ -44,7 +44,7 @@ export async function updateCommand(
       fail((err as Error).message, { cause: err, silent: true });
     }
 
-    console.log(`\n${style.heading("Done!")} Feather core is up to date.\n`);
+    printLine(`\n${style.heading("Done!")} Feather core is up to date.\n`);
     return;
   }
 
@@ -70,5 +70,5 @@ export async function updateCommand(
     fail((err as Error).message, { cause: err, silent: true });
   }
 
-  console.log(`\n${style.heading("Done!")} Feather core is up to date.\n`);
+  printLine(`\n${style.heading("Done!")} Feather core is up to date.\n`);
 }

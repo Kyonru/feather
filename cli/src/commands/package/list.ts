@@ -1,7 +1,7 @@
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
-import { icon, style } from '../../lib/output.js';
+import { icon, printLine, printMuted, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { showPackageBrowser } from '../../ui/package-workflow.js';
 import { showInstallProgress } from '../../ui/package-progress.js';
@@ -23,13 +23,13 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
     const lockfile = readLockfile(projectDir);
     const entries = Object.entries(lockfile.packages);
     if (entries.length === 0) {
-      console.log(style.muted('No packages installed. Run `feather package install <name>`.'));
+      printMuted('No packages installed. Run `feather package install <name>`.');
       return;
     }
     for (const [id, entry] of entries) {
-      console.log(`  ${trustBadge(entry.trust)} ${style.heading(id)} @ ${entry.version}`);
+      printLine(`  ${trustBadge(entry.trust)} ${style.heading(id)} @ ${entry.version}`);
     }
-    console.log(style.muted(`\n${entries.length} package(s) installed.`));
+    printMuted(`\n${entries.length} package(s) installed.`);
     return;
   }
 
@@ -47,9 +47,9 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
     for (const [id, entry] of entries.sort(([a], [b]) => a.localeCompare(b))) {
       const installed = lockfile.packages[id];
       const installedLabel = installed ? style.info(` (installed ${installed.version})`) : '';
-      console.log(`  ${trustBadge(entry.trust)} ${style.heading(id)}${installedLabel}  ${style.muted(entry.description)}`);
+      printLine(`  ${trustBadge(entry.trust)} ${style.heading(id)}${installedLabel}  ${style.muted(entry.description)}`);
     }
-    console.log(style.muted(`\n${entries.length} available.`));
+    printMuted(`\n${entries.length} available.`);
     return;
   }
 
@@ -58,7 +58,7 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
 
   const { resolved, errors } = resolveMany([result.id], registry);
   if (errors.length) {
-    for (const e of errors) console.log(`  ${icon.error} ${style.danger(e)}`);
+    for (const e of errors) printLine(`  ${icon.error} ${style.danger(e)}`);
     fail('', { silent: true });
   }
 

@@ -1,4 +1,4 @@
-import { style } from '../../lib/output.js';
+import { printMuted } from '../../lib/output.js';
 import { choosePluginWorkflow } from '../../ui/plugin-workflow.js';
 import { pluginInstallCommand } from './install.js';
 import { pluginListCommand } from './list.js';
@@ -29,7 +29,7 @@ export async function pluginWorkflowCommand(opts: {
   }
 
   if (result.pluginIds.length === 0) {
-    console.log(style.muted('No plugins selected.'));
+    printMuted('No plugins selected.');
     return;
   }
 

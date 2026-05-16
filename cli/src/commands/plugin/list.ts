@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { findInstalledPluginDirs, readPluginManifest } from '../../lib/plugin-utils.js';
-import { style, table } from '../../lib/output.js';
+import { printBlank, printHeading, printMuted, printTable, style } from '../../lib/output.js';
 import { pluginsDir, resolvePluginProjectDir } from './shared.js';
 
 export async function pluginListCommand(dir?: string, installDir = 'feather'): Promise<void> {
@@ -8,18 +8,18 @@ export async function pluginListCommand(dir?: string, installDir = 'feather'): P
   const dirPath = pluginsDir(projectDir, installDir);
 
   if (!existsSync(dirPath)) {
-    console.log(style.muted('No plugins directory found. Run `feather init` first.'));
+    printMuted('No plugins directory found. Run `feather init` first.');
     return;
   }
 
   const dirs = findInstalledPluginDirs(dirPath);
 
   if (dirs.length === 0) {
-    console.log(style.muted('No plugins installed.'));
+    printMuted('No plugins installed.');
     return;
   }
 
-  console.log(style.heading(`\nInstalled plugins (${dirs.length})\n`));
+  printHeading(`\nInstalled plugins (${dirs.length})\n`);
   const rows = dirs.map((dir) => {
     const meta = readPluginManifest(dir);
     return {
@@ -28,15 +28,13 @@ export async function pluginListCommand(dir?: string, installDir = 'feather'): P
       name: meta?.name ?? '',
     };
   });
-  for (const line of table({
+  printTable({
     columns: [
       { key: 'id', label: 'ID', color: (value) => style.info(value) },
       { key: 'version', label: 'VERSION', color: (value) => style.muted(value) },
       { key: 'name', label: 'NAME' },
     ],
     rows,
-  })) {
-    console.log(line);
-  }
-  console.log();
+  });
+  printBlank();
 }

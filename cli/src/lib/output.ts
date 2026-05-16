@@ -30,6 +30,46 @@ export function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
 }
 
+export function printLine(message = ''): void {
+  console.log(message);
+}
+
+export function printBlank(): void {
+  printLine();
+}
+
+export function printLines(lines: string[]): void {
+  for (const line of lines) printLine(line);
+}
+
+export function printHeading(message: string): void {
+  printLine(heading(message));
+}
+
+export function printStatus(kind: keyof typeof icon, message: string): void {
+  printLine(statusLine(kind, message));
+}
+
+export function printMuted(message: string): void {
+  printLine(style.muted(message));
+}
+
+export function printWarning(message: string): void {
+  printLine(style.warning(message));
+}
+
+export function printDanger(message: string): void {
+  printLine(style.danger(message));
+}
+
+export function printSuccess(message: string): void {
+  printLine(style.success(message));
+}
+
+export function printInfo(message: string): void {
+  printLine(style.info(message));
+}
+
 export function section(title: string, lines: string[] = []): string[] {
   return ['', heading(title), ...lines, ''];
 }
@@ -58,6 +98,10 @@ export function keyValueRows(rows: Array<[string, string | number | undefined | 
   const visible = rows.filter(([, value]) => value !== undefined && value !== null && value !== '');
   const width = Math.max(0, ...visible.map(([key]) => key.length));
   return visible.map(([key, value]) => `  ${style.muted(key.padEnd(width))}  ${value}`);
+}
+
+export function printKeyValues(rows: Array<[string, string | number | undefined | null]>): void {
+  printLines(keyValueRows(rows));
 }
 
 export function table<Row extends Record<string, string | number | undefined>>(input: {
@@ -90,4 +134,12 @@ export function table<Row extends Record<string, string | number | undefined>>(i
   }
 
   return lines;
+}
+
+export function printTable<Row extends Record<string, string | number | undefined>>(input: {
+  columns: Array<{ key: keyof Row; label: string; color?: (value: string, row: Row) => string }>;
+  rows: Row[];
+  indent?: string;
+}): void {
+  printLines(table(input));
 }

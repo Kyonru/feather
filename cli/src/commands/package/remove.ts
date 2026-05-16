@@ -2,7 +2,7 @@ import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { readLockfile, removeFromLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { fail } from '../../lib/command.js';
-import { icon, style } from '../../lib/output.js';
+import { icon, printLine, printMuted, style } from '../../lib/output.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { resolvePackageProjectDir } from './shared.js';
 
@@ -37,7 +37,7 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
       ],
     });
     if (!confirmed) {
-      console.log(style.muted('Package remove cancelled.'));
+      printMuted('Package remove cancelled.');
       return;
     }
   }
@@ -46,11 +46,11 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
     const abs = join(projectDir, file.target);
     if (existsSync(abs)) {
       rmSync(abs);
-      console.log(style.muted(`  removed ${file.target}`));
+      printMuted(`  removed ${file.target}`);
     }
   }
 
   removeFromLockfile(lockfile, name);
   writeLockfile(projectDir, lockfile);
-  console.log(`  ${icon.success} ${style.heading(name)} removed.`);
+  printLine(`  ${icon.success} ${style.heading(name)} removed.`);
 }

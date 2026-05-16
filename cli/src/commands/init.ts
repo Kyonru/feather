@@ -15,7 +15,7 @@ import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init-mode.j
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
 import { fail } from '../lib/command.js';
-import { createSpinner, icon, style } from '../lib/output.js';
+import { createSpinner, icon, printLine, printMuted, printWarning, style } from '../lib/output.js';
 
 export interface InitOptions {
   branch?: string;
@@ -105,15 +105,15 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
       installDir,
       source: useRemote ? `github:${setup.branch || opts.branch || 'main'}` : 'local',
     });
-    console.log(`\n${style.heading('Done!')} Run this project through Feather CLI.\n`);
-    console.log(style.muted(`  feather run ${dir}`));
-    console.log(style.muted('  Use `--config <path>` if feather.config.lua lives elsewhere.\n'));
+    printLine(`\n${style.heading('Done!')} Run this project through Feather CLI.\n`);
+    printMuted(`  feather run ${dir}`);
+    printMuted('  Use `--config <path>` if feather.config.lua lives elsewhere.\n');
     return;
   }
 
   if (alreadyInstalled) {
-    console.log(style.warning('Feather is already installed in this project.'));
-    console.log(style.muted('Run `feather update` to update to the latest version.'));
+    printWarning('Feather is already installed in this project.');
+    printMuted('Run `feather update` to update to the latest version.');
   }
 
   const branch = setup.branch || opts.branch || 'main';
@@ -196,9 +196,9 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   if (mode === 'auto') {
     const patched = patchMainLua(mainPath, installDir);
     if (patched) {
-      console.log(`${icon.success} Patched main.lua with feather.auto require`);
+      printLine(`${icon.success} Patched main.lua with feather.auto require`);
     } else {
-      console.log(style.muted('  main.lua already references feather — skipped patch'));
+      printMuted('  main.lua already references feather — skipped patch');
     }
   } else if (mode === 'manual') {
     const pluginIds =
@@ -211,15 +211,15 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
     const patched = patchMainLuaForManual(mainPath);
 
     if (created) {
-      console.log(`${icon.success} Created feather.debugger.lua`);
+      printLine(`${icon.success} Created feather.debugger.lua`);
     } else {
-      console.log(style.muted('  feather.debugger.lua already exists — skipped'));
+      printMuted('  feather.debugger.lua already exists — skipped');
     }
 
     if (patched) {
-      console.log(`${icon.success} Patched main.lua with feather.debugger.lua loader`);
+      printLine(`${icon.success} Patched main.lua with feather.debugger.lua loader`);
     } else {
-      console.log(style.muted('  main.lua already references Feather — skipped patch'));
+      printMuted('  main.lua already references Feather — skipped patch');
     }
   }
 
@@ -230,12 +230,12 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
     manualEntrypoint: mode === 'manual' ? 'feather.debugger.lua' : undefined,
   });
 
-  console.log(`\n${style.heading('Done!')} Start the Feather desktop app, then run your game.\n`);
+  printLine(`\n${style.heading('Done!')} Start the Feather desktop app, then run your game.\n`);
 
   if (mode === 'manual') {
-    console.log(style.muted('  Manual setup lives in feather.debugger.lua and is loaded from main.lua.\n'));
+    printMuted('  Manual setup lives in feather.debugger.lua and is loaded from main.lua.\n');
   } else {
-    console.log(style.muted('  Tip: use `feather run .` to inject without touching game code.\n'));
+    printMuted('  Tip: use `feather run .` to inject without touching game code.\n');
   }
 }
 
@@ -247,9 +247,9 @@ function writeConfig(
   const configPath = join(target, 'feather.config.lua');
   if (!existsSync(configPath)) {
     writeFileSync(configPath, configTemplate(config, context));
-    console.log(`${icon.success} Created feather.config.lua`);
+    printLine(`${icon.success} Created feather.config.lua`);
   } else {
-    console.log(style.muted('  feather.config.lua already exists — skipped'));
+    printMuted('  feather.config.lua already exists — skipped');
   }
 }
 

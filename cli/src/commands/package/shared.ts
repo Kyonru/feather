@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { findProjectDir } from '../../lib/paths.js';
 import { loadRegistry, type Registry, type RegistryLoadOptions } from '../../lib/package/registry.js';
 import { fail } from '../../lib/command.js';
-import { createSpinner, statusLine, style } from '../../lib/output.js';
+import { createSpinner, printMuted, printStatus } from '../../lib/output.js';
 
 export function resolvePackageProjectDir(dir?: string): string {
   return dir ? resolve(dir) : findProjectDir();
@@ -29,12 +29,8 @@ export function ensurePackageAddInteractive(): boolean {
     return true;
   }
 
-  console.log(statusLine('error', '`feather package add` requires an interactive terminal.'));
-  console.log(
-    style.muted(
-      'Run it from a real TTY, or use `feather package install --from-url <url> --target <path> --allow-untrusted` for scripts.',
-    ),
-  );
+  printStatus('error', '`feather package add` requires an interactive terminal.');
+  printMuted('Run it from a real TTY, or use `feather package install --from-url <url> --target <path> --allow-untrusted` for scripts.');
   fail('', { silent: true });
   return false;
 }

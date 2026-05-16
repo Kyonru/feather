@@ -4,7 +4,7 @@ import { normalizeInstallDir } from "../lib/install.js";
 import { chooseRemoveWorkflow, type RemoveTarget } from "../ui/remove-workflow.js";
 import { parseManagedValue } from "../lib/plugin-utils.js";
 import { fail } from "../lib/command.js";
-import { icon, style } from "../lib/output.js";
+import { icon, printLine, printMuted, style } from "../lib/output.js";
 
 export interface RemoveOptions {
   yes?: boolean;
@@ -145,7 +145,7 @@ export async function removeCommand(dir: string, opts: RemoveOptions): Promise<v
 
   const targets = discoverTargets(context, opts);
   if (targets.length === 0) {
-    console.log(style.muted("No managed Feather files or markers found."));
+    printMuted("No managed Feather files or markers found.");
     return;
   }
 
@@ -157,21 +157,21 @@ export async function removeCommand(dir: string, opts: RemoveOptions): Promise<v
   if (!opts.yes && process.stdin.isTTY) {
     const result = await chooseRemoveWorkflow(targets);
     if (result.cancelled) {
-      console.log(style.muted("Remove cancelled."));
+      printMuted("Remove cancelled.");
       return;
     }
     targetIds = result.targetIds;
   }
 
   if (targetIds.length === 0) {
-    console.log(style.muted("No remove targets selected."));
+    printMuted("No remove targets selected.");
     return;
   }
 
   for (const id of targetIds) {
     const message = applyTarget(id, context, opts.dryRun === true);
     if (message) {
-      console.log((opts.dryRun ? style.muted("dry-run ") : `${icon.success} `) + message);
+      printLine((opts.dryRun ? style.muted("dry-run ") : `${icon.success} `) + message);
     }
   }
 }

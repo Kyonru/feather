@@ -1,7 +1,18 @@
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { fail } from '../../lib/command.js';
-import { createSpinner, icon, printJson, statusLine, style, table } from '../../lib/output.js';
+import {
+  createSpinner,
+  icon,
+  printBlank,
+  printDanger,
+  printHeading,
+  printJson,
+  printMuted,
+  printStatus,
+  printTable,
+  style,
+} from '../../lib/output.js';
 import { resolvePackageProjectDir } from './shared.js';
 
 export type PackageAuditOptions = {
@@ -15,7 +26,7 @@ export async function packageAuditCommand(opts: PackageAuditOptions = {}): Promi
 
   const entries = Object.values(lockfile.packages);
   if (entries.length === 0) {
-    console.log(style.muted('No packages installed.'));
+    printMuted('No packages installed.');
     return;
   }
 
@@ -29,9 +40,9 @@ export async function packageAuditCommand(opts: PackageAuditOptions = {}): Promi
     return;
   }
 
-  console.log(style.heading(`\nAuditing ${entries.length} installed package(s)…\n`));
+  printHeading(`\nAuditing ${entries.length} installed package(s)…\n`);
 
-  for (const line of table({
+  printTable({
     columns: [
       {
         key: 'status',
@@ -54,17 +65,15 @@ export async function packageAuditCommand(opts: PackageAuditOptions = {}): Promi
       target: result.target,
       message: result.status === 'modified' ? 'MODIFIED  ← SHA-256 mismatch' : result.status,
     })),
-  })) {
-    console.log(line);
-  }
+  });
 
   const bad = results.filter((r) => r.status !== 'verified');
-  console.log();
+  printBlank();
   if (bad.length === 0) {
-    console.log(statusLine('success', 'All packages verified.'));
+    printStatus('success', 'All packages verified.');
   } else {
-    console.log(style.danger(`${bad.length} issue(s) found. Re-install affected packages with \`feather package install <name>\`.`));
+    printDanger(`${bad.length} issue(s) found. Re-install affected packages with \`feather package install <name>\`.`);
     fail('', { silent: true });
   }
-  console.log();
+  printBlank();
 }

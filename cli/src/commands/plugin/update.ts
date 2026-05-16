@@ -8,7 +8,7 @@ import {
   installPluginsFromLocal,
 } from '../../lib/install.js';
 import { fail } from '../../lib/command.js';
-import { createSpinner, style } from '../../lib/output.js';
+import { createSpinner, printMuted } from '../../lib/output.js';
 import { resolveLocalLuaRoot } from '../../lib/paths.js';
 import { choosePluginUpdateWorkflow } from '../../ui/plugin-workflow.js';
 import { getInstalledPluginIds, pluginsDir, resolvePluginProjectDir } from './shared.js';
@@ -26,7 +26,7 @@ export async function pluginUpdateCommand(
   if (!pluginId && process.stdin.isTTY && !hasExplicitSource) {
     const installedIds = getInstalledPluginIds(projectDir, installDir);
     if (installedIds.length === 0) {
-      console.log(style.muted('No plugins installed.'));
+      printMuted('No plugins installed.');
       return;
     }
 
@@ -37,7 +37,7 @@ export async function pluginUpdateCommand(
 
     if (result.action === 'cancel') return;
     if (result.action !== 'update' || result.pluginIds.length === 0) {
-      console.log(style.muted('No plugins selected.'));
+      printMuted('No plugins selected.');
       return;
     }
 
