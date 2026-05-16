@@ -10,8 +10,9 @@ import {
 import { fail } from '../../lib/command.js';
 import { createSpinner, printMuted } from '../../lib/output.js';
 import { resolveLocalLuaRoot } from '../../lib/paths.js';
+import { assertValidPluginId, pluginIdToSourceDir } from '../../lib/plugin-utils.js';
 import { choosePluginUpdateWorkflow } from '../../ui/plugin-workflow.js';
-import { getInstalledPluginIds, pluginsDir, resolvePluginProjectDir } from './shared.js';
+import { getInstalledPluginIds, pluginsDir, resolvePluginProjectDir, warnDangerousPlugin } from './shared.js';
 
 export async function pluginUpdateCommand(
   pluginId: string | undefined,
@@ -21,6 +22,13 @@ export async function pluginUpdateCommand(
   const branch = opts.branch ?? 'main';
   const installDir = opts.installDir ?? 'feather';
   const dirPath = pluginsDir(projectDir, installDir);
+  if (pluginId) {
+    try {
+      assertValidPluginId(pluginId);
+    } catch (err) {
+      fail((err as Error).message);
+    }
+  }
 
   const hasExplicitSource = opts.remote === true || !!opts.localSrc || opts.yes === true;
   if (!pluginId && process.stdin.isTTY && !hasExplicitSource) {
@@ -58,14 +66,19 @@ export async function pluginUpdateCommand(
     const sourceRoot = resolveLocalLuaRoot(opts);
     const available = getLocalPluginIds(sourceRoot);
     const ids = pluginId ? [pluginId] : available.filter((id) => existsSync(join(dirPath, id.replace(/\./g, '/'))));
+    if (pluginId && !available.includes(pluginId) && !existsSync(join(sourceRoot, 'plugins', pluginIdToSourceDir(pluginId)))) {
+      fail(`Unknown plugin: ${pluginId}`, { details: ['Available: ' + available.join(', ')] });
+    }
 
     for (const id of ids) {
       const s = createSpinner(`Updating ${id}…`).start();
       try {
         installPluginsFromLocal([id], sourceRoot, projectDir, installDir);
         s.succeed(`Updated ${id}`);
+        warnDangerousPlugin(id);
       } catch (err) {
         s.fail(`${id}: ${(err as Error).message}`);
+        if (pluginId) fail((err as Error).message, { cause: err, silent: true });
       }
     }
     return;
@@ -90,8 +103,10 @@ export async function pluginUpdateCommand(
     try {
       await installPlugin(id, entries, projectDir, branch, undefined, installDir);
       s.succeed(`Updated ${id}`);
+      warnDangerousPlugin(id);
     } catch (err) {
       s.fail(`${id}: ${(err as Error).message}`);
+      if (pluginId) fail((err as Error).message, { cause: err, silent: true });
     }
   }
 }

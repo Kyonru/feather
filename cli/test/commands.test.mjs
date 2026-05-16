@@ -67,6 +67,24 @@ function writeMinimalRuntime(dir) {
   writeFileSync(join(dir, 'feather', 'plugin_manager.lua'), 'return {}\n');
 }
 
+function writeLocalPluginSource(root, id, options = {}) {
+  const sourceDir = options.sourceDir ?? id.replace(/\./g, '/');
+  const pluginDir = join(root, 'plugins', sourceDir);
+  mkdirSync(pluginDir, { recursive: true });
+  const manifestId = options.manifestId ?? id;
+  const versionLine = options.version === null ? '' : `  version = "${options.version ?? '1.0.0'}",\n`;
+  writeFileSync(
+    join(pluginDir, 'manifest.lua'),
+    `return {
+  id = "${manifestId}",
+  name = "${options.name ?? manifestId}",
+${versionLine}}
+`,
+  );
+  writeFileSync(join(pluginDir, 'init.lua'), 'return {}\n');
+  return pluginDir;
+}
+
 function writeLock(dir, packages) {
   writeFileSync(join(dir, 'feather.lock.json'), JSON.stringify({ lockfileVersion: 1, packages }, null, 2));
 }
@@ -216,6 +234,46 @@ test('plugin install: unknown local plugin exits 1', () => {
   assert.ok(outputOf(result).includes('Unknown plugin: zzz-missing'));
 });
 
+test('plugin install: local manifest is validated before copying', () => {
+  const dir = makeTmp();
+  const source = join(makeTmp(), 'src-lua');
+  writeLocalPluginSource(source, 'bad-plugin', { version: null });
+
+  const result = run(['plugin', 'install', 'bad-plugin', '--local-src', source, '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Plugin manifest is missing version: bad-plugin'));
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'bad-plugin')), false);
+});
+
+test('plugin install: local manifest id must match plugin path', () => {
+  const dir = makeTmp();
+  const source = join(makeTmp(), 'src-lua');
+  writeLocalPluginSource(source, 'console', { manifestId: 'other-plugin' });
+
+  const result = run(['plugin', 'install', 'console', '--local-src', source, '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Plugin manifest id mismatch: expected console, found other-plugin'));
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'console')), false);
+});
+
+test('plugin install: rejects path traversal plugin ids', () => {
+  const dir = makeTmp();
+  const result = run(['plugin', 'install', '../escape', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Invalid plugin id: ../escape'));
+});
+
+test('plugin update: explicit local update fails on invalid manifest', () => {
+  const dir = makeTmp();
+  const source = join(makeTmp(), 'src-lua');
+  writeLocalPluginSource(source, 'bad-plugin', { version: 'not valid' });
+
+  const result = run(['plugin', 'update', 'bad-plugin', '--local-src', source, '--dir', dir, '--yes']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Plugin manifest has invalid version: bad-plugin'));
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'bad-plugin')), false);
+});
+
 test('plugin list: malformed manifests do not crash and use directory fallback id', () => {
   const dir = makeTmp();
   const pluginDir = join(dir, 'feather', 'plugins', 'bad-plugin');
@@ -226,6 +284,34 @@ test('plugin list: malformed manifests do not crash and use directory fallback i
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.ok(result.stdout.includes('bad-plugin'));
   assert.ok(result.stdout.includes('Bad Plugin'));
+});
+
+test('doctor --json reports unknown installed plugin trust', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeMinimalRuntime(dir);
+  writeLocalPluginSource(dir, 'custom-plugin');
+
+  const parsed = parseDoctorJson(dir);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  const trustCheck = labels.get('Plugin custom-plugin');
+  assert.equal(trustCheck.severity, 'warn');
+  assert.ok(trustCheck.detail.includes('unknown trust'));
+  assert.ok(trustCheck.fix.includes('feather plugin remove custom-plugin'));
+});
+
+test('doctor --json reports dangerous bundled plugin trust', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeMinimalRuntime(dir);
+  const result = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(result.exitCode, 0, outputOf(result));
+
+  const parsed = parseDoctorJson(dir);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  const trustCheck = labels.get('Plugin console trust');
+  assert.equal(trustCheck.severity, 'warn');
+  assert.ok(trustCheck.detail.includes('development-only'));
 });
 
 test('doctor --json remains decoration-free and reports missing plugin directory', () => {

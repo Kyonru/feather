@@ -2,7 +2,8 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { normalizeInstallDir } from '../../lib/install.js';
 import { findProjectDir } from '../../lib/paths.js';
-import { findInstalledPluginDirs, readPluginManifest } from '../../lib/plugin-utils.js';
+import { dangerousPluginIds, findInstalledPluginDirs, readPluginManifest } from '../../lib/plugin-utils.js';
+import { printWarning } from '../../lib/output.js';
 
 export type PluginSourceOptions = {
   dir?: string;
@@ -30,3 +31,7 @@ export function getInstalledPluginIds(projectDir: string, installDir = 'feather'
     .sort();
 }
 
+export function warnDangerousPlugin(pluginId: string): void {
+  if (!dangerousPluginIds.has(pluginId)) return;
+  printWarning(`! ${pluginId} is development-only and can execute remote/debug commands. Do not ship it in production builds.`);
+}

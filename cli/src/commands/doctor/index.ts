@@ -8,7 +8,7 @@ import { printJson } from '../../lib/output.js';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { loadRegistry } from '../../lib/package/registry.js';
-import { parseManagedValue, findInstalledPluginDirs, readPluginManifest } from '../../lib/plugin-utils.js';
+import { classifyPluginTrust, dangerousPluginIds, parseManagedValue, findInstalledPluginDirs, pluginTrustLabel, readPluginManifest } from '../../lib/plugin-utils.js';
 import { pluginCatalog } from '../../generated/plugin-catalog.js';
 import {
   add,
@@ -163,6 +163,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   const pluginDirs = findInstalledPluginDirs(pluginRoot);
   const installedPlugins = buildPluginIndex(pluginDirs);
   const knownPluginIds = new Set(pluginCatalog.map((plugin) => plugin.id));
+  const pluginCatalogById = new Map(pluginCatalog.map((plugin) => [plugin.id, plugin]));
   const projectDirArg = shellArg(projectDir);
   const installDirArg = shellArg(effectiveInstallDir);
   if (hasRuntime) {
@@ -175,7 +176,13 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       existsSync(pluginRoot) ? undefined : 'Core-only installs are valid; run `feather plugin` to manage plugins.',
     );
     add(checks, 'Plugins', 'Installed plugins', pluginDirs.length > 0 ? 'pass' : 'info', `${pluginDirs.length}`);
-    const malformed = pluginDirs.filter((dir) => !readPluginManifest(dir)?.id);
+    const malformed = pluginDirs.filter((dir) => {
+      const manifest = readPluginManifest(dir);
+      return !manifest?.id || !manifest.version;
+    });
+    const unknownInstalled = pluginDirs
+      .map((dir) => ({ dir, manifest: readPluginManifest(dir) }))
+      .filter((plugin) => plugin.manifest?.id && !knownPluginIds.has(plugin.manifest.id));
     if (malformed.length > 0) {
       add(
         checks,
@@ -187,6 +194,33 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       );
     } else if (pluginDirs.length > 0) {
       add(checks, 'Plugins', 'Plugin manifests', 'pass', 'all installed plugins declare an id');
+    }
+    for (const { dir, manifest } of unknownInstalled) {
+      add(
+        checks,
+        'Plugins',
+        `Plugin ${manifest?.id}`,
+        'warn',
+        `installed with ${pluginTrustLabel(classifyPluginTrust(manifest, null))} trust`,
+        `Review ${dir} and remove it with \`feather plugin remove ${manifest?.id} --dir ${projectDirArg} --install-dir ${installDirArg} --yes\` if it should not ship.`,
+      );
+    }
+    for (const dir of pluginDirs) {
+      const manifest = readPluginManifest(dir);
+      if (!manifest?.id || !knownPluginIds.has(manifest.id)) continue;
+      const trust = classifyPluginTrust(manifest, pluginCatalogById.get(manifest.id));
+      if (dangerousPluginIds.has(manifest.id)) {
+        add(
+          checks,
+          'Plugins',
+          `Plugin ${manifest.id} trust`,
+          'warn',
+          `${pluginTrustLabel(trust)}; development-only`,
+          `Remove before shipping with \`feather plugin remove ${manifest.id} --dir ${projectDirArg} --install-dir ${installDirArg} --yes\`.`,
+        );
+      } else {
+        add(checks, 'Plugins', `Plugin ${manifest.id} trust`, trust === 'bundled-opt-in' ? 'info' : 'pass', pluginTrustLabel(trust));
+      }
     }
   }
 

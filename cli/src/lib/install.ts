@@ -1,7 +1,14 @@
-import { cpSync, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { cpSync, createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
+import {
+  assertValidPluginId,
+  findLocalPluginIds,
+  isSafePluginRelativePath,
+  pluginIdToSourceDir,
+  validatePluginManifest,
+} from "./plugin-utils.js";
 
 const GITHUB_RAW =
   "https://raw.githubusercontent.com/Kyonru/feather/{branch}/src-lua/{path}";
@@ -114,11 +121,15 @@ export function installPluginsFromLocal(
   if (!existsSync(pluginsRoot)) throw new Error(`No plugins directory found at ${pluginsRoot}`);
 
   const root = normalizeInstallDir(installDir);
-  for (const pluginId of pluginIds) {
-    const sourceDir = pluginId.replace(/\./g, "/");
+  const plans = pluginIds.map((pluginId) => {
+    const sourceDir = pluginIdToSourceDir(pluginId);
     const source = join(pluginsRoot, sourceDir);
     if (!existsSync(source)) throw new Error(`Unknown plugin: ${pluginId}`);
+    validatePluginManifest(source, { expectedId: pluginId, expectedSourceDir: sourceDir });
+    return { pluginId, sourceDir, source };
+  });
 
+  for (const { pluginId, sourceDir, source } of plans) {
     const dest = join(targetDir, root, "plugins", sourceDir);
     mkdirSync(dirname(dest), { recursive: true });
     cpSync(source, dest, { recursive: true, force: true });
@@ -134,12 +145,22 @@ export async function installPlugin(
   onProgress?: (file: string) => void,
   installDir = "feather"
 ): Promise<void> {
+  assertValidPluginId(pluginId);
   const pluginEntries = entries.filter((e) => e.type === "plugin" && e.plugin === pluginId);
   if (pluginEntries.length === 0) throw new Error(`Unknown plugin: ${pluginId}`);
   const root = normalizeInstallDir(installDir);
-  for (const entry of pluginEntries) {
+  const plans = pluginEntries.map((entry) => {
     const sourceDir = entry.sourceDir ?? pluginId.replace(/\./g, "/");
     const file = entry.file ?? entry.path.replace(new RegExp(`^plugins/${sourceDir}/`), "");
+    if (sourceDir !== pluginIdToSourceDir(pluginId)) throw new Error(`Plugin manifest path mismatch: ${pluginId} should live in plugins/${pluginIdToSourceDir(pluginId)}`);
+    if (!isSafePluginRelativePath(file)) throw new Error(`Unsafe plugin file path: ${file}`);
+    if (!isSafePluginRelativePath(entry.path) || !entry.path.startsWith(`plugins/${sourceDir}/`)) {
+      throw new Error(`Unsafe plugin manifest path: ${entry.path}`);
+    }
+    return { entry, sourceDir, file };
+  });
+
+  for (const { entry, sourceDir, file } of plans) {
     const dest = join(targetDir, root, "plugins", sourceDir, file);
     mkdirSync(dirname(dest), { recursive: true });
     await downloadFile(entry.path, dest, branch);
@@ -148,7 +169,14 @@ export async function installPlugin(
 }
 
 export function getPluginIds(entries: ManifestEntry[]): string[] {
-  return [...new Set(entries.filter((e) => e.type === "plugin").map((e) => e.plugin!))];
+  return [...new Set(entries.filter((e) => e.type === "plugin").map((e) => e.plugin!).filter((id) => {
+    try {
+      assertValidPluginId(id);
+      return true;
+    } catch {
+      return false;
+    }
+  }))];
 }
 
 export function normalizeInstallDir(installDir = "feather"): string {
@@ -156,25 +184,5 @@ export function normalizeInstallDir(installDir = "feather"): string {
 }
 
 export function getLocalPluginIds(sourceRoot: string): string[] {
-  const pluginsRoot = join(sourceRoot, "plugins");
-  if (!existsSync(pluginsRoot)) return [];
-
-  const ids: string[] = [];
-  const visit = (dir: string) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const pluginDir = join(dir, entry.name);
-      const manifest = join(pluginDir, "manifest.lua");
-      if (existsSync(manifest)) {
-        const src = readFileSync(manifest, "utf8");
-        const id = src.match(/id\s*=\s*"([^"]+)"/)?.[1];
-        if (id) ids.push(id);
-      } else {
-        visit(pluginDir);
-      }
-    }
-  };
-
-  visit(pluginsRoot);
-  return ids.sort();
+  return findLocalPluginIds(sourceRoot);
 }
