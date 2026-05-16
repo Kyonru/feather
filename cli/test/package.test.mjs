@@ -840,14 +840,109 @@ test('doctor --json reports package audit problems and unsafe config flags', () 
   assert.equal(labels.get('Disk logging').severity, 'warn');
 });
 
-test('doctor: human report includes grouped checks and summary', () => {
+test('doctor --json reports included plugins missing or unknown', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { include = { "console", "missing-plugin" } }\n');
+
+  const result = run(['doctor', dir, '--json']);
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  const consoleCheck = labels.get('Plugin console');
+  const unknownCheck = labels.get('Plugin missing-plugin');
+
+  assert.equal(consoleCheck.severity, 'warn');
+  assert.equal(consoleCheck.detail, 'included but not installed');
+  assert.ok(consoleCheck.fix.includes(`feather plugin install console --dir ${dir} --install-dir feather`));
+  assert.equal(unknownCheck.severity, 'warn');
+  assert.equal(unknownCheck.detail, 'included but unknown');
+  assert.ok(unknownCheck.fix.includes('Remove or correct "missing-plugin"'));
+});
+
+test('doctor --json reports malformed installed plugin manifests with exact update fix', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  mkdirSync(join(dir, 'feather', 'plugins', 'bad-plugin'), { recursive: true });
+  writeFileSync(join(dir, 'feather', 'init.lua'), 'return {}\n');
+  writeFileSync(join(dir, 'feather', 'plugins', 'bad-plugin', 'manifest.lua'), 'return { name = "Bad Plugin" }\n');
+
+  const result = run(['doctor', dir, '--json']);
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  const manifestCheck = labels.get('Plugin manifests');
+
+  assert.equal(manifestCheck.severity, 'warn');
+  assert.equal(manifestCheck.detail, '1 missing id');
+  assert.ok(manifestCheck.fix.includes(`feather plugin update --dir ${dir} --install-dir feather --yes`));
+});
+
+test('doctor --json reports package file recovery and stale bundled registry versions', () => {
   const dir = makeTmp();
   writeGame(dir);
   writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test" }\n');
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'anim8.lua'), 'tampered');
+  writeLock(dir, {
+    anim8: {
+      version: 'v0.0.0',
+      trust: 'verified',
+      source: { repo: 'kikito/anim8', tag: 'v0.0.0' },
+      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256('original') }],
+    },
+    helper: {
+      version: 'url',
+      trust: 'experimental',
+      source: { url: 'https://example.com/helper.lua' },
+      files: [{ name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('expected') }],
+    },
+  });
+
+  const result = run(['doctor', dir, '--json']);
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+
+  assert.equal(labels.get('Package file integrity').severity, 'warn');
+  assert.ok(labels.get('Package file integrity').fix.includes(`feather package install --dir ${dir}`));
+  assert.equal(labels.get('Package anim8 files').detail, '1 modified');
+  assert.ok(labels.get('Package anim8 files').fix.includes(`feather package install --dir ${dir}`));
+  assert.equal(labels.get('Package helper files').detail, '1 missing');
+  assert.equal(labels.get('Package anim8 version').severity, 'warn');
+  assert.ok(labels.get('Package anim8 version').fix.includes(`feather package update anim8 --dir ${dir}`));
+  assert.equal(labels.has('Package helper version'), false);
+});
+
+test('doctor --json reports non-experimental packages missing from bundled registry', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeLock(dir, {
+    'local-legacy': {
+      version: 'v1.0.0',
+      trust: 'known',
+      source: { repo: 'me/local-legacy', tag: 'v1.0.0' },
+      files: [],
+    },
+  });
+
+  const result = run(['doctor', dir, '--json']);
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  const registryCheck = labels.get('Package local-legacy registry');
+
+  assert.equal(registryCheck.severity, 'warn');
+  assert.equal(registryCheck.detail, 'not found in bundled registry');
+  assert.ok(registryCheck.fix.includes(`feather package remove local-legacy --dir ${dir} --yes`));
+});
+
+test('doctor: human report includes grouped checks and summary', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test", include = { "console" } }\n');
   const result = run(['doctor', dir]);
   assert.match(result.stdout, /Feather doctor/);
   assert.match(result.stdout, /Environment/);
   assert.match(result.stdout, /Project/);
+  assert.match(result.stdout, /Plugin console/);
+  assert.match(result.stdout, /feather plugin install console/);
   assert.match(result.stdout, /passed, .* warnings, .* failures/);
 });
 

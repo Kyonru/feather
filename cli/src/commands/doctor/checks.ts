@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { spawnSync } from 'node:child_process';
+import { basename } from 'node:path';
+import { readPluginManifest } from '../../lib/plugin-utils.js';
 
 export type Severity = 'pass' | 'warn' | 'fail' | 'info';
 
@@ -83,7 +85,28 @@ export function hasConfigArrayValue(src: string, key: string, value: string): bo
   return match ? new RegExp(`["']${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(match[1]) : false;
 }
 
+export function configArrayValues(src: string, key: string): string[] {
+  const match = src.match(new RegExp(`${key}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
+  if (!match) return [];
+  return [...match[1].matchAll(/["']([^"']+)["']/g)].map((item) => item[1]);
+}
+
 export function isWeakApiKey(value: unknown): boolean {
   return typeof value !== 'string' || value.trim().length < 24 || value === 'change-me' || value === 'dev';
 }
 
+export function shellArg(value: string): string {
+  if (/^[A-Za-z0-9_/:=.,@%+-]+$/.test(value)) return value;
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+export function buildPluginIndex(pluginDirs: string[]): Map<string, { dir: string; name: string; version: string }> {
+  const plugins = new Map<string, { dir: string; name: string; version: string }>();
+  for (const dir of pluginDirs) {
+    const manifest = readPluginManifest(dir);
+    if (manifest?.id) {
+      plugins.set(manifest.id, { dir, name: manifest.name || basename(dir), version: manifest.version || 'unknown' });
+    }
+  }
+  return plugins;
+}
