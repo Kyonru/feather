@@ -8,6 +8,7 @@ import { printJson } from '../../lib/output.js';
 import { findSymlinkEscapes } from '../../lib/path-safety.js';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
+import { lockfileUrlFindings } from '../../lib/package/provenance.js';
 import { loadRegistry } from '../../lib/package/registry.js';
 import { classifyPluginTrust, dangerousPluginIds, parseManagedValue, findInstalledPluginDirs, pluginTrustLabel, readPluginManifest } from '../../lib/plugin-utils.js';
 import { pluginCatalog } from '../../generated/plugin-catalog.js';
@@ -432,6 +433,24 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
           'warn',
           details,
           `Run \`feather package install --dir ${projectDirArg}\`.`,
+        );
+      }
+
+      const provenanceFindings = lockfileUrlFindings(lockfile);
+      const provenanceByPackage = new Map<string, typeof provenanceFindings>();
+      for (const finding of provenanceFindings) {
+        provenanceByPackage.set(finding.id, [...(provenanceByPackage.get(finding.id) ?? []), finding]);
+      }
+      for (const [id, findings] of [...provenanceByPackage.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+        const reasons = [...new Set(findings.map((finding) => finding.reason))].join(', ');
+        const targets = [...new Set(findings.map((finding) => finding.target))].slice(0, 3).join(', ');
+        add(
+          checks,
+          'Packages',
+          `Package ${id} source`,
+          'warn',
+          `${findings.length} untrusted URL(s): ${reasons}${targets ? ` (${targets})` : ''}`,
+          `Review feather.lock.json; repair only if trusted with \`feather package install --dir ${projectDirArg} --allow-untrusted\`.`,
         );
       }
 

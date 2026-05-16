@@ -1,6 +1,7 @@
 import { auditLockfile } from '../../lib/package/audit.js';
 import { installFromUrl, restorePackage } from '../../lib/package/install.js';
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
+import { lockfileEntryRequiresUntrustedRepair, lockfileEntrySourceSummary } from '../../lib/package/provenance.js';
 import { resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import {
@@ -125,6 +126,33 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     if (broken.size === 0) {
       printSuccess(`✔ All ${entries.length} package(s) already up to date.`);
       return;
+    }
+
+    const untrustedRepairs = entries.filter(([id, entry]) => broken.has(id) && lockfileEntryRequiresUntrustedRepair(id, entry));
+    if (untrustedRepairs.length > 0 && !opts.allowUntrusted) {
+      printWarning('Repairing untrusted or experimental package sources');
+      printKeyValues(untrustedRepairs.map(([id, entry]) => [
+        id,
+        `${entry.version} (${lockfileEntrySourceSummary(id, entry)})`,
+      ]));
+
+      if (!process.stdin.isTTY || !process.stdout.isTTY) {
+        printBlank();
+        printDanger('Use --allow-untrusted to repair these lockfile entries in non-interactive mode.');
+        fail('', { silent: true });
+      }
+
+      const confirmed = await confirmAction({
+        title: 'feather package install',
+        label: 'Repair these unreviewed package sources?',
+        hint: 'Only continue if you trust the lockfile sources and target paths.',
+        danger: true,
+        rows: untrustedRepairs.map(([id, entry]) => `${id}: ${lockfileEntrySourceSummary(id, entry)}`),
+      });
+      if (!confirmed) {
+        printMuted('Install cancelled.');
+        return;
+      }
     }
 
     let failed = false;

@@ -561,6 +561,41 @@ test('install (no args): url package already on disk with correct hash is skippe
   assert.ok(stdout.includes('up to date'));
 });
 
+test('install (no args): broken untrusted url package requires explicit repair consent', () => {
+  const dir = makeTmp();
+  const content = 'return {}\n';
+  writeLock(dir, {
+    helper: {
+      version: 'url',
+      trust: 'experimental',
+      source: { kind: 'url', url: 'data:text/plain,return%20%7B%7D%0A', urls: ['data:text/plain,return%20%7B%7D%0A'] },
+      files: [{ name: 'helper.lua', target: 'lib/helper.lua', sha256: sha256(content) }],
+    },
+  });
+
+  const result = run(['package', 'install', '--dir', dir]);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('--allow-untrusted'));
+  assert.equal(existsSync(join(dir, 'lib', 'helper.lua')), false);
+});
+
+test('install (no args): --allow-untrusted repairs broken url package', () => {
+  const dir = makeTmp();
+  const content = 'return {}\n';
+  writeLock(dir, {
+    helper: {
+      version: 'url',
+      trust: 'experimental',
+      source: { kind: 'url', url: 'data:text/plain,return%20%7B%7D%0A', urls: ['data:text/plain,return%20%7B%7D%0A'] },
+      files: [{ name: 'helper.lua', target: 'lib/helper.lua', sha256: sha256(content) }],
+    },
+  });
+
+  const result = run(['package', 'install', '--dir', dir, '--allow-untrusted']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(readFileSync(join(dir, 'lib', 'helper.lua'), 'utf8'), content);
+});
+
 test('remove: url package removes file and lockfile entry', () => {
   const dir = makeTmp();
   mkdirSync(join(dir, 'lib'), { recursive: true });
@@ -909,6 +944,36 @@ test('doctor --json reports package file recovery and stale bundled registry ver
   assert.equal(labels.get('Package anim8 version').severity, 'warn');
   assert.ok(labels.get('Package anim8 version').fix.includes(`feather package update anim8 --dir ${dir}`));
   assert.equal(labels.has('Package helper version'), false);
+});
+
+test('doctor --json reports untrusted lockfile source URLs', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const commitSha = '0123456789abcdef0123456789abcdef01234567';
+  writeLock(dir, {
+    helper: {
+      version: 'url',
+      trust: 'experimental',
+      source: { kind: 'url', url: 'https://example.com/helper.lua', urls: ['https://example.com/helper.lua'] },
+      files: [{ name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('expected') }],
+    },
+    'raw-helper': {
+      version: 'main',
+      trust: 'experimental',
+      source: { repo: 'me/pkg', tag: 'main', resolvedRef: commitSha, commitSha },
+      files: [{ name: 'raw.lua', target: 'lib/raw.lua', sha256: sha256('expected') }],
+    },
+  });
+
+  const result = run(['doctor', dir, '--json']);
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  const sourceCheck = labels.get('Package helper source');
+
+  assert.equal(sourceCheck.severity, 'warn');
+  assert.ok(sourceCheck.detail.includes('example.com'));
+  assert.ok(sourceCheck.fix.includes('--allow-untrusted'));
+  assert.equal(labels.has('Package raw-helper source'), false);
 });
 
 test('doctor --json reports non-experimental packages missing from bundled registry', () => {

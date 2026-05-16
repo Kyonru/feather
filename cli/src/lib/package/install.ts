@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { sha256Buffer } from "./checksum.js";
 import { addToLockfile, type Lockfile, type LockfileEntry } from "./lockfile.js";
+import { lockfileFileUrl } from "./provenance.js";
 import { resolveProjectTarget } from "./target.js";
 import type { ResolvedPackage } from "./resolve.js";
 
@@ -144,7 +145,11 @@ export async function installPackage(
       parent: pkg.entry.parent,
       version: effectiveTag,
       trust: pkg.versionOverride ? "experimental" : pkg.entry.trust,
-      source: { repo: src.repo ?? pkg.id, tag: effectiveTag },
+      source: {
+        repo: src.repo ?? pkg.id,
+        tag: effectiveTag,
+        ...(!pkg.versionOverride && src.commitSha ? { resolvedRef: src.commitSha, commitSha: src.commitSha } : {}),
+      },
       files: lockedFiles,
     });
   }
@@ -197,8 +202,8 @@ export async function installFromUrl(
   addToLockfile(lockfile, name.replace(/\.lua$/, ""), {
     version: "0.0.0",
     trust: "experimental",
-    source: { url },
-    files: [{ name, target, sha256: hash }],
+    source: { kind: "url", url, urls: [url] },
+    files: [{ name, url, target, sha256: hash }],
   });
 
   return { ok: true, sha256: hash, size: buf.byteLength, target };
@@ -251,10 +256,7 @@ export async function restorePackage(
 
     onFileStart?.(file.name);
 
-    const url = file.url
-      ?? ("url" in entry.source
-        ? entry.source.url
-        : `https://raw.githubusercontent.com/${entry.source.repo}/${entry.source.tag}/${file.name}`);
+    const url = lockfileFileUrl(entry, file);
 
     const result = await downloadVerified(url, file.sha256);
     if ("error" in result) {
