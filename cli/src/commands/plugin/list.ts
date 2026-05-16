@@ -22,8 +22,9 @@ export async function pluginListCommand(dir?: string, installDir = 'feather'): P
   printHeading(`\nInstalled plugins (${dirs.length})\n`);
   const rows = dirs.map((dir) => {
     const meta = readPluginManifest(dir);
+    const fallbackId = dir.replace(dirPath, '').replace(/^[/\\]/, '');
     return {
-      id: meta?.id ?? dir.replace(dirPath, '').replace(/^[/\\]/, ''),
+      id: meta?.id || fallbackId,
       version: meta?.version ?? '',
       name: meta?.name ?? '',
     };
