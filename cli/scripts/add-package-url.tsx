@@ -27,6 +27,9 @@ import {
   Hint,
   Spinner,
 } from './wizard-shared.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { fileNameFromUrl } from '../src/lib/url.js';
 
 interface UrlFile {
   name: string;
@@ -90,15 +93,6 @@ function buildPackageJson(
     obj.subpackages = data.subpackages;
   }
   return obj;
-}
-
-function fileNameFromUrl(url: string): string {
-  try {
-    const path = new URL(url).pathname;
-    return path.split('/').filter(Boolean).pop() ?? 'file.lua';
-  } catch {
-    return url.split('/').pop() ?? 'file.lua';
-  }
 }
 
 function FileFetchStep({

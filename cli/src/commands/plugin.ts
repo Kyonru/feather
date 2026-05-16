@@ -1,6 +1,5 @@
-import { existsSync, readFileSync, rmSync, readdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, rmSync } from "node:fs";
+import { join, resolve } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
 import {
@@ -12,54 +11,11 @@ import {
   normalizeInstallDir,
 } from "../lib/install.js";
 import { choosePluginUpdateWorkflow, choosePluginWorkflow } from "../ui/plugin-workflow.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-function findProjectDir(cwd = process.cwd()): string {
-  if (existsSync(join(cwd, "feather", "init.lua"))) return cwd;
-  if (existsSync(join(cwd, "main.lua"))) return cwd;
-  return cwd;
-}
+import { findProjectDir, resolveLocalLuaRoot } from "../lib/paths.js";
+import { findInstalledPluginDirs, readPluginManifest } from "../lib/plugin-utils.js";
 
 function pluginsDir(projectDir: string, installDir = "feather"): string {
   return join(projectDir, normalizeInstallDir(installDir), "plugins");
-}
-
-function bundledLuaRoot(): string {
-  return resolve(__dirname, "../../lua");
-}
-
-function repoLuaRoot(): string | null {
-  const candidate = resolve(__dirname, "../../../src-lua");
-  return existsSync(join(candidate, "feather", "init.lua")) ? candidate : null;
-}
-
-function resolveLocalLuaRoot(opts: { localSrc?: string }): string {
-  if (opts.localSrc) return resolve(opts.localSrc);
-  return repoLuaRoot() ?? bundledLuaRoot();
-}
-
-function readManifest(pluginDir: string): Record<string, string> | null {
-  // Try to extract id/name/version from manifest.lua via simple regex
-  const manifestPath = join(pluginDir, "manifest.lua");
-  if (!existsSync(manifestPath)) return null;
-  const src = readFileSync(manifestPath, "utf8");
-  const get = (key: string) => src.match(new RegExp(`${key}\\s*=\\s*"([^"]+)"`))?.[1] ?? "";
-  return { id: get("id"), name: get("name"), version: get("version") };
-}
-
-function findInstalledPluginDirs(root: string): string[] {
-  const found: string[] = [];
-  for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const dir = join(root, entry.name);
-    if (existsSync(join(dir, "manifest.lua"))) {
-      found.push(dir);
-    } else {
-      found.push(...findInstalledPluginDirs(dir));
-    }
-  }
-  return found;
 }
 
 function getInstalledPluginIds(projectDir: string, installDir = "feather"): string[] {
@@ -67,7 +23,7 @@ function getInstalledPluginIds(projectDir: string, installDir = "feather"): stri
   if (!existsSync(dirPath)) return [];
 
   return findInstalledPluginDirs(dirPath)
-    .map((dir) => readManifest(dir)?.id)
+    .map((dir) => readPluginManifest(dir)?.id)
     .filter((id): id is string => Boolean(id))
     .sort();
 }
@@ -90,7 +46,7 @@ export async function pluginListCommand(dir?: string, installDir = "feather"): P
 
   console.log(chalk.bold(`\nInstalled plugins (${dirs.length})\n`));
   for (const dir of dirs) {
-    const meta = readManifest(dir);
+    const meta = readPluginManifest(dir);
     if (meta) {
       console.log(`  ${chalk.cyan(meta.id.padEnd(24))} ${chalk.dim(meta.version.padEnd(8))} ${meta.name}`);
     } else {

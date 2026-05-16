@@ -8,6 +8,29 @@ import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { useTextInput } from '../src/hooks/use-text-input.js';
+import {
+  CursorText,
+  Spinner,
+  Header,
+  Hint,
+  TextInputStep,
+  SelectStep,
+  MultiSelectStep,
+  AutoStep,
+  TargetsStep,
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+} from '../src/ui/components.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { GH_HEADERS, fetchCommitSha, fetchLuaFiles } from '../src/lib/github.js';
+
+export { CursorText, Spinner, Header, Hint, TextInputStep, SelectStep, MultiSelectStep, AutoStep, TargetsStep };
+export { GH_HEADERS, fetchCommitSha, fetchLuaFiles };
+
 export const __dirname = dirname(fileURLToPath(import.meta.url));
 export const root = resolve(__dirname, '../..');
 export const packagesDir = join(root, 'packages');
@@ -39,401 +62,6 @@ export interface FormData {
 }
 
 export type InkKey = Parameters<Parameters<typeof useInput>[0]>[1];
-
-export function Header({ step, total, title }: { step: number; total: number; title?: string }) {
-  return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Text bold color="cyan">
-        {'  '}
-        {title ?? 'feather package:add'}
-      </Text>
-      <Text dimColor>{`  Step ${step} of ${total}`}</Text>
-    </Box>
-  );
-}
-
-export function Hint({ children }: { children: string }) {
-  return (
-    <Text dimColor>
-      {'  '}
-      {children}
-    </Text>
-  );
-}
-
-export function useTextInput(initial: string) {
-  const [value, setValue] = useState(initial);
-  const [cursor, setCursor] = useState(initial.length);
-
-  const reset = (next: string) => {
-    setValue(next);
-    setCursor(next.length);
-  };
-
-  const handleKey = (input: string, key: InkKey) => {
-    if (key.leftArrow) {
-      setCursor((c) => Math.max(0, c - 1));
-      return true;
-    }
-    if (key.rightArrow) {
-      setCursor((c) => Math.min(value.length, c + 1));
-      return true;
-    }
-    if (key.backspace) {
-      if (cursor === 0) return true;
-      const pos = cursor;
-      setValue((v) => v.slice(0, pos - 1) + v.slice(pos));
-      setCursor((c) => c - 1);
-      return true;
-    }
-    if (key.delete) {
-      const pos = cursor;
-      setValue((v) => v.slice(0, pos) + v.slice(pos + 1));
-      return true;
-    }
-    if (!key.ctrl && !key.meta && input) {
-      const pos = cursor;
-      setValue((v) => v.slice(0, pos) + input + v.slice(pos));
-      setCursor((c) => c + 1);
-      return true;
-    }
-    return false;
-  };
-
-  return {
-    value,
-    cursor,
-    reset,
-    handleKey,
-    before: value.slice(0, cursor),
-    at: value[cursor] ?? '',
-    after: value.slice(cursor + 1),
-  };
-}
-
-export function CursorText({ before, at, after }: { before: string; at: string; after: string }) {
-  return (
-    <Box>
-      <Text color="cyan">{before}</Text>
-      <Text inverse>{at || ' '}</Text>
-      <Text color="cyan">{after}</Text>
-    </Box>
-  );
-}
-
-interface TextInputStepProps {
-  stepNum: number;
-  total: number;
-  label: string;
-  hint?: string;
-  defaultValue?: string;
-  validate?: (v: string) => string | null;
-  onSubmit: (value: string) => void;
-  title?: string;
-}
-
-export function TextInputStep({
-  stepNum,
-  total,
-  label,
-  hint,
-  defaultValue = '',
-  validate,
-  onSubmit,
-  title,
-}: TextInputStepProps) {
-  const input = useTextInput(defaultValue);
-  const [error, setError] = useState<string | null>(null);
-
-  useInput((char, key) => {
-    if (key.return) {
-      const err = validate ? validate(input.value.trim()) : null;
-      if (err) {
-        setError(err);
-        return;
-      }
-      onSubmit(input.value.trim());
-      return;
-    }
-    input.handleKey(char, key);
-    setError(null);
-  });
-
-  return (
-    <Box flexDirection="column">
-      <Header step={stepNum} total={total} title={title} />
-      <Text bold>
-        {'  '}
-        {label}
-      </Text>
-      {hint && <Hint>{hint}</Hint>}
-      <Box marginTop={1}>
-        <Text>{'  '}</Text>
-        <CursorText before={input.before} at={input.at} after={input.after} />
-      </Box>
-      {error && (
-        <Box marginTop={1}>
-          <Text color="red">
-            {'  ✖ '}
-            {error}
-          </Text>
-        </Box>
-      )}
-      <Box marginTop={1}>
-        <Text dimColor>{'  ←→ move · Backspace/Delete edit · Enter confirm'}</Text>
-      </Box>
-    </Box>
-  );
-}
-
-interface SelectStepProps {
-  stepNum: number;
-  total: number;
-  label: string;
-  hint?: string;
-  options: string[];
-  labels?: string[]; // display labels parallel to options; falls back to option value
-  initialIndex?: number;
-  onSelect: (value: string) => void;
-  title?: string;
-}
-
-export function SelectStep({
-  stepNum,
-  total,
-  label,
-  hint,
-  options,
-  labels,
-  initialIndex = 0,
-  onSelect,
-  title,
-}: SelectStepProps) {
-  const [cursor, setCursor] = useState(initialIndex);
-
-  useInput((_, key) => {
-    if (key.upArrow) setCursor((c) => Math.max(0, c - 1));
-    if (key.downArrow) setCursor((c) => Math.min(options.length - 1, c + 1));
-    if (key.return) onSelect(options[cursor]!);
-  });
-
-  return (
-    <Box flexDirection="column">
-      <Header step={stepNum} total={total} title={title} />
-      <Text bold>
-        {'  '}
-        {label}
-      </Text>
-      {hint && <Hint>{hint}</Hint>}
-      <Box flexDirection="column" marginTop={1}>
-        {options.map((opt, i) => (
-          <Box key={`${i}:${opt}`}>
-            <Text color={i === cursor ? 'cyan' : undefined}>
-              {'  '}
-              {i === cursor ? '❯ ' : '  '}
-              {labels?.[i] ?? opt}
-            </Text>
-          </Box>
-        ))}
-      </Box>
-      <Box marginTop={1}>
-        <Text dimColor>{'  ↑↓ navigate · Enter to select'}</Text>
-      </Box>
-    </Box>
-  );
-}
-
-interface MultiSelectStepProps {
-  stepNum: number;
-  total: number;
-  label: string;
-  hint?: string;
-  options: string[];
-  initialSelected?: Set<number>;
-  onSubmit: (selected: string[]) => void;
-  title?: string;
-}
-
-export function MultiSelectStep({
-  stepNum,
-  total,
-  label,
-  hint,
-  options,
-  initialSelected,
-  onSubmit,
-  title,
-}: MultiSelectStepProps) {
-  const [cursor, setCursor] = useState(0);
-  const [selected, setSelected] = useState<Set<number>>(initialSelected ?? new Set(options.map((_, i) => i)));
-
-  useInput((input, key) => {
-    if (key.upArrow) setCursor((c) => Math.max(0, c - 1));
-    if (key.downArrow) setCursor((c) => Math.min(options.length - 1, c + 1));
-    if (input === ' ') {
-      setSelected((s) => {
-        const next = new Set(s);
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        next.has(cursor) ? next.delete(cursor) : next.add(cursor);
-        return next;
-      });
-    }
-    if (key.return) {
-      const chosen = options.filter((_, i) => selected.has(i));
-      if (chosen.length > 0) onSubmit(chosen);
-    }
-  });
-
-  return (
-    <Box flexDirection="column">
-      <Header step={stepNum} total={total} title={title} />
-      <Text bold>
-        {'  '}
-        {label}
-      </Text>
-      {hint && <Hint>{hint}</Hint>}
-      <Box flexDirection="column" marginTop={1}>
-        {options.map((opt, i) => (
-          <Box key={`${i}:${opt}`}>
-            <Text color={i === cursor ? 'cyan' : undefined}>
-              {'  '}
-              {i === cursor ? '❯ ' : '  '}
-              {selected.has(i) ? '◉ ' : '○ '}
-              {opt}
-            </Text>
-          </Box>
-        ))}
-      </Box>
-      <Box marginTop={1}>
-        <Text dimColor>{'  ↑↓ navigate · Space toggle · Enter confirm'}</Text>
-      </Box>
-    </Box>
-  );
-}
-
-const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-
-export function Spinner({ label }: { label: string }) {
-  const [frame, setFrame] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setFrame((f) => (f + 1) % SPINNER_FRAMES.length), 80);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <Box>
-      <Text color="cyan">{SPINNER_FRAMES[frame]} </Text>
-      <Text>{label}</Text>
-    </Box>
-  );
-}
-
-interface AutoStepProps {
-  label: string;
-  run: () => Promise<void>;
-  onError: (msg: string) => void;
-}
-
-export function AutoStep({ label, run, onError }: AutoStepProps) {
-  const [status, setStatus] = useState<'running' | 'done' | 'error'>('running');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    run()
-      .then(() => setStatus('done'))
-      .catch((err: Error) => {
-        setError(err.message);
-        setStatus('error');
-        onError(err.message);
-      });
-  }, []);
-
-  return (
-    <Box flexDirection="column" paddingLeft={2}>
-      {status === 'running' && <Spinner label={label} />}
-      {status === 'done' && <Text color="green">✔ {label}</Text>}
-      {status === 'error' && <Text color="red">✖ {error}</Text>}
-    </Box>
-  );
-}
-
-interface TargetsStepProps {
-  stepNum: number;
-  total: number;
-  id: string;
-  files: string[];
-  initialTargets?: Record<string, string>;
-  onSubmit: (targets: Record<string, string>) => void;
-  title?: string;
-}
-
-export function TargetsStep({ stepNum, total, id, files, initialTargets, onSubmit, title }: TargetsStepProps) {
-  const defaultTarget = (f: string) => initialTargets?.[f] ?? (files.length === 1 ? `lib/${f}` : `lib/${id}/${f}`);
-
-  const [index, setIndex] = useState(0);
-  const [targets, setTargets] = useState<Record<string, string>>(
-    Object.fromEntries(files.map((f) => [f, defaultTarget(f)])),
-  );
-  const textInput = useTextInput(defaultTarget(files[0]!));
-  const [error, setError] = useState<string | null>(null);
-
-  const file = files[index]!;
-
-  const advance = () => {
-    const val = textInput.value.trim();
-    if (!val) {
-      setError('Target path is required');
-      return;
-    }
-    if (!val.endsWith('.lua')) {
-      setError('Target path must end in .lua');
-      return;
-    }
-    const next = { ...targets, [file]: val };
-    setTargets(next);
-    if (index + 1 < files.length) {
-      const nextFile = files[index + 1]!;
-      setIndex(index + 1);
-      textInput.reset(next[nextFile] ?? defaultTarget(nextFile));
-      setError(null);
-    } else {
-      onSubmit(next);
-    }
-  };
-
-  useInput((char, key) => {
-    if (key.return) {
-      advance();
-      return;
-    }
-    textInput.handleKey(char, key);
-    setError(null);
-  });
-
-  return (
-    <Box flexDirection="column">
-      <Header step={stepNum} total={total} title={title} />
-      <Text bold>{'  '}Install target paths</Text>
-      <Hint>{`File ${index + 1} of ${files.length}: ${file}`}</Hint>
-      <Box marginTop={1}>
-        <Text>{'  '}</Text>
-        <CursorText before={textInput.before} at={textInput.at} after={textInput.after} />
-      </Box>
-      {error && (
-        <Box marginTop={1}>
-          <Text color="red">
-            {'  ✖ '}
-            {error}
-          </Text>
-        </Box>
-      )}
-      <Box marginTop={1}>
-        <Text dimColor>{'  ←→ move · Backspace/Delete edit · Enter confirm'}</Text>
-      </Box>
-    </Box>
-  );
-}
 
 interface ReviewStepProps {
   stepNum: number;
@@ -605,7 +233,10 @@ export function SubpackagesStep({
     } else if (phase === 'id') {
       if (key.return) {
         const val = idInput.value.trim();
-        if (!val) { setIdError('Required'); return; }
+        if (!val) {
+          setIdError('Required');
+          return;
+        }
         setCurrentId(val);
         setFileSelected(new Set());
         setFileCursor(0);
@@ -619,6 +250,7 @@ export function SubpackagesStep({
       if (input === ' ') {
         setFileSelected((s) => {
           const next = new Set(s);
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           next.has(fileCursor) ? next.delete(fileCursor) : next.add(fileCursor);
           return next;
         });
@@ -635,7 +267,10 @@ export function SubpackagesStep({
     } else if (phase === 'require') {
       if (key.return) {
         const val = reqInput.value.trim();
-        if (!val) { setReqError('Required'); return; }
+        if (!val) {
+          setReqError('Required');
+          return;
+        }
         setAccumulated((a) => ({ ...a, [currentId]: { files: currentFiles, require: val } }));
         setPhase('add-more');
         return;
@@ -668,9 +303,10 @@ export function SubpackagesStep({
           {accKeys.map((k) => (
             <Text key={k} color="green">
               {'  ✔ '}
-              {k}
-              {' '}
-              <Text dimColor>({accumulated[k]!.files.length} file{accumulated[k]!.files.length === 1 ? '' : 's'})</Text>
+              {k}{' '}
+              <Text dimColor>
+                ({accumulated[k]!.files.length} file{accumulated[k]!.files.length === 1 ? '' : 's'})
+              </Text>
             </Text>
           ))}
         </Box>
@@ -693,7 +329,10 @@ export function SubpackagesStep({
         </Box>
         {idError && (
           <Box marginTop={1}>
-            <Text color="red">{'  ✖ '}{idError}</Text>
+            <Text color="red">
+              {'  ✖ '}
+              {idError}
+            </Text>
           </Box>
         )}
         <Box marginTop={1}>
@@ -707,7 +346,9 @@ export function SubpackagesStep({
     return (
       <Box flexDirection="column">
         <Header step={stepNum} total={total} title={title} />
-        <Text bold>{'  '}Files for {currentId}</Text>
+        <Text bold>
+          {'  '}Files for {currentId}
+        </Text>
         <Hint>Select which files belong to this submodule</Hint>
         <Box flexDirection="column" marginTop={1}>
           {selectedFiles.map((f, i) => (
@@ -731,7 +372,9 @@ export function SubpackagesStep({
   return (
     <Box flexDirection="column">
       <Header step={stepNum} total={total} title={title} />
-      <Text bold>{'  '}Require path for {currentId}</Text>
+      <Text bold>
+        {'  '}Require path for {currentId}
+      </Text>
       <Hint>e.g. lib.hump.camera</Hint>
       <Box marginTop={1}>
         <Text>{'  '}</Text>
@@ -739,7 +382,10 @@ export function SubpackagesStep({
       </Box>
       {reqError && (
         <Box marginTop={1}>
-          <Text color="red">{'  ✖ '}{reqError}</Text>
+          <Text color="red">
+            {'  ✖ '}
+            {reqError}
+          </Text>
         </Box>
       )}
       <Box marginTop={1}>
@@ -748,8 +394,6 @@ export function SubpackagesStep({
     </Box>
   );
 }
-
-const GH_HEADERS = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
 
 export interface RepoMeta {
   tags: string[];
@@ -778,27 +422,6 @@ export async function fetchRepoMeta(repo: string): Promise<RepoMeta> {
     defaultBranch: repoData.default_branch ?? 'main',
     license: repoData.license?.spdx_id ?? 'unknown',
   };
-}
-
-export async function fetchCommitSha(repo: string, ref: string): Promise<string> {
-  const res = await fetch(`https://api.github.com/repos/${repo}/commits/${encodeURIComponent(ref)}`, {
-    headers: GH_HEADERS,
-  });
-  if (!res.ok) throw new Error(`GitHub API ${res.status} resolving ${repo}@${ref} to commit SHA`);
-  const data = (await res.json()) as { sha: string };
-  return data.sha;
-}
-
-export async function fetchLuaFiles(repo: string, tag: string): Promise<string[]> {
-  const res = await fetch(`https://api.github.com/repos/${repo}/git/trees/${tag}?recursive=1`, {
-    headers: GH_HEADERS,
-  });
-  if (!res.ok) throw new Error(`GitHub API ${res.status} for ${repo}@${tag}`);
-  const data = (await res.json()) as { tree: Array<{ path: string; type: string }> };
-  return data.tree
-    .filter((node) => node.type === 'blob' && node.path.endsWith('.lua'))
-    .map((node) => node.path)
-    .sort();
 }
 
 export function buildPackageJson(data: FormData): object {

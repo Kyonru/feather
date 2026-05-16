@@ -1,6 +1,8 @@
 # Package Manager
 
-Feather includes a curated package installer for LÖVE libraries. It is not a general package manager. It is a hand-curated catalog of known-good libraries with verified checksums.
+Feather includes a curated package installer for LÖVE libraries. It is **not a general package manager** — it is a set of utilities to manage libraries that would otherwise require manual copy-paste. There is no central registry in the npm or Cargo sense. All catalog packages are sourced from GitHub repositories; if a repository is deleted, renamed, or made private, that package will no longer be installable. **You are responsible for your own copies.** Committing installed files to your repo rather than adding them to `.gitignore` is strongly recommended if long-term reproducibility matters to you.
+
+The catalog is hand-curated and pinned to exact commit SHAs with verified checksums.
 
 ## Concepts
 
@@ -131,20 +133,37 @@ If the requested version does not exist on GitHub, the install aborts with a cle
 
 ### `feather package add`
 
-Install one or more Lua files from direct URLs into your project. Launches an interactive wizard that walks you through each step:
+Install a Lua library that is not in the Feather catalog. Launches an interactive wizard and first asks how you want to add the package:
 
-1. Name the dependency — how it appears in `feather.lock.json`
-2. Enter file URLs — each is downloaded immediately, SHA-256 computed, and you confirm the install path
-3. Optionally add more files to the same named package
-4. Enter the require path for the usage hint
-5. Review the full summary (files, checksums, trust warning) before anything is written
+- **From GitHub repository** — commit-SHA pinned, reproducible. The wizard fetches the repo's tags and branches, lets you pick one, resolves it to an exact commit SHA, shows all `.lua` files in the tree, and lets you select which ones to install and where.
+- **From direct URL(s)** — for libraries not on GitHub or without versioned releases. Each URL is downloaded immediately and its SHA-256 is computed before you confirm.
+
+Both flows share the same steps for naming the package, setting install paths, entering a require path, and reviewing before anything is written.
 
 ```sh
 feather package add
 feather package add --dir path/to/my-game
 ```
 
-Files are written and `feather.lock.json` is updated only after you confirm at the review step.
+**GitHub repo flow (step by step):**
+
+1. Choose mode → "From GitHub repository"
+2. Package name — how it appears in `feather.lock.json`
+3. GitHub repo (`owner/repo`)
+4. Select a tag or branch — tags listed first, then branches
+5. Select which `.lua` files to install
+6. Set install target path for each file
+7. Enter the require path for your game code
+8. Review summary and confirm — files are written only after this step
+
+**Direct URL flow (step by step):**
+
+1. Choose mode → "From direct URL(s)"
+2. Package name
+3. Enter a file URL — downloaded and SHA-256 computed immediately
+4. Confirm install path, optionally add more files to the same package
+5. Enter the require path
+6. Review summary and confirm
 
 > [!CAUTION]
 > Packages installed this way have `trust: experimental` — they have not been reviewed by the Feather team. Only install files from sources you trust. The SHA-256 of each file is recorded in the lockfile so future `feather package audit` runs will detect any tampering.

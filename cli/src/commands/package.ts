@@ -9,18 +9,9 @@ import { installFromUrl, restorePackage } from '../lib/package/install.js';
 import { auditLockfile } from '../lib/package/audit.js';
 import { showPackageBrowser } from '../ui/package-workflow.js';
 import { showInstallProgress } from '../ui/package-progress.js';
-import { showAddFromUrlWizard } from '../ui/package-add-url.js';
-
-function findProjectDir(cwd = process.cwd()): string {
-  if (existsSync(join(cwd, 'main.lua'))) return cwd;
-  return cwd;
-}
-
-function trustBadge(trust: string): string {
-  if (trust === 'verified') return chalk.green('[verified]');
-  if (trust === 'known') return chalk.yellow('[known]');
-  return chalk.red('[experimental]');
-}
+import { showAddWizard } from '../ui/package-add.js';
+import { findProjectDir } from '../lib/paths.js';
+import { trustBadge } from '../lib/trust.js';
 
 export type PackageSearchOptions = {
   offline?: boolean;
@@ -482,7 +473,7 @@ export type PackageAddOptions = {
 export async function packageAddCommand(opts: PackageAddOptions = {}): Promise<void> {
   const projectDir = opts.dir ? resolve(opts.dir) : findProjectDir();
   const lockfile = readLockfile(projectDir);
-  await showAddFromUrlWizard({ projectDir, lockfile });
+  await showAddWizard({ projectDir, lockfile });
 }
 
 export type PackageAuditOptions = {

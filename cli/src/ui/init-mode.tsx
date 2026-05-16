@@ -168,7 +168,7 @@ function cursorLine(active: boolean, text: string, description?: string) {
   return (
     <Box flexDirection="column">
       <Text color={active ? "cyan" : undefined}>
-        {active ? "›" : " "} {text}
+        {active ? "❯" : " "} {text}
       </Text>
       {description ? <Text color="gray">  {description}</Text> : null}
     </Box>
@@ -195,7 +195,7 @@ function TextInputPrompt({
       <Text>
         <Text color={value ? "cyan" : "gray"}>{shown || placeholder || " "}</Text>
       </Text>
-      {error ? <Text color="red">{error}</Text> : <Text color="gray">Enter to continue. Backspace edits.</Text>}
+      {error ? <Text color="red">{error}</Text> : <Text color="gray">←→ move · Backspace delete · Enter confirm</Text>}
     </Box>
   );
 }
@@ -217,7 +217,7 @@ function SingleSelect<T extends string>({
           <Box key={option.value}>{cursorLine(index === selected, `${index + 1}. ${option.label}`, option.description)}</Box>
         ))}
       </Box>
-      <Text color="gray">Use ↑/↓, j/k, 1-{options.length}, then Enter.</Text>
+      <Text color="gray">↑↓ or j/k navigate · 1-{options.length} jump · Enter select</Text>
     </Box>
   );
 }
@@ -227,7 +227,7 @@ function MultiSelect({
   options,
   selected,
   cursor,
-  hint = "Space toggles, Enter continues.",
+  hint = "↑↓ or j/k navigate · Space toggle · a select all · Enter confirm",
 }: {
   title: string;
   options: Option[];
@@ -243,7 +243,7 @@ function MultiSelect({
         {options.map((option, index) => (
           <Box key={option.value} flexDirection="column">
             <Text color={index === cursor ? "cyan" : undefined}>
-              {index === cursor ? "›" : " "} {selected.has(option.value) ? "●" : "○"} {option.label}
+              {index === cursor ? "❯" : " "} {selected.has(option.value) ? "◉" : "○"} {option.label}
             </Text>
             {option.description ? <Text color="gray">  {option.description}</Text> : null}
           </Box>
@@ -263,7 +263,7 @@ function ConfirmPrompt({ title, value }: { title: string; value: boolean }) {
         <Text> / </Text>
         <Text color={!value ? "cyan" : undefined}>No</Text>
       </Text>
-      <Text color="gray">Use y/n, ←/→, then Enter.</Text>
+      <Text color="gray">y/← = yes · n/→ = no · Enter confirm</Text>
     </Box>
   );
 }

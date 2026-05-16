@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Box, Text, render, useApp, useInput } from "ink";
+import { BooleanStep } from "./components.js";
 
 export type RemoveTarget = {
   id: string;
@@ -23,7 +24,6 @@ function RemoveWorkflow({
   const { exit } = useApp();
   const [cursor, setCursor] = useState(0);
   const [confirm, setConfirm] = useState(false);
-  const [yes, setYes] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(
     new Set(targets.filter((target) => target.defaultSelected).map((target) => target.id)),
   );
@@ -41,17 +41,10 @@ function RemoveWorkflow({
   };
 
   useInput((input, key) => {
+    if (confirm) return;
+
     if (key.escape) {
       finish({ cancelled: true });
-      return;
-    }
-
-    if (confirm) {
-      if (input === "y" || key.leftArrow) setYes(true);
-      else if (input === "n" || key.rightArrow) setYes(false);
-      else if (key.return) {
-        finish(yes ? { cancelled: false, targetIds: [...selected] } : { cancelled: true });
-      }
       return;
     }
 
@@ -73,22 +66,17 @@ function RemoveWorkflow({
   });
 
   if (confirm) {
+    const selectedTargets = [...selected].map((id) => rows.find((item) => item.id === id)).filter(Boolean);
     return (
-      <Box flexDirection="column" gap={1}>
-        <Text bold>Remove selected Feather files and markers?</Text>
-        <Box flexDirection="column">
-          {[...selected].map((id) => {
-            const target = rows.find((item) => item.id === id);
-            return target ? <Text key={id}>- {target.label}: {target.path}</Text> : null;
-          })}
-        </Box>
-        <Text>
-          <Text color={yes ? "cyan" : undefined}>Yes</Text>
-          <Text> / </Text>
-          <Text color={!yes ? "cyan" : undefined}>No</Text>
-        </Text>
-        <Text color="gray">Use y/n, ←/→, then Enter.</Text>
-      </Box>
+      <BooleanStep
+        label="Remove selected Feather files and markers?"
+        onConfirm={() => finish({ cancelled: false, targetIds: [...selected] })}
+        onCancel={() => finish({ cancelled: true })}
+      >
+        {selectedTargets.map((target) => (
+          <Text key={target!.id} dimColor>{"  - "}{target!.label}: {target!.path}</Text>
+        ))}
+      </BooleanStep>
     );
   }
 
@@ -100,13 +88,13 @@ function RemoveWorkflow({
         {rows.map((target, index) => (
           <Box key={target.id} flexDirection="column">
             <Text color={index === cursor ? "cyan" : undefined}>
-              {index === cursor ? "›" : " "} {selected.has(target.id) ? "●" : "○"} {target.label}: {target.path}
+              {index === cursor ? "❯" : " "} {selected.has(target.id) ? "◉" : "○"} {target.label}: {target.path}
             </Text>
             <Text color="gray">  {target.description}</Text>
           </Box>
         ))}
       </Box>
-      <Text color="gray">Space toggles, a selects all, Enter continues, Esc cancels.</Text>
+      <Text color="gray">{"↑↓ or j/k navigate · Space toggle · a select all · Enter confirm · Esc cancel"}</Text>
     </Box>
   );
 }

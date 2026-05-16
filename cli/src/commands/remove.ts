@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import chalk from "chalk";
 import { normalizeInstallDir } from "../lib/install.js";
 import { chooseRemoveWorkflow, type RemoveTarget } from "../ui/remove-workflow.js";
+import { parseManagedValue } from "../lib/plugin-utils.js";
 
 export interface RemoveOptions {
   yes?: boolean;
@@ -22,16 +23,12 @@ type RemoveContext = {
   manualEntrypoint: string;
 };
 
-function metadataValue(src: string, key: string): string | null {
-  return src.match(new RegExp(`^--\\s*${key}:\\s*(.+)$`, "m"))?.[1]?.trim() ?? null;
-}
-
 function resolveContext(dir: string, opts: RemoveOptions): RemoveContext {
   const projectDir = resolve(dir);
   const configPath = join(projectDir, "feather.config.lua");
   const configSrc = existsSync(configPath) ? readFileSync(configPath, "utf8") : "";
-  const installDir = normalizeInstallDir(opts.installDir ?? metadataValue(configSrc, "installDir") ?? "feather");
-  const manualEntrypoint = metadataValue(configSrc, "manualEntrypoint") ?? "feather.debugger.lua";
+  const installDir = normalizeInstallDir(opts.installDir ?? parseManagedValue(configSrc, "installDir") ?? "feather");
+  const manualEntrypoint = parseManagedValue(configSrc, "manualEntrypoint") ?? "feather.debugger.lua";
 
   return {
     projectDir,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, render, useApp } from "ink";
+import { SPINNER_FRAMES } from "./components.js";
 import { installPackage } from "../lib/package/install.js";
 import { formatRequireHint } from "../lib/package/resolve.js";
 import type { ResolvedPackage } from "../lib/package/resolve.js";
@@ -26,15 +27,13 @@ type PkgState = {
   error?: string;
 };
 
-const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
 function useSpinner() {
   const [frame, setFrame] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setFrame((f) => (f + 1) % SPINNER.length), 80);
+    const t = setInterval(() => setFrame((f) => (f + 1) % SPINNER_FRAMES.length), 80);
     return () => clearInterval(t);
   }, []);
-  return SPINNER[frame];
+  return SPINNER_FRAMES[frame];
 }
 
 function FileRow({ file, spinner }: { file: FileState; spinner: string }) {

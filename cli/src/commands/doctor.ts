@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createConnection } from "node:net";
 import { spawnSync } from "node:child_process";
@@ -6,6 +6,7 @@ import chalk from "chalk";
 import { findLoveBinary, getLoveVersion } from "../lib/love.js";
 import { loadConfig } from "../lib/config.js";
 import { normalizeInstallDir } from "../lib/install.js";
+import { parseManagedValue, findInstalledPluginDirs, readPluginManifest } from "../lib/plugin-utils.js";
 
 type Severity = "pass" | "warn" | "fail" | "info";
 
@@ -93,10 +94,6 @@ function uncommentedLua(src: string): string {
     .join("\n");
 }
 
-function parseManagedValue(src: string, key: string): string | null {
-  return src.match(new RegExp(`^--\\s*${key}:\\s*(.+)$`, "m"))?.[1]?.trim() ?? null;
-}
-
 function luaBoolEnabled(src: string, key: string): boolean {
   return new RegExp(`${key}\\s*=\\s*true\\b`).test(src);
 }
@@ -108,27 +105,6 @@ function hasConfigArrayValue(src: string, key: string, value: string): boolean {
 
 function isWeakApiKey(value: unknown): boolean {
   return typeof value !== "string" || value.trim().length < 24 || value === "change-me" || value === "dev";
-}
-
-function findInstalledPluginDirs(root: string): string[] {
-  if (!existsSync(root)) return [];
-
-  const found: string[] = [];
-  for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const dir = join(root, entry.name);
-    if (existsSync(join(dir, "manifest.lua"))) {
-      found.push(dir);
-    } else {
-      found.push(...findInstalledPluginDirs(dir));
-    }
-  }
-  return found;
-}
-
-function readPluginId(pluginDir: string): string | null {
-  const src = readIfExists(join(pluginDir, "manifest.lua"));
-  return src?.match(/id\s*=\s*"([^"]+)"/)?.[1] ?? null;
 }
 
 function renderReport(checks: DoctorCheck[], projectDir: string): void {
@@ -292,7 +268,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       existsSync(pluginRoot) ? undefined : "Core-only installs are valid; run `feather plugin` to manage plugins.",
     );
     add(checks, "Plugins", "Installed plugins", pluginDirs.length > 0 ? "pass" : "info", `${pluginDirs.length}`);
-    const malformed = pluginDirs.filter((dir) => !readPluginId(dir));
+    const malformed = pluginDirs.filter((dir) => !readPluginManifest(dir)?.id);
     if (malformed.length > 0) {
       add(checks, "Plugins", "Plugin manifests", "warn", `${malformed.length} missing id`, "Reinstall affected plugins with `feather plugin update`.");
     } else if (pluginDirs.length > 0) {
@@ -334,7 +310,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     );
 
     const hotReloadEnabled = /hotReload\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
-    const hotReloadPluginIncluded = hasConfigArrayValue(activeConfigSource, "include", "hot-reload") || pluginDirs.some((dir) => readPluginId(dir) === "hot-reload");
+    const hotReloadPluginIncluded = hasConfigArrayValue(activeConfigSource, "include", "hot-reload") || pluginDirs.some((dir) => readPluginManifest(dir)?.id === "hot-reload");
     const persistToDisk = /hotReload\s*=\s*\{[\s\S]*?persistToDisk\s*=\s*true/.test(activeConfigSource);
     const broadHotReload = /allow\s*=\s*\{[\s\S]*["'][^"']+\.\*["']/.test(activeConfigSource);
     add(
@@ -362,7 +338,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       add(checks, "Safety", "Hot reload persistence", "warn", "persistToDisk=true", "Persisted patches survive app restarts until restored or cleared.");
     }
 
-    const consoleIncluded = hasConfigArrayValue(activeConfigSource, "include", "console") || pluginDirs.some((dir) => readPluginId(dir) === "console");
+    const consoleIncluded = hasConfigArrayValue(activeConfigSource, "include", "console") || pluginDirs.some((dir) => readPluginManifest(dir)?.id === "console");
     if (consoleIncluded) {
       const apiKey = config?.apiKey;
       add(
