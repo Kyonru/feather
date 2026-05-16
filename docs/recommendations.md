@@ -25,11 +25,11 @@ The game rejects commands from any other Feather desktop instance. Only the matc
 return {
   -- Any Feather desktop on the network can send commands to this game.
   -- Set this only when you cannot use appId (e.g. shared dev machine, CI).
-  insecureConnection = true,
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
 }
 ```
 
-Setting `insecureConnection = true` is your acknowledgment that the game accepts commands from any Feather desktop on the network. Feather will not start without one of these two options — there is no silent fallback.
+Setting `__DANGEROUS_INSECURE_CONNECTION__ = true` is your acknowledgment that the game accepts commands from any Feather desktop on the network. Feather will not start without one of these two options — there is no silent fallback.
 
 `feather init` prompts for the App ID during setup and writes it to `feather.config.lua` automatically. To find it: open the Feather desktop app → **Settings** → **Security** → **Desktop App ID**.
 
@@ -94,6 +94,22 @@ USE_DEBUGGER=1 love .
 ```
 
 For production builds, leave `USE_DEBUGGER` unset and run `feather remove --yes` before packaging.
+
+Run doctor as a release gate before packaging:
+
+```bash
+feather doctor path/to/my-game --production
+```
+
+`--production` exits with code `1` for release blockers such as insecure connections, weak Console auth, hot reload, debugger/screenshot/disk persistence settings, network exposure with weak auth, or unmanaged embedded Feather runtime.
+
+For CI systems that need a security-only machine-readable report:
+
+```bash
+feather doctor path/to/my-game --security --json
+```
+
+The security report includes config posture, plugin trust, package provenance, and network exposure. It redacts sensitive values such as `apiKey`.
 
 ---
 

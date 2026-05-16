@@ -73,6 +73,15 @@ See [Hot Reload](hot-reload.md) for the full workflow.
 
 Feather uses a **nonce-based challenge-response handshake** to authenticate each connection before any game data is exchanged.
 
+The CLI can audit these settings:
+
+```bash
+feather doctor path/to/my-game --production
+feather doctor path/to/my-game --security --json
+```
+
+`--production` fails on unsafe release settings. `--security --json` emits a machine-readable security report and redacts sensitive values such as `apiKey`.
+
 ### How it works
 
 1. When the game connects, the desktop immediately sends a one-time challenge nonce.
@@ -111,6 +120,19 @@ The desktop will accept the connection and show an insecure badge on the session
 
 > [!CAUTION]
 > Insecure mode allows **any** Feather desktop on the network to send commands to your game, including triggering the console plugin if installed. Do not ship production builds with insecure mode enabled.
+
+### Console API key
+
+The Console plugin can evaluate Lua inside the running game. If `console` is included, configure a strong `apiKey` and match it in Feather desktop Settings:
+
+```lua
+return {
+  include = { "console" },
+  apiKey = "a-long-random-per-session-secret",
+}
+```
+
+Doctor reports whether the key is configured or weak, but does not print the key value.
 
 ---
 

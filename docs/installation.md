@@ -49,6 +49,18 @@ USE_DEBUGGER=1 love .
 
 See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
 
+Before sharing or packaging a managed project, run:
+
+```bash
+feather doctor path/to/my-game --production
+```
+
+For CI or release scripts that need a security-only JSON report:
+
+```bash
+feather doctor path/to/my-game --security --json
+```
+
 ---
 
 ## Option 2: Install Script

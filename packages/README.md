@@ -22,6 +22,14 @@ Version overrides (`feather package install anim8@v2.2.0`) are treated as `exper
 
 Every install, update, or remove updates `feather.lock.json` in your project root. Commit this file — it records the exact version and SHA-256 of every installed file so anyone cloning your project can restore dependencies with `feather package install` and verify them with `feather package audit`.
 
+Custom GitHub repo installs also record the resolved commit SHA when available. Custom URL installs record the primary URL plus the selected URL list, and every custom file records its own URL and SHA-256. Older lockfiles remain compatible.
+
+`feather doctor` includes lockfile verification and warns when package file URLs point outside trusted raw GitHub HTTPS sources:
+
+```sh
+feather doctor --security --json
+```
+
 ---
 
 ## Commands
@@ -64,6 +72,14 @@ feather package install
 ```
 
 This is the command to run after cloning a project that has a lockfile.
+
+If a missing or modified lockfile entry uses an experimental or untrusted source, non-interactive repair requires explicit consent:
+
+```sh
+feather package install --allow-untrusted
+```
+
+Without `--allow-untrusted`, Feather exits before downloading from that source. `--yes` does not bypass this trust check.
 
 ### `feather package install <name> [name2...]`
 
@@ -167,6 +183,8 @@ feather package add --dir path/to/my-game
 
 > [!CAUTION]
 > Packages installed this way have `trust: experimental` — they have not been reviewed by the Feather team. Only install files from sources you trust. The SHA-256 of each file is recorded in the lockfile so future `feather package audit` runs will detect any tampering.
+>
+> Repo installs store the selected repo/tag and resolved commit SHA when available. URL installs store the primary URL, all selected URLs, per-file URLs, and per-file SHA-256 values.
 
 ### `feather package install --from-url <url> --target <path>`
 
@@ -179,6 +197,8 @@ feather package install --from-url https://example.com/mylib.lua \
   --target lib/mylib.lua \
   --allow-untrusted
 ```
+
+`--yes` alone never confirms an untrusted URL. In scripts and CI, pass `--allow-untrusted` only after reviewing the source and target path.
 
 ### `feather package update [name]`
 

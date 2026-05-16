@@ -81,6 +81,7 @@ end
 Before shipping a production build:
 
 ```bash
+feather doctor path/to/my-game --production
 feather remove --dry-run
 feather remove --yes
 ```

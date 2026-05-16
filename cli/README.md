@@ -282,6 +282,8 @@ feather doctor path/to/my-game
 feather doctor . --install-dir lib/feather
 feather doctor . --host 127.0.0.1 --port 4004
 feather doctor . --json
+feather doctor . --production
+feather doctor . --security --json
 ```
 
 Doctor checks:
@@ -290,12 +292,20 @@ Doctor checks:
 - `main.lua`, `feather.config.lua`, and managed init metadata
 - embedded runtime files for auto/manual setups
 - installed plugin manifests
+- missing, unknown, malformed, or development-only plugins
+- package lockfile integrity, version drift, and source provenance
 - `USE_DEBUGGER` guards and `FEATHER-INIT` markers
 - risky settings such as hot reload, screenshot capture, and Console API keys
 - Feather desktop WebSocket reachability
 
 > [!TIP]
 > `feather doctor --json` is useful in CI or pre-release scripts. It exits with a nonzero status only when it finds blockers.
+
+Use `--production` as a release gate. It fails on production-dangerous settings such as `__DANGEROUS_INSECURE_CONNECTION__ = true`, Console with a weak or missing `apiKey`, hot reload, broad hot reload allowlists, debugger/screenshot/disk persistence settings, wildcard or LAN-facing hosts with weak auth, and unmanaged embedded Feather runtime.
+
+Use `--security --json` when automation needs a security-focused report without environment noise. It emits JSON only, filters checks to security-relevant groups, and includes config posture, network exposure, runtime management, plugin trust, and package provenance.
+
+Sensitive values such as `apiKey`, tokens, secrets, and passwords are redacted from human output, JSON output, compact errors, and `FEATHER_DEBUG=1` stack output.
 
 **Example output:**
 
