@@ -1,10 +1,10 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import ora from "ora";
 import { fetchManifest, installCore, installCoreFromLocal, normalizeInstallDir } from "../lib/install.js";
 import { chooseCoreUpdateWorkflow } from "../ui/update-workflow.js";
 import { resolveLocalLuaRoot } from "../lib/paths.js";
-import { statusLine, style } from "../lib/output.js";
+import { fail } from "../lib/command.js";
+import { createSpinner, style } from "../lib/output.js";
 
 export async function updateCommand(
   dir: string,
@@ -14,8 +14,7 @@ export async function updateCommand(
   const installDir = normalizeInstallDir(opts.installDir);
 
   if (!existsSync(join(target, installDir, "init.lua"))) {
-    console.error(statusLine("error", `Feather is not installed in ${target}. Run \`feather init\` first.`));
-    process.exit(1);
+    fail(`Feather is not installed in ${target}. Run \`feather init\` first.`);
   }
 
   let branch = opts.branch ?? "main";
@@ -34,7 +33,7 @@ export async function updateCommand(
 
   if (!useRemote) {
     const sourceRoot = resolveLocalLuaRoot(opts);
-    const spinner = ora("Updating feather core from local copy…").start();
+    const spinner = createSpinner("Updating feather core from local copy…").start();
     try {
       installCoreFromLocal(sourceRoot, target, installDir, (file) => {
         spinner.text = `Updating ${file}…`;
@@ -42,14 +41,14 @@ export async function updateCommand(
       spinner.succeed("Feather core updated");
     } catch (err) {
       spinner.fail((err as Error).message);
-      process.exit(1);
+      fail((err as Error).message, { cause: err, silent: true });
     }
 
     console.log(`\n${style.heading("Done!")} Feather core is up to date.\n`);
     return;
   }
 
-  const spinner = ora("Fetching manifest…").start();
+  const spinner = createSpinner("Fetching manifest…").start();
 
   let entries: Awaited<ReturnType<typeof fetchManifest>>;
   try {
@@ -57,10 +56,10 @@ export async function updateCommand(
     spinner.succeed(`Manifest loaded (${entries.length} files)`);
   } catch (err) {
     spinner.fail((err as Error).message);
-    process.exit(1);
+    fail((err as Error).message, { cause: err, silent: true });
   }
 
-  const updateSpinner = ora("Updating feather core…").start();
+  const updateSpinner = createSpinner("Updating feather core…").start();
   try {
     await installCore(entries, target, branch, (f) => {
       updateSpinner.text = `Updating ${f}…`;
@@ -68,7 +67,7 @@ export async function updateCommand(
     updateSpinner.succeed("Feather core updated");
   } catch (err) {
     updateSpinner.fail((err as Error).message);
-    process.exit(1);
+    fail((err as Error).message, { cause: err, silent: true });
   }
 
   console.log(`\n${style.heading("Done!")} Feather core is up to date.\n`);

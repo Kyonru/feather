@@ -1,7 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
-import chalk from 'chalk';
-import ora from 'ora';
 import {
   fetchManifest,
   getLocalPluginIds,
@@ -16,7 +14,8 @@ import { configTemplate, luaKey, luaValue } from '../lib/config.js';
 import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init-mode.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
-import { icon, statusLine, style } from '../lib/output.js';
+import { fail } from '../lib/command.js';
+import { createSpinner, icon, style } from '../lib/output.js';
 
 export interface InitOptions {
   branch?: string;
@@ -79,8 +78,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   const target = resolve(dir);
 
   if (!existsSync(join(target, 'main.lua'))) {
-    console.error(statusLine('error', `No main.lua found in ${target}. Is this a love2d project?`));
-    process.exit(1);
+    fail(`No main.lua found in ${target}. Is this a love2d project?`);
   }
 
   const setup: InitSetup =
@@ -124,17 +122,17 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
 
   if (!alreadyInstalled) {
     if (useRemote) {
-      const spinner = ora('Fetching manifest…').start();
+      const spinner = createSpinner('Fetching manifest…').start();
 
       try {
         entries = await fetchManifest(branch);
         spinner.succeed(`Manifest loaded (${entries.length} files)`);
       } catch (err) {
         spinner.fail(`Could not fetch manifest: ${(err as Error).message}`);
-        process.exit(1);
+        fail((err as Error).message, { cause: err, silent: true });
       }
 
-      const coreSpinner = ora('Installing feather core from GitHub…').start();
+      const coreSpinner = createSpinner('Installing feather core from GitHub…').start();
       try {
         await installCore(entries, target, branch, (f) => {
           coreSpinner.text = `Installing ${f}…`;
@@ -142,14 +140,14 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
         coreSpinner.succeed('Feather core installed');
       } catch (err) {
         coreSpinner.fail(`Core install failed: ${(err as Error).message}`);
-        process.exit(1);
+        fail((err as Error).message, { cause: err, silent: true });
       }
 
       if (!pluginsDisabled) {
         const excluded = new Set(setup.exclude);
         const pluginIds = (opts.plugins ?? getPluginIds(entries)).filter((id) => !excluded.has(id));
         installedPluginIds = pluginIds;
-        const pluginSpinner = ora(`Installing ${pluginIds.length} plugins from GitHub…`).start();
+        const pluginSpinner = createSpinner(`Installing ${pluginIds.length} plugins from GitHub…`).start();
         let failed = 0;
         for (const id of pluginIds) {
           try {
@@ -159,11 +157,11 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
             failed++;
           }
         }
-        pluginSpinner.succeed(`Plugins installed${failed > 0 ? chalk.yellow(` (${failed} failed)`) : ''}`);
+        pluginSpinner.succeed(`Plugins installed${failed > 0 ? style.warning(` (${failed} failed)`) : ''}`);
       }
     } else {
       const sourceRoot = resolveLocalLuaRoot(opts);
-      const coreSpinner = ora(`Copying feather core from ${sourceRoot}…`).start();
+      const coreSpinner = createSpinner(`Copying feather core from ${sourceRoot}…`).start();
       try {
         installCoreFromLocal(sourceRoot, target, installDir, (f) => {
           coreSpinner.text = `Copying ${f}…`;
@@ -171,14 +169,14 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
         coreSpinner.succeed('Feather core installed');
       } catch (err) {
         coreSpinner.fail(`Core install failed: ${(err as Error).message}`);
-        process.exit(1);
+        fail((err as Error).message, { cause: err, silent: true });
       }
 
       if (!pluginsDisabled) {
         const excluded = new Set(setup.exclude);
         const pluginIds = (opts.plugins ?? getLocalPluginIds(sourceRoot)).filter((id) => !excluded.has(id));
         installedPluginIds = pluginIds;
-        const pluginSpinner = ora(`Copying ${pluginIds.length} plugins…`).start();
+        const pluginSpinner = createSpinner(`Copying ${pluginIds.length} plugins…`).start();
         let failed = 0;
         for (const id of pluginIds) {
           try {
@@ -188,7 +186,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
             failed++;
           }
         }
-        pluginSpinner.succeed(`Plugins installed${failed > 0 ? chalk.yellow(` (${failed} failed)`) : ''}`);
+        pluginSpinner.succeed(`Plugins installed${failed > 0 ? style.warning(` (${failed} failed)`) : ''}`);
       }
     }
   }

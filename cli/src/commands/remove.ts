@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import chalk from "chalk";
 import { normalizeInstallDir } from "../lib/install.js";
 import { chooseRemoveWorkflow, type RemoveTarget } from "../ui/remove-workflow.js";
 import { parseManagedValue } from "../lib/plugin-utils.js";
+import { fail } from "../lib/command.js";
 import { icon, style } from "../lib/output.js";
 
 export interface RemoveOptions {
@@ -140,13 +140,12 @@ export async function removeCommand(dir: string, opts: RemoveOptions): Promise<v
   const context = resolveContext(dir, opts);
 
   if (!existsSync(context.mainPath)) {
-    console.error(chalk.red(`No main.lua found in ${context.projectDir}. Is this a Love2D project?`));
-    process.exit(1);
+    fail(`No main.lua found in ${context.projectDir}. Is this a Love2D project?`);
   }
 
   const targets = discoverTargets(context, opts);
   if (targets.length === 0) {
-    console.log(chalk.dim("No managed Feather files or markers found."));
+    console.log(style.muted("No managed Feather files or markers found."));
     return;
   }
 
@@ -154,14 +153,14 @@ export async function removeCommand(dir: string, opts: RemoveOptions): Promise<v
   if (!opts.yes && process.stdin.isTTY) {
     const result = await chooseRemoveWorkflow(targets);
     if (result.cancelled) {
-      console.log(chalk.dim("Remove cancelled."));
+      console.log(style.muted("Remove cancelled."));
       return;
     }
     targetIds = result.targetIds;
   }
 
   if (targetIds.length === 0) {
-    console.log(chalk.dim("No remove targets selected."));
+    console.log(style.muted("No remove targets selected."));
     return;
   }
 

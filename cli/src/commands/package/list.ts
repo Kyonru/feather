@@ -1,6 +1,7 @@
-import chalk from 'chalk';
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { resolveMany } from '../../lib/package/resolve.js';
+import { fail } from '../../lib/command.js';
+import { icon, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { showPackageBrowser } from '../../ui/package-workflow.js';
 import { showInstallProgress } from '../../ui/package-progress.js';
@@ -22,13 +23,13 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
     const lockfile = readLockfile(projectDir);
     const entries = Object.entries(lockfile.packages);
     if (entries.length === 0) {
-      console.log(chalk.dim('No packages installed. Run `feather package install <name>`.'));
+      console.log(style.muted('No packages installed. Run `feather package install <name>`.'));
       return;
     }
     for (const [id, entry] of entries) {
-      console.log(`  ${trustBadge(entry.trust)} ${chalk.bold(id)} @ ${entry.version}`);
+      console.log(`  ${trustBadge(entry.trust)} ${style.heading(id)} @ ${entry.version}`);
     }
-    console.log(chalk.dim(`\n${entries.length} package(s) installed.`));
+    console.log(style.muted(`\n${entries.length} package(s) installed.`));
     return;
   }
 
@@ -45,10 +46,10 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
     const entries = Object.entries(registry.packages).filter(([, e]) => !e.parent);
     for (const [id, entry] of entries.sort(([a], [b]) => a.localeCompare(b))) {
       const installed = lockfile.packages[id];
-      const installedLabel = installed ? chalk.cyan(` (installed ${installed.version})`) : '';
-      console.log(`  ${trustBadge(entry.trust)} ${chalk.bold(id)}${installedLabel}  ${chalk.dim(entry.description)}`);
+      const installedLabel = installed ? style.info(` (installed ${installed.version})`) : '';
+      console.log(`  ${trustBadge(entry.trust)} ${style.heading(id)}${installedLabel}  ${style.muted(entry.description)}`);
     }
-    console.log(chalk.dim(`\n${entries.length} available.`));
+    console.log(style.muted(`\n${entries.length} available.`));
     return;
   }
 
@@ -57,9 +58,8 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
 
   const { resolved, errors } = resolveMany([result.id], registry);
   if (errors.length) {
-    for (const e of errors) console.log(chalk.red(`  ✖ ${e}`));
-    process.exitCode = 1;
-    return;
+    for (const e of errors) console.log(`  ${icon.error} ${style.danger(e)}`);
+    fail('', { silent: true });
   }
 
   if (result.action === 'remove') {
@@ -71,7 +71,6 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
   if (installResults.every((r) => r.ok)) {
     writeLockfile(projectDir, lockfile);
   } else {
-    process.exitCode = 1;
+    fail('', { silent: true });
   }
 }
-

@@ -1,7 +1,7 @@
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import chalk from 'chalk';
 import { readLockfile, removeFromLockfile, writeLockfile } from '../../lib/package/lockfile.js';
+import { fail } from '../../lib/command.js';
 import { icon, style } from '../../lib/output.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { resolvePackageProjectDir } from './shared.js';
@@ -17,16 +17,12 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
 
   const entry = lockfile.packages[name];
   if (!entry) {
-    console.log(chalk.red(`"${name}" is not installed.`));
-    process.exitCode = 1;
-    return;
+    fail(`"${name}" is not installed.`);
   }
 
   const existingFiles = entry.files.filter((file) => existsSync(join(projectDir, file.target)));
   if (!opts.yes && (!process.stdin.isTTY || !process.stdout.isTTY)) {
-    console.log(style.danger(`Refusing to remove "${name}" without --yes in non-interactive mode.`));
-    process.exitCode = 1;
-    return;
+    fail(`Refusing to remove "${name}" without --yes in non-interactive mode.`);
   }
 
   if (!opts.yes) {
@@ -41,7 +37,7 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
       ],
     });
     if (!confirmed) {
-      console.log(chalk.dim('Package remove cancelled.'));
+      console.log(style.muted('Package remove cancelled.'));
       return;
     }
   }
@@ -56,6 +52,5 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
 
   removeFromLockfile(lockfile, name);
   writeLockfile(projectDir, lockfile);
-  console.log(`  ${icon.success} ${chalk.bold(name)} removed.`);
+  console.log(`  ${icon.success} ${style.heading(name)} removed.`);
 }
-

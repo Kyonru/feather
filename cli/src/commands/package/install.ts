@@ -1,10 +1,9 @@
-import chalk from 'chalk';
-import ora from 'ora';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { installFromUrl, restorePackage } from '../../lib/package/install.js';
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { resolveMany } from '../../lib/package/resolve.js';
-import { keyValueRows, statusLine, style } from '../../lib/output.js';
+import { fail } from '../../lib/command.js';
+import { createSpinner, icon, keyValueRows, statusLine, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { showInstallProgress } from '../../ui/package-progress.js';
@@ -28,8 +27,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     if (!opts.target) {
       console.log();
       console.log(statusLine('error', '--target <path> is required with --from-url'));
-      process.exitCode = 1;
-      return;
+      fail('', { silent: true });
     }
 
     if (!opts.allowUntrusted) {
@@ -46,8 +44,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       if (!process.stdin.isTTY || !process.stdout.isTTY) {
         console.log();
         console.log(style.danger('Use --allow-untrusted to confirm this source in non-interactive mode.'));
-        process.exitCode = 1;
-        return;
+        fail('', { silent: true });
       }
 
       const confirmed = await confirmAction({
@@ -63,7 +60,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       }
     }
 
-    const spinner = ora(`Fetching ${opts.fromUrl}…`).start();
+    const spinner = createSpinner(`Fetching ${opts.fromUrl}…`).start();
     const lockfile = readLockfile(projectDir);
     const result = await installFromUrl(lockfile, {
       projectDir,
@@ -74,8 +71,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
 
     if (!result.ok) {
       spinner.fail(result.error ?? 'Install failed');
-      process.exitCode = 1;
-      return;
+      fail(result.error ?? 'Install failed', { silent: true });
     }
 
     if (opts.dryRun) {
@@ -112,7 +108,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     const entries = Object.entries(lockfile.packages).filter(([, e]) => !e.parent);
 
     if (entries.length === 0) {
-      console.log(chalk.dim('feather.lock.json is empty. Run `feather package install <name>` to add packages.'));
+      console.log(style.muted('feather.lock.json is empty. Run `feather package install <name>` to add packages.'));
       return;
     }
 
@@ -121,17 +117,17 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     const broken = new Set(auditResults.filter((r) => r.status !== 'verified').map((r) => r.id));
 
     if (broken.size === 0) {
-      console.log(chalk.green(`✔ All ${entries.length} package(s) already up to date.`));
+      console.log(style.success(`✔ All ${entries.length} package(s) already up to date.`));
       return;
     }
 
     let failed = false;
     for (const [id, entry] of entries) {
       if (!broken.has(id)) {
-        console.log(chalk.dim(`  ${id} @ ${entry.version} — up to date`));
+        console.log(style.muted(`  ${id} @ ${entry.version} — up to date`));
         continue;
       }
-      const spinner = ora(`  ${id} @ ${entry.version}`).start();
+      const spinner = createSpinner(`  ${id} @ ${entry.version}`).start();
       const result = await restorePackage(id, entry, { projectDir, dryRun: opts.dryRun });
       if (result.ok) {
         spinner.succeed(`  ${id} @ ${entry.version}`);
@@ -142,7 +138,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     }
 
     console.log();
-    if (failed) process.exitCode = 1;
+    if (failed) fail('', { silent: true });
     return;
   }
 
@@ -153,16 +149,15 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   const { resolved, errors } = resolveMany(names, registry);
 
   if (errors.length) {
-    for (const e of errors) console.log(chalk.red(`  ✖ ${e}`));
-    process.exitCode = 1;
-    return;
+    for (const e of errors) console.log(`  ${icon.error} ${style.danger(e)}`);
+    fail('', { silent: true });
   }
 
   const toInstall = resolved.filter((pkg) => {
     if (pkg.versionOverride) return true;
     const existing = lockfile.packages[pkg.id];
     if (existing && existing.version === pkg.entry.source.tag) {
-      console.log(chalk.dim(`  ${pkg.id} is already installed at ${existing.version}`));
+      console.log(style.muted(`  ${pkg.id} is already installed at ${existing.version}`));
       return false;
     }
     return true;
@@ -172,18 +167,10 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
 
   for (const pkg of toInstall) {
     if (pkg.entry.trust === 'experimental' && !opts.allowUntrusted) {
-      console.log(chalk.red(`  "${pkg.id}" requires --allow-untrusted (trust: experimental)`));
-      process.exitCode = 1;
-      return;
+      fail(`"${pkg.id}" requires --allow-untrusted (trust: experimental)`);
     }
     if (pkg.versionOverride && !opts.allowUntrusted) {
-      console.log(
-        chalk.red(
-          `  "${pkg.id}@${pkg.versionOverride}" requires --allow-untrusted — this version has not been reviewed by Feather`,
-        ),
-      );
-      process.exitCode = 1;
-      return;
+      fail(`"${pkg.id}@${pkg.versionOverride}" requires --allow-untrusted — this version has not been reviewed by Feather`);
     }
   }
 
@@ -191,14 +178,14 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     console.log();
     for (const pkg of toInstall) {
       const displayVersion = pkg.versionOverride ?? pkg.entry.source.tag;
-      console.log(`  ${chalk.bold(pkg.id)}  ${trustBadge(pkg.versionOverride ? 'experimental' : pkg.entry.trust)}`);
+      console.log(`  ${style.heading(pkg.id)}  ${trustBadge(pkg.versionOverride ? 'experimental' : pkg.entry.trust)}`);
       console.log(`  Source:  github.com/${pkg.entry.source.repo}  Version: ${displayVersion}`);
       for (const f of pkg.files) {
-        console.log(`    ${chalk.dim(f.name)}  →  ${f.target}`);
+        console.log(`    ${style.muted(f.name)}  →  ${f.target}`);
       }
       console.log();
     }
-    console.log(chalk.yellow('Dry run — no files written.'));
+    console.log(style.warning('Dry run — no files written.'));
     return;
   }
 
@@ -206,7 +193,6 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   if (results.every((r) => r.ok)) {
     writeLockfile(projectDir, lockfile);
   } else {
-    process.exitCode = 1;
+    fail('', { silent: true });
   }
 }
-

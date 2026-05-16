@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import ora, { type Ora } from 'ora';
 
 export const icon = {
   success: chalk.green('✔'),
@@ -17,8 +18,40 @@ export const style = {
   info: chalk.cyan,
 };
 
+export function heading(message: string): string {
+  return style.heading(message);
+}
+
 export function statusLine(kind: keyof typeof icon, message: string): string {
   return `${icon[kind]} ${message}`;
+}
+
+export function printJson(value: unknown): void {
+  console.log(JSON.stringify(value, null, 2));
+}
+
+export function section(title: string, lines: string[] = []): string[] {
+  return ['', heading(title), ...lines, ''];
+}
+
+export function createSpinner(text: string): Ora {
+  return ora(text);
+}
+
+export async function withSpinner<T>(
+  text: string,
+  action: (spinner: Ora) => Promise<T>,
+  messages?: { success?: string; fail?: (err: unknown) => string },
+): Promise<T> {
+  const spinner = createSpinner(text).start();
+  try {
+    const result = await action(spinner);
+    spinner.succeed(messages?.success ?? text);
+    return result;
+  } catch (err) {
+    spinner.fail(messages?.fail ? messages.fail(err) : (err as Error).message);
+    throw err;
+  }
 }
 
 export function keyValueRows(rows: Array<[string, string | number | undefined | null]>): string[] {

@@ -1,7 +1,7 @@
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import chalk from 'chalk';
-import { icon, statusLine, style } from '../../lib/output.js';
+import { fail } from '../../lib/command.js';
+import { icon, style } from '../../lib/output.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { pluginsDir, resolvePluginProjectDir } from './shared.js';
 
@@ -13,14 +13,11 @@ export async function pluginRemoveCommand(
   const pluginDir = join(pluginsDir(projectDir, opts.installDir), pluginId.replace(/\./g, '/'));
 
   if (!existsSync(pluginDir)) {
-    console.error(statusLine('error', `Plugin not found: ${pluginId}`));
-    process.exit(1);
+    fail(`Plugin not found: ${pluginId}`);
   }
 
   if (!opts.yes && (!process.stdin.isTTY || !process.stdout.isTTY)) {
-    console.log(style.danger(`Refusing to remove "${pluginId}" without --yes in non-interactive mode.`));
-    process.exitCode = 1;
-    return;
+    fail(`Refusing to remove "${pluginId}" without --yes in non-interactive mode.`);
   }
 
   if (!opts.yes) {
@@ -32,7 +29,7 @@ export async function pluginRemoveCommand(
       rows: [pluginDir],
     });
     if (!confirmed) {
-      console.log(chalk.dim('Plugin remove cancelled.'));
+      console.log(style.muted('Plugin remove cancelled.'));
       return;
     }
   }
@@ -40,4 +37,3 @@ export async function pluginRemoveCommand(
   rmSync(pluginDir, { recursive: true, force: true });
   console.log(`${icon.success} Removed ${pluginId}`);
 }
-

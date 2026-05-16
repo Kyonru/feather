@@ -1,5 +1,6 @@
-import chalk from 'chalk';
 import { readLockfile } from '../../lib/package/lockfile.js';
+import { fail } from '../../lib/command.js';
+import { style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
@@ -18,23 +19,21 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
 
   const entry = registry.packages[name];
   if (!entry) {
-    console.log(chalk.red(`Package "${name}" not found.`));
-    process.exitCode = 1;
-    return;
+    fail(`Package "${name}" not found.`);
   }
 
   const installed = lockfile.packages[name];
   console.log();
-  console.log(`${chalk.bold(name)}  ${trustBadge(entry.trust)}`);
-  console.log(chalk.dim(entry.description));
+  console.log(`${style.heading(name)}  ${trustBadge(entry.trust)}`);
+  console.log(style.muted(entry.description));
   console.log();
-  console.log(`  Source:   ${chalk.cyan(`github.com/${entry.source.repo}`)}`);
+  console.log(`  Source:   ${style.info(`github.com/${entry.source.repo}`)}`);
   console.log(`  Version:  ${entry.source.tag}`);
   console.log(`  Tags:     ${entry.tags.join(', ') || '—'}`);
   if (entry.license) console.log(`  License:  ${entry.license}`);
-  if (entry.homepage) console.log(`  Docs:     ${chalk.cyan(entry.homepage)}`);
+  if (entry.homepage) console.log(`  Docs:     ${style.info(entry.homepage)}`);
   if (installed) {
-    console.log(`  Status:   ${chalk.green('installed')} @ ${installed.version}`);
+    console.log(`  Status:   ${style.success('installed')} @ ${installed.version}`);
   }
   if (entry.subpackages?.length) {
     console.log(`  Modules:  ${entry.subpackages.join(', ')}`);
@@ -42,11 +41,10 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   console.log();
   console.log('  Files to install:');
   for (const f of entry.install.files) {
-    console.log(`    ${chalk.dim(f.name)}  →  ${f.target}`);
+    console.log(`    ${style.muted(f.name)}  →  ${f.target}`);
   }
   console.log();
   console.log('  Usage:');
-  console.log(`    ${chalk.cyan(entry.example ?? `local lib = require("${entry.require}")`)}`);
+  console.log(`    ${style.info(entry.example ?? `local lib = require("${entry.require}")`)}`);
   console.log();
 }
-

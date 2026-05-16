@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+import { style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { loadRegistryOrExit } from './shared.js';
 
@@ -22,18 +22,17 @@ export async function packageSearchCommand(query: string | undefined, opts: Pack
     : entries;
 
   if (matches.length === 0) {
-    console.log(chalk.dim(`No packages found${q ? ` matching "${query}"` : ''}.`));
+    console.log(style.muted(`No packages found${q ? ` matching "${query}"` : ''}.`));
     return;
   }
 
   const maxId = Math.max(...matches.map(([id]) => id.length));
   for (const [id, entry] of matches.sort(([a], [b]) => a.localeCompare(b))) {
     const badge = trustBadge(entry.trust);
-    console.log(`  ${chalk.bold(id.padEnd(maxId + 2))} ${badge}  ${chalk.dim(entry.description)}`);
+    console.log(`  ${style.heading(id.padEnd(maxId + 2))} ${badge}  ${style.muted(entry.description)}`);
     if (entry.subpackages?.length) {
-      console.log(chalk.dim(`  ${''.padEnd(maxId + 2)}   subpackages: ${entry.subpackages.join(', ')}`));
+      console.log(style.muted(`  ${''.padEnd(maxId + 2)}   subpackages: ${entry.subpackages.join(', ')}`));
     }
   }
-  console.log(chalk.dim(`\n${matches.length} package(s). Run \`feather package info <name>\` for details.`));
+  console.log(style.muted(`\n${matches.length} package(s). Run \`feather package info <name>\` for details.`));
 }
-

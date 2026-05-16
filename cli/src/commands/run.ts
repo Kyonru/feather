@@ -5,7 +5,8 @@ import { findLoveBinary } from "../lib/love.js";
 import { createShim, shimEnv } from "../lib/shim.js";
 import { loadConfig } from "../lib/config.js";
 import { chooseRunWorkflow } from "../ui/run-workflow.js";
-import { keyValueRows, statusLine, style } from "../lib/output.js";
+import { fail } from "../lib/command.js";
+import { keyValueRows, style } from "../lib/output.js";
 
 export interface RunOptions {
   love?: string;
@@ -17,11 +18,10 @@ export interface RunOptions {
   gameArgs?: string[];
 }
 
-export async function runCommand(gamePath: string | undefined, opts: RunOptions): Promise<void> {
+export async function runCommand(gamePath: string | undefined, opts: RunOptions): Promise<void | number> {
   if (!gamePath) {
     if (!process.stdin.isTTY) {
-      console.error(statusLine("error", "Game path is required. Use `feather run <game-path>`."));
-      process.exit(1);
+      fail("Game path is required. Use `feather run <game-path>`.");
     }
 
     const result = await chooseRunWorkflow();
@@ -46,21 +46,18 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   const absGame = resolve(gamePath);
 
   if (!existsSync(absGame)) {
-    console.error(statusLine("error", `Game path not found: ${absGame}`));
-    process.exit(1);
+    fail(`Game path not found: ${absGame}`);
   }
 
   if (!existsSync(`${absGame}/main.lua`)) {
-    console.error(statusLine("error", `No main.lua found in: ${absGame}`));
-    process.exit(1);
+    fail(`No main.lua found in: ${absGame}`);
   }
 
   let loveBin: string;
   try {
     loveBin = findLoveBinary(opts.love);
   } catch (err) {
-    console.error(statusLine("error", (err as Error).message));
-    process.exit(1);
+    fail((err as Error).message, { cause: err });
   }
 
   const userConfig = loadConfig(absGame, opts.config) ?? undefined;
@@ -94,9 +91,8 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   shim.cleanup();
 
   if (result.error) {
-    console.error(statusLine("error", `Failed to launch love: ${result.error.message}`));
-    process.exit(1);
+    fail(`Failed to launch love: ${result.error.message}`, { cause: result.error });
   }
 
-  process.exit(result.status ?? 0);
+  return result.status ?? 0;
 }

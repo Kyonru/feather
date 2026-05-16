@@ -1,7 +1,5 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import chalk from 'chalk';
-import ora from 'ora';
 import {
   fetchManifest,
   getLocalPluginIds,
@@ -9,6 +7,8 @@ import {
   installPlugin,
   installPluginsFromLocal,
 } from '../../lib/install.js';
+import { fail } from '../../lib/command.js';
+import { createSpinner, style } from '../../lib/output.js';
 import { resolveLocalLuaRoot } from '../../lib/paths.js';
 import { choosePluginUpdateWorkflow } from '../../ui/plugin-workflow.js';
 import { getInstalledPluginIds, pluginsDir, resolvePluginProjectDir } from './shared.js';
@@ -26,7 +26,7 @@ export async function pluginUpdateCommand(
   if (!pluginId && process.stdin.isTTY && !hasExplicitSource) {
     const installedIds = getInstalledPluginIds(projectDir, installDir);
     if (installedIds.length === 0) {
-      console.log(chalk.dim('No plugins installed.'));
+      console.log(style.muted('No plugins installed.'));
       return;
     }
 
@@ -37,7 +37,7 @@ export async function pluginUpdateCommand(
 
     if (result.action === 'cancel') return;
     if (result.action !== 'update' || result.pluginIds.length === 0) {
-      console.log(chalk.dim('No plugins selected.'));
+      console.log(style.muted('No plugins selected.'));
       return;
     }
 
@@ -60,7 +60,7 @@ export async function pluginUpdateCommand(
     const ids = pluginId ? [pluginId] : available.filter((id) => existsSync(join(dirPath, id.replace(/\./g, '/'))));
 
     for (const id of ids) {
-      const s = ora(`Updating ${id}…`).start();
+      const s = createSpinner(`Updating ${id}…`).start();
       try {
         installPluginsFromLocal([id], sourceRoot, projectDir, installDir);
         s.succeed(`Updated ${id}`);
@@ -71,14 +71,14 @@ export async function pluginUpdateCommand(
     return;
   }
 
-  const spinner = ora('Fetching manifest…').start();
+  const spinner = createSpinner('Fetching manifest…').start();
   let entries: Awaited<ReturnType<typeof fetchManifest>>;
   try {
     entries = await fetchManifest(branch);
     spinner.succeed('Manifest loaded');
   } catch (err) {
     spinner.fail((err as Error).message);
-    process.exit(1);
+    fail((err as Error).message, { cause: err, silent: true });
   }
 
   const ids = pluginId ? [pluginId] : getPluginIds(entries).filter((id) =>
@@ -86,7 +86,7 @@ export async function pluginUpdateCommand(
   );
 
   for (const id of ids) {
-    const s = ora(`Updating ${id}…`).start();
+    const s = createSpinner(`Updating ${id}…`).start();
     try {
       await installPlugin(id, entries, projectDir, branch, undefined, installDir);
       s.succeed(`Updated ${id}`);
@@ -95,4 +95,3 @@ export async function pluginUpdateCommand(
     }
   }
 }
-

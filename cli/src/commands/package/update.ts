@@ -1,6 +1,7 @@
-import chalk from 'chalk';
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import type { ResolvedPackage } from '../../lib/package/resolve.js';
+import { fail } from '../../lib/command.js';
+import { style } from '../../lib/output.js';
 import { showInstallProgress } from '../../ui/package-progress.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
@@ -17,7 +18,7 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
 
   const installed = Object.entries(lockfile.packages);
   if (installed.length === 0) {
-    console.log(chalk.dim('No packages installed.'));
+    console.log(style.muted('No packages installed.'));
     return;
   }
 
@@ -27,27 +28,25 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
   const targets = name ? installed.filter(([id]) => id === name) : installed;
 
   if (name && targets.length === 0) {
-    console.log(chalk.red(`"${name}" is not installed.`));
-    process.exitCode = 1;
-    return;
+    fail(`"${name}" is not installed.`);
   }
 
   const toUpdate: ResolvedPackage[] = [];
   for (const [id, current] of targets) {
     if (current.trust === 'experimental') {
-      console.log(chalk.dim(`  Skipping "${id}" (experimental — re-install with --from-url to update)`));
+      console.log(style.muted(`  Skipping "${id}" (experimental — re-install with --from-url to update)`));
       continue;
     }
     const entry = registry.packages[id];
     if (!entry) {
-      console.log(chalk.yellow(`  "${id}" not found in registry — skipping`));
+      console.log(style.warning(`  "${id}" not found in registry — skipping`));
       continue;
     }
     if (entry.source.tag === current.version) {
-      console.log(chalk.dim(`  ${id} is already up to date (${current.version})`));
+      console.log(style.muted(`  ${id} is already up to date (${current.version})`));
       continue;
     }
-    console.log(`  ${chalk.bold(id)}: ${current.version} → ${entry.source.tag}`);
+    console.log(`  ${style.heading(id)}: ${current.version} → ${entry.source.tag}`);
     toUpdate.push({ id, entry, files: entry.install.files });
   }
 
@@ -57,7 +56,6 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
   if (results.every((r) => r.ok)) {
     writeLockfile(projectDir, lockfile);
   } else {
-    process.exitCode = 1;
+    fail('', { silent: true });
   }
 }
-

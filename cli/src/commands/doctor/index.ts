@@ -3,6 +3,10 @@ import { join, resolve } from 'node:path';
 import { findLoveBinary, getLoveVersion } from '../../lib/love.js';
 import { loadConfig } from '../../lib/config.js';
 import { normalizeInstallDir } from '../../lib/install.js';
+import { fail } from '../../lib/command.js';
+import { printJson } from '../../lib/output.js';
+import { auditLockfile } from '../../lib/package/audit.js';
+import { readLockfile } from '../../lib/package/lockfile.js';
 import { parseManagedValue, findInstalledPluginDirs, readPluginManifest } from '../../lib/plugin-utils.js';
 import {
   add,
@@ -183,6 +187,16 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
 
   if (configSource) {
     const activeConfigSource = uncommentedLua(configSource);
+    const insecureConnection = luaBoolEnabled(activeConfigSource, '__DANGEROUS_INSECURE_CONNECTION__');
+    add(
+      checks,
+      'Safety',
+      '__DANGEROUS_INSECURE_CONNECTION__',
+      insecureConnection ? 'warn' : 'pass',
+      insecureConnection ? 'enabled' : 'disabled',
+      insecureConnection ? 'Set a desktop App ID in feather.config.lua before sharing or shipping this project.' : undefined,
+    );
+
     const captureScreenshot = luaBoolEnabled(activeConfigSource, 'captureScreenshot');
     add(
       checks,
@@ -234,6 +248,55 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         isWeakApiKey(apiKey) ? 'Set a strong per-session or config API key when using Console.' : undefined,
       );
     }
+
+    const debuggerEnabled = luaBoolEnabled(activeConfigSource, 'debugger');
+    add(
+      checks,
+      'Safety',
+      'Step debugger',
+      debuggerEnabled ? 'warn' : 'pass',
+      debuggerEnabled ? 'enabled' : 'disabled',
+      debuggerEnabled ? 'Enable only for trusted development sessions.' : undefined,
+    );
+
+    const writeToDisk = luaBoolEnabled(activeConfigSource, 'writeToDisk');
+    add(
+      checks,
+      'Safety',
+      'Disk logging',
+      writeToDisk ? 'warn' : 'pass',
+      writeToDisk ? 'enabled' : 'disabled',
+      writeToDisk ? 'Review generated log files before committing or sharing the project.' : undefined,
+    );
+  }
+
+  const lockfilePath = join(projectDir, 'feather.lock.json');
+  if (existsSync(lockfilePath)) {
+    try {
+      const lockfile = readLockfile(projectDir);
+      const auditResults = await auditLockfile(projectDir, lockfile);
+      const badPackages = new Set(auditResults.filter((result) => result.status !== 'verified').map((result) => result.id));
+      add(
+        checks,
+        'Packages',
+        'Package lockfile',
+        'pass',
+        `${Object.keys(lockfile.packages).length} package(s)`,
+        undefined,
+      );
+      add(
+        checks,
+        'Packages',
+        'Package file integrity',
+        badPackages.size === 0 ? 'pass' : 'warn',
+        badPackages.size === 0 ? 'all verified' : `${badPackages.size} package(s) need attention`,
+        badPackages.size === 0 ? undefined : 'Run `feather package audit`, then `feather package install` to restore missing or modified files.',
+      );
+    } catch (err) {
+      add(checks, 'Packages', 'Package lockfile', 'fail', (err as Error).message, 'Fix or delete feather.lock.json and reinstall packages.');
+    }
+  } else {
+    add(checks, 'Packages', 'Package lockfile', 'info', 'not present', 'Run `feather package install <name>` to add project dependencies.');
   }
 
   const configuredPort = opts.port ?? (typeof config?.port === 'number' ? config.port : 4004);
@@ -257,13 +320,12 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   const warnings = checks.filter((check) => check.severity === 'warn');
 
   if (opts.json) {
-    console.log(JSON.stringify({ projectDir, installDir: effectiveInstallDir, failures: failures.length, warnings: warnings.length, checks }, null, 2));
+    printJson({ projectDir, installDir: effectiveInstallDir, failures: failures.length, warnings: warnings.length, checks });
   } else {
     renderReport(checks, projectDir);
   }
 
   if (failures.length > 0) {
-    process.exitCode = 1;
+    fail('', { silent: true });
   }
 }
-
