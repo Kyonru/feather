@@ -130,7 +130,7 @@ program
 
 program
   .command('build <target>')
-  .description('Build a LÖVE game for web, desktop, or planned mobile targets')
+  .description('Build a LÖVE game for web, mobile dev, or desktop targets')
   .option('--dir <path>', 'Project directory (default: current directory)')
   .option('--config <path>', 'Path to feather.build.json')
   .option('--out-dir <path>', 'Build output directory')
@@ -154,7 +154,7 @@ program
 
 program
   .command('upload <target> [build-target]')
-  .description('Upload built artifacts to itch.io or planned store targets')
+  .description('Upload built artifacts to itch.io or registered store targets')
   .option('--dir <path>', 'Project directory (default: current directory)')
   .option('--config <path>', 'Path to feather.build.json')
   .option('--build-dir <path>', 'Directory containing feather-build-manifest.json')

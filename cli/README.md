@@ -416,6 +416,14 @@ Build behavior:
 
 Run `feather doctor --build-target <target>` to see missing local dependencies and exact setup guidance before building.
 
+Mobile build notes:
+
+- Android builds expect `targets.android.loveAndroidDir` to point at a local love-android checkout with `gradlew`.
+- iOS builds expect `targets.ios.loveIosDir` to point at a local LÖVE iOS source tree with `platform/xcode/love.xcodeproj`.
+- `feather doctor --build-target android` validates product id, Gradle wrapper, JDK, and Android SDK environment.
+- `feather doctor --build-target ios` validates bundle id, macOS/Xcode setup, template path, and signing hints.
+- These are development builds; signed Android release/AAB and iOS archive/export flows are intentionally separate later work.
+
 ---
 
 ### `feather upload <itch|steam>`

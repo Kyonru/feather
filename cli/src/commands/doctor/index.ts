@@ -15,6 +15,7 @@ import {
   outDirWritableDetail,
   uploadTargets,
 } from '../../lib/build/config.js';
+import { androidProductId, iosBundleIdentifier, validateBuildConfigForTarget } from '../../lib/build/validation.js';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntrySourceSummary, lockfileUrlFindings } from '../../lib/package/provenance.js';
@@ -126,7 +127,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         opts.buildTarget,
         isSupportedBuildTarget(opts.buildTarget)
           ? undefined
-          : `${opts.buildTarget} support is planned; use web, windows, macos, linux, or steamos for now.`,
+          : `${opts.buildTarget} support is registered but not enabled in this build.`,
       );
     }
   }
@@ -186,6 +187,17 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       );
 
       if (opts.buildTarget && isBuildTarget(opts.buildTarget)) {
+        const configIssues = validateBuildConfigForTarget(buildConfig, opts.buildTarget);
+        if (opts.buildTarget === 'android' || opts.buildTarget === 'ios') {
+          add(
+            checks,
+            'Build',
+            opts.buildTarget === 'android' ? 'Android config' : 'iOS config',
+            configIssues.length === 0 ? 'pass' : 'fail',
+            configIssues.length === 0 ? 'valid' : configIssues.map((issue) => `${issue.field}: ${issue.message}`).join('; '),
+            configIssues.length === 0 ? undefined : 'Fix feather.build.json before running the build.',
+          );
+        }
         if (opts.buildTarget === 'web') {
           const loveJsDir = buildConfig.targets.web?.loveJsDir;
           add(
@@ -235,14 +247,14 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             androidSdk ?? 'ANDROID_HOME/ANDROID_SDK_ROOT missing',
             'Install Android SDK command-line tools and set ANDROID_HOME or ANDROID_SDK_ROOT.',
           );
-          const productId = androidConfig.productId ?? buildConfig.productId;
+          const productId = androidProductId(buildConfig);
           add(
             checks,
             'Build',
             'Android product id',
-            productId ? 'pass' : 'warn',
-            productId ?? 'missing',
-            'Set productId or targets.android.productId in feather.build.json.',
+            configIssues.some((issue) => issue.field === 'productId') ? 'fail' : 'pass',
+            productId,
+            configIssues.some((issue) => issue.field === 'productId') ? 'Set a valid productId or targets.android.productId in feather.build.json.' : undefined,
           );
           add(
             checks,
@@ -290,14 +302,14 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             xcodeProject ? join(loveIosDir, 'platform', 'xcode', 'love.xcodeproj') : 'not found',
             'Use a LÖVE iOS source tree that includes platform/xcode/love.xcodeproj.',
           );
-          const bundleId = iosConfig.bundleIdentifier ?? iosConfig.productId ?? buildConfig.productId;
+          const bundleId = iosBundleIdentifier(buildConfig);
           add(
             checks,
             'Build',
             'iOS bundle id',
-            bundleId ? 'pass' : 'warn',
-            bundleId ?? 'missing',
-            'Set productId, targets.ios.productId, or targets.ios.bundleIdentifier in feather.build.json.',
+            configIssues.some((issue) => issue.field === 'bundleIdentifier') ? 'fail' : 'pass',
+            bundleId,
+            configIssues.some((issue) => issue.field === 'bundleIdentifier') ? 'Set a valid productId, targets.ios.productId, or targets.ios.bundleIdentifier in feather.build.json.' : undefined,
           );
           add(
             checks,

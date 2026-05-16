@@ -64,6 +64,8 @@ feather doctor path/to/my-game --upload-target itch
 
 `feather build` supports web, Android, iOS, Windows, macOS, Linux, and SteamOS artifacts. Web builds need a local love.js player directory configured in `feather.build.json`; Android/iOS dev builds need local love-android or LÖVE iOS template paths; desktop builds expect `love-release` on `PATH`. `feather upload itch` expects Butler on `PATH` and either `BUTLER_API_KEY` in CI or a local `butler login` session.
 
+For mobile setup, start with `feather doctor path/to/my-game --build-target android` or `--build-target ios`. Doctor checks the native template path, product/bundle id, local build tools, and the common environment variables before the build command stages or writes artifacts.
+
 For CI or release scripts that need a security-only JSON report:
 
 ```bash

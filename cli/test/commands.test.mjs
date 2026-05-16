@@ -146,7 +146,12 @@ function writeFakeLoveJs(dir) {
   return loveJsDir;
 }
 
-function writeFakeLoveAndroid(dir, recordPath = join(dir, 'gradle-record.json')) {
+function writeFakeLoveAndroid(dir, options = {}) {
+  const recordPath = options.recordPath ?? join(dir, 'gradle-record.json');
+  const apkRel = options.apkRel ?? 'app/build/outputs/apk/embed/debug/app-embed-debug.apk';
+  const manifestPermission = options.recordAudioPermission
+    ? '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
+    : '';
   const root = join(dir, 'love-android');
   mkdirSync(join(root, 'app', 'src', 'main', 'res', 'values'), { recursive: true });
   mkdirSync(join(root, 'app', 'src', 'main'), { recursive: true });
@@ -165,6 +170,7 @@ function writeFakeLoveAndroid(dir, recordPath = join(dir, 'gradle-record.json'))
   writeFileSync(
     join(root, 'app', 'src', 'main', 'AndroidManifest.xml'),
     `<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+${manifestPermission}    <uses-permission android:name="android.permission.INTERNET" />
     <application android:label="LÖVE">
         <activity android:name=".GameActivity" android:screenOrientation="portrait" />
     </application>
@@ -179,7 +185,7 @@ function writeFakeLoveAndroid(dir, recordPath = join(dir, 'gradle-record.json'))
 const fs = require('node:fs');
 const path = require('node:path');
 const cwd = process.cwd();
-const apk = path.join(cwd, 'app', 'build', 'outputs', 'apk', 'embed', 'debug', 'app-embed-debug.apk');
+const apk = path.join(cwd, ${JSON.stringify(apkRel)});
 fs.mkdirSync(path.dirname(apk), { recursive: true });
 fs.writeFileSync(apk, 'fake apk');
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
@@ -681,6 +687,65 @@ process.exit(0);
   assert.ok(record.argv.includes('Desktop Game'));
 });
 
+test('build validation: rejects bad mobile config values and unsafe native paths', async () => {
+  const { validateAndroidBuildConfig, validateIosBuildConfig } = await import('../dist/lib/build/validation.js');
+  const { resolveWorkspacePath } = await import('../dist/lib/build/native.js');
+  const baseConfig = {
+    configPath: '/tmp/feather.build.json',
+    projectDir: '/tmp/game',
+    sourceDir: '/tmp/game',
+    outDir: '/tmp/game/builds',
+    name: 'Validation Game',
+    version: '1.0.0',
+    include: [],
+    exclude: [],
+    includeRuntime: false,
+    targets: {},
+    upload: {},
+  };
+
+  const androidIssues = validateAndroidBuildConfig({
+    ...baseConfig,
+    productId: 'not a product id',
+    targets: { android: { versionCode: 0, orientation: 'sideways', gradleTask: 'assemble debug' } },
+  });
+  assert.deepEqual(androidIssues.map((issue) => issue.field), [
+    'productId',
+    'targets.android.versionCode',
+    'targets.android.orientation',
+    'targets.android.gradleTask',
+  ]);
+
+  const iosIssues = validateIosBuildConfig({
+    ...baseConfig,
+    targets: { ios: { bundleIdentifier: 'bad id', scheme: 'bad;', derivedDataPath: '../escape' } },
+  });
+  assert.deepEqual(iosIssues.map((issue) => issue.field), [
+    'bundleIdentifier',
+    'targets.ios.scheme',
+    'targets.ios.derivedDataPath',
+  ]);
+  assert.throws(() => resolveWorkspacePath('/tmp/native-work', '../escape.apk', 'Artifact'), /native build workspace/);
+});
+
+test('build android: invalid config fails before staging or writing artifacts', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Bad Mobile Game',
+    version: '1.0.0',
+    productId: 'bad product id',
+    targets: { android: { loveAndroidDir: 'love-android', versionCode: 0 } },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Invalid android build config'));
+  assert.ok(outputOf(result).includes('productId'));
+  assert.equal(existsSync(join(dir, 'builds', 'bad-mobile-game-1.0.0.love')), false);
+});
+
 test('build android: injects game.love, runs Gradle, copies APK, and writes manifest', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -724,6 +789,58 @@ test('build android: injects game.love, runs Gradle, copies APK, and writes mani
   assert.equal(manifest.artifacts.some((artifact) => artifact.type === 'apk'), true);
 });
 
+test('build android: honors gradleTask, custom artifactPath, and removes microphone permission', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const { recordPath } = writeFakeLoveAndroid(dir, {
+    recordAudioPermission: true,
+    apkRel: 'app/build/outputs/custom/custom-debug.apk',
+  });
+  writeBuildConfig(dir, {
+    name: 'Custom Android',
+    version: '2.0.0',
+    productId: 'com.example.customandroid',
+    targets: {
+      android: {
+        loveAndroidDir: 'love-android',
+        gradleTask: ':app:assembleCustomDebug',
+        artifactPath: 'app/build/outputs/custom/custom-debug.apk',
+        recordAudio: false,
+      },
+    },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(existsSync(join(dir, 'builds', 'custom-android-2.0.0-android.apk')), true);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.deepEqual(record.argv, [':app:assembleCustomDebug']);
+  assert.equal(record.manifest.includes('android.permission.RECORD_AUDIO'), false);
+  assert.equal(record.manifest.includes('android.permission.INTERNET'), true);
+});
+
+test('build ios: invalid bundle id fails before xcodebuild', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Bad iOS Game',
+    version: '1.0.0',
+    targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'bad id' } },
+  });
+  const recordPath = join(dir, 'xcodebuild-record.json');
+  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+const fs = require('node:fs');
+fs.writeFileSync(${JSON.stringify(recordPath)}, 'ran');
+process.exit(0);
+`);
+
+  const result = run(['build', 'ios', '--dir', dir, '--json'], { env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }) });
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Invalid ios build config'));
+  assert.equal(existsSync(recordPath), false);
+});
+
 test('build ios: injects game.love, runs xcodebuild, copies app, and writes manifest', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -736,6 +853,11 @@ test('build ios: injects game.love, runs xcodebuild, copies app, and writes mani
         loveIosDir: 'love-ios',
         bundleIdentifier: 'com.example.iosgame',
         displayName: 'iOS Game Dev',
+        scheme: 'FeatherGame',
+        configuration: 'Release',
+        sdk: 'iphonesimulator',
+        derivedDataPath: 'builds/ios-derived-data',
+        teamId: 'ABC123XYZ',
       },
     },
   });
@@ -770,11 +892,15 @@ process.exit(0);
   assert.equal(existsSync(join(dir, 'builds', 'ios-game-5.0.0-ios.app')), true);
   const record = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.ok(record.argv.includes('-scheme'));
-  assert.ok(record.argv.includes('love-ios'));
+  assert.ok(record.argv.includes('FeatherGame'));
+  assert.ok(record.argv.includes('-configuration'));
+  assert.ok(record.argv.includes('Release'));
   assert.ok(record.argv.includes('-sdk'));
   assert.ok(record.argv.includes('iphonesimulator'));
+  assert.ok(record.argv.includes(join(dir, 'builds', 'ios-derived-data')));
   assert.ok(record.argv.includes('PRODUCT_BUNDLE_IDENTIFIER=com.example.iosgame'));
   assert.ok(record.argv.includes('INFOPLIST_KEY_CFBundleDisplayName=iOS Game Dev'));
+  assert.ok(record.argv.includes('DEVELOPMENT_TEAM=ABC123XYZ'));
   assert.equal(record.gameLoveExists, true);
   assert.equal(record.projectContainsGameLove, true);
   const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
@@ -793,6 +919,21 @@ test('build mobile: missing native template paths fail with actionable errors', 
   const ios = run(['build', 'ios', '--dir', dir, '--json'], { env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_TEST_ALLOW_IOS_BUILD: '1' } });
   assert.equal(ios.exitCode, 1);
   assert.ok(outputOf(ios).includes('targets.ios.loveIosDir'));
+});
+
+test('build ios: non-macOS hosts fail with setup guidance', { skip: process.platform === 'darwin' }, () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Non Mac iOS',
+    version: '1.0.0',
+    targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.nonmacios' } },
+  });
+
+  const result = run(['build', 'ios', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('iOS builds require macOS with Xcode'));
 });
 
 test('build: production preflight blocks unsafe Feather config unless explicitly allowed', () => {
@@ -940,6 +1081,25 @@ test('doctor: android build target reports template and local tool setup', () =>
   assert.equal(labels.get('Android SDK')?.severity, 'pass');
   assert.equal(labels.get('Android product id')?.severity, 'pass');
   assert.equal(labels.get('Android signing')?.severity, 'warn');
+});
+
+test('doctor: mobile build target reports config validation failures', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Doctor Bad Android',
+    version: '1.0.0',
+    productId: 'bad product id',
+    targets: { android: { loveAndroidDir: 'love-android', versionCode: 0 } },
+  });
+
+  const { result, parsed } = parseDoctorJsonResult(dir, ['--build-target', 'android']);
+  assert.equal(result.exitCode, 1);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Android config')?.severity, 'fail');
+  assert.ok(labels.get('Android config')?.detail.includes('versionCode'));
+  assert.equal(labels.get('Android product id')?.severity, 'fail');
 });
 
 test('doctor: ios build target reports platform, template, Xcode, and signing hints', () => {
