@@ -24,6 +24,16 @@ import {
   writeGame,
 } from './helpers.mjs';
 
+function outputHasExactUrl(output, expected) {
+  return output.split(/\s+/).some((token) => {
+    try {
+      return new URL(token).href === expected;
+    } catch {
+      return false;
+    }
+  });
+}
+
 test('build vendor add android --json: clones vendor and updates config', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -254,8 +264,8 @@ test('build vendor add --target steamos: prints manual SteamOS Devkit setup link
   const result = run(['build', 'vendor', 'add', '--target', 'steamos', '--dir', dir]);
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.ok(outputOf(result).includes('SteamOS Devkit setup is manual'));
-  assert.ok(outputOf(result).includes('https://partner.steamgames.com/doc/steamdeck/loadgames'));
-  assert.ok(outputOf(result).includes('https://gitlab.steamos.cloud/devkit/steamos-devkit'));
+  assert.ok(outputHasExactUrl(outputOf(result), 'https://partner.steamgames.com/doc/steamdeck/loadgames'));
+  assert.ok(outputHasExactUrl(outputOf(result), 'https://gitlab.steamos.cloud/devkit/steamos-devkit'));
 });
 
 test('build vendor add --no-config: fetches vendor without writing build config', () => {
