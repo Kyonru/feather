@@ -608,14 +608,14 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         provenanceByPackage.set(finding.id, [...(provenanceByPackage.get(finding.id) ?? []), finding]);
       }
       for (const [id, findings] of [...provenanceByPackage.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-        const reasons = [...new Set(findings.map((finding) => finding.reason))].join(', ');
+        const urls = [...new Set(findings.map((finding) => finding.url))].slice(0, 3).join(', ');
         const targets = [...new Set(findings.map((finding) => finding.target))].slice(0, 3).join(', ');
         add(
           checks,
           'Packages',
           `Package ${id} source`,
           'warn',
-          `${findings.length} untrusted URL(s): ${reasons}${targets ? ` (${targets})` : ''}`,
+          `${findings.length} untrusted URL(s): ${urls}${targets ? ` (${targets})` : ''}`,
           `Review feather.lock.json; repair only if trusted with \`feather package install --dir ${projectDirArg} --allow-untrusted\`.`,
         );
       }

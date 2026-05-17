@@ -809,18 +809,7 @@ test('init: --yes --mode auto patches main.lua with guarded markers', () => {
 test('remove: non-interactive destructive remove requires --yes', () => {
   const dir = makeTmp();
   writeGame(dir);
-  run([
-    'init',
-    dir,
-    '--mode',
-    'auto',
-    '--local-src',
-    LOCAL_SRC,
-    '--install-dir',
-    'feather',
-    '--no-plugins',
-    '--yes',
-  ]);
+  run(['init', dir, '--mode', 'auto', '--local-src', LOCAL_SRC, '--install-dir', 'feather', '--no-plugins', '--yes']);
   const result = run(['remove', dir]);
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('--yes'));
@@ -830,18 +819,7 @@ test('remove: non-interactive destructive remove requires --yes', () => {
 test('remove: dry-run does not delete files or edit main.lua', () => {
   const dir = makeTmp();
   writeGame(dir);
-  run([
-    'init',
-    dir,
-    '--mode',
-    'auto',
-    '--local-src',
-    LOCAL_SRC,
-    '--install-dir',
-    'feather',
-    '--no-plugins',
-    '--yes',
-  ]);
+  run(['init', dir, '--mode', 'auto', '--local-src', LOCAL_SRC, '--install-dir', 'feather', '--no-plugins', '--yes']);
   const beforeMain = readFileSync(join(dir, 'main.lua'), 'utf8');
   const { exitCode } = run(['remove', dir, '--dry-run']);
   assert.equal(exitCode, 0);
@@ -870,7 +848,14 @@ test('doctor --json reports package audit problems and unsafe config flags', () 
       version: 'url',
       trust: 'experimental',
       source: { url: 'https://example.com/helper.lua' },
-      files: [{ name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('expected') }],
+      files: [
+        {
+          name: 'helper.lua',
+          url: 'https://example.com/helper.lua',
+          target: 'lib/helper.lua',
+          sha256: sha256('expected'),
+        },
+      ],
     },
   });
   const result = run(['doctor', dir, '--json']);
@@ -937,7 +922,14 @@ test('doctor --json reports package file recovery and stale bundled registry ver
       version: 'url',
       trust: 'experimental',
       source: { url: 'https://example.com/helper.lua' },
-      files: [{ name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('expected') }],
+      files: [
+        {
+          name: 'helper.lua',
+          url: 'https://example.com/helper.lua',
+          target: 'lib/helper.lua',
+          sha256: sha256('expected'),
+        },
+      ],
     },
   });
 
@@ -964,7 +956,14 @@ test('doctor --json reports untrusted lockfile source URLs', () => {
       version: 'url',
       trust: 'experimental',
       source: { kind: 'url', url: 'https://example.com/helper.lua', urls: ['https://example.com/helper.lua'] },
-      files: [{ name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('expected') }],
+      files: [
+        {
+          name: 'helper.lua',
+          url: 'https://example.com/helper.lua',
+          target: 'lib/helper.lua',
+          sha256: sha256('expected'),
+        },
+      ],
     },
     'raw-helper': {
       version: 'main',
@@ -1233,9 +1232,17 @@ test('custom add: repo install writes selected files and lockfile metadata', asy
       const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
       assert.equal(lock.packages['my-pkg'].version, 'v1.0.0');
       assert.equal(lock.packages['my-pkg'].trust, 'experimental');
-      assert.deepEqual(lock.packages['my-pkg'].source, { repo: 'me/pkg', tag: 'v1.0.0', resolvedRef: commitSha, commitSha });
+      assert.deepEqual(lock.packages['my-pkg'].source, {
+        repo: 'me/pkg',
+        tag: 'v1.0.0',
+        resolvedRef: commitSha,
+        commitSha,
+      });
       assert.equal(lock.packages['my-pkg'].files.length, 2);
-      assert.equal(lock.packages['my-pkg'].files[0].url, `https://raw.githubusercontent.com/me/pkg/${commitSha}/init.lua`);
+      assert.equal(
+        lock.packages['my-pkg'].files[0].url,
+        `https://raw.githubusercontent.com/me/pkg/${commitSha}/init.lua`,
+      );
     },
   );
 });
@@ -1284,10 +1291,7 @@ test('custom add: URL install writes buffered files and lockfile metadata', asyn
 test('custom add: lockfile source validation rejects malformed optional provenance', async () => {
   const { validateLockfileSource } = await import('../../dist/lib/package/lockfile.js');
 
-  assert.throws(
-    () => validateLockfileSource({ repo: 'me/pkg', tag: 'main', commitSha: 'abc123' }),
-    /commitSha/,
-  );
+  assert.throws(() => validateLockfileSource({ repo: 'me/pkg', tag: 'main', commitSha: 'abc123' }), /commitSha/);
   assert.throws(
     () => validateLockfileSource({ kind: 'url', url: 'https://example.com/helper.lua', urls: [] }),
     /source\.urls/,
@@ -1385,8 +1389,18 @@ test('restore: enriched url lockfiles still prefer per-file URLs', async () => {
             urls: ['https://example.com/a.lua', 'https://example.com/b.lua'],
           },
           files: [
-            { name: 'a.lua', url: 'https://example.com/a.lua', target: 'lib/mypkg/a.lua', sha256: sha256('return "a"') },
-            { name: 'b.lua', url: 'https://example.com/b.lua', target: 'lib/mypkg/b.lua', sha256: sha256('return "b"') },
+            {
+              name: 'a.lua',
+              url: 'https://example.com/a.lua',
+              target: 'lib/mypkg/a.lua',
+              sha256: sha256('return "a"'),
+            },
+            {
+              name: 'b.lua',
+              url: 'https://example.com/b.lua',
+              target: 'lib/mypkg/b.lua',
+              sha256: sha256('return "b"'),
+            },
           ],
           installedAt: new Date(0).toISOString(),
         },
