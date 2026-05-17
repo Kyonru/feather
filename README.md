@@ -1,4 +1,4 @@
-# Feather — CLI, Debugging & Inspection Tool for Löve2D
+# Feather — CLI Debugging, Inspection, and Builds for LÖVE
 
 Feather is a CLI for debugging, inspecting, and manage packages for [LÖVE](https://love2d.org) games.
 
@@ -19,10 +19,10 @@ The goal is to make the day-to-day loop of writing and testing a LÖVE game fast
 - **Console / REPL** — Execute Lua in the running game (opt-in, requires an `apiKey`).
 - **Plugin system** — 18+ built-in plugins (collision debug, animation inspector, audio debug, particle editor, and more). Plugins define their UI in Lua; the desktop app renders it automatically.
 - **Multi-session** — Connect multiple games at the same time.
-- **Mobile debugging** — Auto-detected LAN IP for connecting phones, tablets, and Steam Deck.
+- **Mobile and platform builds** — CLI-managed web, Android, iOS, Windows, macOS, Linux, and SteamOS workflows.
 - **Screenshots & GIF capture** — Built-in capture plugin.
 - **Log file viewer** — Open `.featherlog` files for offline inspection.
-- **CLI** — No Lua changes needed to run and debug love2d games.
+- **CLI** — No Lua changes needed to run, debug, build, or clean up love2d games.
   - **Package Manager** — Install packages from a curated list of popular love2D packages.
 
 ---
@@ -51,9 +51,9 @@ feather init path/to/my-game
 feather run path/to/my-game
 ```
 
-Feather is injected automatically for local desktop runs, so your game code does not need a manual `require`.
+Feather is injected by the CLI for dev runs and debug builds, so your game code does not need a manual `require` for any target.
 
-Optional vendor setup for web and mobile dev loops:
+Optional vendor setup for web, mobile, and packaged desktop workflows:
 
 ```sh
 feather build vendor add web --dir path/to/my-game
@@ -70,6 +70,18 @@ For all build vendors, including desktop packaging runtimes:
 
 ```sh
 feather build vendor add all --dir path/to/my-game
+```
+
+Build release artifacts from the same CLI flow:
+
+```sh
+feather build love --dir path/to/my-game
+feather build android --dir path/to/my-game --release
+feather build ios --dir path/to/my-game --release
+feather build windows --dir path/to/my-game
+feather build macos --dir path/to/my-game
+feather build linux --dir path/to/my-game
+feather build steamos --dir path/to/my-game
 ```
 
 For more commands and options:

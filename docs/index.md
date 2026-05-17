@@ -2,7 +2,7 @@
 
 **Real-time debug & inspect tool for [LÖVE (love2d)](https://love2d.org) games.**
 
-Like Flipper or React DevTools, but for your game. Inspect logs, variables, performance metrics, and errors in real-time over a WebSocket connection — with a built-in plugin system, step debugger, and zero-config setup.
+Like Flipper or React DevTools, but for LÖVE game. Inspect logs, variables, performance metrics, and errors in real time over a WebSocket connection with a built-in plugin system, step debugger, and zero-config setup.
 
 ---
 
@@ -19,9 +19,9 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 - 🐛 **Step Debugger** — Breakpoints, step over/into/out, call stack, and local variable inspection.
 - 🖼️ **Asset inspector** — Browse loaded textures, fonts, and audio sources with previews, zoom, pan, and pixel grid.
 - 📁 **Log file viewer** — Open `.featherlog` files for offline inspection.
-- 🖥️ **CLI-first workflow** — `feather init`, `feather run`, and `feather remove` manage setup and cleanup.
-- 🚢 **Build/upload helpers** — `feather build` creates local web, mobile dev, and desktop artifacts and `feather upload itch` pushes them with Butler.
-- ⚡ **Guarded in-game setup** — Generated imports load only when `USE_DEBUGGER` is enabled.
+- 🖥️ **CLI-first workflow** — `feather init`, `feather run`, and `feather remove` manage setup and cleanup with no manual Lua integration.
+- 🚢 **Build/upload helpers** — `feather build` creates `.love`, web, mobile, and desktop artifacts and `feather upload itch` pushes them with Butler.
+- 🧹 **Self-cleaning setup** — Generated files are managed by Feather and can be previewed or removed before release.
 - 📦 **Config file support** — `feather.config.lua` keeps project settings outside game code.
 
 ---
@@ -44,11 +44,14 @@ feather init path/to/my-game
 feather run path/to/my-game
 ```
 
-Feather is injected automatically for local desktop runs, so your game code does not need a manual `require`.
+Feather is injected by the CLI for dev runs and debug builds, so your game code does not need a manual `require` for any target.
+
+> [!CAUTION]
+> `feather run` is for development. Do not publish builds created from a run session; create user-facing builds with `feather build <target> --release` so Feather debugging tools are not included.
 
 ### Optional Vendors
 
-Vendor setup downloads the local LÖVE runtimes/templates needed by web and mobile targets, then updates `feather.build.json`.
+Vendor setup downloads the local LÖVE runtimes/templates needed by web, mobile, and packaged desktop targets, then updates `feather.build.json`.
 
 ```bash
 feather build vendor add web --dir path/to/my-game
@@ -65,6 +68,18 @@ For all build vendors, including desktop packaging runtimes:
 
 ```bash
 feather build vendor add all --dir path/to/my-game
+```
+
+Build release artifacts from the same CLI flow:
+
+```bash
+feather build love --dir path/to/my-game --release
+feather build android --dir path/to/my-game --release
+feather build ios --dir path/to/my-game --release
+feather build windows --dir path/to/my-game --release
+feather build macos --dir path/to/my-game --release
+feather build linux --dir path/to/my-game --release
+feather build steamos --dir path/to/my-game --release
 ```
 
 See [CLI](cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload` options.

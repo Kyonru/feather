@@ -1,85 +1,69 @@
 # Installation
 
-## Option 1: CLI (Recommended — no game changes needed)
+## CLI (Recommended — no game changes needed)
 
-Install the `@kyonru/feather` npm package globally, then use `feather run` to inject Feather into any desktop love2d game without touching its source:
+Install the Feather desktop app, install the `@kyonru/feather` npm package globally, then use the CLI for desktop, web, mobile, and packaged desktop workflows:
 
 ```bash
 npm install -g @kyonru/feather
+feather init path/to/my-game
 feather run path/to/my-game
 ```
 
-A new session tab appears in the Feather desktop app automatically. No `require` calls, no `DEBUGGER:update(dt)` — the CLI handles everything.
+A new session tab appears in the Feather desktop app automatically. No `require` calls, no `DEBUGGER:update(dt)` — the CLI handles runtime injection and setup.
 
 > [!NOTE]
-> Use plain `feather run` for local desktop iteration where the CLI launches LÖVE directly. Use `feather run --target web` when you want a served love.js dev artifact.
+> Use plain `feather run` for local desktop iteration where the CLI launches LÖVE directly. Use `feather run --target web|android|ios` when you want the CLI to build, serve, install, or launch a configured platform target.
 
-> [!IMPORTANT]
-> For Android and iOS dev loops, `feather run path/to/my-game --target android|ios` can build the configured native template, install it, and launch it. For handhelds, Steam Deck, or another computer, embed Feather into the game instead.
+### Vendors and Platform Runs
 
-### Embedded library for devices
-
-Use auto mode for handheld or remote device builds:
+Add local LÖVE runtimes/templates once per project, then run or build those targets:
 
 ```bash
-cd path/to/my-game
-feather init --mode auto
+feather build vendor add web --dir path/to/my-game
+feather run path/to/my-game --target web
+
+feather build vendor add android --dir path/to/my-game
+feather run path/to/my-game --target android
+
+feather build vendor add ios --dir path/to/my-game
+feather run path/to/my-game --target ios
+
+feather build vendor add all --dir path/to/my-game
 ```
 
-Then set the desktop app machine as the connection target in `feather.config.lua`:
+`feather build vendor add all` also installs desktop runtime vendors for Windows, macOS, Linux, and SteamOS packaging. Vendor fetching does not install Android SDK, JDK, Xcode, NSIS, or signing assets.
 
-```lua
-return {
-  sessionName = "Steam Deck Test",
-
-  -- IP address of the computer running the Feather desktop app.
-  host = "192.168.1.50",
-}
-```
-
-Run the game with Feather enabled:
+Check all platform readiness in one pass:
 
 ```bash
-# macOS / Linux / Steam Deck shell
-USE_DEBUGGER=1 love .
+feather doctor path/to/my-game --build-target all
 ```
 
-> [!TIP]
-> `feather run --target android` runs ADB reverse by default, so `host = "127.0.0.1"` can still work over USB. Web and mobile dev runs embed Feather and your selected `feather.config.lua` into the temporary `.love` archive; pass `--no-debugger` to build/serve/install raw source instead. For Wi-Fi devices, Steam Deck, or another computer, use the LAN IP shown in Feather Settings.
-
-See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
-
-Before sharing or packaging a managed project, run:
-
-```bash
-feather doctor path/to/my-game --production
-```
-
-To check release dependencies for Feather's local build/upload helpers:
-
-```bash
-feather doctor path/to/my-game --build-target web
-feather doctor path/to/my-game --upload-target itch
-```
-
-`feather build` supports web, Android, iOS, Windows, macOS, Linux, and SteamOS artifacts. Web builds need a local love.js player directory configured in `feather.build.json`; Android/iOS builds need local love-android or LÖVE iOS template paths; desktop builds expect `love-release` on `PATH`. `feather upload itch` expects Butler on `PATH` and either `BUTLER_API_KEY` in CI or a local `butler login` session.
-
-For web/mobile setup, run `feather build vendor add web --dir path/to/my-game` for love.js or `feather build vendor add mobile --dir path/to/my-game` for Android/iOS templates. Both commands fetch vendor checkouts into `vendor/` and update `feather.build.json`. Then run `feather doctor path/to/my-game --build-target web`, `--build-target android`, or `--build-target ios`. Doctor checks the configured vendor paths, product/bundle id where relevant, local build tools, and the common environment variables before the build or run command stages or writes artifacts. Vendor fetching does not install Android SDK, JDK, Xcode, or signing assets.
-
-Web/mobile dev run examples:
+Common run and build commands:
 
 ```bash
 feather run path/to/my-game --target web
-feather run path/to/my-game --target web --web-port 3000
-feather run path/to/my-game --target web --no-debugger
 feather run path/to/my-game --target android
-feather run path/to/my-game --target android --device emulator-5554
-feather run path/to/my-game --target android --no-debugger
 feather run path/to/my-game --target ios
-feather run path/to/my-game --target ios --device <simulator-udid>
+
+feather build love --dir path/to/my-game
+feather build android --dir path/to/my-game --release
+feather build ios --dir path/to/my-game --release
+feather build windows --dir path/to/my-game
+feather build macos --dir path/to/my-game
+feather build linux --dir path/to/my-game
+feather build steamos --dir path/to/my-game
 ```
 
-Use `feather build android --release` for Android AAB/APK release artifacts and `feather build ios --release` for iOS archive/IPA artifacts. Keep signing file paths in `feather.build.json`, but put passwords in environment variables referenced by the config so secrets are not committed or printed.
+Release builds do not auto-embed Feather's debugger runtime. If you used a managed init mode while experimenting, Feather can clean up its own generated blocks/files before packaging:
+
+```bash
+feather remove path/to/my-game --dry-run
+feather remove path/to/my-game --yes
+```
+
+See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
 
 For CI or release scripts that need a security-only JSON report:
 
@@ -89,7 +73,9 @@ feather doctor path/to/my-game --security --json
 
 ---
 
-## Option 2: Install Script
+## Advanced: Install Script
+
+The install script is an advanced/manual path. Prefer the CLI above unless you intentionally want to vendor the Lua runtime yourself.
 
 Download the core library and all plugins with a single command:
 
@@ -121,7 +107,7 @@ FEATHER_INCLUDE_CONSOLE=1 bash -c "$(curl -sSf https://raw.githubusercontent.com
 FEATHER_INCLUDE_HOT_RELOAD=1 bash -c "$(curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh)"
 ```
 
-## Option 3: Direct Download
+## Advanced: Direct Download
 
 1. Go to the [releases page](https://github.com/Kyonru/feather/releases) and download `feather-x.x.x.zip`.
 2. Unzip and copy the `feather/` folder into your project, e.g. `lib/feather/`.
@@ -131,7 +117,7 @@ FEATHER_INCLUDE_HOT_RELOAD=1 bash -c "$(curl -sSf https://raw.githubusercontent.
 local Feather = require "lib.feather"
 ```
 
-## Option 4: LuaRocks
+## Advanced: LuaRocks
 
 ```bash
 luarocks install feather
@@ -242,7 +228,7 @@ Run without arguments to see the full list of available plugins:
 bash install-plugin.sh
 ```
 
-After installing, register the plugins in your setup:
+After installing, register the plugins in your manual setup:
 
 ```lua
 require("feather.auto").setup({

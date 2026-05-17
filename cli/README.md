@@ -362,12 +362,15 @@ Doctor passed with 1 warning.
 
 ### `feather build <target>`
 
-Build a LÖVE game into local artifacts. V1 supports `web`, `android`, `ios`, `windows`, `macos`, `linux`, and `steamos`. Android and iOS default to development builds from local native template checkouts; `--release` produces signed/store-oriented mobile artifacts. Notarization, Play Console/App Store upload, and Steam upload are later phases.
+Build a LÖVE game into local artifacts. Supported targets are `love`, `web`, `android`, `ios`, `windows`, `macos`, `linux`, and `steamos`. Android and iOS default to development builds from local native template checkouts; `--release` produces signed/store-oriented mobile artifacts without embedding Feather's debugger runtime.
 
 ```bash
+feather build love --dir path/to/my-game
 feather build web --dir path/to/my-game
 feather build vendor add web --dir path/to/my-game
 feather build vendor add mobile --dir path/to/my-game
+feather build vendor add desktop --dir path/to/my-game
+feather build vendor add all --dir path/to/my-game
 feather build android --dir path/to/my-game
 feather build android --dir path/to/my-game --verbose
 feather build android --dir path/to/my-game --no-cache
@@ -377,26 +380,29 @@ feather build android --dir path/to/my-game --release
 feather build ios --dir path/to/my-game
 feather build ios --dir path/to/my-game --verbose
 feather build ios --dir path/to/my-game --release
+feather build windows --dir path/to/my-game
+feather build macos --dir path/to/my-game
 feather build linux --dir path/to/my-game
 feather build steamos --dir path/to/my-game --json
 feather build web --dry-run
 feather build web --allow-unsafe
 ```
 
-Builds read `feather.build.json` from the project root. Missing config is allowed for simple desktop builds, but web builds need a local love.js player directory, mobile builds need local LÖVE native template paths, and uploads need store metadata.
+Builds read `feather.build.json` from the project root. `love` builds can run without target-specific vendors. Web builds need a local love.js player directory, mobile builds need local LÖVE native template paths, desktop builds need local LÖVE runtime vendors, and uploads need store metadata.
 
-To fetch web/mobile build vendors locally:
+To fetch build vendors locally:
 
 ```bash
 feather build vendor add web
 feather build vendor add mobile
+feather build vendor add desktop
 feather build vendor add all --json
 feather build vendor add android --ref 11.5
 feather build vendor add ios --ref 11.5 --json
 feather build vendor list
 ```
 
-`build vendor add` clones LÖVE build vendor sources into `vendor/` and updates `feather.build.json` by default. Web fetches `2dengine/love.js` into `vendor/love.js`. Android fetches `love2d/love-android` with submodules. iOS fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode tree. Mobile versions come from `loveVersion` or `--ref`, falling back to `11.5`; web defaults to the love.js `main` branch unless `--web-ref` or `--ref` is passed.
+`build vendor add` installs local build vendors into `vendor/` and updates `feather.build.json` by default. Web fetches `2dengine/love.js` into `vendor/love.js`. Android fetches `love2d/love-android` with submodules. iOS fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode tree. Desktop vendors download official LÖVE runtimes for Windows, macOS, and Linux; SteamOS reuses the Linux runtime unless configured separately. Mobile and desktop versions come from `loveVersion` or `--ref`, falling back to `11.5`; web defaults to the love.js `main` branch unless `--web-ref` or `--ref` is passed.
 
 ```json
 {
@@ -441,6 +447,15 @@ feather build vendor list
         "provisioningProfileSpecifier": "My Game App Store",
         "teamId": "ABCDE12345"
       }
+    },
+    "windows": {
+      "loveRuntimeDir": "vendor/love-windows"
+    },
+    "macos": {
+      "loveRuntimeDir": "vendor/love-macos"
+    },
+    "linux": {
+      "loveRuntimeDir": "vendor/love-linux"
     }
   },
   "upload": {
@@ -469,7 +484,8 @@ Build behavior:
 - `--release` on Android produces `.aab` and `.apk` artifacts; signing passwords are read from environment variables named in config
 - `--release` on iOS produces `.xcarchive` and `.ipa` artifacts through `xcodebuild archive` and `-exportArchive`
 - `--verbose` on Android/iOS shows staging steps, native workspace paths, Gradle/Xcode commands, and captured native tool output; JSON output stays decoration-free
-- delegates desktop targets to `love-release`; `steamos` uses the Linux packaging path with Steam-friendly target naming
+- packages Windows as a fused runtime zip and NSIS installer, macOS as `.app.zip` and `.dmg`, and Linux/SteamOS as `.AppImage` plus `.tar.gz`
+- `steamos` uses the Linux runtime vendor by default with SteamOS artifact naming
 
 **Options:**
 
@@ -490,13 +506,14 @@ Build behavior:
 | `--runtime-config`  | Path to `feather.config.lua` for Android/iOS dev embedding.       |
 | `--verbose`         | Show Android/iOS native build commands and tool output.           |
 
-Run `feather doctor --build-target <target>` to see missing local dependencies and exact setup guidance before building.
+Run `feather doctor --build-target <target>` to see missing local dependencies and exact setup guidance before building. Use `feather doctor --build-target all` to scan every platform in one pass.
 
 Mobile build notes:
 
 - Android builds expect `targets.android.loveAndroidDir` to point at a local love-android checkout with `gradlew`.
 - iOS builds expect `targets.ios.loveIosDir` to point at a local LÖVE iOS source tree with `platform/xcode/love.xcodeproj`.
 - `feather build vendor add mobile` fetches those template checkouts, but it does not install Android SDK, JDK, Xcode, or signing assets.
+- Desktop builds expect `targets.windows.loveRuntimeDir`, `targets.macos.loveRuntimeDir`, and `targets.linux.loveRuntimeDir` to point at local runtime vendors. `feather build vendor add desktop` creates those directories.
 - Dev Android/iOS builds reuse cached copied native templates by default. Use `--no-cache` for a fresh temporary workspace, or `--clean` to remove both artifacts and cached state in the output directory.
 - Release Android/iOS builds use fresh native workspaces by default for reproducibility.
 - `feather doctor --build-target android --release` validates product id, Gradle wrapper, JDK, Android SDK, and signing env setup.

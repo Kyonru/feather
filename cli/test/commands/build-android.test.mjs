@@ -182,6 +182,8 @@ test('build android --release: does not auto-embed Feather debugger runtime', ()
   const entries = readStoredZipEntries(join(dir, 'builds', 'release-raw-android-1.0.0.love'));
   assert.equal(entries.has('.feather-main.lua'), false);
   assert.equal(entries.has('feather/auto.lua'), false);
+  assert.equal(entries.has('feather/core/debug_overlay.lua'), false);
+  assert.equal(entries.has('feather.config.lua'), false);
 });
 
 test('build android: reuses dev native cache between builds', () => {
