@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.0] - 2026-05-17 - The one with the watcher
+
+### Added
+
+- **Watch mode** — `feather watch` allows you to watch your game files for changes and automatically rebuilds the project when they change. Currently (android | ios).
+
+### Changed
+
+- **Fast Builds** - By default, when building android or ios, it only bundles creates a new `game.love` and uses existing installed APK or IPA files instead of rebuilding the entire project.
+- `--clean` now clears all cache.
+- `--no-cache` now ignores exiting APK or IPA.
+- Update screenshots.
+
+### Fixes
+
+- Fixes remote debugger for zero config flows
+- Debugger shortcuts
+
 ## [v1.0.1] - 2026-05-17 - The one with auto load config
 
 ### Fixes

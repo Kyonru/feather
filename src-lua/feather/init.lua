@@ -20,7 +20,7 @@ local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
 
-local FEATHER_VERSION_NAME = "1.0.1"
+local FEATHER_VERSION_NAME = "1.1.0"
 local FEATHER_API = 5
 
 local FEATHER_VERSION = {
