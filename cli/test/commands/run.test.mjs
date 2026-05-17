@@ -20,6 +20,8 @@ import {
   writeBuildConfig,
   writeFakeAdb,
   writeFakeCommand,
+  writeFakeDesktopRuntimeVendors,
+  writeFakeDesktopTools,
   writeFakeLove,
   writeFakeLoveAndroid,
   writeFakeLoveIos,
@@ -491,6 +493,30 @@ process.exit(0);
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('xcrun not found'));
   assert.ok(outputOf(result).includes('feather doctor --build-target ios'));
+});
+
+test('run --target steamos: builds and attempts SteamOS Devkit Client notification', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const vendors = writeFakeDesktopRuntimeVendors(dir);
+  const { binDir } = writeFakeDesktopTools(dir);
+  writeBuildConfig(dir, {
+    name: 'Run Steam Deck',
+    version: '1.0.0',
+    targets: {
+      linux: { loveRuntimeDir: vendors.linux },
+    },
+  });
+
+  const result = run(['run', '--target', 'steamos', dir], {
+    env: envWithPath(binDir, { FEATHER_STEAMOS_DEVKIT_URL: 'http://127.0.0.1:1/post_event' }),
+  });
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(outputOf(result).includes('Built SteamOS package'));
+  assert.ok(outputOf(result).includes('SteamOS Devkit notification pings local server'));
+  assert.ok(outputOf(result).includes('SteamOS Devkit Client was not reachable'));
+  assert.equal(existsSync(join(dir, 'builds', 'run-steam-deck-1.0.0-steamos.tar.gz')), true);
 });
 
 test('run mobile: forwarded game arguments are rejected', () => {

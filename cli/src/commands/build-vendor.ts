@@ -4,6 +4,7 @@ import {
   printBlank,
   printJson,
   printKeyValues,
+  printMuted,
   printStatus,
   printTable,
   style,
@@ -89,6 +90,12 @@ export async function buildVendorAddCommand(targetValues: string[], opts: BuildV
         config: vendor.configUpdated ? 'updated' : opts.dryRun && opts.configUpdate !== false ? 'planned' : 'unchanged',
       })),
     });
+    if (result.vendors.some((vendor) => vendor.target === 'steamos')) {
+      printBlank();
+      printMuted('SteamOS Devkit setup is manual before using `feather watch --target steamos`:');
+      printMuted('Official Steam Deck loading docs: https://partner.steamgames.com/doc/steamdeck/loadgames');
+      printMuted('Cross-platform Devkit client, especially useful on macOS: https://gitlab.steamos.cloud/devkit/steamos-devkit');
+    }
   } catch (err) {
     spinner?.fail((err as Error).message);
     fail((err as Error).message, { silent: Boolean(spinner) });

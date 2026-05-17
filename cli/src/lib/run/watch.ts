@@ -6,6 +6,7 @@ import { loadConfig } from '../config.js';
 import { findLoveBinary } from '../love.js';
 import { createShim, shimEnv, type Shim } from '../shim.js';
 import { loadBuildConfig, type LoadBuildConfigOptions } from '../build/config.js';
+import { runBuild } from '../build/build.js';
 import { embedMobileDebuggerStage } from '../build/debug-stage.js';
 import { artifactBaseName, stageProject, writeLoveArchive } from '../build/files.js';
 import { maybeAdHocCodesign } from '../build/ios.js';
@@ -44,6 +45,11 @@ export type DesktopWatchOptions = {
   config?: string;
   featherOverride?: string;
   pluginsOverride?: string;
+};
+
+export type SteamosWatchOptions = LoadBuildConfigOptions & {
+  debounce?: number;
+  verbose?: boolean;
 };
 
 type SourceWatcher = {
@@ -148,6 +154,65 @@ export function runDesktopWatch(gameDir: string, options: DesktopWatchOptions = 
   process.once('SIGTERM', shutdown);
 }
 
+export function runSteamosWatch(gameDir: string, options: SteamosWatchOptions): void {
+  const log: NativeBuildLogger | undefined = options.verbose ? printMuted : undefined;
+  const debounceMs = options.debounce ?? 500;
+  const config = loadBuildConfig({
+    projectDir: gameDir,
+    configPath: options.configPath,
+    sourceDir: options.sourceDir,
+    outDir: options.outDir,
+  });
+  let building = false;
+
+  printStatus('info', 'Feather watch SteamOS');
+  printWarning('SteamOS Devkit notification pings local server http://localhost:32010/post_event; this is how the SteamOS Devkit Client receives build updates.');
+
+  function buildAndNotify() {
+    if (building) return;
+    building = true;
+    try {
+      const result = runBuild({
+        target: 'steamos',
+        projectDir: options.projectDir ?? gameDir,
+        configPath: options.configPath,
+        sourceDir: options.sourceDir,
+        outDir: options.outDir,
+        allowUnsafe: true,
+        verbose: options.verbose,
+        log,
+      });
+      if (!result.ok) {
+        printWarning(`SteamOS build failed: ${result.error}`);
+        return;
+      }
+
+      const tar = result.artifacts.find((artifact) => artifact.type === 'tar.gz');
+      printStatus('success', `Built SteamOS package${tar ? `: ${tar.path}` : ''}`);
+      void notifySteamosDevkitBuild(steamosDevkitBuildName(result.name)).then((notified) => {
+        if (notified) {
+          printStatus('success', 'Notified SteamOS Devkit Client');
+        } else {
+          printWarning('SteamOS Devkit Client was not reachable on localhost:32010; package is ready in builds/.');
+        }
+      });
+    } finally {
+      building = false;
+    }
+  }
+
+  buildAndNotify();
+  const sourceWatcher = watchSource(config.sourceDir, config.outDir, debounceMs, buildAndNotify);
+  printStatus('success', `Watching ${config.sourceDir}`);
+
+  const shutdown = () => {
+    sourceWatcher.close();
+    process.exit(0);
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+}
+
 export function runWatch(gameDir: string, options: WatchOptions): void {
   const log: NativeBuildLogger | undefined = options.verbose ? printMuted : undefined;
   const debounceMs = options.debounce ?? 500;
@@ -245,6 +310,32 @@ export function runWatch(gameDir: string, options: WatchOptions): void {
   };
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);
+}
+
+export function steamosDevkitBuildName(name: string): string {
+  return name.trim().replace(/\s+/g, '-') || 'game';
+}
+
+export async function notifySteamosDevkitBuild(
+  name: string,
+  url = process.env.FEATHER_STEAMOS_DEVKIT_URL ?? 'http://localhost:32010/post_event',
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  try {
+    const response = await fetchImpl(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'build',
+        status: 'success',
+        name,
+      }),
+      signal: AbortSignal.timeout(1000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 function watchSource(sourceDir: string, outDir: string, debounceMs: number, onChange: () => void): SourceWatcher {

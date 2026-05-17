@@ -1,11 +1,11 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fail } from '../lib/command.js';
-import { runDesktopWatch, runWatch } from '../lib/run/watch.js';
+import { runDesktopWatch, runSteamosWatch, runWatch } from '../lib/run/watch.js';
 import { resolveRunBuildContext } from './run.js';
 import type { MobileRunTarget } from '../lib/run/mobile.js';
 
-type WatchTarget = 'desktop' | MobileRunTarget;
+type WatchTarget = 'desktop' | 'steamos' | MobileRunTarget;
 
 export interface WatchCommandOptions {
   target?: WatchTarget;
@@ -27,8 +27,8 @@ export interface WatchCommandOptions {
 
 export function watchCommand(gamePath: string | undefined, opts: WatchCommandOptions): void {
   const target = (opts.target ?? 'desktop') as WatchTarget;
-  if (!['desktop', 'android', 'ios'].includes(target)) {
-    fail('Watch target must be one of: desktop, android, ios.');
+  if (!['desktop', 'android', 'ios', 'steamos'].includes(target)) {
+    fail('Watch target must be one of: desktop, android, ios, steamos.');
   }
   if (opts.port !== undefined && (!Number.isInteger(opts.port) || opts.port < 1 || opts.port > 65535)) {
     fail('Port must be a number between 1 and 65535.');
@@ -62,6 +62,18 @@ export function watchCommand(gamePath: string | undefined, opts: WatchCommandOpt
   }
 
   const buildContext = resolveRunBuildContext(absGame, opts.buildConfig);
+
+  if (target === 'steamos') {
+    runSteamosWatch(buildContext.projectDir, {
+      projectDir: buildContext.projectDir,
+      configPath: buildContext.configPath,
+      sourceDir: buildContext.sourceDir,
+      outDir: opts.outDir,
+      debounce: opts.debounce,
+      verbose: opts.verbose,
+    });
+    return;
+  }
 
   runWatch(buildContext.projectDir, {
     target: target as MobileRunTarget,

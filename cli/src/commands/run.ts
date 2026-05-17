@@ -6,10 +6,12 @@ import { createShim, shimEnv } from "../lib/shim.js";
 import { loadConfig } from "../lib/config.js";
 import { chooseRunWorkflow } from "../ui/run-workflow.js";
 import { fail } from "../lib/command.js";
-import { printInfo, printKeyValues, printMuted, printStatus } from "../lib/output.js";
+import { printInfo, printKeyValues, printMuted, printStatus, printWarning } from "../lib/output.js";
 import { runMobile, type MobileRunTarget } from "../lib/run/mobile.js";
 import { runWeb } from "../lib/run/web.js";
 import { isPathInside } from "../lib/path-safety.js";
+import { runBuild } from "../lib/build/build.js";
+import { notifySteamosDevkitBuild, steamosDevkitBuildName } from "../lib/run/watch.js";
 
 export interface RunOptions {
   love?: string;
@@ -20,7 +22,7 @@ export interface RunOptions {
   featherPath?: string;
   pluginsDir?: string;
   gameArgs?: string[];
-  target?: "desktop" | "web" | MobileRunTarget;
+  target?: "desktop" | "web" | "steamos" | MobileRunTarget;
   device?: string;
   buildConfig?: string;
   outDir?: string;
@@ -36,8 +38,8 @@ export interface RunOptions {
 export async function runCommand(gamePath: string | undefined, opts: RunOptions): Promise<void | number> {
   const target = opts.target ?? "desktop";
   const debuggerEnabled = opts.debugger !== false;
-  if (!["desktop", "web", "android", "ios"].includes(target)) {
-    fail("Run target must be one of: desktop, web, android, ios.");
+  if (!["desktop", "web", "android", "ios", "steamos"].includes(target)) {
+    fail("Run target must be one of: desktop, web, android, ios, steamos.");
   }
   if (opts.port !== undefined && (!Number.isInteger(opts.port) || opts.port < 1 || opts.port > 65535)) {
     fail("Port must be a number between 1 and 65535.");
@@ -160,6 +162,49 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
         ["Device", result.device],
         ["ADB reverse", result.adbReverse === undefined ? undefined : result.adbReverse ? `tcp:${result.port}` : "disabled"],
       ]);
+      return;
+    } catch (err) {
+      fail((err as Error).message, { cause: err });
+    }
+  }
+
+  if (target === "steamos") {
+    if ((opts.gameArgs?.length ?? 0) > 0) {
+      fail("SteamOS run does not support forwarded game arguments yet.");
+    }
+    const buildContext = resolveRunBuildContext(absGame, opts.buildConfig);
+    try {
+      printInfo("Feather run SteamOS");
+      printWarning("SteamOS Devkit notification pings local server http://localhost:32010/post_event; this is how the SteamOS Devkit Client receives build updates.");
+      const result = runBuild({
+        target: "steamos",
+        projectDir: buildContext.projectDir,
+        configPath: buildContext.configPath,
+        sourceDir: buildContext.sourceDir,
+        outDir: opts.outDir,
+        clean: opts.clean,
+        allowUnsafe: true,
+        verbose: opts.verbose,
+        log: opts.verbose ? printMuted : undefined,
+      });
+
+      if (!result.ok) {
+        fail(result.error);
+      }
+
+      const tar = result.artifacts.find((artifact) => artifact.type === "tar.gz");
+      printStatus("success", "Built SteamOS package");
+      printKeyValues([
+        ["Game", absGame],
+        ["Artifact", tar?.path ?? result.artifacts[0]?.path],
+      ]);
+
+      const notified = await notifySteamosDevkitBuild(steamosDevkitBuildName(result.name));
+      if (notified) {
+        printStatus("success", "Notified SteamOS Devkit Client");
+      } else {
+        printWarning("SteamOS Devkit Client was not reachable on localhost:32010; package is ready in builds/.");
+      }
       return;
     } catch (err) {
       fail((err as Error).message, { cause: err });

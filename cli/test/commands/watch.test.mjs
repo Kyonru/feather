@@ -13,6 +13,8 @@ import {
   test,
   waitForOutput,
   writeBuildConfig,
+  writeFakeDesktopRuntimeVendors,
+  writeFakeDesktopTools,
   writeFakeAdb,
   writeFakeCommand,
   writeFakeLoveAndroid,
@@ -34,7 +36,7 @@ test('watch: invalid target exits with error', () => {
   writeGame(dir);
   const result = run(['watch', dir, '--target', 'web']);
   assert.equal(result.exitCode, 1);
-  assert.ok(outputOf(result).includes('Watch target must be one of: desktop, android, ios'));
+  assert.ok(outputOf(result).includes('Watch target must be one of: desktop, android, ios, steamos'));
 });
 
 test('watch: invalid debounce value exits with error', () => {
@@ -44,6 +46,23 @@ test('watch: invalid debounce value exits with error', () => {
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('Debounce must be a non-negative integer'));
 });
+
+async function waitForRecordCount(recordPath, count, timeoutMs = 5000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (existsSync(recordPath)) {
+      const records = JSON.parse(readFileSync(recordPath, 'utf8'));
+      if (records.length >= count) {
+        return records;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  const seen = existsSync(recordPath) ? readFileSync(recordPath, 'utf8') : '<missing>';
+  throw new Error(`Timed out waiting for ${count} records in ${recordPath}. Saw:\n${seen}`);
+}
 
 test('watch: defaults to desktop target and restarts love on file change', async () => {
   const dir = makeTmp();
@@ -70,21 +89,65 @@ setInterval(() => {}, 1000);
   );
 
   const child = spawnCli(['watch', dir, '--love', commandPath, '--debounce', '100'], { env: envWithPath(binDir) });
+  let records;
   try {
     await waitForOutput(child, /Watching/);
 
     writeFileSync(join(dir, 'main.lua'), 'function love.update(dt) end\nfunction love.draw() end\n-- desktop-watch\n');
 
     await waitForOutput(child, /Restarted game/);
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    records = await waitForRecordCount(recordPath, 2);
   } finally {
     await stopChild(child);
   }
 
-  const records = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.ok(records.length >= 2, 'desktop watch should launch once and relaunch after change');
   assert.ok(records[0].argv[0].includes('feather-'), 'default desktop watch should launch the Feather shim');
   assert.equal(records[0].env.FEATHER_GAME_PATH, dir);
+});
+
+test('watch --target steamos: builds SteamOS package and attempts Devkit notification', async () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const vendors = writeFakeDesktopRuntimeVendors(dir);
+  const { binDir } = writeFakeDesktopTools(dir);
+  writeBuildConfig(dir, {
+    name: 'Steam Deck Watch',
+    version: '1.0.0',
+    targets: {
+      linux: { loveRuntimeDir: vendors.linux },
+    },
+  });
+
+  const child = spawnCli(
+    ['watch', dir, '--target', 'steamos', '--debounce', '100'],
+    { env: envWithPath(binDir) },
+  );
+  try {
+    await waitForOutput(child, /Built SteamOS package/);
+  } finally {
+    await stopChild(child);
+  }
+
+  assert.equal(existsSync(join(dir, 'builds', 'steam-deck-watch-1.0.0-steamos.tar.gz')), true);
+});
+
+test('watch steamos notification posts SteamOS Devkit payload', async () => {
+  const { notifySteamosDevkitBuild, steamosDevkitBuildName } = await import('../../dist/lib/run/watch.js');
+  const calls = [];
+  const ok = await notifySteamosDevkitBuild('Steam-Deck-Watch', 'http://devkit.test/post_event', async (url, init) => {
+    calls.push({ url, init });
+    return { ok: true };
+  });
+
+  assert.equal(ok, true);
+  assert.equal(steamosDevkitBuildName('Steam Deck Watch'), 'Steam-Deck-Watch');
+  assert.equal(calls[0].url, 'http://devkit.test/post_event');
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    type: 'build',
+    status: 'success',
+    name: 'Steam-Deck-Watch',
+  });
 });
 
 test('watch --target android: runs initial build, starts watching, pushes game.love on file change', async () => {

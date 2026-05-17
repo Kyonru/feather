@@ -193,7 +193,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       if (opts.buildTarget && isDoctorBuildTarget(opts.buildTarget)) {
         const fromAll = opts.buildTarget === 'all';
         for (const target of expandDoctorBuildTargets(opts.buildTarget)) {
-          addBuildTargetChecks(checks, projectDir, buildConfig, target, {
+          await addBuildTargetChecks(checks, projectDir, buildConfig, target, {
             fromAll,
             release: Boolean(opts.release),
           });
@@ -768,13 +768,13 @@ function expandDoctorBuildTargets(target: DoctorBuildTarget): SupportedBuildTarg
   return target === 'all' ? [...supportedBuildTargets] : isSupportedBuildTarget(target) ? [target] : [];
 }
 
-function addBuildTargetChecks(
+async function addBuildTargetChecks(
   checks: DoctorCheck[],
   projectDir: string,
   buildConfig: ReturnType<typeof loadBuildConfig>,
   target: SupportedBuildTarget,
   options: { fromAll: boolean; release: boolean },
-): void {
+): Promise<void> {
   const release = options.release && (!options.fromAll || target === 'android' || target === 'ios');
   const label = (singleTargetLabel: string, allTargetBase = singleTargetLabel) =>
     options.fromAll ? buildCheckLabel(target, allTargetBase, true) : singleTargetLabel;
@@ -951,7 +951,7 @@ function addBuildTargetChecks(
     return;
   }
 
-  addDesktopBuildChecks(checks, projectDir, buildConfig, target, { fromAll: options.fromAll });
+  await addDesktopBuildChecks(checks, projectDir, buildConfig, target, { fromAll: options.fromAll });
 }
 
 function addMobileConfigCheck(
@@ -1003,13 +1003,13 @@ function isDoctorDesktopBuildTarget(target: string): target is DoctorDesktopBuil
   return (desktopBuildTargets as readonly string[]).includes(target);
 }
 
-function addDesktopBuildChecks(
+async function addDesktopBuildChecks(
   checks: DoctorCheck[],
   projectDir: string,
   buildConfig: ReturnType<typeof loadBuildConfig>,
   target: string,
   options: { fromAll?: boolean } = {},
-): void {
+): Promise<void> {
   if (!isDoctorDesktopBuildTarget(target)) return;
   const label = (base: string) => prefixedCheckLabel(desktopTargetLabel(target), base, Boolean(options.fromAll));
 
@@ -1050,6 +1050,20 @@ function addDesktopBuildChecks(
     appImageTool && existsSync(appImageTool) ? undefined : `Run \`feather build vendor add ${target} --dir ${projectDir}\`.`,
   );
   addToolCheck(checks, label('tar'), 'tar', ['--version'], 'Install tar or use a shell with standard archive tools available.');
+
+  if (target === 'steamos') {
+    const reachable = await portReachable(32010, '127.0.0.1', 250);
+    add(
+      checks,
+      'Build',
+      label('SteamOS Devkit Client'),
+      reachable ? 'pass' : 'warn',
+      reachable ? 'localhost:32010 reachable' : 'localhost:32010 not reachable',
+      reachable
+        ? 'SteamOS watch will ping the local Devkit Client API after successful builds.'
+        : 'Start the SteamOS Devkit Client and connect your Steam Deck if you want `feather watch --target steamos` to auto-notify it. Feather pings localhost:32010/post_event because that is how the Devkit Client receives build notifications.',
+    );
+  }
 }
 
 function desktopRuntimeReady(runtimeDir: string, target: DoctorDesktopBuildTarget): boolean {

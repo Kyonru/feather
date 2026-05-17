@@ -50,7 +50,7 @@ program
 program
   .command('run [game-path] [game-args...]')
   .description('Inject Feather into a Love2D game and run it')
-  .option('--target <target>', 'Run target: desktop, web, android, or ios', 'desktop')
+  .option('--target <target>', 'Run target: desktop, web, android, ios, or steamos', 'desktop')
   .option('--device <id>', 'Android device serial or iOS simulator UDID')
   .option('--build-config <path>', 'Path to feather.build.json for web/mobile run')
   .option('--out-dir <path>', 'Build output directory for web/mobile run')
@@ -73,7 +73,7 @@ program
   .option('--plugins-dir <path>', 'Use a custom plugins directory instead of the bundled one')
   .action((gamePath: string | undefined, gameArgs: string[], opts) => runCliAction(() => runCommand(gamePath, {
       love: opts.love as string | undefined,
-      target: opts.target as 'desktop' | 'web' | 'android' | 'ios' | undefined,
+      target: opts.target as 'desktop' | 'web' | 'android' | 'ios' | 'steamos' | undefined,
       device: opts.device as string | undefined,
       buildConfig: opts.buildConfig as string | undefined,
       outDir: opts.outDir as string | undefined,
@@ -525,7 +525,7 @@ pkg
 program
   .command('watch [game-path]')
   .description('Watch project files and restart desktop LÖVE or push game.love to a connected mobile device on change')
-  .option('--target <target>', 'Watch target: desktop, android, or ios', 'desktop')
+  .option('--target <target>', 'Watch target: desktop, android, ios, or steamos', 'desktop')
   .option('--love <path>', 'Path to love executable for desktop watch')
   .option('--device <id>', 'Android device serial or iOS simulator UDID')
   .option('--debounce <ms>', 'Debounce delay in milliseconds', (value) => Number(value), 500)
@@ -542,7 +542,7 @@ program
   .option('--runtime-config <path>', 'Path to feather.config.lua for debugger embedding')
   .option('--verbose', 'Show build commands and native tool output')
   .action((gamePath: string | undefined, opts) => watchCommand(gamePath, {
-    target: opts.target as 'desktop' | 'android' | 'ios' | undefined,
+    target: opts.target as 'desktop' | 'android' | 'ios' | 'steamos' | undefined,
     love: opts.love as string | undefined,
     debugger: opts.debugger !== false && !opts.disableDebugger,
     device: opts.device as string | undefined,

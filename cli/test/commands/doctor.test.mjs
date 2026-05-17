@@ -307,6 +307,10 @@ test('doctor: desktop build targets report runtime vendors and packaging tools',
     if (target === 'windows') assert.equal(labels.get('NSIS makensis')?.severity, 'pass');
     if (target === 'macos') assert.equal(labels.get('hdiutil')?.severity, 'pass');
     if (target === 'linux' || target === 'steamos') assert.equal(labels.get('appimagetool')?.severity, 'pass');
+    if (target === 'steamos') {
+      assert.ok(['pass', 'warn'].includes(labels.get('SteamOS Devkit Client')?.severity));
+      assert.ok(labels.get('SteamOS Devkit Client')?.detail.includes('localhost:32010'));
+    }
   }
 });
 
@@ -360,6 +364,7 @@ test('doctor: build target all reports every platform with prefixed labels', () 
   assert.equal(labels.get('Linux appimagetool')?.severity, 'pass');
   assert.equal(labels.get('SteamOS LÖVE runtime')?.severity, 'pass');
   assert.equal(labels.get('SteamOS appimagetool')?.severity, 'pass');
+  assert.ok(['pass', 'warn'].includes(labels.get('SteamOS Devkit Client')?.severity));
 });
 
 test('doctor: invalid build target mentions doctor-only all target', () => {
