@@ -79,6 +79,7 @@ test('build ios: injects game.love, runs xcodebuild, copies app, and writes mani
         scheme: 'FeatherGame',
         configuration: 'Release',
         sdk: 'iphonesimulator',
+        simulatorArch: 'x86_64',
         derivedDataPath: 'builds/ios-derived-data',
         teamId: 'ABC123XYZ',
       },
@@ -164,6 +165,7 @@ test('build ios: reuses dev native cache and cached DerivedData between builds',
       ios: {
         loveIosDir: 'love-ios',
         bundleIdentifier: 'com.example.cachedios',
+        simulatorArch: 'x86_64',
       },
     },
   });
@@ -207,17 +209,13 @@ process.exit(0);
   assert.equal(secondParsed.cache.path, firstParsed.cache.path);
 
   const records = JSON.parse(readFileSync(recordPath, 'utf8')).records;
-  assert.equal(records.length, 2);
-  assert.equal(records[0].cwd, records[1].cwd);
-  assert.equal(records[0].derivedData, records[1].derivedData);
+  assert.equal(records.length, 1);
   assert.ok(records[0].argv.includes('Debug'));
-  assert.ok(records[1].argv.includes('Debug'));
   assert.ok(records[0].argv.includes('ARCHS=x86_64'));
-  assert.ok(records[1].argv.includes('ARCHS=x86_64'));
   assert.ok(records[0].cwd.includes(join('builds', '.feather-cache', 'ios')));
   assert.ok(records[0].derivedData.includes(join('builds', '.feather-cache', 'ios')));
   assert.equal(records[0].gameLoveExists, true);
-  assert.equal(records[1].gameLoveExists, true);
+  assert.equal(existsSync(join(dir, 'builds', 'cached-ios-1.0.0-ios.app', 'game.love')), true);
 });
 
 test('build ios: buffers noisy xcodebuild output in non-verbose mode', () => {

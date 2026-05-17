@@ -1,5 +1,6 @@
-import { cpSync, mkdirSync, watch } from 'node:fs';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch } from 'node:fs';
+import { join, relative } from 'node:path';
 import { loadBuildConfig, type LoadBuildConfigOptions } from '../build/config.js';
 import { embedMobileDebuggerStage } from '../build/debug-stage.js';
 import { artifactBaseName, stageProject, writeLoveArchive } from '../build/files.js';
@@ -71,10 +72,11 @@ export function runWatch(gameDir: string, options: WatchOptions): void {
   const appPath = options.target === 'ios' ? initialResult.artifact : undefined;
 
   const sourceDir = config.sourceDir;
-  printStatus('success', `Watching ${sourceDir}`);
-
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
   let rebuilding = false;
+  let sourceSnapshot = snapshotSource(sourceDir, config.outDir);
+  printStatus('success', `Watching ${sourceDir}`);
 
   function scheduleRebuild() {
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -125,15 +127,82 @@ export function runWatch(gameDir: string, options: WatchOptions): void {
     }
   }
 
-  const watcher = watch(sourceDir, { recursive: true }, (event, filename) => {
+  function onSourceChanged(filename?: string | Buffer | null) {
     if (!filename) return;
-    // Ignore outDir, cache, and hidden dirs
-    if (filename.startsWith('.') || filename.includes('node_modules') || filename.includes('.feather-cache')) return;
+    const relativePath = filename.toString();
+    if (shouldIgnoreWatchPath(relativePath, sourceDir, config.outDir)) return;
     scheduleRebuild();
-  });
+  }
+
+  function startPolling() {
+    if (pollTimer) return;
+    printWarning('Native file watching is unavailable; falling back to polling.');
+    pollTimer = setInterval(() => {
+      const nextSnapshot = snapshotSource(sourceDir, config.outDir);
+      if (nextSnapshot !== sourceSnapshot) {
+        sourceSnapshot = nextSnapshot;
+        scheduleRebuild();
+      }
+    }, Math.max(250, debounceMs));
+  }
+
+  let watcher: ReturnType<typeof watch> | undefined;
+  try {
+    watcher = watch(sourceDir, { recursive: true }, (_event, filename) => onSourceChanged(filename));
+    watcher.on('error', (err: NodeJS.ErrnoException) => {
+      watcher?.close();
+      watcher = undefined;
+      if (err.code === 'EMFILE' || err.code === 'ENOSPC' || err.code === 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM') {
+        startPolling();
+        return;
+      }
+      printWarning(`File watch failed: ${err.message}`);
+      startPolling();
+    });
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM') {
+      printWarning(`File watch failed: ${(err as Error).message}`);
+    }
+    startPolling();
+  }
 
   process.on('SIGINT', () => {
-    watcher.close();
+    watcher?.close();
+    if (pollTimer) clearInterval(pollTimer);
     process.exit(0);
   });
+}
+
+function shouldIgnoreWatchPath(path: string, sourceDir: string, outDir: string): boolean {
+  const normalized = path.replace(/\\/g, '/');
+  if (normalized.startsWith('.') || normalized.includes('/.')) return true;
+  if (normalized.includes('node_modules') || normalized.includes('.feather-cache')) return true;
+  const outRelative = relative(sourceDir, outDir).replace(/\\/g, '/');
+  return Boolean(outRelative && !outRelative.startsWith('..') && !outRelative.startsWith('/') && (
+    normalized === outRelative || normalized.startsWith(`${outRelative}/`)
+  ));
+}
+
+function snapshotSource(sourceDir: string, outDir: string): string {
+  const entries: string[] = [];
+  collectSnapshotEntries(sourceDir, sourceDir, outDir, entries);
+  return entries.sort().join('\n');
+}
+
+function collectSnapshotEntries(root: string, current: string, outDir: string, entries: string[]): void {
+  if (!existsSync(current)) return;
+  for (const entry of readdirSync(current, { withFileTypes: true })) {
+    const path = join(current, entry.name);
+    const relativePath = relative(root, path);
+    if (shouldIgnoreWatchPath(relativePath, root, outDir)) continue;
+    if (entry.isDirectory()) {
+      collectSnapshotEntries(root, path, outDir, entries);
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const stat = statSync(path);
+    const hash = createHash('sha256').update(readFileSync(path)).digest('hex');
+    entries.push(`${relativePath}:${stat.mtimeMs}:${stat.size}:${hash}`);
+  }
 }
