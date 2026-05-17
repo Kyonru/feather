@@ -29,13 +29,72 @@ npm run feather -- --help
 Run the desktop app in development:
 
 ```sh
-npm run dev
+npm run tauri dev
 ```
 
 Serve the docs:
 
 ```sh
 npm run docs
+```
+
+## Common Development Workflows
+
+### Run the CLI
+
+When changing CLI code or the bundled Lua runtime, rebuild the Lua bundle and CLI before running local commands:
+
+```sh
+bash ./scripts/bundle-lua.sh
+npm run cli:build
+npm run feather doctor
+```
+
+Use `npm run feather -- <command>` from the repo root. The `--` separates npm arguments from Feather arguments:
+
+```sh
+npm run feather -- --help
+npm run feather -- doctor src-lua/example/test_cli
+npm run feather -- run src-lua/example/test_cli
+```
+
+### Run Game Examples
+
+Run the `test_cli` example directly with verbose game arguments and an explicit config:
+
+```sh
+npm run feather -- run src-lua/example/test_cli -- --verbose --config=src-lua/example/test_cli/feather.config.lua
+```
+
+You can also run from `src-lua` and ask the example harness to load `test_cli`:
+
+```sh
+npm run feather -- run src-lua --test-cli -- --verbose --config=src-lua/example/test_cli/feather.config.lua
+```
+
+Keep the desktop app open while running examples if you are testing debugger, plugin, observer, log, or WebSocket behavior.
+
+### Run Android Development Builds
+
+Android workflows need Android SDK/JDK tooling, `adb`, and a local LÖVE Android vendor. Fetch the vendor first:
+
+```sh
+npm run feather -- build vendor add android --dir src-lua/example/test_cli
+npm run feather -- build vendor list --dir src-lua/example/test_cli
+```
+
+Then build or run Android:
+
+```sh
+npm run feather -- build android --dir src-lua/example/test_cli --verbose
+npm run feather -- run src-lua/example/test_cli --target android --verbose
+```
+
+Use cache controls when testing build behavior:
+
+```sh
+npm run feather -- build android --dir src-lua/example/test_cli --no-cache --verbose
+npm run feather -- build android --dir src-lua/example/test_cli --clean --verbose
 ```
 
 ## Project Layout
@@ -125,6 +184,78 @@ Use the focused lanes when possible:
 - Keep non-interactive flags available for scripts and CI.
 - Make generated Lua easy to remove later. Preserve `FEATHER-INIT` style comments and metadata when touching init/remove flows.
 - When adding setup options, update `docs/cli.md`, `docs/configuration.md`, and generated config templates.
+
+## Package Catalog Contributions
+
+Use the helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `packages/<id>.json`, and regenerate `cli/src/generated/registry.json`.
+
+For GitHub-hosted packages:
+
+```sh
+npm run package:add
+```
+
+For packages distributed as direct file URLs:
+
+```sh
+npm run package:add-url
+```
+
+After the wizard finishes:
+
+```sh
+npm run check:registry
+npm run cli:build
+npm run feather -- package info <package-id>
+npm run feather -- package install <package-id> --dir /tmp/feather-package-test
+```
+
+Package contribution tips:
+
+- Prefer tagged releases. If a package has no tags, pin a specific commit.
+- Keep install targets narrow and predictable, usually under `lib/<package-id>/`.
+- Include a realistic `require` path and a small usage example.
+- Use `verified` only for packages that have been reviewed and pinned with checksums. Use `known` for checksum-pinned sources that still need extra review.
+- Commit both `packages/<id>.json` and `cli/src/generated/registry.json`.
+
+## Plugin Contributions
+
+Built-in plugins live under `src-lua/plugins/<plugin-id>/`. A plugin should usually include:
+
+```txt
+src-lua/plugins/<plugin-id>/
+  init.lua
+  manifest.lua
+  README.md
+```
+
+Start from a small existing plugin such as `runtime-snapshot`, `timer-inspector`, or `bookmark` when adding a new one. Keep plugin UI declarative through `getConfig()` so the desktop app can render it without plugin-specific React code.
+
+After adding or changing a built-in plugin:
+
+```sh
+bash scripts/generate-manifest.sh
+npm run generate:plugin-catalog
+npm run typecheck:lua
+npm run test:lua:e2e
+npm run cli:build
+npm run feather -- plugin list src-lua/example/test_cli
+```
+
+To install and test a local plugin in an example project:
+
+```sh
+npm run feather -- plugin install <plugin-id> --dir src-lua/example/test_cli --local-src src-lua
+npm run feather -- run src-lua/example/test_cli
+```
+
+Plugin contribution tips:
+
+- Keep runtime state session-local and avoid global mutation unless the plugin explicitly wraps a LÖVE callback.
+- Document setup, options, security implications, and at least one minimal usage snippet in the plugin `README.md`.
+- Mark development-only or dangerous behavior clearly in `manifest.lua` and docs.
+- Avoid desktop app changes unless the feature is generic for all server-driven plugins.
+- Do not make plugins load Console, hot reload, filesystem writes, or remote code execution by default.
 
 ## Desktop App Guidelines
 
