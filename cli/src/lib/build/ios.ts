@@ -257,7 +257,8 @@ function iosConfiguration(config: ResolvedBuildConfig): string {
 }
 
 function iosSimulatorArch(config: ResolvedBuildConfig): string {
-  return config.targets.ios?.simulatorArch ?? 'x86_64';
+  const defaultArch = process.arch === 'arm64' ? 'arm64' : 'x86_64';
+  return config.targets.ios?.simulatorArch ?? defaultArch;
 }
 
 function iosSdkBuildFolder(sdk: string): string {
@@ -415,9 +416,13 @@ export function xcodebuildArgs(config: ResolvedBuildConfig, xcodeProject: string
     derivedDataPath,
     `PRODUCT_BUNDLE_IDENTIFIER=${iosBundleIdentifier(config)}`,
     `INFOPLIST_KEY_CFBundleDisplayName=${iosConfig.displayName ?? config.name}`,
-    `IPHONEOS_DEPLOYMENT_TARGET=${iosConfig.deploymentTarget ?? '12.0'}`,
     'OTHER_CFLAGS=-Wno-everything',
   ];
+
+  if (iosConfig.deploymentTarget) {
+    args.push(`IPHONEOS_DEPLOYMENT_TARGET=${iosConfig.deploymentTarget}`);
+  }
+
   if (sdk.startsWith('iphonesimulator')) {
     args.push(`ARCHS=${iosSimulatorArch(config)}`, 'ONLY_ACTIVE_ARCH=NO');
   }

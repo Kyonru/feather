@@ -173,7 +173,7 @@ local auto = {}
 ---@param config AutoConfig|nil  Optional AutoConfig overrides (host, port, sessionName, etc.)
 ---@return Feather
 function auto.setup(config)
-  config = config or {}
+  config = config or FEATHER_AUTO_CONFIG or {}
 
   local exclude = {}
   if config.exclude then
@@ -208,14 +208,8 @@ function auto.setup(config)
         end
       end
       local disabled = entry.disabled and not include[entry.id]
-      plugins[#plugins + 1] = FeatherPluginManager.createPlugin(
-        entry.mod,
-        entry.id,
-        opts,
-        disabled,
-        entry.capabilities,
-        entry.compatibility
-      )
+      plugins[#plugins + 1] =
+        FeatherPluginManager.createPlugin(entry.mod, entry.id, opts, disabled, entry.capabilities, entry.compatibility)
     end
   end
 

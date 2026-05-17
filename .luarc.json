@@ -6,7 +6,8 @@
     // LuaCATS ---@module annotation conflicts with luadoc
     "luadoc-miss-module-name"
   ],
-  "diagnostics.globals": ["love", "jit", "DEBBUGER"],
+  "diagnostics.globals": ["love", "jit", "DEBBUGER",
+        "FEATHER_AUTO_CONFIG"],
 
   "workspace.checkThirdParty": false,
   "workspace.ignoreDir": [".vscode", "builds", "resources", "tools"],

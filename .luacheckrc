@@ -8,7 +8,8 @@ globals = {
     'getTitle',
     'DEBUGGER',
     'FEATHER_PATH',
-    'FEATHER_PLUGIN_PATH'
+    'FEATHER_PLUGIN_PATH',
+    'FEATHER_AUTO_CONFIG'
 }
 
 exclude_files = {
