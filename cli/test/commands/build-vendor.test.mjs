@@ -125,7 +125,22 @@ test('build vendor add ios --json: clones vendor, installs Apple libraries, and 
   const config = JSON.parse(readFileSync(join(dir, 'feather.build.json'), 'utf8'));
   assert.equal(config.targets.ios.loveIosDir, 'vendor/love-ios');
   const records = JSON.parse(readFileSync(recordPath, 'utf8'));
-  assert.ok(records.some((record) => record.args.includes('https://github.com/love2d/love')));
+  assert.ok(
+    records.some((record) =>
+      record.args.some((arg) => {
+        try {
+          const url = new URL(arg);
+          return (
+            url.protocol === 'https:' &&
+            url.hostname === 'github.com' &&
+            (url.pathname === '/love2d/love' || url.pathname === '/love2d/love.git' || url.pathname === '/love2d/love/')
+          );
+        } catch {
+          return false;
+        }
+      })
+    )
+  );
 });
 
 test('build vendor add mobile --dry-run --json: reports planned vendors without writing', () => {
