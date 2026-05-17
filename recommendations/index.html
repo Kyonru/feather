@@ -725,10 +725,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#safe-debugger-usage" class="md-nav__link">
+  <a href="#cli-managed-debugging" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Safe DEBUGGER Usage
+        CLI-Managed Debugging
       
     </span>
   </a>
@@ -748,10 +748,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#level-1-disable-at-runtime-debug-false" class="md-nav__link">
+  <a href="#release-builds" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 1 — Disable at runtime (debug = false)
+        Release builds
       
     </span>
   </a>
@@ -759,10 +759,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-2-keep-feather-managed-by-the-cli" class="md-nav__link">
+  <a href="#self-cleaning-managed-files" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 2 — Keep Feather managed by the CLI
+        Self-cleaning managed files
       
     </span>
   </a>
@@ -770,10 +770,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-3-guard-manual-requires" class="md-nav__link">
+  <a href="#advanced-manual-integration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 3 — Guard manual requires
+        Advanced manual integration
       
     </span>
   </a>
@@ -781,10 +781,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-4-exclude-from-the-release-build" class="md-nav__link">
+  <a href="#manual-exclusion" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 4 — Exclude from the release build
+        Manual exclusion
       
     </span>
   </a>
@@ -897,7 +897,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugin-ui.md" class="md-nav__link">
+      <a href="../plugins-ui/" class="md-nav__link">
         
   
   
@@ -1506,10 +1506,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#safe-debugger-usage" class="md-nav__link">
+  <a href="#cli-managed-debugging" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Safe DEBUGGER Usage
+        CLI-Managed Debugging
       
     </span>
   </a>
@@ -1529,10 +1529,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#level-1-disable-at-runtime-debug-false" class="md-nav__link">
+  <a href="#release-builds" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 1 — Disable at runtime (debug = false)
+        Release builds
       
     </span>
   </a>
@@ -1540,10 +1540,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-2-keep-feather-managed-by-the-cli" class="md-nav__link">
+  <a href="#self-cleaning-managed-files" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 2 — Keep Feather managed by the CLI
+        Self-cleaning managed files
       
     </span>
   </a>
@@ -1551,10 +1551,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-3-guard-manual-requires" class="md-nav__link">
+  <a href="#advanced-manual-integration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 3 — Guard manual requires
+        Advanced manual integration
       
     </span>
   </a>
@@ -1562,10 +1562,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#level-4-exclude-from-the-release-build" class="md-nav__link">
+  <a href="#manual-exclusion" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Level 4 — Exclude from the release build
+        Manual exclusion
       
     </span>
   </a>
@@ -1625,10 +1625,10 @@
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="c1">-- Any Feather desktop on the network can send commands to this game.</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="c1">-- Set this only when you cannot use appId (e.g. shared dev machine, CI).</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nv">insecureConnection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nv">__DANGEROUS_INSECURE_CONNECTION__</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">}</span>
 </code></pre></div>
-<p>Setting <code>insecureConnection = true</code> is your acknowledgment that the game accepts commands from any Feather desktop on the network. Feather will not start without one of these two options — there is no silent fallback.</p>
+<p>Setting <code>__DANGEROUS_INSECURE_CONNECTION__ = true</code> is your acknowledgment that the game accepts commands from any Feather desktop on the network. Feather will not start without one of these two options — there is no silent fallback.</p>
 <p><code>feather init</code> prompts for the App ID during setup and writes it to <code>feather.config.lua</code> automatically. To find it: open the Feather desktop app → <strong>Settings</strong> → <strong>Security</strong> → <strong>Desktop App ID</strong>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -1637,9 +1637,11 @@
 </div>
 <h3 id="api-key-apikey-required-only-for-the-console-plugin">API Key (<code>apiKey</code>) — required only for the Console plugin<a class="headerlink" href="#api-key-apikey-required-only-for-the-console-plugin" title="Permanent link">&para;</a></h3>
 <p>Set <code>apiKey</code> in the game config and match it in the Feather desktop app Settings. This gates access to the Console / REPL plugin (remote Lua execution):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">apiKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- feather.config.lua</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nv">apiKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="console-plugin">Console plugin<a class="headerlink" href="#console-plugin" title="Permanent link">&para;</a></h3>
 <div class="admonition warning">
@@ -1647,117 +1649,93 @@
 <p>Do not include the Console plugin in builds shipped to users. It allows remote code execution and can be a serious security risk.</p>
 </div>
 <hr />
-<h2 id="safe-debugger-usage">Safe <code>DEBUGGER</code> Usage<a class="headerlink" href="#safe-debugger-usage" title="Permanent link">&para;</a></h2>
+<h2 id="cli-managed-debugging">CLI-Managed Debugging<a class="headerlink" href="#cli-managed-debugging" title="Permanent link">&para;</a></h2>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
-<p><code>DEBUGGER</code> only exists when Feather actually loads. With CLI-managed setup, generated imports are guarded by <code>USE_DEBUGGER</code>, so production-like runs can leave Feather unloaded entirely.</p>
+<p>The CLI is the preferred workflow for desktop, web, Android, iOS, and packaged desktop builds. You do not need to add <code>require("feather.auto")</code>, call <code>DEBUGGER:update(dt)</code>, or keep Feather-specific code in your game.</p>
 </div>
-<p>Always guard direct <code>DEBUGGER</code> usage:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="kr">end</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kr">end</span>
+<p>Use the CLI for local and platform runs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>feather<span class="w"> </span>init<span class="w"> </span>path/to/my-game
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>web
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>android
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>ios
 </code></pre></div>
-<p>For custom actions:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;Player spawned&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kr">end</span>
+<p>Add vendors for platform targets once per project:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
-<p>Avoid this in game code:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<p>Run doctor as a release gate before packaging:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--production
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--build-target<span class="w"> </span>all
 </code></pre></div>
-<div class="admonition danger">
-<p class="admonition-title">Caution</p>
-<p>That direct call will fail when <code>USE_DEBUGGER</code> is unset, when <code>debug = false</code>, or after running <code>feather remove</code>.</p>
-</div>
-<p>For local/dev runs, enable Feather explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">USE_DEBUGGER</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>love<span class="w"> </span>.
+<p><code>--production</code> exits with code <code>1</code> for release blockers such as insecure connections, weak Console auth, hot reload, debugger/screenshot/disk persistence settings, network exposure with weak auth, or unmanaged embedded Feather runtime.</p>
+<p>For CI systems that need a security-only machine-readable report:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--security<span class="w"> </span>--json
 </code></pre></div>
-<p>For production builds, leave <code>USE_DEBUGGER</code> unset and run <code>feather remove --yes</code> before packaging.</p>
+<p>The security report includes config posture, plugin trust, package provenance, and network exposure. It redacts sensitive values such as <code>apiKey</code>.</p>
+<p>If you use Feather's local release helpers, keep release metadata in <code>feather.build.json</code> and let doctor check the target-specific tools before CI runs the build:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--json
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>feather<span class="w"> </span>build<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--json
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release<span class="w"> </span>--json
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release<span class="w"> </span>--json
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>feather<span class="w"> </span>build<span class="w"> </span>windows<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--json
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--dry-run<span class="w"> </span>--json
+</code></pre></div>
+<p>Web builds package a local love.js player; mobile targets use official LÖVE templates; desktop targets use local LÖVE runtime vendors. Mobile release mode is opt-in with <code>--release</code> and produces Android AAB/APK or iOS archive/IPA artifacts. Release builds do not auto-embed Feather's debugger runtime.</p>
 <hr />
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Feather is a development tool, not something you should ship in production builds. Use one of these approaches, from least to most thorough.</p>
+<p>Feather is a development tool, not something you should ship in production builds. Prefer CLI-managed runs and builds so release artifacts stay clean by default.</p>
 </div>
-<h3 id="level-1-disable-at-runtime-debug-false">Level 1 — Disable at runtime (<code>debug = false</code>)<a class="headerlink" href="#level-1-disable-at-runtime-debug-false" title="Permanent link">&para;</a></h3>
-<p>The <code>debug</code> flag makes Feather a no-op: no WebSocket connection, no hooks, <code>update()</code> returns immediately. The library is still bundled but consumes no CPU.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Config</span><span class="p">.</span><span class="py">IS_DEBUG</span><span class="p">,</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">})</span>
+<h3 id="release-builds">Release builds<a class="headerlink" href="#release-builds" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
 </code></pre></div>
-<p>The files are dormant but present in the bundle.</p>
-<h3 id="level-2-keep-feather-managed-by-the-cli">Level 2 — Keep Feather managed by the CLI<a class="headerlink" href="#level-2-keep-feather-managed-by-the-cli" title="Permanent link">&para;</a></h3>
-<p>Prefer initializing Feather through the CLI so the generated files are easy to remove later:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>feather<span class="w"> </span>init<span class="w"> </span>--mode<span class="w"> </span>auto
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># or</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>feather<span class="w"> </span>init<span class="w"> </span>--mode<span class="w"> </span>manual
-</code></pre></div>
-<p>Auto mode inserts marked <code>FEATHER-INIT</code> blocks in <code>main.lua</code>. Manual mode creates <code>feather.debugger.lua</code> and loads it from a marked block in <code>main.lua</code>.</p>
-<p>Both modes guard Feather imports with the <code>USE_DEBUGGER</code> environment variable. Run local/dev builds with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># macOS / Linux</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nv">USE_DEBUGGER</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>love<span class="w"> </span>.
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c"># Windows PowerShell</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nv">$env:USE_DEBUGGER</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">love</span> <span class="p">.</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">:</span><span class="c1">: Windows cmd.exe</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">set</span> <span class="nv">USE_DEBUGGER</span><span class="p">=</span>1 <span class="p">&amp;&amp;</span> love .
-</code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Leave <code>USE_DEBUGGER</code> unset, <code>0</code>, or <code>false</code> in production-like runs so Feather is not loaded at all.</p>
-</div>
-<p>Before packaging a release, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>feather<span class="w"> </span>remove
-</code></pre></div>
-<p>Use <code>--dry-run</code> first to preview:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>--dry-run
+<p><code>--release</code> disables automatic debugger embedding for mobile builds. The generated <code>.love</code> used for the release artifact contains the game source, not Feather's injected <code>.feather-main.lua</code>, <code>feather/auto.lua</code>, plugin files, or generated debug config.</p>
+<h3 id="self-cleaning-managed-files">Self-cleaning managed files<a class="headerlink" href="#self-cleaning-managed-files" title="Permanent link">&para;</a></h3>
+<p>If you used <code>feather init</code> while experimenting, Feather can preview and remove its own generated files:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--dry-run
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--yes
 </code></pre></div>
 <p>The remove command only edits generated <code>FEATHER-INIT</code> blocks and removes generated Feather files it can identify. If you want to keep part of the setup:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>--keep-config
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>feather<span class="w"> </span>remove<span class="w"> </span>--keep-runtime
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>feather<span class="w"> </span>remove<span class="w"> </span>--keep-main
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--keep-config
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--keep-runtime
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--keep-main
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>This is the recommended workflow for most projects because Feather can clean up after itself before production packaging.</p>
 </div>
-<h3 id="level-3-guard-manual-requires">Level 3 — Guard manual requires<a class="headerlink" href="#level-3-guard-manual-requires" title="Permanent link">&para;</a></h3>
-<p>If you wire Feather by hand, wrap the entire setup in a conditional so the library is never loaded in production:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">Config</span><span class="p">.</span><span class="py">IS_DEBUG</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span><span class="w"> </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="w"> </span><span class="p">})</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kr">end</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="kr">end</span>
+<h3 id="advanced-manual-integration">Advanced manual integration<a class="headerlink" href="#advanced-manual-integration" title="Permanent link">&para;</a></h3>
+<p>Manual Lua integration is still available for unusual projects, but it is no longer the recommended path. If you wire Feather by hand, wrap the entire setup in a conditional so the library is never loaded in production:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">Config</span><span class="p">.</span><span class="py">IS_DEBUG</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span><span class="w"> </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="w"> </span><span class="p">})</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kr">end</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="kr">end</span>
 </code></pre></div>
 <p>No Lua code runs and no globals are created in release builds.</p>
-<h3 id="level-4-exclude-from-the-release-build">Level 4 — Exclude from the release build<a class="headerlink" href="#level-4-exclude-from-the-release-build" title="Permanent link">&para;</a></h3>
-<p>Since Feather installs into a single directory, excluding it is a single glob:</p>
+<h3 id="manual-exclusion">Manual exclusion<a class="headerlink" href="#manual-exclusion" title="Permanent link">&para;</a></h3>
+<p>If you manually vendored Feather, excluding it is a single glob:</p>
 <p><strong>Manual zip:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>zip<span class="w"> </span>-r<span class="w"> </span>MyGame.love<span class="w"> </span>.<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>-x<span class="w"> </span><span class="s2">&quot;*.git*&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>-x<span class="w"> </span><span class="s2">&quot;lib/feather/*&quot;</span>
-</code></pre></div>
-<p><strong><a href="https://github.com/MisterDA/love-release">love-release</a></strong> — add to <code>.love-release.yml</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nt">exclude</span><span class="p">:</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">feather/</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>zip<span class="w"> </span>-r<span class="w"> </span>MyGame.love<span class="w"> </span>.<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>-x<span class="w"> </span><span class="s2">&quot;*.git*&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>-x<span class="w"> </span><span class="s2">&quot;lib/feather/*&quot;</span>
 </code></pre></div>
 <p><strong><a href="https://github.com/pfirsich/makelove">makelove</a></strong> — add to <code>makelove.toml</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">[love_files]</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;feather/**&quot;</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">[love_files]</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;feather/**&quot;</span><span class="p">]</span>
 </code></pre></div>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
 <p>No Feather code or assets are present in the release build. This also eliminates the Console plugin as an attack surface entirely.</p>
 </div>
-<p>If you use manual mode, also exclude or remove:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>feather.debugger.lua
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>feather.config.lua
+<p>If you used manual mode, also exclude or remove:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>feather.debugger.lua
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>feather.config.lua
 </code></pre></div>
 <p><code>feather remove --yes</code> handles these generated files automatically when they are present.</p>
 <hr />

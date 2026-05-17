@@ -442,6 +442,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#console-api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Console API key
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -897,7 +908,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugin-ui.md" class="md-nav__link">
+      <a href="../plugins-ui/" class="md-nav__link">
         
   
   
@@ -1522,6 +1533,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#console-api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Console API key
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1772,6 +1794,12 @@
 <td>Enable the step debugger, or pass debugger options such as <code>debugger.hotReload</code>.</td>
 </tr>
 <tr>
+<td><code>debugOverlay</code></td>
+<td><code>table</code> or <code>false</code></td>
+<td>enabled in debug</td>
+<td>Small in-game “Feather debugger enabled” badge. Use <code>enabled</code>, <code>visible</code>, <code>hideKey</code>, <code>touchToggle</code>, and <code>corner</code> to customize it. Press <code>F12</code> or double-tap the top-right corner to hide/show by default.</td>
+</tr>
+<tr>
 <td><code>assetPreview</code></td>
 <td><code>boolean</code></td>
 <td><code>true</code></td>
@@ -1819,6 +1847,11 @@
 </div>
 <h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
 <p>Feather uses a <strong>nonce-based challenge-response handshake</strong> to authenticate each connection before any game data is exchanged.</p>
+<p>The CLI can audit these settings:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--production
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--security<span class="w"> </span>--json
+</code></pre></div>
+<p><code>--production</code> fails on unsafe release settings. <code>--security --json</code> emits a machine-readable security report and redacts sensitive values such as <code>apiKey</code>.</p>
 <h3 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h3>
 <ol>
 <li>When the game connects, the desktop immediately sends a one-time challenge nonce.</li>
@@ -1828,24 +1861,32 @@
 <p>No game data (<code>feather:hello</code>, observers, logs, etc.) is sent until the handshake completes.</p>
 <h3 id="setting-up-appid">Setting up appId<a class="headerlink" href="#setting-up-appid" title="Permanent link">&para;</a></h3>
 <p>Copy your App ID from <strong>Feather → Settings → Security → Desktop App ID</strong> and add it to your config:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nv">appId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-app-id-here&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">appId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-app-id-here&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">}</span>
 </code></pre></div>
 <p>The same <code>appId</code> must be set in both the desktop settings and your game config. If they don't match, the connection is rejected and the game logs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>[Feather] Auth failed. Check that appId in feather.config.lua matches your Feather desktop App ID.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[Feather] Auth failed. Check that appId in feather.config.lua matches your Feather desktop App ID.
 </code></pre></div>
 <h3 id="insecure-mode">Insecure mode<a class="headerlink" href="#insecure-mode" title="Permanent link">&para;</a></h3>
 <p>For quick local prototyping or LAN jam builds where you don't want to manage a fixed App ID:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nv">__DANGEROUS_INSECURE_CONNECTION__</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nv">__DANGEROUS_INSECURE_CONNECTION__</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">}</span>
 </code></pre></div>
 <p>The desktop will accept the connection and show an insecure badge on the session tab. The field name is intentionally verbose — it must be set explicitly to acknowledge the risk.</p>
 <div class="admonition danger">
 <p class="admonition-title">Caution</p>
 <p>Insecure mode allows <strong>any</strong> Feather desktop on the network to send commands to your game, including triggering the console plugin if installed. Do not ship production builds with insecure mode enabled.</p>
 </div>
+<h3 id="console-api-key">Console API key<a class="headerlink" href="#console-api-key" title="Permanent link">&para;</a></h3>
+<p>The Console plugin can evaluate Lua inside the running game. If <code>console</code> is included, configure a strong <code>apiKey</code> and match it in Feather desktop Settings:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nv">apiKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;a-long-random-per-session-secret&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="p">}</span>
+</code></pre></div>
+<p>Doctor reports whether the key is configured or weak, but does not print the key value.</p>
 <hr />
 <h2 id="connecting">Connecting<a class="headerlink" href="#connecting" title="Permanent link">&para;</a></h2>
 <p>Feather uses a <strong>push-based WebSocket architecture</strong>. The desktop app runs a WebSocket server (port 4004 by default), and your game connects to it as a client.</p>
@@ -1853,25 +1894,25 @@
 <li>Start the Feather desktop app from the <a href="https://github.com/Kyonru/feather/releases">releases page</a>.</li>
 <li>Run your game with Feather enabled — you'll see:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[Feather] WS client created — connecting to 127.0.0.1:4004
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>[Feather] Connected — handshake complete
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>[Feather] WS client created — connecting to 127.0.0.1:4004
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>[Feather] Connected — handshake complete
 </code></pre></div>
 <p>The game automatically reconnects if the desktop app is restarted.</p>
 <hr />
 <h2 id="mobile-remote-devices">Mobile &amp; Remote Devices<a class="headerlink" href="#mobile-remote-devices" title="Permanent link">&para;</a></h2>
 <h3 id="android-usb-via-adb-reverse">Android (USB via ADB reverse)<a class="headerlink" href="#android-usb-via-adb-reverse" title="Permanent link">&para;</a></h3>
 <p>Forward the device's <code>localhost:4004</code> to your computer:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>adb<span class="w"> </span>reverse<span class="w"> </span>tcp:4004<span class="w"> </span>tcp:4004
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>adb<span class="w"> </span>reverse<span class="w"> </span>tcp:4004<span class="w"> </span>tcp:4004
 </code></pre></div>
 <p>Then use the default config — the game connects to <code>127.0.0.1:4004</code>, which ADB routes to your computer:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span><span class="w"> </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span><span class="w"> </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span>
 </code></pre></div>
 <h3 id="android-ios-wi-fi">Android / iOS (Wi-Fi)<a class="headerlink" href="#android-ios-wi-fi" title="Permanent link">&para;</a></h3>
 <p>Point <code>host</code> to your computer's local IP:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;192.168.1.42&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;192.168.1.42&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">})</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
@@ -1879,10 +1920,10 @@
 </div>
 <h3 id="offline-disk-mode">Offline / disk mode<a class="headerlink" href="#offline-disk-mode" title="Permanent link">&para;</a></h3>
 <p>Skip WebSocket entirely and write only log files — useful when there's no shared network:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nv">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;disk&quot;</span><span class="p">,</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nv">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;disk&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">})</span>
 </code></pre></div>
 <p>Transfer the <code>.featherlog</code> file from the device and open it in the Feather app via <strong>Open Log File</strong>.</p>
 

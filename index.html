@@ -343,21 +343,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#option-a-cli-injection-no-game-side-changes" class="md-nav__link">
+  <a href="#optional-vendors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Option A — CLI injection (no game-side changes)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-managed-in-game-setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B — Managed in-game setup
+        Optional Vendors
       
     </span>
   </a>
@@ -834,7 +823,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugin-ui.md" class="md-nav__link">
+      <a href="plugins-ui/" class="md-nav__link">
         
   
   
@@ -1416,21 +1405,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#option-a-cli-injection-no-game-side-changes" class="md-nav__link">
+  <a href="#optional-vendors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Option A — CLI injection (no game-side changes)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-managed-in-game-setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B — Managed in-game setup
+        Optional Vendors
       
     </span>
   </a>
@@ -1486,7 +1464,7 @@
 
 <h1 id="feather">Feather 🪶<a class="headerlink" href="#feather" title="Permanent link">&para;</a></h1>
 <p><strong>Real-time debug &amp; inspect tool for <a href="https://love2d.org">LÖVE (love2d)</a> games.</strong></p>
-<p>Like Flipper or React DevTools, but for your game. Inspect logs, variables, performance metrics, and errors in real-time over a WebSocket connection — with a built-in plugin system, step debugger, and zero-config setup.</p>
+<p>Like Flipper or React DevTools, but for LÖVE game. Inspect logs, variables, performance metrics, and errors in real time over a WebSocket connection with a built-in plugin system, step debugger, and zero-config setup.</p>
 <hr />
 <h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
 <ul>
@@ -1501,62 +1479,57 @@
 <li>🐛 <strong>Step Debugger</strong> — Breakpoints, step over/into/out, call stack, and local variable inspection.</li>
 <li>🖼️ <strong>Asset inspector</strong> — Browse loaded textures, fonts, and audio sources with previews, zoom, pan, and pixel grid.</li>
 <li>📁 <strong>Log file viewer</strong> — Open <code>.featherlog</code> files for offline inspection.</li>
-<li>🖥️ <strong>CLI-first workflow</strong> — <code>feather init</code>, <code>feather run</code>, and <code>feather remove</code> manage setup and cleanup.</li>
-<li>⚡ <strong>Guarded in-game setup</strong> — Generated imports load only when <code>USE_DEBUGGER</code> is enabled.</li>
+<li>🖥️ <strong>CLI-first workflow</strong> — <code>feather init</code>, <code>feather run</code>, and <code>feather remove</code> manage setup and cleanup with no manual Lua integration.</li>
+<li>🚢 <strong>Build/upload helpers</strong> — <code>feather build</code> creates <code>.love</code>, web, mobile, and desktop artifacts and <code>feather upload itch</code> pushes them with Butler.</li>
+<li>🧹 <strong>Self-cleaning setup</strong> — Generated files are managed by Feather and can be previewed or removed before release.</li>
 <li>📦 <strong>Config file support</strong> — <code>feather.config.lua</code> keeps project settings outside game code.</li>
 </ul>
 <hr />
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>For quick local desktop iteration, you can also use <code>feather run path/to/my-game</code> without changing game code. For mobile, handhelds, and remote devices like Android, iOS, or Steam Deck, use the embedded library from <code>feather init --mode auto</code> so the game carries Feather with it on the device.</p>
-</div>
-<h3 id="option-a-cli-injection-no-game-side-changes">Option A — CLI injection (no game-side changes)<a class="headerlink" href="#option-a-cli-injection-no-game-side-changes" title="Permanent link">&para;</a></h3>
+<p>Install the Feather desktop app and CLI:</p>
+<ol>
+<li>Download the desktop app from <a href="https://github.com/Kyonru/feather/releases">Releases</a>.</li>
+<li>Install the CLI:</li>
+</ol>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>@kyonru/feather
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>feather<span class="w"> </span>init<span class="w"> </span>path/to/my-game
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game
 </code></pre></div>
-<p>Feather is injected automatically. No <code>require</code> needed in the game. See <a href="cli/">CLI</a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This is best for local desktop development where the CLI launches LÖVE directly.</p>
+<p>Initialize your project, open the Feather app, then run the game:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>init<span class="w"> </span>path/to/my-game
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game
+</code></pre></div>
+<p>Feather is injected by the CLI for dev runs and debug builds, so your game code does not need a manual <code>require</code> for any target.</p>
+<div class="admonition danger">
+<p class="admonition-title">Caution</p>
+<p><code>feather run</code> is for development. Do not publish builds created from a run session; create user-facing builds with <code>feather build &lt;target&gt; --release</code> so Feather debugging tools are not included.</p>
 </div>
-<h3 id="option-b-managed-in-game-setup">Option B — Managed in-game setup<a class="headerlink" href="#option-b-managed-in-game-setup" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>@kyonru/feather
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>init<span class="w"> </span>path/to/my-game<span class="w"> </span>--mode<span class="w"> </span>auto
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nv">USE_DEBUGGER</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>love<span class="w"> </span>path/to/my-game
+<h3 id="optional-vendors">Optional Vendors<a class="headerlink" href="#optional-vendors" title="Permanent link">&para;</a></h3>
+<p>Vendor setup downloads the local LÖVE runtimes/templates needed by web, mobile, and packaged desktop targets, then updates <code>feather.build.json</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>web
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>android
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>ios
 </code></pre></div>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>Use this for mobile, handheld, and remote devices such as Android, iOS, Steam Deck, or a second computer. Those builds need the embedded Feather library because the CLI is not launching the game process on that device.</p>
-</div>
-<p><code>feather init</code> creates <code>feather.config.lua</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My RPG&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="c1">-- Set to the desktop app machine&#39;s LAN IP for remote devices.</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;192.168.1.50&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nv">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;network-inspector&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">}</span>
+<p>For all build vendors, including desktop packaging runtimes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>The generated <code>main.lua</code> integration is guarded by <code>USE_DEBUGGER</code>, so Feather is not imported unless you opt in for a dev run.</p>
-</div>
-<p>When you access <code>DEBUGGER</code> in your own code, guard it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="kr">end</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kr">end</span>
+<p>Build release artifacts from the same CLI flow:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>build<span class="w"> </span>love<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>feather<span class="w"> </span>build<span class="w"> </span>windows<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>feather<span class="w"> </span>build<span class="w"> </span>macos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>feather<span class="w"> </span>build<span class="w"> </span>linux<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>feather<span class="w"> </span>build<span class="w"> </span>steamos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
 </code></pre></div>
-<p>Before shipping a production build:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>--dry-run
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>feather<span class="w"> </span>remove<span class="w"> </span>--yes
-</code></pre></div>
+<p>See <a href="cli/">CLI</a> for <code>feather run</code>, <code>feather doctor</code>, <code>feather build</code>, and <code>feather upload</code> options.</p>
 <hr />
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="cli/">CLI</a> — Run games without touching their code, <code>feather run</code>, <code>feather init</code>, <code>feather doctor</code></li>
+<li><a href="cli/">CLI</a> — Run games without touching their code, <code>feather run</code>, <code>feather init</code>, <code>feather doctor</code>, <code>feather build</code>, <code>feather upload</code></li>
 <li><a href="installation/">Installation</a> — Download, install script, LuaRocks, custom paths</li>
 <li><a href="configuration/">Configuration</a> — All config options, connecting, mobile debugging</li>
 <li><a href="usage/">Usage</a> — Observers, logging, console / REPL, step debugger</li>

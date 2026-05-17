@@ -705,6 +705,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#feather-package-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package add
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#feather-package-install-from-url-url-target-path" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -754,10 +765,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#available-packages" class="md-nav__link">
+  <a href="#some-available-packages" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Available Packages
+        Some Available Packages
       
     </span>
   </a>
@@ -783,6 +794,45 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Contributing packages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-github-hosted-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a GitHub-hosted package
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verifying-checksums" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verifying checksums
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#package-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package format
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -965,7 +1015,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugin-ui.md" class="md-nav__link">
+      <a href="../plugins-ui/" class="md-nav__link">
         
   
   
@@ -1641,6 +1691,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#feather-package-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather package add
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#feather-package-install-from-url-url-target-path" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1690,10 +1751,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#available-packages" class="md-nav__link">
+  <a href="#some-available-packages" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Available Packages
+        Some Available Packages
       
     </span>
   </a>
@@ -1720,6 +1781,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Contributing packages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-github-hosted-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a GitHub-hosted package
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verifying-checksums" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verifying checksums
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#package-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package format
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1743,7 +1843,8 @@
 
 
 <h1 id="package-manager">Package Manager<a class="headerlink" href="#package-manager" title="Permanent link">&para;</a></h1>
-<p>Feather includes a curated package installer for LÖVE libraries. It is not a general package manager. It is a hand-curated catalog of known-good libraries with verified checksums.</p>
+<p>Feather includes a curated package installer for LÖVE libraries. It is <strong>not a general package manager</strong> — it is a set of utilities to manage libraries that would otherwise require manual copy-paste. There is no central registry in the npm or Cargo sense. All catalog packages are sourced from GitHub repositories; if a repository is deleted, renamed, or made private, that package will no longer be installable. <strong>You are responsible for your own copies.</strong> Committing installed files to your repo rather than adding them to <code>.gitignore</code> is strongly recommended if long-term reproducibility matters to you.</p>
+<p>The catalog is hand-curated and pinned to exact commit SHAs with verified checksums.</p>
 <h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Permanent link">&para;</a></h2>
 <h3 id="trust-levels">Trust levels<a class="headerlink" href="#trust-levels" title="Permanent link">&para;</a></h3>
 <table>
@@ -1764,7 +1865,7 @@
 </tr>
 <tr>
 <td><code>experimental</code></td>
-<td>Installed via <code>--from-url</code> or a version override (<code>name@version</code>). SHA-256 computed live. Requires <code>--allow-untrusted</code>.</td>
+<td>Installed via <code>feather package add</code> or <code>--from-url</code>, or a version override (<code>name@version</code>). SHA-256 computed live. Requires <code>--allow-untrusted</code> for the CLI flag form.</td>
 </tr>
 </tbody>
 </table>
@@ -1772,36 +1873,44 @@
 <p>Version overrides (<code>feather package install anim8@v2.2.0</code>) are treated as <code>experimental</code> even when the package itself is <code>verified</code> — the source (name, repo) is curated, but Feather has not reviewed that specific version.</p>
 <h3 id="lockfile">Lockfile<a class="headerlink" href="#lockfile" title="Permanent link">&para;</a></h3>
 <p>Every install, update, or remove updates <code>feather.lock.json</code> in your project root. Commit this file — it records the exact version and SHA-256 of every installed file so anyone cloning your project can restore dependencies with <code>feather package install</code> and verify them with <code>feather package audit</code>.</p>
+<p>Custom GitHub repo installs also record the resolved commit SHA when available. Custom URL installs record the primary URL plus the selected URL list, and every custom file records its own URL and SHA-256. Older lockfiles remain compatible.</p>
+<p><code>feather doctor</code> includes lockfile verification and warns when package file URLs point outside trusted raw GitHub HTTPS sources:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>--security<span class="w"> </span>--json
+</code></pre></div>
 <hr />
 <h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
 <h3 id="feather-package-search-query"><code>feather package search [query]</code><a class="headerlink" href="#feather-package-search-query" title="Permanent link">&para;</a></h3>
 <p>Search the catalog by name, description, or tag.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>animation
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>collision
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>oop
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>animation
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>collision
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>feather<span class="w"> </span>package<span class="w"> </span>search<span class="w"> </span>oop
 </code></pre></div>
 <h3 id="feather-package-list"><code>feather package list</code><a class="headerlink" href="#feather-package-list" title="Permanent link">&para;</a></h3>
 <p>List all packages in the catalog. Add <code>--installed</code> to show only what's in your project.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>package<span class="w"> </span>list
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>package<span class="w"> </span>list<span class="w"> </span>--installed
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>feather<span class="w"> </span>package<span class="w"> </span>list<span class="w"> </span>--refresh<span class="w">   </span><span class="c1"># force re-fetch the registry</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>feather<span class="w"> </span>package<span class="w"> </span>list
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>feather<span class="w"> </span>package<span class="w"> </span>list<span class="w"> </span>--installed
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>feather<span class="w"> </span>package<span class="w"> </span>list<span class="w"> </span>--refresh<span class="w">   </span><span class="c1"># force re-fetch the registry</span>
 </code></pre></div>
 <h3 id="feather-package-info-name"><code>feather package info &lt;name&gt;</code><a class="headerlink" href="#feather-package-info-name" title="Permanent link">&para;</a></h3>
 <p>Show full details for a package: description, trust, source, files, and usage snippet.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>feather<span class="w"> </span>package<span class="w"> </span>info<span class="w"> </span>anim8
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>feather<span class="w"> </span>package<span class="w"> </span>info<span class="w"> </span>hump
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>feather<span class="w"> </span>package<span class="w"> </span>info<span class="w"> </span>anim8
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>feather<span class="w"> </span>package<span class="w"> </span>info<span class="w"> </span>hump
 </code></pre></div>
 <h3 id="feather-package-install"><code>feather package install</code><a class="headerlink" href="#feather-package-install" title="Permanent link">&para;</a></h3>
 <p>Run with no arguments to restore all packages recorded in <code>feather.lock.json</code>. Files already on disk with the correct checksum are skipped; only missing or tampered files are re-downloaded.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install
 </code></pre></div>
 <p>This is the command to run after cloning a project that has a lockfile.</p>
+<p>If a missing or modified lockfile entry uses an experimental or untrusted source, non-interactive repair requires explicit consent:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>--allow-untrusted
+</code></pre></div>
+<p>Without <code>--allow-untrusted</code>, Feather exits before downloading from that source. <code>--yes</code> does not bypass this trust check.</p>
 <h3 id="feather-package-install-name-name2"><code>feather package install &lt;name&gt; [name2...]</code><a class="headerlink" href="#feather-package-install-name-name2" title="Permanent link">&para;</a></h3>
 <p>Install one or more packages. Files are verified against their SHA-256 before being written. The lockfile is updated on success.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>anim8
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>bump<span class="w"> </span>lume<span class="w"> </span>flux
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>hump<span class="w">          </span><span class="c1"># installs all hump modules</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>hump.camera<span class="w">   </span><span class="c1"># installs only the camera module</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>anim8
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>bump<span class="w"> </span>lume<span class="w"> </span>flux
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>hump<span class="w">          </span><span class="c1"># installs all hump modules</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>hump.camera<span class="w">   </span><span class="c1"># installs only the camera module</span>
 </code></pre></div>
 <p>Options:</p>
 <table>
@@ -1831,80 +1940,112 @@
 </tbody>
 </table>
 <p><strong>Example output:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>  anim8
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  Source:  github.com/kikito/anim8
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>  Version: v2.3.1
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  Trust:   [verified]
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  Files:
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    anim8.lua  →  lib/anim8.lua
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>✔ anim8 @ v2.3.1
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  → lib/anim8.lua  checksum: verified
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>  Add to your code:
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>  local anim8 = require(&quot;lib.anim8&quot;)
-</code></pre></div>
-<h3 id="feather-package-install-nameversion"><code>feather package install &lt;name&gt;@&lt;version&gt;</code><a class="headerlink" href="#feather-package-install-nameversion" title="Permanent link">&para;</a></h3>
-<p>Install a specific version of a registry package that differs from the Feather-pinned release. Because that version has not been reviewed, the SHA-256 is computed live at install time rather than checked against the registry. <strong>Requires <code>--allow-untrusted</code>.</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>anim8@v2.2.0<span class="w"> </span>--allow-untrusted
-</code></pre></div>
-<p>The package source (name, GitHub repo) is registry-curated, but the specific version is not. The install is stored in the lockfile with <code>trust: experimental</code> so it is clearly visible in <code>list --installed</code> and <code>audit</code> output.</p>
-<p><strong>Example output:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>  anim8
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  Source:  github.com/kikito/anim8
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  Version: v2.2.0
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  Trust:   [experimental]  (source is registry-curated, but v2.2.0 has not been reviewed)
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  Version: v2.3.1
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  Trust:   [verified]
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  Files:
 <a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    anim8.lua  →  lib/anim8.lua
 <a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>✔ anim8 @ v2.2.0
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  → lib/anim8.lua  checksum: live-computed ⚠
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>✔ anim8 @ v2.3.1
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  → lib/anim8.lua  checksum: verified
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>  Add to your code:
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>  local anim8 = require(&quot;lib.anim8&quot;)
+</code></pre></div>
+<h3 id="feather-package-install-nameversion"><code>feather package install &lt;name&gt;@&lt;version&gt;</code><a class="headerlink" href="#feather-package-install-nameversion" title="Permanent link">&para;</a></h3>
+<p>Install a specific version of a registry package that differs from the Feather-pinned release. Because that version has not been reviewed, the SHA-256 is computed live at install time rather than checked against the registry. <strong>Requires <code>--allow-untrusted</code>.</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>anim8@v2.2.0<span class="w"> </span>--allow-untrusted
+</code></pre></div>
+<p>The package source (name, GitHub repo) is registry-curated, but the specific version is not. The install is stored in the lockfile with <code>trust: experimental</code> so it is clearly visible in <code>list --installed</code> and <code>audit</code> output.</p>
+<p><strong>Example output:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>  anim8
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  Source:  github.com/kikito/anim8
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>  Version: v2.2.0
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>  Trust:   [experimental]  (source is registry-curated, but v2.2.0 has not been reviewed)
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>  Files:
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    anim8.lua  →  lib/anim8.lua
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>✔ anim8 @ v2.2.0
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>  → lib/anim8.lua  checksum: live-computed ⚠
 </code></pre></div>
 <p>If the requested version does not exist on GitHub, the install aborts with a clear error and a link to the package's releases page.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>To go back to the Feather-reviewed version, run <code>feather package install anim8</code> (no version pin). This re-installs the registry-pinned release and resets the lockfile entry to <code>trust: verified</code>.</p>
 </div>
-<h3 id="feather-package-install-from-url-url-target-path"><code>feather package install --from-url &lt;url&gt; --target &lt;path&gt;</code><a class="headerlink" href="#feather-package-install-from-url-url-target-path" title="Permanent link">&para;</a></h3>
-<p>Install a single Lua file from an arbitrary URL. The SHA-256 is computed and shown before the file is written. The package is stored in the lockfile with <code>trust: experimental</code>.</p>
-<p><strong>Requires <code>--allow-untrusted</code></strong> — this is intentional. The flag name makes the risk explicit.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>--from-url<span class="w"> </span>https://example.com/mylib.lua<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>--target<span class="w"> </span>lib/mylib.lua<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>--allow-untrusted
+<h3 id="feather-package-add"><code>feather package add</code><a class="headerlink" href="#feather-package-add" title="Permanent link">&para;</a></h3>
+<p>Install a Lua library that is not in the Feather catalog. Launches an interactive wizard and first asks how you want to add the package:</p>
+<ul>
+<li><strong>From GitHub repository</strong> — commit-SHA pinned, reproducible. The wizard fetches the repo's tags and branches, lets you pick one, resolves it to an exact commit SHA, shows all <code>.lua</code> files in the tree, and lets you select which ones to install and where.</li>
+<li><strong>From direct URL(s)</strong> — for libraries not on GitHub or without versioned releases. Each URL is downloaded immediately and its SHA-256 is computed before you confirm.</li>
+</ul>
+<p>Both flows share the same steps for naming the package, setting install paths, entering a require path, and reviewing before anything is written.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>feather<span class="w"> </span>package<span class="w"> </span>add
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>feather<span class="w"> </span>package<span class="w"> </span>add<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
+<p><strong>GitHub repo flow (step by step):</strong></p>
+<ol>
+<li>Choose mode → "From GitHub repository"</li>
+<li>Package name — how it appears in <code>feather.lock.json</code></li>
+<li>GitHub repo (<code>owner/repo</code>)</li>
+<li>Select a tag or branch — tags listed first, then branches</li>
+<li>Select which <code>.lua</code> files to install</li>
+<li>Set install target path for each file</li>
+<li>Enter the require path for your game code</li>
+<li>Review summary and confirm — files are written only after this step</li>
+</ol>
+<p><strong>Direct URL flow (step by step):</strong></p>
+<ol>
+<li>Choose mode → "From direct URL(s)"</li>
+<li>Package name</li>
+<li>Enter a file URL — downloaded and SHA-256 computed immediately</li>
+<li>Confirm install path, optionally add more files to the same package</li>
+<li>Enter the require path</li>
+<li>Review summary and confirm</li>
+</ol>
 <div class="admonition danger">
 <p class="admonition-title">Caution</p>
-<p>Experimental packages have not been reviewed by the Feather team. Only install files from sources you trust. The SHA-256 shown at install time is what will be verified by future <code>feather package audit</code> runs.</p>
+<p>Packages installed this way have <code>trust: experimental</code> — they have not been reviewed by the Feather team. Only install files from sources you trust. The SHA-256 of each file is recorded in the lockfile so future <code>feather package audit</code> runs will detect any tampering.</p>
+<p>Repo installs store the selected repo/tag and resolved commit SHA when available. URL installs store the primary URL, all selected URLs, per-file URLs, and per-file SHA-256 values.</p>
 </div>
+<h3 id="feather-package-install-from-url-url-target-path"><code>feather package install --from-url &lt;url&gt; --target &lt;path&gt;</code><a class="headerlink" href="#feather-package-install-from-url-url-target-path" title="Permanent link">&para;</a></h3>
+<p>Non-interactive equivalent of <code>feather package add</code>. Use this in scripts or CI where stdin is not a TTY. Installs a single Lua file from a URL.</p>
+<p><strong>Requires <code>--allow-untrusted</code></strong> — the flag name makes the risk explicit.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>--from-url<span class="w"> </span>https://example.com/mylib.lua<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>--target<span class="w"> </span>lib/mylib.lua<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>--allow-untrusted
+</code></pre></div>
+<p><code>--yes</code> alone never confirms an untrusted URL. In scripts and CI, pass <code>--allow-untrusted</code> only after reviewing the source and target path.</p>
 <h3 id="feather-package-update-name"><code>feather package update [name]</code><a class="headerlink" href="#feather-package-update-name" title="Permanent link">&para;</a></h3>
 <p>Update an installed package to the latest version in the registry. Omit the name to update all installed packages.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w"> </span>anim8
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w">          </span><span class="c1"># update all</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w"> </span>--dry-run
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w"> </span>anim8
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w">          </span><span class="c1"># update all</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>feather<span class="w"> </span>package<span class="w"> </span>update<span class="w"> </span>--dry-run
 </code></pre></div>
-<p><code>experimental</code> packages (installed via <code>--from-url</code>) cannot be updated — re-install with <code>--from-url</code> to replace them.</p>
+<p><code>experimental</code> packages (installed via <code>feather package add</code> or <code>--from-url</code>) cannot be updated through the registry — use <code>feather package add</code> again to replace them.</p>
 <h3 id="feather-package-remove-name"><code>feather package remove &lt;name&gt;</code><a class="headerlink" href="#feather-package-remove-name" title="Permanent link">&para;</a></h3>
 <p>Remove an installed package and its files. Updates the lockfile.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>feather<span class="w"> </span>package<span class="w"> </span>remove<span class="w"> </span>anim8
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>feather<span class="w"> </span>package<span class="w"> </span>remove<span class="w"> </span>hump.camera
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>feather<span class="w"> </span>package<span class="w"> </span>remove<span class="w"> </span>anim8
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>feather<span class="w"> </span>package<span class="w"> </span>remove<span class="w"> </span>hump.camera
 </code></pre></div>
 <h3 id="feather-package-audit"><code>feather package audit</code><a class="headerlink" href="#feather-package-audit" title="Permanent link">&para;</a></h3>
 <p>Verify the SHA-256 of every installed file against the lockfile. Exits with code 1 if any file is modified or missing.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>feather<span class="w"> </span>package<span class="w"> </span>audit
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>feather<span class="w"> </span>package<span class="w"> </span>audit<span class="w"> </span>--json<span class="w">    </span><span class="c1"># machine-readable output</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>feather<span class="w"> </span>package<span class="w"> </span>audit
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>feather<span class="w"> </span>package<span class="w"> </span>audit<span class="w"> </span>--json<span class="w">    </span><span class="c1"># machine-readable output</span>
 </code></pre></div>
 <p><strong>Example output:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Auditing 4 installed packages…
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>  ✔ anim8        lib/anim8.lua           verified
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>  ✔ hump.camera  lib/hump/camera.lua     verified
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>  ✖ baton        lib/baton.lua           MODIFIED  ← SHA-256 mismatch
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  !  sti          lib/sti/init.lua        missing
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>1 issue(s) found. Re-install affected packages with `feather package install &lt;name&gt;`.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>Auditing 4 installed packages…
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>  ✔ anim8        lib/anim8.lua           verified
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>  ✔ hump.camera  lib/hump/camera.lua     verified
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>  ✖ baton        lib/baton.lua           MODIFIED  ← SHA-256 mismatch
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>  !  sti          lib/sti/init.lua        missing
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>1 issue(s) found. Re-install affected packages with `feather package install &lt;name&gt;`.
 </code></pre></div>
 <hr />
-<h2 id="available-packages">Available Packages<a class="headerlink" href="#available-packages" title="Permanent link">&para;</a></h2>
+<h2 id="some-available-packages">Some Available Packages<a class="headerlink" href="#some-available-packages" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -2006,26 +2147,60 @@
 <h2 id="security-model">Security model<a class="headerlink" href="#security-model" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>SHA-256 is verified before any file is written.</strong> For registry installs, the checksum is checked against the Feather-pinned value before anything touches disk. A mismatch aborts the install.</li>
-<li><strong>Version overrides and <code>--from-url</code> compute SHA-256 live.</strong> The hash is shown at install time and stored in the lockfile, so future <code>audit</code> runs detect tampering — but the initial download is not checked against a known-good value.</li>
+<li><strong>Registry packages are pinned to an exact commit SHA.</strong> Each package in the catalog records the specific Git commit the files were fetched from at the time of curation — not just a tag or branch name. This means downloads are reproducible: the same bytes are fetched on every install, even if a tag is later moved or a branch advances.</li>
+<li><strong>Version overrides and <code>feather package add</code> / <code>--from-url</code> compute SHA-256 live.</strong> The hash is shown at install time and stored in the lockfile, so future <code>audit</code> runs detect tampering — but the initial download is not checked against a known-good value.</li>
 <li><strong>No post-install scripts.</strong> No code runs during install, update, or remove.</li>
 <li><strong>Files stay inside your project.</strong> Target paths are resolved and validated against the project root. Paths that would escape (e.g. <code>../../</code>) are rejected.</li>
 <li><strong>The registry is fetched over HTTPS only.</strong></li>
-<li><strong><code>experimental</code> packages are flagged everywhere</strong> — in install output, <code>list --installed</code>, and <code>audit</code> results. This includes version overrides.</li>
+<li><strong><code>experimental</code> packages are flagged everywhere</strong> — in install output, <code>list --installed</code>, and <code>audit</code> results. This includes version overrides and all URL installs.</li>
 </ul>
 <hr />
 <h2 id="contributing-packages">Contributing packages<a class="headerlink" href="#contributing-packages" title="Permanent link">&para;</a></h2>
 <p>To propose adding a package to the Feather catalog, open an issue at <a href="https://github.com/Kyonru/feather">github.com/Kyonru/feather</a> with:</p>
 <ul>
 <li>The library name and GitHub repo</li>
-<li>The specific release tag or commit to pin</li>
+<li>The specific release tag or branch to pin</li>
 <li>Whether it meets the criteria for <code>verified</code> or <code>known</code> trust</li>
 </ul>
-<p>Maintainers will compute checksums, review the library, and add it to <code>packages/</code>.</p>
-<p>To compute checksums locally while developing:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>--all<span class="w">            </span><span class="c1"># verify all package files</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>https://raw.githubusercontent.com/example/lib/main/lib.lua
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>--package<span class="w"> </span>packages/anim8.json
+<p>Maintainers use interactive dev scripts to add, update, and remove catalog entries. All scripts open an ink TUI wizard and regenerate the registry automatically.</p>
+<h3 id="adding-a-github-hosted-package">Adding a GitHub-hosted package<a class="headerlink" href="#adding-a-github-hosted-package" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>npm<span class="w"> </span>run<span class="w"> </span>package:add<span class="w">       </span><span class="c1"># add from GitHub repo (tag or branch)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>npm<span class="w"> </span>run<span class="w"> </span>package:add-url<span class="w">   </span><span class="c1"># add from direct file URL(s)</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>npm<span class="w"> </span>run<span class="w"> </span>package:update<span class="w">    </span><span class="c1"># edit an existing package entry</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>npm<span class="w"> </span>run<span class="w"> </span>package:remove<span class="w">    </span><span class="c1"># remove a package from the catalog</span>
 </code></pre></div>
+<p><code>package:add</code> fetches the repo's tags and branches from GitHub, lets you select one, resolves it to an exact commit SHA (for reproducible downloads), walks through trust level, description, tags, file selection, install targets, require path, and optional submodule definitions, then writes <code>packages/&lt;id&gt;.json</code> and regenerates the registry.</p>
+<p><code>package:add-url</code> follows the same wizard flow for libraries not hosted on GitHub or without versioned releases — you provide direct file URLs and the wizard computes checksums and handles everything else.</p>
+<h3 id="verifying-checksums">Verifying checksums<a class="headerlink" href="#verifying-checksums" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>--all<span class="w">            </span><span class="c1"># re-verify all package files against their stored SHA-256</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>https://raw.githubusercontent.com/example/lib/main/lib.lua
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>node<span class="w"> </span>scripts/compute-checksums.mjs<span class="w"> </span>--package<span class="w"> </span>packages/anim8.json
+</code></pre></div>
+<h3 id="package-format">Package format<a class="headerlink" href="#package-format" title="Permanent link">&para;</a></h3>
+<p>Each file in <code>packages/</code> is a standalone JSON manifest:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="p">{</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;love2d-library&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">  </span><span class="nt">&quot;trust&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;verified&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A 2D animation library for LÖVE&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">  </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;animation&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;sprites&quot;</span><span class="p">],</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">  </span><span class="nt">&quot;homepage&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://github.com/kikito/anim8&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">  </span><span class="nt">&quot;license&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;MIT&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="w">    </span><span class="nt">&quot;repo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kikito/anim8&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="w">    </span><span class="nt">&quot;tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;v2.3.1&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="w">    </span><span class="nt">&quot;commitSha&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;c1c12ec...&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="w">    </span><span class="nt">&quot;baseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://raw.githubusercontent.com/kikito/anim8/c1c12ec.../&quot;</span>
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="w">  </span><span class="nt">&quot;install&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;anim8.lua&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;sha256&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc123...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lib/anim8.lua&quot;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="w">    </span><span class="p">]</span>
+<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a><span class="w">  </span><span class="nt">&quot;require&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lib.anim8&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a><span class="w">  </span><span class="nt">&quot;example&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local anim8 = require(&#39;lib.anim8&#39;)&quot;</span>
+<a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a><span class="p">}</span>
+</code></pre></div>
+<p>The <code>commitSha</code> field pins downloads to the exact commit SHA of the selected tag or branch at curation time. <code>baseUrl</code> uses this SHA so fetches are immutable even if the tag is later moved. <code>scripts/generate-registry.mjs</code> assembles all package files into <code>cli/src/generated/registry.json</code>, which is bundled into the published CLI.</p>
 
 
 
