@@ -37,7 +37,7 @@ feather build vendor add all --dir path/to/my-game
 Check all platform readiness in one pass:
 
 ```bash
-feather doctor path/to/my-game --build-target all
+feather doctor path/to/my-game --target all
 ```
 
 Common run and build commands:

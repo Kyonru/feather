@@ -113,7 +113,7 @@ export function pushAndLaunchAndroid(input: {
   port: number;
   log?: NativeBuildLogger;
 }): void {
-  runAdb(input.device, ['version'], 'adb not found. Run `feather doctor --build-target android` for setup guidance.', input.log);
+  runAdb(input.device, ['version'], 'adb not found. Run `feather doctor --target android` for setup guidance.', input.log);
   runAdb(input.device, ['push', input.love, androidExternalGamePath(input.appId)], 'Android push game.love failed.', input.log);
   runAdb(input.device, ['shell', 'am', 'force-stop', input.appId], 'Android force-stop failed.', input.log);
   if (input.adbReverse) {
@@ -140,7 +140,7 @@ function installAndLaunchAndroid(input: {
   port: number;
   log?: NativeBuildLogger;
 }): void {
-  runAdb(input.device, ['version'], 'adb not found. Run `feather doctor --build-target android` for setup guidance.', input.log);
+  runAdb(input.device, ['version'], 'adb not found. Run `feather doctor --target android` for setup guidance.', input.log);
   // Remove any fast-pushed game.love so the app loads from the freshly installed APK assets
   runAdbOptional(input.device, ['shell', 'rm', '-f', androidExternalGamePath(input.appId)], input.log);
   runAdb(input.device, ['install', '-r', input.apk], 'Android install failed.', input.log);
@@ -204,7 +204,7 @@ export function runXcrun(args: string[], message: string, log?: NativeBuildLogge
     stdio: streamOutput ? 'inherit' : 'pipe',
   });
   if (!streamOutput) logNativeOutput(log, result.stdout, result.stderr);
-  if (result.error) throw new Error(`${message} xcrun not found. Run \`feather doctor --build-target ios\` for setup guidance.`);
+  if (result.error) throw new Error(`${message} xcrun not found. Run \`feather doctor --target ios\` for setup guidance.`);
   if (result.status !== 0) {
     throw new Error(`${message} ${(result.stderr || result.stdout || `exit code ${result.status ?? 'unknown'}`).toString().trim()}`.trim());
   }

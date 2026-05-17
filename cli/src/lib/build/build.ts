@@ -66,7 +66,7 @@ export type BuildResult = {
 
 export function assertBuildTargetSupported(target: BuildTarget): asserts target is SupportedBuildTarget {
   if (!isSupportedBuildTarget(target)) {
-    throw new Error(`Build target "${target}" is planned but not supported yet. Run \`feather doctor --build-target ${target}\` for setup guidance.`);
+    throw new Error(`Build target "${target}" is planned but not supported yet. Run \`feather doctor --target ${target}\` for setup guidance.`);
   }
 }
 

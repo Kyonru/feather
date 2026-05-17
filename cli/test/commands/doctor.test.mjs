@@ -244,7 +244,7 @@ test('doctor: build and upload target checks report missing and configured depen
     version: '1.0.0',
     upload: { itch: { project: 'tester/doctor-build-game' } },
   });
-  const { parsed: missing } = parseDoctorJsonResult(dir, ['--build-target', 'web', '--upload-target', 'itch']);
+  const { parsed: missing } = parseDoctorJsonResult(dir, ['--target', 'web', '--upload-target', 'itch']);
   const missingLabels = new Map(missing.checks.map((check) => [check.label, check]));
   assert.equal(missingLabels.get('love.js player')?.severity, 'fail');
   assert.equal(missingLabels.get('butler')?.severity, 'fail');
@@ -258,7 +258,7 @@ test('doctor: build and upload target checks report missing and configured depen
     upload: { itch: { project: 'tester/doctor-build-game' } },
   });
   const { binDir } = writeFakeCommand(dir, 'butler', `console.log('butler test'); process.exit(0);`);
-  const configured = run(['doctor', dir, '--json', '--build-target', 'web', '--upload-target', 'itch'], {
+  const configured = run(['doctor', dir, '--json', '--target', 'web', '--upload-target', 'itch'], {
     env: envWithPath(binDir, { BUTLER_API_KEY: 'test-key' }),
   });
   assert.equal(configured.exitCode, 0, outputOf(configured));

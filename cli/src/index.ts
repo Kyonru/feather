@@ -147,9 +147,10 @@ program
   .option('--json', 'Print machine-readable diagnostics')
   .option('--production', 'Fail when project settings are unsafe for production builds')
   .option('--security', 'Print security-focused diagnostics; use with --json for automation')
-  .option('--build-target <target>', 'Check dependencies for a build target')
+  .option('--target <target>', 'Check dependencies for a build target')
+  .option('--build-target <target>', 'Alias for --target')
   .option('--upload-target <target>', 'Check dependencies for an upload target')
-  .option('--release', 'Include mobile release build checks with --build-target')
+  .option('--release', 'Include mobile release build checks with --target')
   .action((dir: string | undefined, opts) => runCliAction(() => doctorCommand(dir, {
       installDir: opts.installDir as string | undefined,
       host: opts.host as string | undefined,
@@ -157,7 +158,7 @@ program
       json: opts.json as boolean | undefined,
       production: opts.production as boolean | undefined,
       security: opts.security as boolean | undefined,
-      buildTarget: opts.buildTarget as string | undefined,
+      buildTarget: (opts.target ?? opts.buildTarget) as string | undefined,
       uploadTarget: opts.uploadTarget as string | undefined,
       release: opts.release as boolean | undefined,
     })));
@@ -239,6 +240,7 @@ buildVendor
   .command('add [targets...]')
   .description('Fetch build vendors: web, android, ios, mobile, desktop, or all')
   .allowUnknownOption()
+  .option('--target <targets...>', 'Vendor target(s) to add')
   .option('--dir <path>', 'Project directory (default: current directory)')
   .option('--config <path>', 'Path to feather.build.json')
   .option('--vendor-dir <path>', 'Vendor directory inside the project', 'vendor')
@@ -250,7 +252,10 @@ buildVendor
   .option('--dry-run', 'Show planned vendor changes without writing files')
   .option('--json', 'Output machine-readable JSON')
   .addHelpText('after', '\n  --no-config              Do not update feather.build.json')
-  .action((targets: string[], opts) => runCliAction(() => buildVendorAddCommand(targets.filter((target) => target !== '--no-config'), {
+  .action((targets: string[], opts) => runCliAction(() => buildVendorAddCommand([
+    ...targets.filter((target) => target !== '--no-config'),
+    ...((opts.target as string[] | undefined) ?? []),
+  ], {
     dir: opts.dir as string | undefined,
     config: opts.config as string | undefined,
     vendorDir: opts.vendorDir as string | undefined,

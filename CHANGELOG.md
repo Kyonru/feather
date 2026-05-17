@@ -9,13 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Watch mode** — `feather watch` allows you to watch your game files for changes and automatically rebuilds the project when they change. Currently (desktop | android | ios).
+- **Watch mode** — `feather watch` allows you to watch your game files for changes and automatically rebuilds the project when they change. Currently (desktop | android | ios | steamos).
+- **SteamOS run/watch** — `feather run --target steamos` and `feather watch --target steamos` build a SteamOS package and notify the local SteamOS Devkit Client when available.
 
 ### Changed
 
 - **Fast Builds** - By default, when building android or ios, it only bundles creates a new `game.love` and uses existing installed APK or IPA files instead of rebuilding the entire project.
 - `--clean` now clears all cache.
 - `--no-cache` now ignores exiting APK or IPA.
+- `feather build vendor add --target <target>` can be used instead of positional vendor targets.
+- **Simpler target flags** — `feather doctor --target <target>` now matches `run` and `watch`; `--build-target` remains as an alias.
 - Update screenshots.
 
 ### Fixes

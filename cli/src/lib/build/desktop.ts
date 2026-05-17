@@ -56,7 +56,7 @@ function buildWindows(config: ResolvedBuildConfig, lovePath: string, base: strin
     appendFileSync(appExe, readFileSync(lovePath));
     writeDirectoryZip(bundleDir, zipPath);
     writeWindowsInstallerScript(join(workDir, 'installer.nsi'), config, bundleDir, installerPath);
-    runTool('makensis', [join(workDir, 'installer.nsi')], workDir, 'makensis not found. Run `feather doctor --build-target windows`.');
+    runTool('makensis', [join(workDir, 'installer.nsi')], workDir, 'makensis not found. Run `feather doctor --target windows`.');
   } finally {
     removePath(workDir);
   }
@@ -92,7 +92,7 @@ function buildMacos(config: ResolvedBuildConfig, lovePath: string, base: string)
     } else if (ditto.status !== 0) {
       throw new Error((ditto.stderr || ditto.stdout || 'ditto failed').trim());
     }
-    runTool('hdiutil', ['create', '-volname', appSlug, '-srcfolder', appBundle, '-ov', '-format', 'UDZO', dmgPath], workDir, 'hdiutil not found. Run `feather doctor --build-target macos`.');
+    runTool('hdiutil', ['create', '-volname', appSlug, '-srcfolder', appBundle, '-ov', '-format', 'UDZO', dmgPath], workDir, 'hdiutil not found. Run `feather doctor --target macos`.');
   } finally {
     removePath(workDir);
   }
@@ -124,8 +124,8 @@ function buildLinuxLike(config: ResolvedBuildConfig, target: 'linux' | 'steamos'
     appendFileSync(appBinary, readFileSync(lovePath));
     chmodSync(appBinary, 0o755);
     chmodSync(appImageTool, 0o755);
-    runTool(appImageTool, [appDir, appImagePath], workDir, `appimagetool failed. Run \`feather doctor --build-target ${target}\`.`);
-    runTool('tar', ['-czf', tarPath, '-C', appDir, '.'], workDir, `tar not found. Run \`feather doctor --build-target ${target}\`.`);
+    runTool(appImageTool, [appDir, appImagePath], workDir, `appimagetool failed. Run \`feather doctor --target ${target}\`.`);
+    runTool('tar', ['-czf', tarPath, '-C', appDir, '.'], workDir, `tar not found. Run \`feather doctor --target ${target}\`.`);
   } finally {
     removePath(workDir);
   }
@@ -192,7 +192,7 @@ function patchMacosPlist(config: ResolvedBuildConfig, plistPath: string, appSlug
     ['CFBundleVersion', config.version],
     ['NSHumanReadableCopyright', config.copyright ?? ''],
   ] as const) {
-    runTool('plutil', ['-replace', key, '-string', value, plistPath], dirname(plistPath), 'plutil not found. Run `feather doctor --build-target macos`.');
+    runTool('plutil', ['-replace', key, '-string', value, plistPath], dirname(plistPath), 'plutil not found. Run `feather doctor --target macos`.');
   }
 }
 

@@ -29,7 +29,7 @@ export type IosBuildModeOptions = {
 
 export function buildIos(config: ResolvedBuildConfig, stageDir: string, options: IosBuildModeOptions = {}): BuildArtifact[] {
   if (process.platform !== 'darwin' && process.env.FEATHER_TEST_ALLOW_IOS_BUILD !== '1') {
-    throw new Error('iOS builds require macOS with Xcode. Run `feather doctor --build-target ios` for setup guidance.');
+    throw new Error('iOS builds require macOS with Xcode. Run `feather doctor --target ios` for setup guidance.');
   }
 
   const iosConfig = config.targets.ios ?? {};
@@ -502,7 +502,7 @@ function runXcodebuild(args: string[], workDir: string, log?: NativeBuildLogger)
   if (result.error) {
     const err = result.error as Error & { code?: string };
     if (err.code === 'ENOENT') {
-      throw new Error('xcodebuild not found. Run `feather doctor --build-target ios`.');
+      throw new Error('xcodebuild not found. Run `feather doctor --target ios`.');
     }
     const output = spawnOutput(result);
     throw new Error([`xcodebuild failed to run: ${err.message}`, output].filter(Boolean).join('\n'));

@@ -82,7 +82,7 @@ Run doctor as a release gate before packaging:
 
 ```bash
 feather doctor path/to/my-game --production
-feather doctor path/to/my-game --build-target all
+feather doctor path/to/my-game --target all
 ```
 
 `--production` exits with code `1` for release blockers such as insecure connections, weak Console auth, hot reload, debugger/screenshot/disk persistence settings, network exposure with weak auth, or unmanaged embedded Feather runtime.

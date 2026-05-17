@@ -241,7 +241,7 @@ test('build vendor add steamos --json: reuses configured Linux runtime vendor', 
   assert.equal(config.targets.steamos.loveRuntimeDir, 'vendor/love-linux');
 });
 
-test('build vendor add steamos: prints manual SteamOS Devkit setup links', () => {
+test('build vendor add --target steamos: prints manual SteamOS Devkit setup links', () => {
   const dir = makeTmp();
   writeGame(dir);
   const vendors = writeFakeDesktopRuntimeVendors(dir);
@@ -251,7 +251,7 @@ test('build vendor add steamos: prints manual SteamOS Devkit setup links', () =>
     targets: { linux: { loveRuntimeDir: vendors.linux } },
   });
 
-  const result = run(['build', 'vendor', 'add', 'steamos', '--dir', dir]);
+  const result = run(['build', 'vendor', 'add', '--target', 'steamos', '--dir', dir]);
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.ok(outputOf(result).includes('SteamOS Devkit setup is manual'));
   assert.ok(outputOf(result).includes('https://partner.steamgames.com/doc/steamdeck/loadgames'));

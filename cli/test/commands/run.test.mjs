@@ -378,7 +378,7 @@ test('run --target android: missing adb produces doctor guidance', () => {
   });
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('adb not found'));
-  assert.ok(outputOf(result).includes('feather doctor --build-target android'));
+  assert.ok(outputOf(result).includes('feather doctor --target android'));
 });
 
 test('run --target android: failed install exits with compact error', () => {
@@ -492,7 +492,7 @@ process.exit(0);
   });
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('xcrun not found'));
-  assert.ok(outputOf(result).includes('feather doctor --build-target ios'));
+  assert.ok(outputOf(result).includes('feather doctor --target ios'));
 });
 
 test('run --target steamos: builds and attempts SteamOS Devkit Client notification', () => {
