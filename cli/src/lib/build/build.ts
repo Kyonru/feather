@@ -35,6 +35,7 @@ export type BuildOptions = LoadBuildConfigOptions & {
   allowUnsafe?: boolean;
   release?: boolean;
   noCache?: boolean;
+  device?: string;
   debugger?: boolean;
   embedDebugger?: boolean;
   runtimeConfigPath?: string;
@@ -124,10 +125,11 @@ export function runBuild(options: BuildOptions): BuildResult {
     const log = options.verbose ? options.log : undefined;
     const mobileDevBuild = (options.target === 'android' || options.target === 'ios') && !options.release;
     const debuggerEmbedBuild = options.embedDebugger === true || mobileDevBuild;
-    if (options.clean && mobileDevBuild && !options.noCache) {
-      log?.('Build cache: reset by --clean');
+    if (options.clean) {
+      if (mobileDevBuild) log?.('Build cache: reset by --clean');
+      removePath(join(config.outDir, '.feather-cache'));
+      removePath(config.outDir);
     }
-    if (options.clean) removePath(config.outDir);
     mkdirSync(config.outDir, { recursive: true });
 
     const staged = stageProject(config);
@@ -156,6 +158,7 @@ export function runBuild(options: BuildOptions): BuildResult {
           ? buildAndroid(config, staged.dir, {
               release: Boolean(options.release),
               cache: !options.noCache,
+              device: options.device,
               debuggerSignature: debugStage?.signature,
               verbose: options.verbose,
               log,

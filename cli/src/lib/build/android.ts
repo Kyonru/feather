@@ -21,6 +21,7 @@ import { androidProductId } from './validation.js';
 export type AndroidBuildModeOptions = {
   release?: boolean;
   cache?: boolean;
+  device?: string;
   debuggerSignature?: string;
   verbose?: boolean;
   log?: NativeBuildLogger;
@@ -68,6 +69,15 @@ export function buildAndroid(config: ResolvedBuildConfig, stageDir: string, opti
   logNativeStep(options.log, `Android workspace: ${workspace.dir}`);
 
   try {
+    const apkPath = join(config.outDir, `${base}-android.apk`);
+
+    if (!options.release && options.cache !== false && workspace.cache.hit && isAndroidAppInstalled(androidProductId(config), options.device, options.log)) {
+      logNativeStep(options.log, 'App installed on device: skipping Gradle, will push game.love');
+      return [
+        { target: 'android', type: 'love', path: lovePath },
+      ];
+    }
+
     const embeddedLovePath = join(workspace.dir, 'app', 'src', 'embed', 'assets', 'game.love');
     mkdirSync(dirname(embeddedLovePath), { recursive: true });
     cpSync(lovePath, embeddedLovePath, { force: true });
@@ -103,7 +113,6 @@ export function buildAndroid(config: ResolvedBuildConfig, stageDir: string, opti
         throw new Error('Android release completed but no APK artifact was found. Set targets.android.release.apkArtifactPath if your template writes elsewhere.');
       }
       const aabPath = join(config.outDir, `${base}-android.aab`);
-      const apkPath = join(config.outDir, `${base}-android.apk`);
       cpSync(aabSource, aabPath, { force: true });
       cpSync(apkSource, apkPath, { force: true });
       logNativeStep(options.log, `Copied AAB artifact: ${aabPath}`);
@@ -116,7 +125,7 @@ export function buildAndroid(config: ResolvedBuildConfig, stageDir: string, opti
     }
 
     runGradleTask(gradleCommand, workspace.dir, gradleTask, options.log);
-    const apkPath = copyAndroidApkArtifact(config, workspace.dir, base);
+    copyAndroidApkArtifact(config, workspace.dir, apkPath);
     logNativeStep(options.log, `Copied APK artifact: ${apkPath}`);
     return [
       { target: 'android', type: 'love', path: lovePath },
@@ -130,21 +139,44 @@ export function buildAndroid(config: ResolvedBuildConfig, stageDir: string, opti
 function patchAndroidEmbeddedGameLoader(workDir: string): void {
   const gameActivityPath = join(workDir, 'love', 'src', 'main', 'java', 'org', 'love2d', 'android', 'GameActivity.java');
   patchTextFile(gameActivityPath, (source) => {
-    if (source.includes('Feather: forcing embedded game.love from assets')) return source;
-    return source.replace(
+    if (source.includes('Feather: fast-push from external files')) return source;
+    // Remove old patch if present so we can re-apply the updated version
+    let next = source;
+    if (next.includes('Feather: forcing embedded game.love from assets')) {
+      next = next.replace(
+        /\s*try \{\s*\n\s*InputStream featherGameStream[\s\S]*?catch \(IOException ignored\) \{\s*\n\s*\/\/ No embedded game\.love asset.*\n\s*\}/,
+        '',
+      );
+    }
+    return next.replace(
       /embed\s*=\s*getResources\(\)\.getBoolean\(R\.bool\.embed\);/,
       [
         'embed = getResources().getBoolean(R.bool.embed);',
-        '        try {',
+        '        // Feather: fast-push from external files takes priority over embedded assets',
+        '        boolean featherUsedExternal = false;',
+        '        { java.io.File featherExtDir = getExternalFilesDir(null);',
+        '          if (featherExtDir != null) {',
+        '            java.io.File featherExtGame = new java.io.File(featherExtDir, "game.love");',
+        '            if (featherExtGame.exists()) {',
+        '              gamePath = featherExtGame.getAbsolutePath();',
+        '              storagePermissionUnnecessary = true;',
+        '              embed = true;',
+        '              featherUsedExternal = true;',
+        '            }',
+        '          }',
+        '        }',
+        '        if (!featherUsedExternal) {',
+        '          try {',
         '            InputStream featherGameStream = getAssets().open("game.love");',
         '            featherGameStream.close();',
         '            if (!embed) {',
-        '                Log.d("GameActivity", "Feather: forcing embedded game.love from assets.");',
+        '              Log.d("GameActivity", "Feather: forcing embedded game.love from assets.");',
         '            }',
         '            embed = true;',
         '            needToCopyGameInArchive = true;',
-        '        } catch (IOException ignored) {',
+        '          } catch (IOException ignored) {',
         "            // No embedded game.love asset; keep the template's default mode.",
+        '          }',
         '        }',
       ].join('\n'),
     );
@@ -167,7 +199,7 @@ function runGradleTask(gradleCommand: string, workDir: string, task: string, log
   }
 }
 
-function copyAndroidApkArtifact(config: ResolvedBuildConfig, workDir: string, base: string): string {
+function copyAndroidApkArtifact(config: ResolvedBuildConfig, workDir: string, apkPath: string): void {
   const androidConfig = config.targets.android ?? {};
   const apkSource = androidConfig.artifactPath
     ? resolveWorkspacePath(workDir, androidConfig.artifactPath, 'Android artifact path')
@@ -175,9 +207,7 @@ function copyAndroidApkArtifact(config: ResolvedBuildConfig, workDir: string, ba
   if (!apkSource || !existsSync(apkSource)) {
     throw new Error('Android build completed but no APK artifact was found. Set targets.android.artifactPath if your template writes elsewhere.');
   }
-  const apkPath = join(config.outDir, `${base}-android.apk`);
   cpSync(apkSource, apkPath, { force: true });
-  return apkPath;
 }
 
 function writeAndroidSigningProperties(config: ResolvedBuildConfig, workDir: string): void {
@@ -295,4 +325,11 @@ function utf8ByteArray(value: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isAndroidAppInstalled(appId: string, device?: string, log?: NativeBuildLogger): boolean {
+  const args = device ? ['-s', device, 'shell', 'pm', 'list', 'packages', appId] : ['shell', 'pm', 'list', 'packages', appId];
+  logNativeStep(log, `Checking if ${appId} is installed on device`);
+  const result = spawnSync('adb', args, { encoding: 'utf8', stdio: 'pipe' });
+  return result.status === 0 && result.stdout.includes(`package:${appId}`);
 }

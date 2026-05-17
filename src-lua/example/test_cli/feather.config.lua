@@ -9,7 +9,7 @@ return {
   captureScreenshot = false,
   assetPreview = true,
   autoRegisterErrorHandler = true,
-  apiKey = "",
+  apiKey = "testing_i_guess",
   -- Security: set ONE of the two options below.
   --
   -- Option A (recommended): bind to your specific Feather desktop instance.

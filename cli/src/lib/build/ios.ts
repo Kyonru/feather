@@ -78,6 +78,20 @@ export function buildIos(config: ResolvedBuildConfig, stageDir: string, options:
       : join(workspace.root, 'DerivedData');
 
   try {
+    const appPath = join(config.outDir, `${base}-ios.app`);
+
+    if (!options.release && options.cache !== false && workspace.cache.hit && existsSync(appPath)) {
+      cpSync(lovePath, join(appPath, 'game.love'), { force: true });
+      logNativeStep(options.log, `Cache hit: updated game.love in app`);
+      maybeAdHocCodesign(appPath, options.log);
+      const workspaceLove = join(workspace.dir, 'platform', 'xcode', 'game.love');
+      if (existsSync(workspaceLove)) cpSync(lovePath, workspaceLove, { force: true });
+      return [
+        { target: 'ios', type: 'love', path: lovePath },
+        { target: 'ios', type: 'app', path: appPath },
+      ];
+    }
+
     const xcodeProject = join(workspace.dir, 'platform', 'xcode', 'love.xcodeproj');
     if (!existsSync(xcodeProject)) {
       throw new Error('iOS build requires platform/xcode/love.xcodeproj in targets.ios.loveIosDir.');
@@ -104,7 +118,6 @@ export function buildIos(config: ResolvedBuildConfig, stageDir: string, options:
     if (!appSource || !existsSync(appSource)) {
       throw new Error('iOS build completed but no .app artifact was found. Check targets.ios.derivedDataPath or Xcode build settings.');
     }
-    const appPath = join(config.outDir, `${base}-ios.app`);
     copyDirectory(appSource, appPath);
     ensureLoveInAppBundle(appPath, lovePath, options.log);
     logNativeStep(options.log, `Copied app artifact: ${appPath}`);

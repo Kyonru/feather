@@ -43,6 +43,7 @@ export function runMobile(options: MobileRunOptions): MobileRunResult {
     outDir: options.outDir,
     clean: options.clean,
     noCache: options.noCache,
+    device: options.device,
     debugger: options.debugger,
     runtimeConfigPath: options.runtimeConfigPath,
     noPlugins: options.noPlugins,
@@ -65,25 +66,17 @@ export function runMobile(options: MobileRunOptions): MobileRunResult {
   });
 
   if (options.target === 'android') {
-    const apk = requireArtifact(buildResult.artifacts, 'apk', 'Android APK');
     const appId = androidProductId(config);
-    installAndLaunchAndroid({
-      apk,
-      appId,
-      device: options.device,
-      adbReverse: options.adbReverse !== false,
-      port: options.port ?? 4004,
-      log: options.verbose ? printMuted : undefined,
-    });
-    return {
-      target: 'android',
-      projectDir: buildResult.projectDir,
-      artifact: apk,
-      appId,
-      device: options.device ?? 'default',
-      adbReverse: options.adbReverse !== false,
-      port: options.port ?? 4004,
-    };
+    const apk = buildResult.artifacts.find((a) => a.type === 'apk');
+    const love = buildResult.artifacts.find((a) => a.type === 'love');
+    const log = options.verbose ? printMuted : undefined;
+    if (!apk && love) {
+      pushAndLaunchAndroid({ love: love.path, appId, device: options.device, adbReverse: options.adbReverse !== false, port: options.port ?? 4004, log });
+      return { target: 'android', projectDir: buildResult.projectDir, artifact: love.path, appId, device: options.device ?? 'default', adbReverse: options.adbReverse !== false, port: options.port ?? 4004 };
+    }
+    const apkPath = requireArtifact(buildResult.artifacts, 'apk', 'Android APK');
+    installAndLaunchAndroid({ apk: apkPath, appId, device: options.device, adbReverse: options.adbReverse !== false, port: options.port ?? 4004, log });
+    return { target: 'android', projectDir: buildResult.projectDir, artifact: apkPath, appId, device: options.device ?? 'default', adbReverse: options.adbReverse !== false, port: options.port ?? 4004 };
   }
 
   const app = requireArtifact(buildResult.artifacts, 'app', 'iOS app');
@@ -107,6 +100,38 @@ function requireArtifact(artifacts: BuildArtifact[], type: string, label: string
   return artifact.path;
 }
 
+
+function androidExternalGamePath(appId: string): string {
+  return `/sdcard/Android/data/${appId}/files/game.love`;
+}
+
+function pushAndLaunchAndroid(input: {
+  love: string;
+  appId: string;
+  device?: string;
+  adbReverse: boolean;
+  port: number;
+  log?: NativeBuildLogger;
+}): void {
+  runAdb(input.device, ['version'], 'adb not found. Run `feather doctor --build-target android` for setup guidance.', input.log);
+  runAdb(input.device, ['push', input.love, androidExternalGamePath(input.appId)], 'Android push game.love failed.', input.log);
+  runAdb(input.device, ['shell', 'am', 'force-stop', input.appId], 'Android force-stop failed.', input.log);
+  if (input.adbReverse) {
+    runAdb(
+      input.device,
+      ['reverse', `tcp:${input.port}`, `tcp:${input.port}`],
+      'Android adb reverse failed. Check USB debugging or pass --no-adb-reverse.',
+      input.log,
+    );
+  }
+  runAdb(
+    input.device,
+    ['shell', 'monkey', '-p', input.appId, '-c', 'android.intent.category.LAUNCHER', '1'],
+    'Android launch failed.',
+    input.log,
+  );
+}
+
 function installAndLaunchAndroid(input: {
   apk: string;
   appId: string;
@@ -116,6 +141,8 @@ function installAndLaunchAndroid(input: {
   log?: NativeBuildLogger;
 }): void {
   runAdb(input.device, ['version'], 'adb not found. Run `feather doctor --build-target android` for setup guidance.', input.log);
+  // Remove any fast-pushed game.love so the app loads from the freshly installed APK assets
+  runAdbOptional(input.device, ['shell', 'rm', '-f', androidExternalGamePath(input.appId)], input.log);
   runAdb(input.device, ['install', '-r', input.apk], 'Android install failed.', input.log);
   runAdb(input.device, ['shell', 'am', 'force-stop', input.appId], 'Android force-stop failed.', input.log);
   if (input.adbReverse) {
@@ -132,6 +159,10 @@ function installAndLaunchAndroid(input: {
     'Android launch failed.',
     input.log,
   );
+}
+
+function runAdbOptional(device: string | undefined, args: string[], log?: NativeBuildLogger): void {
+  try { runAdb(device, args, '', log); } catch { /* intentionally ignored */ }
 }
 
 function runAdb(device: string | undefined, args: string[], message: string, log?: NativeBuildLogger): void {
