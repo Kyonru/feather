@@ -126,7 +126,7 @@ function SettingsTabContent({ value, children }: { value: string; children: Reac
   return (
     <TabsContent value={value} className="m-0 min-h-0">
       <ScrollArea className="h-[calc(84vh-180px)]">
-        <div className="grid gap-6 p-5">{children}</div>
+        <div className="grid gap-6 p-5 pb-12">{children}</div>
       </ScrollArea>
     </TabsContent>
   );
@@ -452,6 +452,7 @@ function CliStatusPanel() {
   const cliInstalled = projectStatus?.cli.installed ?? status?.installed ?? false;
   const currentStatus = projectStatus?.cli ?? status;
   const summary = projectStatus?.buildDoctor ?? projectStatus?.doctor;
+  const doctorProjectDir = projectStatus?.projectDir || projectDir;
   const cliVersionMismatch =
     cliInstalled &&
     Boolean(currentStatus?.version) &&
@@ -580,7 +581,12 @@ function CliStatusPanel() {
 
       {importantChecks.length > 0 && (
         <div className="grid gap-2">
-          <Label>Doctor Attention</Label>
+          <div className="grid gap-1">
+            <Label>Doctor Attention</Label>
+            {doctorProjectDir && (
+              <p className="break-all font-mono text-xs text-muted-foreground">Project: {doctorProjectDir}</p>
+            )}
+          </div>
           <div className="grid gap-2">
             {importantChecks.map((check, index) => (
               <div key={`${check.group}-${check.label}-${index}`} className="grid gap-1 rounded border p-2 text-xs">

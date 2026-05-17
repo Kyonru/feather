@@ -1,90 +1,90 @@
 export default {
   "hljs-comment": {
-    color: "#8e908c",
+    color: "#989fb1",
   },
   "hljs-quote": {
-    color: "#8e908c",
+    color: "#989fb1",
   },
   "hljs-variable": {
-    color: "#c82829",
+    color: "#d3423e",
   },
   "hljs-template-variable": {
-    color: "#c82829",
+    color: "#d3423e",
   },
   "hljs-tag": {
-    color: "#c82829",
+    color: "#ad5b68",
   },
   "hljs-name": {
-    color: "#c82829",
+    color: "#ad5b68",
   },
   "hljs-selector-id": {
-    color: "#c82829",
+    color: "#d3423e",
   },
   "hljs-selector-class": {
-    color: "#c82829",
+    color: "#d3423e",
   },
   "hljs-regexp": {
-    color: "#c82829",
+    color: "#0c969b",
   },
   "hljs-deletion": {
-    color: "#c82829",
+    color: "#d3423e",
   },
   "hljs-number": {
-    color: "#f5871f",
+    color: "#c96765",
   },
   "hljs-built_in": {
-    color: "#f5871f",
+    color: "#c96765",
   },
   "hljs-builtin-name": {
-    color: "#f5871f",
+    color: "#c96765",
   },
   "hljs-literal": {
-    color: "#f5871f",
+    color: "#c96765",
   },
   "hljs-type": {
-    color: "#f5871f",
+    color: "#c96765",
   },
   "hljs-params": {
-    color: "#f5871f",
+    color: "#403f53",
   },
   "hljs-meta": {
-    color: "#f5871f",
+    color: "#6c6f85",
   },
   "hljs-link": {
-    color: "#f5871f",
+    color: "#ad5b68",
   },
   "hljs-attribute": {
-    color: "#eab700",
+    color: "#994cc3",
   },
   "hljs-string": {
-    color: "#718c00",
+    color: "#0c969b",
   },
   "hljs-symbol": {
-    color: "#718c00",
+    color: "#0c969b",
   },
   "hljs-bullet": {
-    color: "#718c00",
+    color: "#0c969b",
   },
   "hljs-addition": {
-    color: "#718c00",
+    color: "#0c969b",
   },
   "hljs-title": {
-    color: "#4271ae",
+    color: "#ad5b68",
   },
   "hljs-section": {
-    color: "#4271ae",
+    color: "#ad5b68",
   },
   "hljs-keyword": {
-    color: "#8959a8",
+    color: "#994cc3",
   },
   "hljs-selector-tag": {
-    color: "#8959a8",
+    color: "#ad5b68",
   },
   hljs: {
     display: "block",
     overflowX: "auto",
-    background: "white",
-    color: "#4d4d4c",
+    background: "#f8fbff",
+    color: "#403f53",
     padding: "0.5em",
   },
   "hljs-emphasis": {
