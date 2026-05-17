@@ -129,6 +129,61 @@ If a `feather.config.lua` exists in the game directory, it is read automatically
 
 ---
 
+### `feather watch [game-path]`
+
+Watch project source files and push `game.love` to a connected Android device or iOS simulator on every change — without rebuilding native binaries.
+
+```bash
+feather watch .                                    # watch current directory, push to Android
+feather watch . --target ios                       # push to booted iOS simulator
+feather watch . --target android --device emulator-5554
+feather watch path/to/my-game --target android
+feather watch . --debounce 750                     # wait 750 ms after last change before pushing
+feather watch . --no-restart                       # push game.love without restarting the app
+feather watch . --no-adb-reverse                   # skip adb reverse port forwarding
+feather watch . --verbose                          # show adb and xcrun commands
+```
+
+**How it works:**
+
+On start, `feather watch` runs a full `feather run` for the target — building the native app (or reusing the cache), installing it on the device, and launching it. From that point on, only `game.love` is rebuilt and pushed on every source change:
+
+1. Files change in `sourceDir`.
+2. A debounce timer fires (default 500 ms).
+3. Feather stages the project, embeds the Feather runtime, and packs a new `game.love`.
+4. **Android** — `adb push game.love /sdcard/Android/data/<appId>/files/game.love`; app is force-stopped and relaunched via `monkey` (unless `--no-restart`).
+5. **iOS** — `game.love` is copied into the cached `.app` bundle, the bundle is ad-hoc re-signed, and the simulator app is terminated and relaunched via `xcrun simctl` (unless `--no-restart`).
+
+The native binary (APK or `.app`) is reused across pushes. Gradle and Xcode only run on the first launch or when the native cache is cold.
+
+> [!TIP]
+> Use `feather watch` for tight Lua iteration loops. Typical push time (debounce → visible in app) is under two seconds for small games.
+
+**Options:**
+
+| Option                    | Description                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `--target <target>`       | Watch target: `android` or `ios`. Defaults to `android`.                        |
+| `--device <id>`           | Android device serial or iOS simulator UDID. iOS defaults to `booted`.          |
+| `--debounce <ms>`         | Milliseconds to wait after the last file change before pushing. Default: `500`. |
+| `--no-restart`            | Push `game.love` without restarting the app.                                    |
+| `--build-config <path>`   | Path to `feather.build.json`.                                                   |
+| `--out-dir <path>`        | Build output directory.                                                         |
+| `--no-plugins`            | Feather core only — no plugins embedded in `game.love`.                         |
+| `--no-adb-reverse`        | Skip Android `adb reverse` setup.                                               |
+| `--port <port>`           | Port for Android `adb reverse`. Defaults to `4004`.                             |
+| `--feather-path <path>`   | Use a local Feather install instead of the CLI's bundled copy.                  |
+| `--plugins-dir <path>`    | Use a custom plugins directory instead of the CLI's bundled plugins.            |
+| `--runtime-config <path>` | Path to `feather.config.lua` for debugger embedding.                            |
+| `--verbose`               | Show `adb` and `xcrun simctl` commands.                                         |
+
+Ignored files: `.git`, `node_modules`, `.feather-cache`, hidden files.
+
+> [!NOTE]
+> `feather watch` is a dev-only command. The first launch always builds and installs the full native app — only subsequent pushes skip native compilation. Prefer `feather run` for one-shot installs.
+
+---
+
 ### `feather init [dir]`
 
 Initialize Feather in a Love2D project. By default this copies the Lua runtime and plugins that ship with the CLI, so init works offline and stays version-matched with the CLI.

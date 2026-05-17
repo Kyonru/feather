@@ -201,6 +201,7 @@ test('run --target android: builds, installs, sets adb reverse, launches, and su
   const records = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.deepEqual(records.map((entry) => entry.args), [
     ['-s', 'emulator-5554', 'version'],
+    ['-s', 'emulator-5554', 'shell', 'rm', '-f', '/sdcard/Android/data/com.example.runandroid/files/game.love'],
     ['-s', 'emulator-5554', 'install', '-r', join(dir, 'builds', 'run-android-1.0.0-android.apk')],
     ['-s', 'emulator-5554', 'shell', 'am', 'force-stop', 'com.example.runandroid'],
     ['-s', 'emulator-5554', 'reverse', 'tcp:4010', 'tcp:4010'],

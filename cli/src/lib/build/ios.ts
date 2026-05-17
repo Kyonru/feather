@@ -249,7 +249,7 @@ function ensureLoveInAppBundle(appPath: string, lovePath: string, log?: NativeBu
   maybeAdHocCodesign(appPath, log);
 }
 
-function maybeAdHocCodesign(appPath: string, log?: NativeBuildLogger): void {
+export function maybeAdHocCodesign(appPath: string, log?: NativeBuildLogger): void {
   if (process.platform !== 'darwin') return;
   const result = spawnSync('codesign', ['--force', '--sign', '-', appPath], {
     encoding: 'utf8',

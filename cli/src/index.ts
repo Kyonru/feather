@@ -8,6 +8,7 @@ import { removeCommand } from './commands/remove.js';
 import { doctorCommand } from './commands/doctor.js';
 import { updateCommand } from './commands/update.js';
 import { buildCommand } from './commands/build.js';
+import { watchCommand } from './commands/watch.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
 import { buildTargets } from './lib/build/config.js';
 import { uploadCommand } from './commands/upload.js';
@@ -520,5 +521,37 @@ pkg
       dir: opts.dir as string | undefined,
       json: opts.json as boolean | undefined,
     })));
+
+program
+  .command('watch [game-path]')
+  .description('Watch project files and push game.love to a connected Android or iOS device on change')
+  .option('--target <target>', 'Watch target: android or ios', 'android')
+  .option('--device <id>', 'Android device serial or iOS simulator UDID')
+  .option('--debounce <ms>', 'Debounce delay in milliseconds', (value) => Number(value), 500)
+  .option('--no-restart', 'Push game.love without restarting the app')
+  .option('--build-config <path>', 'Path to feather.build.json')
+  .option('--out-dir <path>', 'Build output directory')
+  .option('--no-plugins', 'Disable plugin loading (feather core only)')
+  .option('--no-adb-reverse', 'Skip adb reverse setup for Android')
+  .option('--port <port>', 'Feather port for Android adb reverse', (value) => Number(value))
+  .option('--feather-path <path>', 'Use a local feather install instead of the bundled one')
+  .option('--plugins-dir <path>', 'Use a custom plugins directory instead of the bundled one')
+  .option('--runtime-config <path>', 'Path to feather.config.lua for debugger embedding')
+  .option('--verbose', 'Show build commands and native tool output')
+  .action((gamePath: string | undefined, opts) => watchCommand(gamePath, {
+    target: opts.target as 'android' | 'ios' | undefined,
+    device: opts.device as string | undefined,
+    debounce: opts.debounce as number | undefined,
+    restart: opts.restart as boolean | undefined,
+    buildConfig: opts.buildConfig as string | undefined,
+    outDir: opts.outDir as string | undefined,
+    noPlugins: opts.plugins === false,
+    adbReverse: opts.adbReverse as boolean | undefined,
+    port: opts.port as number | undefined,
+    featherPath: opts.featherPath as string | undefined,
+    pluginsDir: opts.pluginsDir as string | undefined,
+    runtimeConfig: opts.runtimeConfig as string | undefined,
+    verbose: opts.verbose as boolean | undefined,
+  }));
 
 program.parse();

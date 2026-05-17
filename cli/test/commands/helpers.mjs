@@ -175,6 +175,7 @@ process.exit(${JSON.stringify(exitCode)});
 
 function writeFakeAdb(dir, options = {}) {
   const recordPath = options.recordPath ?? join(dir, 'adb-record.json');
+  const installedPackages = options.installedPackages ?? [];
   const { binDir } = writeFakeCommand(dir, 'adb', `
 const fs = require('node:fs');
 const args = process.argv.slice(2);
@@ -186,6 +187,14 @@ fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2
 if (${JSON.stringify(options.failInstall ?? false)} && args.includes('install')) {
   console.error('install failed');
   process.exit(42);
+}
+const pmListIdx = args.indexOf('pm');
+if (pmListIdx !== -1 && args[pmListIdx + 1] === 'list' && args[pmListIdx + 2] === 'packages') {
+  const pkg = args[pmListIdx + 3];
+  if (${JSON.stringify(installedPackages)}.includes(pkg)) {
+    console.log('package:' + pkg);
+  }
+  process.exit(0);
 }
 process.exit(0);
 `);

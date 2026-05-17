@@ -55,6 +55,9 @@ You can also leave `debugger = false` and toggle it on from the **Debugger** tab
 
 Breakpoints are shown as red dots in the gutter. They persist across desktop restarts and are synced to the game whenever the debugger is enabled or a breakpoint is changed.
 
+> [!NOTE]
+> Debugger expects the folder structure to be the same where the main.lua is located. Feather is capable of automatically detecting the directory, but if it doesn't, just open the project folder where your main.lua is located.
+
 ### Conditional breakpoints
 
 Right-click a breakpoint (or use the condition field) to add a Lua expression. The game only pauses when the expression evaluates to truthy:
@@ -101,12 +104,12 @@ onGround    = false
 
 ### Controls
 
-| Button | Shortcut | Description |
-| --- | --- | --- |
-| Continue | `F8` | Resume freely until the next breakpoint |
-| Step Over | `F10` | Execute the next line; don't follow function calls |
-| Step Into | `F11` | Follow the next function call into its body |
-| Step Out | `⇧F11` | Run until the current function returns |
+| Button    | Shortcut | Description                                        |
+| --------- | -------- | -------------------------------------------------- |
+| Continue  | `F8`     | Resume freely until the next breakpoint            |
+| Step Over | `F10`    | Execute the next line; don't follow function calls |
+| Step Into | `F11`    | Follow the next function call into its body        |
+| Step Out  | `⇧F11`   | Run until the current function returns             |
 
 ---
 

@@ -227,7 +227,7 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
   return result.status ?? 0;
 }
 
-function resolveRunBuildContext(absGame: string, buildConfig: string | undefined): {
+export function resolveRunBuildContext(absGame: string, buildConfig: string | undefined): {
   projectDir: string;
   configPath?: string;
   sourceDir?: string;

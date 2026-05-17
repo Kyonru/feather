@@ -101,11 +101,11 @@ function requireArtifact(artifacts: BuildArtifact[], type: string, label: string
 }
 
 
-function androidExternalGamePath(appId: string): string {
+export function androidExternalGamePath(appId: string): string {
   return `/sdcard/Android/data/${appId}/files/game.love`;
 }
 
-function pushAndLaunchAndroid(input: {
+export function pushAndLaunchAndroid(input: {
   love: string;
   appId: string;
   device?: string;
@@ -161,11 +161,11 @@ function installAndLaunchAndroid(input: {
   );
 }
 
-function runAdbOptional(device: string | undefined, args: string[], log?: NativeBuildLogger): void {
+export function runAdbOptional(device: string | undefined, args: string[], log?: NativeBuildLogger): void {
   try { runAdb(device, args, '', log); } catch { /* intentionally ignored */ }
 }
 
-function runAdb(device: string | undefined, args: string[], message: string, log?: NativeBuildLogger): void {
+export function runAdb(device: string | undefined, args: string[], message: string, log?: NativeBuildLogger): void {
   const fullArgs = device ? ['-s', device, ...args] : args;
   logNativeCommand(log, 'adb', fullArgs, process.cwd());
   const streamOutput = Boolean(log);
@@ -187,7 +187,7 @@ function installAndLaunchIos(input: { app: string; appId: string; device: string
   runXcrun(['simctl', 'launch', input.device, input.appId], 'iOS simulator launch failed.', input.log);
 }
 
-function runXcrunOptional(args: string[], log?: NativeBuildLogger): void {
+export function runXcrunOptional(args: string[], log?: NativeBuildLogger): void {
   logNativeCommand(log, 'xcrun', args, process.cwd());
   const result = spawnSync('xcrun', args, {
     encoding: 'utf8',
@@ -196,7 +196,7 @@ function runXcrunOptional(args: string[], log?: NativeBuildLogger): void {
   logNativeOutput(log, result.stdout, result.stderr);
 }
 
-function runXcrun(args: string[], message: string, log?: NativeBuildLogger): void {
+export function runXcrun(args: string[], message: string, log?: NativeBuildLogger): void {
   logNativeCommand(log, 'xcrun', args, process.cwd());
   const streamOutput = Boolean(log);
   const result = spawnSync('xcrun', args, {
