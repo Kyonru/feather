@@ -77,6 +77,7 @@ function patchMainLuaForManual(mainPath: string): boolean {
 
 export async function initCommand(dir: string, opts: InitOptions): Promise<void> {
   const target = resolve(dir);
+  const defaultMode: InitMode = 'cli';
 
   let mainPath: string;
   try {
@@ -90,9 +91,9 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
 
   const setup: InitSetup =
     !opts.yes && process.stdin.isTTY
-      ? await chooseInitMode(opts.mode ?? 'auto', basename(target), opts.branch ?? 'main', opts.installDir ?? 'feather')
+      ? await chooseInitMode(opts.mode ?? defaultMode, basename(target), opts.branch ?? 'main', opts.installDir ?? 'feather')
       : {
-          mode: opts.mode ?? 'auto',
+          mode: opts.mode ?? defaultMode,
           source: opts.remote ? 'remote' : 'local',
           branch: opts.branch ?? 'main',
           installDir: opts.installDir ?? 'feather',

@@ -83,7 +83,7 @@ test('init/remove e2e: auto mode installs runtime, doctor passes, and remove cle
   }
 });
 
-test('init e2e: cli mode creates config without embedding runtime', () => {
+test('init e2e: defaults to cli mode and creates config without embedding runtime', () => {
   const workspace = makeTmp();
   const project = join(workspace, 'cli-game');
 
@@ -93,8 +93,6 @@ test('init e2e: cli mode creates config without embedding runtime', () => {
     runOk([
       'init',
       project,
-      '--mode',
-      'cli',
       '--local-src',
       LOCAL_SRC,
       '--install-dir',
@@ -105,6 +103,8 @@ test('init e2e: cli mode creates config without embedding runtime', () => {
 
     assert.equal(existsSync(join(project, 'feather.config.lua')), true);
     assert.equal(existsSync(join(project, 'feather')), false);
+    assert.match(readFileSync(join(project, 'feather.config.lua'), 'utf8'), /-- mode: cli/);
+    assert.equal(readFileSync(join(project, 'main.lua'), 'utf8').includes('FEATHER-INIT'), false);
 
     const report = doctorJson(project);
     assert.equal(report.failures, 0, JSON.stringify(report, null, 2));

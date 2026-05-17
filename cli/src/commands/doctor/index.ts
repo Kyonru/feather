@@ -282,7 +282,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     'Embedded Feather runtime',
     hasRuntime ? 'pass' : configOnlyMode ? 'info' : 'warn',
     hasRuntime ? runtimeDir : configOnlyMode ? 'not needed for cli mode' : 'missing',
-    hasRuntime || configOnlyMode ? undefined : 'Run `feather init --mode auto` for embedded/device workflows.',
+    hasRuntime || configOnlyMode ? undefined : 'Run `feather init --mode auto` only if you need an embedded Feather runtime.',
   );
 
   if (hasRuntime) {

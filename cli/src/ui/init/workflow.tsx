@@ -504,7 +504,7 @@ function InitSetupPrompt({
 }
 
 export async function chooseInitMode(
-  defaultMode: InitMode = "auto",
+  defaultMode: InitMode = "cli",
   defaultName = "My Game",
   defaultBranch = "main",
   defaultInstallDir = "feather",

@@ -67,6 +67,142 @@ Your game code runs exactly as normal — it just has Feather already active.
 
 ## Commands
 
+### `feather init [dir]`
+
+Create Feather project configuration. For normal development, use CLI mode and launch with `feather run`; this keeps Feather out of your game code while still supporting desktop, web, Android, iOS, and Steam Deck dev loops.
+
+```bash
+feather init                                      # configure current directory for feather run
+feather init path/to/my-game                      # configure a specific directory
+feather init --no-plugins                         # feather core only, no plugins
+feather init --plugins screenshots,profiler
+feather init --remote --branch v0.7.0             # use a specific runtime release
+feather init --local-src ../feather/src-lua       # use a local source tree
+feather init --install-dir lib/feather            # configure like FEATHER_DIR=lib/feather
+```
+
+> [!IMPORTANT]
+> `feather init` defaults to CLI mode. Use `--mode auto` or `--mode manual` only when you intentionally want Feather embedded in the project for launches outside the CLI.
+
+**What it does:**
+
+By default, `feather init` opens an interactive terminal picker powered by Ink with CLI mode selected:
+
+| Mode     | Behavior                                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `cli`    | Recommended. Creates `feather.config.lua` for `feather run` without changing game code.                                  |
+| `auto`   | Advanced embedded mode. Copies core/plugins and patches `main.lua` with a guarded `require("feather.auto")`.             |
+| `manual` | Advanced embedded mode. Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua` when enabled. |
+
+Install source priority:
+
+1. `--local-src <path>` copies from a local `src-lua` style tree.
+2. Running the CLI from the Feather monorepo copies the repo's `src-lua`.
+3. Published CLI installs copy the bundled `cli/lua` runtime.
+4. `--remote` downloads from GitHub using `--branch`.
+
+Auto and manual mode are escape hatches for projects that cannot launch through the CLI. They use the same project layout as `scripts/install-feather.sh`:
+
+```
+my-game/
+  feather/init.lua
+  feather/plugins/screenshots/init.lua
+  feather/plugins/hump/signal/init.lua
+  main.lua
+```
+
+If you choose `lib/feather` as the install directory in auto mode, the Lua module becomes `lib.feather`, so Feather patches `main.lua` with a guarded loader:
+
+```lua
+local featherUseDebugger = os.getenv("USE_DEBUGGER")
+if featherUseDebugger and featherUseDebugger ~= "0" and featherUseDebugger:lower() ~= "false" then
+  require("lib.feather.auto")
+end
+```
+
+> [!NOTE]
+> This `USE_DEBUGGER` flow only applies to embedded auto/manual integrations. CLI-managed runs do not require setting `USE_DEBUGGER`.
+
+```bash
+# macOS / Linux
+USE_DEBUGGER=1 love .
+```
+
+```powershell
+# Windows PowerShell
+$env:USE_DEBUGGER = "1"
+love .
+```
+
+```bat
+:: Windows cmd.exe
+set USE_DEBUGGER=1 && love .
+```
+
+The interactive flow asks for:
+
+- session name
+- install directory, matching `FEATHER_DIR`
+- install source: bundled/local copy or GitHub download
+- Git branch or tag when using GitHub download, matching `FEATHER_BRANCH`
+- whether to install built-in plugins, matching `FEATHER_PLUGINS`
+- optional plugins to force-enable, such as Console, Physics Debug, and Timer Inspector
+- plugins to skip/exclude, matching `FEATHER_SKIP_PLUGINS`; Console, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults
+- advanced connection/runtime options from `feather.config.lua`, including host/port, socket vs disk mode, observers, logging, debugger, asset previews, capabilities, and binary threshold
+- a strong API key when Console is included
+
+If the terminal is non-interactive, Feather still defaults to CLI mode unless you pass `--mode auto` or `--mode manual`.
+
+All modes create a `feather.config.lua` template if one doesn't exist.
+
+Manual mode writes the custom integration into `feather.debugger.lua`, then adds a small marked loader block near the top of `main.lua`. Both are guarded by `USE_DEBUGGER`. Use this only for embedded integrations that cannot rely on `feather run`. For example, when installing into `lib/feather` with `screenshots` and `runtime-snapshot`, the generated file looks like:
+
+```lua
+-- feather.debugger.lua
+local featherUseDebugger = os.getenv("USE_DEBUGGER")
+if not (featherUseDebugger and featherUseDebugger ~= "0" and featherUseDebugger:lower() ~= "false") then
+  return nil
+end
+
+if DEBUGGER then
+  return DEBUGGER
+end
+
+local FeatherDebugger = require("lib.feather")
+local FeatherPluginManager = require("lib.feather.plugin_manager")
+local ScreenshotsPlugin = require("lib.feather.plugins.screenshots")
+local RuntimeSnapshotPlugin = require("lib.feather.plugins.runtime-snapshot")
+
+DEBUGGER = FeatherDebugger({
+  debug = true,
+  sessionName = "My Game",
+  plugins = {
+    FeatherPluginManager.createPlugin(ScreenshotsPlugin, "screenshots", {}),
+    FeatherPluginManager.createPlugin(RuntimeSnapshotPlugin, "runtime-snapshot", {}),
+  },
+})
+
+return DEBUGGER
+```
+
+> [!TIP]
+> `main.lua` gets matching `FEATHER-INIT` comments around the loader and update hook. `feather.config.lua` also includes a managed metadata block so `feather remove` can remove generated files and markers before production packaging.
+
+**Options:**
+
+| Option                 | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `--remote`             | Download from GitHub instead of copying the local/bundled Lua runtime.         |
+| `--branch <branch>`    | GitHub branch or tag to download from when using `--remote` (default: `main`). |
+| `--local-src <path>`   | Copy from a local `src-lua` style directory.                                   |
+| `--install-dir <path>` | Install directory for auto/manual modes (default: `feather`).                  |
+| `--no-plugins`         | Skip plugin installation.                                                      |
+| `--plugins <ids>`      | Comma-separated list of plugin IDs to install (default: all).                  |
+| `--mode <mode>`        | Setup mode: `cli`, `auto`, or `manual`.                                        |
+| `-y, --yes`            | Skip confirmation prompts.                                                     |
+
+---
+
 ### `feather run [game-path]`
 
 Inject Feather into a Love2D game and run it.
@@ -97,27 +233,27 @@ When `game-path` is omitted in an interactive terminal, Feather opens an Ink wor
 
 **Options:**
 
-| Option                  | Description                                                                                     |
-| ----------------------- | ----------------------------------------------------------------------------------------------- |
-| `--love <path>`         | Path to the love2d binary. Defaults to auto-detect (see [Binary detection](#binary-detection)). |
-| `--session-name <name>` | Custom session name shown in the Feather desktop app.                                           |
-| `--no-plugins`          | Load feather core only — no plugins registered.                                                 |
+| Option                  | Description                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `--love <path>`         | Path to the love2d binary. Defaults to auto-detect (see [Binary detection](#binary-detection)).                              |
+| `--session-name <name>` | Custom session name shown in the Feather desktop app.                                                                        |
+| `--no-plugins`          | Load feather core only — no plugins registered.                                                                              |
 | `--no-debugger`         | Run without Feather debugger injection. Desktop runs the game directly; mobile skips connection setup and builds raw source. |
-| `--disable-debugger`    | Alias for `--no-debugger`.                                                                      |
-| `--config <path>`       | Explicit path to a `feather.config.lua` file.                                                   |
-| `--feather-path <path>` | Use a local feather install instead of the CLI's bundled copy.                                  |
-| `--plugins-dir <path>`  | Use a custom plugins directory instead of the CLI's bundled plugins.                            |
-| `--target <target>`     | Run target: `desktop`, `web`, `android`, or `ios`. Defaults to `desktop`.                       |
-| `--device <id>`         | Android device serial or iOS simulator UDID. iOS defaults to `booted`.                          |
-| `--build-config <path>` | Path to `feather.build.json` for web/mobile run.                                                |
-| `--out-dir <path>`      | Build output directory for web/mobile run.                                                      |
-| `--clean`               | Remove the output directory before the web/mobile build.                                        |
-| `--no-cache`            | Disable Android/iOS dev native build cache for this run.                                        |
-| `--verbose`             | Show web/mobile build steps plus Android/iOS install and launch commands.                       |
-| `--no-adb-reverse`      | Skip Android `adb reverse` setup.                                                               |
-| `--port <port>`         | Port used for Android `adb reverse`; defaults to `feather.config.lua` `port` or `4004`.         |
-| `--web-host <host>`     | Host used by the web dev server. Defaults to `127.0.0.1`.                                       |
-| `--web-port <port>`     | Port used by the web dev server. Defaults to `8000`; use `0` for an OS-assigned port.           |
+| `--disable-debugger`    | Alias for `--no-debugger`.                                                                                                   |
+| `--config <path>`       | Explicit path to a `feather.config.lua` file.                                                                                |
+| `--feather-path <path>` | Use a local feather install instead of the CLI's bundled copy.                                                               |
+| `--plugins-dir <path>`  | Use a custom plugins directory instead of the CLI's bundled plugins.                                                         |
+| `--target <target>`     | Run target: `desktop`, `web`, `android`, or `ios`. Defaults to `desktop`.                                                    |
+| `--device <id>`         | Android device serial or iOS simulator UDID. iOS defaults to `booted`.                                                       |
+| `--build-config <path>` | Path to `feather.build.json` for web/mobile run.                                                                             |
+| `--out-dir <path>`      | Build output directory for web/mobile run.                                                                                   |
+| `--clean`               | Remove the output directory before the web/mobile build.                                                                     |
+| `--no-cache`            | Disable Android/iOS dev native build cache for this run.                                                                     |
+| `--verbose`             | Show web/mobile build steps plus Android/iOS install and launch commands.                                                    |
+| `--no-adb-reverse`      | Skip Android `adb reverse` setup.                                                                                            |
+| `--port <port>`         | Port used for Android `adb reverse`; defaults to `feather.config.lua` `port` or `4004`.                                      |
+| `--web-host <host>`     | Host used by the web dev server. Defaults to `127.0.0.1`.                                                                    |
+| `--web-port <port>`     | Port used by the web dev server. Defaults to `8000`; use `0` for an OS-assigned port.                                        |
 
 Use `--` to separate Feather CLI options from arguments intended for the LÖVE game. Everything after `--` is passed to `love` after the generated shim path.
 
@@ -181,145 +317,6 @@ Ignored files: `.git`, `node_modules`, `.feather-cache`, hidden files.
 
 > [!NOTE]
 > `feather watch` is a dev-only command. The first launch always builds and installs the full native app — only subsequent pushes skip native compilation. Prefer `feather run` for one-shot installs.
-
----
-
-### `feather init [dir]`
-
-Initialize Feather in a Love2D project. By default this copies the Lua runtime and plugins that ship with the CLI, so init works offline and stays version-matched with the CLI.
-
-```bash
-feather init                         # initialize in current directory
-feather init path/to/my-game        # initialize in a specific directory
-feather init --no-plugins           # install core only, skip plugins
-feather init --plugins screenshots,profiler  # install specific plugins only
-feather init --mode cli             # create config only; use feather run
-feather init --mode auto            # install and patch main.lua with guarded feather.auto
-feather init --mode manual          # create feather.debugger.lua and a guarded loader
-feather init --remote --branch v0.7.0  # download a specific release from GitHub
-feather init --local-src ../feather/src-lua  # copy from a local source tree
-feather init --install-dir lib/feather  # install like FEATHER_DIR=lib/feather
-```
-
-> [!IMPORTANT]
-> Use `--mode auto` for device builds. It embeds Feather into the project and patches `main.lua` with a `USE_DEBUGGER`-guarded `feather.auto` loader, which works when the game runs on Android, iOS, Steam Deck, or another remote machine.
-
-**What it does:**
-
-By default, `feather init` opens an interactive terminal picker powered by Ink:
-
-| Mode     | Behavior                                                                                                      |
-| -------- | ------------------------------------------------------------------------------------------------------------- |
-| `cli`    | Creates `feather.config.lua` only. Run with `feather run .`.                                                  |
-| `auto`   | Copies core/plugins and patches `main.lua` with a `USE_DEBUGGER`-guarded `require("feather.auto")`.           |
-| `manual` | Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua` when `USE_DEBUGGER` is set. |
-
-Install source priority:
-
-1. `--local-src <path>` copies from a local `src-lua` style tree.
-2. Running the CLI from the Feather monorepo copies the repo's `src-lua`.
-3. Published CLI installs copy the bundled `cli/lua` runtime.
-4. `--remote` downloads from GitHub using `--branch`.
-
-Auto and manual mode use the same project layout as `scripts/install-feather.sh`:
-
-```
-my-game/
-  feather/init.lua
-  feather/plugins/screenshots/init.lua
-  feather/plugins/hump/signal/init.lua
-  main.lua
-```
-
-If you choose `lib/feather` as the install directory, the Lua module becomes `lib.feather`, so auto mode patches `main.lua` with a guarded loader:
-
-```lua
-local featherUseDebugger = os.getenv("USE_DEBUGGER")
-if featherUseDebugger and featherUseDebugger ~= "0" and featherUseDebugger:lower() ~= "false" then
-  require("lib.feather.auto")
-end
-```
-
-> [!NOTE]
-> Run local/dev builds with `USE_DEBUGGER=1` to load Feather. Leave it unset, `0`, or `false` to skip all Feather imports.
-
-```bash
-# macOS / Linux
-USE_DEBUGGER=1 love .
-```
-
-```powershell
-# Windows PowerShell
-$env:USE_DEBUGGER = "1"
-love .
-```
-
-```bat
-:: Windows cmd.exe
-set USE_DEBUGGER=1 && love .
-```
-
-The interactive flow asks for:
-
-- session name
-- install directory, matching `FEATHER_DIR`
-- install source: bundled/local copy or GitHub download
-- Git branch or tag when using GitHub download, matching `FEATHER_BRANCH`
-- whether to install built-in plugins, matching `FEATHER_PLUGINS`
-- optional plugins to force-enable, such as Console, Physics Debug, and Timer Inspector
-- plugins to skip/exclude, matching `FEATHER_SKIP_PLUGINS`; Console, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults
-- advanced connection/runtime options from `feather.config.lua`, including host/port, socket vs disk mode, observers, logging, debugger, asset previews, capabilities, and binary threshold
-- a strong API key when Console is included
-
-If the terminal is non-interactive, or `--yes` is used, Feather defaults to `auto`.
-
-All modes create a `feather.config.lua` template if one doesn't exist.
-
-Manual mode writes the custom integration into `feather.debugger.lua`, then adds a small marked loader block near the top of `main.lua`. Both are guarded by `USE_DEBUGGER`. For example, when installing into `lib/feather` with `screenshots` and `runtime-snapshot`, the generated file looks like:
-
-```lua
--- feather.debugger.lua
-local featherUseDebugger = os.getenv("USE_DEBUGGER")
-if not (featherUseDebugger and featherUseDebugger ~= "0" and featherUseDebugger:lower() ~= "false") then
-  return nil
-end
-
-if DEBUGGER then
-  return DEBUGGER
-end
-
-local FeatherDebugger = require("lib.feather")
-local FeatherPluginManager = require("lib.feather.plugin_manager")
-local ScreenshotsPlugin = require("lib.feather.plugins.screenshots")
-local RuntimeSnapshotPlugin = require("lib.feather.plugins.runtime-snapshot")
-
-DEBUGGER = FeatherDebugger({
-  debug = true,
-  sessionName = "My Game",
-  plugins = {
-    FeatherPluginManager.createPlugin(ScreenshotsPlugin, "screenshots", {}),
-    FeatherPluginManager.createPlugin(RuntimeSnapshotPlugin, "runtime-snapshot", {}),
-  },
-})
-
-return DEBUGGER
-```
-
-> [!TIP]
-> `main.lua` gets matching `FEATHER-INIT` comments around the loader and update hook. `feather.config.lua` also includes a managed metadata block so `feather remove` can remove generated files and markers before production packaging.
-
-**Options:**
-
-| Option                 | Description                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `--remote`             | Download from GitHub instead of copying the local/bundled Lua runtime.         |
-| `--branch <branch>`    | GitHub branch or tag to download from when using `--remote` (default: `main`). |
-| `--local-src <path>`   | Copy from a local `src-lua` style directory.                                   |
-| `--install-dir <path>` | Install directory for auto/manual modes (default: `feather`).                  |
-| `--no-plugins`         | Skip plugin installation.                                                      |
-| `--plugins <ids>`      | Comma-separated list of plugin IDs to install (default: all).                  |
-| `--mode <mode>`        | Setup mode: `cli`, `auto`, or `manual`.                                        |
-| `-y, --yes`            | Skip confirmation prompts.                                                     |
 
 ---
 
@@ -544,22 +541,22 @@ Build behavior:
 
 **Options:**
 
-| Option              | Description                                                       |
-| ------------------- | ----------------------------------------------------------------- |
-| `--dir <path>`      | Project directory (default: current directory).                   |
-| `--config <path>`   | Path to `feather.build.json`.                                     |
-| `--out-dir <path>`  | Build output directory override.                                  |
-| `--name <name>`     | Product name override.                                            |
-| `--version <value>` | Product version override.                                         |
-| `--clean`           | Remove the output directory before building.                      |
-| `--dry-run`         | Show planned files/artifacts without writing them.                |
-| `--json`            | Print machine-readable output only.                               |
-| `--allow-unsafe`    | Skip the production safety preflight for intentional dev builds.  |
-| `--release`         | Build Android/iOS release artifacts instead of dev artifacts.     |
-| `--no-cache`        | Disable Android/iOS dev native build cache for this build.        |
-| `--no-debugger`     | Build Android/iOS dev artifacts without embedding Feather.        |
-| `--runtime-config`  | Path to `feather.config.lua` for Android/iOS dev embedding.       |
-| `--verbose`         | Show Android/iOS native build commands and tool output.           |
+| Option              | Description                                                      |
+| ------------------- | ---------------------------------------------------------------- |
+| `--dir <path>`      | Project directory (default: current directory).                  |
+| `--config <path>`   | Path to `feather.build.json`.                                    |
+| `--out-dir <path>`  | Build output directory override.                                 |
+| `--name <name>`     | Product name override.                                           |
+| `--version <value>` | Product version override.                                        |
+| `--clean`           | Remove the output directory before building.                     |
+| `--dry-run`         | Show planned files/artifacts without writing them.               |
+| `--json`            | Print machine-readable output only.                              |
+| `--allow-unsafe`    | Skip the production safety preflight for intentional dev builds. |
+| `--release`         | Build Android/iOS release artifacts instead of dev artifacts.    |
+| `--no-cache`        | Disable Android/iOS dev native build cache for this build.       |
+| `--no-debugger`     | Build Android/iOS dev artifacts without embedding Feather.       |
+| `--runtime-config`  | Path to `feather.config.lua` for Android/iOS dev embedding.      |
+| `--verbose`         | Show Android/iOS native build commands and tool output.          |
 
 Run `feather doctor --build-target <target>` to see missing local dependencies and exact setup guidance before building. Use `feather doctor --build-target all` to scan every platform in one pass.
 
@@ -810,15 +807,16 @@ alias fr='feather run .'
 
 ---
 
-## Comparison with manual setup
+## CLI vs Embedded Setup
 
-|                      | `feather run` | Manual (`require("feather.auto")`) |
-| -------------------- | ------------- | ---------------------------------- |
-| Game code changes    | None          | Add require + update call          |
-| Works on any game    | Yes           | Only games you've modified         |
-| `feather.config.lua` | Supported     | Supported                          |
-| Plugin management    | Via CLI       | Manual download                    |
+|                      | `feather run`      | Embedded auto/manual setup          |
+| -------------------- | ------------------ | ----------------------------------- |
+| Recommended for      | Normal development | Projects that cannot use CLI launch |
+| Game code changes    | None               | Generated or manual loader code     |
+| Works on any game    | Yes                | Only games you've modified          |
+| `feather.config.lua` | Supported          | Supported                           |
+| Plugin management    | Via CLI            | Vendored in the project             |
 
 <!-- | Hot reload | love2d restarts via CLI | Native | -->
 
-Both approaches are compatible — a game that already has `require("feather.auto")` can still be launched with `feather run` (Feather checks the `DEBUGGER` global and skips double-initialization).
+Both approaches are compatible, but prefer `feather run` when you can. A game that already has `require("feather.auto")` can still be launched with `feather run` because Feather checks the `DEBUGGER` global and skips double-initialization.
