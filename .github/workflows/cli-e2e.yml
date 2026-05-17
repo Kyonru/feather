@@ -20,6 +20,10 @@ on:
       - ".github/workflows/cli-e2e.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   cli-e2e:
     name: CLI end-to-end

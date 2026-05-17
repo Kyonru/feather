@@ -20,6 +20,10 @@ on:
       - ".github/workflows/app-e2e.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   app-e2e:
     name: React app end-to-end
