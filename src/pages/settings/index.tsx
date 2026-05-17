@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useEffect, useMemo, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
+import { Button, CopyButton } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogClose,
@@ -11,17 +14,21 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettingsStore } from '@/store/settings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { MobileConnection } from '@/components/mobile-connection';
+import { openUrl } from '@/utils/linking';
+import { version as appVersion } from '../../../package.json';
 import {
   ActivityIcon,
   CodeIcon,
   CopyIcon,
+  ExternalLinkIcon,
   EyeIcon,
   EyeOffIcon,
   FolderIcon,
@@ -29,7 +36,63 @@ import {
   NetworkIcon,
   RefreshCwIcon,
   ShieldIcon,
+  TerminalIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
+
+const INSTALL_DOCS_URL = 'https://kyonru.github.io/feather/installation/';
+const CLI_DOCS_URL = 'https://kyonru.github.io/feather/cli/';
+
+function normalizeVersion(version?: string | null) {
+  return version?.trim().replace(/^v/i, '') ?? '';
+}
+
+type CliStatus = {
+  installed: boolean;
+  path?: string | null;
+  version?: string | null;
+  source?: string | null;
+  nodeVersion?: string | null;
+  npmVersion?: string | null;
+  error?: string | null;
+  installDocsUrl: string;
+  cliDocsUrl: string;
+};
+
+type DoctorCheck = {
+  group: string;
+  label: string;
+  severity: 'pass' | 'warn' | 'fail' | 'info';
+  detail?: string;
+  fix?: string;
+};
+
+type DoctorResult = {
+  failures?: number;
+  warnings?: number;
+  checks?: DoctorCheck[];
+};
+
+type VendorResult = {
+  vendors?: Array<{
+    target: string;
+    configured: boolean;
+    exists: boolean;
+    valid: boolean;
+    detail: string;
+    configuredPath?: string;
+    relativePath?: string;
+  }>;
+};
+
+type CliProjectStatus = {
+  cli: CliStatus;
+  projectDir: string;
+  doctor?: DoctorResult | null;
+  buildDoctor?: DoctorResult | null;
+  vendors?: VendorResult | null;
+  errors: string[];
+};
 
 function Section({
   icon: Icon,
@@ -41,18 +104,32 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-4">
+    <section className="grid gap-3">
       <div className="flex items-center gap-2">
         <Icon className="size-4 text-muted-foreground" />
-        <span className="text-sm font-medium">{title}</span>
+        <h3 className="text-sm font-medium">{title}</h3>
       </div>
-      <div className="grid gap-4 pl-4">{children}</div>
-    </div>
+      <div className="grid gap-4">{children}</div>
+    </section>
   );
 }
 
 function FieldDescription({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground -mt-2">{children}</p>;
+}
+
+function SettingsGrid({ children }: { children: React.ReactNode }) {
+  return <div className="grid gap-4 md:grid-cols-2">{children}</div>;
+}
+
+function SettingsTabContent({ value, children }: { value: string; children: React.ReactNode }) {
+  return (
+    <TabsContent value={value} className="m-0 min-h-0">
+      <ScrollArea className="h-[calc(84vh-180px)]">
+        <div className="grid gap-6 p-5 pb-12">{children}</div>
+      </ScrollArea>
+    </TabsContent>
+  );
 }
 
 function ThemeToggle() {
@@ -282,7 +359,7 @@ function TextEditorInput() {
   const setTextEditorPath = useSettingsStore((state) => state.setTextEditorPath);
   return (
     <div className="grid gap-2">
-      <Label htmlFor="setting-editor">Editor Executable Path</Label>
+      <Label htmlFor="setting-editor">VS Code Executable Path</Label>
       <Input
         id="setting-editor"
         value={textEditorPath}
@@ -293,9 +370,251 @@ function TextEditorInput() {
         className="font-mono text-sm"
       />
       <FieldDescription>
-        Used to open log file locations from the desktop. Common values:{' '}
-        <code className="font-mono">/usr/local/bin/code</code>, <code className="font-mono">/usr/bin/vim</code>.
+        Used to open stack trace file locations through a direct, shell-free VS Code launch. Do not include command
+        arguments.
       </FieldDescription>
+    </div>
+  );
+}
+
+function SeverityBadge({ severity }: { severity: DoctorCheck['severity'] }) {
+  const className =
+    severity === 'fail'
+      ? 'border-red-500 text-red-600'
+      : severity === 'warn'
+        ? 'border-amber-500 text-amber-600'
+        : severity === 'pass'
+          ? 'border-emerald-500 text-emerald-600'
+          : 'text-muted-foreground';
+
+  return (
+    <Badge variant="outline" className={`h-5 shrink-0 px-1.5 font-mono text-[10px] uppercase ${className}`}>
+      {severity}
+    </Badge>
+  );
+}
+
+function CliStatusPanel() {
+  const cliPath = useSettingsStore((state) => state.cliPath);
+  const setCliPath = useSettingsStore((state) => state.setCliPath);
+  const cliProjectDir = useSettingsStore((state) => state.cliProjectDir);
+  const setCliProjectDir = useSettingsStore((state) => state.setCliProjectDir);
+  const sourceDir = useConfigStore((state) => state.config?.sourceDir ?? '');
+  const [status, setStatus] = useState<CliStatus | null>(null);
+  const [projectStatus, setProjectStatus] = useState<CliProjectStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const projectDir = cliProjectDir || sourceDir;
+  const doctorChecks = projectStatus?.doctor?.checks ?? [];
+  const buildChecks = projectStatus?.buildDoctor?.checks ?? [];
+  const vendorEntries = projectStatus?.vendors?.vendors ?? [];
+  const importantChecks = useMemo(
+    () =>
+      [...doctorChecks, ...buildChecks]
+        .filter((check) => check.severity === 'fail' || check.severity === 'warn')
+        .slice(0, 8),
+    [doctorChecks, buildChecks],
+  );
+
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const nextStatus = await invoke<CliStatus>('get_cli_status', { cliPath: cliPath || null });
+      setStatus(nextStatus);
+      if (projectDir) {
+        const nextProjectStatus = await invoke<CliProjectStatus>('get_cli_project_status', {
+          projectDir,
+          cliPath: cliPath || null,
+        });
+        setProjectStatus(nextProjectStatus);
+      } else {
+        setProjectStatus(null);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error), { position: 'bottom-center' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const chooseProjectDir = async () => {
+    const selected = await openFolderDialog({ directory: true, multiple: false });
+    if (typeof selected === 'string') {
+      setCliProjectDir(selected);
+      setProjectStatus(null);
+    }
+  };
+
+  const cliInstalled = projectStatus?.cli.installed ?? status?.installed ?? false;
+  const currentStatus = projectStatus?.cli ?? status;
+  const summary = projectStatus?.buildDoctor ?? projectStatus?.doctor;
+  const doctorProjectDir = projectStatus?.projectDir || projectDir;
+  const cliVersionMismatch =
+    cliInstalled &&
+    Boolean(currentStatus?.version) &&
+    normalizeVersion(currentStatus?.version) !== normalizeVersion(appVersion);
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={cliInstalled ? 'secondary' : 'destructive'}>
+            {cliInstalled ? 'CLI installed' : 'CLI missing'}
+          </Badge>
+          {currentStatus?.version && (
+            <Badge variant="outline" className="font-mono">
+              v{currentStatus.version}
+            </Badge>
+          )}
+          {currentStatus?.source && <Badge variant="outline">{currentStatus.source}</Badge>}
+        </div>
+        {currentStatus?.path && (
+          <p className="break-all font-mono text-xs text-muted-foreground">{currentStatus.path}</p>
+        )}
+        {currentStatus?.error && <p className="text-xs text-muted-foreground">{currentStatus.error}</p>}
+        {cliVersionMismatch && (
+          <div className="rounded border border-amber-500/50 bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+            CLI version mismatch. Desktop is v{appVersion}, but the detected CLI is v{currentStatus?.version}. Update
+            with <code className="font-mono">npm install -g @kyonru/feather</code>.
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
+            <RefreshCwIcon className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => openUrl(INSTALL_DOCS_URL)}>
+            <ExternalLinkIcon className="size-4" />
+            Installation Docs
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => openUrl(CLI_DOCS_URL)}>
+            <ExternalLinkIcon className="size-4" />
+            CLI Docs
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="setting-cli-path">CLI Path Override</Label>
+        <Input
+          id="setting-cli-path"
+          value={cliPath}
+          placeholder="feather"
+          onChange={(event) => setCliPath(event.target.value)}
+          className="font-mono text-sm"
+        />
+        <FieldDescription>
+          Optional. Leave empty to detect <code className="font-mono">feather</code> automatically.
+        </FieldDescription>
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="setting-cli-project">Project Directory</Label>
+        <div className="flex gap-2">
+          <Input
+            id="setting-cli-project"
+            value={cliProjectDir}
+            placeholder={sourceDir || '/path/to/my-game'}
+            onChange={(event) => setCliProjectDir(event.target.value)}
+            className="font-mono text-sm"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={chooseProjectDir}
+            title="Choose project directory"
+          >
+            <FolderIcon className="size-4" />
+          </Button>
+        </div>
+        <FieldDescription>
+          Used for read-only doctor and vendor checks. The active session source directory is used when this is empty.
+        </FieldDescription>
+      </div>
+
+      {currentStatus && (
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded border p-2">
+            <p className="text-muted-foreground">Node</p>
+            <p className="font-mono">{currentStatus.nodeVersion ?? 'not found'}</p>
+          </div>
+          <div className="rounded border p-2">
+            <p className="text-muted-foreground">npm</p>
+            <p className="font-mono">{currentStatus.npmVersion ?? 'not found'}</p>
+          </div>
+        </div>
+      )}
+
+      {summary && (
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded border p-2">
+            <p className="text-muted-foreground">Doctor warnings</p>
+            <p className="font-mono text-lg">{summary.warnings ?? 0}</p>
+          </div>
+          <div className="rounded border p-2">
+            <p className="text-muted-foreground">Doctor failures</p>
+            <p className="font-mono text-lg">{summary.failures ?? 0}</p>
+          </div>
+        </div>
+      )}
+
+      {vendorEntries.length > 0 && (
+        <div className="grid gap-2">
+          <Label>Build Vendors</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {vendorEntries.map((vendor) => (
+              <div key={vendor.target} className="flex items-center justify-between rounded border px-2 py-1.5 text-xs">
+                <span className="font-medium">{vendor.target}</span>
+                <Badge variant={vendor.valid ? 'secondary' : 'outline'} className="text-[10px]">
+                  {vendor.valid ? 'ready' : vendor.exists ? 'incomplete' : 'missing'}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {importantChecks.length > 0 && (
+        <div className="grid gap-2">
+          <div className="grid gap-1">
+            <Label>Doctor Attention</Label>
+            {doctorProjectDir && (
+              <p className="break-all font-mono text-xs text-muted-foreground">Project: {doctorProjectDir}</p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            {importantChecks.map((check, index) => (
+              <div key={`${check.group}-${check.label}-${index}`} className="grid gap-1 rounded border p-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <SeverityBadge severity={check.severity} />
+                  <span className="font-medium">{check.label}</span>
+                  <span className="text-muted-foreground">{check.group}</span>
+                </div>
+                {check.detail && <p className="text-muted-foreground">{check.detail}</p>}
+                {check.fix && (
+                  <div className="flex items-center gap-2">
+                    <code className="min-w-0 flex-1 truncate rounded bg-muted px-1.5 py-1 font-mono">{check.fix}</code>
+                    <CopyButton value={check.fix} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {projectStatus?.errors && projectStatus.errors.length > 0 && (
+        <div className="grid gap-1 rounded border border-amber-500/50 p-2 text-xs text-muted-foreground">
+          {projectStatus.errors.map((error) => (
+            <p key={error}>{error}</p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -307,48 +626,77 @@ export function SettingsModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="w-[50vw] sm:max-w-[50vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex h-[84vh] w-[min(94vw,900px)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
+        <DialogHeader className="border-b px-5 py-4">
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>Changes are applied immediately and persisted automatically.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 py-2">
-          <Section icon={MonitorIcon} title="Appearance">
-            <ThemeToggle />
-          </Section>
+        <Tabs defaultValue="connection" className="min-h-0 flex-1 gap-0">
+          <div className="border-b px-5 py-3">
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="general" className="gap-2">
+                <MonitorIcon className="size-4" />
+                General
+              </TabsTrigger>
+              <TabsTrigger value="connection" className="gap-2">
+                <NetworkIcon className="size-4" />
+                Connection
+              </TabsTrigger>
+              <TabsTrigger value="security" className="gap-2">
+                <ShieldIcon className="size-4" />
+                Security
+              </TabsTrigger>
+              <TabsTrigger value="cli" className="gap-2">
+                <TerminalIcon className="size-4" />
+                CLI
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <Separator />
+          <div className="min-h-0 flex-1">
+            <SettingsTabContent value="general">
+              <Section icon={MonitorIcon} title="Appearance">
+                <ThemeToggle />
+              </Section>
+              <Section icon={CodeIcon} title="Editor">
+                <TextEditorInput />
+              </Section>
+              <Section icon={FolderIcon} title="Assets">
+                <AssetSourceDirInput />
+              </Section>
+            </SettingsTabContent>
 
-          <Section icon={NetworkIcon} title="Connection">
-            <PortInput />
-            <ConnectionTimeoutInput />
-            <SampleRateInput />
-            <MobileConnection />
-          </Section>
+            <SettingsTabContent value="connection">
+              <Section icon={NetworkIcon} title="Connection">
+                <SettingsGrid>
+                  <PortInput />
+                  <ConnectionTimeoutInput />
+                  <SampleRateInput />
+                </SettingsGrid>
+                <MobileConnection />
+              </Section>
+            </SettingsTabContent>
 
-          <Separator />
+            <SettingsTabContent value="security">
+              <Section icon={ShieldIcon} title="Security">
+                <AppIdInput />
+                <SettingsGrid>
+                  <ApiKeyInput />
+                  <SessionApiKeyInput />
+                </SettingsGrid>
+              </Section>
+            </SettingsTabContent>
 
-          <Section icon={ShieldIcon} title="Security">
-            <AppIdInput />
-            <ApiKeyInput />
-            <SessionApiKeyInput />
-          </Section>
+            <SettingsTabContent value="cli">
+              <Section icon={TerminalIcon} title="CLI">
+                <CliStatusPanel />
+              </Section>
+            </SettingsTabContent>
+          </div>
+        </Tabs>
 
-          <Separator />
-
-          <Section icon={CodeIcon} title="Editor">
-            <TextEditorInput />
-          </Section>
-
-          <Separator />
-
-          <Section icon={FolderIcon} title="Assets">
-            <AssetSourceDirInput />
-          </Section>
-        </div>
-
-        <DialogFooter className="gap-2 pt-8">
+        <DialogFooter className="gap-2 border-t bg-background/80 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/65">
           <Button variant="outline" onClick={reset} className="mr-auto">
             <ActivityIcon className="size-4" />
             Reset to defaults

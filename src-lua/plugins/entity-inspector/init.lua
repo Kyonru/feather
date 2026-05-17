@@ -285,30 +285,32 @@ function EntityInspectorPlugin:handleRequest(_request, _feather)
 
   for i, entity in ipairs(entityList) do
     -- Apply user filter
+    local includeEntity = true
     if source.filter then
       local ok, pass = pcall(source.filter, entity)
       if ok and not pass then
-        goto continue
+        includeEntity = false
       end
     end
 
-    local node = buildNode(entity, source, i, 1, self.maxDepth, self.maxValueLen, count, self.maxEntities)
+    if includeEntity then
+      local node = buildNode(entity, source, i, 1, self.maxDepth, self.maxValueLen, count, self.maxEntities)
 
-    if node then
-      -- Apply search filter (name match)
-      if filter then
-        if not node.name:lower():find(filter, 1, true) then
-          goto continue
+      if node then
+        -- Apply search filter (name match)
+        local matchesSearch = true
+        if filter then
+          matchesSearch = node.name:lower():find(filter, 1, true) ~= nil
+        end
+        if matchesSearch then
+          nodes[#nodes + 1] = node
         end
       end
-      nodes[#nodes + 1] = node
-    end
 
-    if count.n >= self.maxEntities then
-      break
+      if count.n >= self.maxEntities then
+        break
+      end
     end
-
-    ::continue::
   end
 
   return {

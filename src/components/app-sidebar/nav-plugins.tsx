@@ -87,7 +87,7 @@ export function NavPlugins() {
             <div className="flex items-center">
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton tooltip="Plugins" className="flex-1">
-                  <PuzzleIcon />
+                  <PuzzleIcon className="text-[var(--plugin-accent)]" />
                   <span>Plugins</span>
                   <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
@@ -139,25 +139,35 @@ export function NavPlugins() {
                     />
                   </div>
                 )}
-                {filtered.map((item) => (
-                  <SidebarMenuSubItem key={item.name}>
-                    <SidebarMenuSubButton
-                      asChild
-                      className={cn(
-                        {
-                          'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground':
-                            item.url === location.pathname,
-                        },
-                        item.disabled && 'opacity-50',
-                      )}
-                    >
-                      <NavLink to={item.url} end>
-                        {item.icon && <DynamicIcon className="size-4" name={item.icon as IconName} />}
-                        <span>{item.name}</span>
-                      </NavLink>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                ))}
+                {filtered.map((item) => {
+                  const isActive = item.url === location.pathname;
+
+                  return (
+                    <SidebarMenuSubItem key={item.name}>
+                      <SidebarMenuSubButton
+                        asChild
+                        className={cn(
+                          isActive &&
+                            'border border-[var(--plugin-active-border)] bg-[var(--plugin-active)] text-[var(--plugin-active-foreground)] hover:bg-[var(--plugin-active)] hover:text-[var(--plugin-active-foreground)] active:bg-[var(--plugin-active)] active:text-[var(--plugin-active-foreground)]',
+                          item.disabled && 'opacity-50',
+                        )}
+                      >
+                        <NavLink to={item.url} end>
+                          {item.icon && (
+                            <DynamicIcon
+                              className={cn(
+                                'size-4',
+                                isActive ? 'text-[var(--plugin-active-icon)]' : 'text-[var(--plugin-accent)]',
+                              )}
+                              name={item.icon as IconName}
+                            />
+                          )}
+                          <span>{item.name}</span>
+                        </NavLink>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  );
+                })}
                 {filtered.length === 0 && visible.length > 0 && search.trim() && (
                   <p className="px-2 py-1 text-xs text-muted-foreground">No plugins match.</p>
                 )}

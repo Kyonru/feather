@@ -7,13 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePlugin, usePluginAction } from '@/hooks/use-plugin';
 import { useConfigStore } from '@/store/config';
 import { DynamicIcon, IconName } from 'lucide-react/dynamic';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link, useHref } from 'react-router';
 import { PluginContent } from './content';
-import { Checkbox } from '@/components/ui/checkbox';
 import { openUrl } from '@/utils/linking';
 import { PuzzleIcon, TriangleAlertIcon } from 'lucide-react';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
+import { cn } from '@/utils/styles';
 
 type PluginActionDefinition = {
   label: string;
@@ -153,6 +153,8 @@ const pickInputProps = (props?: Record<string, unknown>) => {
 };
 
 const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, onChange, props, grouped }: PluginActionProps) => {
+  const [checked, setChecked] = useState(value === 'true');
+
   if (type === 'button') {
     return (
       <Button {...props} variant="outline" onClick={() => onClick && onClick(action)} className={grouped ? 'w-full' : ''}>
@@ -173,15 +175,29 @@ const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, 
   }
 
   if (type === 'checkbox') {
+    const disabled = props?.disabled === true;
+
     return (
-      <div className="flex items-center gap-2">
-        <Checkbox
-          {...props}
-          defaultChecked={Boolean(value)}
-          onCheckedChange={(checked) => onChange && onChange(action, checked ? 'true' : 'false')}
-        />
-        <Label>{label}</Label>
-      </div>
+      <Button
+        {...props}
+        type="button"
+        variant="outline"
+        aria-pressed={checked}
+        disabled={disabled}
+        onClick={() => {
+          const nextChecked = !checked;
+          setChecked(nextChecked);
+          onChange?.(action, nextChecked ? 'true' : 'false');
+        }}
+        className={cn(
+          grouped ? 'w-full justify-start' : '',
+          checked &&
+            'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary dark:bg-primary/15 dark:hover:bg-primary/20',
+        )}
+      >
+        <DynamicIcon className="size-4" name={icon} />
+        <div>{label}</div>
+      </Button>
     );
   }
 

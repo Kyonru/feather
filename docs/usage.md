@@ -1,8 +1,21 @@
 # Usage
 
-## Manual Setup
+## Setup
 
-For full control over which plugins are loaded:
+Use the CLI for normal development. It injects Feather for desktop runs and embeds a temporary debug runtime for web/mobile dev runs without requiring game-side Lua integration:
+
+```bash
+feather init path/to/my-game
+feather run path/to/my-game
+feather run path/to/my-game --target web
+feather run path/to/my-game --target android
+feather run path/to/my-game --target ios
+```
+
+The direct Lua API is still available for unusual projects that intentionally vendor Feather themselves.
+
+> [!WARNING]
+> Manual setup can leave Feather code, remote debugging hooks, or powerful plugins such as Console in places you did not intend to ship. Use it only if you understand the security consequences of accidental or unintended use. Prefer the CLI-managed workflow for normal development and releases.
 
 ```lua
 local FeatherDebugger = require "feather"
@@ -72,11 +85,13 @@ debugger:error("Something went wrong")
 
 The Console is an **opt-in plugin** for evaluating Lua code directly inside the running game. It is not included by default.
 
+Enable it from `feather.config.lua`:
+
 ```lua
-require("feather.auto").setup({
+return {
   include = { "console" },
   pluginOptions = { console = { evalEnabled = true } },
-})
+}
 ```
 
 Once enabled, open the **Console** tab in the desktop app and type any Lua expression. Return values are shown inline; `print()` output is captured automatically.
@@ -95,8 +110,12 @@ return love.graphics.getStats()
 
 The step debugger pauses game execution at any line and lets you inspect local variables, closure values, and the call stack from the **Debugger** tab.
 
+Enable it from `feather.config.lua`:
+
 ```lua
-require("feather.auto").setup({ debugger = true })
+return {
+  debugger = true,
+}
 ```
 
 Click any line number in the source view to add a breakpoint. While paused, use **Continue**, **Step Over**, **Step Into**, and **Step Out** to navigate execution.
@@ -119,8 +138,12 @@ Use **Select Folder** in the Assets tab to set the session's Game Root when the 
 
 Time Travel records per-frame observer snapshots into a ring buffer and lets you scrub backwards through history to find exactly when a value changed.
 
+Enable it from `feather.config.lua`:
+
 ```lua
-require("feather.auto").setup({ include = { "time-travel" } })
+return {
+  include = { "time-travel" },
+}
 ```
 
 Open the **Time Travel** tab, click **Start Recording**, reproduce the bug, then click **Stop & Load** to fetch and scrub through the captured frames.

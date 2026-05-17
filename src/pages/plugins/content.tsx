@@ -2,7 +2,6 @@ import { useConfigStore } from '@/store/config';
 import { useSettingsStore } from '@/store/settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,9 +33,10 @@ import {
 import { downloadFile } from '@/utils/file';
 import { isWeb } from '@/utils/platform';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { Bookmark, ChevronRight, DownloadIcon, ExternalLink } from 'lucide-react';
+import { Bookmark, CheckIcon, ChevronRight, DownloadIcon, ExternalLink } from 'lucide-react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/utils/styles';
 
 const isDirectImageSrc = (src: string) => src.startsWith('data:') || src.startsWith('blob:');
 const isResolvedBinarySrc = (src: string) => src.startsWith('blob:') || src.startsWith('data:');
@@ -576,6 +576,48 @@ const renderUiLabel = (node: PluginUiNode, control: ReactNode) => {
   );
 };
 
+function PluginUiCheckbox({
+  node,
+  onParamsChange,
+}: {
+  node: PluginUiNode;
+  onParamsChange?: (params: Record<string, string>) => void;
+}) {
+  const name = getUiControlName(node);
+  const [checked, setChecked] = useState(node.checked === true);
+
+  useEffect(() => {
+    setChecked(node.checked === true);
+  }, [node.checked]);
+
+  return (
+    <div className="space-y-1.5">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-pressed={checked}
+        disabled={node.disabled || !name}
+        onClick={() => {
+          if (!name) return;
+          const nextChecked = !checked;
+          setChecked(nextChecked);
+          onParamsChange?.({ [name]: nextChecked ? 'true' : 'false' });
+        }}
+        className={cn(
+          'justify-start',
+          checked &&
+            'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary dark:bg-primary/15 dark:hover:bg-primary/20',
+        )}
+      >
+        <CheckIcon className={cn('size-4', checked ? 'opacity-100' : 'opacity-35')} />
+        {node.label ?? node.title ?? name ?? 'Checkbox'}
+      </Button>
+      {node.description ? <p className="text-xs text-muted-foreground">{node.description}</p> : null}
+    </div>
+  );
+}
+
 function PluginUiRenderer({
   node,
   onAction,
@@ -668,20 +710,7 @@ function PluginUiRenderer({
   }
 
   if (node.type === 'checkbox') {
-    const name = getUiControlName(node);
-    return (
-      <div className="flex items-start gap-2">
-        <Checkbox
-          checked={node.checked === true}
-          disabled={node.disabled || !name}
-          onCheckedChange={(checked) => name && onParamsChange?.({ [name]: checked === true ? 'true' : 'false' })}
-        />
-        <div className="grid gap-1 leading-none">
-          <Label className="text-sm">{node.label ?? node.title ?? name ?? 'Checkbox'}</Label>
-          {node.description ? <p className="text-xs text-muted-foreground">{node.description}</p> : null}
-        </div>
-      </div>
-    );
+    return <PluginUiCheckbox node={node} onParamsChange={onParamsChange} />;
   }
 
   if (node.type === 'switch') {

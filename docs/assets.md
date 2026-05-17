@@ -14,28 +14,13 @@ Assets appear in the desktop app after they are loaded by the game.
 
 ## Setup
 
-No extra setup is required beyond running Feather in debug mode:
+No extra setup is required beyond running the game through the Feather CLI:
 
-```lua
-require("feather.auto")
-
-function love.update(dt)
-  DEBUGGER:update(dt)
-end
-```
-
-Or with manual setup:
-
-```lua
-local FeatherDebugger = require("feather")
-
-local debugger = FeatherDebugger({
-  debug = true,
-})
-
-function love.update(dt)
-  debugger:update(dt)
-end
+```bash
+feather run path/to/my-game
+feather run path/to/my-game --target web
+feather run path/to/my-game --target android
+feather run path/to/my-game --target ios
 ```
 
 Open the **Assets** tab in the desktop app to view the tracked catalog.
@@ -45,18 +30,10 @@ Open the **Assets** tab in the desktop app to view the tracked catalog.
 Asset tracking is enabled by default. To disable it for a session:
 
 ```lua
-require("feather.auto").setup({
+-- feather.config.lua
+return {
   assetPreview = false,
-})
-```
-
-Or with manual setup:
-
-```lua
-local debugger = FeatherDebugger({
-  debug = true,
-  assetPreview = false,
-})
+}
 ```
 
 When disabled, Feather does not hook `love.graphics.newImage`, `love.graphics.newFont`, `love.audio.newSource`, or `love.draw` for asset previews.
@@ -176,7 +153,7 @@ When zoom is above 100%, Feather draws a pixel grid over the preview. This is us
 ### The texture list is empty
 
 > [!IMPORTANT]
-> Make sure the game loads images after Feather starts. If assets are loaded before `require("feather.auto")` or before creating `FeatherDebugger`, Feather cannot track those calls.
+> Make sure the game loads images after Feather starts. When using `feather run`, the CLI starts Feather before your game's `main.lua` is loaded.
 
 ### Preview says the file is not available
 

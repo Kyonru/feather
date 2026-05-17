@@ -25,11 +25,11 @@ The game rejects commands from any other Feather desktop instance. Only the matc
 return {
   -- Any Feather desktop on the network can send commands to this game.
   -- Set this only when you cannot use appId (e.g. shared dev machine, CI).
-  insecureConnection = true,
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
 }
 ```
 
-Setting `insecureConnection = true` is your acknowledgment that the game accepts commands from any Feather desktop on the network. Feather will not start without one of these two options — there is no silent fallback.
+Setting `__DANGEROUS_INSECURE_CONNECTION__ = true` is your acknowledgment that the game accepts commands from any Feather desktop on the network. Feather will not start without one of these two options — there is no silent fallback.
 
 `feather init` prompts for the App ID during setup and writes it to `feather.config.lua` automatically. To find it: open the Feather desktop app → **Settings** → **Security** → **Desktop App ID**.
 
@@ -43,9 +43,11 @@ Setting `insecureConnection = true` is your acknowledgment that the game accepts
 Set `apiKey` in the game config and match it in the Feather desktop app Settings. This gates access to the Console / REPL plugin (remote Lua execution):
 
 ```lua
-local debugger = FeatherDebugger({
+-- feather.config.lua
+return {
+  include = { "console" },
   apiKey = "your-api-key",
-})
+}
 ```
 
 ### Console plugin
@@ -55,124 +57,96 @@ local debugger = FeatherDebugger({
 
 ---
 
-## Safe `DEBUGGER` Usage
+## CLI-Managed Debugging
 
 > [!IMPORTANT]
-> `DEBUGGER` only exists when Feather actually loads. With CLI-managed setup, generated imports are guarded by `USE_DEBUGGER`, so production-like runs can leave Feather unloaded entirely.
+> The CLI is the preferred workflow for desktop, web, Android, iOS, and packaged desktop builds. You do not need to add `require("feather.auto")`, call `DEBUGGER:update(dt)`, or keep Feather-specific code in your game.
 
-Always guard direct `DEBUGGER` usage:
-
-```lua
-function love.update(dt)
-  if DEBUGGER then
-    DEBUGGER:update(dt)
-  end
-end
-```
-
-For custom actions:
-
-```lua
-if DEBUGGER then
-  DEBUGGER:log("Player spawned")
-end
-```
-
-Avoid this in game code:
-
-```lua
-DEBUGGER:update(dt)
-```
-
-> [!CAUTION]
-> That direct call will fail when `USE_DEBUGGER` is unset, when `debug = false`, or after running `feather remove`.
-
-For local/dev runs, enable Feather explicitly:
+Use the CLI for local and platform runs:
 
 ```bash
-USE_DEBUGGER=1 love .
+feather init path/to/my-game
+feather run path/to/my-game
+feather run path/to/my-game --target web
+feather run path/to/my-game --target android
+feather run path/to/my-game --target ios
 ```
 
-For production builds, leave `USE_DEBUGGER` unset and run `feather remove --yes` before packaging.
+Add vendors for platform targets once per project:
+
+```bash
+feather build vendor add all --dir path/to/my-game
+```
+
+Run doctor as a release gate before packaging:
+
+```bash
+feather doctor path/to/my-game --production
+feather doctor path/to/my-game --build-target all
+```
+
+`--production` exits with code `1` for release blockers such as insecure connections, weak Console auth, hot reload, debugger/screenshot/disk persistence settings, network exposure with weak auth, or unmanaged embedded Feather runtime.
+
+For CI systems that need a security-only machine-readable report:
+
+```bash
+feather doctor path/to/my-game --security --json
+```
+
+The security report includes config posture, plugin trust, package provenance, and network exposure. It redacts sensitive values such as `apiKey`.
+
+If you use Feather's local release helpers, keep release metadata in `feather.build.json` and let doctor check the target-specific tools before CI runs the build:
+
+```bash
+feather build vendor add all --dir path/to/my-game --json
+feather build web --dir path/to/my-game --json
+feather build android --dir path/to/my-game --release --json
+feather build ios --dir path/to/my-game --release --json
+feather build windows --dir path/to/my-game --json
+feather upload itch web --dir path/to/my-game --dry-run --json
+```
+
+Web builds package a local love.js player; mobile targets use official LÖVE templates; desktop targets use local LÖVE runtime vendors. Mobile release mode is opt-in with `--release` and produces Android AAB/APK or iOS archive/IPA artifacts. Release builds do not auto-embed Feather's debugger runtime.
 
 ---
 
 ## Performance
 
 > [!WARNING]
-> Feather is a development tool, not something you should ship in production builds. Use one of these approaches, from least to most thorough.
+> Feather is a development tool, not something you should ship in production builds. Prefer CLI-managed runs and builds so release artifacts stay clean by default.
 
-### Level 1 — Disable at runtime (`debug = false`)
-
-The `debug` flag makes Feather a no-op: no WebSocket connection, no hooks, `update()` returns immediately. The library is still bundled but consumes no CPU.
-
-```lua
-local debugger = FeatherDebugger({
-  debug = Config.IS_DEBUG,
-})
-```
-
-The files are dormant but present in the bundle.
-
-### Level 2 — Keep Feather managed by the CLI
-
-Prefer initializing Feather through the CLI so the generated files are easy to remove later:
+### Release builds
 
 ```bash
-feather init --mode auto
-# or
-feather init --mode manual
+feather build android --dir path/to/my-game --release
+feather build ios --dir path/to/my-game --release
 ```
 
-Auto mode inserts marked `FEATHER-INIT` blocks in `main.lua`. Manual mode creates `feather.debugger.lua` and loads it from a marked block in `main.lua`.
+`--release` disables automatic debugger embedding for mobile builds. The generated `.love` used for the release artifact contains the game source, not Feather's injected `.feather-main.lua`, `feather/auto.lua`, plugin files, or generated debug config.
 
-Both modes guard Feather imports with the `USE_DEBUGGER` environment variable. Run local/dev builds with:
+### Self-cleaning managed files
+
+If you used `feather init` while experimenting, Feather can preview and remove its own generated files:
 
 ```bash
-# macOS / Linux
-USE_DEBUGGER=1 love .
-```
-
-```powershell
-# Windows PowerShell
-$env:USE_DEBUGGER = "1"
-love .
-```
-
-```bat
-:: Windows cmd.exe
-set USE_DEBUGGER=1 && love .
-```
-
-> [!NOTE]
-> Leave `USE_DEBUGGER` unset, `0`, or `false` in production-like runs so Feather is not loaded at all.
-
-Before packaging a release, run:
-
-```bash
-feather remove
-```
-
-Use `--dry-run` first to preview:
-
-```bash
-feather remove --dry-run
+feather remove path/to/my-game --dry-run
+feather remove path/to/my-game --yes
 ```
 
 The remove command only edits generated `FEATHER-INIT` blocks and removes generated Feather files it can identify. If you want to keep part of the setup:
 
 ```bash
-feather remove --keep-config
-feather remove --keep-runtime
-feather remove --keep-main
+feather remove path/to/my-game --keep-config
+feather remove path/to/my-game --keep-runtime
+feather remove path/to/my-game --keep-main
 ```
 
 > [!TIP]
 > This is the recommended workflow for most projects because Feather can clean up after itself before production packaging.
 
-### Level 3 — Guard manual requires
+### Advanced manual integration
 
-If you wire Feather by hand, wrap the entire setup in a conditional so the library is never loaded in production:
+Manual Lua integration is still available for unusual projects, but it is no longer the recommended path. If you wire Feather by hand, wrap the entire setup in a conditional so the library is never loaded in production:
 
 ```lua
 if Config.IS_DEBUG then
@@ -186,9 +160,9 @@ end
 
 No Lua code runs and no globals are created in release builds.
 
-### Level 4 — Exclude from the release build
+### Manual exclusion
 
-Since Feather installs into a single directory, excluding it is a single glob:
+If you manually vendored Feather, excluding it is a single glob:
 
 **Manual zip:**
 
@@ -196,13 +170,6 @@ Since Feather installs into a single directory, excluding it is a single glob:
 zip -r MyGame.love . \
   -x "*.git*" \
   -x "lib/feather/*"
-```
-
-**[love-release](https://github.com/MisterDA/love-release)** — add to `.love-release.yml`:
-
-```yaml
-exclude:
-  - feather/
 ```
 
 **[makelove](https://github.com/pfirsich/makelove)** — add to `makelove.toml`:
@@ -215,7 +182,7 @@ exclude = ["feather/**"]
 > [!IMPORTANT]
 > No Feather code or assets are present in the release build. This also eliminates the Console plugin as an attack surface entirely.
 
-If you use manual mode, also exclude or remove:
+If you used manual mode, also exclude or remove:
 
 ```txt
 feather.debugger.lua

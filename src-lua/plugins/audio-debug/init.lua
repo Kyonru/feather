@@ -103,30 +103,27 @@ function AudioDebugPlugin:handleRequest()
     local status = playing and "playing" or "stopped"
 
     -- Skip stopped sources if filter is off
-    if not self.showStopped and not playing then
-      goto continue
+    if self.showStopped or playing then
+      local channels = src:getChannelCount()
+      local vol = src:getVolume()
+      local pitch = src:getPitch()
+      local looping = src:isLooping()
+      local srcType = src:getType() -- static / stream / queue
+      local duration = src:getDuration("seconds")
+      local position = src:tell("seconds")
+
+      rows[#rows + 1] = {
+        name = entry.label,
+        type = srcType,
+        status = status,
+        volume = string.format("%.2f", vol),
+        pitch = string.format("%.2f", pitch),
+        looping = looping and "yes" or "no",
+        channels = channels == 1 and "mono" or "stereo",
+        duration = duration >= 0 and string.format("%.1fs", duration) or "?",
+        position = string.format("%.1fs", position),
+      }
     end
-
-    local channels = src:getChannelCount()
-    local vol = src:getVolume()
-    local pitch = src:getPitch()
-    local looping = src:isLooping()
-    local srcType = src:getType() -- static / stream / queue
-    local duration = src:getDuration("seconds")
-    local position = src:tell("seconds")
-
-    rows[#rows + 1] = {
-      name = entry.label,
-      type = srcType,
-      status = status,
-      volume = string.format("%.2f", vol),
-      pitch = string.format("%.2f", pitch),
-      looping = looping and "yes" or "no",
-      channels = channels == 1 and "mono" or "stereo",
-      duration = duration >= 0 and string.format("%.1fs", duration) or "?",
-      position = string.format("%.1fs", position),
-    }
-    ::continue::
   end
 
   local columns = {

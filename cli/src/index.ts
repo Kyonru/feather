@@ -1,10 +1,16 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { readFileSync } from 'node:fs';
+import { runCliAction } from './lib/command.js';
 import { runCommand } from './commands/run.js';
 import { initCommand } from './commands/init.js';
 import { removeCommand } from './commands/remove.js';
 import { doctorCommand } from './commands/doctor.js';
 import { updateCommand } from './commands/update.js';
+import { buildCommand } from './commands/build.js';
+import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
+import { buildTargets } from './lib/build/config.js';
+import { uploadCommand } from './commands/upload.js';
 import {
   pluginListCommand,
   pluginInstallCommand,
@@ -20,11 +26,13 @@ import {
   packageUpdateCommand,
   packageRemoveCommand,
   packageAuditCommand,
+  packageAddCommand,
 } from './commands/package.js';
-import type { InitMode } from './ui/init-mode.js';
+import type { InitMode } from './ui/init/index.js';
 
 const program = new Command();
 const initModes = new Set(['cli', 'auto', 'manual']);
+const cliVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version as string;
 
 function parseInitMode(value: string): InitMode {
   if (!initModes.has(value)) {
@@ -36,28 +44,53 @@ function parseInitMode(value: string): InitMode {
 program
   .name('feather')
   .description('Run and debug Love2D games with Feather — zero game-side changes required')
-  .version('0.7.0');
+  .version(cliVersion);
 
 program
   .command('run [game-path] [game-args...]')
   .description('Inject Feather into a Love2D game and run it')
+  .option('--target <target>', 'Run target: desktop, web, android, or ios', 'desktop')
+  .option('--device <id>', 'Android device serial or iOS simulator UDID')
+  .option('--build-config <path>', 'Path to feather.build.json for web/mobile run')
+  .option('--out-dir <path>', 'Build output directory for web/mobile run')
+  .option('--clean', 'Remove the output directory before web/mobile build')
+  .option('--no-cache', 'Disable Android/iOS dev native build cache')
+  .option('--verbose', 'Show web/mobile build commands and native tool output')
+  .option('--web-host <host>', 'Host for web run static server', '127.0.0.1')
+  .option('--web-port <port>', 'Port for web run static server', (value) => Number(value), 8000)
+  .option('--no-adb-reverse', 'Skip adb reverse setup for Android mobile run')
+  .option('--port <port>', 'Feather desktop port for Android adb reverse', (value) => Number(value))
   .option('--love <path>', 'Path to the love2d binary (overrides auto-detect)')
   .option('--session-name <name>', 'Custom session name shown in the desktop app')
   .option('--no-plugins', 'Disable plugin loading (feather core only)')
+  .option('--no-debugger', 'Run without Feather debugger injection')
+  .option('--disable-debugger', 'Alias for --no-debugger')
   .option('--config <path>', 'Path to feather.config.lua')
+  .option('--config-path <path>', 'Alias for --config')
+  .option('--configPath <path>', 'Alias for --config')
   .option('--feather-path <path>', 'Use a local feather install instead of the bundled one')
   .option('--plugins-dir <path>', 'Use a custom plugins directory instead of the bundled one')
-  .action(async (gamePath: string | undefined, gameArgs: string[], opts) => {
-    await runCommand(gamePath, {
+  .action((gamePath: string | undefined, gameArgs: string[], opts) => runCliAction(() => runCommand(gamePath, {
       love: opts.love as string | undefined,
+      target: opts.target as 'desktop' | 'web' | 'android' | 'ios' | undefined,
+      device: opts.device as string | undefined,
+      buildConfig: opts.buildConfig as string | undefined,
+      outDir: opts.outDir as string | undefined,
+      clean: opts.clean as boolean | undefined,
+      noCache: opts.cache === false,
+      verbose: opts.verbose as boolean | undefined,
+      webHost: opts.webHost as string | undefined,
+      webPort: opts.webPort as number | undefined,
+      adbReverse: opts.adbReverse as boolean | undefined,
+      port: opts.port as number | undefined,
       sessionName: opts.sessionName as string | undefined,
       noPlugins: opts.plugins === false,
-      config: opts.config as string | undefined,
+      debugger: opts.debugger !== false && !opts.disableDebugger,
+      config: (opts.config ?? opts.configPath) as string | undefined,
       featherPath: opts.featherPath as string | undefined,
       pluginsDir: opts.pluginsDir as string | undefined,
       gameArgs,
-    });
-  });
+    })));
 
 program
   .command('init [dir]')
@@ -70,8 +103,7 @@ program
   .option('--plugins <ids>', 'Comma-separated list of plugins to install')
   .option('--mode <mode>', 'Setup mode: cli, auto, or manual', parseInitMode)
   .option('-y, --yes', 'Skip confirmation prompts')
-  .action(async (dir: string | undefined, opts) => {
-    await initCommand(dir ?? '.', {
+  .action((dir: string | undefined, opts) => runCliAction(() => initCommand(dir ?? '.', {
       branch: opts.branch as string,
       remote: opts.remote as boolean | undefined,
       localSrc: opts.localSrc as string | undefined,
@@ -83,8 +115,7 @@ program
           : undefined,
       mode: opts.mode as InitMode | undefined,
       yes: opts.yes as boolean,
-    });
-  });
+    })));
 
 program
   .command('remove [dir]')
@@ -96,8 +127,7 @@ program
   .option('--keep-manual', 'Keep feather.debugger.lua')
   .option('--keep-runtime', 'Keep installed Feather runtime/plugins')
   .option('-y, --yes', 'Skip interactive confirmation')
-  .action(async (dir: string | undefined, opts) => {
-    await removeCommand(dir ?? '.', {
+  .action((dir: string | undefined, opts) => runCliAction(() => removeCommand(dir ?? '.', {
       installDir: opts.installDir as string | undefined,
       dryRun: opts.dryRun as boolean | undefined,
       keepConfig: opts.keepConfig as boolean | undefined,
@@ -105,24 +135,191 @@ program
       keepManual: opts.keepManual as boolean | undefined,
       keepRuntime: opts.keepRuntime as boolean | undefined,
       yes: opts.yes as boolean | undefined,
-    });
-  });
+    })));
 
 program
   .command('doctor [dir]')
   .description('Check the environment and project setup')
   .option('--install-dir <path>', 'Feather install directory override')
-  .option('--host <host>', 'Host to check for the Feather desktop WebSocket', '127.0.0.1')
+  .option('--host <host>', 'Host to check for the Feather desktop WebSocket')
   .option('--port <port>', 'Port to check for the Feather desktop WebSocket', (value) => Number(value))
   .option('--json', 'Print machine-readable diagnostics')
-  .action(async (dir: string | undefined, opts) => {
-    await doctorCommand(dir, {
+  .option('--production', 'Fail when project settings are unsafe for production builds')
+  .option('--security', 'Print security-focused diagnostics; use with --json for automation')
+  .option('--build-target <target>', 'Check dependencies for a build target')
+  .option('--upload-target <target>', 'Check dependencies for an upload target')
+  .option('--release', 'Include mobile release build checks with --build-target')
+  .action((dir: string | undefined, opts) => runCliAction(() => doctorCommand(dir, {
       installDir: opts.installDir as string | undefined,
       host: opts.host as string | undefined,
       port: opts.port as number | undefined,
       json: opts.json as boolean | undefined,
-    });
-  });
+      production: opts.production as boolean | undefined,
+      security: opts.security as boolean | undefined,
+      buildTarget: opts.buildTarget as string | undefined,
+      uploadTarget: opts.uploadTarget as string | undefined,
+      release: opts.release as boolean | undefined,
+    })));
+
+const build = program
+  .command('build')
+  .description('Build a LÖVE game package, web bundle, mobile dev app, or desktop installer');
+
+function addBuildTargetCommand(target: string): void {
+  build
+    .command(target)
+    .description(`Build a LÖVE game for ${target}`)
+    .option('--dir <path>', 'Project directory (default: current directory)')
+    .option('--config <path>', 'Path to feather.build.json')
+    .option('--build-config <path>', 'Alias for --config')
+    .option('--runtime-config <path>', 'Path to feather.config.lua for mobile debugger embedding')
+    .option('--config-path <path>', 'Alias for --runtime-config')
+    .option('--configPath <path>', 'Alias for --runtime-config')
+    .option('--out-dir <path>', 'Build output directory')
+    .option('--name <name>', 'Build product name')
+    .option('--version <version>', 'Build product version')
+    .option('--clean', 'Remove the output directory before building')
+    .option('--dry-run', 'Show the build plan without writing artifacts')
+    .option('--json', 'Output machine-readable JSON')
+    .option('--allow-unsafe', 'Allow production-unsafe Feather config during build')
+    .option('--release', 'Build signed/store-oriented mobile release artifacts')
+    .option('--no-cache', 'Disable Android/iOS dev native build cache')
+    .option('--no-debugger', 'Build mobile dev artifacts without Feather debugger embedding')
+    .option('--disable-debugger', 'Alias for --no-debugger')
+    .option('--verbose', 'Show Android/iOS build commands and native tool output')
+    .action((opts) => runCliAction(() => buildCommand(target, {
+      dir: opts.dir as string | undefined,
+      config: buildConfigOption(opts.config as string | undefined, opts.buildConfig as string | undefined),
+      runtimeConfig: runtimeConfigOption(
+        opts.config as string | undefined,
+        opts.runtimeConfig as string | undefined,
+        opts.configPath as string | undefined,
+      ),
+      outDir: opts.outDir as string | undefined,
+      name: opts.name as string | undefined,
+      version: opts.version as string | undefined,
+      clean: opts.clean as boolean | undefined,
+      dryRun: opts.dryRun as boolean | undefined,
+      json: opts.json as boolean | undefined,
+      allowUnsafe: opts.allowUnsafe as boolean | undefined,
+      release: opts.release as boolean | undefined,
+      noCache: opts.cache === false,
+      debugger: opts.debugger !== false && !opts.disableDebugger,
+      verbose: opts.verbose as boolean | undefined,
+    })));
+}
+
+function looksLikeRuntimeConfig(path: string | undefined): boolean {
+  return Boolean(path && (/\.lua$/i.test(path) || path.endsWith('.featherrc')));
+}
+
+function buildConfigOption(config: string | undefined, buildConfig: string | undefined): string | undefined {
+  if (buildConfig) return buildConfig;
+  return looksLikeRuntimeConfig(config) ? undefined : config;
+}
+
+function runtimeConfigOption(
+  config: string | undefined,
+  runtimeConfig: string | undefined,
+  configPath: string | undefined,
+): string | undefined {
+  return runtimeConfig ?? configPath ?? (looksLikeRuntimeConfig(config) ? config : undefined);
+}
+
+for (const target of buildTargets) {
+  addBuildTargetCommand(target);
+}
+
+const buildVendor = build
+  .command('vendor')
+  .description('Fetch and inspect local build vendor templates');
+
+buildVendor
+  .command('add [targets...]')
+  .description('Fetch build vendors: web, android, ios, mobile, desktop, or all')
+  .allowUnknownOption()
+  .option('--dir <path>', 'Project directory (default: current directory)')
+  .option('--config <path>', 'Path to feather.build.json')
+  .option('--vendor-dir <path>', 'Vendor directory inside the project', 'vendor')
+  .option('--ref <ref>', 'LÖVE version/tag/ref for all vendors')
+  .option('--web-ref <ref>', 'love.js vendor branch/tag/ref override')
+  .option('--android-ref <ref>', 'Android vendor branch/tag/ref override')
+  .option('--ios-ref <ref>', 'iOS vendor branch/tag/ref override')
+  .option('--force', 'Replace existing vendor directories or conflicting config paths')
+  .option('--dry-run', 'Show planned vendor changes without writing files')
+  .option('--json', 'Output machine-readable JSON')
+  .addHelpText('after', '\n  --no-config              Do not update feather.build.json')
+  .action((targets: string[], opts) => runCliAction(() => buildVendorAddCommand(targets.filter((target) => target !== '--no-config'), {
+    dir: opts.dir as string | undefined,
+    config: opts.config as string | undefined,
+    vendorDir: opts.vendorDir as string | undefined,
+    ref: opts.ref as string | undefined,
+    webRef: opts.webRef as string | undefined,
+    androidRef: opts.androidRef as string | undefined,
+    iosRef: opts.iosRef as string | undefined,
+    force: opts.force as boolean | undefined,
+    dryRun: opts.dryRun as boolean | undefined,
+    json: opts.json as boolean | undefined,
+    configUpdate: !process.argv.includes('--no-config'),
+  })));
+
+buildVendor
+  .command('list')
+  .description('List configured build vendors')
+  .option('--dir <path>', 'Project directory (default: current directory)')
+  .option('--config <path>', 'Path to feather.build.json')
+  .option('--vendor-dir <path>', 'Vendor directory inside the project', 'vendor')
+  .option('--json', 'Output machine-readable JSON')
+  .action((opts) => runCliAction(() => buildVendorListCommand({
+    dir: opts.dir as string | undefined,
+    config: opts.config as string | undefined,
+    vendorDir: opts.vendorDir as string | undefined,
+    json: opts.json as boolean | undefined,
+  })));
+
+program
+  .command('upload [target] [build-target]')
+  .description('Upload built artifacts to itch.io or registered store targets')
+  .option('--dir <path>', 'Project directory (default: current directory)')
+  .option('--config <path>', 'Path to feather.build.json')
+  .option('--build-dir <path>', 'Directory containing feather-build-manifest.json')
+  .option('--project <name>', 'Upload project override, for example user/game')
+  .option('--channel <name>', 'Upload channel override')
+  .option('--user-version <version>', 'Store-facing version override')
+  .option('--dry-run', 'Show the upload plan without running the uploader')
+  .option('--if-changed', 'Pass --if-changed to supported uploaders')
+  .option('--hidden', 'Pass --hidden to supported uploaders')
+  .option('--json', 'Output machine-readable JSON')
+  .option('-y, --yes', 'Skip upload confirmation in non-interactive mode')
+  .option('--build', 'Build the selected target before uploading')
+  .option('--out-dir <path>', 'Build output directory when used with --build')
+  .option('--release', 'Build signed/store-oriented mobile release artifacts when used with --build')
+  .option('--allow-unsafe', 'Allow production-unsafe Feather config during --build')
+  .option('--clean', 'Remove the output directory before --build')
+  .option('--no-cache', 'Disable Android/iOS dev native build cache during --build')
+  .option('--verbose', 'Show build command output when used with --build')
+  .option('--allow-feather-runtime', 'Allow uploading artifacts that include or may include Feather runtime files')
+  .action((target: string, buildTarget: string | undefined, opts) => runCliAction(() => uploadCommand(target, buildTarget, {
+      dir: opts.dir as string | undefined,
+      config: opts.config as string | undefined,
+      buildDir: opts.buildDir as string | undefined,
+      project: opts.project as string | undefined,
+      channel: opts.channel as string | undefined,
+      userVersion: opts.userVersion as string | undefined,
+      dryRun: opts.dryRun as boolean | undefined,
+      ifChanged: opts.ifChanged as boolean | undefined,
+      hidden: opts.hidden as boolean | undefined,
+      json: opts.json as boolean | undefined,
+      yes: opts.yes as boolean | undefined,
+      build: opts.build as boolean | undefined,
+      outDir: opts.outDir as string | undefined,
+      release: opts.release as boolean | undefined,
+      allowUnsafe: opts.allowUnsafe as boolean | undefined,
+      clean: opts.clean as boolean | undefined,
+      noCache: opts.cache === false,
+      verbose: opts.verbose as boolean | undefined,
+      allowFeatherRuntime: opts.allowFeatherRuntime as boolean | undefined,
+    })));
 
 program
   .command('update [dir]')
@@ -132,15 +329,13 @@ program
   .option('--local-src <path>', 'Copy Lua runtime from a local src-lua style directory')
   .option('--install-dir <path>', 'Feather install directory', 'feather')
   .option('-y, --yes', 'Skip interactive confirmation and use the selected/default source')
-  .action((dir: string | undefined, opts) => {
-    updateCommand(dir ?? '.', {
+  .action((dir: string | undefined, opts) => runCliAction(() => updateCommand(dir ?? '.', {
       branch: opts.branch as string,
       remote: opts.remote as boolean | undefined,
       localSrc: opts.localSrc as string | undefined,
       installDir: opts.installDir as string,
       yes: opts.yes as boolean | undefined,
-    });
-  });
+    })));
 
 const plugin = program
   .command('plugin')
@@ -150,15 +345,13 @@ const plugin = program
   .option('--branch <branch>', 'GitHub branch to download from when using --remote', 'main')
   .option('--local-src <path>', 'Copy plugins from a local src-lua style directory')
   .option('--install-dir <path>', 'Feather install directory', 'feather')
-  .action(async (opts) => {
-    await pluginWorkflowCommand({
+  .action((opts) => runCliAction(() => pluginWorkflowCommand({
       dir: opts.dir as string | undefined,
       branch: opts.branch as string,
       installDir: opts.installDir as string,
       remote: opts.remote as boolean | undefined,
       localSrc: opts.localSrc as string | undefined,
-    });
-  });
+    })));
 
 const pluginCommandOptions = (opts: Record<string, unknown>) => ({ ...opts, ...plugin.opts() });
 
@@ -166,10 +359,10 @@ plugin
   .command('list [dir]')
   .description('List installed plugins')
   .option('--install-dir <path>', 'Feather install directory', 'feather')
-  .action(async (dir: string | undefined, opts) => {
+  .action((dir: string | undefined, opts) => runCliAction(() => {
     const merged = pluginCommandOptions(opts);
-    await pluginListCommand(dir ?? (merged.dir as string | undefined), merged.installDir as string);
-  });
+    return pluginListCommand(dir ?? (merged.dir as string | undefined), merged.installDir as string);
+  }));
 
 plugin
   .command('install <id>')
@@ -179,26 +372,31 @@ plugin
   .option('--branch <branch>', 'GitHub branch to download from when using --remote', 'main')
   .option('--local-src <path>', 'Copy plugins from a local src-lua style directory')
   .option('--install-dir <path>', 'Feather install directory', 'feather')
-  .action(async (id: string, opts) => {
+  .action((id: string, opts) => runCliAction(() => {
     const merged = pluginCommandOptions(opts);
-    await pluginInstallCommand(id, {
+    return pluginInstallCommand(id, {
       dir: merged.dir as string | undefined,
       branch: merged.branch as string,
       installDir: merged.installDir as string,
       remote: merged.remote as boolean | undefined,
       localSrc: merged.localSrc as string | undefined,
     });
-  });
+  }));
 
 plugin
   .command('remove <id>')
   .description('Remove an installed plugin')
   .option('--dir <path>', 'Project directory (default: current directory)')
   .option('--install-dir <path>', 'Feather install directory', 'feather')
-  .action(async (id: string, opts) => {
+  .option('-y, --yes', 'Skip interactive confirmation')
+  .action((id: string, opts) => runCliAction(() => {
     const merged = pluginCommandOptions(opts);
-    await pluginRemoveCommand(id, { dir: merged.dir as string | undefined, installDir: merged.installDir as string });
-  });
+    return pluginRemoveCommand(id, {
+      dir: merged.dir as string | undefined,
+      installDir: merged.installDir as string,
+      yes: merged.yes as boolean | undefined,
+    });
+  }));
 
 plugin
   .command('update [id]')
@@ -209,9 +407,9 @@ plugin
   .option('--local-src <path>', 'Copy plugins from a local src-lua style directory')
   .option('--install-dir <path>', 'Feather install directory', 'feather')
   .option('-y, --yes', 'Skip interactive selection and update all installed plugins when no id is given')
-  .action(async (id: string | undefined, opts) => {
+  .action((id: string | undefined, opts) => runCliAction(() => {
     const merged = pluginCommandOptions(opts);
-    await pluginUpdateCommand(id, {
+    return pluginUpdateCommand(id, {
       dir: merged.dir as string | undefined,
       branch: merged.branch as string,
       installDir: merged.installDir as string,
@@ -219,21 +417,25 @@ plugin
       localSrc: merged.localSrc as string | undefined,
       yes: merged.yes as boolean | undefined,
     });
-  });
+  }));
 
 const pkg = program.command('package').description('Install and manage LÖVE packages from the Feather catalog');
+
+pkg
+  .command('add')
+  .description('Interactively install a custom dependency from URL(s)')
+  .option('--dir <path>', 'Project directory')
+  .action((opts) => runCliAction(() => packageAddCommand({ dir: opts.dir as string | undefined })));
 
 pkg
   .command('search [query]')
   .description('Search the package catalog')
   .option('--offline', 'Use bundled registry snapshot')
   .option('--registry <url>', 'Override registry URL')
-  .action(async (query: string | undefined, opts) => {
-    await packageSearchCommand(query, {
+  .action((query: string | undefined, opts) => runCliAction(() => packageSearchCommand(query, {
       offline: opts.offline as boolean | undefined,
       registryUrl: opts.registry as string | undefined,
-    });
-  });
+    })));
 
 pkg
   .command('list')
@@ -243,15 +445,13 @@ pkg
   .option('--refresh', 'Force a fresh registry fetch ignoring cache')
   .option('--dir <path>', 'Project directory')
   .option('--registry <url>', 'Override registry URL')
-  .action(async (opts) => {
-    await packageListCommand({
+  .action((opts) => runCliAction(() => packageListCommand({
       installed: opts.installed as boolean | undefined,
       offline: opts.offline as boolean | undefined,
       refresh: opts.refresh as boolean | undefined,
       dir: opts.dir as string | undefined,
       registryUrl: opts.registry as string | undefined,
-    });
-  });
+    })));
 
 pkg
   .command('info <name>')
@@ -259,13 +459,11 @@ pkg
   .option('--offline', 'Use bundled registry snapshot')
   .option('--dir <path>', 'Project directory')
   .option('--registry <url>', 'Override registry URL')
-  .action(async (name: string, opts) => {
-    await packageInfoCommand(name, {
+  .action((name: string, opts) => runCliAction(() => packageInfoCommand(name, {
       offline: opts.offline as boolean | undefined,
       dir: opts.dir as string | undefined,
       registryUrl: opts.registry as string | undefined,
-    });
-  });
+    })));
 
 pkg
   .command('install [names...]')
@@ -278,8 +476,7 @@ pkg
   .option('--dir <path>', 'Project directory')
   .option('-y, --yes', 'Skip confirmation prompts')
   .option('--registry <url>', 'Override registry URL')
-  .action(async (names: string[], opts) => {
-    await packageInstallCommand(names, {
+  .action((names: string[], opts) => runCliAction(() => packageInstallCommand(names, {
       dryRun: opts.dryRun as boolean | undefined,
       allowUntrusted: opts.allowUntrusted as boolean | undefined,
       target: opts.target as string | undefined,
@@ -288,8 +485,7 @@ pkg
       dir: opts.dir as string | undefined,
       yes: opts.yes as boolean | undefined,
       registryUrl: opts.registry as string | undefined,
-    });
-  });
+    })));
 
 pkg
   .command('update [name]')
@@ -298,37 +494,31 @@ pkg
   .option('--offline', 'Use bundled registry snapshot')
   .option('--dir <path>', 'Project directory')
   .option('--registry <url>', 'Override registry URL')
-  .action(async (name: string | undefined, opts) => {
-    await packageUpdateCommand(name, {
+  .action((name: string | undefined, opts) => runCliAction(() => packageUpdateCommand(name, {
       dryRun: opts.dryRun as boolean | undefined,
       offline: opts.offline as boolean | undefined,
       dir: opts.dir as string | undefined,
       registryUrl: opts.registry as string | undefined,
-    });
-  });
+    })));
 
 pkg
   .command('remove <name>')
   .description('Remove an installed package')
   .option('--dir <path>', 'Project directory')
   .option('-y, --yes', 'Skip confirmation prompt')
-  .action(async (name: string, opts) => {
-    await packageRemoveCommand(name, {
+  .action((name: string, opts) => runCliAction(() => packageRemoveCommand(name, {
       dir: opts.dir as string | undefined,
       yes: opts.yes as boolean | undefined,
-    });
-  });
+    })));
 
 pkg
   .command('audit')
   .description('Verify SHA-256 checksums of all installed packages')
   .option('--dir <path>', 'Project directory')
   .option('--json', 'Output machine-readable JSON')
-  .action(async (opts) => {
-    await packageAuditCommand({
+  .action((opts) => runCliAction(() => packageAuditCommand({
       dir: opts.dir as string | undefined,
       json: opts.json as boolean | undefined,
-    });
-  });
+    })));
 
 program.parse();

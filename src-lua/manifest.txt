@@ -1,6 +1,7 @@
 core:feather/auto.lua
 core:feather/core/assets.lua
 core:feather/core/base.lua
+core:feather/core/debug_overlay.lua
 core:feather/core/logger.lua
 core:feather/core/observer.lua
 core:feather/core/performance.lua
@@ -8,6 +9,7 @@ core:feather/debugger.lua
 core:feather/error_handler.lua
 core:feather/init.lua
 core:feather/lib/base64.lua
+core:feather/lib/bit.lua
 core:feather/lib/class.lua
 core:feather/lib/inspect.lua
 core:feather/lib/json.lua

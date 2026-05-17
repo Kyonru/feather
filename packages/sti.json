@@ -1,18 +1,48 @@
 {
   "type": "love2d-library",
-  "trust": "known",
+  "trust": "verified",
   "description": "Simple Tiled Implementation — loads and renders Tiled maps (.tmx) in LÖVE.",
-  "tags": ["maps", "tiled", "tilemaps"],
+  "tags": [
+    "sprites",
+    "maps",
+    "tiles",
+    "tiled"
+  ],
   "homepage": "https://github.com/karai17/Simple-Tiled-Implementation",
+  "license": "NOASSERTION",
   "source": {
     "repo": "karai17/Simple-Tiled-Implementation",
-    "tag": "master",
-    "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/master/"
+    "tag": "v1.2.3.0",
+    "baseUrl": "https://raw.githubusercontent.com/karai17/Simple-Tiled-Implementation/69cdf8c7565f518c03967d0243cb54d1ee31da4e/",
+    "commitSha": "69cdf8c7565f518c03967d0243cb54d1ee31da4e"
   },
   "install": {
     "files": [
-      { "name": "sti/init.lua",  "sha256": "b7542ac156b3c2ee24d256ce260f73dc01ab2d1245c4eb4b14c92fcdf487c814", "target": "lib/sti/init.lua" },
-      { "name": "sti/utils.lua", "sha256": "ba8abf5a3f5680c6a020234afc248c4fb8945cda993d4cd82b292510e4dab17c", "target": "lib/sti/utils.lua" }
+      {
+        "name": "sti/graphics.lua",
+        "sha256": "c77ed8b4220b2e7c37fdf56612365ce3520ea8183deee92e2f337691f7d20b14",
+        "target": "lib/sti/graphics.lua"
+      },
+      {
+        "name": "sti/init.lua",
+        "sha256": "b65f9cc816bd666bf1ba42b4f50ee14d5fa83f22b3f121eb0b0f07c14ecb8df7",
+        "target": "lib/sti/init.lua"
+      },
+      {
+        "name": "sti/plugins/box2d.lua",
+        "sha256": "5206a9528eeaf19a12b9512f2b8ca2fa9e2af7e3a634eb084b4dd9c0ac070205",
+        "target": "lib/sti/plugins/box2d.lua"
+      },
+      {
+        "name": "sti/plugins/bump.lua",
+        "sha256": "0c2bc5c882aeab0e2dc5ad1019a83aab72ccfe25ef6d9b105b8cb924d2feaab5",
+        "target": "lib/sti/plugins/bump.lua"
+      },
+      {
+        "name": "sti/utils.lua",
+        "sha256": "6993cfde776ec0d1dae4ee53cec8df36fe37801dcf6858f51e443fe65f4ad4c9",
+        "target": "lib/sti/utils.lua"
+      }
     ]
   },
   "require": "lib.sti",

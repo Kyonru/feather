@@ -1,9 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAboutStore } from '@/store/about';
 import { openUrl } from '@/utils/linking';
@@ -18,13 +13,18 @@ import {
   ZapIcon,
   PlugZapIcon,
   MonitorIcon,
+  StarIcon,
+  ComputerIcon,
 } from 'lucide-react';
 
 const FEATURES = [
   { icon: ScrollTextIcon, text: 'Live logs, errors & stack traces' },
   { icon: ZapIcon, text: 'Real-time performance & variable inspection' },
-  { icon: PlugZapIcon, text: '18 built-in plugins — screenshots, REPL, profiler & more' },
+  { icon: PlugZapIcon, text: '20+ built-in plugins — screenshots, REPL, profiler & more' },
   { icon: MonitorIcon, text: 'Multi-session · mobile · disk mode' },
+  { icon: ComputerIcon, text: 'CLI and build tools' },
+  { icon: BookOpenIcon, text: 'Extensive docs, examples & API reference' },
+  { icon: StarIcon, text: 'Open sourced with ❤️ by the community' },
 ];
 
 export function AboutModal() {
@@ -41,8 +41,7 @@ export function AboutModal() {
           <DialogTitle>About Feather</DialogTitle>
         </DialogHeader>
 
-        {/* Hero */}
-        <div className="flex flex-col items-center gap-2 px-8 pt-8 pb-6 text-center bg-gradient-to-b from-muted/60 to-background">
+        <div className="flex flex-col items-center gap-2 px-8 pt-8  text-center bg-gradient-to-b from-muted/60 to-background">
           <span className="text-5xl select-none">🪶</span>
           <h2 className="text-2xl font-bold tracking-tight">Feather</h2>
           <p className="text-sm text-muted-foreground max-w-xs">
@@ -53,7 +52,6 @@ export function AboutModal() {
           </span>
         </div>
 
-        {/* Feature list */}
         <ul className="flex flex-col gap-2 px-8 py-4">
           {FEATURES.map(({ icon: Icon, text }) => (
             <li key={text} className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -63,34 +61,22 @@ export function AboutModal() {
           ))}
         </ul>
 
-        {/* CTAs */}
-        <div className="flex flex-col gap-2 px-8 pb-6">
-          <Button
-            className="w-full gap-2 font-semibold"
-            onClick={go('https://github.com/Kyonru/feather')}
-          >
-            <ExternalLinkIcon className="size-4" />
+        <div className="flex flex-col gap-2 px-8 pb-2">
+          <Button className="w-full gap-2 font-semibold" onClick={go('https://github.com/Kyonru/feather')}>
+            <StarIcon className="size-4 text-yellow-400" />
             Star on GitHub
-            <ExternalLinkIcon className="size-3 opacity-60" />
           </Button>
-          <Button
-            variant="outline"
-            className="w-full gap-2"
-            onClick={go('https://github.com/sponsors/Kyonru')}
-          >
+          <Button variant="outline" className="w-full gap-2" onClick={go('https://github.com/sponsors/Kyonru')}>
             <HandCoinsIcon className="size-4 text-pink-500" />
             Sponsor this project
           </Button>
         </div>
 
-        {/* Update banner */}
         {!isLatestVersion && (
           <div className="mx-8 mb-4 flex items-start gap-3 rounded-lg border border-cyan-600 bg-cyan-50 p-3 dark:border-cyan-900 dark:bg-cyan-950">
             <div className="flex flex-col gap-1.5">
               <p className="text-sm font-medium">New version available</p>
-              <p className="text-xs text-muted-foreground">
-                Update to get the latest features and fixes.
-              </p>
+              <p className="text-xs text-muted-foreground">Update to get the latest features and fixes.</p>
               <Button
                 size="sm"
                 variant="ghost"
@@ -103,17 +89,31 @@ export function AboutModal() {
           </div>
         )}
 
-        {/* Footer links */}
         <div className="flex items-center justify-center gap-1 border-t px-8 py-3">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={go('https://github.com/Kyonru/feather/blob/main/LICENSE.md')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground"
+            onClick={go('https://github.com/Kyonru/feather/blob/main/LICENSE.md')}
+          >
             <BookOpenIcon className="size-3" />
             License
           </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={go('https://github.com/Kyonru/feather/blob/main/CHANGELOG.md')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground"
+            onClick={go('https://github.com/Kyonru/feather/blob/main/CHANGELOG.md')}
+          >
             <HistoryIcon className="size-3" />
             Changelog
           </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={go(`https://github.com/Kyonru/feather/releases/tag/v${version}`)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground"
+            onClick={go(`https://github.com/Kyonru/feather/releases/tag/v${version}`)}
+          >
             <ExternalLinkIcon className="size-3" />
             This release
           </Button>

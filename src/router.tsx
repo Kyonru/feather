@@ -1,7 +1,15 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
 import { toast } from 'sonner';
-import { MonitorIcon, SettingsIcon } from 'lucide-react';
+import {
+  BookOpenIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  MonitorIcon,
+  PlayIcon,
+  SettingsIcon,
+  TerminalIcon,
+} from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SiteHeader } from '@/components/site-header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -22,6 +30,11 @@ import { AboutModal } from './pages/about';
 import { useWsConnection } from './hooks/use-ws-connection';
 import { useSessionStore } from './store/session';
 import { useSettingsStore } from './store/settings';
+import { copyToClipboardWithMeta } from './utils/strings';
+import { openUrl } from './utils/linking';
+
+const INSTALL_DOCS_URL = 'https://kyonru.github.io/feather/installation/';
+const CLI_DOCS_URL = 'https://kyonru.github.io/feather/cli/';
 
 const Modals = () => {
   const disconnected = useConfigStore((state) => state.disconnected);
@@ -52,11 +65,13 @@ const Modals = () => {
 function SessionEmptyState() {
   const sessions = useSessionStore((state) => state.sessions);
   const setSettingsOpen = useSettingsStore((state) => state.setOpen);
+  const cliProjectDir = useSettingsStore((state) => state.cliProjectDir);
   const hasSessions = Object.keys(sessions).length > 0;
+  const runCommand = `feather run ${cliProjectDir || 'path/to/my-game'}`;
 
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10 text-center">
-      <div className="flex max-w-md flex-col items-center gap-4">
+    <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10">
+      <div className="flex w-full max-w-2xl flex-col items-center gap-5 text-center">
         <div className="flex size-12 items-center justify-center rounded-md border bg-muted/40">
           <MonitorIcon className="size-5 text-muted-foreground" />
         </div>
@@ -69,10 +84,68 @@ function SessionEmptyState() {
           </p>
         </div>
         {!hasSessions && (
-          <Button size="sm" variant="outline" onClick={() => setSettingsOpen(true)}>
-            <SettingsIcon className="size-3.5" />
-            Open Settings
-          </Button>
+          <>
+            <div className="grid w-full gap-2 rounded-md border bg-card p-3 text-left shadow-xs sm:grid-cols-2">
+              <Button
+                variant="outline"
+                className="h-auto justify-start gap-3 px-3 py-3"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <SettingsIcon className="size-4 text-muted-foreground" />
+                <span className="grid gap-0.5">
+                  <span>Connect a LÖVE project</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    Set port, API key, and mobile setup.
+                  </span>
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto justify-start gap-3 px-3 py-3"
+                onClick={() => openUrl(INSTALL_DOCS_URL)}
+              >
+                <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                <span className="grid gap-0.5">
+                  <span>Install CLI</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    Use npm to install Feather globally.
+                  </span>
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto justify-start gap-3 px-3 py-3"
+                onClick={() => openUrl(CLI_DOCS_URL)}
+              >
+                <BookOpenIcon className="size-4 text-muted-foreground" />
+                <span className="grid gap-0.5">
+                  <span>Open docs</span>
+                  <span className="text-xs font-normal text-muted-foreground">Read the CLI workflow and commands.</span>
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto justify-start gap-3 px-3 py-3"
+                onClick={() => {
+                  copyToClipboardWithMeta(runCommand);
+                  toast.success('Copied CLI run command');
+                }}
+              >
+                <PlayIcon className="size-4 text-muted-foreground" />
+                <span className="grid min-w-0 gap-0.5">
+                  <span>Run Project with CLI</span>
+                  <span className="flex min-w-0 items-center gap-1 text-xs font-normal text-muted-foreground">
+                    <TerminalIcon className="size-3 shrink-0" />
+                    <code className="truncate">{runCommand}</code>
+                    <CopyIcon className="size-3 shrink-0" />
+                  </span>
+                </span>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              These are setup shortcuts only. Feather will move out of the way once a session connects.
+            </p>
+          </>
         )}
       </div>
     </div>

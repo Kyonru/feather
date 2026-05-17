@@ -197,22 +197,19 @@ function CoroutineMonitorPlugin:handleRequest()
     end
 
     -- Skip dead coroutines if filter is off
-    if not self.showDead and status == "dead" then
-      goto continue
+    if self.showDead or status ~= "dead" then
+      local age = now - entry.created
+      local lastYield = entry.lastYieldTime > 0 and string.format("%.1fs ago", now - entry.lastYieldTime) or "—"
+
+      rows[#rows + 1] = {
+        name = entry.label,
+        status = status,
+        yields = tostring(entry.yields),
+        yieldsFrame = tostring(entry.yieldsThisFrame),
+        lastYield = lastYield,
+        age = string.format("%.1fs", age),
+      }
     end
-
-    local age = now - entry.created
-    local lastYield = entry.lastYieldTime > 0 and string.format("%.1fs ago", now - entry.lastYieldTime) or "—"
-
-    rows[#rows + 1] = {
-      name = entry.label,
-      status = status,
-      yields = tostring(entry.yields),
-      yieldsFrame = tostring(entry.yieldsThisFrame),
-      lastYield = lastYield,
-      age = string.format("%.1fs", age),
-    }
-    ::continue::
   end
 
   local columns = {

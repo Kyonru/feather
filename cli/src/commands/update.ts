@@ -1,26 +1,11 @@
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import chalk from "chalk";
-import ora from "ora";
+import { join, resolve } from "node:path";
 import { fetchManifest, installCore, installCoreFromLocal, normalizeInstallDir } from "../lib/install.js";
 import { chooseCoreUpdateWorkflow } from "../ui/update-workflow.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-function bundledLuaRoot(): string {
-  return resolve(__dirname, "../../lua");
-}
-
-function repoLuaRoot(): string | null {
-  const candidate = resolve(__dirname, "../../../src-lua");
-  return existsSync(join(candidate, "feather", "init.lua")) ? candidate : null;
-}
-
-function resolveLocalLuaRoot(opts: { localSrc?: string }): string {
-  if (opts.localSrc) return resolve(opts.localSrc);
-  return repoLuaRoot() ?? bundledLuaRoot();
-}
+import { resolveLocalLuaRoot } from "../lib/paths.js";
+import { fail } from "../lib/command.js";
+import { createSpinner, printLine, printMuted, style } from "../lib/output.js";
+import { assertSafeProjectTarget } from "../lib/path-safety.js";
 
 export async function updateCommand(
   dir: string,
@@ -28,10 +13,15 @@ export async function updateCommand(
 ): Promise<void> {
   const target = resolve(dir);
   const installDir = normalizeInstallDir(opts.installDir);
+  let installedInit: string;
+  try {
+    installedInit = assertSafeProjectTarget(target, join(installDir, "init.lua"), "Core update target");
+  } catch (err) {
+    fail((err as Error).message);
+  }
 
-  if (!existsSync(join(target, installDir, "init.lua"))) {
-    console.error(chalk.red(`Feather is not installed in ${target}. Run \`feather init\` first.`));
-    process.exit(1);
+  if (!existsSync(installedInit)) {
+    fail(`Feather is not installed in ${target}. Run \`feather init\` first.`);
   }
 
   let branch = opts.branch ?? "main";
@@ -41,7 +31,7 @@ export async function updateCommand(
   if (!hasExplicitSource && process.stdin.isTTY) {
     const result = await chooseCoreUpdateWorkflow(branch);
     if (result.cancelled) {
-      console.log(chalk.dim("Update cancelled."));
+      printMuted("Update cancelled.");
       return;
     }
     useRemote = result.source === "remote";
@@ -50,7 +40,7 @@ export async function updateCommand(
 
   if (!useRemote) {
     const sourceRoot = resolveLocalLuaRoot(opts);
-    const spinner = ora("Updating feather core from local copy…").start();
+    const spinner = createSpinner("Updating feather core from local copy…").start();
     try {
       installCoreFromLocal(sourceRoot, target, installDir, (file) => {
         spinner.text = `Updating ${file}…`;
@@ -58,14 +48,14 @@ export async function updateCommand(
       spinner.succeed("Feather core updated");
     } catch (err) {
       spinner.fail((err as Error).message);
-      process.exit(1);
+      fail((err as Error).message, { cause: err, silent: true });
     }
 
-    console.log(chalk.bold("\nDone!") + " Feather core is up to date.\n");
+    printLine(`\n${style.heading("Done!")} Feather core is up to date.\n`);
     return;
   }
 
-  const spinner = ora("Fetching manifest…").start();
+  const spinner = createSpinner("Fetching manifest…").start();
 
   let entries: Awaited<ReturnType<typeof fetchManifest>>;
   try {
@@ -73,10 +63,10 @@ export async function updateCommand(
     spinner.succeed(`Manifest loaded (${entries.length} files)`);
   } catch (err) {
     spinner.fail((err as Error).message);
-    process.exit(1);
+    fail((err as Error).message, { cause: err, silent: true });
   }
 
-  const updateSpinner = ora("Updating feather core…").start();
+  const updateSpinner = createSpinner("Updating feather core…").start();
   try {
     await installCore(entries, target, branch, (f) => {
       updateSpinner.text = `Updating ${f}…`;
@@ -84,8 +74,8 @@ export async function updateCommand(
     updateSpinner.succeed("Feather core updated");
   } catch (err) {
     updateSpinner.fail((err as Error).message);
-    process.exit(1);
+    fail((err as Error).message, { cause: err, silent: true });
   }
 
-  console.log(chalk.bold("\nDone!") + " Feather core is up to date.\n");
+  printLine(`\n${style.heading("Done!")} Feather core is up to date.\n`);
 }

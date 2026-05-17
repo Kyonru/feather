@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { Box, Text, render, useApp, useInput } from "ink";
+import { Text, render, useApp } from "ink";
 import { pluginCatalog } from "../generated/plugin-catalog.js";
+import { SelectStep, MultiSelectStep, TextInputStep, BooleanStep } from "./components.js";
 
 type PluginAction = "list" | "install" | "remove" | "update" | "cancel";
 type PluginSource = "local" | "remote";
@@ -49,100 +50,6 @@ function pluginOption(id: string): Option {
   };
 }
 
-function SingleSelect<T extends string>({
-  title,
-  options,
-  cursor,
-}: {
-  title: string;
-  options: Option<T>[];
-  cursor: number;
-}) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Box flexDirection="column">
-        {options.map((option, index) => (
-          <Box key={option.value} flexDirection="column">
-            <Text color={index === cursor ? "cyan" : undefined}>
-              {index === cursor ? "›" : " "} {index + 1}. {option.label}
-            </Text>
-            {option.description ? <Text color="gray">  {option.description}</Text> : null}
-          </Box>
-        ))}
-      </Box>
-      <Text color="gray">Use ↑/↓, j/k, 1-{options.length}, then Enter.</Text>
-    </Box>
-  );
-}
-
-function MultiSelect({
-  title,
-  options,
-  selected,
-  cursor,
-}: {
-  title: string;
-  options: Option[];
-  selected: Set<string>;
-  cursor: number;
-}) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Box flexDirection="column">
-        {options.length === 0 ? <Text color="gray">Nothing to choose here.</Text> : null}
-        {options.map((option, index) => (
-          <Box key={option.value} flexDirection="column">
-            <Text color={index === cursor ? "cyan" : undefined}>
-              {index === cursor ? "›" : " "} {selected.has(option.value) ? "●" : "○"} {option.label}
-            </Text>
-            {option.description ? <Text color="gray">  {option.description}</Text> : null}
-          </Box>
-        ))}
-      </Box>
-      <Text color="gray">Space toggles, Enter continues.</Text>
-    </Box>
-  );
-}
-
-function TextInput({ title, value, placeholder }: { title: string; value: string; placeholder?: string }) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Text color={value ? "cyan" : "gray"}>{value || placeholder || " "}</Text>
-      <Text color="gray">Enter to continue. Backspace edits.</Text>
-    </Box>
-  );
-}
-
-function Confirm({
-  title,
-  rows,
-  yes,
-}: {
-  title: string;
-  rows: string[];
-  yes: boolean;
-}) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Box flexDirection="column">
-        {rows.map((row) => (
-          <Text key={row}>{row}</Text>
-        ))}
-      </Box>
-      <Text>
-        <Text color={yes ? "cyan" : undefined}>Yes</Text>
-        <Text> / </Text>
-        <Text color={!yes ? "cyan" : undefined}>No</Text>
-      </Text>
-      <Text color="gray">Use y/n, ←/→, then Enter.</Text>
-    </Box>
-  );
-}
-
 function PluginWorkflow({
   installedIds,
   defaultBranch,
@@ -151,19 +58,15 @@ function PluginWorkflow({
   onComplete,
 }: PluginWorkflowInput & { onComplete: (result: PluginWorkflowResult) => void }) {
   const { exit } = useApp();
-  const initialActionIndex = initialAction ? Math.max(0, actions.findIndex((option) => option.value === initialAction)) : 0;
-  const [phase, setPhase] = useState<Phase>(initialAction === "install" || initialAction === "update" ? "source" : "action");
-  const [actionCursor, setActionCursor] = useState(initialActionIndex);
-  const [sourceCursor, setSourceCursor] = useState(0);
-  const [pluginCursor, setPluginCursor] = useState(0);
+  const initialPhase: Phase = initialAction === "install" || initialAction === "update" ? "source" : "action";
+  const [phase, setPhase] = useState<Phase>(initialPhase);
+  const [action, setAction] = useState<PluginAction>(initialAction ?? "install");
+  const [source, setSource] = useState<PluginSource>("local");
   const [branch, setBranch] = useState(defaultBranch);
-  const [selected, setSelected] = useState<Set<string>>(
-    new Set(defaultSelectAll && initialAction === "update" ? installedIds : []),
+  const [selectedIds, setSelectedIds] = useState<string[]>(
+    defaultSelectAll && initialAction === "update" ? installedIds : [],
   );
-  const [confirmed, setConfirmed] = useState(true);
 
-  const action = actions[actionCursor].value;
-  const source = sources[sourceCursor].value;
   const installed = useMemo(() => new Set(installedIds), [installedIds]);
 
   const pluginOptions = useMemo(() => {
@@ -181,112 +84,112 @@ function PluginWorkflow({
     exit();
   };
 
-  const move = (delta: number, count: number, setter: (value: number | ((value: number) => number)) => void) => {
-    if (count <= 0) return;
-    setter((value: number) => (value + count + delta) % count);
-  };
+  const cancel = () => finish({ action: "cancel" });
 
-  const completeSelection = () => {
-    if (action === "remove") {
-      setPhase("confirm");
-      return;
-    }
-    if (action === "install" || action === "update") {
-      if (source === "remote") {
-        setPhase("branch");
-      } else {
-        setPhase("confirm");
-      }
-      return;
-    }
-    finish({ action: "cancel" });
-  };
-
-  useInput((input, key) => {
-    if (key.escape) {
-      finish({ action: "cancel" });
-      return;
-    }
-
-    if (phase === "action") {
-      if (key.upArrow || input === "k") move(-1, actions.length, setActionCursor);
-      else if (key.downArrow || input === "j") move(1, actions.length, setActionCursor);
-      else if (Number(input) >= 1 && Number(input) <= actions.length) setActionCursor(Number(input) - 1);
-      else if (key.return) {
-        const next = actions[actionCursor].value;
-        setSelected(new Set());
-        setPluginCursor(0);
-        if (next === "list" || next === "cancel") finish({ action: next });
-        else if (next === "install" || next === "update") setPhase("source");
-        else setPhase("plugins");
-      }
-      return;
-    }
-
-    if (phase === "source") {
-      if (key.upArrow || input === "k") move(-1, sources.length, setSourceCursor);
-      else if (key.downArrow || input === "j") move(1, sources.length, setSourceCursor);
-      else if (Number(input) >= 1 && Number(input) <= sources.length) setSourceCursor(Number(input) - 1);
-      else if (key.return) setPhase("plugins");
-      return;
-    }
-
-    if (phase === "plugins") {
-      if (key.upArrow || input === "k") move(-1, pluginOptions.length, setPluginCursor);
-      else if (key.downArrow || input === "j") move(1, pluginOptions.length, setPluginCursor);
-      else if (input === "a") setSelected(new Set(pluginOptions.map((option) => option.value)));
-      else if (input === " ") {
-        const option = pluginOptions[pluginCursor];
-        if (!option) return;
-        setSelected((current) => {
-          const next = new Set(current);
-          if (next.has(option.value)) next.delete(option.value);
-          else next.add(option.value);
-          return next;
-        });
-      } else if (key.return) completeSelection();
-      return;
-    }
-
-    if (phase === "branch") {
-      if (key.return) setPhase("confirm");
-      else if (key.backspace || key.delete) setBranch((value) => value.slice(0, -1));
-      else if (input && !key.ctrl && !key.meta) setBranch((value) => value + input);
-      return;
-    }
-
-    if (phase === "confirm") {
-      if (input === "y" || key.leftArrow) setConfirmed(true);
-      else if (input === "n" || key.rightArrow) setConfirmed(false);
-      else if (key.return) {
-        if (!confirmed) {
-          finish({ action: "cancel" });
-          return;
-        }
-        const pluginIds = [...selected];
-        if (action === "remove") finish({ action, pluginIds });
-        else if (action === "install" || action === "update") finish({ action, pluginIds, source, branch: branch.trim() || "main" });
-        else finish({ action: "cancel" });
-      }
-    }
-  });
-
-  if (phase === "action") return <SingleSelect title="Plugin workflow" options={actions} cursor={actionCursor} />;
-  if (phase === "source") return <SingleSelect title="Install/update source" options={sources} cursor={sourceCursor} />;
-  if (phase === "branch") return <TextInput title="GitHub branch or tag" value={branch} placeholder="main" />;
-  if (phase === "plugins") {
+  if (phase === "action") {
     return (
-      <MultiSelect
-        title={action === "install" ? "Choose plugins to install" : action === "update" ? "Choose plugins to update" : "Choose plugins to remove"}
-        options={pluginOptions}
-        selected={selected}
-        cursor={pluginCursor}
+      <SelectStep
+        label="Plugin workflow"
+        options={actions.map((a) => a.value)}
+        labels={actions.map((a) => a.label)}
+        descriptions={actions.map((a) => a.description ?? "")}
+        initialIndex={initialAction ? Math.max(0, actions.findIndex((a) => a.value === initialAction)) : 0}
+        onSelect={(value) => {
+          const act = value as PluginAction;
+          setAction(act);
+          if (act === "list" || act === "cancel") {
+            finish({ action: act });
+          } else if (act === "install" || act === "update") {
+            setPhase("source");
+          } else {
+            setPhase("plugins");
+          }
+        }}
+        onCancel={cancel}
       />
     );
   }
 
-  const rows = selected.size > 0 ? [...selected].map((id) => `- ${id}`) : ["No plugins selected."];
-  return <Confirm title={`Run ${action}?`} rows={rows} yes={confirmed} />;
+  if (phase === "source") {
+    return (
+      <SelectStep
+        label="Install/update source"
+        options={sources.map((s) => s.value)}
+        labels={sources.map((s) => s.label)}
+        descriptions={sources.map((s) => s.description ?? "")}
+        onSelect={(value) => {
+          setSource(value as PluginSource);
+          setPhase("plugins");
+        }}
+        onCancel={cancel}
+      />
+    );
+  }
+
+  if (phase === "branch") {
+    return (
+      <TextInputStep
+        label="GitHub branch or tag"
+        defaultValue={branch}
+        onSubmit={(value) => {
+          setBranch(value || "main");
+          setPhase("confirm");
+        }}
+      />
+    );
+  }
+
+  if (phase === "plugins") {
+    const allSelected = defaultSelectAll && action === "update";
+    const pluginTitle =
+      action === "install" ? "Choose plugins to install"
+      : action === "update" ? "Choose plugins to update"
+      : "Choose plugins to remove";
+    return (
+      <MultiSelectStep
+        label={pluginTitle}
+        options={pluginOptions.map((p) => p.value)}
+        labels={pluginOptions.map((p) => p.label)}
+        descriptions={pluginOptions.map((p) => p.description ?? "")}
+        initialSelected={allSelected ? undefined : new Set<number>()}
+        onSubmit={(chosen) => {
+          setSelectedIds(chosen);
+          if (action === "remove") {
+            setPhase("confirm");
+          } else if (source === "remote") {
+            setPhase("branch");
+          } else {
+            setPhase("confirm");
+          }
+        }}
+        onCancel={cancel}
+      />
+    );
+  }
+
+  const rows = selectedIds.length > 0 ? selectedIds : ["No plugins selected."];
+  return (
+    <BooleanStep
+      label={`Run ${action}?`}
+      onConfirm={() => {
+        if (action === "remove") {
+          finish({ action, pluginIds: selectedIds });
+        } else if (action === "install" || action === "update") {
+          finish({ action, pluginIds: selectedIds, source, branch: branch.trim() || "main" });
+        } else {
+          finish({ action: "cancel" });
+        }
+      }}
+      onCancel={cancel}
+    >
+      {rows.map((row) => (
+        <Text key={row} dimColor>
+          {"  - "}
+          {row}
+        </Text>
+      ))}
+    </BooleanStep>
+  );
 }
 
 export async function choosePluginWorkflow(input: PluginWorkflowInput): Promise<PluginWorkflowResult> {

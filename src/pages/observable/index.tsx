@@ -14,7 +14,7 @@ import { lineDiff, hasDiff } from '@/utils/diff';
 import { cn } from '@/utils/styles';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ActivityIcon, SearchIcon, SparklesIcon } from 'lucide-react';
+import { ActivityIcon, EyeIcon, SearchIcon } from 'lucide-react';
 
 function DiffView({ oldValue, newValue }: { oldValue: string; newValue: string }) {
   const lines = lineDiff(oldValue, newValue);
@@ -236,16 +236,16 @@ end`}
           </Select>
           <Button
             variant={changedOnly ? 'default' : 'outline'}
-            size="sm"
+            size="default"
             onClick={() => setChangedOnly((value) => !value)}
           >
-            <ActivityIcon className="size-3.5" />
+            <ActivityIcon className="size-4" />
             Changed
           </Button>
           {data.length > 0 && (
-            <Badge variant="secondary" className="gap-1">
-              <SparklesIcon className="size-3" />
-              {data.length.toLocaleString()} shown
+            <Badge variant="secondary" className="h-9 gap-1.5 px-3 text-sm">
+              <EyeIcon className="size-4" />
+              {data.length.toLocaleString()} of {all.length.toLocaleString()} shown
             </Badge>
           )}
         </div>

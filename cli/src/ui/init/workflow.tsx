@@ -1,272 +1,36 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Box, Text, render, useApp, useInput } from "ink";
-import { copyToClipboard } from "../lib/clipboard.js";
-import { pluginCatalog } from "../generated/plugin-catalog.js";
-
-export type InitMode = "cli" | "auto" | "manual";
-
-export type InitSetup = {
-  mode: InitMode;
-  source: "local" | "remote";
-  branch: string;
-  installDir: string;
-  installPlugins: boolean;
-  config: Record<string, unknown>;
-  exclude: string[];
-};
-
-type Phase =
-  | "mode"
-  | "installDir"
-  | "source"
-  | "branch"
-  | "sessionName"
-  | "installPlugins"
-  | "include"
-  | "exclude"
-  | "advanced"
-  | "host"
-  | "port"
-  | "modeConfig"
-  | "baseDir"
-  | "sampleRate"
-  | "updateInterval"
-  | "maxTempLogs"
-  | "outputDir"
-  | "retryInterval"
-  | "connectTimeout"
-  | "errorWait"
-  | "binaryTextThreshold"
-  | "deviceId"
-  | "capabilities"
-  | "toggles"
-  | "apiKey"
-  | "appId"
-  | "summary";
-
-type Option<T extends string = string> = {
-  value: T;
-  label: string;
-  description?: string;
-};
-
-const modes: Option<InitMode>[] = [
-  {
-    value: "cli",
-    label: "CLI injection",
-    description: "Create feather.config.lua only. Run with `feather run .`.",
-  },
-  {
-    value: "auto",
-    label: "Auto require",
-    description: 'Patch main.lua with a USE_DEBUGGER-guarded require("feather.auto").',
-  },
-  {
-    value: "manual",
-    label: "Manual setup",
-    description: "Create feather.debugger.lua and load it when USE_DEBUGGER is set.",
-  },
-];
-
-const installSources: Option<"local" | "remote">[] = [
-  {
-    value: "local",
-    label: "Bundled/local copy",
-    description: "Copy the CLI-bundled Lua runtime, or src-lua when running from the repo.",
-  },
-  {
-    value: "remote",
-    label: "GitHub download",
-    description: "Fetch files from GitHub using the selected branch or tag.",
-  },
-];
-
-const pluginToOption = (plugin: (typeof pluginCatalog)[number]): Option => ({
-  value: plugin.id,
-  label: plugin.name,
-  description: plugin.description,
-});
-
-const optionalPlugins: Option[] = pluginCatalog.filter((plugin) => plugin.optIn).map(pluginToOption);
-const skipPluginOptions: Option[] = pluginCatalog.map(pluginToOption);
-const defaultSkippedPlugins = new Set(["console", "hot-reload", "hump.signal", "lua-state-machine"]);
-
-const configToggles: Option[] = [
-  { value: "debug", label: "Enable Feather", description: "Set debug = true." },
-  { value: "wrapPrint", label: "Wrap print()", description: "Send print output to Logs." },
-  { value: "defaultObservers", label: "Default observers", description: "Capture built-in runtime observers." },
-  {
-    value: "autoRegisterErrorHandler",
-    label: "Error handler",
-    description: "Capture Lua errors before LÖVE shows its handler.",
-  },
-  { value: "writeToDisk", label: "Write logs to disk", description: "Persist .featherlog files." },
-  { value: "debugger", label: "Step debugger", description: "Enable debugger commands by default." },
-  { value: "captureScreenshot", label: "Error screenshots", description: "Capture screenshots on errors." },
-  { value: "assetPreview", label: "Asset previews", description: "Track loaded assets for the Assets tab." },
-];
-
-const numberPhases = new Set<Phase>([
-  "port",
-  "sampleRate",
-  "updateInterval",
-  "maxTempLogs",
-  "retryInterval",
-  "connectTimeout",
-  "errorWait",
-  "binaryTextThreshold",
-]);
-
-const textPromptTitles: Partial<Record<Phase, string>> = {
-  installDir: "Install directory",
-  branch: "GitHub branch or tag",
-  sessionName: "Session name shown in Feather",
-  host: "Desktop host",
-  port: "Desktop WebSocket port",
-  baseDir: "Base directory for file links",
-  sampleRate: "Sample rate in seconds",
-  updateInterval: "Update interval in seconds",
-  maxTempLogs: "Max temporary logs",
-  outputDir: "Output directory for logs",
-  retryInterval: "Reconnect interval in seconds",
-  connectTimeout: "Connect timeout in seconds",
-  errorWait: "Error delivery wait in seconds",
-  binaryTextThreshold: "Binary text threshold in bytes",
-  deviceId: "Device ID override",
-  capabilities: 'Capabilities ("all" or comma-separated)',
-};
-
-const isStrongApiKey = (value: string) => {
-  if (value.length < 16) return false;
-  if (/^(password|secret|changeme|dev|test|console|apikey)$/i.test(value)) return false;
-
-  const classes = [
-    /[a-z]/.test(value),
-    /[A-Z]/.test(value),
-    /\d/.test(value),
-    /[^A-Za-z0-9]/.test(value),
-  ].filter(Boolean).length;
-
-  return classes >= 3 || value.length >= 24;
-};
-
-const numericValue = (value: string, fallback: number) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const parseCapabilities = (value: string): string[] | "all" => {
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.toLowerCase() === "all") return "all";
-  return trimmed
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-function cursorLine(active: boolean, text: string, description?: string) {
-  return (
-    <Box flexDirection="column">
-      <Text color={active ? "cyan" : undefined}>
-        {active ? "›" : " "} {text}
-      </Text>
-      {description ? <Text color="gray">  {description}</Text> : null}
-    </Box>
-  );
-}
-
-function TextInputPrompt({
-  title,
-  value,
-  placeholder,
-  secure,
-  error,
-}: {
-  title: string;
-  value: string;
-  placeholder?: string;
-  secure?: boolean;
-  error?: string;
-}) {
-  const shown = secure && value ? "•".repeat(value.length) : value;
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Text>
-        <Text color={value ? "cyan" : "gray"}>{shown || placeholder || " "}</Text>
-      </Text>
-      {error ? <Text color="red">{error}</Text> : <Text color="gray">Enter to continue. Backspace edits.</Text>}
-    </Box>
-  );
-}
-
-function SingleSelect<T extends string>({
-  title,
-  options,
-  selected,
-}: {
-  title: string;
-  options: Option<T>[];
-  selected: number;
-}) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Box flexDirection="column">
-        {options.map((option, index) => (
-          <Box key={option.value}>{cursorLine(index === selected, `${index + 1}. ${option.label}`, option.description)}</Box>
-        ))}
-      </Box>
-      <Text color="gray">Use ↑/↓, j/k, 1-{options.length}, then Enter.</Text>
-    </Box>
-  );
-}
-
-function MultiSelect({
-  title,
-  options,
-  selected,
-  cursor,
-  hint = "Space toggles, Enter continues.",
-}: {
-  title: string;
-  options: Option[];
-  selected: Set<string>;
-  cursor: number;
-  hint?: string;
-}) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Box flexDirection="column">
-        {options.length === 0 ? <Text color="gray">No options available.</Text> : null}
-        {options.map((option, index) => (
-          <Box key={option.value} flexDirection="column">
-            <Text color={index === cursor ? "cyan" : undefined}>
-              {index === cursor ? "›" : " "} {selected.has(option.value) ? "●" : "○"} {option.label}
-            </Text>
-            {option.description ? <Text color="gray">  {option.description}</Text> : null}
-          </Box>
-        ))}
-      </Box>
-      <Text color="gray">{hint}</Text>
-    </Box>
-  );
-}
-
-function ConfirmPrompt({ title, value }: { title: string; value: boolean }) {
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>{title}</Text>
-      <Text>
-        <Text color={value ? "cyan" : undefined}>Yes</Text>
-        <Text> / </Text>
-        <Text color={!value ? "cyan" : undefined}>No</Text>
-      </Text>
-      <Text color="gray">Use y/n, ←/→, then Enter.</Text>
-    </Box>
-  );
-}
+import { copyToClipboard } from "../../lib/clipboard.js";
+import { buildInitSetup } from "./config.js";
+import {
+  configToggles,
+  dangerousInsecureConnection,
+  defaultSkippedPlugins,
+  installSources,
+  isStrongApiKey,
+  modes,
+  numberPhases,
+  optionalPlugins,
+  pluginTone,
+  skipPluginOptions,
+  textPromptTitles,
+  toggleTone,
+  type InitMode,
+  type InitSetup,
+  type Phase,
+  type SummaryRow,
+} from "./model.js";
+import {
+  ConfirmPrompt,
+  DangerousName,
+  InfoPanel,
+  MultiSelect,
+  NameList,
+  SingleSelect,
+  SummaryRows,
+  TextInputPrompt,
+} from "./prompts.js";
+import { buildInitSummaryRows } from "./summary.js";
 
 function InitSetupPrompt({
   defaultMode,
@@ -347,58 +111,36 @@ function InitSetupPrompt({
   const nextAfterToggles = () => setPhase(needsApiKey ? "apiKey" : "appId");
 
   const finish = () => {
-    const config: Record<string, unknown> = {};
-    if (sessionName.trim()) config.sessionName = sessionName.trim();
-    if (pluginPromptsEnabled && include.size > 0) config.include = [...include];
-    if (pluginPromptsEnabled && exclude.size > 0) config.exclude = [...exclude];
-
-    if (advanced) {
-      config.debug = toggles.has("debug");
-      config.host = host.trim() || "127.0.0.1";
-      config.port = numericValue(port, 4004);
-      config.mode = socketModeIndex === 0 ? "socket" : "disk";
-      if (baseDir.trim()) config.baseDir = baseDir.trim();
-      config.wrapPrint = toggles.has("wrapPrint");
-      config.maxTempLogs = numericValue(maxTempLogs, 200);
-      config.sampleRate = numericValue(sampleRate, 1);
-      config.updateInterval = numericValue(updateInterval, 0.1);
-      config.defaultObservers = toggles.has("defaultObservers");
-      config.errorWait = numericValue(errorWait, 3);
-      config.autoRegisterErrorHandler = toggles.has("autoRegisterErrorHandler");
-      config.captureScreenshot = toggles.has("captureScreenshot");
-      config.writeToDisk = toggles.has("writeToDisk");
-      config.outputDir = outputDir.trim() || "logs";
-      config.capabilities = parseCapabilities(capabilities);
-      config.retryInterval = numericValue(retryInterval, 5);
-      config.connectTimeout = numericValue(connectTimeout, 2);
-      config.debugger = toggles.has("debugger");
-      config.assetPreview = toggles.has("assetPreview");
-      config.binaryTextThreshold = numericValue(binaryTextThreshold, 4096);
-      if (deviceId.trim()) config.deviceId = deviceId.trim();
-    }
-
-    if (needsApiKey) {
-      config.apiKey = apiKey;
-      config.pluginOptions = {
-        console: { evalEnabled: true },
-      };
-    }
-
-    if (appIdInput.trim()) {
-      config.appId = appIdInput.trim();
-    } else {
-      config.__DANGEROUS_INSECURE_CONNECTION__ = true;
-    }
-
-    onComplete({
+    onComplete(buildInitSetup({
       mode,
-      source: installSource,
-      branch: branch.trim() || "main",
-      installDir: installDir.trim() || "feather",
+      installSource,
+      branch,
+      installDir,
       installPlugins,
-      config,
-      exclude: pluginPromptsEnabled ? [...exclude] : [],
-    });
+      pluginPromptsEnabled,
+      include,
+      exclude,
+      advanced,
+      sessionName,
+      host,
+      port,
+      socketModeIndex,
+      baseDir,
+      sampleRate,
+      updateInterval,
+      maxTempLogs,
+      outputDir,
+      retryInterval,
+      connectTimeout,
+      errorWait,
+      binaryTextThreshold,
+      deviceId,
+      capabilities,
+      toggles,
+      needsApiKey,
+      apiKey,
+      appIdInput,
+    }));
     exit();
   };
 
@@ -602,30 +344,23 @@ function InitSetupPrompt({
     if (key.return) finish();
   });
 
-  const summary = useMemo(() => {
-    const rows = [
-      `Mode: ${modes[modeIndex].label}`,
-      installsFiles ? `Install dir: ${installDir || "feather"}/` : "Install dir: bundled CLI runtime",
-      installsFiles ? `Source: ${installSources[sourceIndex].label}` : undefined,
-      installsFiles && installSource === "remote" ? `Branch: ${branch || "main"}` : undefined,
-      installsFiles ? `Install plugins: ${installPlugins ? "yes" : "no"}` : undefined,
-      `Session: ${sessionName || "(default)"}`,
-      pluginPromptsEnabled ? `Include: ${include.size > 0 ? [...include].join(", ") : "(none)"}` : undefined,
-      pluginPromptsEnabled ? `Exclude: ${exclude.size > 0 ? [...exclude].join(", ") : "(none)"}` : undefined,
-      advanced ? "Advanced config: yes" : "Advanced config: no",
-    ].filter(Boolean) as string[];
-    if (needsApiKey) {
-      rows.push(
-        apiKeyCopied === true
-          ? "Console API key: set and copied to clipboard"
-          : apiKeyCopied === false
-            ? "Console API key: set (clipboard copy unavailable)"
-            : "Console API key: set",
-      );
-    }
-    rows.push(appIdInput.trim() ? `App ID: ${appIdInput.trim()}` : "App ID: not set → __DANGEROUS_INSECURE_CONNECTION__ = true (any Feather desktop can connect)");
-    return rows;
-  }, [
+  const summary = useMemo<SummaryRow[]>(() => buildInitSummaryRows({
+    advanced,
+    apiKeyCopied,
+    appIdInput,
+    branch,
+    exclude,
+    include,
+    installDir,
+    installPlugins,
+    installsFiles,
+    installSource,
+    modeIndex,
+    needsApiKey,
+    pluginPromptsEnabled,
+    sessionName,
+    sourceIndex,
+  }), [
     advanced,
     apiKeyCopied,
     appIdInput,
@@ -646,7 +381,17 @@ function InitSetupPrompt({
   if (phase === "mode") return <SingleSelect title="How should Feather be added to this project?" options={modes} selected={modeIndex} />;
   if (phase === "source") return <SingleSelect title="Where should Feather be installed from?" options={installSources} selected={sourceIndex} />;
   if (phase === "installPlugins") return <ConfirmPrompt title="Install built-in plugins?" value={installPlugins} />;
-  if (phase === "include") return <MultiSelect title="Force-enable optional plugins?" options={optionalPlugins} selected={include} cursor={includeCursor} />;
+  if (phase === "include") {
+    return (
+      <MultiSelect
+        title="Force-enable optional plugins?"
+        options={optionalPlugins}
+        selected={include}
+        cursor={includeCursor}
+        getTone={(option) => pluginTone(option.value)}
+      />
+    );
+  }
   if (phase === "exclude") {
     return (
       <MultiSelect
@@ -654,6 +399,7 @@ function InitSetupPrompt({
         options={skipPluginOptions}
         selected={exclude}
         cursor={excludeCursor}
+        getTone={(option) => pluginTone(option.value)}
       />
     );
   }
@@ -670,20 +416,34 @@ function InitSetupPrompt({
       />
     );
   }
-  if (phase === "toggles") return <MultiSelect title="Toggle runtime options" options={configToggles} selected={toggles} cursor={toggleCursor} />;
+  if (phase === "toggles") {
+    return (
+      <MultiSelect
+        title="Toggle runtime options"
+        options={configToggles}
+        selected={toggles}
+        cursor={toggleCursor}
+        getTone={(option) => toggleTone(option.value)}
+      />
+    );
+  }
   if (phase === "apiKey") {
     return <TextInputPrompt title="Console API key" value={apiKey} secure error={error} placeholder="Strong secret, 16+ chars" />;
   }
   if (phase === "appId") {
     return (
       <Box flexDirection="column" gap={1}>
-        <TextInputPrompt
-          title="Desktop App ID"
-          value={appIdInput}
-          placeholder="feather-app-xxxxxxxx-…  (leave empty to use __DANGEROUS_INSECURE_CONNECTION__ = true)"
-        />
-        <Text color="gray">Find it in the Feather desktop app → Settings → Security → Desktop App ID.</Text>
-        <Text color="gray">If skipped, __DANGEROUS_INSECURE_CONNECTION__ = true is written to feather.config.lua so any Feather desktop can send commands to the game.</Text>
+        <TextInputPrompt title="Desktop App ID" value={appIdInput} placeholder="feather-app-xxxxxxxx-…" />
+        <InfoPanel title="Where to find it" tone="info">
+          <Text color="gray">Feather desktop app → Settings → Security → Desktop App ID.</Text>
+        </InfoPanel>
+        <InfoPanel title="Leaving this blank" tone="danger">
+          <Text>
+            Writes <DangerousName>{dangerousInsecureConnection}</DangerousName>
+            <Text color="red"> = true</Text> to feather.config.lua.
+          </Text>
+          <Text color="gray">Use only for trusted local development. Any Feather desktop can connect to the game.</Text>
+        </InfoPanel>
       </Box>
     );
   }
@@ -692,14 +452,52 @@ function InitSetupPrompt({
     return <TextInputPrompt title={textPromptTitles[phase] ?? "Value"} value={value} placeholder={value || undefined} />;
   }
 
+  const enabledAdvancedOptions = advanced ? configToggles.filter((option) => toggles.has(option.value)).map((option) => option.value) : [];
+  const writesRuntimeFiles = mode !== "cli";
+  const patchesMainLua = mode === "auto";
+
   return (
     <Box flexDirection="column" gap={1}>
-      <Text bold>Ready to initialize Feather</Text>
-      <Box flexDirection="column">
-        {summary.map((row) => (
-          <Text key={row}>{row}</Text>
-        ))}
-      </Box>
+      <Text bold color="cyan">
+        Ready to initialize Feather
+      </Text>
+      <SummaryRows rows={summary} />
+      <InfoPanel title="Files" tone={patchesMainLua ? "warning" : "info"}>
+        {writesRuntimeFiles ? (
+          <>
+            <Text>
+              Runtime files will be written under <Text color="cyan">{installDir || "feather"}/</Text>.
+            </Text>
+            {patchesMainLua ? (
+              <Text color="yellow">main.lua will be patched with a USE_DEBUGGER-guarded require.</Text>
+            ) : (
+              <Text color="gray">feather.debugger.lua will be created for manual loading.</Text>
+            )}
+          </>
+        ) : (
+          <Text color="gray">No runtime files will be copied; the CLI runtime is used at launch.</Text>
+        )}
+      </InfoPanel>
+      <InfoPanel title={appIdInput.trim() ? "Connection" : "Connection risk"} tone={appIdInput.trim() ? "success" : "danger"}>
+        {appIdInput.trim() ? (
+          <Text color="green">Desktop connections are limited to the configured App ID.</Text>
+        ) : (
+          <>
+            <Text>
+              <DangerousName>{dangerousInsecureConnection}</DangerousName>
+              <Text color="red"> is enabled.</Text>
+            </Text>
+            <Text color="gray">Any Feather desktop can send commands to this game while it is running.</Text>
+          </>
+        )}
+      </InfoPanel>
+      {advanced ? (
+        <InfoPanel title="Advanced runtime options" tone="warning">
+          <Text>
+            Enabled: <NameList values={enabledAdvancedOptions} getTone={toggleTone} />
+          </Text>
+        </InfoPanel>
+      ) : null}
       <Text color="gray">Press Enter to continue.</Text>
     </Box>
   );

@@ -100,48 +100,45 @@ function AnimationInspectorPlugin:handleRequest()
     local ok, anim = pcall(entry.getter)
     if ok and anim then
       local status = anim.status or "?"
-      if not self.showPaused and status == "paused" then
-        goto continue
-      end
-
-      local totalFrames = anim.frames and #anim.frames or 0
-      local position = anim.position or 0
-      local timer = anim.timer or 0
-      local totalDuration = anim.totalDuration or 0
-      local currentDuration = (anim.durations and anim.durations[position]) or 0
-      local flipped = ""
-      if anim.flippedH then
-        flipped = flipped .. "H"
-      end
-      if anim.flippedV then
-        flipped = flipped .. (flipped ~= "" and "+V" or "V")
-      end
-      if flipped == "" then
-        flipped = "—"
-      end
-
-      -- Get frame dimensions if available
-      local dims = "?"
-      if anim.frames and anim.frames[position] then
-        local pok, w, h = pcall(function()
-          local _, _, fw, fh = anim.frames[position]:getViewport()
-          return fw, fh
-        end)
-        if pok then
-          dims = string.format("%dx%d", w, h)
+      if self.showPaused or status ~= "paused" then
+        local totalFrames = anim.frames and #anim.frames or 0
+        local position = anim.position or 0
+        local timer = anim.timer or 0
+        local totalDuration = anim.totalDuration or 0
+        local currentDuration = (anim.durations and anim.durations[position]) or 0
+        local flipped = ""
+        if anim.flippedH then
+          flipped = flipped .. "H"
         end
-      end
+        if anim.flippedV then
+          flipped = flipped .. (flipped ~= "" and "+V" or "V")
+        end
+        if flipped == "" then
+          flipped = "—"
+        end
 
-      rows[#rows + 1] = {
-        name = entry.name,
-        status = status,
-        frame = string.format("%d/%d", position, totalFrames),
-        timer = string.format("%.2f/%.2fs", timer, totalDuration),
-        frameDur = string.format("%.3fs", currentDuration),
-        flip = flipped,
-        size = dims,
-      }
-      ::continue::
+        -- Get frame dimensions if available
+        local dims = "?"
+        if anim.frames and anim.frames[position] then
+          local pok, w, h = pcall(function()
+            local _, _, fw, fh = anim.frames[position]:getViewport()
+            return fw, fh
+          end)
+          if pok then
+            dims = string.format("%dx%d", w, h)
+          end
+        end
+
+        rows[#rows + 1] = {
+          name = entry.name,
+          status = status,
+          frame = string.format("%d/%d", position, totalFrames),
+          timer = string.format("%.2f/%.2fs", timer, totalDuration),
+          frameDur = string.format("%.3fs", currentDuration),
+          flip = flipped,
+          size = dims,
+        }
+      end
     else
       rows[#rows + 1] = {
         name = entry.name,

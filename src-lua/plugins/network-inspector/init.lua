@@ -387,22 +387,29 @@ function NetworkInspectorPlugin:update()
       local matchEndpoint = p.endpoint:lower():find(filterLower, 1, true)
       local matchPayload = p.payload:lower():find(filterLower, 1, true)
       local matchDir = p.direction:lower():find(filterLower, 1, true)
-      if not matchEndpoint and not matchPayload and not matchDir then
-        goto continue
+      local matches = matchEndpoint or matchPayload or matchDir
+      if matches then
+        rows[#rows + 1] = {
+          id = tostring(p.id),
+          direction = p.direction == "out" and "→ OUT" or "← IN",
+          endpoint = p.endpoint,
+          size = formatSize(p.size),
+          payload = p.payload,
+          gameTime = string.format("%.2f", p.gameTime),
+          status = p.status == "error" and ("✗ " .. (p.error or "error")) or "✓",
+        }
       end
+    else
+      rows[#rows + 1] = {
+        id = tostring(p.id),
+        direction = p.direction == "out" and "→ OUT" or "← IN",
+        endpoint = p.endpoint,
+        size = formatSize(p.size),
+        payload = p.payload,
+        gameTime = string.format("%.2f", p.gameTime),
+        status = p.status == "error" and ("✗ " .. (p.error or "error")) or "✓",
+      }
     end
-
-    rows[#rows + 1] = {
-      id = tostring(p.id),
-      direction = p.direction == "out" and "→ OUT" or "← IN",
-      endpoint = p.endpoint,
-      size = formatSize(p.size),
-      payload = p.payload,
-      gameTime = string.format("%.2f", p.gameTime),
-      status = p.status == "error" and ("✗ " .. (p.error or "error")) or "✓",
-    }
-
-    ::continue::
   end
 
   return {

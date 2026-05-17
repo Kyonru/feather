@@ -28,7 +28,7 @@ test('shows no-session empty state and opens settings', async ({ page }) => {
   await expect(page.getByText('No session connected')).toBeVisible();
   await expect(page.getByText('Start a game with Feather enabled')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Open Settings' }).click();
+  await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
   await expect(page.getByLabel('WebSocket Port')).toHaveValue('4004');
   await expect(page.getByLabel('Connection Timeout (seconds)')).toHaveValue('15');
@@ -36,21 +36,22 @@ test('shows no-session empty state and opens settings', async ({ page }) => {
 
 test('persists settings changes across reloads', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Open Settings' }).click();
+  await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
 
-  const port = page.getByLabel('WebSocket Port');
-  const timeout = page.getByLabel('Connection Timeout (seconds)');
-  const assetRoot = page.getByLabel('Asset Source Directory');
+  await page.getByLabel('WebSocket Port').fill('4111');
+  await page.getByLabel('Connection Timeout (seconds)').fill('22');
 
-  await port.fill('4111');
-  await timeout.fill('22');
-  await assetRoot.fill('/tmp/feather-assets');
+  await page.getByRole('tab', { name: 'General' }).click();
+  await page.getByLabel('Asset Source Directory').fill('/tmp/feather-assets');
+
   await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Close' }).first().click();
 
   await page.reload();
-  await page.getByRole('button', { name: 'Open Settings' }).click();
+  await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
   await expect(page.getByLabel('WebSocket Port')).toHaveValue('4111');
   await expect(page.getByLabel('Connection Timeout (seconds)')).toHaveValue('22');
+
+  await page.getByRole('tab', { name: 'General' }).click();
   await expect(page.getByLabel('Asset Source Directory')).toHaveValue('/tmp/feather-assets');
 });
 

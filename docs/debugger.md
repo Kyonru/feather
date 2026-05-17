@@ -11,17 +11,26 @@ It also hosts Feather's opt-in [Hot Reload](hot-reload.md) controls for selected
 
 ## Setup
 
-### With auto.lua
+### CLI-managed setup
 
-The debugger is controlled by the `debugger` config option, not the plugin system. Enable it in auto setup:
+The debugger is controlled by the `debugger` config option, not the plugin system. Enable it in `feather.config.lua`, then run through the CLI:
 
 ```lua
-require("feather.auto").setup({
+return {
   debugger = true,
-})
+}
+```
+
+```bash
+feather run path/to/my-game
+feather run path/to/my-game --target web
+feather run path/to/my-game --target android
+feather run path/to/my-game --target ios
 ```
 
 ### Manual setup
+
+Manual Lua integration is only needed for projects that intentionally vendor Feather themselves:
 
 ```lua
 local debugger = FeatherDebugger({

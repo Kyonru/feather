@@ -10,7 +10,7 @@ on:
       - "package-lock.json"
       - ".github/workflows/cli-e2e.yml"
   push:
-    branches: [ main, next ]
+    branches: [main]
     paths:
       - "cli/**"
       - "src-lua/**"

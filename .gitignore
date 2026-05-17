@@ -29,3 +29,6 @@ docs/_site/
 playwright-report/
 test-results/
 .env
+builds/
+vendor/
+feather.build.json

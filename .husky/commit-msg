@@ -5,7 +5,7 @@ message_file="$1"
 subject="$(sed -n '1p' "$message_file")"
 
 case "$subject" in
-  ci:*|cli:*|app:*|lua:*|tauri:*|feather:*|docs:*)
+  ci:*|cli:*|package:*|plugin:*|app:*|lua:*|tauri:*|feather:*|docs:*)
     exit 0
     ;;
 esac
@@ -16,6 +16,8 @@ cat <<'EOF'
 Commit message must start with one of:
   ci:
   cli:
+  package:
+  plugin:
   app:
   lua:
   tauri:

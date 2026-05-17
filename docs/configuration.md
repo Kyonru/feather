@@ -31,6 +31,7 @@
 | `appId`                             | `string`              | `""`                | Desktop App ID that is allowed to send commands to this game. Copy from **Feather → Settings → Security → Desktop App ID**. Required unless `__DANGEROUS_INSECURE_CONNECTION__` is set. |
 | `__DANGEROUS_INSECURE_CONNECTION__` | `boolean`             | `false`             | Explicit opt-in to skip the appId check and accept commands from any Feather desktop. Must be set to acknowledge the security risk (e.g. in a LAN jam build without a fixed App ID).    |
 | `debugger`                          | `boolean` or `table`  | `false`             | Enable the step debugger, or pass debugger options such as `debugger.hotReload`.                                                                                                        |
+| `debugOverlay`                      | `table` or `false`    | enabled in debug    | Small in-game “Feather debugger enabled” badge. Use `enabled`, `visible`, `hideKey`, `touchToggle`, and `corner` to customize it. Press `F12` or double-tap the top-right corner to hide/show by default. |
 | `assetPreview`                      | `boolean`             | `true`              | Enable the core Assets tab tracking and previews. Set to `false` to avoid hooking asset loaders and `love.draw`.                                                                        |
 | `binaryTextThreshold`               | `number`              | `4096`              | Observer, time-travel, debugger, and console text values longer than this many bytes are sent through the hybrid binary protocol instead of JSON.                                       |
 
@@ -73,6 +74,15 @@ See [Hot Reload](hot-reload.md) for the full workflow.
 
 Feather uses a **nonce-based challenge-response handshake** to authenticate each connection before any game data is exchanged.
 
+The CLI can audit these settings:
+
+```bash
+feather doctor path/to/my-game --production
+feather doctor path/to/my-game --security --json
+```
+
+`--production` fails on unsafe release settings. `--security --json` emits a machine-readable security report and redacts sensitive values such as `apiKey`.
+
 ### How it works
 
 1. When the game connects, the desktop immediately sends a one-time challenge nonce.
@@ -111,6 +121,19 @@ The desktop will accept the connection and show an insecure badge on the session
 
 > [!CAUTION]
 > Insecure mode allows **any** Feather desktop on the network to send commands to your game, including triggering the console plugin if installed. Do not ship production builds with insecure mode enabled.
+
+### Console API key
+
+The Console plugin can evaluate Lua inside the running game. If `console` is included, configure a strong `apiKey` and match it in Feather desktop Settings:
+
+```lua
+return {
+  include = { "console" },
+  apiKey = "a-long-random-per-session-secret",
+}
+```
+
+Doctor reports whether the key is configured or weak, but does not print the key value.
 
 ---
 

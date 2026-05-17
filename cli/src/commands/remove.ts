@@ -1,8 +1,11 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import chalk from "chalk";
 import { normalizeInstallDir } from "../lib/install.js";
 import { chooseRemoveWorkflow, type RemoveTarget } from "../ui/remove-workflow.js";
+import { parseManagedValue } from "../lib/plugin-utils.js";
+import { fail } from "../lib/command.js";
+import { icon, printLine, printMuted, style } from "../lib/output.js";
+import { assertSafeProjectTarget } from "../lib/path-safety.js";
 
 export interface RemoveOptions {
   yes?: boolean;
@@ -20,25 +23,29 @@ type RemoveContext = {
   configPath: string;
   mainPath: string;
   manualEntrypoint: string;
+  manualPath: string;
+  runtimePath: string;
 };
-
-function metadataValue(src: string, key: string): string | null {
-  return src.match(new RegExp(`^--\\s*${key}:\\s*(.+)$`, "m"))?.[1]?.trim() ?? null;
-}
 
 function resolveContext(dir: string, opts: RemoveOptions): RemoveContext {
   const projectDir = resolve(dir);
-  const configPath = join(projectDir, "feather.config.lua");
+  const configPath = assertSafeProjectTarget(projectDir, "feather.config.lua", "Config remove target");
   const configSrc = existsSync(configPath) ? readFileSync(configPath, "utf8") : "";
-  const installDir = normalizeInstallDir(opts.installDir ?? metadataValue(configSrc, "installDir") ?? "feather");
-  const manualEntrypoint = metadataValue(configSrc, "manualEntrypoint") ?? "feather.debugger.lua";
+  const installDir = normalizeInstallDir(opts.installDir ?? parseManagedValue(configSrc, "installDir") ?? "feather");
+  const manualEntrypoint = parseManagedValue(configSrc, "manualEntrypoint") ?? "feather.debugger.lua";
+  const runtimePath = assertSafeProjectTarget(projectDir, installDir, "Runtime remove target");
+  const manualPath = manualEntrypoint === "(none)"
+    ? join(projectDir, "(none)")
+    : assertSafeProjectTarget(projectDir, manualEntrypoint, "Manual entrypoint remove target");
 
   return {
     projectDir,
     installDir,
     configPath,
-    mainPath: join(projectDir, "main.lua"),
+    mainPath: assertSafeProjectTarget(projectDir, "main.lua", "main.lua update target"),
     manualEntrypoint,
+    manualPath,
+    runtimePath,
   };
 }
 
@@ -60,29 +67,30 @@ function discoverTargets(context: RemoveContext, opts: RemoveOptions): RemoveTar
         path: context.mainPath,
         description: "Remove only the FEATHER-INIT require block and DEBUGGER:update hook.",
         defaultSelected: true,
+        dangerous: true,
       });
     }
   }
 
-  const runtimePath = join(context.projectDir, context.installDir);
-  if (!opts.keepRuntime && existsSync(runtimePath)) {
+  if (!opts.keepRuntime && existsSync(context.runtimePath)) {
     targets.push({
       id: "runtime",
       label: "Feather runtime",
-      path: runtimePath,
+      path: context.runtimePath,
       description: "Delete the installed Feather core and plugins directory.",
       defaultSelected: true,
+      dangerous: true,
     });
   }
 
-  const manualPath = join(context.projectDir, context.manualEntrypoint);
-  if (!opts.keepManual && context.manualEntrypoint !== "(none)" && existsSync(manualPath)) {
+  if (!opts.keepManual && context.manualEntrypoint !== "(none)" && existsSync(context.manualPath)) {
     targets.push({
       id: "manual",
       label: "Manual debugger entrypoint",
-      path: manualPath,
+      path: context.manualPath,
       description: "Delete the generated manual setup file.",
       defaultSelected: true,
+      dangerous: true,
     });
   }
 
@@ -96,6 +104,7 @@ function discoverTargets(context: RemoveContext, opts: RemoveOptions): RemoveTar
         ? "Delete the generated Feather config file."
         : "Delete feather.config.lua. This file does not contain managed metadata.",
       defaultSelected: configSrc.includes("FEATHER-MANAGED-BEGIN"),
+      dangerous: true,
     });
   }
 
@@ -112,16 +121,14 @@ function applyTarget(id: string, context: RemoveContext, dryRun: boolean): strin
   }
 
   if (id === "runtime") {
-    const runtimePath = join(context.projectDir, context.installDir);
-    if (!existsSync(runtimePath)) return null;
-    if (!dryRun) rmSync(runtimePath, { recursive: true, force: true });
+    if (!existsSync(context.runtimePath)) return null;
+    if (!dryRun) rmSync(context.runtimePath, { recursive: true, force: true });
     return `Removed ${context.installDir}/`;
   }
 
   if (id === "manual") {
-    const manualPath = join(context.projectDir, context.manualEntrypoint);
-    if (!existsSync(manualPath)) return null;
-    if (!dryRun) rmSync(manualPath, { force: true });
+    if (!existsSync(context.manualPath)) return null;
+    if (!dryRun) rmSync(context.manualPath, { force: true });
     return `Removed ${context.manualEntrypoint}`;
   }
 
@@ -138,35 +145,38 @@ export async function removeCommand(dir: string, opts: RemoveOptions): Promise<v
   const context = resolveContext(dir, opts);
 
   if (!existsSync(context.mainPath)) {
-    console.error(chalk.red(`No main.lua found in ${context.projectDir}. Is this a Love2D project?`));
-    process.exit(1);
+    fail(`No main.lua found in ${context.projectDir}. Is this a Love2D project?`);
   }
 
   const targets = discoverTargets(context, opts);
   if (targets.length === 0) {
-    console.log(chalk.dim("No managed Feather files or markers found."));
+    printMuted("No managed Feather files or markers found.");
     return;
+  }
+
+  if (!opts.yes && !opts.dryRun && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    fail("Refusing to remove Feather files without --yes in non-interactive mode.");
   }
 
   let targetIds = targets.filter((target) => target.defaultSelected).map((target) => target.id);
   if (!opts.yes && process.stdin.isTTY) {
     const result = await chooseRemoveWorkflow(targets);
     if (result.cancelled) {
-      console.log(chalk.dim("Remove cancelled."));
+      printMuted("Remove cancelled.");
       return;
     }
     targetIds = result.targetIds;
   }
 
   if (targetIds.length === 0) {
-    console.log(chalk.dim("No remove targets selected."));
+    printMuted("No remove targets selected.");
     return;
   }
 
   for (const id of targetIds) {
     const message = applyTarget(id, context, opts.dryRun === true);
     if (message) {
-      console.log((opts.dryRun ? chalk.dim("dry-run ") : chalk.green("✔ ")) + message);
+      printLine((opts.dryRun ? style.muted("dry-run ") : `${icon.success} `) + message);
     }
   }
 }

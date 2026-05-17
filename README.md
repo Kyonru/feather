@@ -1,4 +1,4 @@
-# Feather — CLI, Debugging & Inspection Tool for Löve2D
+# Feather — CLI Debugging, Inspection, and Builds for LÖVE
 
 Feather is a CLI for debugging, inspecting, and manage packages for [LÖVE](https://love2d.org) games.
 
@@ -19,10 +19,10 @@ The goal is to make the day-to-day loop of writing and testing a LÖVE game fast
 - **Console / REPL** — Execute Lua in the running game (opt-in, requires an `apiKey`).
 - **Plugin system** — 18+ built-in plugins (collision debug, animation inspector, audio debug, particle editor, and more). Plugins define their UI in Lua; the desktop app renders it automatically.
 - **Multi-session** — Connect multiple games at the same time.
-- **Mobile debugging** — Auto-detected LAN IP for connecting phones, tablets, and Steam Deck.
+- **Mobile and platform builds** — CLI-managed web, Android, iOS, Windows, macOS, Linux, and SteamOS workflows.
 - **Screenshots & GIF capture** — Built-in capture plugin.
 - **Log file viewer** — Open `.featherlog` files for offline inspection.
-- **CLI** — No Lua changes needed to run and debug love2d games.
+- **CLI** — No Lua changes needed to run, debug, build, or clean up love2d games.
   - **Package Manager** — Install packages from a curated list of popular love2D packages.
 
 ---
@@ -33,60 +33,65 @@ The goal is to make the day-to-day loop of writing and testing a LÖVE game fast
 
 ---
 
-## Setup
+## Quick Start
 
-Install the CLI, then initialize your project:
+Install the Feather desktop app and CLI:
+
+1. Download the desktop app from [Releases](https://github.com/Kyonru/feather/releases).
+2. Install the CLI:
 
 ```sh
 npm install -g @kyonru/feather
-feather init --mode cli
 ```
 
-Run your game with Feather loaded:
+Initialize your project, open the Feather app, then run the game:
 
 ```sh
+feather init path/to/my-game
 feather run path/to/my-game
-# or
-USE_DEBUGGER=1 love path/to/my-game
 ```
 
-For games running on external devices (iOS, Android, Steam Deck, another machine), embed the runtime directly:
+Feather is injected by the CLI for dev runs and debug builds, so your game code does not need a manual `require` for any target.
+
+Optional vendor setup for web, mobile, and packaged desktop workflows:
 
 ```sh
-feather init path/to/my-game   # copies the Lua runtime into your project
-USE_DEBUGGER=1 love path/to/my-game
+feather build vendor add web --dir path/to/my-game
+feather run path/to/my-game --target web
+
+feather build vendor add android --dir path/to/my-game
+feather run path/to/my-game --target android
+
+feather build vendor add ios --dir path/to/my-game
+feather run path/to/my-game --target ios
 ```
 
-`feather init` creates a `feather.config.lua` in your project:
-
-```lua
-return {
-  sessionName = "My Game",
-  -- For phones, tablets, Steam Deck, or another computer:
-  -- host = "192.168.1.50",
-  -- include = { "console" },
-  -- exclude = { "hump.signal" },
-}
-```
-
-All generated game-side code is guarded so it only runs when `USE_DEBUGGER` is set:
-
-```lua
-function love.update(dt)
-  if DEBUGGER then
-    DEBUGGER:update(dt)
-  end
-end
-```
-
-To strip Feather from a project before shipping:
+For all build vendors, including desktop packaging runtimes:
 
 ```sh
-feather remove --dry-run
-feather remove --yes
+feather build vendor add all --dir path/to/my-game
 ```
 
-Then download the desktop app from the [releases page](https://github.com/Kyonru/feather/releases).
+Build release artifacts from the same CLI flow:
+
+```sh
+feather build love --dir path/to/my-game
+feather build android --dir path/to/my-game --release
+feather build ios --dir path/to/my-game --release
+feather build windows --dir path/to/my-game
+feather build macos --dir path/to/my-game
+feather build linux --dir path/to/my-game
+feather build steamos --dir path/to/my-game
+```
+
+For more commands and options:
+
+```sh
+feather --help
+feather run --help
+```
+
+See the [CLI docs](docs/cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload`.
 
 ---
 
