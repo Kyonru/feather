@@ -20,6 +20,7 @@
     "docs": "docker run --rm -it -p 8000:8000 -v \"$(pwd):/docs\" -w /docs --entrypoint sh squidfunk/mkdocs-material -c \"pip install -r requirements-docs.txt && mkdocs serve --dev-addr=0.0.0.0:8000\"",
     "native": "npm run tauri build -- --debug",
     "lua": "sh ./scripts/watch-lua.sh",
+    "web": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck:web": "tsc --noEmit -p tsconfig.json --composite false",

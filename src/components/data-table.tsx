@@ -275,7 +275,7 @@ export function DataTable({
           <div className="flex items-center gap-2 mt-2">
             <Input placeholder="Search..." onChange={(e) => table.setGlobalFilter(String(e.target.value))} />
             <Tooltip>
-              <TooltipTrigger>
+              <TooltipTrigger asChild>
                 <Button variant="secondary" size="icon" onClick={onPlayPause}>
                   {isPaused ? (
                     <PlayIcon className="text-green-500 cursor-pointer" />
@@ -291,7 +291,7 @@ export function DataTable({
             </Tooltip>
 
             <Tooltip>
-              <TooltipTrigger>
+              <TooltipTrigger asChild>
                 <Button variant="secondary" size="icon" onClick={onClear}>
                   <Trash2Icon className=" text-orange-500 cursor-pointer" />
                   <span className="sr-only">Clear history</span>
@@ -303,7 +303,7 @@ export function DataTable({
             </Tooltip>
 
             <Tooltip>
-              <TooltipTrigger>
+              <TooltipTrigger asChild>
                 <Button variant="secondary" size="icon" onClick={onScreenshotChange}>
                   {screenshotEnabled ? (
                     <ScreenShareIcon className=" text-green-500 cursor-pointer" />
@@ -319,37 +319,39 @@ export function DataTable({
             </Tooltip>
 
             <Tooltip>
-              <TooltipTrigger>
-                {isWeb() ? (
-                  <Dialog>
+              {isWeb() ? (
+                <Dialog>
+                  <TooltipTrigger asChild>
                     <DialogTrigger asChild>
                       <Button variant="secondary" size="icon">
                         <UploadIcon className=" text-yellow-500 cursor-pointer" />
                         <span className="sr-only">Upload logs</span>
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-sm">
-                      <DialogHeader>
-                        <DialogTitle>Use log file</DialogTitle>
-                        <DialogDescription>Upload a log file to use instead of the default one.</DialogDescription>
-                      </DialogHeader>
+                  </TooltipTrigger>
+                  <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle>Use log file</DialogTitle>
+                      <DialogDescription>Upload a log file to use instead of the default one.</DialogDescription>
+                    </DialogHeader>
 
-                      <Label htmlFor="name-1">pathname</Label>
-                      <Input id="name-1" name="name" onChange={onFileChange} />
-                      <DialogFooter>
-                        <DialogClose asChild>
-                          <Button variant="outline">Save</Button>
-                        </DialogClose>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                ) : (
+                    <Label htmlFor="name-1">pathname</Label>
+                    <Input id="name-1" name="name" onChange={onFileChange} />
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Save</Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <TooltipTrigger asChild>
                   <Button variant="secondary" size="icon" onClick={onSelectFile}>
                     <UploadIcon className=" text-yellow-500 cursor-pointer" />
                     <span className="sr-only">Use log file</span>
                   </Button>
-                )}
-              </TooltipTrigger>
+                </TooltipTrigger>
+              )}
               <TooltipContent>
                 <p>Use log file</p>
               </TooltipContent>
