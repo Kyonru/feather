@@ -102,6 +102,53 @@ process.exit(0);
   assert.ok(record.argv.includes('--hidden'));
 });
 
+test('upload itch: desktop targets prefer installer-style artifacts over .love', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const builds = join(dir, 'builds');
+  mkdirSync(builds, { recursive: true });
+  writeBuildConfig(dir, {
+    name: 'Desktop Upload',
+    version: '5.0.0',
+    upload: {
+      itch: {
+        project: 'tester/desktop-upload',
+        channels: { windows: 'win', macos: 'mac', linux: 'linux' },
+      },
+    },
+  });
+  const artifacts = [
+    { target: 'windows', type: 'love', path: join(builds, 'desktop-upload-5.0.0.love') },
+    { target: 'windows', type: 'zip', path: join(builds, 'desktop-upload-5.0.0-windows.zip') },
+    { target: 'windows', type: 'installer', path: join(builds, 'desktop-upload-5.0.0-windows-installer.exe') },
+    { target: 'macos', type: 'love', path: join(builds, 'desktop-upload-5.0.0.love') },
+    { target: 'macos', type: 'zip', path: join(builds, 'desktop-upload-5.0.0-macos.app.zip') },
+    { target: 'macos', type: 'dmg', path: join(builds, 'desktop-upload-5.0.0-macos.dmg') },
+    { target: 'linux', type: 'love', path: join(builds, 'desktop-upload-5.0.0.love') },
+    { target: 'linux', type: 'tar.gz', path: join(builds, 'desktop-upload-5.0.0-linux.tar.gz') },
+    { target: 'linux', type: 'appimage', path: join(builds, 'desktop-upload-5.0.0-linux.AppImage') },
+  ];
+  for (const artifact of artifacts) writeFileSync(artifact.path, artifact.type);
+  writeFileSync(join(builds, 'feather-build-manifest.json'), `${JSON.stringify({
+    name: 'Desktop Upload',
+    version: '5.0.0',
+    target: 'windows',
+    createdAt: '2026-05-16T00:00:00.000Z',
+    artifacts,
+  }, null, 2)}\n`);
+
+  for (const [target, expected] of [
+    ['windows', 'desktop-upload-5.0.0-windows-installer.exe'],
+    ['macos', 'desktop-upload-5.0.0-macos.dmg'],
+    ['linux', 'desktop-upload-5.0.0-linux.AppImage'],
+  ]) {
+    const result = run(['upload', 'itch', target, '--dir', dir, '--dry-run', '--json']);
+    assert.equal(result.exitCode, 0, outputOf(result));
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.artifact.endsWith(expected), true);
+  }
+});
+
 test('upload steam: planned target fails cleanly', () => {
   const dir = makeTmp();
   writeGame(dir);

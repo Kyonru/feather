@@ -541,6 +541,167 @@ async function writeFakeAppleLibrariesZip(dir) {
   return zipPath;
 }
 
+function writeFakeDesktopRuntimeVendors(dir) {
+  const windows = join(dir, 'vendor', 'love-windows');
+  mkdirSync(windows, { recursive: true });
+  writeFileSync(join(windows, 'love.exe'), 'fake love exe');
+  writeFileSync(join(windows, 'SDL2.dll'), 'fake dll');
+
+  const macos = join(dir, 'vendor', 'love-macos', 'love.app', 'Contents');
+  mkdirSync(join(macos, 'MacOS'), { recursive: true });
+  mkdirSync(join(macos, 'Resources'), { recursive: true });
+  writeFileSync(join(macos, 'Info.plist'), fakeMacosPlist());
+  writeFileSync(join(macos, 'MacOS', 'love'), '#!/bin/sh\n');
+  chmodSync(join(macos, 'MacOS', 'love'), 0o755);
+
+  const linux = join(dir, 'vendor', 'love-linux');
+  writeFakeLinuxRuntime(linux);
+
+  return {
+    windows: 'vendor/love-windows',
+    macos: 'vendor/love-macos',
+    linux: 'vendor/love-linux',
+  };
+}
+
+function writeFakeLinuxRuntime(root) {
+  mkdirSync(join(root, 'squashfs-root', 'bin'), { recursive: true });
+  mkdirSync(join(root, 'squashfs-root', 'share', 'applications'), { recursive: true });
+  writeFileSync(join(root, 'squashfs-root', 'bin', 'love'), '#!/bin/sh\n');
+  chmodSync(join(root, 'squashfs-root', 'bin', 'love'), 0o755);
+  writeFileSync(join(root, 'squashfs-root', 'AppRun'), '#!/bin/sh\nexec "$APPDIR/bin/love" "$@"\n');
+  chmodSync(join(root, 'squashfs-root', 'AppRun'), 0o755);
+  writeFileSync(join(root, 'squashfs-root', 'love.desktop'), '[Desktop Entry]\nName=LÖVE\nType=Application\nExec=love\n');
+  writeFileSync(
+    join(root, 'appimagetool.AppImage'),
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+const out = process.argv[3];
+fs.mkdirSync(path.dirname(out), { recursive: true });
+fs.writeFileSync(out, 'fake appimage');
+`,
+  );
+  chmodSync(join(root, 'appimagetool.AppImage'), 0o755);
+}
+
+function writeFakeDesktopTools(dir) {
+  const { binDir } = writeFakeCommand(dir, 'makensis', `
+const fs = require('node:fs');
+if (process.argv.includes('/VERSION')) {
+  console.log('makensis test');
+  process.exit(0);
+}
+const script = fs.readFileSync(process.argv[2], 'utf8');
+const out = script.match(/OutFile "([^"]+)"/)?.[1];
+if (!out) process.exit(2);
+fs.mkdirSync(require('node:path').dirname(out), { recursive: true });
+fs.writeFileSync(out, 'fake installer');
+process.exit(0);
+`);
+  writeFakeCommand(dir, 'hdiutil', `
+const fs = require('node:fs');
+const path = require('node:path');
+if (process.argv[2] === 'help') {
+  console.log('hdiutil test');
+  process.exit(0);
+}
+const out = process.argv[process.argv.length - 1];
+fs.mkdirSync(path.dirname(out), { recursive: true });
+fs.writeFileSync(out, 'fake dmg');
+process.exit(0);
+`);
+  writeFakeCommand(dir, 'plutil', `
+console.log('plutil test');
+process.exit(0);
+`);
+  writeFakeCommand(dir, 'ditto', `
+const fs = require('node:fs');
+const path = require('node:path');
+const out = process.argv[process.argv.length - 1];
+fs.mkdirSync(path.dirname(out), { recursive: true });
+fs.writeFileSync(out, 'fake app zip');
+process.exit(0);
+`);
+  return { binDir };
+}
+
+function writeFakeLoveWindowsZip(dir) {
+  const zipPath = join(dir, 'love-windows.zip');
+  writeFileSync(zipPath, createDataDescriptorZipBuffer([
+    { name: 'love-11.5-win64/love.exe', data: Buffer.from('fake love exe') },
+    { name: 'love-11.5-win64/SDL2.dll', data: Buffer.from('fake dll') },
+  ]));
+  return zipPath;
+}
+
+function writeFakeLoveMacosZip(dir) {
+  const zipPath = join(dir, 'love-macos.zip');
+  writeFileSync(zipPath, createDataDescriptorZipBuffer([
+    { name: 'love.app/Contents/Info.plist', data: Buffer.from(fakeMacosPlist()) },
+    { name: 'love.app/Contents/MacOS/love', data: Buffer.from('#!/bin/sh\n') },
+  ]));
+  return zipPath;
+}
+
+function writeFakeLoveLinuxAppImage(dir) {
+  const appImage = join(dir, 'love.AppImage');
+  writeFileSync(
+    appImage,
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+if (process.argv.includes('--appimage-extract')) {
+  const root = path.join(process.cwd(), 'squashfs-root');
+  fs.mkdirSync(path.join(root, 'bin'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'share', 'applications'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'bin', 'love'), '#!/bin/sh\\n');
+  fs.chmodSync(path.join(root, 'bin', 'love'), 0o755);
+  fs.writeFileSync(path.join(root, 'AppRun'), '#!/bin/sh\\nexec "$APPDIR/bin/love" "$@"\\n');
+  fs.chmodSync(path.join(root, 'AppRun'), 0o755);
+  fs.writeFileSync(path.join(root, 'love.desktop'), '[Desktop Entry]\\nName=LÖVE\\nType=Application\\nExec=love\\n');
+  process.exit(0);
+}
+console.log('fake love appimage');
+process.exit(0);
+`,
+  );
+  chmodSync(appImage, 0o755);
+  return appImage;
+}
+
+function writeFakeAppImageTool(dir) {
+  const appImageTool = join(dir, 'appimagetool.AppImage');
+  writeFileSync(
+    appImageTool,
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+const out = process.argv[3];
+fs.mkdirSync(path.dirname(out), { recursive: true });
+fs.writeFileSync(out, 'fake appimage');
+`,
+  );
+  chmodSync(appImageTool, 0o755);
+  return appImageTool;
+}
+
+function fakeMacosPlist() {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key>
+  <string>love</string>
+  <key>CFBundleIdentifier</key>
+  <string>org.love2d.love</string>
+  <key>CFBundleName</key>
+  <string>love</string>
+</dict>
+</plist>
+`;
+}
+
 function parseDoctorJson(dir, extra = []) {
   const result = run(['doctor', dir, '--json', ...extra]);
   assert.equal(result.exitCode, 0, outputOf(result));
@@ -583,11 +744,17 @@ export {
   waitForOutput,
   writeBuildConfig,
   writeFakeAdb,
+  writeFakeAppImageTool,
   writeFakeAppleLibrariesZip,
   writeFakeCommand,
+  writeFakeDesktopRuntimeVendors,
+  writeFakeDesktopTools,
   writeFakeLove,
   writeFakeLoveAndroid,
   writeFakeLoveIos,
+  writeFakeLoveLinuxAppImage,
+  writeFakeLoveMacosZip,
+  writeFakeLoveWindowsZip,
   writeFakeLoveJs,
   writeFakeVendorGit,
   writeFakeXcrun,

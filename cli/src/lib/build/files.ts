@@ -173,10 +173,12 @@ export function fileSize(path: string): number {
 
 export function artifactForTarget(manifest: BuildManifest, target: string): BuildArtifact | null {
   const artifacts = manifest.artifacts.filter((artifact) => artifact.target === target && artifact.type !== 'metadata');
-  return artifacts.find((artifact) => artifact.type === 'zip')
-    ?? artifacts.find((artifact) => artifact.type === 'external')
-    ?? artifacts.find((artifact) => artifact.type === 'love')
-    ?? null;
+  const preferredTypes = ['dmg', 'installer', 'appimage', 'zip', 'tar.gz', 'ipa', 'aab', 'apk', 'app', 'html', 'external', 'love'];
+  for (const type of preferredTypes) {
+    const artifact = artifacts.find((candidate) => candidate.type === type);
+    if (artifact) return artifact;
+  }
+  return artifacts[0] ?? null;
 }
 
 export function resolveArtifactPath(path: string): string {

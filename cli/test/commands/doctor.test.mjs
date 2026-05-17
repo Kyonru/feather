@@ -28,6 +28,8 @@ import {
   writeFakeAdb,
   writeFakeAppleLibrariesZip,
   writeFakeCommand,
+  writeFakeDesktopRuntimeVendors,
+  writeFakeDesktopTools,
   writeFakeLove,
   writeFakeLoveAndroid,
   writeFakeLoveIos,
@@ -257,6 +259,45 @@ test('doctor: build and upload target checks report missing and configured depen
   assert.equal(labels.get('love.js player')?.severity, 'pass');
   assert.equal(labels.get('butler')?.severity, 'pass');
   assert.equal(labels.get('BUTLER_API_KEY')?.severity, 'pass');
+});
+
+test('doctor: desktop build targets report runtime vendors and packaging tools', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Desktop Doctor Game', version: '1.0.0' });
+
+  const { parsed: missing } = parseDoctorJsonResult(dir, ['--build-target', 'windows']);
+  const missingLabels = new Map(missing.checks.map((check) => [check.label, check]));
+  assert.equal(missingLabels.get('Windows LÖVE runtime')?.severity, 'fail');
+  assert.ok(missingLabels.get('Windows LÖVE runtime')?.fix.includes('feather build vendor add windows'));
+
+  const vendors = writeFakeDesktopRuntimeVendors(dir);
+  writeBuildConfig(dir, {
+    name: 'Desktop Doctor Game',
+    version: '1.0.0',
+    targets: {
+      windows: { loveRuntimeDir: vendors.windows },
+      macos: { loveRuntimeDir: vendors.macos },
+      linux: { loveRuntimeDir: vendors.linux },
+    },
+  });
+  const { binDir } = writeFakeDesktopTools(dir);
+
+  for (const target of ['windows', 'macos', 'linux', 'steamos']) {
+    const result = run(['doctor', dir, '--json', '--build-target', target], { env: envWithPath(binDir) });
+    assert.equal(result.stdout.trim().startsWith('{'), true, outputOf(result));
+    const parsed = JSON.parse(result.stdout);
+    const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+    const runtimeLabel = target === 'macos'
+      ? 'macOS LÖVE runtime'
+      : target === 'steamos'
+        ? 'SteamOS LÖVE runtime'
+        : `${target[0].toUpperCase()}${target.slice(1)} LÖVE runtime`;
+    assert.equal(labels.get(runtimeLabel)?.severity, 'pass');
+    if (target === 'windows') assert.equal(labels.get('NSIS makensis')?.severity, 'pass');
+    if (target === 'macos') assert.equal(labels.get('hdiutil')?.severity, 'pass');
+    if (target === 'linux' || target === 'steamos') assert.equal(labels.get('appimagetool')?.severity, 'pass');
+  }
 });
 
 test('doctor: android build target reports template and local tool setup', () => {

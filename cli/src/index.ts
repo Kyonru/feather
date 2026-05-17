@@ -8,6 +8,7 @@ import { doctorCommand } from './commands/doctor.js';
 import { updateCommand } from './commands/update.js';
 import { buildCommand } from './commands/build.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
+import { buildTargets } from './lib/build/config.js';
 import { uploadCommand } from './commands/upload.js';
 import {
   pluginListCommand,
@@ -160,7 +161,7 @@ program
 
 const build = program
   .command('build')
-  .description('Build a LÖVE game for web, mobile dev, or desktop targets');
+  .description('Build a LÖVE game package, web bundle, mobile dev app, or desktop installer');
 
 function addBuildTargetCommand(target: string): void {
   build
@@ -223,7 +224,7 @@ function runtimeConfigOption(
   return runtimeConfig ?? configPath ?? (looksLikeRuntimeConfig(config) ? config : undefined);
 }
 
-for (const target of ['web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos']) {
+for (const target of buildTargets) {
   addBuildTargetCommand(target);
 }
 
@@ -233,7 +234,7 @@ const buildVendor = build
 
 buildVendor
   .command('add [targets...]')
-  .description('Fetch build vendors: web, android, ios, mobile, or all')
+  .description('Fetch build vendors: web, android, ios, mobile, desktop, or all')
   .allowUnknownOption()
   .option('--dir <path>', 'Project directory (default: current directory)')
   .option('--config <path>', 'Path to feather.build.json')

@@ -28,6 +28,8 @@ import {
   writeFakeAdb,
   writeFakeAppleLibrariesZip,
   writeFakeCommand,
+  writeFakeDesktopRuntimeVendors,
+  writeFakeDesktopTools,
   writeFakeLove,
   writeFakeLoveAndroid,
   writeFakeLoveIos,
@@ -71,31 +73,71 @@ test('build web: creates love archive, love.js html package, zip, and manifest',
   assert.equal(manifest.target, 'web');
 });
 
-test('build linux: delegates desktop packaging to love-release and writes manifest', () => {
+test('build love: creates only a .love package and writes manifest', () => {
   const dir = makeTmp();
   writeGame(dir);
-  writeBuildConfig(dir, { name: 'Desktop Game', version: '2.0.0' });
-const recordPath = join(dir, 'love-release-record.json');
-  const { binDir } = writeFakeCommand(dir, 'love-release', `
-if (process.argv.length === 3 && process.argv[2] === '--version') {
-  console.log('love-release test');
-  process.exit(0);
-}
-const fs = require('node:fs');
-fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: process.argv.slice(2) }, null, 2));
-process.exit(0);
-`);
+  writeBuildConfig(dir, { name: 'Love Package', version: '2.0.0' });
 
-  const result = run(['build', 'linux', '--dir', dir, '--json'], { env: envWithPath(binDir) });
+  const result = run(['build', 'love', '--dir', dir, '--json']);
   assert.equal(result.exitCode, 0, outputOf(result));
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.ok, true);
-  assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0.love')), true);
-  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
-  assert.ok(record.argv.includes('--target'));
-  assert.ok(record.argv.includes('linux'));
-  assert.ok(record.argv.includes('--name'));
-  assert.ok(record.argv.includes('Desktop Game'));
+  assert.equal(parsed.target, 'love');
+  assert.deepEqual(parsed.artifacts.map((artifact) => artifact.type), ['love']);
+  assert.equal(existsSync(join(dir, 'builds', 'love-package-2.0.0.love')), true);
+  const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
+  assert.equal(manifest.target, 'love');
+});
+
+for (const target of ['windows', 'macos', 'linux', 'steamos']) {
+  test(`build ${target}: packages with configured local LÖVE runtime vendor`, () => {
+    const dir = makeTmp();
+    writeGame(dir);
+    const vendors = writeFakeDesktopRuntimeVendors(dir);
+    const { binDir } = writeFakeDesktopTools(dir);
+    writeBuildConfig(dir, {
+      name: 'Desktop Game',
+      version: '2.0.0',
+      targets: {
+        windows: { loveRuntimeDir: vendors.windows },
+        macos: { loveRuntimeDir: vendors.macos },
+        linux: { loveRuntimeDir: vendors.linux },
+      },
+    });
+
+    const result = run(['build', target, '--dir', dir, '--json'], { env: envWithPath(binDir) });
+    assert.equal(result.exitCode, 0, outputOf(result));
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.target, target);
+    assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0.love')), true);
+    if (target === 'windows') {
+      assert.deepEqual(parsed.artifacts.map((artifact) => artifact.type), ['love', 'zip', 'installer']);
+      assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0-windows.zip')), true);
+      assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0-windows-installer.exe')), true);
+      const entries = readStoredZipEntries(join(dir, 'builds', 'desktop-game-2.0.0-windows.zip'));
+      assert.equal(entries.has('desktop-game.exe'), true);
+      assert.equal(entries.has('love.exe'), false);
+    } else if (target === 'macos') {
+      assert.deepEqual(parsed.artifacts.map((artifact) => artifact.type), ['love', 'zip', 'dmg']);
+      assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0-macos.app.zip')), true);
+      assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0-macos.dmg')), true);
+    } else {
+      assert.deepEqual(parsed.artifacts.map((artifact) => artifact.type), ['love', 'appimage', 'tar.gz']);
+      assert.equal(existsSync(join(dir, 'builds', `desktop-game-2.0.0-${target}.AppImage`)), true);
+      assert.equal(existsSync(join(dir, 'builds', `desktop-game-2.0.0-${target}.tar.gz`)), true);
+    }
+  });
+}
+
+test('build desktop: missing runtime vendor fails with vendor add guidance', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Missing Desktop Runtime', version: '1.0.0' });
+
+  const result = run(['build', 'windows', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('feather build vendor add windows'));
 });
 
 test('build validation: rejects bad mobile config values and unsafe native paths', async () => {

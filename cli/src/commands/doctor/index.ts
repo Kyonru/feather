@@ -345,25 +345,17 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
               'Set targets.ios.release.exportOptionsPlist or exportMethod for App Store/TestFlight exports.',
             );
           }
+        } else if (opts.buildTarget === 'love') {
+          add(
+            checks,
+            'Build',
+            'LÖVE package',
+            'pass',
+            '.love archive',
+            'Run it with LÖVE or build a platform target for a bundled runtime.',
+          );
         } else if (isSupportedBuildTarget(opts.buildTarget)) {
-          const loveRelease = commandVersion('love-release', ['--version']);
-          add(
-            checks,
-            'Build',
-            'love-release',
-            loveRelease ? 'pass' : 'fail',
-            loveRelease ? loveRelease : 'not found',
-            loveRelease ? undefined : 'Install with `luarocks install love-release` and make sure love-release is on PATH.',
-          );
-          const luarocks = commandVersion('luarocks', ['--version']);
-          add(
-            checks,
-            'Build',
-            'LuaRocks',
-            luarocks ? 'pass' : 'warn',
-            luarocks ? luarocks : 'not found',
-            luarocks ? undefined : 'Install LuaRocks if you need to install love-release locally.',
-          );
+          addDesktopBuildChecks(checks, projectDir, buildConfig, opts.buildTarget);
         }
       }
 
@@ -935,6 +927,84 @@ function androidReleaseSigningSeverity(buildConfig: ReturnType<typeof loadBuildC
     release.keyPasswordEnv && process.env[release.keyPasswordEnv] ? '' : release.keyPasswordEnv,
   ].filter(Boolean);
   return missingEnv.length === 0 && release.keystorePath && existsSync(keystorePath) && release.keyAlias ? 'pass' : 'fail';
+}
+
+const desktopBuildTargets = ['windows', 'macos', 'linux', 'steamos'] as const;
+type DoctorDesktopBuildTarget = typeof desktopBuildTargets[number];
+
+function isDoctorDesktopBuildTarget(target: string): target is DoctorDesktopBuildTarget {
+  return (desktopBuildTargets as readonly string[]).includes(target);
+}
+
+function addDesktopBuildChecks(
+  checks: DoctorCheck[],
+  projectDir: string,
+  buildConfig: ReturnType<typeof loadBuildConfig>,
+  target: string,
+): void {
+  if (!isDoctorDesktopBuildTarget(target)) return;
+
+  const configuredPath = target === 'steamos'
+    ? buildConfig.targets.steamos?.loveRuntimeDir ?? buildConfig.targets.linux?.loveRuntimeDir
+    : buildConfig.targets[target]?.loveRuntimeDir;
+  const runtimeDir = configuredPath ? resolve(projectDir, configuredPath) : '';
+  const runtimeReady = Boolean(runtimeDir && desktopRuntimeReady(runtimeDir, target));
+  const configField = target === 'steamos'
+    ? 'targets.steamos.loveRuntimeDir or targets.linux.loveRuntimeDir'
+    : `targets.${target}.loveRuntimeDir`;
+  add(
+    checks,
+    'Build',
+    `${desktopTargetLabel(target)} LÖVE runtime`,
+    runtimeReady ? 'pass' : 'fail',
+    configuredPath ?? 'not configured',
+    runtimeReady ? undefined : `Run \`feather build vendor add ${target} --dir ${projectDir}\` or set ${configField} in feather.build.json.`,
+  );
+
+  if (target === 'windows') {
+    addToolCheck(checks, 'NSIS makensis', 'makensis', ['/VERSION'], 'Install NSIS and make sure makensis is on PATH.');
+    return;
+  }
+  if (target === 'macos') {
+    addToolCheck(checks, 'plutil', 'plutil', ['-help'], 'Use macOS or install Xcode command line tools.');
+    addToolCheck(checks, 'hdiutil', 'hdiutil', ['help'], 'Use macOS for DMG packaging.');
+    return;
+  }
+
+  const appImageTool = runtimeDir ? join(runtimeDir, 'appimagetool.AppImage') : '';
+  add(
+    checks,
+    'Build',
+    'appimagetool',
+    appImageTool && existsSync(appImageTool) ? 'pass' : 'fail',
+    appImageTool || 'not found',
+    appImageTool && existsSync(appImageTool) ? undefined : `Run \`feather build vendor add ${target} --dir ${projectDir}\`.`,
+  );
+  addToolCheck(checks, 'tar', 'tar', ['--version'], 'Install tar or use a shell with standard archive tools available.');
+}
+
+function desktopRuntimeReady(runtimeDir: string, target: DoctorDesktopBuildTarget): boolean {
+  if (target === 'windows') return existsSync(join(runtimeDir, 'love.exe'));
+  if (target === 'macos') return existsSync(join(runtimeDir, 'love.app', 'Contents', 'Info.plist'));
+  return existsSync(join(runtimeDir, 'squashfs-root', 'bin', 'love')) && existsSync(join(runtimeDir, 'appimagetool.AppImage'));
+}
+
+function desktopTargetLabel(target: DoctorDesktopBuildTarget): string {
+  if (target === 'macos') return 'macOS';
+  if (target === 'steamos') return 'SteamOS';
+  return target[0].toUpperCase() + target.slice(1);
+}
+
+function addToolCheck(checks: DoctorCheck[], label: string, command: string, args: string[], fix: string): void {
+  const version = commandVersion(command, args);
+  add(
+    checks,
+    'Build',
+    label,
+    version ? 'pass' : 'fail',
+    version ?? 'not found',
+    version ? undefined : fix,
+  );
 }
 
 function androidReleaseSigningDetail(buildConfig: ReturnType<typeof loadBuildConfig>): string {

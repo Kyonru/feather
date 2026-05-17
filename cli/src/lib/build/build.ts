@@ -23,7 +23,7 @@ import {
 import { buildWeb } from './web.js';
 import { buildAndroid } from './android.js';
 import { buildIos } from './ios.js';
-import { buildDesktop } from './desktop.js';
+import { buildDesktop, buildLove } from './desktop.js';
 import { assertBuildConfigValidForTarget } from './validation.js';
 import type { NativeBuildLogger, NativeCacheInfo } from './native.js';
 import { embedMobileDebuggerStage } from './debug-stage.js';
@@ -148,7 +148,9 @@ export function runBuild(options: BuildOptions): BuildResult {
       } else if (debuggerEmbedBuild) {
         log?.('Feather debugger embedding: disabled');
       }
-      const artifacts = options.target === 'web'
+      const artifacts = options.target === 'love'
+        ? buildLove(config, staged.dir)
+        : options.target === 'web'
         ? buildWeb(config, staged.dir)
         : options.target === 'android'
           ? buildAndroid(config, staged.dir, {
@@ -206,6 +208,9 @@ function assertReleaseTargetSupported(target: BuildTarget, release: boolean): vo
 
 function plannedArtifacts(config: ResolvedBuildConfig, target: BuildTarget, release = false): BuildArtifact[] {
   const base = artifactBaseName(config);
+  if (target === 'love') {
+    return [{ target, type: 'love', path: join(config.outDir, `${base}.love`) }];
+  }
   if (target === 'web') {
     return [
       { target, type: 'love', path: join(config.outDir, `${base}.love`) },
@@ -239,14 +244,34 @@ function plannedArtifacts(config: ResolvedBuildConfig, target: BuildTarget, rele
       { target, type: 'app', path: join(config.outDir, `${base}-ios.app`) },
     ];
   }
+  if (target === 'windows') {
+    return [
+      { target, type: 'love', path: join(config.outDir, `${base}.love`) },
+      { target, type: 'zip', path: join(config.outDir, `${base}-windows.zip`) },
+      { target, type: 'installer', path: join(config.outDir, `${base}-windows-installer.exe`) },
+    ];
+  }
+  if (target === 'macos') {
+    return [
+      { target, type: 'love', path: join(config.outDir, `${base}.love`) },
+      { target, type: 'zip', path: join(config.outDir, `${base}-macos.app.zip`) },
+      { target, type: 'dmg', path: join(config.outDir, `${base}-macos.dmg`) },
+    ];
+  }
+  if (target === 'linux' || target === 'steamos') {
+    return [
+      { target, type: 'love', path: join(config.outDir, `${base}.love`) },
+      { target, type: 'appimage', path: join(config.outDir, `${base}-${target}.AppImage`) },
+      { target, type: 'tar.gz', path: join(config.outDir, `${base}-${target}.tar.gz`) },
+    ];
+  }
   return [
     { target, type: 'love', path: join(config.outDir, `${base}.love`) },
-    { target, type: 'external', path: config.outDir },
   ];
 }
 
 export function describeArtifact(artifact: BuildArtifact): string {
-  const size = existsSync(artifact.path) && artifact.type !== 'html' && artifact.type !== 'external'
+  const size = existsSync(artifact.path) && artifact.type !== 'html'
     ? ` (${fileSize(artifact.path)} bytes)`
     : '';
   return `${artifact.type}: ${artifact.path}${size}`;

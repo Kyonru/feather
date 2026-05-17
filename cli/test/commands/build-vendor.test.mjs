@@ -27,7 +27,12 @@ import {
   writeBuildConfig,
   writeFakeAdb,
   writeFakeAppleLibrariesZip,
+  writeFakeAppImageTool,
   writeFakeCommand,
+  writeFakeDesktopRuntimeVendors,
+  writeFakeLoveLinuxAppImage,
+  writeFakeLoveMacosZip,
+  writeFakeLoveWindowsZip,
   writeFakeLove,
   writeFakeLoveAndroid,
   writeFakeLoveIos,
@@ -122,7 +127,29 @@ test('build vendor add mobile --dry-run --json: reports planned vendors without 
   assert.equal(existsSync(join(dir, 'feather.build.json')), false);
 });
 
-test('build vendor add all --dry-run --json: includes web and mobile vendors', () => {
+test('build vendor add --dry-run --json: defaults to mobile vendors', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+
+  const result = run(['build', 'vendor', 'add', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.deepEqual(parsed.vendors.map((vendor) => vendor.target), ['android', 'ios']);
+});
+
+test('build vendor add desktop --dry-run --json: includes desktop runtime vendors', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+
+  const result = run(['build', 'vendor', 'add', 'desktop', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(ANSI_RE.test(result.stdout), false);
+  const parsed = JSON.parse(result.stdout);
+  assert.deepEqual(parsed.vendors.map((vendor) => vendor.target), ['windows', 'macos', 'linux']);
+  assert.equal(existsSync(join(dir, 'vendor')), false);
+});
+
+test('build vendor add all --dry-run --json: includes web, mobile, and desktop vendors', () => {
   const dir = makeTmp();
   writeGame(dir);
 
@@ -130,8 +157,61 @@ test('build vendor add all --dry-run --json: includes web and mobile vendors', (
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.equal(ANSI_RE.test(result.stdout), false);
   const parsed = JSON.parse(result.stdout);
-  assert.deepEqual(parsed.vendors.map((vendor) => vendor.target), ['android', 'ios', 'web']);
+  assert.deepEqual(parsed.vendors.map((vendor) => vendor.target), ['android', 'ios', 'web', 'windows', 'macos', 'linux']);
   assert.equal(existsSync(join(dir, 'vendor')), false);
+});
+
+test('build vendor add desktop --json: installs runtime archives and updates config', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor Desktop', version: '1.0.0', loveVersion: '11.5' });
+  const windowsZip = writeFakeLoveWindowsZip(dir);
+  const macosZip = writeFakeLoveMacosZip(dir);
+  const linuxAppImage = writeFakeLoveLinuxAppImage(dir);
+  const appImageTool = writeFakeAppImageTool(dir);
+
+  const result = run(['build', 'vendor', 'add', 'desktop', '--dir', dir, '--json'], {
+    env: {
+      ...process.env,
+      NO_COLOR: '1',
+      FORCE_COLOR: '0',
+      FEATHER_TEST_LOVE_WINDOWS_ZIP: windowsZip,
+      FEATHER_TEST_LOVE_MACOS_ZIP: macosZip,
+      FEATHER_TEST_LOVE_LINUX_APPIMAGE: linuxAppImage,
+      FEATHER_TEST_APPIMAGETOOL: appImageTool,
+    },
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.deepEqual(parsed.vendors.map((vendor) => vendor.target), ['windows', 'macos', 'linux']);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-windows', 'love.exe')), true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-macos', 'love.app', 'Contents', 'Info.plist')), true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-linux', 'squashfs-root', 'bin', 'love')), true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-linux', 'appimagetool.AppImage')), true);
+  const config = JSON.parse(readFileSync(join(dir, 'feather.build.json'), 'utf8'));
+  assert.equal(config.targets.windows.loveRuntimeDir, 'vendor/love-windows');
+  assert.equal(config.targets.macos.loveRuntimeDir, 'vendor/love-macos');
+  assert.equal(config.targets.linux.loveRuntimeDir, 'vendor/love-linux');
+});
+
+test('build vendor add steamos --json: reuses configured Linux runtime vendor', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const vendors = writeFakeDesktopRuntimeVendors(dir);
+  writeBuildConfig(dir, {
+    name: 'Vendor SteamOS',
+    version: '1.0.0',
+    targets: { linux: { loveRuntimeDir: vendors.linux } },
+  });
+
+  const result = run(['build', 'vendor', 'add', 'steamos', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.vendors[0].target, 'steamos');
+  assert.equal(parsed.vendors[0].skipped, true);
+  assert.equal(parsed.vendors[0].installed, false);
+  const config = JSON.parse(readFileSync(join(dir, 'feather.build.json'), 'utf8'));
+  assert.equal(config.targets.steamos.loveRuntimeDir, 'vendor/love-linux');
 });
 
 test('build vendor add --no-config: fetches vendor without writing build config', () => {
@@ -173,11 +253,15 @@ test('build vendor list --json: reports configured, missing, and valid vendors',
   writeGame(dir);
   writeFakeLoveJs(dir);
   writeFakeLoveAndroid(dir);
+  const vendors = writeFakeDesktopRuntimeVendors(dir);
   writeBuildConfig(dir, {
     targets: {
       web: { loveJsDir: 'love.js' },
       android: { loveAndroidDir: 'love-android' },
       ios: { loveIosDir: 'vendor/love-ios' },
+      windows: { loveRuntimeDir: vendors.windows },
+      macos: { loveRuntimeDir: vendors.macos },
+      linux: { loveRuntimeDir: vendors.linux },
     },
   });
 
@@ -190,6 +274,10 @@ test('build vendor list --json: reports configured, missing, and valid vendors',
   assert.equal(labels.get('android').valid, true);
   assert.equal(labels.get('ios').exists, false);
   assert.equal(labels.get('ios').detail, 'missing');
+  assert.equal(labels.get('windows').valid, true);
+  assert.equal(labels.get('macos').valid, true);
+  assert.equal(labels.get('linux').valid, true);
+  assert.equal(labels.get('steamos').valid, true);
 });
 
 test('build vendor add: missing git produces compact actionable error', () => {

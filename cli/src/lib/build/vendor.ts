@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import {
+  chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -16,9 +18,9 @@ import {
 import { removePath } from './files.js';
 import { assertNoSymlinkEscape, assertSafeRelativePath, isPathInside } from '../path-safety.js';
 
-export const buildVendorTargets = ['web', 'android', 'ios', 'mobile', 'all'] as const;
+export const buildVendorTargets = ['web', 'android', 'ios', 'mobile', 'desktop', 'windows', 'macos', 'linux', 'steamos', 'all'] as const;
 export type BuildVendorTargetInput = typeof buildVendorTargets[number];
-export type ConcreteBuildVendorTarget = 'web' | 'android' | 'ios';
+export type ConcreteBuildVendorTarget = 'web' | 'android' | 'ios' | 'windows' | 'macos' | 'linux' | 'steamos';
 
 export type BuildVendorAddOptions = {
   projectDir?: string;
@@ -82,6 +84,8 @@ const DEFAULT_LOVE_JS_REF = 'main';
 const LOVE_JS_REPO = 'https://github.com/2dengine/love.js';
 const LOVE_ANDROID_REPO = 'https://github.com/love2d/love-android';
 const LOVE_REPO = 'https://github.com/love2d/love';
+const LOVE_RELEASE_BASE = 'https://github.com/love2d/love/releases/download';
+const APPIMAGETOOL_URL = 'https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage';
 
 export function isBuildVendorTarget(value: string): value is BuildVendorTargetInput {
   return (buildVendorTargets as readonly string[]).includes(value);
@@ -89,7 +93,7 @@ export function isBuildVendorTarget(value: string): value is BuildVendorTargetIn
 
 export async function addBuildVendors(targets: BuildVendorTargetInput[], options: BuildVendorAddOptions = {}): Promise<BuildVendorAddResult> {
   const projectDir = resolve(options.projectDir ?? process.cwd());
-  const raw = readBuildConfig(projectDir, options.configPath);
+  let raw = readBuildConfig(projectDir, options.configPath);
   const configPath = buildConfigPath(projectDir, options.configPath);
   const config = loadBuildConfig({ projectDir, configPath: options.configPath });
   const loveVersion = sanitizeRef(options.ref ?? config.loveVersion ?? DEFAULT_LOVE_VERSION, 'LÖVE version');
@@ -111,6 +115,9 @@ export async function addBuildVendors(targets: BuildVendorTargetInput[], options
       updateConfig: options.updateConfig !== false,
     });
     results.push(result);
+    if (result.configUpdated) {
+      raw = readBuildConfig(projectDir, options.configPath);
+    }
   }
 
   return {
@@ -127,7 +134,7 @@ export function listBuildVendors(options: BuildVendorListOptions = {}): BuildVen
   const raw = readBuildConfig(projectDir, options.configPath);
   const configPath = buildConfigPath(projectDir, options.configPath);
   const vendorDir = resolveVendorDir(projectDir, options.vendorDir ?? 'vendor');
-  const vendors = (['web', 'android', 'ios'] as const).map((target) => vendorStatus(projectDir, raw, vendorDir, target));
+  const vendors = (['web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos'] as const).map((target) => vendorStatus(projectDir, raw, vendorDir, target));
   return { ok: true, projectDir, configPath, vendors };
 }
 
@@ -139,6 +146,15 @@ function expandVendorTargets(targets: BuildVendorTargetInput[]): ConcreteBuildVe
       expanded.add('android');
       expanded.add('ios');
       if (target === 'all') expanded.add('web');
+      if (target === 'all') {
+        expanded.add('windows');
+        expanded.add('macos');
+        expanded.add('linux');
+      }
+    } else if (target === 'desktop') {
+      expanded.add('windows');
+      expanded.add('macos');
+      expanded.add('linux');
     } else {
       expanded.add(target);
     }
@@ -168,37 +184,57 @@ async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendor
 
   const targetPath = resolveProjectVendorPath(input.projectDir, configuredPath && !input.force ? configuredPath : defaultRelativePath, `${input.target} vendor directory`);
   const relativePath = relativeProjectPath(input.projectDir, targetPath);
-  const repo = vendorRepo(input.target);
+  const repo = vendorRepo(input.target, input.loveVersion);
   const actions: string[] = [];
+  const canReuseSteamosRuntime = input.target === 'steamos'
+    && existsSync(targetPath)
+    && vendorPathValid(targetPath, 'steamos')
+    && !input.force;
 
-  if (existsSync(targetPath) && !input.force) {
+  if (existsSync(targetPath) && !input.force && !canReuseSteamosRuntime) {
     throw new Error(`${input.target} vendor directory already exists: ${targetPath}. Use --force to replace it.`);
   }
 
-  actions.push(`clone ${repo}#${input.ref} -> ${relativePath}`);
+  if (canReuseSteamosRuntime) {
+    actions.push(`reuse ${relativePath} for steamos`);
+  } else {
+    actions.push(`${isDownloadedRuntimeTarget(input.target) ? 'download' : 'clone'} ${repo}#${input.ref} -> ${relativePath}`);
+  }
   if (input.target === 'ios') {
     actions.push(`install love-${input.loveVersion}-apple-libraries.zip`);
+  } else if ((input.target === 'linux' || input.target === 'steamos') && !canReuseSteamosRuntime) {
+    actions.push('install appimagetool.AppImage');
   }
   if (input.updateConfig) {
     actions.push(`update ${relative(input.projectDir, input.configPath) || 'feather.build.json'}`);
   }
 
   if (!input.dryRun) {
-    assertGitAvailable();
-    const shouldCleanupOnFailure = input.force || !existsSync(targetPath);
-    try {
-      if (existsSync(targetPath) && input.force) removePath(targetPath);
-      mkdirSync(dirname(targetPath), { recursive: true });
-      cloneVendor(repo, input.ref, targetPath, input.target === 'android');
-      if (input.target === 'ios') {
-        await installAppleLibraries(input.loveVersion, targetPath);
-      }
+    if (canReuseSteamosRuntime) {
       if (input.updateConfig) {
         updateVendorConfig(input.projectDir, input.configPath, input.raw, input.target, relativePath);
       }
-    } catch (err) {
-      if (shouldCleanupOnFailure) removePath(targetPath);
-      throw err;
+    } else {
+      if (!isDownloadedRuntimeTarget(input.target)) assertGitAvailable();
+      const shouldCleanupOnFailure = input.force || !existsSync(targetPath);
+      try {
+        if (existsSync(targetPath) && input.force) removePath(targetPath);
+        mkdirSync(dirname(targetPath), { recursive: true });
+        if (isDownloadedRuntimeTarget(input.target)) {
+          await installDesktopRuntime(input.target, input.loveVersion, targetPath);
+        } else {
+          cloneVendor(repo, input.ref, targetPath, input.target === 'android');
+        }
+        if (input.target === 'ios') {
+          await installAppleLibraries(input.loveVersion, targetPath);
+        }
+        if (input.updateConfig) {
+          updateVendorConfig(input.projectDir, input.configPath, input.raw, input.target, relativePath);
+        }
+      } catch (err) {
+        if (shouldCleanupOnFailure) removePath(targetPath);
+        throw err;
+      }
     }
   }
 
@@ -208,8 +244,8 @@ async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendor
     relativePath,
     ref: input.ref,
     repo,
-    installed: !input.dryRun,
-    skipped: false,
+    installed: !input.dryRun && !canReuseSteamosRuntime,
+    skipped: canReuseSteamosRuntime,
     configUpdated: input.updateConfig && !input.dryRun,
     actions,
   };
@@ -242,23 +278,39 @@ function vendorRef(target: ConcreteBuildVendorTarget, options: BuildVendorAddOpt
   if (target === 'android') {
     return sanitizeRef(options.androidRef ?? options.ref ?? loveVersion ?? DEFAULT_LOVE_VERSION, 'Android vendor ref');
   }
-  return sanitizeRef(options.iosRef ?? options.ref ?? loveVersion ?? DEFAULT_LOVE_VERSION, 'iOS vendor ref');
+  if (target === 'ios') {
+    return sanitizeRef(options.iosRef ?? options.ref ?? loveVersion ?? DEFAULT_LOVE_VERSION, 'iOS vendor ref');
+  }
+  return sanitizeRef(options.ref ?? loveVersion ?? DEFAULT_LOVE_VERSION, `${target} runtime version`);
 }
 
 function defaultVendorRelativePath(projectDir: string, vendorDir: string, target: ConcreteBuildVendorTarget): string {
-  const dirname = target === 'web' ? 'love.js' : target === 'android' ? 'love-android' : 'love-ios';
+  const dirname = target === 'web'
+    ? 'love.js'
+    : target === 'android'
+      ? 'love-android'
+      : target === 'ios'
+        ? 'love-ios'
+        : target === 'steamos'
+          ? 'love-linux'
+          : `love-${target}`;
   return relativeProjectPath(projectDir, join(vendorDir, dirname));
 }
 
 function configuredVendorPath(raw: FeatherBuildConfig, target: ConcreteBuildVendorTarget): string | undefined {
   if (target === 'web') return raw.targets?.web?.loveJsDir;
   if (target === 'android') return raw.targets?.android?.loveAndroidDir;
-  return raw.targets?.ios?.loveIosDir;
+  if (target === 'ios') return raw.targets?.ios?.loveIosDir;
+  if (target === 'steamos') return raw.targets?.steamos?.loveRuntimeDir ?? raw.targets?.linux?.loveRuntimeDir;
+  return raw.targets?.[target]?.loveRuntimeDir;
 }
 
-function vendorRepo(target: ConcreteBuildVendorTarget): string {
+function vendorRepo(target: ConcreteBuildVendorTarget, loveVersion: string): string {
   if (target === 'web') return LOVE_JS_REPO;
   if (target === 'android') return LOVE_ANDROID_REPO;
+  if (target === 'windows') return `${LOVE_RELEASE_BASE}/${loveVersion}/love-${loveVersion}-win64.zip`;
+  if (target === 'macos') return `${LOVE_RELEASE_BASE}/${loveVersion}/love-${loveVersion}-macos.zip`;
+  if (target === 'linux' || target === 'steamos') return `${LOVE_RELEASE_BASE}/${loveVersion}/love-${loveVersion}-x86_64.AppImage`;
   return LOVE_REPO;
 }
 
@@ -269,7 +321,10 @@ function vendorPathValid(path: string, target: ConcreteBuildVendorTarget): boole
   if (target === 'android') {
     return existsSync(join(path, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew')) || existsSync(join(path, 'gradlew')) || existsSync(join(path, 'gradlew.bat'));
   }
-  return existsSync(join(path, 'platform', 'xcode', 'love.xcodeproj'));
+  if (target === 'ios') return existsSync(join(path, 'platform', 'xcode', 'love.xcodeproj'));
+  if (target === 'windows') return existsSync(join(path, 'love.exe'));
+  if (target === 'macos') return existsSync(join(path, 'love.app', 'Contents', 'Info.plist'));
+  return existsSync(join(path, 'squashfs-root', 'bin', 'love')) && existsSync(join(path, 'appimagetool.AppImage'));
 }
 
 function resolveVendorDir(projectDir: string, vendorDir: string): string {
@@ -318,6 +373,101 @@ function cloneVendor(repo: string, ref: string, targetPath: string, recurseSubmo
   if (result.status !== 0) {
     throw new Error((result.stderr || result.stdout || `git clone failed for ${repo}`).trim());
   }
+}
+
+function isDownloadedRuntimeTarget(target: ConcreteBuildVendorTarget): target is 'windows' | 'macos' | 'linux' | 'steamos' {
+  return target === 'windows' || target === 'macos' || target === 'linux' || target === 'steamos';
+}
+
+async function installDesktopRuntime(target: 'windows' | 'macos' | 'linux' | 'steamos', loveVersion: string, targetPath: string): Promise<void> {
+  removePath(targetPath);
+  mkdirSync(targetPath, { recursive: true });
+  if (target === 'windows') {
+    const zip = await downloadRuntimeArchive(target, loveVersion);
+    extractZip(zip, targetPath, { stripRoot: true });
+    return;
+  }
+  if (target === 'macos') {
+    const zip = await downloadRuntimeArchive(target, loveVersion);
+    extractZip(zip, targetPath, { stripRoot: false });
+    const loveBinary = join(targetPath, 'love.app', 'Contents', 'MacOS', 'love');
+    if (existsSync(loveBinary)) chmodSync(loveBinary, 0o755);
+    return;
+  }
+
+  const loveAppImage = join(targetPath, 'love.AppImage');
+  const appImageTool = join(targetPath, 'appimagetool.AppImage');
+  await downloadRuntimeFile(runtimeUrl('linux', loveVersion), loveAppImage, 'FEATHER_TEST_LOVE_LINUX_APPIMAGE');
+  await downloadRuntimeFile(APPIMAGETOOL_URL, appImageTool, 'FEATHER_TEST_APPIMAGETOOL');
+  chmodSync(loveAppImage, 0o755);
+  chmodSync(appImageTool, 0o755);
+  const result = spawnSync(loveAppImage, ['--appimage-extract'], { cwd: targetPath, encoding: 'utf8' });
+  if (result.error) {
+    throw new Error(`Failed to extract LÖVE AppImage: ${result.error.message}`);
+  }
+  if (result.status !== 0 || !existsSync(join(targetPath, 'squashfs-root', 'bin', 'love'))) {
+    throw new Error((result.stderr || result.stdout || 'Failed to extract LÖVE AppImage.').trim());
+  }
+}
+
+async function downloadRuntimeArchive(target: 'windows' | 'macos', loveVersion: string): Promise<Buffer> {
+  const fixture = process.env[target === 'windows' ? 'FEATHER_TEST_LOVE_WINDOWS_ZIP' : 'FEATHER_TEST_LOVE_MACOS_ZIP'];
+  if (fixture) return readFileSync(fixture);
+  const response = await fetch(runtimeUrl(target, loveVersion));
+  if (!response.ok) {
+    throw new Error(`Failed to download ${runtimeUrl(target, loveVersion)}: HTTP ${response.status}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function downloadRuntimeFile(url: string, path: string, fixtureEnv: string): Promise<void> {
+  const fixture = process.env[fixtureEnv];
+  mkdirSync(dirname(path), { recursive: true });
+  if (fixture) {
+    cpSync(fixture, path, { force: true });
+    return;
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download ${url}: HTTP ${response.status}`);
+  }
+  writeFileSync(path, Buffer.from(await response.arrayBuffer()));
+}
+
+function runtimeUrl(target: 'windows' | 'macos' | 'linux', loveVersion: string): string {
+  if (target === 'windows') return `${LOVE_RELEASE_BASE}/${encodeURIComponent(loveVersion)}/love-${encodeURIComponent(loveVersion)}-win64.zip`;
+  if (target === 'macos') return `${LOVE_RELEASE_BASE}/${encodeURIComponent(loveVersion)}/love-${encodeURIComponent(loveVersion)}-macos.zip`;
+  return `${LOVE_RELEASE_BASE}/${encodeURIComponent(loveVersion)}/love-${encodeURIComponent(loveVersion)}-x86_64.AppImage`;
+}
+
+function extractZip(zip: Buffer, targetPath: string, options: { stripRoot: boolean }): void {
+  const entries = unzip(zip);
+  const fileEntries: Array<UnzippedEntry & { normalized: string }> = entries
+    .map((entry) => ({ ...entry, normalized: normalizeZipEntry(entry.name) }))
+    .filter((entry): entry is UnzippedEntry & { normalized: string } => typeof entry.normalized === 'string' && entry.normalized.length > 0);
+  const root = options.stripRoot ? commonRoot(fileEntries.map((entry) => entry.normalized)) : null;
+  for (const entry of fileEntries) {
+    const name = root ? entry.normalized.slice(root.length + 1) : entry.normalized;
+    if (!name || name.endsWith('/')) continue;
+    const destination = resolve(targetPath, name);
+    if (!isPathInside(targetPath, destination)) {
+      throw new Error(`Runtime ZIP contains an unsafe path: ${entry.name}`);
+    }
+    mkdirSync(dirname(destination), { recursive: true });
+    writeFileSync(destination, entry.data);
+  }
+}
+
+function normalizeZipEntry(name: string): string | null {
+  const normalized = name.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!normalized || normalized.startsWith('__MACOSX/') || normalized.includes('/.__MACOSX/')) return null;
+  if (normalized.startsWith('._') || normalized.includes('/._')) return null;
+  return normalized;
+}
+
+function commonRoot(names: string[]): string | null {
+  const roots = new Set(names.map((name) => name.split('/')[0]).filter(Boolean));
+  return roots.size === 1 ? [...roots][0]! : null;
 }
 
 async function installAppleLibraries(loveVersion: string, loveIosDir: string): Promise<void> {
@@ -467,8 +617,9 @@ function updateVendorConfig(
   writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`);
 }
 
-function vendorConfigKey(target: ConcreteBuildVendorTarget): 'loveJsDir' | 'loveAndroidDir' | 'loveIosDir' {
+function vendorConfigKey(target: ConcreteBuildVendorTarget): 'loveJsDir' | 'loveAndroidDir' | 'loveIosDir' | 'loveRuntimeDir' {
   if (target === 'web') return 'loveJsDir';
   if (target === 'android') return 'loveAndroidDir';
-  return 'loveIosDir';
+  if (target === 'ios') return 'loveIosDir';
+  return 'loveRuntimeDir';
 }

@@ -2,8 +2,8 @@ import { accessSync, constants, existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { assertNoSymlinkEscape, assertSafeRelativePath, isPathInside } from '../path-safety.js';
 
-export const buildTargets = ['web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos'] as const;
-export const supportedBuildTargets = ['web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos'] as const;
+export const buildTargets = ['love', 'web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos'] as const;
+export const supportedBuildTargets = ['love', 'web', 'android', 'ios', 'windows', 'macos', 'linux', 'steamos'] as const;
 export const uploadTargets = ['itch', 'steam'] as const;
 
 export type BuildTarget = typeof buildTargets[number];
@@ -57,6 +57,10 @@ export type IosBuildTargetConfig = {
   };
 };
 
+export type DesktopRuntimeBuildTargetConfig = {
+  loveRuntimeDir?: string;
+};
+
 export type FeatherBuildConfig = {
   name?: string;
   version?: string;
@@ -78,10 +82,10 @@ export type FeatherBuildConfig = {
       title?: string;
       outputName?: string;
     };
-    windows?: Record<string, unknown>;
-    macos?: Record<string, unknown>;
-    linux?: Record<string, unknown>;
-    steamos?: Record<string, unknown>;
+    windows?: DesktopRuntimeBuildTargetConfig;
+    macos?: DesktopRuntimeBuildTargetConfig;
+    linux?: DesktopRuntimeBuildTargetConfig;
+    steamos?: DesktopRuntimeBuildTargetConfig;
     android?: AndroidBuildTargetConfig;
     ios?: IosBuildTargetConfig;
   };
