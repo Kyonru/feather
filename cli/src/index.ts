@@ -278,27 +278,47 @@ buildVendor
   })));
 
 program
-  .command('upload <target> [build-target]')
+  .command('upload [target] [build-target]')
   .description('Upload built artifacts to itch.io or registered store targets')
   .option('--dir <path>', 'Project directory (default: current directory)')
   .option('--config <path>', 'Path to feather.build.json')
   .option('--build-dir <path>', 'Directory containing feather-build-manifest.json')
+  .option('--project <name>', 'Upload project override, for example user/game')
   .option('--channel <name>', 'Upload channel override')
   .option('--user-version <version>', 'Store-facing version override')
   .option('--dry-run', 'Show the upload plan without running the uploader')
   .option('--if-changed', 'Pass --if-changed to supported uploaders')
   .option('--hidden', 'Pass --hidden to supported uploaders')
   .option('--json', 'Output machine-readable JSON')
+  .option('-y, --yes', 'Skip upload confirmation in non-interactive mode')
+  .option('--build', 'Build the selected target before uploading')
+  .option('--out-dir <path>', 'Build output directory when used with --build')
+  .option('--release', 'Build signed/store-oriented mobile release artifacts when used with --build')
+  .option('--allow-unsafe', 'Allow production-unsafe Feather config during --build')
+  .option('--clean', 'Remove the output directory before --build')
+  .option('--no-cache', 'Disable Android/iOS dev native build cache during --build')
+  .option('--verbose', 'Show build command output when used with --build')
+  .option('--allow-feather-runtime', 'Allow uploading artifacts that include or may include Feather runtime files')
   .action((target: string, buildTarget: string | undefined, opts) => runCliAction(() => uploadCommand(target, buildTarget, {
       dir: opts.dir as string | undefined,
       config: opts.config as string | undefined,
       buildDir: opts.buildDir as string | undefined,
+      project: opts.project as string | undefined,
       channel: opts.channel as string | undefined,
       userVersion: opts.userVersion as string | undefined,
       dryRun: opts.dryRun as boolean | undefined,
       ifChanged: opts.ifChanged as boolean | undefined,
       hidden: opts.hidden as boolean | undefined,
       json: opts.json as boolean | undefined,
+      yes: opts.yes as boolean | undefined,
+      build: opts.build as boolean | undefined,
+      outDir: opts.outDir as string | undefined,
+      release: opts.release as boolean | undefined,
+      allowUnsafe: opts.allowUnsafe as boolean | undefined,
+      clean: opts.clean as boolean | undefined,
+      noCache: opts.cache === false,
+      verbose: opts.verbose as boolean | undefined,
+      allowFeatherRuntime: opts.allowFeatherRuntime as boolean | undefined,
     })));
 
 program

@@ -3,16 +3,19 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { loadBuildConfig, type LoadBuildConfigOptions, type UploadTarget } from './config.js';
 import { artifactForTarget, readLatestManifest, resolveArtifactPath } from './files.js';
+import { inspectUploadArtifact, uploadSafetyWarning, type UploadSafetyResult } from './upload-safety.js';
 
 export type UploadOptions = LoadBuildConfigOptions & {
   target: UploadTarget;
   buildTarget?: string;
   buildDir?: string;
+  project?: string;
   channel?: string;
   userVersion?: string;
   dryRun?: boolean;
   ifChanged?: boolean;
   hidden?: boolean;
+  allowFeatherRuntime?: boolean;
 };
 
 export type UploadResult = {
@@ -25,9 +28,12 @@ export type UploadResult = {
   channel: string;
   userVersion: string;
   command: string[];
+  safety: UploadSafetyResult;
+  warning?: string;
 } | {
   ok: false;
   error: string;
+  safety?: UploadSafetyResult;
 };
 
 export function runUpload(options: UploadOptions): UploadResult {
@@ -46,10 +52,22 @@ export function runUpload(options: UploadOptions): UploadResult {
     if (!existsSync(artifact.path)) throw new Error(`Build artifact is missing: ${artifact.path}`);
 
     const itch = config.upload.itch ?? {};
-    const project = itch.project;
+    const project = options.project ?? itch.project;
     if (!project) throw new Error('Itch upload requires upload.itch.project in feather.build.json.');
     const channel = options.channel ?? itch.channels?.[buildTarget] ?? buildTarget;
     const userVersion = options.userVersion ?? config.version;
+    const safety = inspectUploadArtifact(resolveArtifactPath(artifact.path));
+    const warning = uploadSafetyWarning(safety) ?? undefined;
+    if (!options.dryRun && safety.status !== 'safe' && !options.allowFeatherRuntime) {
+      return {
+        ok: false,
+        error:
+          safety.status === 'unsafe'
+            ? 'Upload blocked because Feather runtime/debugging files were detected. Pass --allow-feather-runtime only for intentional internal builds.'
+            : 'Upload blocked because Feather could not inspect the artifact for runtime/debugging files. Pass --allow-feather-runtime only if you have verified the artifact.',
+        safety,
+      };
+    }
     const command = [
       'butler',
       'push',
@@ -77,6 +95,8 @@ export function runUpload(options: UploadOptions): UploadResult {
       channel,
       userVersion,
       command,
+      safety,
+      warning,
     };
   } catch (err) {
     return { ok: false, error: (err as Error).message };
