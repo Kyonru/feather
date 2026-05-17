@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.0.0] - 2026-05-17 - The one with platform builds
+
+### Added
+
+- **Build pipeline** — `feather build` now supports `.love`, web, Android, iOS, Windows, macOS, Linux, and SteamOS targets.
+  - Added mobile release build support for Android and iOS.
+  - Added desktop runtime packaging for Windows, macOS, Linux, and SteamOS.
+  - Added web build output and web run support.
+  - Added vendor management with `feather build vendor add/list` for build templates and runtimes.
+- **Upload pipeline** — added `feather upload` support for publishing build artifacts, including itch.io workflows.
+- **Run targets** — `feather run` can now launch desktop, web, Android, and iOS development flows.
+  - Added mobile run cache support to speed up repeated Android/iOS iteration.
+  - Added Android/iOS device and simulator launch helpers.
+- **CLI doctor expansion** — `feather doctor` now includes deeper environment, project, security, production, vendor, and build-target checks.
+  - Added `--production`, security-focused checks, and build-target diagnostics.
+  - Added structured JSON diagnostics used by the desktop app.
+- **Desktop CLI awareness** — Settings now detects the Feather CLI, reports CLI version/path/source, checks Node/npm, and runs read-only project doctor/vendor summaries.
+  - Added CLI path override and project directory selection.
+  - Added CLI/Desktop version mismatch warnings.
+  - Added docs links and copyable fix commands for missing setup.
+- **Safe editor launch** — replaced shell-based source opening with a dedicated Tauri command that validates editor paths and project-relative file locations before launching VS Code.
+- **First-run guidance** — added no-session setup prompts for installing the CLI, opening docs, connecting a LÖVE project, and copying `feather run`.
+- **Package catalog growth** — added packages including baton, beehive, cargo, g3d, knife, love-dialogue, lovebpm, lua-state-machine, shove, SYSL-text, and tiny-ecs.
+- **Custom package installs** — added `feather package add` workflows for custom packages, branch/commit-based sources, submodules, and provenance metadata.
+- **CLI tooling and tests** — added package helper scripts and a broader CLI command test suite for build, doctor, package, plugin, run, runtime, and upload commands.
+
+### Changed
+
+- Refactored CLI command structure, shared UI components, output formatting, and interactive workflows for init, package, plugin, remove, and update commands.
+- Hardened package, plugin, and filesystem mutation paths with path safety checks, provenance tracking, trust validation, redaction, and more auditable output.
+- Improved lockfile handling for package installs and audits.
+- Improved package registry generation and switched package source references toward pinned commit hashes.
+- Improved documentation for installation, usage, assets, debugger, recommendations, CLI workflows, and minimal examples.
+- Refined desktop settings into tabbed sections with CLI, assets, editor, connection, and security controls.
+- Improved light/dark theming, plugin sidebar states, plugin button-style inputs, observability controls, and empty states.
+- Updated Lua runtime/plugin internals, including safer `auto.lua` loading, plugin manager improvements, and debug overlay support.
+
+### Fixed
+
+- Fixed custom package add behavior and terminal input cleanup.
+- Fixed iOS build behavior and error messages.
+- Removed Lua `goto` usage that could trigger runtime errors.
+- Removed frontend dependency on arbitrary shell execution for opening source locations.
+
 ## [v0.10.0] - 2026-05-13 - The one with the internal package manager
 
 ### Added
@@ -353,6 +397,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v1.0.0]: https://github.com/Kyonru/feather/compare/v0.10.0...v1.0.0
 [v0.10.0]: https://github.com/Kyonru/feather/compare/v0.9.3...v0.10.0
 [v0.9.3]: https://github.com/Kyonru/feather/compare/v0.9.2...v0.9.3
 [v0.9.2]: https://github.com/Kyonru/feather/compare/v0.9.0...v0.9.2

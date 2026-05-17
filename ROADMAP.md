@@ -60,7 +60,7 @@ Turn Feather into a platform instead of only a debugger.
 
 ---
 
-## 1.0.0 — Trust Release
+## Beyond v1 — Trust Release
 
 Focus:
 Production-ready release with security, trust, and community adoption.
@@ -69,13 +69,9 @@ Production-ready release with security, trust, and community adoption.
 
 - [ ] Security pass
   - [ ] Remote debugging encryption
-  - [ ] Command validation
-  - [ ] File/folder restrictions
-  - [ ] OS script protections
 
 ### Platform Readiness
 
-- [ ] Add developer signature to avoid installation warnings
 - [ ] Add privacy policy
 - [ ] Improve crash recovery
 - [ ] Final compatibility validation
@@ -114,23 +110,3 @@ Production-ready release with security, trust, and community adoption.
 - [ ] Optimize screenshot/memory handling
 
 ---
-
-## Ideas
-
-- Being able to generate (maybe from a couple of templates \ pre made docker images) android and ios projects where lua code can be embedded, similar to how expo for react native works. (explore how to make hot reloading possible, but not needed for first iteration).
-  - `feather build android`
-  - `feather build ios`
-  - `feather build steamos`
-  - `feather build web`
-- Ideally when building android and ios, the project should use cache from previous build to reduce the amount of time it takes to see lua code in mobile.
-- Step by step setup guide for Steam deck (what legally is allowed).
-- Release command, takes care of removing feather if integrated, and prepare builds with release flavors
-  - `feather release android`
-- Interactive itch.io \ steam releases (also non-interactive)
-  - `feather upload itch.io`
-- feather needs to be able to read from a secret file and inject them to builds if possible.
-  - Doctor should say what's missing to be able to use these commands (sdks, where to get them, etc).
-  - maybe a `feather.yml` to configure the cli
-- Easy integration with CLI
-
-Goals: Being as close as possible to expo
