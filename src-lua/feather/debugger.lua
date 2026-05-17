@@ -91,6 +91,11 @@ function FeatherDebugger:_normalizeFile(path)
   if path:sub(1, 2) == "./" then
     path = path:sub(3)
   end
+  -- Feather renames main.lua to .feather-main.lua during injection; remap so
+  -- breakpoints set on main.lua match the executing file.
+  if path == ".feather-main.lua" then
+    return "main.lua"
+  end
   return path
 end
 
