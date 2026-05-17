@@ -424,6 +424,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v1.1.0]: https://github.com/Kyonru/feather/compare/v1.0.1...v1.1.0
+[v1.0.1]: https://github.com/Kyonru/feather/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/Kyonru/feather/compare/v0.10.0...v1.0.0
 [v0.10.0]: https://github.com/Kyonru/feather/compare/v0.9.3...v0.10.0
 [v0.9.3]: https://github.com/Kyonru/feather/compare/v0.9.2...v0.9.3
