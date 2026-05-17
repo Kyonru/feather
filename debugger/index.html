@@ -1738,6 +1738,10 @@
 <li>Click any <strong>line number</strong> to add a breakpoint. Click again to remove it.</li>
 </ol>
 <p>Breakpoints are shown as red dots in the gutter. They persist across desktop restarts and are synced to the game whenever the debugger is enabled or a breakpoint is changed.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Debugger expects the folder structure to be the same where the main.lua is located. Feather is capable of automatically detecting the directory, but if it doesn't, just open the project folder where your main.lua is located.</p>
+</div>
 <h3 id="conditional-breakpoints">Conditional breakpoints<a class="headerlink" href="#conditional-breakpoints" title="Permanent link">&para;</a></h3>
 <p>Right-click a breakpoint (or use the condition field) to add a Lua expression. The game only pauses when the expression evaluates to truthy:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- Only pause when the player takes damage</span>
