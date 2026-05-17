@@ -30,6 +30,8 @@ The goal is to make the day-to-day loop of writing and testing a LÖVE game fast
 ![log tab](docs/images/logs.png)
 ![performance tab](docs/images/performance.png)
 ![observability tab](docs/images/observable.png)
+![!assets tab](docs/images/assets.png)
+![!debugger tab](docs/images/debugger.png)
 
 ---
 
