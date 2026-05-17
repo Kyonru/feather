@@ -1,9 +1,7 @@
 /* eslint-disable no-undef */
 import {
-  ANSI_RE,
   LOCAL_SRC,
   assert,
-  chmodSync,
   delimiter,
   dirname,
   envWithPath,
@@ -12,33 +10,23 @@ import {
   makeTmp,
   mkdirSync,
   outputOf,
-  parseDoctorJson,
-  parseDoctorJsonResult,
   readFileSync,
   resolve,
-  rmSync,
   run,
-  sha256,
   spawnCli,
   stopChild,
-  symlinkSync,
   test,
   waitForOutput,
   writeBuildConfig,
   writeFakeAdb,
-  writeFakeAppleLibrariesZip,
   writeFakeCommand,
   writeFakeLove,
   writeFakeLoveAndroid,
   writeFakeLoveIos,
   writeFakeLoveJs,
-  writeFakeVendorGit,
   writeFakeXcrun,
   writeFileSync,
   writeGame,
-  writeLocalPluginSource,
-  writeLock,
-  writeMinimalRuntime,
   readStoredZipEntries,
 } from './helpers.mjs';
 
@@ -199,14 +187,27 @@ test('run --target android: builds, installs, sets adb reverse, launches, and su
   assert.ok(outputOf(result).includes('Launched android'));
   assert.ok(outputOf(result).includes('com.example.runandroid'));
   const records = JSON.parse(readFileSync(recordPath, 'utf8'));
-  assert.deepEqual(records.map((entry) => entry.args), [
-    ['-s', 'emulator-5554', 'version'],
-    ['-s', 'emulator-5554', 'shell', 'rm', '-f', '/sdcard/Android/data/com.example.runandroid/files/game.love'],
-    ['-s', 'emulator-5554', 'install', '-r', join(dir, 'builds', 'run-android-1.0.0-android.apk')],
-    ['-s', 'emulator-5554', 'shell', 'am', 'force-stop', 'com.example.runandroid'],
-    ['-s', 'emulator-5554', 'reverse', 'tcp:4010', 'tcp:4010'],
-    ['-s', 'emulator-5554', 'shell', 'monkey', '-p', 'com.example.runandroid', '-c', 'android.intent.category.LAUNCHER', '1'],
-  ]);
+  assert.deepEqual(
+    records.map((entry) => entry.args),
+    [
+      ['-s', 'emulator-5554', 'version'],
+      ['-s', 'emulator-5554', 'shell', 'rm', '-f', '/sdcard/Android/data/com.example.runandroid/files/game.love'],
+      ['-s', 'emulator-5554', 'install', '-r', join(dir, 'builds', 'run-android-1.0.0-android.apk')],
+      ['-s', 'emulator-5554', 'shell', 'am', 'force-stop', 'com.example.runandroid'],
+      ['-s', 'emulator-5554', 'reverse', 'tcp:4010', 'tcp:4010'],
+      [
+        '-s',
+        'emulator-5554',
+        'shell',
+        'monkey',
+        '-p',
+        'com.example.runandroid',
+        '-c',
+        'android.intent.category.LAUNCHER',
+        '1',
+      ],
+    ],
+  );
   const entries = readStoredZipEntries(join(dir, 'builds', 'run-android-1.0.0.love'));
   assert.equal(entries.has('feather/auto.lua'), true);
   assert.match(entries.get('feather.config.lua').toString('utf8'), /port\s*=\s*4010/);
@@ -217,7 +218,9 @@ test('run --target android --config: embeds selected raw Feather config in mobil
   const gameDir = join(dir, 'game');
   writeGame(gameDir);
   const configPath = join(gameDir, 'custom-feather.config.lua');
-  writeFileSync(configPath, `return {
+  writeFileSync(
+    configPath,
+    `return {
   sessionName = "Mobile Custom",
   __DANGEROUS_INSECURE_CONNECTION__ = true,
   debugger = {
@@ -227,7 +230,8 @@ test('run --target android --config: embeds selected raw Feather config in mobil
     },
   },
 }
-`);
+`,
+  );
   writeFakeLoveAndroid(dir);
   writeBuildConfig(dir, {
     name: 'Run Android Config',
@@ -294,7 +298,10 @@ test('run --target android --no-adb-reverse skips reverse setup', () => {
   const result = run(['run', dir, '--target', 'android', '--no-adb-reverse'], { env: envWithPath(binDir) });
   assert.equal(result.exitCode, 0, outputOf(result));
   const records = JSON.parse(readFileSync(recordPath, 'utf8'));
-  assert.equal(records.some((entry) => entry.args.includes('reverse')), false);
+  assert.equal(
+    records.some((entry) => entry.args.includes('reverse')),
+    false,
+  );
 });
 
 test('run --target android --no-debugger skips adb reverse setup', () => {
@@ -312,7 +319,10 @@ test('run --target android --no-debugger skips adb reverse setup', () => {
   const result = run(['run', dir, '--target', 'android', '--no-debugger'], { env: envWithPath(binDir) });
   assert.equal(result.exitCode, 0, outputOf(result));
   const records = JSON.parse(readFileSync(recordPath, 'utf8'));
-  assert.equal(records.some((entry) => entry.args.includes('reverse')), false);
+  assert.equal(
+    records.some((entry) => entry.args.includes('reverse')),
+    false,
+  );
   assert.equal(outputOf(result).includes('ADB reverse  disabled'), true);
   const entries = readStoredZipEntries(join(dir, 'builds', 'no-debugger-android-1.0.0.love'));
   assert.equal(entries.has('feather/auto.lua'), false);
@@ -331,8 +341,12 @@ test('run --target android --no-cache forwards cache option to mobile build', ()
   });
   const { binDir } = writeFakeAdb(dir);
 
-  const first = run(['run', dir, '--target', 'android', '--no-adb-reverse', '--no-cache'], { env: envWithPath(binDir) });
-  const second = run(['run', dir, '--target', 'android', '--no-adb-reverse', '--no-cache'], { env: envWithPath(binDir) });
+  const first = run(['run', dir, '--target', 'android', '--no-adb-reverse', '--no-cache'], {
+    env: envWithPath(binDir),
+  });
+  const second = run(['run', dir, '--target', 'android', '--no-adb-reverse', '--no-cache'], {
+    env: envWithPath(binDir),
+  });
   assert.equal(first.exitCode, 0, outputOf(first));
   assert.equal(second.exitCode, 0, outputOf(second));
   assert.equal(existsSync(join(dir, 'builds', '.feather-cache')), false);
@@ -399,7 +413,10 @@ test('run --target ios: builds app, installs simulator app, and launches bundle 
     },
   });
   const recordPath = join(dir, 'xcodebuild-run-record.json');
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 if (process.argv.includes('-version')) {
   console.log('Xcode 99.0');
   process.exit(0);
@@ -416,7 +433,8 @@ fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: args }, null, 2));
 process.exit(0);
-`);
+`,
+  );
   const xcrun = writeFakeXcrun(dir);
 
   const result = run(['run', dir, '--target', 'ios', '--device', 'SIM-123'], {
@@ -425,12 +443,15 @@ process.exit(0);
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.ok(outputOf(result).includes('Launched ios'));
   const records = JSON.parse(readFileSync(xcrun.recordPath, 'utf8'));
-  assert.deepEqual(records.map((entry) => entry.args), [
-    ['simctl', 'terminate', 'SIM-123', 'com.example.runios'],
-    ['simctl', 'uninstall', 'SIM-123', 'com.example.runios'],
-    ['simctl', 'install', 'SIM-123', join(dir, 'builds', 'run-ios-1.0.0-ios.app')],
-    ['simctl', 'launch', 'SIM-123', 'com.example.runios'],
-  ]);
+  assert.deepEqual(
+    records.map((entry) => entry.args),
+    [
+      ['simctl', 'terminate', 'SIM-123', 'com.example.runios'],
+      ['simctl', 'uninstall', 'SIM-123', 'com.example.runios'],
+      ['simctl', 'install', 'SIM-123', join(dir, 'builds', 'run-ios-1.0.0-ios.app')],
+      ['simctl', 'launch', 'SIM-123', 'com.example.runios'],
+    ],
+  );
   assert.equal(existsSync(join(dir, 'builds', 'run-ios-1.0.0-ios.app', 'game.love')), true);
 });
 
@@ -443,7 +464,10 @@ test('run --target ios: missing xcrun produces doctor guidance', () => {
     version: '1.0.0',
     targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.missingxcrun' } },
   });
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
@@ -455,10 +479,14 @@ const app = path.join(derivedData, 'Build', 'Products', configuration + '-' + sd
 fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 process.exit(0);
-`);
+`,
+  );
 
   const result = run(['run', dir, '--target', 'ios'], {
-    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1', PATH: `${binDir}${delimiter}${dirname(process.execPath)}` }),
+    env: envWithPath(binDir, {
+      FEATHER_TEST_ALLOW_IOS_BUILD: '1',
+      PATH: `${binDir}${delimiter}${dirname(process.execPath)}`,
+    }),
   });
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('xcrun not found'));
@@ -478,21 +506,27 @@ test('run --target web: builds, embeds Feather, serves generated html, and stays
   const dir = makeTmp();
   writeGame(dir);
   writeFakeLoveJs(dir);
-  writeFileSync(join(dir, 'feather.config.lua'), `return {
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
   sessionName = "Web Custom",
   __DANGEROUS_INSECURE_CONNECTION__ = true,
   debugOverlay = { visible = false },
 }
-`);
+`,
+  );
   writeBuildConfig(dir, {
     name: 'Run Web',
     version: '1.0.0',
     targets: { web: { loveJsDir: 'love.js' } },
   });
 
-  const child = spawnCli(['run', dir, '--target', 'web', '--web-port', '0', '--config', join(dir, 'feather.config.lua')], {
-    env: envWithPath('', { FEATHER_TEST_WEB_RUN_NO_SERVER: '1' }),
-  });
+  const child = spawnCli(
+    ['run', dir, '--target', 'web', '--web-port', '0', '--config', join(dir, 'feather.config.lua')],
+    {
+      env: envWithPath('', { FEATHER_TEST_WEB_RUN_NO_SERVER: '1' }),
+    },
+  );
   try {
     const output = await waitForOutput(child, /Debugger\s+enabled/);
     assert.match(output, /Serving web build/);

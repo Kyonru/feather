@@ -1,48 +1,26 @@
 /* eslint-disable no-undef */
 import {
   ANSI_RE,
-  LOCAL_SRC,
   assert,
-  chmodSync,
-  delimiter,
-  dirname,
   envWithPath,
-  existsSync,
   join,
   makeTmp,
   mkdirSync,
   outputOf,
-  parseDoctorJson,
-  parseDoctorJsonResult,
   readFileSync,
-  resolve,
-  rmSync,
   run,
-  sha256,
-  spawnCli,
-  stopChild,
-  symlinkSync,
   test,
-  waitForOutput,
   writeBuildConfig,
-  writeFakeAdb,
-  writeFakeAppleLibrariesZip,
   writeFakeCommand,
-  writeFakeLove,
-  writeFakeLoveAndroid,
-  writeFakeLoveIos,
   writeFakeLoveJs,
-  writeFakeVendorGit,
-  writeFakeXcrun,
   writeFileSync,
   writeGame,
-  writeLocalPluginSource,
-  writeLock,
-  writeMinimalRuntime,
-  readStoredZipEntries,
 } from './helpers.mjs';
 
-function writeUnsafeUploadManifest(dir, { name = 'Unsafe Upload', project = 'tester/unsafe-upload', channel = 'html5' } = {}) {
+function writeUnsafeUploadManifest(
+  dir,
+  { name = 'Unsafe Upload', project = 'tester/unsafe-upload', channel = 'html5' } = {},
+) {
   const artifact = join(dir, 'builds', 'unsafe-web');
   mkdirSync(join(artifact, 'feather'), { recursive: true });
   writeFileSync(join(artifact, 'index.html'), '<!doctype html><title>Unsafe</title>');
@@ -52,13 +30,20 @@ function writeUnsafeUploadManifest(dir, { name = 'Unsafe Upload', project = 'tes
     version: '1.0.0',
     upload: { itch: { project, channels: { web: channel } } },
   });
-  writeFileSync(join(dir, 'builds', 'feather-build-manifest.json'), `${JSON.stringify({
-    name,
-    version: '1.0.0',
-    target: 'web',
-    createdAt: '2026-05-17T00:00:00.000Z',
-    artifacts: [{ target: 'web', type: 'html', path: artifact }],
-  }, null, 2)}\n`);
+  writeFileSync(
+    join(dir, 'builds', 'feather-build-manifest.json'),
+    `${JSON.stringify(
+      {
+        name,
+        version: '1.0.0',
+        target: 'web',
+        createdAt: '2026-05-17T00:00:00.000Z',
+        artifacts: [{ target: 'web', type: 'html', path: artifact }],
+      },
+      null,
+      2,
+    )}\n`,
+  );
   return artifact;
 }
 
@@ -100,7 +85,10 @@ test('upload itch: fake butler receives artifact, channel, version, and flags', 
   const build = run(['build', 'web', '--dir', dir, '--json']);
   assert.equal(build.exitCode, 0, outputOf(build));
   const recordPath = join(dir, 'butler-record.json');
-  const { binDir } = writeFakeCommand(dir, 'butler', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'butler',
+    `
 if (process.argv.includes('--version')) {
   console.log('butler test');
   process.exit(0);
@@ -108,9 +96,12 @@ if (process.argv.includes('--version')) {
 const fs = require('node:fs');
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: process.argv.slice(2) }, null, 2));
 process.exit(0);
-`);
+`,
+  );
 
-  const result = run(['upload', 'itch', 'web', '--dir', dir, '--if-changed', '--hidden', '--yes', '--json'], { env: envWithPath(binDir) });
+  const result = run(['upload', 'itch', 'web', '--dir', dir, '--if-changed', '--hidden', '--yes', '--json'], {
+    env: envWithPath(binDir),
+  });
   assert.equal(result.exitCode, 0, outputOf(result));
   const record = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.equal(record.argv[0], 'push');
@@ -149,13 +140,20 @@ test('upload itch: desktop targets prefer installer-style artifacts over .love',
     { target: 'linux', type: 'appimage', path: join(builds, 'desktop-upload-5.0.0-linux.AppImage') },
   ];
   for (const artifact of artifacts) writeFileSync(artifact.path, artifact.type);
-  writeFileSync(join(builds, 'feather-build-manifest.json'), `${JSON.stringify({
-    name: 'Desktop Upload',
-    version: '5.0.0',
-    target: 'windows',
-    createdAt: '2026-05-16T00:00:00.000Z',
-    artifacts,
-  }, null, 2)}\n`);
+  writeFileSync(
+    join(builds, 'feather-build-manifest.json'),
+    `${JSON.stringify(
+      {
+        name: 'Desktop Upload',
+        version: '5.0.0',
+        target: 'windows',
+        createdAt: '2026-05-16T00:00:00.000Z',
+        artifacts,
+      },
+      null,
+      2,
+    )}\n`,
+  );
 
   for (const [target, expected] of [
     ['windows', 'desktop-upload-5.0.0-windows-installer.exe'],
@@ -223,13 +221,20 @@ test('upload itch: missing project reports a clear headless error', () => {
   const artifact = join(builds, 'game.love');
   writeFileSync(artifact, 'not-a-real-upload');
   writeBuildConfig(dir, { name: 'Missing Project', version: '1.0.0' });
-  writeFileSync(join(builds, 'feather-build-manifest.json'), `${JSON.stringify({
-    name: 'Missing Project',
-    version: '1.0.0',
-    target: 'love',
-    createdAt: '2026-05-17T00:00:00.000Z',
-    artifacts: [{ target: 'love', type: 'love', path: artifact }],
-  }, null, 2)}\n`);
+  writeFileSync(
+    join(builds, 'feather-build-manifest.json'),
+    `${JSON.stringify(
+      {
+        name: 'Missing Project',
+        version: '1.0.0',
+        target: 'love',
+        createdAt: '2026-05-17T00:00:00.000Z',
+        artifacts: [{ target: 'love', type: 'love', path: artifact }],
+      },
+      null,
+      2,
+    )}\n`,
+  );
 
   const result = run(['upload', 'itch', 'love', '--dir', dir, '--dry-run']);
   assert.equal(result.exitCode, 1);
@@ -261,13 +266,20 @@ test('upload itch: uninspectable artifact blocks headless upload unless explicit
     version: '1.0.0',
     upload: { itch: { project: 'tester/opaque-upload', channels: { windows: 'windows' } } },
   });
-  writeFileSync(join(builds, 'feather-build-manifest.json'), `${JSON.stringify({
-    name: 'Opaque Upload',
-    version: '1.0.0',
-    target: 'windows',
-    createdAt: '2026-05-17T00:00:00.000Z',
-    artifacts: [{ target: 'windows', type: 'installer', path: artifact }],
-  }, null, 2)}\n`);
+  writeFileSync(
+    join(builds, 'feather-build-manifest.json'),
+    `${JSON.stringify(
+      {
+        name: 'Opaque Upload',
+        version: '1.0.0',
+        target: 'windows',
+        createdAt: '2026-05-17T00:00:00.000Z',
+        artifacts: [{ target: 'windows', type: 'installer', path: artifact }],
+      },
+      null,
+      2,
+    )}\n`,
+  );
 
   const blocked = run(['upload', 'itch', 'windows', '--dir', dir, '--yes', '--json']);
   assert.equal(blocked.exitCode, 1);
@@ -285,13 +297,19 @@ test('upload itch: unsafe override uploads and prints a large warning in text mo
     channel: 'html5',
   });
   const recordPath = join(dir, 'butler-record.json');
-  const { binDir } = writeFakeCommand(dir, 'butler', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'butler',
+    `
 const fs = require('node:fs');
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: process.argv.slice(2) }, null, 2));
 process.exit(0);
-`);
+`,
+  );
 
-  const result = run(['upload', 'itch', 'web', '--dir', dir, '--yes', '--allow-feather-runtime'], { env: envWithPath(binDir) });
+  const result = run(['upload', 'itch', 'web', '--dir', dir, '--yes', '--allow-feather-runtime'], {
+    env: envWithPath(binDir),
+  });
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.ok(outputOf(result).includes('UPLOAD SAFETY WARNING'));
   assert.ok(outputOf(result).includes('feather/'));
@@ -307,7 +325,9 @@ test('upload itch: unsafe override in json includes warning without non-json std
   });
   const { binDir } = writeFakeCommand(dir, 'butler', 'process.exit(0);');
 
-  const result = run(['upload', 'itch', 'web', '--dir', dir, '--yes', '--allow-feather-runtime', '--json'], { env: envWithPath(binDir) });
+  const result = run(['upload', 'itch', 'web', '--dir', dir, '--yes', '--allow-feather-runtime', '--json'], {
+    env: envWithPath(binDir),
+  });
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.equal(ANSI_RE.test(result.stdout), false);
   const parsed = JSON.parse(result.stdout);

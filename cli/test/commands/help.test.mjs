@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { assert, outputOf, run, test } from './helpers.mjs';
 
 function runOk(args) {

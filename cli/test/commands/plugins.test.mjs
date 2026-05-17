@@ -1,45 +1,18 @@
 /* eslint-disable no-undef */
 import {
-  ANSI_RE,
   LOCAL_SRC,
   assert,
-  chmodSync,
-  delimiter,
-  dirname,
-  envWithPath,
   existsSync,
   join,
   makeTmp,
   mkdirSync,
   outputOf,
-  parseDoctorJson,
-  parseDoctorJsonResult,
   readFileSync,
-  resolve,
-  rmSync,
   run,
-  sha256,
-  spawnCli,
-  stopChild,
   symlinkSync,
   test,
-  waitForOutput,
-  writeBuildConfig,
-  writeFakeAdb,
-  writeFakeAppleLibrariesZip,
-  writeFakeCommand,
-  writeFakeLove,
-  writeFakeLoveAndroid,
-  writeFakeLoveIos,
-  writeFakeLoveJs,
-  writeFakeVendorGit,
-  writeFakeXcrun,
   writeFileSync,
-  writeGame,
   writeLocalPluginSource,
-  writeLock,
-  writeMinimalRuntime,
-  readStoredZipEntries,
 } from './helpers.mjs';
 
 test('plugin list: missing plugin directory is a clean empty state', () => {
@@ -66,7 +39,10 @@ test('plugin update: explicit local update refreshes damaged files', () => {
 
   const result = run(['plugin', 'update', 'console', '--local-src', LOCAL_SRC, '--dir', dir, '--yes']);
   assert.equal(result.exitCode, 0, outputOf(result));
-  assert.equal(readFileSync(installedInit, 'utf8'), readFileSync(join(LOCAL_SRC, 'plugins', 'console', 'init.lua'), 'utf8'));
+  assert.equal(
+    readFileSync(installedInit, 'utf8'),
+    readFileSync(join(LOCAL_SRC, 'plugins', 'console', 'init.lua'), 'utf8'),
+  );
   assert.ok(outputOf(result).includes('Updated console'));
 });
 
@@ -81,8 +57,14 @@ test('plugin update: local --yes updates all installed plugins without selection
 
   const result = run(['plugin', 'update', '--local-src', LOCAL_SRC, '--dir', dir, '--yes']);
   assert.equal(result.exitCode, 0, outputOf(result));
-  assert.equal(readFileSync(consoleInit, 'utf8'), readFileSync(join(LOCAL_SRC, 'plugins', 'console', 'init.lua'), 'utf8'));
-  assert.equal(readFileSync(hotReloadInit, 'utf8'), readFileSync(join(LOCAL_SRC, 'plugins', 'hot-reload', 'init.lua'), 'utf8'));
+  assert.equal(
+    readFileSync(consoleInit, 'utf8'),
+    readFileSync(join(LOCAL_SRC, 'plugins', 'console', 'init.lua'), 'utf8'),
+  );
+  assert.equal(
+    readFileSync(hotReloadInit, 'utf8'),
+    readFileSync(join(LOCAL_SRC, 'plugins', 'hot-reload', 'init.lua'), 'utf8'),
+  );
 });
 
 test('plugin install: unknown local plugin exits 1', () => {

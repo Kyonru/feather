@@ -1,44 +1,19 @@
 /* eslint-disable no-undef */
 import {
   ANSI_RE,
-  LOCAL_SRC,
   assert,
-  chmodSync,
-  delimiter,
-  dirname,
   envWithPath,
   existsSync,
   join,
   makeTmp,
-  mkdirSync,
   outputOf,
-  parseDoctorJson,
-  parseDoctorJsonResult,
   readFileSync,
-  resolve,
-  rmSync,
   run,
-  sha256,
-  spawnCli,
-  stopChild,
-  symlinkSync,
   test,
-  waitForOutput,
   writeBuildConfig,
-  writeFakeAdb,
-  writeFakeAppleLibrariesZip,
   writeFakeCommand,
-  writeFakeLove,
-  writeFakeLoveAndroid,
   writeFakeLoveIos,
-  writeFakeLoveJs,
-  writeFakeVendorGit,
-  writeFakeXcrun,
-  writeFileSync,
   writeGame,
-  writeLocalPluginSource,
-  writeLock,
-  writeMinimalRuntime,
   readStoredZipEntries,
 } from './helpers.mjs';
 
@@ -52,13 +27,19 @@ test('build ios: invalid bundle id fails before xcodebuild', () => {
     targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'bad id' } },
   });
   const recordPath = join(dir, 'xcodebuild-record.json');
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 const fs = require('node:fs');
 fs.writeFileSync(${JSON.stringify(recordPath)}, 'ran');
 process.exit(0);
-`);
+`,
+  );
 
-  const result = run(['build', 'ios', '--dir', dir, '--json'], { env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }) });
+  const result = run(['build', 'ios', '--dir', dir, '--json'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('Invalid ios build config'));
   assert.equal(existsSync(recordPath), false);
@@ -86,7 +67,10 @@ test('build ios: injects game.love, runs xcodebuild, copies app, and writes mani
     },
   });
   const recordPath = join(dir, 'xcodebuild-record.json');
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 if (process.argv.includes('-version')) {
   console.log('Xcode 99.0');
   process.exit(0);
@@ -115,9 +99,12 @@ fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
 }, null, 2));
 console.log('fake xcodebuild ' + args.join(' '));
 process.exit(0);
-`);
+`,
+  );
 
-  const result = run(['build', 'ios', '--dir', dir, '--no-cache', '--json'], { env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }) });
+  const result = run(['build', 'ios', '--dir', dir, '--no-cache', '--json'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.equal(ANSI_RE.test(result.stdout), false);
   const parsed = JSON.parse(result.stdout);
@@ -151,7 +138,10 @@ process.exit(0);
   assert.equal(entries.has('feather/core/debug_overlay.lua'), true);
   const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
   assert.equal(manifest.target, 'ios');
-  assert.equal(manifest.artifacts.some((artifact) => artifact.type === 'app'), true);
+  assert.equal(
+    manifest.artifacts.some((artifact) => artifact.type === 'app'),
+    true,
+  );
 });
 
 test('build ios: reuses dev native cache and cached DerivedData between builds', () => {
@@ -170,7 +160,10 @@ test('build ios: reuses dev native cache and cached DerivedData between builds',
     },
   });
   const recordPath = join(dir, 'xcodebuild-cache-record.json');
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
@@ -192,7 +185,8 @@ previous.records.push({
 });
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
 process.exit(0);
-`);
+`,
+  );
   const env = envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' });
 
   const first = run(['build', 'ios', '--dir', dir, '--json'], { env });
@@ -227,7 +221,10 @@ test('build ios: buffers noisy xcodebuild output in non-verbose mode', () => {
     version: '1.0.0',
     targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.noisyios' } },
   });
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
@@ -240,7 +237,8 @@ fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 process.stdout.write('x'.repeat(2 * 1024 * 1024));
 process.exit(0);
-`);
+`,
+  );
 
   const result = run(['build', 'ios', '--dir', dir, '--no-cache', '--json'], {
     env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
@@ -259,7 +257,10 @@ test('build ios --verbose: shows native build steps and xcodebuild output', () =
     version: '1.0.0',
     targets: { ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.verboseios' } },
   });
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
@@ -272,7 +273,8 @@ fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 console.log('fake xcodebuild ' + args.join(' '));
 process.exit(0);
-`);
+`,
+  );
 
   const result = run(['build', 'ios', '--dir', dir, '--verbose'], {
     env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
@@ -312,7 +314,10 @@ test('build ios --release: archives, exports IPA, and writes release manifest ar
     },
   });
   const recordPath = join(dir, 'xcodebuild-release-record.json');
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 if (process.argv.includes('-version')) {
   console.log('Xcode 99.0');
   process.exit(0);
@@ -338,7 +343,8 @@ if (args.includes('-exportArchive')) {
 previous.records.push({ argv: args });
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
 process.exit(0);
-`);
+`,
+  );
 
   const result = run(['build', 'ios', '--dir', dir, '--release', '--json'], {
     env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
@@ -347,8 +353,14 @@ process.exit(0);
   assert.equal(ANSI_RE.test(result.stdout), false);
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.cache.enabled, false);
-  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'xcarchive'), true);
-  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'ipa'), true);
+  assert.equal(
+    parsed.artifacts.some((artifact) => artifact.type === 'xcarchive'),
+    true,
+  );
+  assert.equal(
+    parsed.artifacts.some((artifact) => artifact.type === 'ipa'),
+    true,
+  );
   assert.equal(existsSync(join(dir, 'builds', 'release-ios-6.0.0-ios.xcarchive')), true);
   assert.equal(existsSync(join(dir, 'builds', 'release-ios-6.0.0-ios.ipa')), true);
   const loveEntries = readStoredZipEntries(join(dir, 'builds', 'release-ios-6.0.0.love'));
@@ -384,7 +396,10 @@ test('build ios --release: packages unsigned IPA from archive when no signing te
     },
   });
   const recordPath = join(dir, 'xcodebuild-unsigned-record.json');
-  const { binDir } = writeFakeCommand(dir, 'xcodebuild', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
@@ -405,7 +420,8 @@ if (args.includes('-exportArchive')) {
 previous.records.push({ argv: args });
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
 process.exit(0);
-`);
+`,
+  );
 
   const result = run(['build', 'ios', '--dir', dir, '--release', '--json'], {
     env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
@@ -413,7 +429,10 @@ process.exit(0);
 
   assert.equal(result.exitCode, 0, outputOf(result));
   const parsed = JSON.parse(result.stdout);
-  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'ipa'), true);
+  assert.equal(
+    parsed.artifacts.some((artifact) => artifact.type === 'ipa'),
+    true,
+  );
   assert.equal(existsSync(join(dir, 'builds', 'unsigned-ios-1.2.3-ios.ipa')), true);
   const loveEntries = readStoredZipEntries(join(dir, 'builds', 'unsigned-ios-1.2.3.love'));
   assert.equal(loveEntries.has('.feather-main.lua'), false);

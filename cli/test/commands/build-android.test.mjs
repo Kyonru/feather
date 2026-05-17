@@ -1,44 +1,19 @@
 /* eslint-disable no-undef */
 import {
   ANSI_RE,
-  LOCAL_SRC,
   assert,
-  chmodSync,
-  delimiter,
-  dirname,
-  envWithPath,
   existsSync,
   join,
   makeTmp,
-  mkdirSync,
   outputOf,
-  parseDoctorJson,
-  parseDoctorJsonResult,
   readFileSync,
-  resolve,
   rmSync,
   run,
-  sha256,
-  spawnCli,
-  stopChild,
-  symlinkSync,
   test,
-  waitForOutput,
   writeBuildConfig,
-  writeFakeAdb,
-  writeFakeAppleLibrariesZip,
-  writeFakeCommand,
-  writeFakeLove,
   writeFakeLoveAndroid,
-  writeFakeLoveIos,
-  writeFakeLoveJs,
-  writeFakeVendorGit,
-  writeFakeXcrun,
   writeFileSync,
   writeGame,
-  writeLocalPluginSource,
-  writeLock,
-  writeMinimalRuntime,
   readStoredZipEntries,
 } from './helpers.mjs';
 
@@ -88,7 +63,10 @@ test('build android: injects game.love, runs Gradle, copies APK, and writes mani
   assert.equal(parsed.target, 'android');
   assert.equal(existsSync(join(dir, 'builds', 'mobile-game-1.2.3.love')), true);
   assert.equal(existsSync(join(dir, 'builds', 'mobile-game-1.2.3-android.apk')), true);
-  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'apk'), true);
+  assert.equal(
+    parsed.artifacts.some((artifact) => artifact.type === 'apk'),
+    true,
+  );
   const record = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.deepEqual(record.argv, ['assembleEmbedRecordDebug']);
   assert.equal(record.embeddedLoveExists, true);
@@ -107,7 +85,10 @@ test('build android: injects game.love, runs Gradle, copies APK, and writes mani
   assert.ok(record.gameActivity.includes('Feather: forcing embedded game.love from assets'));
   const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
   assert.equal(manifest.target, 'android');
-  assert.equal(manifest.artifacts.some((artifact) => artifact.type === 'apk'), true);
+  assert.equal(
+    manifest.artifacts.some((artifact) => artifact.type === 'apk'),
+    true,
+  );
 });
 
 test('build android: embeds Feather debugger runtime and raw config in dev love archive', () => {
@@ -258,7 +239,9 @@ test('build android: stale native cache missing Gradle wrapper is recopied', () 
   const first = run(['build', 'android', '--dir', dir, '--json']);
   assert.equal(first.exitCode, 0, outputOf(first));
   const firstParsed = JSON.parse(first.stdout);
-  rmSync(join(firstParsed.cache.path, 'love-android', process.platform === 'win32' ? 'gradlew.bat' : 'gradlew'), { force: true });
+  rmSync(join(firstParsed.cache.path, 'love-android', process.platform === 'win32' ? 'gradlew.bat' : 'gradlew'), {
+    force: true,
+  });
 
   const second = run(['build', 'android', '--dir', dir, '--json']);
   assert.equal(second.exitCode, 0, outputOf(second));
@@ -266,7 +249,10 @@ test('build android: stale native cache missing Gradle wrapper is recopied', () 
   assert.equal(secondParsed.cache.enabled, true);
   assert.equal(secondParsed.cache.hit, false);
   assert.equal(secondParsed.cache.path, firstParsed.cache.path);
-  assert.equal(existsSync(join(secondParsed.cache.path, 'love-android', process.platform === 'win32' ? 'gradlew.bat' : 'gradlew')), true);
+  assert.equal(
+    existsSync(join(secondParsed.cache.path, 'love-android', process.platform === 'win32' ? 'gradlew.bat' : 'gradlew')),
+    true,
+  );
   const records = JSON.parse(readFileSync(recordPath, 'utf8')).records;
   assert.equal(records.length, 2);
 });
@@ -390,12 +376,21 @@ test('build android --release: runs bundle/apk tasks, copies artifacts, and keep
   assert.equal(outputOf(result).includes('key-secret'), false);
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.cache.enabled, false);
-  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'aab'), true);
-  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'apk'), true);
+  assert.equal(
+    parsed.artifacts.some((artifact) => artifact.type === 'aab'),
+    true,
+  );
+  assert.equal(
+    parsed.artifacts.some((artifact) => artifact.type === 'apk'),
+    true,
+  );
   assert.equal(existsSync(join(dir, 'builds', 'store-android-3.0.0-android.aab')), true);
   assert.equal(existsSync(join(dir, 'builds', 'store-android-3.0.0-android.apk')), true);
   const record = JSON.parse(readFileSync(recordPath, 'utf8'));
-  assert.deepEqual(record.records.map((entry) => entry.argv[0]), [':app:bundleStoreRelease', ':app:assembleStoreRelease']);
+  assert.deepEqual(
+    record.records.map((entry) => entry.argv[0]),
+    [':app:bundleStoreRelease', ':app:assembleStoreRelease'],
+  );
   assert.ok(record.signingProperties.includes('keyAlias=release-key'));
   assert.ok(record.signingProperties.includes('storePassword=store-secret'));
 });

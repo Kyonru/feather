@@ -3,45 +3,27 @@ import {
   ANSI_RE,
   LOCAL_SRC,
   assert,
-  chmodSync,
-  delimiter,
-  dirname,
   envWithPath,
-  existsSync,
   join,
   makeTmp,
   mkdirSync,
   outputOf,
   parseDoctorJson,
   parseDoctorJsonResult,
-  readFileSync,
-  resolve,
-  rmSync,
   run,
-  sha256,
-  spawnCli,
-  stopChild,
   symlinkSync,
   test,
-  waitForOutput,
   writeBuildConfig,
-  writeFakeAdb,
-  writeFakeAppleLibrariesZip,
   writeFakeCommand,
   writeFakeDesktopRuntimeVendors,
   writeFakeDesktopTools,
-  writeFakeLove,
   writeFakeLoveAndroid,
   writeFakeLoveIos,
   writeFakeLoveJs,
-  writeFakeVendorGit,
-  writeFakeXcrun,
   writeFileSync,
   writeGame,
   writeLocalPluginSource,
-  writeLock,
   writeMinimalRuntime,
-  readStoredZipEntries,
 } from './helpers.mjs';
 
 test('doctor --json reports unknown installed plugin trust', () => {
@@ -231,8 +213,13 @@ test('doctor --security --json emits a sterile security report without secrets',
   assert.equal(parsed.report.config.apiKeyStatus, 'configured');
   assert.equal(parsed.report.config.consoleIncluded, true);
   assert.equal(parsed.report.network.exposure, 'loopback');
-  assert.ok(parsed.checks.every((check) => ['Safety', 'Plugins', 'Packages', 'Runtime', 'Project'].includes(check.group)));
-  assert.equal(parsed.checks.some((check) => check.label === 'Node.js'), false);
+  assert.ok(
+    parsed.checks.every((check) => ['Safety', 'Plugins', 'Packages', 'Runtime', 'Project'].includes(check.group)),
+  );
+  assert.equal(
+    parsed.checks.some((check) => check.label === 'Node.js'),
+    false,
+  );
 });
 
 test('doctor --production fails unmanaged embedded runtime', () => {
@@ -271,7 +258,9 @@ test('doctor: build and upload target checks report missing and configured depen
     upload: { itch: { project: 'tester/doctor-build-game' } },
   });
   const { binDir } = writeFakeCommand(dir, 'butler', `console.log('butler test'); process.exit(0);`);
-  const configured = run(['doctor', dir, '--json', '--build-target', 'web', '--upload-target', 'itch'], { env: envWithPath(binDir, { BUTLER_API_KEY: 'test-key' }) });
+  const configured = run(['doctor', dir, '--json', '--build-target', 'web', '--upload-target', 'itch'], {
+    env: envWithPath(binDir, { BUTLER_API_KEY: 'test-key' }),
+  });
   assert.equal(configured.exitCode, 0, outputOf(configured));
   const parsed = JSON.parse(configured.stdout);
   const labels = new Map(parsed.checks.map((check) => [check.label, check]));
@@ -308,11 +297,12 @@ test('doctor: desktop build targets report runtime vendors and packaging tools',
     assert.equal(result.stdout.trim().startsWith('{'), true, outputOf(result));
     const parsed = JSON.parse(result.stdout);
     const labels = new Map(parsed.checks.map((check) => [check.label, check]));
-    const runtimeLabel = target === 'macos'
-      ? 'macOS LÖVE runtime'
-      : target === 'steamos'
-        ? 'SteamOS LÖVE runtime'
-        : `${target[0].toUpperCase()}${target.slice(1)} LÖVE runtime`;
+    const runtimeLabel =
+      target === 'macos'
+        ? 'macOS LÖVE runtime'
+        : target === 'steamos'
+          ? 'SteamOS LÖVE runtime'
+          : `${target[0].toUpperCase()}${target.slice(1)} LÖVE runtime`;
     assert.equal(labels.get(runtimeLabel)?.severity, 'pass');
     if (target === 'windows') assert.equal(labels.get('NSIS makensis')?.severity, 'pass');
     if (target === 'macos') assert.equal(labels.get('hdiutil')?.severity, 'pass');

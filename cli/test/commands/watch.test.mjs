@@ -49,7 +49,10 @@ test('watch: defaults to desktop target and restarts love on file change', async
   const dir = makeTmp();
   writeGame(dir);
   const recordPath = join(dir, 'desktop-watch-record.json');
-  const { binDir, commandPath } = writeFakeCommand(dir, 'love', `
+  const { binDir, commandPath } = writeFakeCommand(
+    dir,
+    'love',
+    `
 const fs = require('node:fs');
 const previous = fs.existsSync(${JSON.stringify(recordPath)})
   ? JSON.parse(fs.readFileSync(${JSON.stringify(recordPath)}, 'utf8'))
@@ -63,12 +66,10 @@ previous.push({
 });
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
 setInterval(() => {}, 1000);
-`);
-
-  const child = spawnCli(
-    ['watch', dir, '--love', commandPath, '--debounce', '100'],
-    { env: envWithPath(binDir) },
+`,
   );
+
+  const child = spawnCli(['watch', dir, '--love', commandPath, '--debounce', '100'], { env: envWithPath(binDir) });
   try {
     await waitForOutput(child, /Watching/);
 
@@ -98,10 +99,9 @@ test('watch --target android: runs initial build, starts watching, pushes game.l
   });
   const { binDir, recordPath } = writeFakeAdb(dir);
 
-  const child = spawnCli(
-    ['watch', dir, '--target', 'android', '--no-adb-reverse', '--debounce', '100'],
-    { env: envWithPath(binDir) },
-  );
+  const child = spawnCli(['watch', dir, '--target', 'android', '--no-adb-reverse', '--debounce', '100'], {
+    env: envWithPath(binDir),
+  });
   try {
     await waitForOutput(child, /Watching/);
 
@@ -117,18 +117,30 @@ test('watch --target android: runs initial build, starts watching, pushes game.l
   const commands = records.map((entry) => entry.args.filter((a) => !a.startsWith('-s')));
 
   // Initial install sequence
-  assert.ok(commands.some((c) => c[0] === 'install'), 'initial APK install expected');
+  assert.ok(
+    commands.some((c) => c[0] === 'install'),
+    'initial APK install expected',
+  );
 
   // Watch push sequence
   const pushIdx = commands.findIndex((c) => c[0] === 'push');
   assert.ok(pushIdx !== -1, 'adb push expected after file change');
   assert.ok(commands[pushIdx][1].endsWith('.love'), 'pushed file should be a .love archive');
-  assert.ok(commands[pushIdx][2].includes('/sdcard/Android/data/com.example.watchandroid/files/game.love'), 'push destination');
+  assert.ok(
+    commands[pushIdx][2].includes('/sdcard/Android/data/com.example.watchandroid/files/game.love'),
+    'push destination',
+  );
 
   // Restart sequence after push
   const postPush = commands.slice(pushIdx + 1);
-  assert.ok(postPush.some((c) => c[0] === 'shell' && c.includes('force-stop')), 'force-stop after push');
-  assert.ok(postPush.some((c) => c[0] === 'shell' && c.includes('monkey')), 'launch after push');
+  assert.ok(
+    postPush.some((c) => c[0] === 'shell' && c.includes('force-stop')),
+    'force-stop after push',
+  );
+  assert.ok(
+    postPush.some((c) => c[0] === 'shell' && c.includes('monkey')),
+    'launch after push',
+  );
 });
 
 test('watch --target android --no-restart: pushes game.love without restarting app', async () => {
@@ -164,8 +176,16 @@ test('watch --target android --no-restart: pushes game.love without restarting a
   assert.ok(pushIdx !== -1, 'adb push expected');
 
   const postPush = commands.slice(pushIdx + 1);
-  assert.equal(postPush.some((c) => c[0] === 'shell' && c.includes('force-stop')), false, 'no force-stop when --no-restart');
-  assert.equal(postPush.some((c) => c[0] === 'shell' && c.includes('monkey')), false, 'no launch when --no-restart');
+  assert.equal(
+    postPush.some((c) => c[0] === 'shell' && c.includes('force-stop')),
+    false,
+    'no force-stop when --no-restart',
+  );
+  assert.equal(
+    postPush.some((c) => c[0] === 'shell' && c.includes('monkey')),
+    false,
+    'no launch when --no-restart',
+  );
 });
 
 test('watch --target android: fast path after cache hit + app installed skips Gradle on 2nd run', async () => {
@@ -183,18 +203,16 @@ test('watch --target android: fast path after cache hit + app installed skips Gr
   });
 
   // First watch run: cache miss → Gradle runs → installs APK
-  const firstChild = spawnCli(
-    ['watch', dir, '--target', 'android', '--no-adb-reverse', '--debounce', '100'],
-    { env: envWithPath(binDir) },
-  );
+  const firstChild = spawnCli(['watch', dir, '--target', 'android', '--no-adb-reverse', '--debounce', '100'], {
+    env: envWithPath(binDir),
+  });
   await waitForOutput(firstChild, /Watching/);
   await stopChild(firstChild);
 
   // Second watch run: cache hit + app installed → fast path (no APK, just push)
-  const secondChild = spawnCli(
-    ['watch', dir, '--target', 'android', '--no-adb-reverse', '--debounce', '100'],
-    { env: envWithPath(binDir) },
-  );
+  const secondChild = spawnCli(['watch', dir, '--target', 'android', '--no-adb-reverse', '--debounce', '100'], {
+    env: envWithPath(binDir),
+  });
   try {
     await waitForOutput(secondChild, /Watching/);
   } finally {
@@ -231,7 +249,10 @@ test('watch --target ios: runs initial build, starts watching, updates app on fi
   });
 
   const { binDir: xcrunBinDir, recordPath: xcrunRecordPath } = writeFakeXcrun(dir);
-  writeFakeCommand(dir, 'xcodebuild', `
+  writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
 if (process.argv.includes('-version')) {
   console.log('Xcode 99.0');
   process.exit(0);
@@ -247,12 +268,12 @@ const app = path.join(derivedData, 'Build', 'Products', configuration + '-' + sd
 fs.mkdirSync(app, { recursive: true });
 fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
 process.exit(0);
-`);
-
-  const child = spawnCli(
-    ['watch', dir, '--target', 'ios', '--device', 'SIM-WATCH', '--debounce', '100'],
-    { env: envWithPath(xcrunBinDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }) },
+`,
   );
+
+  const child = spawnCli(['watch', dir, '--target', 'ios', '--device', 'SIM-WATCH', '--debounce', '100'], {
+    env: envWithPath(xcrunBinDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
   try {
     await waitForOutput(child, /Watching/);
 
