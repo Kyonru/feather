@@ -1,11 +1,15 @@
 import { createHash } from 'node:crypto';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch } from 'node:fs';
 import { join, relative } from 'node:path';
+import { loadConfig } from '../config.js';
+import { findLoveBinary } from '../love.js';
+import { createShim, shimEnv, type Shim } from '../shim.js';
 import { loadBuildConfig, type LoadBuildConfigOptions } from '../build/config.js';
 import { embedMobileDebuggerStage } from '../build/debug-stage.js';
 import { artifactBaseName, stageProject, writeLoveArchive } from '../build/files.js';
 import { maybeAdHocCodesign } from '../build/ios.js';
-import { printMuted, printStatus, printWarning } from '../output.js';
+import { printKeyValues, printMuted, printStatus, printWarning } from '../output.js';
 import type { NativeBuildLogger } from '../build/native.js';
 import {
   androidExternalGamePath,
@@ -29,6 +33,120 @@ export type WatchOptions = LoadBuildConfigOptions & {
   port?: number;
   verbose?: boolean;
 };
+
+export type DesktopWatchOptions = {
+  love?: string;
+  sessionName?: string;
+  debounce?: number;
+  restart?: boolean;
+  noPlugins?: boolean;
+  debugger?: boolean;
+  config?: string;
+  featherOverride?: string;
+  pluginsOverride?: string;
+};
+
+type SourceWatcher = {
+  close: () => void;
+};
+
+export function runDesktopWatch(gameDir: string, options: DesktopWatchOptions = {}): void {
+  const debounceMs = options.debounce ?? 500;
+  const restart = options.restart !== false;
+  const debuggerEnabled = options.debugger !== false;
+  const userConfig = loadConfig(gameDir, options.config) ?? undefined;
+  const loveBin = findLoveBinary(options.love);
+  const sessionName = options.sessionName ?? (userConfig?.sessionName as string | undefined);
+
+  printStatus('info', 'Feather watch desktop');
+  printKeyValues([
+    ['Game', gameDir],
+    ['Debugger', debuggerEnabled ? 'enabled' : 'disabled'],
+    ['Restart', restart ? 'on change' : 'disabled'],
+  ]);
+
+  let current: ChildProcess | null = null;
+  let currentShim: Shim | null = null;
+  let restarting = false;
+
+  function cleanupCurrent() {
+    currentShim?.cleanup();
+    currentShim = null;
+  }
+
+  function launch() {
+    cleanupCurrent();
+    const args: string[] = [];
+    const env = debuggerEnabled ? shimEnv(gameDir, sessionName) : process.env;
+
+    if (debuggerEnabled) {
+      currentShim = createShim({
+        gamePath: gameDir,
+        sessionName,
+        noPlugins: options.noPlugins,
+        featherOverride: options.featherOverride,
+        pluginsOverride: options.pluginsOverride,
+        userConfig: userConfig as Record<string, unknown> | undefined,
+      });
+      args.push(currentShim.dir);
+    } else {
+      args.push(gameDir);
+    }
+
+    current = spawn(loveBin, args, {
+      stdio: 'inherit',
+      env,
+    });
+    current.once('exit', () => {
+      if (!restarting) {
+        cleanupCurrent();
+        current = null;
+      }
+    });
+    current.once('error', (err) => {
+      printWarning(`Failed to launch love: ${err.message}`);
+      cleanupCurrent();
+      current = null;
+    });
+  }
+
+  function stopAndLaunch() {
+    if (!restart) {
+      printStatus('info', 'Change detected; restart disabled.');
+      return;
+    }
+
+    if (!current || current.exitCode !== null || current.signalCode !== null) {
+      launch();
+      printStatus('success', 'Restarted game');
+      return;
+    }
+
+    restarting = true;
+    current.once('exit', () => {
+      restarting = false;
+      launch();
+      printStatus('success', 'Restarted game');
+    });
+    current.kill('SIGTERM');
+    setTimeout(() => {
+      if (current && current.exitCode === null && current.signalCode === null) current.kill('SIGKILL');
+    }, 2000).unref();
+  }
+
+  launch();
+  const sourceWatcher = watchSource(gameDir, gameDir, debounceMs, stopAndLaunch);
+  printStatus('success', `Watching ${gameDir}`);
+
+  const shutdown = () => {
+    sourceWatcher.close();
+    if (current && current.exitCode === null && current.signalCode === null) current.kill('SIGTERM');
+    cleanupCurrent();
+    process.exit(0);
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+}
 
 export function runWatch(gameDir: string, options: WatchOptions): void {
   const log: NativeBuildLogger | undefined = options.verbose ? printMuted : undefined;
@@ -72,16 +190,7 @@ export function runWatch(gameDir: string, options: WatchOptions): void {
   const appPath = options.target === 'ios' ? initialResult.artifact : undefined;
 
   const sourceDir = config.sourceDir;
-  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-  let pollTimer: ReturnType<typeof setInterval> | undefined;
   let rebuilding = false;
-  let sourceSnapshot = snapshotSource(sourceDir, config.outDir);
-  printStatus('success', `Watching ${sourceDir}`);
-
-  function scheduleRebuild() {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(rebuild, debounceMs);
-  }
 
   function rebuild() {
     if (rebuilding) return;
@@ -127,26 +236,47 @@ export function runWatch(gameDir: string, options: WatchOptions): void {
     }
   }
 
+  const sourceWatcher = watchSource(sourceDir, config.outDir, debounceMs, rebuild);
+  printStatus('success', `Watching ${sourceDir}`);
+
+  const shutdown = () => {
+    sourceWatcher.close();
+    process.exit(0);
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+}
+
+function watchSource(sourceDir: string, outDir: string, debounceMs: number, onChange: () => void): SourceWatcher {
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+  let watcher: ReturnType<typeof watch> | undefined;
+  let sourceSnapshot = snapshotSource(sourceDir, outDir);
+
+  function scheduleChange() {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(onChange, debounceMs);
+  }
+
   function onSourceChanged(filename?: string | Buffer | null) {
     if (!filename) return;
     const relativePath = filename.toString();
-    if (shouldIgnoreWatchPath(relativePath, sourceDir, config.outDir)) return;
-    scheduleRebuild();
+    if (shouldIgnoreWatchPath(relativePath, sourceDir, outDir)) return;
+    scheduleChange();
   }
 
   function startPolling() {
     if (pollTimer) return;
     printWarning('Native file watching is unavailable; falling back to polling.');
     pollTimer = setInterval(() => {
-      const nextSnapshot = snapshotSource(sourceDir, config.outDir);
+      const nextSnapshot = snapshotSource(sourceDir, outDir);
       if (nextSnapshot !== sourceSnapshot) {
         sourceSnapshot = nextSnapshot;
-        scheduleRebuild();
+        scheduleChange();
       }
     }, Math.max(250, debounceMs));
   }
 
-  let watcher: ReturnType<typeof watch> | undefined;
   try {
     watcher = watch(sourceDir, { recursive: true }, (_event, filename) => onSourceChanged(filename));
     watcher.on('error', (err: NodeJS.ErrnoException) => {
@@ -167,11 +297,13 @@ export function runWatch(gameDir: string, options: WatchOptions): void {
     startPolling();
   }
 
-  process.on('SIGINT', () => {
-    watcher?.close();
-    if (pollTimer) clearInterval(pollTimer);
-    process.exit(0);
-  });
+  return {
+    close: () => {
+      watcher?.close();
+      if (pollTimer) clearInterval(pollTimer);
+      if (debounceTimer) clearTimeout(debounceTimer);
+    },
+  };
 }
 
 function shouldIgnoreWatchPath(path: string, sourceDir: string, outDir: string): boolean {

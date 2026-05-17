@@ -1,12 +1,16 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fail } from '../lib/command.js';
-import { runWatch } from '../lib/run/watch.js';
+import { runDesktopWatch, runWatch } from '../lib/run/watch.js';
 import { resolveRunBuildContext } from './run.js';
 import type { MobileRunTarget } from '../lib/run/mobile.js';
 
+type WatchTarget = 'desktop' | MobileRunTarget;
+
 export interface WatchCommandOptions {
-  target?: MobileRunTarget;
+  target?: WatchTarget;
+  love?: string;
+  debugger?: boolean;
   device?: string;
   debounce?: number;
   restart?: boolean;
@@ -22,9 +26,9 @@ export interface WatchCommandOptions {
 }
 
 export function watchCommand(gamePath: string | undefined, opts: WatchCommandOptions): void {
-  const target = (opts.target ?? 'android') as MobileRunTarget;
-  if (!['android', 'ios'].includes(target)) {
-    fail('Watch target must be one of: android, ios.');
+  const target = (opts.target ?? 'desktop') as WatchTarget;
+  if (!['desktop', 'android', 'ios'].includes(target)) {
+    fail('Watch target must be one of: desktop, android, ios.');
   }
   if (opts.port !== undefined && (!Number.isInteger(opts.port) || opts.port < 1 || opts.port > 65535)) {
     fail('Port must be a number between 1 and 65535.');
@@ -43,10 +47,24 @@ export function watchCommand(gamePath: string | undefined, opts: WatchCommandOpt
     fail(`No main.lua found in: ${absGame}`);
   }
 
+  if (target === 'desktop') {
+    runDesktopWatch(absGame, {
+      love: opts.love,
+      debounce: opts.debounce,
+      restart: opts.restart,
+      noPlugins: opts.noPlugins,
+      debugger: opts.debugger,
+      config: opts.runtimeConfig,
+      featherOverride: opts.featherPath,
+      pluginsOverride: opts.pluginsDir,
+    });
+    return;
+  }
+
   const buildContext = resolveRunBuildContext(absGame, opts.buildConfig);
 
   runWatch(buildContext.projectDir, {
-    target,
+    target: target as MobileRunTarget,
     projectDir: buildContext.projectDir,
     configPath: buildContext.configPath,
     sourceDir: buildContext.sourceDir,

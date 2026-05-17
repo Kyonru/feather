@@ -524,14 +524,17 @@ pkg
 
 program
   .command('watch [game-path]')
-  .description('Watch project files and push game.love to a connected Android or iOS device on change')
-  .option('--target <target>', 'Watch target: android or ios', 'android')
+  .description('Watch project files and restart desktop LÖVE or push game.love to a connected mobile device on change')
+  .option('--target <target>', 'Watch target: desktop, android, or ios', 'desktop')
+  .option('--love <path>', 'Path to love executable for desktop watch')
   .option('--device <id>', 'Android device serial or iOS simulator UDID')
   .option('--debounce <ms>', 'Debounce delay in milliseconds', (value) => Number(value), 500)
   .option('--no-restart', 'Push game.love without restarting the app')
   .option('--build-config <path>', 'Path to feather.build.json')
   .option('--out-dir <path>', 'Build output directory')
   .option('--no-plugins', 'Disable plugin loading (feather core only)')
+  .option('--no-debugger', 'Run desktop watch without Feather debugger injection')
+  .option('--disable-debugger', 'Alias for --no-debugger')
   .option('--no-adb-reverse', 'Skip adb reverse setup for Android')
   .option('--port <port>', 'Feather port for Android adb reverse', (value) => Number(value))
   .option('--feather-path <path>', 'Use a local feather install instead of the bundled one')
@@ -539,7 +542,9 @@ program
   .option('--runtime-config <path>', 'Path to feather.config.lua for debugger embedding')
   .option('--verbose', 'Show build commands and native tool output')
   .action((gamePath: string | undefined, opts) => watchCommand(gamePath, {
-    target: opts.target as 'android' | 'ios' | undefined,
+    target: opts.target as 'desktop' | 'android' | 'ios' | undefined,
+    love: opts.love as string | undefined,
+    debugger: opts.debugger !== false && !opts.disableDebugger,
     device: opts.device as string | undefined,
     debounce: opts.debounce as number | undefined,
     restart: opts.restart as boolean | undefined,

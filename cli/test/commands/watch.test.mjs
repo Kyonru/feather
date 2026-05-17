@@ -34,7 +34,7 @@ test('watch: invalid target exits with error', () => {
   writeGame(dir);
   const result = run(['watch', dir, '--target', 'web']);
   assert.equal(result.exitCode, 1);
-  assert.ok(outputOf(result).includes('Watch target must be one of: android, ios'));
+  assert.ok(outputOf(result).includes('Watch target must be one of: desktop, android, ios'));
 });
 
 test('watch: invalid debounce value exits with error', () => {
@@ -43,6 +43,47 @@ test('watch: invalid debounce value exits with error', () => {
   const result = run(['watch', dir, '--target', 'android', '--debounce', '-1']);
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('Debounce must be a non-negative integer'));
+});
+
+test('watch: defaults to desktop target and restarts love on file change', async () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const recordPath = join(dir, 'desktop-watch-record.json');
+  const { binDir, commandPath } = writeFakeCommand(dir, 'love', `
+const fs = require('node:fs');
+const previous = fs.existsSync(${JSON.stringify(recordPath)})
+  ? JSON.parse(fs.readFileSync(${JSON.stringify(recordPath)}, 'utf8'))
+  : [];
+previous.push({
+  argv: process.argv.slice(2),
+  env: {
+    FEATHER_GAME_PATH: process.env.FEATHER_GAME_PATH,
+    FEATHER_SESSION_NAME: process.env.FEATHER_SESSION_NAME,
+  },
+});
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
+setInterval(() => {}, 1000);
+`);
+
+  const child = spawnCli(
+    ['watch', dir, '--love', commandPath, '--debounce', '100'],
+    { env: envWithPath(binDir) },
+  );
+  try {
+    await waitForOutput(child, /Watching/);
+
+    writeFileSync(join(dir, 'main.lua'), 'function love.update(dt) end\nfunction love.draw() end\n-- desktop-watch\n');
+
+    await waitForOutput(child, /Restarted game/);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  } finally {
+    await stopChild(child);
+  }
+
+  const records = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(records.length >= 2, 'desktop watch should launch once and relaunch after change');
+  assert.ok(records[0].argv[0].includes('feather-'), 'default desktop watch should launch the Feather shim');
+  assert.equal(records[0].env.FEATHER_GAME_PATH, dir);
 });
 
 test('watch --target android: runs initial build, starts watching, pushes game.love on file change', async () => {

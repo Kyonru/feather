@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Watch mode** — `feather watch` allows you to watch your game files for changes and automatically rebuilds the project when they change. Currently (android | ios).
+- **Watch mode** — `feather watch` allows you to watch your game files for changes and automatically rebuilds the project when they change. Currently (desktop | android | ios).
 
 ### Changed
 
