@@ -980,7 +980,16 @@ test('doctor --json reports untrusted lockfile source URLs', () => {
   const sourceCheck = labels.get('Package helper source');
 
   assert.equal(sourceCheck.severity, 'warn');
-  assert.ok(sourceCheck.detail.includes('example.com'));
+  const detailUrls = (sourceCheck.detail.match(/https?:\/\/[^\s)]+/g) || [])
+    .map((value) => {
+      try {
+        return new URL(value);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+  assert.ok(detailUrls.some((parsedUrl) => parsedUrl.hostname === 'example.com'));
   assert.ok(sourceCheck.fix.includes('--allow-untrusted'));
   assert.equal(labels.has('Package raw-helper source'), false);
 });
