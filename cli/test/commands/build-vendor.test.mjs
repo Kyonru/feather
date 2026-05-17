@@ -65,7 +65,21 @@ test('build vendor add android --json: clones vendor and updates config', () => 
   assert.equal(config.targets.android.loveAndroidDir, 'vendor/love-android');
   const records = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.ok(records.some((record) => record.args.includes('--recurse-submodules')));
-  assert.ok(records.some((record) => record.args.includes('https://github.com/love2d/love-android')));
+  assert.ok(
+    records.some((record) =>
+      record.args.some((arg) => {
+        try {
+          const url = new URL(arg);
+          return (
+            url.hostname === 'github.com' &&
+            /^\/love2d\/love-android(?:\.git)?\/?$/.test(url.pathname)
+          );
+        } catch {
+          return false;
+        }
+      }),
+    ),
+  );
 });
 
 test('build vendor add web --json: clones love.js vendor and updates config', () => {
