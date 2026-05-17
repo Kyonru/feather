@@ -119,6 +119,7 @@ test('command runtime: FEATHER_DEBUG includes stack for unexpected errors', asyn
 test('json commands used by scripts stay parseable and decoration-free', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   const content = 'return {}';
   mkdirSync(join(dir, 'lib'), { recursive: true });
   writeFileSync(join(dir, 'lib', 'helper.lua'), content);

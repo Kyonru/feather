@@ -13,6 +13,8 @@ import {
   isUploadTarget,
   loadBuildConfig,
   outDirWritableDetail,
+  supportedBuildTargets,
+  type SupportedBuildTarget,
   uploadTargets,
 } from '../../lib/build/config.js';
 import { androidProductId, iosBundleIdentifier, validateBuildConfigForTarget } from '../../lib/build/validation.js';
@@ -109,23 +111,25 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   add(checks, 'Environment', 'Platform', 'info', `${process.platform} ${process.arch}`);
 
   if (opts.buildTarget) {
-    if (!isBuildTarget(opts.buildTarget)) {
+    if (!isDoctorBuildTarget(opts.buildTarget)) {
       add(
         checks,
         'Build',
         'Build target',
         'fail',
         opts.buildTarget,
-        `Use one of: ${buildTargets.join(', ')}.`,
+        `Use one of: ${doctorBuildTargets.join(', ')}.`,
       );
     } else {
       add(
         checks,
         'Build',
         'Build target',
-        isSupportedBuildTarget(opts.buildTarget) ? 'pass' : 'warn',
+        opts.buildTarget === 'all' || isSupportedBuildTarget(opts.buildTarget) ? 'pass' : 'warn',
         opts.buildTarget,
-        isSupportedBuildTarget(opts.buildTarget)
+        opts.buildTarget === 'all'
+          ? `checking ${supportedBuildTargets.join(', ')}`
+          : isSupportedBuildTarget(opts.buildTarget)
           ? undefined
           : `${opts.buildTarget} support is registered but not enabled in this build.`,
       );
@@ -186,176 +190,13 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         writable.ok ? undefined : 'Choose a writable outDir in feather.build.json or pass --out-dir.',
       );
 
-      if (opts.buildTarget && isBuildTarget(opts.buildTarget)) {
-        const configIssues = validateBuildConfigForTarget(buildConfig, opts.buildTarget, Boolean(opts.release));
-        if (opts.release && opts.buildTarget !== 'android' && opts.buildTarget !== 'ios') {
-          add(
-            checks,
-            'Build',
-            'Release mode',
-            'fail',
-            opts.buildTarget,
-            'Release mode is currently supported only for android and ios builds.',
-          );
-        }
-        if (opts.buildTarget === 'android' || opts.buildTarget === 'ios') {
-          add(
-            checks,
-            'Build',
-            opts.buildTarget === 'android' ? 'Android config' : 'iOS config',
-            configIssues.length === 0 ? 'pass' : 'fail',
-            configIssues.length === 0 ? 'valid' : configIssues.map((issue) => `${issue.field}: ${issue.message}`).join('; '),
-            configIssues.length === 0 ? undefined : 'Fix feather.build.json before running the build.',
-          );
-        }
-        if (opts.buildTarget === 'web') {
-          const loveJsDir = buildConfig.targets.web?.loveJsDir;
-          add(
-            checks,
-            'Build',
-            'love.js player',
-            loveJsDir && existsSync(resolve(projectDir, loveJsDir)) ? 'pass' : 'fail',
-            loveJsDir ?? 'not configured',
-            `Run \`feather build vendor add web --dir ${projectDir}\` or set targets.web.loveJsDir in feather.build.json to a local love.js checkout or build output.`,
-          );
-        } else if (opts.buildTarget === 'android') {
-          const androidConfig = buildConfig.targets.android ?? {};
-          const loveAndroidDir = androidConfig.loveAndroidDir ? resolve(projectDir, androidConfig.loveAndroidDir) : '';
-          const hasLoveAndroidDir = Boolean(loveAndroidDir && existsSync(loveAndroidDir));
-          add(
-            checks,
-            'Build',
-            'love-android template',
-            hasLoveAndroidDir ? 'pass' : 'fail',
-            androidConfig.loveAndroidDir ?? 'not configured',
-            hasLoveAndroidDir ? undefined : `Run \`feather build vendor add android --dir ${projectDir}\` or set targets.android.loveAndroidDir in feather.build.json.`,
-          );
-          const gradleWrapper = hasLoveAndroidDir && (existsSync(join(loveAndroidDir, 'gradlew')) || existsSync(join(loveAndroidDir, 'gradlew.bat')));
-          add(
-            checks,
-            'Build',
-            'Android Gradle wrapper',
-            gradleWrapper ? 'pass' : 'fail',
-            gradleWrapper ? loveAndroidDir : 'not found',
-            'Use a love-android checkout that includes gradlew, or restore the Gradle wrapper files.',
-          );
-          const java = commandVersion('java', ['-version']);
-          add(
-            checks,
-            'Build',
-            'JDK',
-            java ? 'pass' : 'fail',
-            java ?? 'not found',
-            'Install a JDK compatible with the configured Android Gradle Plugin and make sure java is on PATH.',
-          );
-          const androidSdk = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT;
-          add(
-            checks,
-            'Build',
-            'Android SDK',
-            androidSdk ? 'pass' : 'fail',
-            androidSdk ?? 'ANDROID_HOME/ANDROID_SDK_ROOT missing',
-            'Install Android SDK command-line tools and set ANDROID_HOME or ANDROID_SDK_ROOT.',
-          );
-          const productId = androidProductId(buildConfig);
-          add(
-            checks,
-            'Build',
-            'Android product id',
-            configIssues.some((issue) => issue.field === 'productId') ? 'fail' : 'pass',
-            productId,
-            configIssues.some((issue) => issue.field === 'productId') ? 'Set a valid productId or targets.android.productId in feather.build.json.' : undefined,
-          );
-          add(
-            checks,
-            'Build',
-            'Android signing',
-            opts.release ? androidReleaseSigningSeverity(buildConfig) : 'warn',
-            opts.release ? androidReleaseSigningDetail(buildConfig) : 'debug/dev build',
-            opts.release
-              ? androidReleaseSigningFix(buildConfig)
-              : 'Use --release to check signed AAB/APK setup.',
-          );
-        } else if (opts.buildTarget === 'ios') {
-          const iosConfig = buildConfig.targets.ios ?? {};
-          const loveIosDir = iosConfig.loveIosDir ? resolve(projectDir, iosConfig.loveIosDir) : '';
-          const hasLoveIosDir = Boolean(loveIosDir && existsSync(loveIosDir));
-          add(
-            checks,
-            'Build',
-            'macOS host',
-            process.platform === 'darwin' ? 'pass' : 'fail',
-            process.platform,
-            'iOS builds require macOS with Xcode.',
-          );
-          const xcodebuild = commandVersion('xcodebuild', ['-version']);
-          add(
-            checks,
-            'Build',
-            'xcodebuild',
-            xcodebuild ? 'pass' : 'fail',
-            xcodebuild ?? 'not found',
-            'Install Xcode and command line tools, then run `xcode-select --install` if needed.',
-          );
-          add(
-            checks,
-            'Build',
-            'LÖVE iOS template',
-            hasLoveIosDir ? 'pass' : 'fail',
-            iosConfig.loveIosDir ?? 'not configured',
-            hasLoveIosDir ? undefined : `Run \`feather build vendor add ios --dir ${projectDir}\` or set targets.ios.loveIosDir in feather.build.json.`,
-          );
-          const xcodeProject = hasLoveIosDir && existsSync(join(loveIosDir, 'platform', 'xcode', 'love.xcodeproj'));
-          add(
-            checks,
-            'Build',
-            'LÖVE iOS Xcode project',
-            xcodeProject ? 'pass' : 'fail',
-            xcodeProject ? join(loveIosDir, 'platform', 'xcode', 'love.xcodeproj') : 'not found',
-            'Use a LÖVE iOS source tree that includes platform/xcode/love.xcodeproj.',
-          );
-          const bundleId = iosBundleIdentifier(buildConfig);
-          add(
-            checks,
-            'Build',
-            'iOS bundle id',
-            configIssues.some((issue) => issue.field === 'bundleIdentifier') ? 'fail' : 'pass',
-            bundleId,
-            configIssues.some((issue) => issue.field === 'bundleIdentifier') ? 'Set a valid productId, targets.ios.productId, or targets.ios.bundleIdentifier in feather.build.json.' : undefined,
-          );
-          add(
-            checks,
-            'Build',
-            'iOS signing team',
-            opts.release
-              ? ((iosConfig.release?.teamId ?? iosConfig.teamId) ? 'pass' : 'warn')
-              : (iosConfig.teamId ? 'pass' : 'warn'),
-            opts.release ? (iosConfig.release?.teamId ?? iosConfig.teamId ?? 'missing') : (iosConfig.teamId ?? 'missing'),
-            opts.release
-              ? 'Set targets.ios.release.teamId or targets.ios.teamId if your export requires a team.'
-              : 'Set targets.ios.teamId for device builds; simulator debug builds can usually omit it.',
-          );
-          if (opts.release) {
-            add(
-              checks,
-              'Build',
-              'iOS export options',
-              iosConfig.release?.exportOptionsPlist || iosConfig.release?.exportMethod ? 'pass' : 'warn',
-              iosConfig.release?.exportOptionsPlist ?? iosConfig.release?.exportMethod ?? 'generated development export options',
-              'Set targets.ios.release.exportOptionsPlist or exportMethod for App Store/TestFlight exports.',
-            );
-          }
-        } else if (opts.buildTarget === 'love') {
-          add(
-            checks,
-            'Build',
-            'LÖVE package',
-            'pass',
-            '.love archive',
-            'Run it with LÖVE or build a platform target for a bundled runtime.',
-          );
-        } else if (isSupportedBuildTarget(opts.buildTarget)) {
-          addDesktopBuildChecks(checks, projectDir, buildConfig, opts.buildTarget);
+      if (opts.buildTarget && isDoctorBuildTarget(opts.buildTarget)) {
+        const fromAll = opts.buildTarget === 'all';
+        for (const target of expandDoctorBuildTargets(opts.buildTarget)) {
+          addBuildTargetChecks(checks, projectDir, buildConfig, target, {
+            fromAll,
+            release: Boolean(opts.release),
+          });
         }
       }
 
@@ -624,7 +465,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       checks,
       'Safety',
       'Desktop App ID',
-      appIdMissing ? (opts.production ? 'fail' : 'warn') : 'pass',
+      appIdMissing ? 'fail' : 'pass',
       appIdMissing ? 'missing' : mode === 'disk' ? 'not needed for disk mode' : 'configured',
       appIdMissing ? 'Set appId in feather.config.lua before shipping socket/network builds.' : undefined,
     );
@@ -706,7 +547,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       checks,
       'Safety',
       'Desktop App ID',
-      opts.production ? 'fail' : 'warn',
+      'fail',
       'missing',
       'Create feather.config.lua with a strong appId before shipping socket/network builds.',
     );
@@ -916,6 +757,232 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   }
 }
 
+const doctorBuildTargets = [...buildTargets, 'all'] as const;
+type DoctorBuildTarget = SupportedBuildTarget | 'all';
+
+function isDoctorBuildTarget(value: string): value is DoctorBuildTarget {
+  return value === 'all' || isBuildTarget(value);
+}
+
+function expandDoctorBuildTargets(target: DoctorBuildTarget): SupportedBuildTarget[] {
+  return target === 'all' ? [...supportedBuildTargets] : isSupportedBuildTarget(target) ? [target] : [];
+}
+
+function addBuildTargetChecks(
+  checks: DoctorCheck[],
+  projectDir: string,
+  buildConfig: ReturnType<typeof loadBuildConfig>,
+  target: SupportedBuildTarget,
+  options: { fromAll: boolean; release: boolean },
+): void {
+  const release = options.release && (!options.fromAll || target === 'android' || target === 'ios');
+  const label = (singleTargetLabel: string, allTargetBase = singleTargetLabel) =>
+    options.fromAll ? buildCheckLabel(target, allTargetBase, true) : singleTargetLabel;
+  const configIssues = validateBuildConfigForTarget(buildConfig, target, release);
+
+  if (options.release && !options.fromAll && target !== 'android' && target !== 'ios') {
+    add(
+      checks,
+      'Build',
+      'Release mode',
+      'fail',
+      target,
+      'Release mode is currently supported only for android and ios builds.',
+    );
+  }
+
+  if (target === 'love') {
+    add(
+      checks,
+      'Build',
+      label('LÖVE package'),
+      'pass',
+      '.love archive',
+      'Run it with LÖVE or build a platform target for a bundled runtime.',
+    );
+    return;
+  }
+
+  if (target === 'web') {
+    const loveJsDir = buildConfig.targets.web?.loveJsDir;
+    add(
+      checks,
+      'Build',
+      label('love.js player'),
+      loveJsDir && existsSync(resolve(projectDir, loveJsDir)) ? 'pass' : 'fail',
+      loveJsDir ?? 'not configured',
+      `Run \`feather build vendor add web --dir ${projectDir}\` or set targets.web.loveJsDir in feather.build.json to a local love.js checkout or build output.`,
+    );
+    return;
+  }
+
+  if (target === 'android') {
+    addMobileConfigCheck(checks, target, configIssues, options.fromAll);
+    const androidConfig = buildConfig.targets.android ?? {};
+    const loveAndroidDir = androidConfig.loveAndroidDir ? resolve(projectDir, androidConfig.loveAndroidDir) : '';
+    const hasLoveAndroidDir = Boolean(loveAndroidDir && existsSync(loveAndroidDir));
+    add(
+      checks,
+      'Build',
+      label('love-android template'),
+      hasLoveAndroidDir ? 'pass' : 'fail',
+      androidConfig.loveAndroidDir ?? 'not configured',
+      hasLoveAndroidDir ? undefined : `Run \`feather build vendor add android --dir ${projectDir}\` or set targets.android.loveAndroidDir in feather.build.json.`,
+    );
+    const gradleWrapper = hasLoveAndroidDir && (existsSync(join(loveAndroidDir, 'gradlew')) || existsSync(join(loveAndroidDir, 'gradlew.bat')));
+    add(
+      checks,
+      'Build',
+      label('Android Gradle wrapper'),
+      gradleWrapper ? 'pass' : 'fail',
+      gradleWrapper ? loveAndroidDir : 'not found',
+      'Use a love-android checkout that includes gradlew, or restore the Gradle wrapper files.',
+    );
+    const java = commandVersion('java', ['-version']);
+    add(
+      checks,
+      'Build',
+      label('JDK'),
+      java ? 'pass' : 'fail',
+      java ?? 'not found',
+      'Install a JDK compatible with the configured Android Gradle Plugin and make sure java is on PATH.',
+    );
+    const androidSdk = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT;
+    add(
+      checks,
+      'Build',
+      label('Android SDK'),
+      androidSdk ? 'pass' : 'fail',
+      androidSdk ?? 'ANDROID_HOME/ANDROID_SDK_ROOT missing',
+      'Install Android SDK command-line tools and set ANDROID_HOME or ANDROID_SDK_ROOT.',
+    );
+    const productId = androidProductId(buildConfig);
+    add(
+      checks,
+      'Build',
+      label('Android product id'),
+      configIssues.some((issue) => issue.field === 'productId') ? 'fail' : 'pass',
+      productId,
+      configIssues.some((issue) => issue.field === 'productId') ? 'Set a valid productId or targets.android.productId in feather.build.json.' : undefined,
+    );
+    add(
+      checks,
+      'Build',
+      label('Android signing'),
+      release ? androidReleaseSigningSeverity(buildConfig) : 'warn',
+      release ? androidReleaseSigningDetail(buildConfig) : 'debug/dev build',
+      release
+        ? androidReleaseSigningFix(buildConfig)
+        : 'Use --release to check signed AAB/APK setup.',
+    );
+    return;
+  }
+
+  if (target === 'ios') {
+    addMobileConfigCheck(checks, target, configIssues, options.fromAll);
+    const iosConfig = buildConfig.targets.ios ?? {};
+    const loveIosDir = iosConfig.loveIosDir ? resolve(projectDir, iosConfig.loveIosDir) : '';
+    const hasLoveIosDir = Boolean(loveIosDir && existsSync(loveIosDir));
+    add(
+      checks,
+      'Build',
+      label('macOS host'),
+      process.platform === 'darwin' ? 'pass' : 'fail',
+      process.platform,
+      'iOS builds require macOS with Xcode.',
+    );
+    const xcodebuild = commandVersion('xcodebuild', ['-version']);
+    add(
+      checks,
+      'Build',
+      label('xcodebuild'),
+      xcodebuild ? 'pass' : 'fail',
+      xcodebuild ?? 'not found',
+      'Install Xcode and command line tools, then run `xcode-select --install` if needed.',
+    );
+    add(
+      checks,
+      'Build',
+      label('LÖVE iOS template', 'LÖVE template'),
+      hasLoveIosDir ? 'pass' : 'fail',
+      iosConfig.loveIosDir ?? 'not configured',
+      hasLoveIosDir ? undefined : `Run \`feather build vendor add ios --dir ${projectDir}\` or set targets.ios.loveIosDir in feather.build.json.`,
+    );
+    const xcodeProject = hasLoveIosDir && existsSync(join(loveIosDir, 'platform', 'xcode', 'love.xcodeproj'));
+    add(
+      checks,
+      'Build',
+      label('LÖVE iOS Xcode project', 'LÖVE Xcode project'),
+      xcodeProject ? 'pass' : 'fail',
+      xcodeProject ? join(loveIosDir, 'platform', 'xcode', 'love.xcodeproj') : 'not found',
+      'Use a LÖVE iOS source tree that includes platform/xcode/love.xcodeproj.',
+    );
+    const bundleId = iosBundleIdentifier(buildConfig);
+    add(
+      checks,
+      'Build',
+      label('iOS bundle id'),
+      configIssues.some((issue) => issue.field === 'bundleIdentifier') ? 'fail' : 'pass',
+      bundleId,
+      configIssues.some((issue) => issue.field === 'bundleIdentifier') ? 'Set a valid productId, targets.ios.productId, or targets.ios.bundleIdentifier in feather.build.json.' : undefined,
+    );
+    add(
+      checks,
+      'Build',
+      label('iOS signing team'),
+      release
+        ? ((iosConfig.release?.teamId ?? iosConfig.teamId) ? 'pass' : 'warn')
+        : (iosConfig.teamId ? 'pass' : 'warn'),
+      release ? (iosConfig.release?.teamId ?? iosConfig.teamId ?? 'missing') : (iosConfig.teamId ?? 'missing'),
+      release
+        ? 'Set targets.ios.release.teamId or targets.ios.teamId if your export requires a team.'
+        : 'Set targets.ios.teamId for device builds; simulator debug builds can usually omit it.',
+    );
+    if (release) {
+      add(
+        checks,
+        'Build',
+        label('iOS export options'),
+        iosConfig.release?.exportOptionsPlist || iosConfig.release?.exportMethod ? 'pass' : 'warn',
+        iosConfig.release?.exportOptionsPlist ?? iosConfig.release?.exportMethod ?? 'generated development export options',
+        'Set targets.ios.release.exportOptionsPlist or exportMethod for App Store/TestFlight exports.',
+      );
+    }
+    return;
+  }
+
+  addDesktopBuildChecks(checks, projectDir, buildConfig, target, { fromAll: options.fromAll });
+}
+
+function addMobileConfigCheck(
+  checks: DoctorCheck[],
+  target: 'android' | 'ios',
+  configIssues: ReturnType<typeof validateBuildConfigForTarget>,
+  fromAll: boolean,
+): void {
+  const label = target === 'android' ? 'Android config' : 'iOS config';
+  add(
+    checks,
+    'Build',
+    buildCheckLabel(target, label, fromAll),
+    configIssues.length === 0 ? 'pass' : 'fail',
+    configIssues.length === 0 ? 'valid' : configIssues.map((issue) => `${issue.field}: ${issue.message}`).join('; '),
+    configIssues.length === 0 ? undefined : 'Fix feather.build.json before running the build.',
+  );
+}
+
+function buildCheckLabel(target: SupportedBuildTarget, base: string, prefixed: boolean): string {
+  return prefixedCheckLabel(buildTargetLabel(target), base, prefixed);
+}
+
+function buildTargetLabel(target: SupportedBuildTarget): string {
+  if (target === 'love') return 'LÖVE';
+  if (target === 'ios') return 'iOS';
+  if (target === 'macos') return 'macOS';
+  if (target === 'steamos') return 'SteamOS';
+  return target[0].toUpperCase() + target.slice(1);
+}
+
 function androidReleaseSigningSeverity(buildConfig: ReturnType<typeof loadBuildConfig>): DoctorCheck['severity'] {
   const release = buildConfig.targets.android?.release;
   if (!release) return 'warn';
@@ -941,8 +1008,10 @@ function addDesktopBuildChecks(
   projectDir: string,
   buildConfig: ReturnType<typeof loadBuildConfig>,
   target: string,
+  options: { fromAll?: boolean } = {},
 ): void {
   if (!isDoctorDesktopBuildTarget(target)) return;
+  const label = (base: string) => prefixedCheckLabel(desktopTargetLabel(target), base, Boolean(options.fromAll));
 
   const configuredPath = target === 'steamos'
     ? buildConfig.targets.steamos?.loveRuntimeDir ?? buildConfig.targets.linux?.loveRuntimeDir
@@ -955,19 +1024,19 @@ function addDesktopBuildChecks(
   add(
     checks,
     'Build',
-    `${desktopTargetLabel(target)} LÖVE runtime`,
+    label(`${desktopTargetLabel(target)} LÖVE runtime`),
     runtimeReady ? 'pass' : 'fail',
     configuredPath ?? 'not configured',
     runtimeReady ? undefined : `Run \`feather build vendor add ${target} --dir ${projectDir}\` or set ${configField} in feather.build.json.`,
   );
 
   if (target === 'windows') {
-    addToolCheck(checks, 'NSIS makensis', 'makensis', ['/VERSION'], 'Install NSIS and make sure makensis is on PATH.');
+    addToolCheck(checks, label('NSIS makensis'), 'makensis', ['/VERSION'], 'Install NSIS and make sure makensis is on PATH.');
     return;
   }
   if (target === 'macos') {
-    addToolCheck(checks, 'plutil', 'plutil', ['-help'], 'Use macOS or install Xcode command line tools.');
-    addToolCheck(checks, 'hdiutil', 'hdiutil', ['help'], 'Use macOS for DMG packaging.');
+    addToolCheck(checks, label('plutil'), 'plutil', ['-help'], 'Use macOS or install Xcode command line tools.');
+    addToolCheck(checks, label('hdiutil'), 'hdiutil', ['help'], 'Use macOS for DMG packaging.');
     return;
   }
 
@@ -975,12 +1044,12 @@ function addDesktopBuildChecks(
   add(
     checks,
     'Build',
-    'appimagetool',
+    label('appimagetool'),
     appImageTool && existsSync(appImageTool) ? 'pass' : 'fail',
     appImageTool || 'not found',
     appImageTool && existsSync(appImageTool) ? undefined : `Run \`feather build vendor add ${target} --dir ${projectDir}\`.`,
   );
-  addToolCheck(checks, 'tar', 'tar', ['--version'], 'Install tar or use a shell with standard archive tools available.');
+  addToolCheck(checks, label('tar'), 'tar', ['--version'], 'Install tar or use a shell with standard archive tools available.');
 }
 
 function desktopRuntimeReady(runtimeDir: string, target: DoctorDesktopBuildTarget): boolean {
@@ -993,6 +1062,11 @@ function desktopTargetLabel(target: DoctorDesktopBuildTarget): string {
   if (target === 'macos') return 'macOS';
   if (target === 'steamos') return 'SteamOS';
   return target[0].toUpperCase() + target.slice(1);
+}
+
+function prefixedCheckLabel(prefix: string, base: string, prefixed: boolean): string {
+  if (!prefixed || base === prefix || base.startsWith(`${prefix} `)) return base;
+  return `${prefix} ${base}`;
 }
 
 function addToolCheck(checks: DoctorCheck[], label: string, command: string, args: string[], fix: string): void {

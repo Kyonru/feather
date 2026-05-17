@@ -48,6 +48,7 @@ test('doctor --json reports unknown installed plugin trust', () => {
   const dir = makeTmp();
   writeGame(dir);
   writeMinimalRuntime(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   writeLocalPluginSource(dir, 'custom-plugin');
 
   const parsed = parseDoctorJson(dir);
@@ -62,6 +63,7 @@ test('doctor --json reports dangerous bundled plugin trust', () => {
   const dir = makeTmp();
   writeGame(dir);
   writeMinimalRuntime(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   const result = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
   assert.equal(result.exitCode, 0, outputOf(result));
 
@@ -77,6 +79,7 @@ test('doctor --json warns about runtime symlinks escaping project', () => {
   const outside = join(makeTmp(), 'outside-runtime');
   writeGame(dir);
   writeMinimalRuntime(outside);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   symlinkSync(join(outside, 'feather'), join(dir, 'feather'), 'dir');
 
   const parsed = parseDoctorJson(dir);
@@ -89,6 +92,7 @@ test('doctor --json remains decoration-free and reports missing plugin directory
   const dir = makeTmp();
   writeGame(dir);
   writeMinimalRuntime(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   const parsed = parseDoctorJson(dir);
   const labels = new Map(parsed.checks.map((check) => [check.label, check]));
   assert.equal(labels.get('Plugin directory').severity, 'info');
@@ -99,6 +103,7 @@ test('doctor --json reports malformed plugin manifests with recovery text', () =
   const dir = makeTmp();
   writeGame(dir);
   writeMinimalRuntime(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   mkdirSync(join(dir, 'feather', 'plugins', 'bad-plugin'), { recursive: true });
   writeFileSync(join(dir, 'feather', 'plugins', 'bad-plugin', 'manifest.lua'), 'return { name = "Bad Plugin" }\n');
 
@@ -164,7 +169,7 @@ test('doctor --production fails unsafe remote-control and production settings', 
   }
 });
 
-test('doctor --json keeps unsafe settings warning-oriented outside production', () => {
+test('doctor --json makes missing Desktop App ID fail outside production', () => {
   const dir = makeTmp();
   writeGame(dir);
   writeFileSync(
@@ -179,12 +184,25 @@ test('doctor --json keeps unsafe settings warning-oriented outside production', 
   );
 
   const { result, parsed } = parseDoctorJsonResult(dir);
-  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(result.exitCode, 1, outputOf(result));
   assert.equal(parsed.production, false);
   const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Desktop App ID')?.severity, 'fail');
   assert.equal(labels.get('__DANGEROUS_INSECURE_CONNECTION__')?.severity, 'warn');
   assert.equal(labels.get('Console API key')?.severity, 'warn');
   assert.equal(labels.get('Network host exposure')?.severity, 'warn');
+});
+
+test('doctor --json keeps missing Desktop App ID non-failing in disk mode', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { mode = "disk" }\n');
+
+  const { result, parsed } = parseDoctorJsonResult(dir);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Desktop App ID')?.severity, 'pass');
+  assert.equal(labels.get('Desktop App ID')?.detail, 'not needed for disk mode');
 });
 
 test('doctor --security --json emits a sterile security report without secrets', () => {
@@ -233,6 +251,7 @@ test('doctor --production fails unmanaged embedded runtime', () => {
 test('doctor: build and upload target checks report missing and configured dependencies', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   writeBuildConfig(dir, {
     name: 'Doctor Build Game',
     version: '1.0.0',
@@ -264,6 +283,7 @@ test('doctor: build and upload target checks report missing and configured depen
 test('doctor: desktop build targets report runtime vendors and packaging tools', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   writeBuildConfig(dir, { name: 'Desktop Doctor Game', version: '1.0.0' });
 
   const { parsed: missing } = parseDoctorJsonResult(dir, ['--build-target', 'windows']);
@@ -300,9 +320,74 @@ test('doctor: desktop build targets report runtime vendors and packaging tools',
   }
 });
 
+test('doctor: build target all reports every platform with prefixed labels', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
+  writeFakeLoveJs(dir);
+  writeFakeLoveAndroid(dir);
+  writeFakeLoveIos(dir);
+  const vendors = writeFakeDesktopRuntimeVendors(dir);
+  writeBuildConfig(dir, {
+    name: 'All Platforms Doctor Game',
+    version: '1.0.0',
+    productId: 'com.example.allplatformsdoctor',
+    targets: {
+      web: { loveJsDir: 'love.js' },
+      android: { loveAndroidDir: 'love-android' },
+      ios: { loveIosDir: 'love-ios', bundleIdentifier: 'com.example.allplatformsdoctor.ios' },
+      windows: { loveRuntimeDir: vendors.windows },
+      macos: { loveRuntimeDir: vendors.macos },
+      linux: { loveRuntimeDir: vendors.linux },
+    },
+  });
+  const { binDir } = writeFakeDesktopTools(dir);
+  writeFakeCommand(dir, 'java', `console.error('java version "17.0.0"'); process.exit(0);`);
+  writeFakeCommand(dir, 'xcodebuild', `console.log('Xcode 99.0'); process.exit(0);`);
+
+  const result = run(['doctor', dir, '--json', '--build-target', 'all'], {
+    env: envWithPath(binDir, { ANDROID_HOME: join(dir, 'android-sdk') }),
+  });
+  assert.equal(result.stdout.trim().startsWith('{'), true, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Build target')?.detail, 'all');
+  assert.equal(labels.get('Build target')?.fix, 'checking love, web, android, ios, windows, macos, linux, steamos');
+  assert.equal(labels.get('LÖVE package')?.severity, 'pass');
+  assert.equal(labels.get('Web love.js player')?.severity, 'pass');
+  assert.equal(labels.get('Android config')?.severity, 'pass');
+  assert.equal(labels.get('Android love-android template')?.severity, 'pass');
+  assert.equal(labels.get('Android JDK')?.severity, 'pass');
+  assert.equal(labels.get('Android SDK')?.severity, 'pass');
+  assert.equal(labels.get('iOS config')?.severity, 'pass');
+  assert.equal(labels.get('iOS LÖVE template')?.severity, 'pass');
+  assert.equal(labels.get('iOS xcodebuild')?.severity, 'pass');
+  assert.equal(labels.get('Windows LÖVE runtime')?.severity, 'pass');
+  assert.equal(labels.get('Windows NSIS makensis')?.severity, 'pass');
+  assert.equal(labels.get('macOS LÖVE runtime')?.severity, 'pass');
+  assert.equal(labels.get('macOS hdiutil')?.severity, 'pass');
+  assert.equal(labels.get('Linux LÖVE runtime')?.severity, 'pass');
+  assert.equal(labels.get('Linux appimagetool')?.severity, 'pass');
+  assert.equal(labels.get('SteamOS LÖVE runtime')?.severity, 'pass');
+  assert.equal(labels.get('SteamOS appimagetool')?.severity, 'pass');
+});
+
+test('doctor: invalid build target mentions doctor-only all target', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
+
+  const { result, parsed } = parseDoctorJsonResult(dir, ['--build-target', 'badtarget']);
+  assert.equal(result.exitCode, 1);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Build target')?.severity, 'fail');
+  assert.ok(labels.get('Build target')?.fix.includes('all'));
+});
+
 test('doctor: android build target reports template and local tool setup', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   writeBuildConfig(dir, { name: 'Android Doctor Game', version: '1.0.0' });
   const { parsed: missing } = parseDoctorJsonResult(dir, ['--build-target', 'android']);
   const missingLabels = new Map(missing.checks.map((check) => [check.label, check]));
@@ -336,6 +421,7 @@ test('doctor: android build target reports template and local tool setup', () =>
 test('doctor: mobile build target reports config validation failures', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   writeFakeLoveAndroid(dir);
   writeBuildConfig(dir, {
     name: 'Doctor Bad Android',
@@ -355,6 +441,7 @@ test('doctor: mobile build target reports config validation failures', () => {
 test('doctor: android release reports missing signing environment', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   writeFakeLoveAndroid(dir);
   writeFileSync(join(dir, 'release.keystore'), 'fake keystore');
   writeBuildConfig(dir, {
@@ -385,6 +472,7 @@ test('doctor: android release reports missing signing environment', () => {
 test('doctor: ios build target reports platform, template, Xcode, and signing hints', () => {
   const dir = makeTmp();
   writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
   writeBuildConfig(dir, { name: 'iOS Doctor Game', version: '1.0.0' });
   const { parsed: missing } = parseDoctorJsonResult(dir, ['--build-target', 'ios']);
   const missingLabels = new Map(missing.checks.map((check) => [check.label, check]));
