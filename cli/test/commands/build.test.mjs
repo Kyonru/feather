@@ -61,8 +61,14 @@ test('build web: creates love archive, love.js html package, zip, and manifest',
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.ok, true);
   assert.equal(parsed.target, 'web');
-  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'love'), true);
-  assert.equal(parsed.artifacts.some((artifact) => artifact.type === 'zip'), true);
+  assert.equal(
+    parsed.artifacts.some((artifact) => artifact.type === 'love'),
+    true,
+  );
+  assert.equal(
+    parsed.artifacts.some((artifact) => artifact.type === 'zip'),
+    true,
+  );
   assert.equal(existsSync(join(dir, 'builds', 'command-game-1.2.3.love')), true);
   assert.equal(existsSync(join(dir, 'builds', 'command-game-1.2.3-html.zip')), true);
   const index = readFileSync(join(dir, 'builds', 'command-game-1.2.3-html', 'index.html'), 'utf8');
@@ -83,7 +89,10 @@ test('build love: creates only a .love package and writes manifest', () => {
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.ok, true);
   assert.equal(parsed.target, 'love');
-  assert.deepEqual(parsed.artifacts.map((artifact) => artifact.type), ['love']);
+  assert.deepEqual(
+    parsed.artifacts.map((artifact) => artifact.type),
+    ['love'],
+  );
   assert.equal(existsSync(join(dir, 'builds', 'love-package-2.0.0.love')), true);
   const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
   assert.equal(manifest.target, 'love');
@@ -112,18 +121,27 @@ for (const target of ['windows', 'macos', 'linux', 'steamos']) {
     assert.equal(parsed.target, target);
     assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0.love')), true);
     if (target === 'windows') {
-      assert.deepEqual(parsed.artifacts.map((artifact) => artifact.type), ['love', 'zip', 'installer']);
+      assert.deepEqual(
+        parsed.artifacts.map((artifact) => artifact.type),
+        ['love', 'zip', 'installer'],
+      );
       assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0-windows.zip')), true);
       assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0-windows-installer.exe')), true);
       const entries = readStoredZipEntries(join(dir, 'builds', 'desktop-game-2.0.0-windows.zip'));
       assert.equal(entries.has('desktop-game.exe'), true);
       assert.equal(entries.has('love.exe'), false);
     } else if (target === 'macos') {
-      assert.deepEqual(parsed.artifacts.map((artifact) => artifact.type), ['love', 'zip', 'dmg']);
+      assert.deepEqual(
+        parsed.artifacts.map((artifact) => artifact.type),
+        ['love', 'zip', 'dmg'],
+      );
       assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0-macos.app.zip')), true);
       assert.equal(existsSync(join(dir, 'builds', 'desktop-game-2.0.0-macos.dmg')), true);
     } else {
-      assert.deepEqual(parsed.artifacts.map((artifact) => artifact.type), ['love', 'appimage', 'tar.gz']);
+      assert.deepEqual(
+        parsed.artifacts.map((artifact) => artifact.type),
+        ['love', 'appimage', 'tar.gz'],
+      );
       assert.equal(existsSync(join(dir, 'builds', `desktop-game-2.0.0-${target}.AppImage`)), true);
       assert.equal(existsSync(join(dir, 'builds', `desktop-game-2.0.0-${target}.tar.gz`)), true);
     }
@@ -162,43 +180,50 @@ test('build validation: rejects bad mobile config values and unsafe native paths
     productId: 'not a product id',
     targets: { android: { versionCode: 0, orientation: 'sideways', gradleTask: 'assemble debug' } },
   });
-  assert.deepEqual(androidIssues.map((issue) => issue.field), [
-    'productId',
-    'targets.android.versionCode',
-    'targets.android.orientation',
-    'targets.android.gradleTask',
-  ]);
-  const androidReleaseIssues = validateAndroidBuildConfig({
-    ...baseConfig,
-    targets: {
-      android: {
-        release: {
-          bundleTask: 'bundle release',
-          apkArtifactPath: '',
-          storePasswordEnv: '1BAD_ENV',
-          keyPasswordEnv: 'GOOD_ENV',
+  assert.deepEqual(
+    androidIssues.map((issue) => issue.field),
+    ['productId', 'targets.android.versionCode', 'targets.android.orientation', 'targets.android.gradleTask'],
+  );
+  const fakeTestStorePasswordEnv = '1BAD_ENV';
+  const fakeTestKeyPasswordEnv = 'GOOD_ENV';
+
+  const androidReleaseIssues = validateAndroidBuildConfig(
+    {
+      ...baseConfig,
+      targets: {
+        android: {
+          release: {
+            bundleTask: 'bundle release',
+            apkArtifactPath: '',
+            storePasswordEnv: fakeTestStorePasswordEnv,
+            keyPasswordEnv: fakeTestKeyPasswordEnv,
+          },
         },
       },
     },
-  }, true);
+    true,
+  );
   assert.ok(androidReleaseIssues.some((issue) => issue.field === 'targets.android.release.bundleTask'));
   assert.ok(androidReleaseIssues.some((issue) => issue.field === 'targets.android.release.apkArtifactPath'));
   assert.ok(androidReleaseIssues.some((issue) => issue.field === 'targets.android.release.storePasswordEnv'));
 
   const iosIssues = validateIosBuildConfig({
     ...baseConfig,
-    targets: { ios: { bundleIdentifier: 'bad id', scheme: 'bad;', simulatorArch: 'bad;', derivedDataPath: '../escape' } },
+    targets: {
+      ios: { bundleIdentifier: 'bad id', scheme: 'bad;', simulatorArch: 'bad;', derivedDataPath: '../escape' },
+    },
   });
-  assert.deepEqual(iosIssues.map((issue) => issue.field), [
-    'bundleIdentifier',
-    'targets.ios.scheme',
-    'targets.ios.simulatorArch',
-    'targets.ios.derivedDataPath',
-  ]);
-  const iosReleaseIssues = validateIosBuildConfig({
-    ...baseConfig,
-    targets: { ios: { release: { exportMethod: 'side-load', signingStyle: 'sometimes', teamId: 'BAD TEAM' } } },
-  }, true);
+  assert.deepEqual(
+    iosIssues.map((issue) => issue.field),
+    ['bundleIdentifier', 'targets.ios.scheme', 'targets.ios.simulatorArch', 'targets.ios.derivedDataPath'],
+  );
+  const iosReleaseIssues = validateIosBuildConfig(
+    {
+      ...baseConfig,
+      targets: { ios: { release: { exportMethod: 'side-load', signingStyle: 'sometimes', teamId: 'BAD TEAM' } } },
+    },
+    true,
+  );
   assert.ok(iosReleaseIssues.some((issue) => issue.field === 'targets.ios.release.exportMethod'));
   assert.ok(iosReleaseIssues.some((issue) => issue.field === 'targets.ios.release.signingStyle'));
   assert.ok(iosReleaseIssues.some((issue) => issue.field === 'targets.ios.release.teamId'));
@@ -229,7 +254,9 @@ test('build mobile: missing native template paths fail with actionable errors', 
   assert.equal(android.exitCode, 1);
   assert.ok(outputOf(android).includes('targets.android.loveAndroidDir'));
 
-  const ios = run(['build', 'ios', '--dir', dir, '--allow-unsafe', '--json'], { env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_TEST_ALLOW_IOS_BUILD: '1' } });
+  const ios = run(['build', 'ios', '--dir', dir, '--allow-unsafe', '--json'], {
+    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_TEST_ALLOW_IOS_BUILD: '1' },
+  });
   assert.equal(ios.exitCode, 1);
   assert.ok(outputOf(ios).includes('targets.ios.loveIosDir'));
 });
