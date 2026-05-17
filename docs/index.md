@@ -28,69 +28,46 @@ Like Flipper or React DevTools, but for your game. Inspect logs, variables, perf
 
 ## Quick Start
 
-> [!IMPORTANT]
-> For quick local desktop iteration, use `feather run path/to/my-game` without changing game code. For web dev loops, `feather run path/to/my-game --target web` builds and serves a local love.js artifact. For Android and iOS dev loops, `feather run path/to/my-game --target android|ios` builds the configured native template, installs it, and launches it on a device or simulator.
+Install the Feather desktop app and CLI:
 
-### Option A — CLI injection (no game-side changes)
+1. Download the desktop app from [Releases](https://github.com/Kyonru/feather/releases).
+2. Install the CLI:
 
 ```bash
 npm install -g @kyonru/feather
+```
+
+Initialize your project, open the Feather app, then run the game:
+
+```bash
 feather init path/to/my-game
 feather run path/to/my-game
+```
+
+Feather is injected automatically for local desktop runs, so your game code does not need a manual `require`.
+
+### Optional Vendors
+
+Vendor setup downloads the local LÖVE runtimes/templates needed by web and mobile targets, then updates `feather.build.json`.
+
+```bash
+feather build vendor add web --dir path/to/my-game
 feather run path/to/my-game --target web
+
+feather build vendor add android --dir path/to/my-game
 feather run path/to/my-game --target android
+
+feather build vendor add ios --dir path/to/my-game
+feather run path/to/my-game --target ios
 ```
 
-Feather is injected automatically. No `require` needed in the game. See [CLI](cli.md).
-
-> [!NOTE]
-> This is best for desktop development where the CLI launches LÖVE directly. Android/iOS mobile run requires the build template setup from `feather build vendor add mobile`.
-
-### Option B — Managed in-game setup
+For all build vendors, including desktop packaging runtimes:
 
 ```bash
-npm install -g @kyonru/feather
-feather init path/to/my-game --mode auto
-USE_DEBUGGER=1 love path/to/my-game
+feather build vendor add all --dir path/to/my-game
 ```
 
-> [!IMPORTANT]
-> Use this for handhelds, Steam Deck, or a second computer. Web can use `feather run --target web` once love.js is configured, and Android/iOS can use `feather run --target android|ios` once mobile build templates are configured.
-
-`feather init` creates `feather.config.lua`:
-
-```lua
-return {
-  sessionName = "My RPG",
-  -- Set to the desktop app machine's LAN IP for remote devices.
-  host = "192.168.1.50",
-  exclude = { "network-inspector" },
-}
-```
-
-> [!TIP]
-> The generated `main.lua` integration is guarded by `USE_DEBUGGER`, so Feather is not imported unless you opt in for a dev run.
-
-When you access `DEBUGGER` in your own code, guard it:
-
-```lua
-function love.update(dt)
-  if DEBUGGER then
-    DEBUGGER:update(dt)
-  end
-end
-```
-
-Before shipping a production build:
-
-```bash
-feather doctor path/to/my-game --production
-feather doctor path/to/my-game --build-target web --upload-target itch
-feather build web --dir path/to/my-game
-feather upload itch web --dir path/to/my-game --dry-run
-feather remove --dry-run
-feather remove --yes
-```
+See [CLI](cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload` options.
 
 ---
 
