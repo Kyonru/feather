@@ -1666,7 +1666,7 @@
 </code></pre></div>
 <p>Run doctor as a release gate before packaging:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--production
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--build-target<span class="w"> </span>all
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>all
 </code></pre></div>
 <p><code>--production</code> exits with code <code>1</code> for release blockers such as insecure connections, weak Console auth, hot reload, debugger/screenshot/disk persistence settings, network exposure with weak auth, or unmanaged embedded Feather runtime.</p>
 <p>For CI systems that need a security-only machine-readable report:</p>
