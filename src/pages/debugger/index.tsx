@@ -178,6 +178,12 @@ function scrollViewportToTarget(viewport: HTMLElement, target: HTMLElement) {
   viewport.scrollTo({ top: Math.max(0, newTop), behavior: 'smooth' });
 }
 
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return target.closest('input, textarea, select, [contenteditable="true"]') !== null;
+}
+
 function SourceView({
   content,
   currentLine,
@@ -720,6 +726,30 @@ export default function DebuggerPage() {
   }, [selectedFile, rootPath]);
 
   const [conditionDialog, setConditionDialog] = useState<{ file: string; line: number; value: string } | null>(null);
+
+  useEffect(() => {
+    const handleDebuggerShortcut = (e: KeyboardEvent) => {
+      if (!dbg.isPaused || isEditableTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === 'F8') {
+        e.preventDefault();
+        dbg.continue();
+      } else if (e.key === 'F10' && !e.shiftKey) {
+        e.preventDefault();
+        dbg.stepOver();
+      } else if (e.key === 'F11') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          dbg.stepOut();
+        } else {
+          dbg.stepInto();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleDebuggerShortcut);
+    return () => window.removeEventListener('keydown', handleDebuggerShortcut);
+  }, [dbg]);
 
   const breakpointFiles = new Set(dbg.breakpoints.map((b) => b.file));
   const breakpointLines = new Set(
