@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { readFileSync } from 'node:fs';
 import { runCliAction } from './lib/command.js';
 import { runCommand } from './commands/run.js';
 import { initCommand } from './commands/init.js';
@@ -31,6 +32,7 @@ import type { InitMode } from './ui/init/index.js';
 
 const program = new Command();
 const initModes = new Set(['cli', 'auto', 'manual']);
+const cliVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version as string;
 
 function parseInitMode(value: string): InitMode {
   if (!initModes.has(value)) {
@@ -42,7 +44,7 @@ function parseInitMode(value: string): InitMode {
 program
   .name('feather')
   .description('Run and debug Love2D games with Feather — zero game-side changes required')
-  .version('0.7.0');
+  .version(cliVersion);
 
 program
   .command('run [game-path] [game-args...]')

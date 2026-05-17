@@ -11,13 +11,14 @@ import { useConfig } from '@/hooks/use-config';
 import { Log, LogType, useLogs } from '@/hooks/use-logs';
 import { LuaBlock, TraceViewer } from '@/components/code';
 import { isWeb } from '@/utils/platform';
-import { Command } from '@tauri-apps/plugin-shell';
+import { invoke } from '@tauri-apps/api/core';
 import { useSettingsStore } from '@/store/settings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
+import { toast } from 'sonner';
 
 export const columns: ColumnDef<Log>[] = [
   {
@@ -51,12 +52,14 @@ export function TraceBlock({ code, basePath }: { code: string; basePath: string 
               return;
             }
 
-            // TODO: add support for other OS (Windows)
-            // TODO: add support for other editors
-            // TODO: Test on Linux
-            await Command.create('code', ['-c', `${textEditorPath} --goto ${basePath}/${file}:${line}`]).execute();
+            await invoke('open_source_location', {
+              editorPath: textEditorPath,
+              projectRoot: basePath,
+              relativeFile: file,
+              line,
+            });
           } catch (e) {
-            console.log(e);
+            toast.error(e instanceof Error ? e.message : String(e), { position: 'bottom-center' });
           }
         }}
       />

@@ -7,23 +7,6 @@
   ],
   "permissions": [
     "core:default",
-    "shell:allow-open",
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [
-        {
-          "name": "code",
-          "cmd": "sh",
-          "args": [
-            "-c",
-            {
-              "validator": "\\S*\\/?code\\s+--goto\\s+\\S+"
-            }
-          ],
-          "sidecar": false
-        }
-      ]
-    },
     "opener:default",
     {
       "identifier": "opener:allow-open-path",
@@ -38,6 +21,9 @@
       "allow": [
         {
           "url": "https://github.com/Kyonru/feather/releases/*"
+        },
+        {
+          "url": "https://kyonru.github.io/feather/*"
         }
       ]
     },
