@@ -9,7 +9,9 @@ import { ColorGradientEditor } from './ColorGradientEditor';
 import { DirectionSpreadGizmo } from './DirectionSpreadGizmo';
 import { MotionPresets } from './MotionPresets';
 import { RangePairField } from './RangePairField';
+import { RotationSpinGizmo } from './RotationSpinGizmo';
 import { SizeCurveEditor } from './SizeCurveEditor';
+import { TextureOffsetGizmo } from './TextureOffsetGizmo';
 
 type Props = {
   system: ParticleSystemPlaygroundSystem;
@@ -56,14 +58,19 @@ const groups: Array<{ title: string; fields: FieldDef[] }> = [
     ],
   },
   {
-    title: 'Rotation And Size',
+    title: 'Shape',
+    fields: [
+      { key: 'sizeVariation', label: 'Size Variation', min: 0, max: 1, step: 0.01 },
+      { key: 'offsetX', label: 'Texture Offset X', step: 1 },
+      { key: 'offsetY', label: 'Texture Offset Y', step: 1 },
+    ],
+  },
+  {
+    title: 'Rotation',
     fields: [
       { type: 'range', minKey: 'rotationMin', maxKey: 'rotationMax', label: 'Rotation', step: 0.01 },
       { type: 'range', minKey: 'spinMin', maxKey: 'spinMax', label: 'Spin', step: 0.01 },
       { key: 'spinVariation', label: 'Spin Variation', min: 0, max: 1, step: 0.01 },
-      { key: 'sizeVariation', label: 'Size Variation', min: 0, max: 1, step: 0.01 },
-      { key: 'offsetX', label: 'Texture Offset X', step: 1 },
-      { key: 'offsetY', label: 'Texture Offset Y', step: 1 },
     ],
   },
   {
@@ -146,7 +153,11 @@ export function PropertiesPanel({ system, onChange }: Props) {
         </div>
         <div className="grid gap-1">
           <Label className="text-[10px] text-muted-foreground">Sizes</Label>
-          <SizeCurveEditor value={system.properties.sizes ?? '1'} onChange={(v) => onChange('sizes', v)} />
+          <SizeCurveEditor
+            value={system.properties.sizes ?? '1'}
+            variation={system.properties.sizeVariation ?? 0}
+            onChange={(v) => onChange('sizes', v)}
+          />
         </div>
         <div className="grid gap-1">
           <Label className="text-[10px] text-muted-foreground">Color Gradient</Label>
@@ -163,6 +174,8 @@ export function PropertiesPanel({ system, onChange }: Props) {
             <Separator className="flex-1" />
           </div>
           {group.title === 'Direction And Speed' && <DirectionSpreadGizmo system={system} onChange={onChange} />}
+          {group.title === 'Shape' && <TextureOffsetGizmo system={system} onChange={onChange} />}
+          {group.title === 'Rotation' && <RotationSpinGizmo system={system} onChange={onChange} />}
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {group.fields.map((field) =>
               field.type === 'range' ? (

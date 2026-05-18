@@ -19,7 +19,15 @@ function serialize(values: number[]): string {
   return values.map((v) => Math.max(0, v).toFixed(3)).join(', ');
 }
 
-export function SizeCurveEditor({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export function SizeCurveEditor({
+  value,
+  variation = 0,
+  onChange,
+}: {
+  value: string;
+  variation?: number;
+  onChange: (value: string) => void;
+}) {
   const values = parse(value);
   const count = values.length;
   const [dragging, setDragging] = useState<number | null>(null);
@@ -48,7 +56,11 @@ export function SizeCurveEditor({ value, onChange }: { value: string; onChange: 
   });
 
   const points = values.map((v, i) => toSvg(i, v));
+  const upperPoints = values.map((v, i) => toSvg(i, v * (1 + variation)));
+  const lowerPoints = values.map((v, i) => toSvg(i, Math.max(0, v * (1 - variation))));
   const path = catmullRomPath(points);
+  const upperPath = catmullRomPath(upperPoints);
+  const lowerPath = catmullRomPath([...lowerPoints].reverse());
 
   const baselineY = Math.max(PAD.top, Math.min(PAD.top + innerH, PAD.top + (1 - (0 - axisMin) / range) * innerH));
 
@@ -102,6 +114,9 @@ export function SizeCurveEditor({ value, onChange }: { value: string; onChange: 
           fill="var(--chart-1)"
           fillOpacity={0.15}
         />
+        {variation > 0 && (
+          <path d={`${upperPath} L ${lowerPath.slice(1)} Z`} fill="var(--chart-2)" fillOpacity={0.14} />
+        )}
         <path d={path} fill="none" stroke="var(--chart-1)" strokeWidth={1.5} strokeLinecap="round" />
         {points.map((pt, i) => (
           <circle
