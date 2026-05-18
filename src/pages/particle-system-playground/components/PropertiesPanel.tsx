@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { BLEND_MODES, EMISSION_AREA_DISTRIBUTIONS, type ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { AccelerationEditor } from './AccelerationEditor';
 import { ColorGradientEditor } from './ColorGradientEditor';
+import { DirectionSpreadGizmo } from './DirectionSpreadGizmo';
 import { MotionPresets } from './MotionPresets';
 import { RangePairField } from './RangePairField';
 import { SizeCurveEditor } from './SizeCurveEditor';
@@ -161,6 +162,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.title}</h3>
             <Separator className="flex-1" />
           </div>
+          {group.title === 'Direction And Speed' && <DirectionSpreadGizmo system={system} onChange={onChange} />}
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {group.fields.map((field) =>
               field.type === 'range' ? (

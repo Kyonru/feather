@@ -4,8 +4,8 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const H = 200;
-const PAD = 20;
+const H = 280;
+const PAD = 28;
 
 type Props = {
   system: ParticleSystemPlaygroundSystem;
@@ -54,6 +54,13 @@ function arrowHead(x: number, y: number, angle: number, size = 6): string {
   return `M ${x} ${y} L ${x + Math.cos(a1) * size} ${y + Math.sin(a1) * size} M ${x} ${y} L ${x + Math.cos(a2) * size} ${y + Math.sin(a2) * size}`;
 }
 
+function clampVector(x: number, y: number, range: number): { x: number; y: number } {
+  const magnitude = Math.hypot(x, y);
+  if (magnitude <= range || magnitude === 0) return { x, y };
+  const ratio = range / magnitude;
+  return { x: x * ratio, y: y * ratio };
+}
+
 export function LinearAccelPlane({ system, onChange }: Props) {
   const p = system.properties;
   const minX = p.linearAccelXMin ?? 0;
@@ -78,31 +85,37 @@ export function LinearAccelPlane({ system, onChange }: Props) {
 
   const maxVal = Math.max(Math.abs(minX), Math.abs(minY), Math.abs(maxX), Math.abs(maxY), 50);
   const [range, setRange] = useState(() => Math.ceil(maxVal * 1.5 / 50) * 50);
+  const rangeWasEditedRef = useRef(false);
+
+  useEffect(() => {
+    if (rangeWasEditedRef.current) return;
+    const nextRange = Math.ceil(maxVal * 1.35 / 50) * 50;
+    setRange((current) => (nextRange > current ? nextRange : current));
+  }, [maxVal]);
 
   const cx = svgW / 2;
   const cy = H / 2;
   const innerR = Math.min(svgW - PAD * 2, H - PAD * 2) / 2;
   const scale = innerR / range;
 
-  const stateRef = useRef({ cx, cy, scale });
-  stateRef.current = { cx, cy, scale };
+  const stateRef = useRef({ cx, cy, scale, range });
+  stateRef.current = { cx, cy, scale, range };
 
   const [dragging, setDragging] = useState<'min' | 'max' | null>(null);
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
       if (!dragging || !svgRef.current) return;
-      const { cx, cy, scale } = stateRef.current;
+      const { cx, cy, scale, range } = stateRef.current;
       const rect = svgRef.current.getBoundingClientRect();
-      const px = (e.clientX - rect.left - cx) / scale;
-      const py = (e.clientY - rect.top - cy) / scale;
+      const pointer = clampVector((e.clientX - rect.left - cx) / scale, (e.clientY - rect.top - cy) / scale, range);
       const round = (v: number) => Math.round(v * 10) / 10;
       if (dragging === 'min') {
-        onChange('linearAccelXMin', round(px));
-        onChange('linearAccelYMin', round(py));
+        onChange('linearAccelXMin', round(pointer.x));
+        onChange('linearAccelYMin', round(pointer.y));
       } else {
-        onChange('linearAccelXMax', round(px));
-        onChange('linearAccelYMax', round(py));
+        onChange('linearAccelXMax', round(pointer.x));
+        onChange('linearAccelYMax', round(pointer.y));
       }
     },
     [dragging, onChange],
@@ -110,7 +123,31 @@ export function LinearAccelPlane({ system, onChange }: Props) {
 
   const stopDrag = useCallback(() => setDragging(null), []);
 
-  const toSvg = (px: number, py: number) => ({ x: cx + px * scale, y: cy + py * scale });
+  const updateRange = useCallback(
+    (nextRange: number) => {
+      if (nextRange <= 0) return;
+      rangeWasEditedRef.current = true;
+      setRange(nextRange);
+      const minVector = clampVector(minX, minY, nextRange);
+      const maxVector = clampVector(maxX, maxY, nextRange);
+      const nextValues = {
+        linearAccelXMin: minVector.x,
+        linearAccelYMin: minVector.y,
+        linearAccelXMax: maxVector.x,
+        linearAccelYMax: maxVector.y,
+      };
+      Object.entries(nextValues).forEach(([key, value]) => {
+        const current = system.properties[key as keyof typeof system.properties] as number;
+        if (current !== value) onChange(key, value);
+      });
+    },
+    [maxX, maxY, minX, minY, onChange, system.properties],
+  );
+
+  const toSvg = (px: number, py: number) => {
+    const point = clampVector(px, py, range);
+    return { x: cx + point.x * scale, y: cy + point.y * scale };
+  };
 
   const minPt = toSvg(minX, minY);
   const maxPt = toSvg(maxX, maxY);
@@ -138,7 +175,7 @@ export function LinearAccelPlane({ system, onChange }: Props) {
             step={50}
             min={10}
             value={range}
-            onChange={(e) => { const v = parseFloat(e.target.value); if (v > 0) setRange(v); }}
+            onChange={(e) => updateRange(parseFloat(e.target.value))}
           />
         </div>
       </div>
@@ -147,7 +184,7 @@ export function LinearAccelPlane({ system, onChange }: Props) {
         ref={svgRef}
         width="100%"
         height={H}
-        className="rounded border bg-card touch-none"
+        className="touch-none rounded border bg-muted/10"
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerLeave={stopDrag}
@@ -162,18 +199,19 @@ export function LinearAccelPlane({ system, onChange }: Props) {
         ))}
 
         {/* Axes */}
-        <line x1={PAD} y1={cy} x2={svgW - PAD} y2={cy} stroke="currentColor" strokeOpacity={0.25} />
-        <line x1={cx} y1={PAD} x2={cx} y2={H - PAD} stroke="currentColor" strokeOpacity={0.25} />
+        <line x1={PAD} y1={cy} x2={svgW - PAD} y2={cy} stroke="currentColor" strokeOpacity={0.3} />
+        <line x1={cx} y1={PAD} x2={cx} y2={H - PAD} stroke="currentColor" strokeOpacity={0.3} />
         <text x={svgW - PAD - 10} y={cy - 4} fontSize={9} fill="currentColor" fillOpacity={0.4}>X</text>
         <text x={cx + 4} y={PAD + 10} fontSize={9} fill="currentColor" fillOpacity={0.4}>Y</text>
+        <text x={cx + 6} y={H - PAD - 4} fontSize={8} fill="currentColor" fillOpacity={0.35}>LÖVE +Y</text>
 
         {/* Min vector */}
-        <line x1={origin.x} y1={origin.y} x2={minPt.x} y2={minPt.y} stroke="var(--chart-1)" strokeWidth={1.5} />
-        <path d={arrowHead(minPt.x, minPt.y, minAngle)} stroke="var(--chart-1)" strokeWidth={1.5} fill="none" strokeLinecap="round" />
+        <line x1={origin.x} y1={origin.y} x2={minPt.x} y2={minPt.y} stroke="var(--chart-1)" strokeWidth={2} />
+        <path d={arrowHead(minPt.x, minPt.y, minAngle, 7)} stroke="var(--chart-1)" strokeWidth={2} fill="none" strokeLinecap="round" />
 
         {/* Max vector */}
-        <line x1={origin.x} y1={origin.y} x2={maxPt.x} y2={maxPt.y} stroke="var(--chart-2)" strokeWidth={1.5} />
-        <path d={arrowHead(maxPt.x, maxPt.y, maxAngle)} stroke="var(--chart-2)" strokeWidth={1.5} fill="none" strokeLinecap="round" />
+        <line x1={origin.x} y1={origin.y} x2={maxPt.x} y2={maxPt.y} stroke="var(--chart-2)" strokeWidth={2} />
+        <path d={arrowHead(maxPt.x, maxPt.y, maxAngle, 7)} stroke="var(--chart-2)" strokeWidth={2} fill="none" strokeLinecap="round" />
 
         {/* Origin */}
         <circle cx={origin.x} cy={origin.y} r={3} fill="currentColor" fillOpacity={0.4} />
@@ -183,13 +221,21 @@ export function LinearAccelPlane({ system, onChange }: Props) {
           cx={minPt.x} cy={minPt.y} r={6}
           fill={dragging === 'min' ? 'var(--chart-1)' : 'hsl(var(--card))'}
           stroke="var(--chart-1)" strokeWidth={2} style={{ cursor: 'grab' }}
-          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setDragging('min'); }}
+          onPointerDown={(e) => {
+            rangeWasEditedRef.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDragging('min');
+          }}
         />
         <circle
           cx={maxPt.x} cy={maxPt.y} r={6}
           fill={dragging === 'max' ? 'var(--chart-2)' : 'hsl(var(--card))'}
           stroke="var(--chart-2)" strokeWidth={2} style={{ cursor: 'grab' }}
-          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setDragging('max'); }}
+          onPointerDown={(e) => {
+            rangeWasEditedRef.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDragging('max');
+          }}
         />
 
         {/* Legend */}
@@ -243,7 +289,11 @@ export function LinearAccelPlane({ system, onChange }: Props) {
                 className="h-8 text-xs" type="number" step={step} min={min}
                 value={artist[key]}
                 onChange={(e) => {
-                  const updated = { ...artist, [key]: Number(e.target.value) };
+                  const nextValue = Number(e.target.value);
+                  const updated = {
+                    ...artist,
+                    [key]: key === 'speedMin' || key === 'speedMax' ? Math.min(nextValue, range) : nextValue,
+                  };
                   setArtist(updated);
                   const raw = artistToRaw(updated);
                   Object.entries(raw).forEach(([k, v]) => onChange(k, Math.round(v * 10) / 10));

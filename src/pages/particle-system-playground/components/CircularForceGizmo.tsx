@@ -3,8 +3,8 @@ import { Label } from '@/components/ui/label';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const H = 180;
-const EMITTER_R = 18;
+const H = 260;
+const EMITTER_R = 22;
 
 type Props = {
   system: ParticleSystemPlaygroundSystem;
@@ -20,6 +20,10 @@ function arcArrow(cx: number, cy: number, r: number, startAngle: number, endAngl
   const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
   const sweep = endAngle > startAngle ? 1 : 0;
   return `M ${sx} ${sy} A ${r} ${r} 0 ${largeArc} ${sweep} ${ex} ${ey}`;
+}
+
+function clamp(value: number, range: number): number {
+  return Math.max(-range, Math.min(range, value));
 }
 
 export function CircularForceGizmo({ system, onChange }: Props) {
@@ -46,7 +50,15 @@ export function CircularForceGizmo({ system, onChange }: Props) {
 
   const maxAbs = Math.max(Math.abs(radialMin), Math.abs(radialMax), Math.abs(tangMin), Math.abs(tangMax), 50);
   const [range, setRange] = useState(() => Math.ceil(maxAbs * 1.5 / 50) * 50);
-  const halfSide = Math.min(svgW, H) / 2 - 24;
+  const rangeWasEditedRef = useRef(false);
+
+  useEffect(() => {
+    if (rangeWasEditedRef.current) return;
+    const nextRange = Math.ceil(maxAbs * 1.35 / 50) * 50;
+    setRange((current) => (nextRange > current ? nextRange : current));
+  }, [maxAbs]);
+
+  const halfSide = Math.min(svgW, H) / 2 - 30;
   const scale = halfSide / range;
 
   const stateRef = useRef({ cx, cy, scale, range });
@@ -65,12 +77,11 @@ export function CircularForceGizmo({ system, onChange }: Props) {
       const round = (v: number) => Math.round(v * 10) / 10;
 
       const { range } = stateRef.current;
-      const clamp = (v: number) => Math.max(-range, Math.min(range, v));
       if (dragging === 'radialMin' || dragging === 'radialMax') {
-        const v = round(clamp(dx / scale));
+        const v = round(clamp(dx / scale, range));
         onChange(dragging === 'radialMin' ? 'radialAccelMin' : 'radialAccelMax', v);
       } else {
-        const v = round(clamp(dy / scale));
+        const v = round(clamp(dy / scale, range));
         onChange(dragging === 'tangMin' ? 'tangentialAccelMin' : 'tangentialAccelMax', v);
       }
     },
@@ -79,12 +90,31 @@ export function CircularForceGizmo({ system, onChange }: Props) {
 
   const stopDrag = useCallback(() => setDragging(null), []);
 
+  const updateRange = useCallback(
+    (nextRange: number) => {
+      if (nextRange <= 0) return;
+      rangeWasEditedRef.current = true;
+      setRange(nextRange);
+      const nextValues = {
+        radialAccelMin: clamp(radialMin, nextRange),
+        radialAccelMax: clamp(radialMax, nextRange),
+        tangentialAccelMin: clamp(tangMin, nextRange),
+        tangentialAccelMax: clamp(tangMax, nextRange),
+      };
+      Object.entries(nextValues).forEach(([key, value]) => {
+        const current = system.properties[key as keyof typeof system.properties] as number;
+        if (current !== value) onChange(key, value);
+      });
+    },
+    [onChange, radialMax, radialMin, system.properties, tangMax, tangMin],
+  );
+
   // Radial handle positions: along horizontal axis
-  const radialMinX = cx + radialMin * scale;
-  const radialMaxX = cx + radialMax * scale;
+  const radialMinX = cx + clamp(radialMin, range) * scale;
+  const radialMaxX = cx + clamp(radialMax, range) * scale;
   // Tangential handle positions: along vertical axis
-  const tangMinY = cy + tangMin * scale;
-  const tangMaxY = cy + tangMax * scale;
+  const tangMinY = cy + clamp(tangMin, range) * scale;
+  const tangMaxY = cy + clamp(tangMax, range) * scale;
 
   // Decorative: show 8 radial arrows around the emitter circle
   const avgRadial = (radialMin + radialMax) / 2;
@@ -120,7 +150,7 @@ export function CircularForceGizmo({ system, onChange }: Props) {
             step={50}
             min={10}
             value={range}
-            onChange={(e) => { const v = parseFloat(e.target.value); if (v > 0) setRange(v); }}
+            onChange={(e) => updateRange(parseFloat(e.target.value))}
           />
         </div>
       </div>
@@ -129,7 +159,7 @@ export function CircularForceGizmo({ system, onChange }: Props) {
         ref={svgRef}
         width="100%"
         height={H}
-        className="rounded border bg-card touch-none"
+        className="touch-none rounded border bg-muted/10"
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerLeave={stopDrag}
@@ -141,18 +171,20 @@ export function CircularForceGizmo({ system, onChange }: Props) {
         ))}
 
         {/* Axes */}
-        <line x1={cx - halfSide} y1={cy} x2={cx + halfSide} y2={cy} stroke="currentColor" strokeOpacity={0.15} />
-        <line x1={cx} y1={cy - halfSide} x2={cx} y2={cy + halfSide} stroke="currentColor" strokeOpacity={0.15} />
-        <text x={cx + halfSide - 12} y={cy - 4} fontSize={8} fill="currentColor" fillOpacity={0.35}>radial</text>
-        <text x={cx + 4} y={cy - halfSide + 10} fontSize={8} fill="currentColor" fillOpacity={0.35}>tang</text>
+        <line x1={cx - halfSide} y1={cy} x2={cx + halfSide} y2={cy} stroke="currentColor" strokeOpacity={0.22} />
+        <line x1={cx} y1={cy - halfSide} x2={cx} y2={cy + halfSide} stroke="currentColor" strokeOpacity={0.22} />
+        <text x={cx + halfSide - 35} y={cy - 6} fontSize={9} fill="currentColor" fillOpacity={0.4}>outward</text>
+        <text x={cx - halfSide + 4} y={cy - 6} fontSize={9} fill="currentColor" fillOpacity={0.4}>inward</text>
+        <text x={cx + 5} y={cy - halfSide + 12} fontSize={9} fill="currentColor" fillOpacity={0.4}>CW</text>
+        <text x={cx + 5} y={cy + halfSide - 5} fontSize={9} fill="currentColor" fillOpacity={0.4}>CCW</text>
 
         {/* Radial arrows around emitter */}
         {arrows8.map(({ bx, by, tx, ty, angle }, i) => (
           <g key={i}>
-            <line x1={bx} y1={by} x2={tx} y2={ty} stroke="var(--chart-1)" strokeOpacity={0.5} strokeWidth={1.5} />
+            <line x1={bx} y1={by} x2={tx} y2={ty} stroke="var(--chart-1)" strokeOpacity={0.55} strokeWidth={2} />
             <path
               d={`M ${tx} ${ty} L ${tx + Math.cos(angle + 2.5) * 5} ${ty + Math.sin(angle + 2.5) * 5} M ${tx} ${ty} L ${tx + Math.cos(angle - 2.5) * 5} ${ty + Math.sin(angle - 2.5) * 5}`}
-              stroke="var(--chart-1)" strokeOpacity={0.5} strokeWidth={1} fill="none" strokeLinecap="round"
+              stroke="var(--chart-1)" strokeOpacity={0.55} strokeWidth={1.25} fill="none" strokeLinecap="round"
             />
           </g>
         ))}
@@ -181,31 +213,47 @@ export function CircularForceGizmo({ system, onChange }: Props) {
         )}
 
         {/* Emitter circle */}
-        <circle cx={cx} cy={cy} r={EMITTER_R} fill="hsl(var(--card))" stroke="currentColor" strokeOpacity={0.3} strokeWidth={1.5} />
+        <circle cx={cx} cy={cy} r={EMITTER_R} fill="hsl(var(--card))" stroke="currentColor" strokeOpacity={0.35} strokeWidth={1.5} />
         <circle cx={cx} cy={cy} r={3} fill="currentColor" fillOpacity={0.4} />
 
         {/* Radial handles (horizontal axis) */}
         <circle cx={radialMinX} cy={cy} r={6}
           fill={dragging === 'radialMin' ? 'var(--chart-1)' : 'hsl(var(--card))'}
           stroke="var(--chart-1)" strokeWidth={2} style={{ cursor: 'ew-resize' }}
-          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setDragging('radialMin'); }}
+          onPointerDown={(e) => {
+            rangeWasEditedRef.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDragging('radialMin');
+          }}
         />
         <circle cx={radialMaxX} cy={cy} r={6}
           fill={dragging === 'radialMax' ? 'var(--chart-1)' : 'hsl(var(--card))'}
           stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="3 2" style={{ cursor: 'ew-resize' }}
-          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setDragging('radialMax'); }}
+          onPointerDown={(e) => {
+            rangeWasEditedRef.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDragging('radialMax');
+          }}
         />
 
         {/* Tangential handles (vertical axis) */}
         <circle cx={cx} cy={tangMinY} r={6}
           fill={dragging === 'tangMin' ? 'var(--chart-2)' : 'hsl(var(--card))'}
           stroke="var(--chart-2)" strokeWidth={2} style={{ cursor: 'ns-resize' }}
-          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setDragging('tangMin'); }}
+          onPointerDown={(e) => {
+            rangeWasEditedRef.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDragging('tangMin');
+          }}
         />
         <circle cx={cx} cy={tangMaxY} r={6}
           fill={dragging === 'tangMax' ? 'var(--chart-2)' : 'hsl(var(--card))'}
           stroke="var(--chart-2)" strokeWidth={2} strokeDasharray="3 2" style={{ cursor: 'ns-resize' }}
-          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setDragging('tangMax'); }}
+          onPointerDown={(e) => {
+            rangeWasEditedRef.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDragging('tangMax');
+          }}
         />
 
         {/* Legends */}

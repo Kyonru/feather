@@ -2,6 +2,7 @@ import { AlertTriangleIcon, FileWarningIcon, RotateCcwIcon, SparklesIcon, ZapIco
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePluginControl } from '@/hooks/use-plugin-control';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
 import { CompositeSelector } from './components/CompositeSelector';
@@ -114,7 +115,8 @@ export default function ParticleSystemPlaygroundPage() {
                 </p>
               </div>
               {system && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <ExportPanel onExportCode={playground.exportCode} onExportZip={playground.exportZip} />
                   <Button
                     size="sm"
                     variant="outline"
@@ -159,69 +161,76 @@ export default function ParticleSystemPlaygroundPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-3 2xl:grid-cols-[minmax(0,1fr)_minmax(28rem,38rem)]">
-                  <Section title="Emitter Properties">
-                    <PropertiesPanel system={system} onChange={playground.updateActiveParam} />
-                  </Section>
+                <Tabs defaultValue="emitter" className="gap-3">
+                  <TabsList className="grid h-8 w-full grid-cols-2 rounded-md lg:w-fit lg:min-w-72">
+                    <TabsTrigger value="emitter" className="text-xs">Emitter</TabsTrigger>
+                    <TabsTrigger value="preview-assets" className="text-xs">Preview &amp; Assets</TabsTrigger>
+                  </TabsList>
 
-                  <div className="grid content-start gap-3">
-                    <Section title="Composite Preview">
-                      <div className="grid grid-cols-2 gap-2">
-                        <label className="grid gap-1 text-[10px] text-muted-foreground">
-                          X
-                          <input
-                            className="h-8 rounded border bg-background px-2 text-xs text-foreground"
-                            type="number"
-                            value={composite.x}
+                  <TabsContent value="emitter" className="mt-0">
+                    <Section title="Emitter Properties">
+                      <PropertiesPanel system={system} onChange={playground.updateActiveParam} />
+                    </Section>
+                  </TabsContent>
+
+                  <TabsContent value="preview-assets" className="mt-0">
+                    <div className="grid gap-3 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
+                      <div className="grid content-start gap-3">
+                        <Section title="Composite Preview">
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="grid gap-1 text-[10px] text-muted-foreground">
+                              X
+                              <input
+                                className="h-8 rounded border bg-background px-2 text-xs text-foreground"
+                                type="number"
+                                value={composite.x}
+                                disabled={isGameComposite}
+                                onChange={(event) => playground.updateParam('compositeX', Number(event.target.value))}
+                              />
+                            </label>
+                            <label className="grid gap-1 text-[10px] text-muted-foreground">
+                              Y
+                              <input
+                                className="h-8 rounded border bg-background px-2 text-xs text-foreground"
+                                type="number"
+                                value={composite.y}
+                                disabled={isGameComposite}
+                                onChange={(event) => playground.updateParam('compositeY', Number(event.target.value))}
+                              />
+                            </label>
+                          </div>
+                          <Separator />
+                          <MovementPatternEditor
+                            movement={composite.movement}
                             disabled={isGameComposite}
-                            onChange={(event) => playground.updateParam('compositeX', Number(event.target.value))}
+                            onChange={playground.updateParam}
                           />
-                        </label>
-                        <label className="grid gap-1 text-[10px] text-muted-foreground">
-                          Y
-                          <input
-                            className="h-8 rounded border bg-background px-2 text-xs text-foreground"
-                            type="number"
-                            value={composite.y}
-                            disabled={isGameComposite}
-                            onChange={(event) => playground.updateParam('compositeY', Number(event.target.value))}
+                        </Section>
+
+                        <Section title="Texture">
+                          <TextureImporter
+                            texturePath={system.texturePath}
+                            texturePreset={system.texturePreset}
+                            textureFilename={system.textureFilename}
+                            onPreset={playground.setTexturePreset}
+                            onPath={playground.setTexturePath}
+                            onUpload={playground.setTextureFromUpload}
                           />
-                        </label>
+                        </Section>
                       </div>
-                      <Separator />
-                      <MovementPatternEditor
-                        movement={composite.movement}
-                        disabled={isGameComposite}
-                        onChange={playground.updateParam}
-                      />
-                    </Section>
 
-                    <Section title="Texture">
-                      <TextureImporter
-                        texturePath={system.texturePath}
-                        texturePreset={system.texturePreset}
-                        textureFilename={system.textureFilename}
-                        onPreset={playground.setTexturePreset}
-                        onPath={playground.setTexturePath}
-                        onUpload={playground.setTextureFromUpload}
-                      />
-                    </Section>
-
-                    <Section title="Shader">
-                      <ShaderEditor
-                        shaderPath={system.shaderPath}
-                        shaderFilename={system.shaderFilename}
-                        shaderSource={system.shaderSource}
-                        error={playground.shaderError}
-                        onApply={playground.setShader}
-                      />
-                    </Section>
-
-                    <Section title="Export">
-                      <ExportPanel onExportCode={playground.exportCode} onExportZip={playground.exportZip} />
-                    </Section>
-                  </div>
-                </div>
+                      <Section title="Shader">
+                        <ShaderEditor
+                          shaderPath={system.shaderPath}
+                          shaderFilename={system.shaderFilename}
+                          shaderSource={system.shaderSource}
+                          error={playground.shaderError}
+                          onApply={playground.setShader}
+                        />
+                      </Section>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </>
             )}
           </div>
