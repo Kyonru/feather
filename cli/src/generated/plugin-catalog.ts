@@ -113,19 +113,6 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
-    "id": "hot-particles",
-    "sourceDir": "hot-particles",
-    "name": "Hot Particles",
-    "description": "Author HotParticles-compatible composite particle effects with live in-game preview",
-    "version": "1.0.0",
-    "capabilities": [
-      "draw",
-      "filesystem"
-    ],
-    "optIn": false,
-    "disabled": false
-  },
-  {
     "id": "hot-reload",
     "sourceDir": "hot-reload",
     "name": "Hot Reload",
@@ -215,6 +202,19 @@ export const pluginCatalog = [
     ],
     "optIn": false,
     "disabled": true
+  },
+  {
+    "id": "particle-system-playground",
+    "sourceDir": "particle-system-playground",
+    "name": "Particles Playground",
+    "description": "Author composite particle effects with live in-game preview",
+    "version": "1.0.0",
+    "capabilities": [
+      "draw",
+      "filesystem"
+    ],
+    "optIn": false,
+    "disabled": false
   },
   {
     "id": "physics-debug",

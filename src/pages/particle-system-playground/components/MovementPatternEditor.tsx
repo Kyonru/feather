@@ -1,10 +1,10 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { HotParticlesMovement, MovementPattern } from '@/types/hot-particles';
+import type { ParticleSystemPlaygroundMovement, MovementPattern } from '@/types/particle-system-playground';
 
 type Props = {
-  movement: HotParticlesMovement;
+  movement: ParticleSystemPlaygroundMovement;
   disabled?: boolean;
   onChange: (key: string, value: string | number) => void;
 };

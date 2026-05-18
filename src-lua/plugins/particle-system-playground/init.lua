@@ -2,7 +2,7 @@ local Class = require(FEATHER_PATH .. ".lib.class")
 local Base = require(FEATHER_PATH .. ".core.base")
 local base64 = require(FEATHER_PATH .. ".lib.base64")
 
-local HotParticlesPlugin = Class({ __includes = Base })
+local ParticleSystemPlaygroundPlugin = Class({ __includes = Base })
 
 local DEFAULT_BUFFER_SIZE = 1000
 local DEFAULT_X = 400
@@ -237,41 +237,453 @@ local function copyParticleProperties(from, to)
 end
 
 local PS_PROPERTIES = {
-  { key = "emissionRate", get = function(ps) return ps:getEmissionRate() end, set = function(ps, v) ps:setEmissionRate(v) end, type = "number", min = 0, max = 10000 },
-  { key = "emitterLifetime", get = function(ps) return ps:getEmitterLifetime() end, set = function(ps, v) ps:setEmitterLifetime(v) end, type = "number", min = -1, max = 600 },
-  { key = "particleLifetimeMin", get = function(ps) local a = ps:getParticleLifetime(); return a end, set = function(ps, v) local _, b = ps:getParticleLifetime(); ps:setParticleLifetime(v, b) end, type = "number", min = 0 },
-  { key = "particleLifetimeMax", get = function(ps) local _, b = ps:getParticleLifetime(); return b end, set = function(ps, v) local a = ps:getParticleLifetime(); ps:setParticleLifetime(a, v) end, type = "number", min = 0 },
-  { key = "direction", get = function(ps) return ps:getDirection() end, set = function(ps, v) ps:setDirection(v) end, type = "number" },
-  { key = "spread", get = function(ps) return ps:getSpread() end, set = function(ps, v) ps:setSpread(v) end, type = "number", min = 0 },
-  { key = "speedMin", get = function(ps) local a = ps:getSpeed(); return a end, set = function(ps, v) local _, b = ps:getSpeed(); ps:setSpeed(v, b) end, type = "number" },
-  { key = "speedMax", get = function(ps) local _, b = ps:getSpeed(); return b end, set = function(ps, v) local a = ps:getSpeed(); ps:setSpeed(a, v) end, type = "number" },
-  { key = "linearAccelXMin", get = function(ps) local a = ps:getLinearAcceleration(); return a end, set = function(ps, v) local _, b, c, d = ps:getLinearAcceleration(); ps:setLinearAcceleration(v, b, c, d) end, type = "number" },
-  { key = "linearAccelYMin", get = function(ps) local _, b = ps:getLinearAcceleration(); return b end, set = function(ps, v) local a, _, c, d = ps:getLinearAcceleration(); ps:setLinearAcceleration(a, v, c, d) end, type = "number" },
-  { key = "linearAccelXMax", get = function(ps) local _, _, c = ps:getLinearAcceleration(); return c end, set = function(ps, v) local a, b, _, d = ps:getLinearAcceleration(); ps:setLinearAcceleration(a, b, v, d) end, type = "number" },
-  { key = "linearAccelYMax", get = function(ps) local _, _, _, d = ps:getLinearAcceleration(); return d end, set = function(ps, v) local a, b, c = ps:getLinearAcceleration(); ps:setLinearAcceleration(a, b, c, v) end, type = "number" },
-  { key = "radialAccelMin", get = function(ps) local a = ps:getRadialAcceleration(); return a end, set = function(ps, v) local _, b = ps:getRadialAcceleration(); ps:setRadialAcceleration(v, b) end, type = "number" },
-  { key = "radialAccelMax", get = function(ps) local _, b = ps:getRadialAcceleration(); return b end, set = function(ps, v) local a = ps:getRadialAcceleration(); ps:setRadialAcceleration(a, v) end, type = "number" },
-  { key = "tangentialAccelMin", get = function(ps) local a = ps:getTangentialAcceleration(); return a end, set = function(ps, v) local _, b = ps:getTangentialAcceleration(); ps:setTangentialAcceleration(v, b) end, type = "number" },
-  { key = "tangentialAccelMax", get = function(ps) local _, b = ps:getTangentialAcceleration(); return b end, set = function(ps, v) local a = ps:getTangentialAcceleration(); ps:setTangentialAcceleration(a, v) end, type = "number" },
-  { key = "linearDampingMin", get = function(ps) local a = ps:getLinearDamping(); return a end, set = function(ps, v) local _, b = ps:getLinearDamping(); ps:setLinearDamping(v, b) end, type = "number", min = 0 },
-  { key = "linearDampingMax", get = function(ps) local _, b = ps:getLinearDamping(); return b end, set = function(ps, v) local a = ps:getLinearDamping(); ps:setLinearDamping(a, v) end, type = "number", min = 0 },
-  { key = "sizes", get = function(ps) local parts = {}; for _, v in ipairs({ ps:getSizes() }) do parts[#parts + 1] = fmt(v) end; return table.concat(parts, ", ") end, set = function(ps, value) local sizes = {}; for raw in tostring(value):gmatch("[^,]+") do local n = tonumber(raw); if n then sizes[#sizes + 1] = n end end; if #sizes > 0 then ps:setSizes(unpack(sizes)) end end, type = "string" },
-  { key = "sizeVariation", get = function(ps) return ps:getSizeVariation() end, set = function(ps, v) ps:setSizeVariation(v) end, type = "number", min = 0, max = 1 },
-  { key = "rotationMin", get = function(ps) local a = ps:getRotation(); return a end, set = function(ps, v) local _, b = ps:getRotation(); ps:setRotation(v, b) end, type = "number" },
-  { key = "rotationMax", get = function(ps) local _, b = ps:getRotation(); return b end, set = function(ps, v) local a = ps:getRotation(); ps:setRotation(a, v) end, type = "number" },
-  { key = "relativeRotation", get = function(ps) return ps:hasRelativeRotation() end, set = function(ps, v) ps:setRelativeRotation(v) end, type = "boolean" },
-  { key = "spinMin", get = function(ps) local a = ps:getSpin(); return a end, set = function(ps, v) local _, b = ps:getSpin(); ps:setSpin(v, b) end, type = "number" },
-  { key = "spinMax", get = function(ps) local _, b = ps:getSpin(); return b end, set = function(ps, v) local a = ps:getSpin(); ps:setSpin(a, v) end, type = "number" },
-  { key = "spinVariation", get = function(ps) return ps:getSpinVariation() end, set = function(ps, v) ps:setSpinVariation(v) end, type = "number", min = 0, max = 1 },
-  { key = "offsetX", get = function(ps) local a = ps:getOffset(); return a end, set = function(ps, v) local _, b = ps:getOffset(); ps:setOffset(v, b) end, type = "number" },
-  { key = "offsetY", get = function(ps) local _, b = ps:getOffset(); return b end, set = function(ps, v) local a = ps:getOffset(); ps:setOffset(a, v) end, type = "number" },
-  { key = "insertMode", get = function(ps) return ps:getInsertMode() end, set = function(ps, v) ps:setInsertMode(v) end, type = "string" },
-  { key = "colors", get = function(ps) local parts = {}; for _, c in ipairs({ ps:getColors() }) do if type(c) == "table" then for _, v in ipairs(c) do parts[#parts + 1] = fmt(v) end else parts[#parts + 1] = fmt(c) end end; return table.concat(parts, ", ") end, set = function(ps, value) local colors = {}; for raw in tostring(value):gmatch("[^,]+") do local n = tonumber(raw); if n then colors[#colors + 1] = n end end; if #colors >= 4 then ps:setColors(unpack(colors)) end end, type = "string" },
-  { key = "emissionAreaDist", get = function(ps) local a = ps:getEmissionArea(); return a end, set = function(ps, v) local _, b, c, d, e = ps:getEmissionArea(); ps:setEmissionArea(v, b, c, d, e) end, type = "string" },
-  { key = "emissionAreaDx", get = function(ps) local _, b = ps:getEmissionArea(); return b end, set = function(ps, v) local a, _, c, d, e = ps:getEmissionArea(); ps:setEmissionArea(a, v, c, d, e) end, type = "number", min = 0 },
-  { key = "emissionAreaDy", get = function(ps) local _, _, c = ps:getEmissionArea(); return c end, set = function(ps, v) local a, b, _, d, e = ps:getEmissionArea(); ps:setEmissionArea(a, b, v, d, e) end, type = "number", min = 0 },
-  { key = "emissionAreaAngle", get = function(ps) local _, _, _, d = ps:getEmissionArea(); return d end, set = function(ps, v) local a, b, c, _, e = ps:getEmissionArea(); ps:setEmissionArea(a, b, c, v, e) end, type = "number" },
-  { key = "emissionAreaRelative", get = function(ps) local _, _, _, _, e = ps:getEmissionArea(); return e end, set = function(ps, v) local a, b, c, d = ps:getEmissionArea(); ps:setEmissionArea(a, b, c, d, v) end, type = "boolean" },
+  {
+    key = "emissionRate",
+    get = function(ps)
+      return ps:getEmissionRate()
+    end,
+    set = function(ps, v)
+      ps:setEmissionRate(v)
+    end,
+    type = "number",
+    min = 0,
+    max = 10000,
+  },
+  {
+    key = "emitterLifetime",
+    get = function(ps)
+      return ps:getEmitterLifetime()
+    end,
+    set = function(ps, v)
+      ps:setEmitterLifetime(v)
+    end,
+    type = "number",
+    min = -1,
+    max = 600,
+  },
+  {
+    key = "particleLifetimeMin",
+    get = function(ps)
+      local a = ps:getParticleLifetime()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b = ps:getParticleLifetime()
+      ps:setParticleLifetime(v, b)
+    end,
+    type = "number",
+    min = 0,
+  },
+  {
+    key = "particleLifetimeMax",
+    get = function(ps)
+      local _, b = ps:getParticleLifetime()
+      return b
+    end,
+    set = function(ps, v)
+      local a = ps:getParticleLifetime()
+      ps:setParticleLifetime(a, v)
+    end,
+    type = "number",
+    min = 0,
+  },
+  {
+    key = "direction",
+    get = function(ps)
+      return ps:getDirection()
+    end,
+    set = function(ps, v)
+      ps:setDirection(v)
+    end,
+    type = "number",
+  },
+  {
+    key = "spread",
+    get = function(ps)
+      return ps:getSpread()
+    end,
+    set = function(ps, v)
+      ps:setSpread(v)
+    end,
+    type = "number",
+    min = 0,
+  },
+  {
+    key = "speedMin",
+    get = function(ps)
+      local a = ps:getSpeed()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b = ps:getSpeed()
+      ps:setSpeed(v, b)
+    end,
+    type = "number",
+  },
+  {
+    key = "speedMax",
+    get = function(ps)
+      local _, b = ps:getSpeed()
+      return b
+    end,
+    set = function(ps, v)
+      local a = ps:getSpeed()
+      ps:setSpeed(a, v)
+    end,
+    type = "number",
+  },
+  {
+    key = "linearAccelXMin",
+    get = function(ps)
+      local a = ps:getLinearAcceleration()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b, c, d = ps:getLinearAcceleration()
+      ps:setLinearAcceleration(v, b, c, d)
+    end,
+    type = "number",
+  },
+  {
+    key = "linearAccelYMin",
+    get = function(ps)
+      local _, b = ps:getLinearAcceleration()
+      return b
+    end,
+    set = function(ps, v)
+      local a, _, c, d = ps:getLinearAcceleration()
+      ps:setLinearAcceleration(a, v, c, d)
+    end,
+    type = "number",
+  },
+  {
+    key = "linearAccelXMax",
+    get = function(ps)
+      local _, _, c = ps:getLinearAcceleration()
+      return c
+    end,
+    set = function(ps, v)
+      local a, b, _, d = ps:getLinearAcceleration()
+      ps:setLinearAcceleration(a, b, v, d)
+    end,
+    type = "number",
+  },
+  {
+    key = "linearAccelYMax",
+    get = function(ps)
+      local _, _, _, d = ps:getLinearAcceleration()
+      return d
+    end,
+    set = function(ps, v)
+      local a, b, c = ps:getLinearAcceleration()
+      ps:setLinearAcceleration(a, b, c, v)
+    end,
+    type = "number",
+  },
+  {
+    key = "radialAccelMin",
+    get = function(ps)
+      local a = ps:getRadialAcceleration()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b = ps:getRadialAcceleration()
+      ps:setRadialAcceleration(v, b)
+    end,
+    type = "number",
+  },
+  {
+    key = "radialAccelMax",
+    get = function(ps)
+      local _, b = ps:getRadialAcceleration()
+      return b
+    end,
+    set = function(ps, v)
+      local a = ps:getRadialAcceleration()
+      ps:setRadialAcceleration(a, v)
+    end,
+    type = "number",
+  },
+  {
+    key = "tangentialAccelMin",
+    get = function(ps)
+      local a = ps:getTangentialAcceleration()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b = ps:getTangentialAcceleration()
+      ps:setTangentialAcceleration(v, b)
+    end,
+    type = "number",
+  },
+  {
+    key = "tangentialAccelMax",
+    get = function(ps)
+      local _, b = ps:getTangentialAcceleration()
+      return b
+    end,
+    set = function(ps, v)
+      local a = ps:getTangentialAcceleration()
+      ps:setTangentialAcceleration(a, v)
+    end,
+    type = "number",
+  },
+  {
+    key = "linearDampingMin",
+    get = function(ps)
+      local a = ps:getLinearDamping()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b = ps:getLinearDamping()
+      ps:setLinearDamping(v, b)
+    end,
+    type = "number",
+    min = 0,
+  },
+  {
+    key = "linearDampingMax",
+    get = function(ps)
+      local _, b = ps:getLinearDamping()
+      return b
+    end,
+    set = function(ps, v)
+      local a = ps:getLinearDamping()
+      ps:setLinearDamping(a, v)
+    end,
+    type = "number",
+    min = 0,
+  },
+  {
+    key = "sizes",
+    get = function(ps)
+      local parts = {}
+      for _, v in ipairs({ ps:getSizes() }) do
+        parts[#parts + 1] = fmt(v)
+      end
+      return table.concat(parts, ", ")
+    end,
+    set = function(ps, value)
+      local sizes = {}
+      for raw in tostring(value):gmatch("[^,]+") do
+        local n = tonumber(raw)
+        if n then
+          sizes[#sizes + 1] = n
+        end
+      end
+      if #sizes > 0 then
+        ps:setSizes(unpack(sizes))
+      end
+    end,
+    type = "string",
+  },
+  {
+    key = "sizeVariation",
+    get = function(ps)
+      return ps:getSizeVariation()
+    end,
+    set = function(ps, v)
+      ps:setSizeVariation(v)
+    end,
+    type = "number",
+    min = 0,
+    max = 1,
+  },
+  {
+    key = "rotationMin",
+    get = function(ps)
+      local a = ps:getRotation()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b = ps:getRotation()
+      ps:setRotation(v, b)
+    end,
+    type = "number",
+  },
+  {
+    key = "rotationMax",
+    get = function(ps)
+      local _, b = ps:getRotation()
+      return b
+    end,
+    set = function(ps, v)
+      local a = ps:getRotation()
+      ps:setRotation(a, v)
+    end,
+    type = "number",
+  },
+  {
+    key = "relativeRotation",
+    get = function(ps)
+      return ps:hasRelativeRotation()
+    end,
+    set = function(ps, v)
+      ps:setRelativeRotation(v)
+    end,
+    type = "boolean",
+  },
+  {
+    key = "spinMin",
+    get = function(ps)
+      local a = ps:getSpin()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b = ps:getSpin()
+      ps:setSpin(v, b)
+    end,
+    type = "number",
+  },
+  {
+    key = "spinMax",
+    get = function(ps)
+      local _, b = ps:getSpin()
+      return b
+    end,
+    set = function(ps, v)
+      local a = ps:getSpin()
+      ps:setSpin(a, v)
+    end,
+    type = "number",
+  },
+  {
+    key = "spinVariation",
+    get = function(ps)
+      return ps:getSpinVariation()
+    end,
+    set = function(ps, v)
+      ps:setSpinVariation(v)
+    end,
+    type = "number",
+    min = 0,
+    max = 1,
+  },
+  {
+    key = "offsetX",
+    get = function(ps)
+      local a = ps:getOffset()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b = ps:getOffset()
+      ps:setOffset(v, b)
+    end,
+    type = "number",
+  },
+  {
+    key = "offsetY",
+    get = function(ps)
+      local _, b = ps:getOffset()
+      return b
+    end,
+    set = function(ps, v)
+      local a = ps:getOffset()
+      ps:setOffset(a, v)
+    end,
+    type = "number",
+  },
+  {
+    key = "insertMode",
+    get = function(ps)
+      return ps:getInsertMode()
+    end,
+    set = function(ps, v)
+      ps:setInsertMode(v)
+    end,
+    type = "string",
+  },
+  {
+    key = "colors",
+    get = function(ps)
+      local parts = {}
+      for _, c in ipairs({ ps:getColors() }) do
+        if type(c) == "table" then
+          for _, v in ipairs(c) do
+            parts[#parts + 1] = fmt(v)
+          end
+        else
+          parts[#parts + 1] = fmt(c)
+        end
+      end
+      return table.concat(parts, ", ")
+    end,
+    set = function(ps, value)
+      local colors = {}
+      for raw in tostring(value):gmatch("[^,]+") do
+        local n = tonumber(raw)
+        if n then
+          colors[#colors + 1] = n
+        end
+      end
+      if #colors >= 4 then
+        ps:setColors(unpack(colors))
+      end
+    end,
+    type = "string",
+  },
+  {
+    key = "emissionAreaDist",
+    get = function(ps)
+      local a = ps:getEmissionArea()
+      return a
+    end,
+    set = function(ps, v)
+      local _, b, c, d, e = ps:getEmissionArea()
+      ps:setEmissionArea(v, b, c, d, e)
+    end,
+    type = "string",
+  },
+  {
+    key = "emissionAreaDx",
+    get = function(ps)
+      local _, b = ps:getEmissionArea()
+      return b
+    end,
+    set = function(ps, v)
+      local a, _, c, d, e = ps:getEmissionArea()
+      ps:setEmissionArea(a, v, c, d, e)
+    end,
+    type = "number",
+    min = 0,
+  },
+  {
+    key = "emissionAreaDy",
+    get = function(ps)
+      local _, _, c = ps:getEmissionArea()
+      return c
+    end,
+    set = function(ps, v)
+      local a, b, _, d, e = ps:getEmissionArea()
+      ps:setEmissionArea(a, b, v, d, e)
+    end,
+    type = "number",
+    min = 0,
+  },
+  {
+    key = "emissionAreaAngle",
+    get = function(ps)
+      local _, _, _, d = ps:getEmissionArea()
+      return d
+    end,
+    set = function(ps, v)
+      local a, b, c, _, e = ps:getEmissionArea()
+      ps:setEmissionArea(a, b, c, v, e)
+    end,
+    type = "number",
+  },
+  {
+    key = "emissionAreaRelative",
+    get = function(ps)
+      local _, _, _, _, e = ps:getEmissionArea()
+      return e
+    end,
+    set = function(ps, v)
+      local a, b, c, d = ps:getEmissionArea()
+      ps:setEmissionArea(a, b, c, d, v)
+    end,
+    type = "boolean",
+  },
 }
 
 local PS_PROP_MAP = {}
@@ -291,8 +703,12 @@ local function setProp(ps, key, raw)
     if value == nil then
       return false
     end
-    if prop.min and value < prop.min then value = prop.min end
-    if prop.max and value > prop.max then value = prop.max end
+    if prop.min and value < prop.min then
+      value = prop.min
+    end
+    if prop.max and value > prop.max then
+      value = prop.max
+    end
   elseif prop.type == "boolean" then
     value = raw == true or raw == "true" or raw == "1"
   else
@@ -314,18 +730,28 @@ local function snapshotPS(ps)
     end
   end
   local okCount, count = pcall(ps.getCount, ps)
-  if okCount then snapshot.count = count end
+  if okCount then
+    snapshot.count = count
+  end
   local okBuffer, buffer = pcall(ps.getBufferSize, ps)
-  if okBuffer then snapshot.bufferSize = buffer end
+  if okBuffer then
+    snapshot.bufferSize = buffer
+  end
   return snapshot
 end
 
 local function createDefaultSystem(index, template)
   template = template or "fire"
   local texturePreset = "circle"
-  if template == "smoke" then texturePreset = "light" end
-  if template == "sparkles" then texturePreset = "star" end
-  if template == "explosion-smoke" then texturePreset = "light" end
+  if template == "smoke" then
+    texturePreset = "light"
+  end
+  if template == "sparkles" then
+    texturePreset = "star"
+  end
+  if template == "explosion-smoke" then
+    texturePreset = "light"
+  end
 
   local image, png = generatePresetImage(texturePreset)
   local ps = love.graphics.newParticleSystem(image, DEFAULT_BUFFER_SIZE)
@@ -464,15 +890,14 @@ local function computeMovementOffset(movement, dt)
 
   if movement.pattern == "irregular" then
     local scale = movement.scale or 50
-    return
-      (math.sin(t * 0.7 + 1.2) * 0.55 + math.sin(t * 1.9) * 0.3 + math.sin(t * 3.1) * 0.15) * scale,
+    return (math.sin(t * 0.7 + 1.2) * 0.55 + math.sin(t * 1.9) * 0.3 + math.sin(t * 3.1) * 0.15) * scale,
       (math.sin(t * 0.9 + 2.4) * 0.55 + math.sin(t * 1.7 + 0.3) * 0.3 + math.sin(t * 2.9) * 0.15) * scale
   end
 
   return 0, 0
 end
 
-function HotParticlesPlugin:init(config)
+function ParticleSystemPlaygroundPlugin:init(config)
   Base.init(self, config)
   self.composites = {}
   self.compositeOrder = {}
@@ -480,7 +905,7 @@ function HotParticlesPlugin:init(config)
   self.activeSystem = 1
 end
 
-function HotParticlesPlugin:addComposite(name, getter)
+function ParticleSystemPlaygroundPlugin:addComposite(name, getter)
   if type(name) ~= "string" or name == "" or type(getter) ~= "function" then
     return false
   end
@@ -500,7 +925,7 @@ function HotParticlesPlugin:addComposite(name, getter)
   return true
 end
 
-function HotParticlesPlugin:removeComposite(name)
+function ParticleSystemPlaygroundPlugin:removeComposite(name)
   local entry = self.composites[name]
   if not entry then
     return false
@@ -519,7 +944,7 @@ function HotParticlesPlugin:removeComposite(name)
   return true
 end
 
-function HotParticlesPlugin:_newComposite(name, template)
+function ParticleSystemPlaygroundPlugin:_newComposite(name, template)
   local base = safeString(name, "")
   if base == "" then
     base = "Effect " .. tostring(#self.compositeOrder + 1)
@@ -547,7 +972,7 @@ function HotParticlesPlugin:_newComposite(name, template)
   return final
 end
 
-function HotParticlesPlugin:_getCompositeTable(name)
+function ParticleSystemPlaygroundPlugin:_getCompositeTable(name)
   local entry = self.composites[name or self.activeComposite]
   if not entry then
     return nil
@@ -562,7 +987,7 @@ function HotParticlesPlugin:_getCompositeTable(name)
   return entry
 end
 
-function HotParticlesPlugin:_getSystemEntry(name, index)
+function ParticleSystemPlaygroundPlugin:_getSystemEntry(name, index)
   local entry = self.composites[name or self.activeComposite]
   if not entry then
     return nil
@@ -574,7 +999,7 @@ function HotParticlesPlugin:_getSystemEntry(name, index)
   return composite and composite[index] or nil
 end
 
-function HotParticlesPlugin:_systemCount(name)
+function ParticleSystemPlaygroundPlugin:_systemCount(name)
   local entry = self.composites[name or self.activeComposite]
   if not entry then
     return 0
@@ -593,7 +1018,7 @@ function HotParticlesPlugin:_systemCount(name)
   return count
 end
 
-function HotParticlesPlugin:_meta(name, index)
+function ParticleSystemPlaygroundPlugin:_meta(name, index)
   local entry = self.composites[name or self.activeComposite]
   if not entry then
     return {}
@@ -605,13 +1030,17 @@ function HotParticlesPlugin:_meta(name, index)
   return entry.meta[index]
 end
 
-function HotParticlesPlugin:update(dt)
+function ParticleSystemPlaygroundPlugin:update(dt)
   for _, name in ipairs(self.compositeOrder) do
     local entry = self.composites[name]
     if entry and entry.kind == "scratch" then
-      entry.offsetX, entry.offsetY = computeMovementOffset(entry.movement, dt)
+      local offsetX, offsetY = computeMovementOffset(entry.movement, dt)
+      entry.offsetX, entry.offsetY = offsetX, offsetY
+      local x = (entry.x or DEFAULT_X) + offsetX
+      local y = (entry.y or DEFAULT_Y) + offsetY
       for _, system in ipairs(entry.systems or {}) do
         if system.system then
+          pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
           pcall(system.system.update, system.system, dt)
         end
       end
@@ -619,7 +1048,7 @@ function HotParticlesPlugin:update(dt)
   end
 end
 
-function HotParticlesPlugin:onDraw()
+function ParticleSystemPlaygroundPlugin:onDraw()
   if not love or not love.graphics then
     return
   end
@@ -631,14 +1060,12 @@ function HotParticlesPlugin:onDraw()
   for _, name in ipairs(self.compositeOrder) do
     local entry = self.composites[name]
     if entry and entry.kind == "scratch" then
-      local x = (entry.x or DEFAULT_X) + (entry.offsetX or 0)
-      local y = (entry.y or DEFAULT_Y) + (entry.offsetY or 0)
       for _, system in ipairs(entry.systems or {}) do
         if system.system then
           pcall(love.graphics.setBlendMode, system.blendMode or "alpha")
           love.graphics.setShader(system.shader)
           love.graphics.setColor(1, 1, 1, 1)
-          love.graphics.draw(system.system, x + (system.x or 0), y + (system.y or 0))
+          love.graphics.draw(system.system, 0, 0)
         end
       end
     end
@@ -649,7 +1076,7 @@ function HotParticlesPlugin:onDraw()
   love.graphics.setColor(r, g, b, a)
 end
 
-function HotParticlesPlugin:handleRequest()
+function ParticleSystemPlaygroundPlugin:handleRequest()
   local names = {}
   for _, name in ipairs(self.compositeOrder) do
     names[#names + 1] = name
@@ -680,7 +1107,16 @@ function HotParticlesPlugin:handleRequest()
         shaderPath = safeString(meta.shaderPath or sys.shaderPath, ""),
         shaderFilename = safeString(meta.shaderFilename or sys.shaderFilename, ""),
         shaderSource = safeString(meta.shaderSource or sys.shaderSource, ""),
-        exportReady = (meta.texturePath or sys.texturePath or meta.textureAssetBase64 or sys.textureAssetBase64 or meta.texturePreset or sys.texturePreset) and true or false,
+        exportReady = (
+          meta.texturePath
+          or sys.texturePath
+          or meta.textureAssetBase64
+          or sys.textureAssetBase64
+          or meta.texturePreset
+          or sys.texturePreset
+        )
+            and true
+          or false,
         properties = snapshotPS(ps),
       }
     end
@@ -694,7 +1130,7 @@ function HotParticlesPlugin:handleRequest()
   end
 
   return {
-    type = "hot-particles",
+    type = "particle-system-playground",
     loading = false,
     composites = names,
     activeComposite = active,
@@ -703,7 +1139,7 @@ function HotParticlesPlugin:handleRequest()
   }
 end
 
-function HotParticlesPlugin:handleParamsUpdate(request)
+function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
   local params = request.params or {}
   if params.composite and self.composites[params.composite] then
     self.activeComposite = params.composite
@@ -719,10 +1155,16 @@ function HotParticlesPlugin:handleParamsUpdate(request)
   end
 
   if entry.kind == "scratch" then
-    if params.compositeX ~= nil then entry.x = safeNumber(params.compositeX, entry.x) end
-    if params.compositeY ~= nil then entry.y = safeNumber(params.compositeY, entry.y) end
+    if params.compositeX ~= nil then
+      entry.x = safeNumber(params.compositeX, entry.x)
+    end
+    if params.compositeY ~= nil then
+      entry.y = safeNumber(params.compositeY, entry.y)
+    end
     entry.movement = entry.movement or { pattern = "none" }
-    if params["movement.pattern"] ~= nil then entry.movement.pattern = tostring(params["movement.pattern"]) end
+    if params["movement.pattern"] ~= nil then
+      entry.movement.pattern = tostring(params["movement.pattern"])
+    end
     for _, key in ipairs({ "radius", "radiusX", "radiusY", "speed", "scale" }) do
       local paramKey = "movement." .. key
       if params[paramKey] ~= nil then
@@ -738,20 +1180,35 @@ function HotParticlesPlugin:handleParamsUpdate(request)
   end
   local meta = self:_meta(name, index)
 
-  if params.title ~= nil then meta.title = tostring(params.title); sys.title = tostring(params.title) end
-  if params.blendMode ~= nil then sys.blendMode = tostring(params.blendMode) end
-  if params.emitterOffsetX ~= nil then sys.x = safeNumber(params.emitterOffsetX, sys.x) end
-  if params.emitterOffsetY ~= nil then sys.y = safeNumber(params.emitterOffsetY, sys.y) end
-  if params.kickStartSteps ~= nil then sys.kickStartSteps = safeNumber(params.kickStartSteps, sys.kickStartSteps) end
-  if params.kickStartDt ~= nil then sys.kickStartDt = safeNumber(params.kickStartDt, sys.kickStartDt) end
-  if params.emitAtStart ~= nil then sys.emitAtStart = safeNumber(params.emitAtStart, sys.emitAtStart) end
+  if params.title ~= nil then
+    meta.title = tostring(params.title)
+    sys.title = tostring(params.title)
+  end
+  if params.blendMode ~= nil then
+    sys.blendMode = tostring(params.blendMode)
+  end
+  if params.emitterOffsetX ~= nil then
+    sys.x = safeNumber(params.emitterOffsetX, sys.x)
+  end
+  if params.emitterOffsetY ~= nil then
+    sys.y = safeNumber(params.emitterOffsetY, sys.y)
+  end
+  if params.kickStartSteps ~= nil then
+    sys.kickStartSteps = safeNumber(params.kickStartSteps, sys.kickStartSteps)
+  end
+  if params.kickStartDt ~= nil then
+    sys.kickStartDt = safeNumber(params.kickStartDt, sys.kickStartDt)
+  end
+  if params.emitAtStart ~= nil then
+    sys.emitAtStart = safeNumber(params.emitAtStart, sys.emitAtStart)
+  end
 
   for key, value in pairs(params) do
     setProp(sys.system, key, value)
   end
 end
 
-function HotParticlesPlugin:_replaceTexture(sys, image)
+function ParticleSystemPlaygroundPlugin:_replaceTexture(sys, image)
   if not sys or not image then
     return
   end
@@ -771,7 +1228,7 @@ function HotParticlesPlugin:_replaceTexture(sys, image)
   new:start()
 end
 
-function HotParticlesPlugin:_applyTexture(name, index, params)
+function ParticleSystemPlaygroundPlugin:_applyTexture(name, index, params)
   local sys = self:_getSystemEntry(name, index)
   if not sys then
     return nil, "System not found"
@@ -842,7 +1299,7 @@ function HotParticlesPlugin:_applyTexture(name, index, params)
   return nil, "No texture supplied"
 end
 
-function HotParticlesPlugin:_applyShader(name, index, params)
+function ParticleSystemPlaygroundPlugin:_applyShader(name, index, params)
   local sys = self:_getSystemEntry(name, index)
   if not sys then
     return nil, "System not found"
@@ -891,7 +1348,7 @@ function HotParticlesPlugin:_applyShader(name, index, params)
   return true
 end
 
-function HotParticlesPlugin:handleActionRequest(request)
+function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
   local params = request.params or {}
   local action = params.action
   local name = params.composite or self.activeComposite
@@ -945,7 +1402,9 @@ function HotParticlesPlugin:handleActionRequest(request)
       return nil, "A composite needs at least one emitter"
     end
     local sys = entry.systems[index]
-    if sys and sys.system and sys.system.release then pcall(sys.system.release, sys.system) end
+    if sys and sys.system and sys.system.release then
+      pcall(sys.system.release, sys.system)
+    end
     table.remove(entry.systems, index)
     self.activeSystem = math.min(self.activeSystem, #entry.systems)
     return true
@@ -1016,11 +1475,14 @@ function HotParticlesPlugin:handleActionRequest(request)
   return true
 end
 
-function HotParticlesPlugin:_assetInfo(name, index, sys)
+function ParticleSystemPlaygroundPlugin:_assetInfo(name, index, sys)
   local meta = self:_meta(name, index)
   local texturePath = safeString(meta.texturePath or sys.texturePath, "")
   local texturePreset = safeString(meta.texturePreset or sys.texturePreset, "")
-  local textureFilename = sanitizeFilename(meta.textureFilename or sys.textureFilename or texturePath or texturePreset .. ".png", "texture.png")
+  local textureFilename = sanitizeFilename(
+    meta.textureFilename or sys.textureFilename or texturePath or texturePreset .. ".png",
+    "texture.png"
+  )
   local textureAssetBase64 = meta.textureAssetBase64 or sys.textureAssetBase64
 
   if textureAssetBase64 == nil and texturePath ~= "" then
@@ -1035,7 +1497,10 @@ function HotParticlesPlugin:_assetInfo(name, index, sys)
 
   local shaderPath = safeString(meta.shaderPath or sys.shaderPath, "")
   local shaderSource = safeString(meta.shaderSource or sys.shaderSource, "")
-  local shaderFilename = sanitizeFilename(meta.shaderFilename or sys.shaderFilename or shaderPath or ("shader_" .. tostring(index) .. ".glsl"), "shader.glsl")
+  local shaderFilename = sanitizeFilename(
+    meta.shaderFilename or sys.shaderFilename or shaderPath or ("shader_" .. tostring(index) .. ".glsl"),
+    "shader.glsl"
+  )
   if shaderSource == "" and shaderPath ~= "" then
     local ok, source = pcall(love.filesystem.read, shaderPath)
     if ok and source then
@@ -1054,7 +1519,7 @@ function HotParticlesPlugin:_assetInfo(name, index, sys)
   }
 end
 
-function HotParticlesPlugin:_textureLoadPath(asset)
+function ParticleSystemPlaygroundPlugin:_textureLoadPath(asset)
   if asset.texturePath ~= "" then
     return asset.texturePath
   end
@@ -1064,11 +1529,11 @@ function HotParticlesPlugin:_textureLoadPath(asset)
   return sanitizeFilename(asset.textureFilename, "texture.png")
 end
 
-function HotParticlesPlugin:_generateCode(name)
+function ParticleSystemPlaygroundPlugin:_generateCode(name)
   local count = self:_systemCount(name)
   local entry = self.composites[name]
   if not entry or count == 0 then
-    return "-- No Hot Particles composite selected"
+    return "-- No Particles Playground composite selected"
   end
 
   local imageVars = {}
@@ -1076,7 +1541,7 @@ function HotParticlesPlugin:_generateCode(name)
   local imageCount = 0
   local shaderCount = 0
   local lines = {
-    "-- Generated by Feather Hot Particles",
+    "-- Generated by Feather Particles Playground",
     "-- " .. os.date("%Y-%m-%d %H:%M:%S"),
     "local LG = love.graphics",
     "local particles = {x = " .. fmt(entry.x or 0) .. ", y = " .. fmt(entry.y or 0) .. "}",
@@ -1119,14 +1584,22 @@ function HotParticlesPlugin:_generateCode(name)
       local imageVar = imageVars[imageKey]
       local psVar = "ps" .. tostring(i)
       lines[#lines + 1] = ""
-      lines[#lines + 1] = "local " .. psVar .. " = LG.newParticleSystem(" .. imageVar .. ", " .. tostring(ps:getBufferSize()) .. ")"
+      lines[#lines + 1] = "local "
+        .. psVar
+        .. " = LG.newParticleSystem("
+        .. imageVar
+        .. ", "
+        .. tostring(ps:getBufferSize())
+        .. ")"
 
       local colors = { ps:getColors() }
       if #colors > 0 then
         local parts = {}
         for _, value in ipairs(colors) do
           if type(value) == "table" then
-            for _, item in ipairs(value) do parts[#parts + 1] = fmt(item) end
+            for _, item in ipairs(value) do
+              parts[#parts + 1] = fmt(item)
+            end
           else
             parts[#parts + 1] = fmt(value)
           end
@@ -1145,21 +1618,39 @@ function HotParticlesPlugin:_generateCode(name)
       local tangentMin, tangentMax = ps:getTangentialAcceleration()
       local offsetX, offsetY = ps:getOffset()
       local sizes = {}
-      for _, value in ipairs({ ps:getSizes() }) do sizes[#sizes + 1] = fmt(value) end
+      for _, value in ipairs({ ps:getSizes() }) do
+        sizes[#sizes + 1] = fmt(value)
+      end
 
       lines[#lines + 1] = psVar .. ":setDirection(" .. fmt(ps:getDirection()) .. ")"
-      lines[#lines + 1] = psVar .. ":setEmissionArea(" .. quote(dist) .. ", " .. fmt(dx) .. ", " .. fmt(dy) .. ", " .. fmt(angle) .. ", " .. tostring(rel) .. ")"
+      lines[#lines + 1] = psVar
+        .. ":setEmissionArea("
+        .. quote(dist)
+        .. ", "
+        .. fmt(dx)
+        .. ", "
+        .. fmt(dy)
+        .. ", "
+        .. fmt(angle)
+        .. ", "
+        .. tostring(rel)
+        .. ")"
       lines[#lines + 1] = psVar .. ":setEmissionRate(" .. fmt(ps:getEmissionRate()) .. ")"
       lines[#lines + 1] = psVar .. ":setEmitterLifetime(" .. fmt(ps:getEmitterLifetime()) .. ")"
       lines[#lines + 1] = psVar .. ":setInsertMode(" .. quote(ps:getInsertMode()) .. ")"
-      lines[#lines + 1] = psVar .. ":setLinearAcceleration(" .. table.concat({ fmt(xmin), fmt(ymin), fmt(xmax), fmt(ymax) }, ", ") .. ")"
+      lines[#lines + 1] = psVar
+        .. ":setLinearAcceleration("
+        .. table.concat({ fmt(xmin), fmt(ymin), fmt(xmax), fmt(ymax) }, ", ")
+        .. ")"
       lines[#lines + 1] = psVar .. ":setLinearDamping(" .. fmt(dampMin) .. ", " .. fmt(dampMax) .. ")"
       lines[#lines + 1] = psVar .. ":setOffset(" .. fmt(offsetX) .. ", " .. fmt(offsetY) .. ")"
       lines[#lines + 1] = psVar .. ":setParticleLifetime(" .. fmt(lifeMin) .. ", " .. fmt(lifeMax) .. ")"
       lines[#lines + 1] = psVar .. ":setRadialAcceleration(" .. fmt(radialMin) .. ", " .. fmt(radialMax) .. ")"
       lines[#lines + 1] = psVar .. ":setRelativeRotation(" .. tostring(ps:hasRelativeRotation()) .. ")"
       lines[#lines + 1] = psVar .. ":setRotation(" .. fmt(rotMin) .. ", " .. fmt(rotMax) .. ")"
-      if #sizes > 0 then lines[#lines + 1] = psVar .. ":setSizes(" .. table.concat(sizes, ", ") .. ")" end
+      if #sizes > 0 then
+        lines[#lines + 1] = psVar .. ":setSizes(" .. table.concat(sizes, ", ") .. ")"
+      end
       lines[#lines + 1] = psVar .. ":setSizeVariation(" .. fmt(ps:getSizeVariation()) .. ")"
       lines[#lines + 1] = psVar .. ":setSpeed(" .. fmt(speedMin) .. ", " .. fmt(speedMax) .. ")"
       lines[#lines + 1] = psVar .. ":setSpin(" .. fmt(spinMin) .. ", " .. fmt(spinMax) .. ")"
@@ -1169,18 +1660,32 @@ function HotParticlesPlugin:_generateCode(name)
 
       local shaderKey = asset.shaderPath ~= "" and asset.shaderPath or asset.shaderFilename
       local shaderValue = shaderVars[shaderKey] or "nil"
-      lines[#lines + 1] = "particles[" .. tostring(i) .. "] = {system = " .. psVar
-        .. ", kickStartSteps = " .. tostring(math.floor(safeNumber(sys.kickStartSteps, 0)))
-        .. ", kickStartDt = " .. fmt(sys.kickStartDt or (1 / 60))
-        .. ", emitAtStart = " .. tostring(math.floor(safeNumber(sys.emitAtStart, 0)))
-        .. ", blendMode = " .. quote(sys.blendMode or "alpha")
-        .. ", shader = " .. shaderValue
-        .. ", texturePreset = " .. quote(asset.texturePreset)
-        .. ", texturePath = " .. quote(asset.texturePath)
-        .. ", shaderPath = " .. quote(asset.shaderPath)
-        .. ", shaderFilename = " .. quote(asset.shaderSource ~= "" and asset.shaderFilename or "")
-        .. ", x = " .. fmt(sys.x or 0)
-        .. ", y = " .. fmt(sys.y or 0)
+      lines[#lines + 1] = "particles["
+        .. tostring(i)
+        .. "] = {system = "
+        .. psVar
+        .. ", kickStartSteps = "
+        .. tostring(math.floor(safeNumber(sys.kickStartSteps, 0)))
+        .. ", kickStartDt = "
+        .. fmt(sys.kickStartDt or (1 / 60))
+        .. ", emitAtStart = "
+        .. tostring(math.floor(safeNumber(sys.emitAtStart, 0)))
+        .. ", blendMode = "
+        .. quote(sys.blendMode or "alpha")
+        .. ", shader = "
+        .. shaderValue
+        .. ", texturePreset = "
+        .. quote(asset.texturePreset)
+        .. ", texturePath = "
+        .. quote(asset.texturePath)
+        .. ", shaderPath = "
+        .. quote(asset.shaderPath)
+        .. ", shaderFilename = "
+        .. quote(asset.shaderSource ~= "" and asset.shaderFilename or "")
+        .. ", x = "
+        .. fmt(sys.x or 0)
+        .. ", y = "
+        .. fmt(sys.y or 0)
         .. "}"
     end
   end
@@ -1190,7 +1695,7 @@ function HotParticlesPlugin:_generateCode(name)
   return table.concat(lines, "\n")
 end
 
-function HotParticlesPlugin:_buildZip(name)
+function ParticleSystemPlaygroundPlugin:_buildZip(name)
   local files = {
     { name = "init.lua", data = self:_generateCode(name), encoding = "text" },
   }
@@ -1221,17 +1726,17 @@ function HotParticlesPlugin:_buildZip(name)
   end
 
   return {
-    filename = sanitizeFilename(name or "hot-particles", "hot-particles") .. ".zip",
+    filename = sanitizeFilename(name or "particle-system-playground", "particle-system-playground") .. ".zip",
     files = files,
   }
 end
 
-function HotParticlesPlugin:getConfig()
+function ParticleSystemPlaygroundPlugin:getConfig()
   return {
-    type = "hot-particles",
-    tabName = "Hot Particles",
+    type = "particle-system-playground",
+    tabName = "Particles Playground",
     icon = "sparkles",
   }
 end
 
-return HotParticlesPlugin
+return ParticleSystemPlaygroundPlugin

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TEXTURE_PRESETS } from '@/types/hot-particles';
+import { TEXTURE_PRESETS } from '@/types/particle-system-playground';
 import { isWeb } from '@/utils/platform';
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';

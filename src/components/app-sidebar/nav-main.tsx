@@ -24,7 +24,7 @@ import { useSessionStore } from '@/store/session';
 export function NavMain() {
   const sessionId = useSessionStore((state) => state.sessionId);
   const hasSession = !!sessionId;
-  const isPaused = useDebuggerStore((state) => sessionId ? !!state.pausedState[sessionId] : false);
+  const isPaused = useDebuggerStore((state) => (sessionId ? !!state.pausedState[sessionId] : false));
 
   const items = [
     {
@@ -63,8 +63,8 @@ export function NavMain() {
       icon: ImagesIcon,
     },
     {
-      title: 'Hot Particles',
-      url: '/hot-particles',
+      title: 'Particles Playground',
+      url: '/particle-system-playground',
       icon: SparklesIcon,
     },
     {

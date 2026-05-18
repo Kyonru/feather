@@ -24,7 +24,7 @@ import Debugger from './pages/debugger';
 import TimeTravel from './pages/time-travel';
 import Compare from './pages/compare';
 import Assets from './pages/assets';
-import HotParticles from './pages/hot-particles';
+import ParticleSystemPlayground from './pages/particle-system-playground';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
@@ -231,10 +231,10 @@ export const Router = () => {
                 }
               />
               <Route
-                path="/hot-particles"
+                path="/particle-system-playground"
                 element={
                   <RequireSession>
-                    <HotParticles />
+                    <ParticleSystemPlayground />
                   </RequireSession>
                 }
               />

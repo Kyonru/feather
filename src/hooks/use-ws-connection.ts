@@ -488,7 +488,7 @@ export const useWsConnection = () => {
               }
               const bytes = zipSync(archive);
               saveFileDialog({
-                defaultPath: response.zipAssets.filename ?? 'hot-particles.zip',
+                defaultPath: response.zipAssets.filename ?? 'particle-system-playground.zip',
                 filters: [{ name: 'ZIP archive', extensions: ['zip'] }],
               })
                 .then(async (path) => {

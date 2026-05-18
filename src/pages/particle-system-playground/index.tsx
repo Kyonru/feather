@@ -2,7 +2,7 @@ import { AlertTriangleIcon, FileWarningIcon, RotateCcwIcon, SparklesIcon, ZapIco
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { useHotParticles } from '@/hooks/use-hot-particles';
+import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
 import { CompositeSelector } from './components/CompositeSelector';
 import { EmitterList } from './components/EmitterList';
 import { ExportPanel } from './components/ExportPanel';
@@ -20,18 +20,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function HotParticlesPage() {
-  const hot = useHotParticles();
-  const composite = hot.composite;
-  const system = hot.activeSystem;
+export default function ParticleSystemPlaygroundPage() {
+  const playground = useParticleSystemPlayground();
+  const composite = playground.composite;
+  const system = playground.activeSystem;
   const isGameComposite = composite?.compositeType === 'game';
 
-  if (!hot.available) {
+  if (!playground.available) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center p-8">
         <div className="grid max-w-md justify-items-center gap-3 text-center">
           <FileWarningIcon className="size-8 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Hot Particles is not available in this session</h1>
+          <h1 className="text-lg font-semibold">Particles Playground is not available in this session</h1>
           <p className="text-sm text-muted-foreground">
             Run with the bundled Feather plugins or update the game runtime.
           </p>
@@ -40,12 +40,12 @@ export default function HotParticlesPage() {
     );
   }
 
-  if (!hot.enabled) {
+  if (!playground.enabled) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center p-8">
         <div className="grid max-w-md justify-items-center gap-3 text-center">
           <AlertTriangleIcon className="size-8 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Hot Particles is disabled</h1>
+          <h1 className="text-lg font-semibold">Particles Playground is disabled</h1>
           <p className="text-sm text-muted-foreground">
             Enable the built-in plugin for this session to author particle effects.
           </p>
@@ -58,28 +58,28 @@ export default function HotParticlesPage() {
     <div className="grid min-h-0 flex-1 grid-cols-[18rem_minmax(0,1fr)] overflow-hidden">
       <aside className="min-h-0 border-r bg-muted/20">
         <CompositeSelector
-          composites={hot.composites}
-          activeComposite={hot.activeComposite}
+          composites={playground.composites}
+          activeComposite={playground.activeComposite}
           compositeType={composite?.compositeType}
-          onSelect={hot.selectComposite}
-          onCreate={hot.createComposite}
-          onDelete={hot.deleteComposite}
+          onSelect={playground.selectComposite}
+          onCreate={playground.createComposite}
+          onDelete={playground.deleteComposite}
         />
         <ScrollArea className="h-[calc(100vh-9rem)]">
           {composite ? (
             <EmitterList
               systems={composite.systems}
-              activeIndex={hot.activeSystemIndex}
+              activeIndex={playground.activeSystemIndex}
               isGameComposite={isGameComposite}
-              onSelect={hot.selectSystem}
-              onAdd={hot.addSystem}
-              onRemove={hot.removeSystem}
+              onSelect={playground.selectSystem}
+              onAdd={playground.addSystem}
+              onRemove={playground.removeSystem}
             />
           ) : (
             <div className="grid gap-3 p-4 text-sm text-muted-foreground">
               <SparklesIcon className="size-5" />
               <p>No composites yet.</p>
-              <Button size="sm" className="h-8 text-xs" onClick={() => hot.createComposite()}>
+              <Button size="sm" className="h-8 text-xs" onClick={() => playground.createComposite()}>
                 New Composite
               </Button>
             </div>
@@ -92,23 +92,33 @@ export default function HotParticlesPage() {
           <div className="grid gap-3 p-4">
             <header className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 className="text-lg font-semibold">Hot Particles</h1>
+                <h1 className="text-lg font-semibold">Particles Playground</h1>
                 <p className="text-sm text-muted-foreground">
-                  {hot.activeComposite ?? 'Create a composite'}{' '}
+                  {playground.activeComposite ?? 'Create a composite'}{' '}
                   {isGameComposite ? 'game composite' : 'scratch composite'}
                 </p>
               </div>
               {system && (
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="h-8 gap-2 text-xs" onClick={() => hot.emit(false)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-2 text-xs"
+                    onClick={() => playground.emit(false)}
+                  >
                     <ZapIcon className="size-4" />
                     Emit
                   </Button>
-                  <Button size="sm" variant="outline" className="h-8 gap-2 text-xs" onClick={() => hot.reset(false)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-2 text-xs"
+                    onClick={() => playground.reset(false)}
+                  >
                     <RotateCcwIcon className="size-4" />
                     Reset
                   </Button>
-                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={hot.kickStart}>
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={playground.kickStart}>
                     Kick Start
                   </Button>
                 </div>
@@ -120,7 +130,7 @@ export default function HotParticlesPage() {
                 <div className="grid justify-items-center gap-3">
                   <SparklesIcon className="size-7" />
                   <p>Create a scratch composite or register one from game code.</p>
-                  <Button size="sm" className="h-8 text-xs" onClick={() => hot.createComposite()}>
+                  <Button size="sm" className="h-8 text-xs" onClick={() => playground.createComposite()}>
                     New Composite
                   </Button>
                 </div>
@@ -136,7 +146,7 @@ export default function HotParticlesPage() {
 
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_22rem]">
                   <Section title="Emitter Properties">
-                    <PropertiesPanel system={system} onChange={hot.updateActiveParam} />
+                    <PropertiesPanel system={system} onChange={playground.updateActiveParam} />
                   </Section>
 
                   <div className="grid content-start gap-3">
@@ -149,7 +159,7 @@ export default function HotParticlesPage() {
                             type="number"
                             value={composite.x}
                             disabled={isGameComposite}
-                            onChange={(event) => hot.updateParam('compositeX', Number(event.target.value))}
+                            onChange={(event) => playground.updateParam('compositeX', Number(event.target.value))}
                           />
                         </label>
                         <label className="grid gap-1 text-[10px] text-muted-foreground">
@@ -159,7 +169,7 @@ export default function HotParticlesPage() {
                             type="number"
                             value={composite.y}
                             disabled={isGameComposite}
-                            onChange={(event) => hot.updateParam('compositeY', Number(event.target.value))}
+                            onChange={(event) => playground.updateParam('compositeY', Number(event.target.value))}
                           />
                         </label>
                       </div>
@@ -167,7 +177,7 @@ export default function HotParticlesPage() {
                       <MovementPatternEditor
                         movement={composite.movement}
                         disabled={isGameComposite}
-                        onChange={hot.updateParam}
+                        onChange={playground.updateParam}
                       />
                     </Section>
 
@@ -176,9 +186,9 @@ export default function HotParticlesPage() {
                         texturePath={system.texturePath}
                         texturePreset={system.texturePreset}
                         textureFilename={system.textureFilename}
-                        onPreset={hot.setTexturePreset}
-                        onPath={hot.setTexturePath}
-                        onUpload={hot.setTextureFromUpload}
+                        onPreset={playground.setTexturePreset}
+                        onPath={playground.setTexturePath}
+                        onUpload={playground.setTextureFromUpload}
                       />
                     </Section>
 
@@ -187,13 +197,13 @@ export default function HotParticlesPage() {
                         shaderPath={system.shaderPath}
                         shaderFilename={system.shaderFilename}
                         shaderSource={system.shaderSource}
-                        error={hot.shaderError}
-                        onApply={hot.setShader}
+                        error={playground.shaderError}
+                        onApply={playground.setShader}
                       />
                     </Section>
 
                     <Section title="Export">
-                      <ExportPanel onExportCode={hot.exportCode} onExportZip={hot.exportZip} />
+                      <ExportPanel onExportCode={playground.exportCode} onExportZip={playground.exportZip} />
                     </Section>
                   </div>
                 </div>

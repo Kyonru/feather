@@ -1,8 +1,8 @@
 export type MovementPattern = 'none' | 'circle' | 'figure-eight' | 'irregular';
 export type CompositeType = 'scratch' | 'game';
-export type HotParticlesTemplate = 'fire' | 'explosion' | 'smoke' | 'sparkles';
+export type ParticleSystemPlaygroundTemplate = 'fire' | 'explosion' | 'smoke' | 'sparkles';
 
-export type HotParticlesMovement = {
+export type ParticleSystemPlaygroundMovement = {
   pattern: MovementPattern;
   radius?: number;
   radiusX?: number;
@@ -11,7 +11,7 @@ export type HotParticlesMovement = {
   scale?: number;
 };
 
-export type HotParticlesSystemProperties = {
+export type ParticleSystemPlaygroundSystemProperties = {
   emissionRate?: number;
   emitterLifetime?: number;
   particleLifetimeMin?: number;
@@ -51,7 +51,7 @@ export type HotParticlesSystemProperties = {
   bufferSize?: number;
 };
 
-export type HotParticlesSystem = {
+export type ParticleSystemPlaygroundSystem = {
   index: number;
   title: string;
   blendMode: string;
@@ -67,29 +67,29 @@ export type HotParticlesSystem = {
   shaderFilename: string;
   shaderSource: string;
   exportReady: boolean;
-  properties: HotParticlesSystemProperties;
+  properties: ParticleSystemPlaygroundSystemProperties;
 };
 
-export type HotParticlesCompositeData = {
+export type ParticleSystemPlaygroundCompositeData = {
   compositeType: CompositeType;
   x: number;
   y: number;
-  movement: HotParticlesMovement;
-  systems: HotParticlesSystem[];
+  movement: ParticleSystemPlaygroundMovement;
+  systems: ParticleSystemPlaygroundSystem[];
 };
 
-export type HotParticlesData = {
-  type: 'hot-particles';
+export type ParticleSystemPlaygroundData = {
+  type: 'particle-system-playground';
   loading?: boolean;
   composites: string[];
   activeComposite: string | null;
   activeSystem: number;
-  data: HotParticlesCompositeData | null;
+  data: ParticleSystemPlaygroundCompositeData | null;
 };
 
 export const BLEND_MODES = ['alpha', 'add', 'subtract', 'multiply', 'screen', 'replace', 'lighten', 'darken'] as const;
 export const TEXTURE_PRESETS = ['circle', 'ring', 'light', 'star', 'spiral'] as const;
-export const HOT_PARTICLES_TEMPLATES: Array<{ value: HotParticlesTemplate; label: string }> = [
+export const PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES: Array<{ value: ParticleSystemPlaygroundTemplate; label: string }> = [
   { value: 'fire', label: 'Fire' },
   { value: 'explosion', label: 'Explosion' },
   { value: 'smoke', label: 'Smoke' },

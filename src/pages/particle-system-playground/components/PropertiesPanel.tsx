@@ -3,15 +3,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { BLEND_MODES, EMISSION_AREA_DISTRIBUTIONS, type HotParticlesSystem } from '@/types/hot-particles';
+import { BLEND_MODES, EMISSION_AREA_DISTRIBUTIONS, type ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
+import { AccelerationEditor } from './AccelerationEditor';
 import { ColorGradientEditor } from './ColorGradientEditor';
+import { MotionPresets } from './MotionPresets';
+import { RangePairField } from './RangePairField';
+import { SizeCurveEditor } from './SizeCurveEditor';
 
 type Props = {
-  system: HotParticlesSystem;
+  system: ParticleSystemPlaygroundSystem;
   onChange: (key: string, value: string | number | boolean) => void;
 };
 
-type Field = {
+type NumberFieldDef = {
+  type?: 'number';
   key: string;
   label: string;
   min?: number;
@@ -19,14 +24,23 @@ type Field = {
   step?: number;
 };
 
-const groups: Array<{ title: string; fields: Field[] }> = [
+type RangeFieldDef = {
+  type: 'range';
+  minKey: string;
+  maxKey: string;
+  label: string;
+  step?: number;
+};
+
+type FieldDef = NumberFieldDef | RangeFieldDef;
+
+const groups: Array<{ title: string; fields: FieldDef[] }> = [
   {
     title: 'Emission',
     fields: [
       { key: 'emissionRate', label: 'Rate', min: 0, step: 1 },
       { key: 'emitterLifetime', label: 'Emitter Lifetime', min: -1, step: 0.1 },
-      { key: 'particleLifetimeMin', label: 'Particle Life Min', min: 0, step: 0.01 },
-      { key: 'particleLifetimeMax', label: 'Particle Life Max', min: 0, step: 0.01 },
+      { type: 'range', minKey: 'particleLifetimeMin', maxKey: 'particleLifetimeMax', label: 'Particle Life', step: 0.01 },
       { key: 'emitAtStart', label: 'Emit At Start', min: 0, step: 1 },
       { key: 'kickStartSteps', label: 'Kick Steps', min: 0, step: 1 },
       { key: 'kickStartDt', label: 'Kick Dt', min: 0, step: 0.001 },
@@ -37,32 +51,14 @@ const groups: Array<{ title: string; fields: Field[] }> = [
     fields: [
       { key: 'direction', label: 'Direction', step: 0.01 },
       { key: 'spread', label: 'Spread', min: 0, step: 0.01 },
-      { key: 'speedMin', label: 'Speed Min', step: 1 },
-      { key: 'speedMax', label: 'Speed Max', step: 1 },
-    ],
-  },
-  {
-    title: 'Acceleration And Damping',
-    fields: [
-      { key: 'linearAccelXMin', label: 'Linear X Min', step: 1 },
-      { key: 'linearAccelYMin', label: 'Linear Y Min', step: 1 },
-      { key: 'linearAccelXMax', label: 'Linear X Max', step: 1 },
-      { key: 'linearAccelYMax', label: 'Linear Y Max', step: 1 },
-      { key: 'radialAccelMin', label: 'Radial Min', step: 1 },
-      { key: 'radialAccelMax', label: 'Radial Max', step: 1 },
-      { key: 'tangentialAccelMin', label: 'Tangential Min', step: 1 },
-      { key: 'tangentialAccelMax', label: 'Tangential Max', step: 1 },
-      { key: 'linearDampingMin', label: 'Damping Min', min: 0, step: 0.01 },
-      { key: 'linearDampingMax', label: 'Damping Max', min: 0, step: 0.01 },
+      { type: 'range', minKey: 'speedMin', maxKey: 'speedMax', label: 'Speed', step: 1 },
     ],
   },
   {
     title: 'Rotation And Size',
     fields: [
-      { key: 'rotationMin', label: 'Rotation Min', step: 0.01 },
-      { key: 'rotationMax', label: 'Rotation Max', step: 0.01 },
-      { key: 'spinMin', label: 'Spin Min', step: 0.01 },
-      { key: 'spinMax', label: 'Spin Max', step: 0.01 },
+      { type: 'range', minKey: 'rotationMin', maxKey: 'rotationMax', label: 'Rotation', step: 0.01 },
+      { type: 'range', minKey: 'spinMin', maxKey: 'spinMax', label: 'Spin', step: 0.01 },
       { key: 'spinVariation', label: 'Spin Variation', min: 0, max: 1, step: 0.01 },
       { key: 'sizeVariation', label: 'Size Variation', min: 0, max: 1, step: 0.01 },
       { key: 'offsetX', label: 'Texture Offset X', step: 1 },
@@ -78,7 +74,7 @@ const groups: Array<{ title: string; fields: Field[] }> = [
   },
 ];
 
-function valueFor(system: HotParticlesSystem, key: string): string | number | boolean {
+function valueFor(system: ParticleSystemPlaygroundSystem, key: string): string | number | boolean {
   if (key === 'emitterOffsetX') return system.x;
   if (key === 'emitterOffsetY') return system.y;
   if (key === 'kickStartSteps') return system.kickStartSteps;
@@ -87,7 +83,15 @@ function valueFor(system: HotParticlesSystem, key: string): string | number | bo
   return system.properties[key as keyof typeof system.properties] ?? '';
 }
 
-function NumberField({ field, system, onChange }: { field: Field; system: HotParticlesSystem; onChange: Props['onChange'] }) {
+function NumberField({
+  field,
+  system,
+  onChange,
+}: {
+  field: NumberFieldDef;
+  system: ParticleSystemPlaygroundSystem;
+  onChange: Props['onChange'];
+}) {
   return (
     <div className="grid gap-1">
       <Label className="text-[10px] text-muted-foreground">{field.label}</Label>
@@ -141,17 +145,15 @@ export function PropertiesPanel({ system, onChange }: Props) {
         </div>
         <div className="grid gap-1">
           <Label className="text-[10px] text-muted-foreground">Sizes</Label>
-          <Input
-            className="h-8 font-mono text-xs"
-            value={system.properties.sizes ?? ''}
-            onChange={(event) => onChange('sizes', event.target.value)}
-          />
+          <SizeCurveEditor value={system.properties.sizes ?? '1'} onChange={(v) => onChange('sizes', v)} />
         </div>
         <div className="grid gap-1">
           <Label className="text-[10px] text-muted-foreground">Color Gradient</Label>
           <ColorGradientEditor value={system.properties.colors ?? '1, 1, 1, 1'} onChange={(value) => onChange('colors', value)} />
         </div>
       </div>
+
+      <MotionPresets system={system} onChange={onChange} />
 
       {groups.map((group) => (
         <section key={group.title} className="grid gap-3">
@@ -160,12 +162,26 @@ export function PropertiesPanel({ system, onChange }: Props) {
             <Separator className="flex-1" />
           </div>
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            {group.fields.map((field) => (
-              <NumberField key={field.key} field={field} system={system} onChange={onChange} />
-            ))}
+            {group.fields.map((field) =>
+              field.type === 'range' ? (
+                <RangePairField
+                  key={field.label}
+                  label={field.label}
+                  minKey={field.minKey}
+                  maxKey={field.maxKey}
+                  system={system}
+                  onChange={onChange}
+                  step={field.step}
+                />
+              ) : (
+                <NumberField key={field.key} field={field} system={system} onChange={onChange} />
+              ),
+            )}
           </div>
         </section>
       ))}
+
+      <AccelerationEditor system={system} onChange={onChange} />
 
       <section className="grid gap-3">
         <div className="flex items-center gap-3">
