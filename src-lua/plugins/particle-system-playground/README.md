@@ -119,6 +119,18 @@ return particles
 
 ZIP export returns `init.lua` and any available texture/shader assets. Imported texture bytes are preserved for ZIP output. Game-path assets are read through `love.filesystem.read` when possible.
 
+## Shaders
+
+The desktop editor includes built-in particle shader presets such as glow, smoke, sparkle, dissolve, ring, and energy effects. Presets are plain LÖVE pixel shader source and can be edited before applying.
+
+Animated presets may declare:
+
+```glsl
+extern number u_time;
+```
+
+When a scratch composite is drawn, the plugin sends `u_time` with `love.timer.getTime()` if the active shader accepts it. Shaders that do not declare `u_time` are unaffected.
+
 ## Notes
 
 - This is a Feather-owned clean-room runtime/plugin implementation.

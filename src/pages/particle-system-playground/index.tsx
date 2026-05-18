@@ -2,6 +2,7 @@ import { AlertTriangleIcon, FileWarningIcon, RotateCcwIcon, SparklesIcon, ZapIco
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { usePluginControl } from '@/hooks/use-plugin-control';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
 import { CompositeSelector } from './components/CompositeSelector';
 import { EmitterList } from './components/EmitterList';
@@ -22,6 +23,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function ParticleSystemPlaygroundPage() {
   const playground = useParticleSystemPlayground();
+  const pluginControl = usePluginControl('particle-system-playground');
   const composite = playground.composite;
   const system = playground.activeSystem;
   const isGameComposite = composite?.compositeType === 'game';
@@ -49,6 +51,19 @@ export default function ParticleSystemPlaygroundPage() {
           <p className="text-sm text-muted-foreground">
             Enable the built-in plugin for this session to author particle effects.
           </p>
+          <Button
+            size="sm"
+            className="h-8 text-xs"
+            disabled={!!pluginControl.plugin?.incompatible}
+            onClick={() => pluginControl.setEnabled(true)}
+          >
+            Enable Particles Playground
+          </Button>
+          {pluginControl.plugin?.incompatible && (
+            <p className="text-xs text-muted-foreground">
+              This plugin is incompatible with the current Feather runtime.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -144,7 +159,7 @@ export default function ParticleSystemPlaygroundPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                <div className="grid grid-cols-1 gap-3 2xl:grid-cols-[minmax(0,1fr)_minmax(28rem,38rem)]">
                   <Section title="Emitter Properties">
                     <PropertiesPanel system={system} onChange={playground.updateActiveParam} />
                   </Section>

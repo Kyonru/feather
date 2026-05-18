@@ -1063,6 +1063,9 @@ function ParticleSystemPlaygroundPlugin:onDraw()
       for _, system in ipairs(entry.systems or {}) do
         if system.system then
           pcall(love.graphics.setBlendMode, system.blendMode or "alpha")
+          if system.shader and system.shader.send and love.timer then
+            pcall(system.shader.send, system.shader, "u_time", love.timer.getTime())
+          end
           love.graphics.setShader(system.shader)
           love.graphics.setColor(1, 1, 1, 1)
           love.graphics.draw(system.system, 0, 0)
@@ -1734,7 +1737,6 @@ end
 function ParticleSystemPlaygroundPlugin:getConfig()
   return {
     type = "particle-system-playground",
-    tabName = "Particles Playground",
     icon = "sparkles",
   }
 end
