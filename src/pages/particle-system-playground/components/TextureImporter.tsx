@@ -56,7 +56,7 @@ export function TextureImporter({ texturePath, texturePreset, textureFilename, o
         </Button>
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px] text-muted-foreground">Game path</Label>
+        <Label className="text-[10px] text-muted-foreground font-semibold">Game path</Label>
         <Input
           className="h-8 font-mono text-xs"
           placeholder="gfx/fire.png"

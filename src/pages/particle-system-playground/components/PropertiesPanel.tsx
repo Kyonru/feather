@@ -3,7 +3,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { BLEND_MODES, EMISSION_AREA_DISTRIBUTIONS, type ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
+import {
+  BLEND_MODES,
+  EMISSION_AREA_DISTRIBUTIONS,
+  type ParticleSystemPlaygroundSystem,
+} from '@/types/particle-system-playground';
 import { AccelerationEditor } from './AccelerationEditor';
 import { ColorGradientEditor } from './ColorGradientEditor';
 import { DirectionSpreadGizmo } from './DirectionSpreadGizmo';
@@ -43,7 +47,13 @@ const groups: Array<{ title: string; fields: FieldDef[] }> = [
     fields: [
       { key: 'emissionRate', label: 'Rate', min: 0, step: 1 },
       { key: 'emitterLifetime', label: 'Emitter Lifetime', min: -1, step: 0.1 },
-      { type: 'range', minKey: 'particleLifetimeMin', maxKey: 'particleLifetimeMax', label: 'Particle Life', step: 0.01 },
+      {
+        type: 'range',
+        minKey: 'particleLifetimeMin',
+        maxKey: 'particleLifetimeMax',
+        label: 'Particle Life',
+        step: 0.01,
+      },
       { key: 'emitAtStart', label: 'Emit At Start', min: 0, step: 1 },
       { key: 'kickStartSteps', label: 'Kick Steps', min: 0, step: 1 },
       { key: 'kickStartDt', label: 'Kick Dt', min: 0, step: 0.001 },
@@ -102,7 +112,7 @@ function NumberField({
 }) {
   return (
     <div className="grid gap-1">
-      <Label className="text-[10px] text-muted-foreground">{field.label}</Label>
+      <Label className="text-[10px] text-muted-foreground font-semibold">{field.label}</Label>
       <Input
         className="h-8 text-xs"
         type="number"
@@ -122,11 +132,15 @@ export function PropertiesPanel({ system, onChange }: Props) {
       <div className="grid gap-3">
         <div className="grid grid-cols-[1fr_10rem_9rem] gap-2">
           <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Title</Label>
-            <Input className="h-8 text-xs" value={system.title} onChange={(event) => onChange('title', event.target.value)} />
+            <Label className="text-[10px] text-muted-foreground font-semibold">Title</Label>
+            <Input
+              className="h-8 text-xs"
+              value={system.title}
+              onChange={(event) => onChange('title', event.target.value)}
+            />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Blend</Label>
+            <Label className="text-[10px] text-muted-foreground font-semibold">Blend</Label>
             <Select value={system.blendMode} onValueChange={(value) => onChange('blendMode', value)}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
@@ -152,7 +166,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
           </div>
         </div>
         <div className="grid gap-1">
-          <Label className="text-[10px] text-muted-foreground">Sizes</Label>
+          <Label className="text-[10px] text-muted-foreground font-semibold">Sizes</Label>
           <SizeCurveEditor
             value={system.properties.sizes ?? '1'}
             variation={system.properties.sizeVariation ?? 0}
@@ -160,8 +174,11 @@ export function PropertiesPanel({ system, onChange }: Props) {
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[10px] text-muted-foreground">Color Gradient</Label>
-          <ColorGradientEditor value={system.properties.colors ?? '1, 1, 1, 1'} onChange={(value) => onChange('colors', value)} />
+          <Label className="text-[10px] text-muted-foreground font-semibold">Color Gradient</Label>
+          <ColorGradientEditor
+            value={system.properties.colors ?? '1, 1, 1, 1'}
+            onChange={(value) => onChange('colors', value)}
+          />
         </div>
       </div>
 
@@ -205,7 +222,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
         </div>
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
           <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Distribution</Label>
+            <Label className="text-[10px] text-muted-foreground font-semibold">Distribution</Label>
             <Select
               value={system.properties.emissionAreaDist ?? 'none'}
               onValueChange={(value) => onChange('emissionAreaDist', value)}

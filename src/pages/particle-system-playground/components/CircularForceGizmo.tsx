@@ -49,12 +49,12 @@ export function CircularForceGizmo({ system, onChange }: Props) {
   const cy = H / 2;
 
   const maxAbs = Math.max(Math.abs(radialMin), Math.abs(radialMax), Math.abs(tangMin), Math.abs(tangMax), 50);
-  const [range, setRange] = useState(() => Math.ceil(maxAbs * 1.5 / 50) * 50);
+  const [range, setRange] = useState(() => Math.ceil((maxAbs * 1.5) / 50) * 50);
   const rangeWasEditedRef = useRef(false);
 
   useEffect(() => {
     if (rangeWasEditedRef.current) return;
-    const nextRange = Math.ceil(maxAbs * 1.35 / 50) * 50;
+    const nextRange = Math.ceil((maxAbs * 1.35) / 50) * 50;
     setRange((current) => (nextRange > current ? nextRange : current));
   }, [maxAbs]);
 
@@ -141,7 +141,9 @@ export function CircularForceGizmo({ system, onChange }: Props) {
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Radial &amp; Tangential</span>
+        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          Radial &amp; Tangential
+        </span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">Range ±</span>
           <Input
@@ -159,24 +161,40 @@ export function CircularForceGizmo({ system, onChange }: Props) {
         ref={svgRef}
         width="100%"
         height={H}
-        className="touch-none rounded border bg-muted/10"
+        className="touch-none rounded border bg-muted/10 select-none"
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerLeave={stopDrag}
       >
         {/* Reference circles */}
         {[0.33, 0.66, 1].map((t) => (
-          <circle key={t} cx={cx} cy={cy} r={halfSide * t}
-            fill="none" stroke="currentColor" strokeOpacity={0.06} strokeDasharray="3 3" />
+          <circle
+            key={t}
+            cx={cx}
+            cy={cy}
+            r={halfSide * t}
+            fill="none"
+            stroke="currentColor"
+            strokeOpacity={0.06}
+            strokeDasharray="3 3"
+          />
         ))}
 
         {/* Axes */}
         <line x1={cx - halfSide} y1={cy} x2={cx + halfSide} y2={cy} stroke="currentColor" strokeOpacity={0.22} />
         <line x1={cx} y1={cy - halfSide} x2={cx} y2={cy + halfSide} stroke="currentColor" strokeOpacity={0.22} />
-        <text x={cx + halfSide - 35} y={cy - 6} fontSize={9} fill="currentColor" fillOpacity={0.4}>outward</text>
-        <text x={cx - halfSide + 4} y={cy - 6} fontSize={9} fill="currentColor" fillOpacity={0.4}>inward</text>
-        <text x={cx + 5} y={cy - halfSide + 12} fontSize={9} fill="currentColor" fillOpacity={0.4}>CW</text>
-        <text x={cx + 5} y={cy + halfSide - 5} fontSize={9} fill="currentColor" fillOpacity={0.4}>CCW</text>
+        <text x={cx + halfSide - 35} y={cy - 6} fontSize={9} fill="currentColor" fillOpacity={0.4}>
+          outward
+        </text>
+        <text x={cx - halfSide + 4} y={cy - 6} fontSize={9} fill="currentColor" fillOpacity={0.4}>
+          inward
+        </text>
+        <text x={cx + 5} y={cy - halfSide + 12} fontSize={9} fill="currentColor" fillOpacity={0.4}>
+          CW
+        </text>
+        <text x={cx + 5} y={cy + halfSide - 5} fontSize={9} fill="currentColor" fillOpacity={0.4}>
+          CCW
+        </text>
 
         {/* Radial arrows around emitter */}
         {arrows8.map(({ bx, by, tx, ty, angle }, i) => (
@@ -184,7 +202,11 @@ export function CircularForceGizmo({ system, onChange }: Props) {
             <line x1={bx} y1={by} x2={tx} y2={ty} stroke="var(--chart-1)" strokeOpacity={0.55} strokeWidth={2} />
             <path
               d={`M ${tx} ${ty} L ${tx + Math.cos(angle + 2.5) * 5} ${ty + Math.sin(angle + 2.5) * 5} M ${tx} ${ty} L ${tx + Math.cos(angle - 2.5) * 5} ${ty + Math.sin(angle - 2.5) * 5}`}
-              stroke="var(--chart-1)" strokeOpacity={0.55} strokeWidth={1.25} fill="none" strokeLinecap="round"
+              stroke="var(--chart-1)"
+              strokeOpacity={0.55}
+              strokeWidth={1.25}
+              fill="none"
+              strokeLinecap="round"
             />
           </g>
         ))}
@@ -194,7 +216,11 @@ export function CircularForceGizmo({ system, onChange }: Props) {
           <>
             <path
               d={arcArrow(cx, cy, tangArcR, -Math.PI / 2, -Math.PI / 2 + (tangCW ? tangArcSpan : -tangArcSpan))}
-              fill="none" stroke="var(--chart-2)" strokeWidth={2} strokeOpacity={0.6} strokeLinecap="round"
+              fill="none"
+              stroke="var(--chart-2)"
+              strokeWidth={2}
+              strokeOpacity={0.6}
+              strokeLinecap="round"
             />
             {/* arrowhead at end of arc */}
             {(() => {
@@ -205,7 +231,11 @@ export function CircularForceGizmo({ system, onChange }: Props) {
               return (
                 <path
                   d={`M ${ex} ${ey} L ${ex + Math.cos(ta + 2.5) * 6} ${ey + Math.sin(ta + 2.5) * 6} M ${ex} ${ey} L ${ex + Math.cos(ta - 2.5) * 6} ${ey + Math.sin(ta - 2.5) * 6}`}
-                  stroke="var(--chart-2)" strokeWidth={1.5} strokeOpacity={0.6} fill="none" strokeLinecap="round"
+                  stroke="var(--chart-2)"
+                  strokeWidth={1.5}
+                  strokeOpacity={0.6}
+                  fill="none"
+                  strokeLinecap="round"
                 />
               );
             })()}
@@ -213,67 +243,118 @@ export function CircularForceGizmo({ system, onChange }: Props) {
         )}
 
         {/* Emitter circle */}
-        <circle cx={cx} cy={cy} r={EMITTER_R} fill="hsl(var(--card))" stroke="currentColor" strokeOpacity={0.35} strokeWidth={1.5} />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={EMITTER_R}
+          fill="hsl(var(--card))"
+          stroke="currentColor"
+          strokeOpacity={0.35}
+          strokeWidth={1.5}
+        />
         <circle cx={cx} cy={cy} r={3} fill="currentColor" fillOpacity={0.4} />
 
         {/* Radial handles (horizontal axis) */}
-        <circle cx={radialMinX} cy={cy} r={6}
+        <circle
+          cx={radialMinX}
+          cy={cy}
+          r={6}
           fill={dragging === 'radialMin' ? 'var(--chart-1)' : 'hsl(var(--card))'}
-          stroke="var(--chart-1)" strokeWidth={2} style={{ cursor: 'ew-resize' }}
+          stroke="var(--chart-1)"
+          strokeWidth={2}
+          style={{ cursor: 'ew-resize' }}
           onPointerDown={(e) => {
             rangeWasEditedRef.current = true;
             e.currentTarget.setPointerCapture(e.pointerId);
             setDragging('radialMin');
           }}
         />
-        <circle cx={radialMaxX} cy={cy} r={6}
+        <text x={radialMinX} y={cy - 10} fontSize={8} fill="var(--chart-1)" fillOpacity={0.7} textAnchor="middle">
+          min
+        </text>
+        <circle
+          cx={radialMaxX}
+          cy={cy}
+          r={6}
           fill={dragging === 'radialMax' ? 'var(--chart-1)' : 'hsl(var(--card))'}
-          stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="3 2" style={{ cursor: 'ew-resize' }}
+          stroke="var(--chart-1)"
+          strokeWidth={2}
+          strokeDasharray="3 2"
+          style={{ cursor: 'ew-resize' }}
           onPointerDown={(e) => {
             rangeWasEditedRef.current = true;
             e.currentTarget.setPointerCapture(e.pointerId);
             setDragging('radialMax');
           }}
         />
+        <text x={radialMaxX} y={cy - 10} fontSize={8} fill="var(--chart-1)" fillOpacity={0.7} textAnchor="middle">
+          max
+        </text>
 
         {/* Tangential handles (vertical axis) */}
-        <circle cx={cx} cy={tangMinY} r={6}
+        <circle
+          cx={cx}
+          cy={tangMinY}
+          r={6}
           fill={dragging === 'tangMin' ? 'var(--chart-2)' : 'hsl(var(--card))'}
-          stroke="var(--chart-2)" strokeWidth={2} style={{ cursor: 'ns-resize' }}
+          stroke="var(--chart-2)"
+          strokeWidth={2}
+          style={{ cursor: 'ns-resize' }}
           onPointerDown={(e) => {
             rangeWasEditedRef.current = true;
             e.currentTarget.setPointerCapture(e.pointerId);
             setDragging('tangMin');
           }}
         />
-        <circle cx={cx} cy={tangMaxY} r={6}
+        <text x={cx + 10} y={tangMinY + 3} fontSize={8} fill="var(--chart-2)" fillOpacity={0.7}>
+          min
+        </text>
+        <circle
+          cx={cx}
+          cy={tangMaxY}
+          r={6}
           fill={dragging === 'tangMax' ? 'var(--chart-2)' : 'hsl(var(--card))'}
-          stroke="var(--chart-2)" strokeWidth={2} strokeDasharray="3 2" style={{ cursor: 'ns-resize' }}
+          stroke="var(--chart-2)"
+          strokeWidth={2}
+          strokeDasharray="3 2"
+          style={{ cursor: 'ns-resize' }}
           onPointerDown={(e) => {
             rangeWasEditedRef.current = true;
             e.currentTarget.setPointerCapture(e.pointerId);
             setDragging('tangMax');
           }}
         />
+        <text x={cx + 10} y={tangMaxY + 3} fontSize={8} fill="var(--chart-2)" fillOpacity={0.7}>
+          max
+        </text>
 
         {/* Legends */}
         <circle cx={20} cy={H - 14} r={4} fill="var(--chart-1)" />
-        <text x={28} y={H - 10} fontSize={9} fill="currentColor" fillOpacity={0.5}>radial (± outward)</text>
+        <text x={28} y={H - 10} fontSize={9} fill="currentColor" fillOpacity={0.5}>
+          radial (± outward)
+        </text>
         <circle cx={120} cy={H - 14} r={4} fill="var(--chart-2)" />
-        <text x={128} y={H - 10} fontSize={9} fill="currentColor" fillOpacity={0.5}>tang (± CW)</text>
+        <text x={128} y={H - 10} fontSize={9} fill="currentColor" fillOpacity={0.5}>
+          tang (± CW)
+        </text>
       </svg>
 
       <div className="grid grid-cols-2 gap-2">
-        {([
+        {[
           { label: 'Radial Min', key: 'radialAccelMin', val: radialMin },
           { label: 'Radial Max', key: 'radialAccelMax', val: radialMax },
           { label: 'Tang Min', key: 'tangentialAccelMin', val: tangMin },
           { label: 'Tang Max', key: 'tangentialAccelMax', val: tangMax },
-        ]).map(({ label, key, val }) => (
+        ].map(({ label, key, val }) => (
           <div key={key} className="grid gap-1">
             <Label className="text-[10px] text-muted-foreground">{label}</Label>
-            <Input className="h-8 text-xs" type="number" step={1} value={val}
-              onChange={(e) => onChange(key, Number(e.target.value))} />
+            <Input
+              className="h-8 text-xs"
+              type="number"
+              step={1}
+              value={val}
+              onChange={(e) => onChange(key, Number(e.target.value))}
+            />
           </div>
         ))}
       </div>

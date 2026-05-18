@@ -107,20 +107,27 @@ export function ColorGradientEditor({ value, onChange }: { value: string; onChan
         ref={alphaRef}
         width="100%"
         height={ALPHA_H}
-        className="rounded border bg-card touch-none"
+        className="rounded border bg-card touch-none select-none"
         onPointerMove={onAlphaPointerMove}
         onPointerUp={stopAlphaDrag}
         onPointerLeave={stopAlphaDrag}
       >
         <line
-          x1={ALPHA_PAD.left} y1={ALPHA_PAD.top + innerH * 0.5}
-          x2={svgW - ALPHA_PAD.right} y2={ALPHA_PAD.top + innerH * 0.5}
-          stroke="currentColor" strokeOpacity={0.07}
+          x1={ALPHA_PAD.left}
+          y1={ALPHA_PAD.top + innerH * 0.5}
+          x2={svgW - ALPHA_PAD.right}
+          y2={ALPHA_PAD.top + innerH * 0.5}
+          stroke="currentColor"
+          strokeOpacity={0.07}
         />
         <line
-          x1={ALPHA_PAD.left} y1={baselineY}
-          x2={svgW - ALPHA_PAD.right} y2={baselineY}
-          stroke="currentColor" strokeOpacity={0.2} strokeDasharray="3 3"
+          x1={ALPHA_PAD.left}
+          y1={baselineY}
+          x2={svgW - ALPHA_PAD.right}
+          y2={baselineY}
+          stroke="currentColor"
+          strokeOpacity={0.2}
+          strokeDasharray="3 3"
         />
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
@@ -141,9 +148,13 @@ export function ColorGradientEditor({ value, onChange }: { value: string; onChan
         <path d={alphaPath} fill="none" stroke="var(--chart-2)" strokeWidth={1.5} strokeLinecap="round" />
         {alphaPoints.map((pt, i) => (
           <circle
-            key={i} cx={pt.x} cy={pt.y} r={5}
+            key={i}
+            cx={pt.x}
+            cy={pt.y}
+            r={5}
             fill={selected === i ? 'var(--chart-2)' : 'hsl(var(--card))'}
-            stroke="var(--chart-2)" strokeWidth={2}
+            stroke="var(--chart-2)"
+            strokeWidth={2}
             style={{ cursor: 'ns-resize' }}
             onPointerDown={(e) => {
               e.currentTarget.setPointerCapture(e.pointerId);
@@ -202,23 +213,36 @@ export function ColorGradientEditor({ value, onChange }: { value: string; onChan
           <Label className="text-[10px]">Alpha</Label>
           <Input
             className="h-8 text-xs"
-            type="number" min={0} max={1} step={0.01}
+            type="number"
+            min={0}
+            max={1}
+            step={0.01}
             value={stop.a}
             onChange={(event) => update(selected, { a: clamp(Number(event.target.value)) })}
           />
         </div>
         <div className="flex gap-1">
           <Button
-            size="icon" variant="outline" className="size-8"
+            size="icon"
+            variant="outline"
+            className="size-8"
             disabled={stops.length >= 8}
-            onClick={() => { onChange(serialize([...stops, { ...stop }])); setSelected(stops.length); }}
+            onClick={() => {
+              onChange(serialize([...stops, { ...stop }]));
+              setSelected(stops.length);
+            }}
           >
             <PlusIcon className="size-4" />
           </Button>
           <Button
-            size="icon" variant="outline" className="size-8"
+            size="icon"
+            variant="outline"
+            className="size-8"
             disabled={stops.length <= 1}
-            onClick={() => { onChange(serialize(stops.filter((_, index) => index !== selected))); setSelected(Math.max(0, selected - 1)); }}
+            onClick={() => {
+              onChange(serialize(stops.filter((_, index) => index !== selected)));
+              setSelected(Math.max(0, selected - 1));
+            }}
           >
             <Trash2Icon className="size-4" />
           </Button>

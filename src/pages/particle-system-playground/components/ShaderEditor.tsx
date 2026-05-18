@@ -29,7 +29,7 @@ export function ShaderEditor({ shaderPath, shaderFilename, shaderSource, error, 
   return (
     <div className="grid gap-2">
       <div className="grid gap-1">
-        <Label className="text-[10px] text-muted-foreground">Shader preset</Label>
+        <Label className="text-[10px] text-muted-foreground font-semibold">Shader preset</Label>
         <Select
           onValueChange={(name) => {
             const preset = SHADER_PRESETS.find((item) => item.name === name);
@@ -53,12 +53,16 @@ export function ShaderEditor({ shaderPath, shaderFilename, shaderSource, error, 
       </div>
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem]">
         <div className="grid gap-1">
-          <Label className="text-[10px] text-muted-foreground">Shader path</Label>
+          <Label className="text-[10px] text-muted-foreground font-semibold">Shader path</Label>
           <Input className="h-8 font-mono text-xs" value={path} onChange={(event) => setPath(event.target.value)} />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[10px] text-muted-foreground">Export file</Label>
-          <Input className="h-8 font-mono text-xs" value={filename} onChange={(event) => setFilename(event.target.value)} />
+          <Label className="text-[10px] text-muted-foreground font-semibold">Export file</Label>
+          <Input
+            className="h-8 font-mono text-xs"
+            value={filename}
+            onChange={(event) => setFilename(event.target.value)}
+          />
         </div>
       </div>
       <ShaderCodeInput
@@ -88,7 +92,12 @@ export function ShaderEditor({ shaderPath, shaderFilename, shaderSource, error, 
           <WandSparklesIcon className="size-4" />
           Apply Preset
         </Button>
-        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => path && onApply({ shaderPath: path })}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs"
+          onClick={() => path && onApply({ shaderPath: path })}
+        >
           Apply Path
         </Button>
         <Button size="sm" variant="ghost" className="h-8 gap-2 text-xs" onClick={() => onApply({ clearShader: true })}>

@@ -57,7 +57,12 @@ function sectorPath(cx: number, cy: number, radius: number, start: number, end: 
   return `M ${cx} ${cy} L ${startPoint.x} ${startPoint.y} A ${radius} ${radius} 0 ${largeArc} 1 ${endPoint.x} ${endPoint.y} Z`;
 }
 
-function angleFromPointer(event: React.PointerEvent<SVGSVGElement>, svg: SVGSVGElement, cx: number, cy: number): number {
+function angleFromPointer(
+  event: React.PointerEvent<SVGSVGElement>,
+  svg: SVGSVGElement,
+  cx: number,
+  cy: number,
+): number {
   const rect = svg.getBoundingClientRect();
   return Math.atan2(event.clientY - rect.top - cy, event.clientX - rect.left - cx);
 }
@@ -124,7 +129,9 @@ export function DirectionSpreadGizmo({ system, onChange }: Props) {
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between gap-2">
-        <Label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Direction &amp; Spread</Label>
+        <Label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          Direction &amp; Spread
+        </Label>
         <div className="flex gap-3 text-[10px] text-muted-foreground">
           <span>{round(direction)} rad</span>
           <span>{round(spread)} spread</span>
@@ -135,16 +142,28 @@ export function DirectionSpreadGizmo({ system, onChange }: Props) {
         ref={svgRef}
         width="100%"
         height={H}
-        className="touch-none rounded border bg-muted/10"
+        className="touch-none rounded border bg-muted/10 select-none"
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerLeave={stopDrag}
       >
-        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="currentColor" strokeDasharray="3 4" strokeOpacity={0.1} />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeDasharray="3 4"
+          strokeOpacity={0.1}
+        />
         <line x1={cx - radius} y1={cy} x2={cx + radius} y2={cy} stroke="currentColor" strokeOpacity={0.12} />
         <line x1={cx} y1={cy - radius} x2={cx} y2={cy + radius} stroke="currentColor" strokeOpacity={0.12} />
-        <text x={cx + radius - 12} y={cy - 5} fontSize={9} fill="currentColor" fillOpacity={0.35}>0</text>
-        <text x={cx + 5} y={cy + radius - 6} fontSize={9} fill="currentColor" fillOpacity={0.35}>+π/2</text>
+        <text x={cx + radius - 12} y={cy - 5} fontSize={9} fill="currentColor" fillOpacity={0.35}>
+          0
+        </text>
+        <text x={cx + 5} y={cy + radius - 6} fontSize={9} fill="currentColor" fillOpacity={0.35}>
+          +π/2
+        </text>
 
         <path d={sectorPath(cx, cy, radius, startAngle, endAngle, spread)} fill="var(--chart-2)" fillOpacity={0.12} />
         <path d={rayPath(cx, cy, radius, startAngle)} stroke="var(--chart-2)" strokeWidth={1.5} strokeDasharray="5 4" />
@@ -162,6 +181,16 @@ export function DirectionSpreadGizmo({ system, onChange }: Props) {
           style={{ cursor: 'grab' }}
           onPointerDown={(event) => beginDrag(event, 'direction')}
         />
+        <text
+          x={directionPoint.x + (directionPoint.x >= cx ? 10 : -10)}
+          y={directionPoint.y - 5}
+          fontSize={8}
+          fill="var(--chart-1)"
+          fillOpacity={0.8}
+          textAnchor={directionPoint.x >= cx ? 'start' : 'end'}
+        >
+          dir
+        </text>
         <circle
           cx={startPoint.x}
           cy={startPoint.y}
@@ -172,6 +201,16 @@ export function DirectionSpreadGizmo({ system, onChange }: Props) {
           style={{ cursor: 'grab' }}
           onPointerDown={(event) => beginDrag(event, 'spread-start')}
         />
+        <text
+          x={startPoint.x + (startPoint.x >= cx ? 9 : -9)}
+          y={startPoint.y - 4}
+          fontSize={8}
+          fill="var(--chart-2)"
+          fillOpacity={0.7}
+          textAnchor={startPoint.x >= cx ? 'start' : 'end'}
+        >
+          start
+        </text>
         <circle
           cx={endPoint.x}
           cy={endPoint.y}
@@ -182,6 +221,16 @@ export function DirectionSpreadGizmo({ system, onChange }: Props) {
           style={{ cursor: 'grab' }}
           onPointerDown={(event) => beginDrag(event, 'spread-end')}
         />
+        <text
+          x={endPoint.x + (endPoint.x >= cx ? 9 : -9)}
+          y={endPoint.y - 4}
+          fontSize={8}
+          fill="var(--chart-2)"
+          fillOpacity={0.7}
+          textAnchor={endPoint.x >= cx ? 'start' : 'end'}
+        >
+          end
+        </text>
       </svg>
     </div>
   );

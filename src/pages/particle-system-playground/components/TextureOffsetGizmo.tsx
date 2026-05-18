@@ -46,7 +46,9 @@ function svgPointFromPointer(event: React.PointerEvent<SVGSVGElement>, svg: SVGS
 function TextureFallback({ preset, cx, cy, size }: { preset: string; cx: number; cy: number; size: number }) {
   const r = size * 0.3;
   if (preset === 'ring') {
-    return <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--chart-1)" strokeWidth={size * 0.12} opacity={0.75} />;
+    return (
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--chart-1)" strokeWidth={size * 0.12} opacity={0.75} />
+    );
   }
   if (preset === 'star') {
     const points = Array.from({ length: 10 }, (_, index) => {
@@ -153,7 +155,7 @@ export function TextureOffsetGizmo({ system, onChange }: Props) {
         width="100%"
         height={H}
         viewBox={`0 0 300 ${H}`}
-        className="touch-none rounded border bg-muted/10"
+        className="touch-none rounded border bg-muted/10 select-none"
         onPointerMove={updateFromPointer}
         onPointerUp={() => setDragging(false)}
         onPointerLeave={() => setDragging(false)}

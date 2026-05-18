@@ -84,7 +84,7 @@ export function SizeCurveEditor({
         ref={svgRef}
         width="100%"
         height={SVG_H}
-        className="rounded border bg-card touch-none"
+        className="rounded border bg-card touch-none select-none"
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerLeave={stopDrag}

@@ -29,7 +29,12 @@ function polar(cx: number, cy: number, radius: number, angle: number) {
   };
 }
 
-function angleFromPointer(event: React.PointerEvent<SVGSVGElement>, svg: SVGSVGElement, cx: number, cy: number): number {
+function angleFromPointer(
+  event: React.PointerEvent<SVGSVGElement>,
+  svg: SVGSVGElement,
+  cx: number,
+  cy: number,
+): number {
   const rect = svg.getBoundingClientRect();
   return Math.atan2(event.clientY - rect.top - cy, event.clientX - rect.left - cx);
 }
@@ -132,7 +137,9 @@ export function RotationSpinGizmo({ system, onChange }: Props) {
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between gap-2">
-        <Label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Rotation &amp; Spin</Label>
+        <Label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          Rotation &amp; Spin
+        </Label>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">Spin ±</span>
           <Input
@@ -150,28 +157,154 @@ export function RotationSpinGizmo({ system, onChange }: Props) {
         ref={svgRef}
         width="100%"
         height={H}
-        className="touch-none rounded border bg-muted/10"
+        className="touch-none rounded border bg-muted/10 select-none"
         onPointerMove={onPointerMove}
         onPointerUp={() => setDragging(null)}
         onPointerLeave={() => setDragging(null)}
       >
-        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="currentColor" strokeDasharray="3 4" strokeOpacity={0.1} />
-        <path d={arcPath(cx, cy, radius, rotationMin, rotationMax)} fill="none" stroke="var(--chart-2)" strokeWidth={7} strokeOpacity={0.16} />
-        <path d={`M ${cx} ${cy} L ${avgPoint.x} ${avgPoint.y}`} stroke="var(--chart-1)" strokeWidth={2.5} strokeLinecap="round" />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeDasharray="3 4"
+          strokeOpacity={0.1}
+        />
+        <path
+          d={arcPath(cx, cy, radius, rotationMin, rotationMax)}
+          fill="none"
+          stroke="var(--chart-2)"
+          strokeWidth={7}
+          strokeOpacity={0.16}
+        />
+        <path
+          d={`M ${cx} ${cy} L ${avgPoint.x} ${avgPoint.y}`}
+          stroke="var(--chart-1)"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        />
         <g transform={`translate(${cx} ${cy}) rotate(${(avgRotation * 180) / Math.PI})`}>
-          <rect x="-18" y="-12" width="36" height="24" rx="4" fill="hsl(var(--card))" stroke="currentColor" strokeOpacity={0.35} />
+          <rect
+            x="-18"
+            y="-12"
+            width="36"
+            height="24"
+            rx="4"
+            fill="hsl(var(--card))"
+            stroke="currentColor"
+            strokeOpacity={0.35}
+          />
           <path d="M 8 -7 L 20 0 L 8 7 Z" fill="var(--chart-1)" fillOpacity={0.75} />
         </g>
-        <circle cx={minPoint.x} cy={minPoint.y} r={6} fill={dragging === 'rotationMin' ? 'var(--chart-2)' : 'hsl(var(--card))'} stroke="var(--chart-2)" strokeWidth={2} onPointerDown={(event) => beginDrag(event, 'rotationMin')} />
-        <circle cx={maxPoint.x} cy={maxPoint.y} r={6} fill={dragging === 'rotationMax' ? 'var(--chart-2)' : 'hsl(var(--card))'} stroke="var(--chart-2)" strokeWidth={2} strokeDasharray="3 2" onPointerDown={(event) => beginDrag(event, 'rotationMax')} />
+        <circle
+          cx={minPoint.x}
+          cy={minPoint.y}
+          r={6}
+          fill={dragging === 'rotationMin' ? 'var(--chart-2)' : 'hsl(var(--card))'}
+          stroke="var(--chart-2)"
+          strokeWidth={2}
+          onPointerDown={(event) => beginDrag(event, 'rotationMin')}
+        />
+        <text
+          x={minPoint.x + (minPoint.x >= cx ? 9 : -9)}
+          y={minPoint.y - 4}
+          fontSize={8}
+          fill="var(--chart-2)"
+          fillOpacity={0.75}
+          textAnchor={minPoint.x >= cx ? 'start' : 'end'}
+        >
+          min
+        </text>
+        <circle
+          cx={maxPoint.x}
+          cy={maxPoint.y}
+          r={6}
+          fill={dragging === 'rotationMax' ? 'var(--chart-2)' : 'hsl(var(--card))'}
+          stroke="var(--chart-2)"
+          strokeWidth={2}
+          strokeDasharray="3 2"
+          onPointerDown={(event) => beginDrag(event, 'rotationMax')}
+        />
+        <text
+          x={maxPoint.x + (maxPoint.x >= cx ? 9 : -9)}
+          y={maxPoint.y - 4}
+          fontSize={8}
+          fill="var(--chart-2)"
+          fillOpacity={0.75}
+          textAnchor={maxPoint.x >= cx ? 'start' : 'end'}
+        >
+          max
+        </text>
 
-        <line x1={trackX1} y1={trackY} x2={trackX2} y2={trackY} stroke="currentColor" strokeOpacity={0.18} strokeWidth={4} strokeLinecap="round" />
-        <line x1={spinToX(-spinVariation * spinRange)} y1={trackY - 10} x2={spinToX(spinVariation * spinRange)} y2={trackY - 10} stroke="var(--chart-3)" strokeOpacity={0.45} strokeWidth={5} strokeLinecap="round" />
-        <text x={trackX1} y={trackY + 22} fontSize={9} fill="currentColor" fillOpacity={0.45}>CCW</text>
-        <text x={cx - 4} y={trackY + 22} fontSize={9} fill="currentColor" fillOpacity={0.45}>0</text>
-        <text x={trackX2 - 18} y={trackY + 22} fontSize={9} fill="currentColor" fillOpacity={0.45}>CW</text>
-        <circle cx={spinToX(spinMin)} cy={trackY} r={6} fill={dragging === 'spinMin' ? 'var(--chart-1)' : 'hsl(var(--card))'} stroke="var(--chart-1)" strokeWidth={2} onPointerDown={(event) => beginDrag(event, 'spinMin')} />
-        <circle cx={spinToX(spinMax)} cy={trackY} r={6} fill={dragging === 'spinMax' ? 'var(--chart-1)' : 'hsl(var(--card))'} stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="3 2" onPointerDown={(event) => beginDrag(event, 'spinMax')} />
+        <line
+          x1={trackX1}
+          y1={trackY}
+          x2={trackX2}
+          y2={trackY}
+          stroke="currentColor"
+          strokeOpacity={0.18}
+          strokeWidth={4}
+          strokeLinecap="round"
+        />
+        <line
+          x1={spinToX(-spinVariation * spinRange)}
+          y1={trackY - 10}
+          x2={spinToX(spinVariation * spinRange)}
+          y2={trackY - 10}
+          stroke="var(--chart-3)"
+          strokeOpacity={0.45}
+          strokeWidth={5}
+          strokeLinecap="round"
+        />
+        <text x={trackX1} y={trackY + 22} fontSize={9} fill="currentColor" fillOpacity={0.45}>
+          CCW
+        </text>
+        <text x={cx - 4} y={trackY + 22} fontSize={9} fill="currentColor" fillOpacity={0.45}>
+          0
+        </text>
+        <text x={trackX2 - 18} y={trackY + 22} fontSize={9} fill="currentColor" fillOpacity={0.45}>
+          CW
+        </text>
+        <circle
+          cx={spinToX(spinMin)}
+          cy={trackY}
+          r={6}
+          fill={dragging === 'spinMin' ? 'var(--chart-1)' : 'hsl(var(--card))'}
+          stroke="var(--chart-1)"
+          strokeWidth={2}
+          onPointerDown={(event) => beginDrag(event, 'spinMin')}
+        />
+        <text
+          x={spinToX(spinMin)}
+          y={trackY - 11}
+          fontSize={8}
+          fill="var(--chart-1)"
+          fillOpacity={0.75}
+          textAnchor="middle"
+        >
+          min
+        </text>
+        <circle
+          cx={spinToX(spinMax)}
+          cy={trackY}
+          r={6}
+          fill={dragging === 'spinMax' ? 'var(--chart-1)' : 'hsl(var(--card))'}
+          stroke="var(--chart-1)"
+          strokeWidth={2}
+          strokeDasharray="3 2"
+          onPointerDown={(event) => beginDrag(event, 'spinMax')}
+        />
+        <text
+          x={spinToX(spinMax)}
+          y={trackY - 11}
+          fontSize={8}
+          fill="var(--chart-1)"
+          fillOpacity={0.75}
+          textAnchor="middle"
+        >
+          max
+        </text>
       </svg>
     </div>
   );

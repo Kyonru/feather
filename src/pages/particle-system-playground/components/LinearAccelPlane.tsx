@@ -84,12 +84,12 @@ export function LinearAccelPlane({ system, onChange }: Props) {
   const [artist, setArtist] = useState<ArtistState>(() => rawToArtist(minX, minY, maxX, maxY));
 
   const maxVal = Math.max(Math.abs(minX), Math.abs(minY), Math.abs(maxX), Math.abs(maxY), 50);
-  const [range, setRange] = useState(() => Math.ceil(maxVal * 1.5 / 50) * 50);
+  const [range, setRange] = useState(() => Math.ceil((maxVal * 1.5) / 50) * 50);
   const rangeWasEditedRef = useRef(false);
 
   useEffect(() => {
     if (rangeWasEditedRef.current) return;
-    const nextRange = Math.ceil(maxVal * 1.35 / 50) * 50;
+    const nextRange = Math.ceil((maxVal * 1.35) / 50) * 50;
     setRange((current) => (nextRange > current ? nextRange : current));
   }, [maxVal]);
 
@@ -166,7 +166,9 @@ export function LinearAccelPlane({ system, onChange }: Props) {
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Linear Acceleration</span>
+        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+          Linear Acceleration
+        </span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">Range ±</span>
           <Input
@@ -184,7 +186,7 @@ export function LinearAccelPlane({ system, onChange }: Props) {
         ref={svgRef}
         width="100%"
         height={H}
-        className="touch-none rounded border bg-muted/10"
+        className="touch-none rounded border bg-muted/10 select-none"
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerLeave={stopDrag}
@@ -192,57 +194,123 @@ export function LinearAccelPlane({ system, onChange }: Props) {
         {/* Grid lines */}
         {gridVals.map((v) => (
           <g key={v}>
-            <line x1={PAD} y1={cy + v * scale} x2={svgW - PAD} y2={cy + v * scale} stroke="currentColor" strokeOpacity={0.07} />
-            <line x1={cx + v * scale} y1={PAD} x2={cx + v * scale} y2={H - PAD} stroke="currentColor" strokeOpacity={0.07} />
-            <text x={cx + v * scale + 2} y={cy - 3} fontSize={8} fill="currentColor" fillOpacity={0.3}>{v}</text>
+            <line
+              x1={PAD}
+              y1={cy + v * scale}
+              x2={svgW - PAD}
+              y2={cy + v * scale}
+              stroke="currentColor"
+              strokeOpacity={0.07}
+            />
+            <line
+              x1={cx + v * scale}
+              y1={PAD}
+              x2={cx + v * scale}
+              y2={H - PAD}
+              stroke="currentColor"
+              strokeOpacity={0.07}
+            />
+            <text x={cx + v * scale + 2} y={cy - 3} fontSize={8} fill="currentColor" fillOpacity={0.3}>
+              {v}
+            </text>
           </g>
         ))}
 
         {/* Axes */}
         <line x1={PAD} y1={cy} x2={svgW - PAD} y2={cy} stroke="currentColor" strokeOpacity={0.3} />
         <line x1={cx} y1={PAD} x2={cx} y2={H - PAD} stroke="currentColor" strokeOpacity={0.3} />
-        <text x={svgW - PAD - 10} y={cy - 4} fontSize={9} fill="currentColor" fillOpacity={0.4}>X</text>
-        <text x={cx + 4} y={PAD + 10} fontSize={9} fill="currentColor" fillOpacity={0.4}>Y</text>
-        <text x={cx + 6} y={H - PAD - 4} fontSize={8} fill="currentColor" fillOpacity={0.35}>LÖVE +Y</text>
+        <text x={svgW - PAD - 10} y={cy - 4} fontSize={9} fill="currentColor" fillOpacity={0.4}>
+          X
+        </text>
+        <text x={cx + 4} y={PAD + 10} fontSize={9} fill="currentColor" fillOpacity={0.4}>
+          Y
+        </text>
+        <text x={cx + 6} y={H - PAD - 4} fontSize={8} fill="currentColor" fillOpacity={0.35}>
+          LÖVE +Y
+        </text>
 
         {/* Min vector */}
         <line x1={origin.x} y1={origin.y} x2={minPt.x} y2={minPt.y} stroke="var(--chart-1)" strokeWidth={2} />
-        <path d={arrowHead(minPt.x, minPt.y, minAngle, 7)} stroke="var(--chart-1)" strokeWidth={2} fill="none" strokeLinecap="round" />
+        <path
+          d={arrowHead(minPt.x, minPt.y, minAngle, 7)}
+          stroke="var(--chart-1)"
+          strokeWidth={2}
+          fill="none"
+          strokeLinecap="round"
+        />
 
         {/* Max vector */}
         <line x1={origin.x} y1={origin.y} x2={maxPt.x} y2={maxPt.y} stroke="var(--chart-2)" strokeWidth={2} />
-        <path d={arrowHead(maxPt.x, maxPt.y, maxAngle, 7)} stroke="var(--chart-2)" strokeWidth={2} fill="none" strokeLinecap="round" />
+        <path
+          d={arrowHead(maxPt.x, maxPt.y, maxAngle, 7)}
+          stroke="var(--chart-2)"
+          strokeWidth={2}
+          fill="none"
+          strokeLinecap="round"
+        />
 
         {/* Origin */}
         <circle cx={origin.x} cy={origin.y} r={3} fill="currentColor" fillOpacity={0.4} />
 
         {/* Handles */}
         <circle
-          cx={minPt.x} cy={minPt.y} r={6}
+          cx={minPt.x}
+          cy={minPt.y}
+          r={6}
           fill={dragging === 'min' ? 'var(--chart-1)' : 'hsl(var(--card))'}
-          stroke="var(--chart-1)" strokeWidth={2} style={{ cursor: 'grab' }}
+          stroke="var(--chart-1)"
+          strokeWidth={2}
+          style={{ cursor: 'grab' }}
           onPointerDown={(e) => {
             rangeWasEditedRef.current = true;
             e.currentTarget.setPointerCapture(e.pointerId);
             setDragging('min');
           }}
         />
+        <text
+          x={minPt.x + (minPt.x >= cx ? 9 : -9)}
+          y={minPt.y - 6}
+          fontSize={8}
+          fill="var(--chart-1)"
+          fillOpacity={0.8}
+          textAnchor={minPt.x >= cx ? 'start' : 'end'}
+        >
+          min
+        </text>
         <circle
-          cx={maxPt.x} cy={maxPt.y} r={6}
+          cx={maxPt.x}
+          cy={maxPt.y}
+          r={6}
           fill={dragging === 'max' ? 'var(--chart-2)' : 'hsl(var(--card))'}
-          stroke="var(--chart-2)" strokeWidth={2} style={{ cursor: 'grab' }}
+          stroke="var(--chart-2)"
+          strokeWidth={2}
+          style={{ cursor: 'grab' }}
           onPointerDown={(e) => {
             rangeWasEditedRef.current = true;
             e.currentTarget.setPointerCapture(e.pointerId);
             setDragging('max');
           }}
         />
+        <text
+          x={maxPt.x + (maxPt.x >= cx ? 9 : -9)}
+          y={maxPt.y - 6}
+          fontSize={8}
+          fill="var(--chart-2)"
+          fillOpacity={0.8}
+          textAnchor={maxPt.x >= cx ? 'start' : 'end'}
+        >
+          max
+        </text>
 
         {/* Legend */}
         <circle cx={PAD} cy={H - PAD + 2} r={4} fill="var(--chart-1)" />
-        <text x={PAD + 7} y={H - PAD + 6} fontSize={9} fill="currentColor" fillOpacity={0.5}>min</text>
+        <text x={PAD + 7} y={H - PAD + 6} fontSize={9} fill="currentColor" fillOpacity={0.5}>
+          min
+        </text>
         <circle cx={PAD + 35} cy={H - PAD + 2} r={4} fill="var(--chart-2)" />
-        <text x={PAD + 42} y={H - PAD + 6} fontSize={9} fill="currentColor" fillOpacity={0.5}>max</text>
+        <text x={PAD + 42} y={H - PAD + 6} fontSize={9} fill="currentColor" fillOpacity={0.5}>
+          max
+        </text>
       </svg>
 
       {/* Input mode tabs */}
@@ -256,8 +324,12 @@ export function LinearAccelPlane({ system, onChange }: Props) {
         }}
         className="h-6 w-fit"
       >
-        <ToggleGroupItem value="raw" className="h-6 px-2 text-[10px]">Raw</ToggleGroupItem>
-        <ToggleGroupItem value="artist" className="h-6 px-2 text-[10px]">Artist</ToggleGroupItem>
+        <ToggleGroupItem value="raw" className="h-6 px-2 text-[10px]">
+          Raw
+        </ToggleGroupItem>
+        <ToggleGroupItem value="artist" className="h-6 px-2 text-[10px]">
+          Artist
+        </ToggleGroupItem>
       </ToggleGroup>
 
       {inputMode === 'raw' ? (
@@ -269,24 +341,34 @@ export function LinearAccelPlane({ system, onChange }: Props) {
             { label: 'Max Y', key: 'linearAccelYMax', val: maxY },
           ].map(({ label, key, val }) => (
             <div key={key} className="grid gap-1">
-              <Label className="text-[10px] text-muted-foreground">{label}</Label>
-              <Input className="h-8 text-xs" type="number" step={1} value={val}
-                onChange={(e) => onChange(key, Number(e.target.value))} />
+              <Label className="text-[10px] text-muted-foreground font-semibold">{label}</Label>
+              <Input
+                className="h-8 text-xs"
+                type="number"
+                step={1}
+                value={val}
+                onChange={(e) => onChange(key, Number(e.target.value))}
+              />
             </div>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2">
-          {([
-            { label: 'Direction (rad)', key: 'direction', step: 0.01 },
-            { label: 'Spread (rad)', key: 'spread', step: 0.01, min: 0 },
-            { label: 'Speed Min', key: 'speedMin', step: 1, min: 0 },
-            { label: 'Speed Max', key: 'speedMax', step: 1, min: 0 },
-          ] as { label: string; key: keyof ArtistState; step: number; min?: number }[]).map(({ label, key, step, min }) => (
+          {(
+            [
+              { label: 'Direction (rad)', key: 'direction', step: 0.01 },
+              { label: 'Spread (rad)', key: 'spread', step: 0.01, min: 0 },
+              { label: 'Speed Min', key: 'speedMin', step: 1, min: 0 },
+              { label: 'Speed Max', key: 'speedMax', step: 1, min: 0 },
+            ] as { label: string; key: keyof ArtistState; step: number; min?: number }[]
+          ).map(({ label, key, step, min }) => (
             <div key={key} className="grid gap-1">
-              <Label className="text-[10px] text-muted-foreground">{label}</Label>
+              <Label className="text-[10px] text-muted-foreground font-semibold">{label}</Label>
               <Input
-                className="h-8 text-xs" type="number" step={step} min={min}
+                className="h-8 text-xs"
+                type="number"
+                step={step}
+                min={min}
                 value={artist[key]}
                 onChange={(e) => {
                   const nextValue = Number(e.target.value);

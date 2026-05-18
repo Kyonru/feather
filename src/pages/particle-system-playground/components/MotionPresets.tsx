@@ -109,7 +109,6 @@ export function MotionPresets({ system, onChange }: Props) {
 
       {open && (
         <div className="grid gap-3">
-          {/* Named presets */}
           <div className="grid max-h-44 grid-cols-4 gap-1 overflow-auto pr-1 lg:grid-cols-5">
             {NAMED_PRESETS.map((preset) => (
               <Button
@@ -125,16 +124,14 @@ export function MotionPresets({ system, onChange }: Props) {
             ))}
           </div>
 
-          {/* Randomize */}
           <Button variant="secondary" size="sm" className="h-7 text-[10px]" onClick={handleRandomize}>
             Randomize ±20%
           </Button>
 
           <Separator />
 
-          {/* Mix */}
           <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Mix Presets</Label>
+            <Label className="text-[10px] text-muted-foreground font-semibold">Mix Presets</Label>
             <div className="flex items-center gap-1">
               <Select value={mixA} onValueChange={setMixA}>
                 <SelectTrigger className="h-7 flex-1 text-xs">
@@ -142,7 +139,9 @@ export function MotionPresets({ system, onChange }: Props) {
                 </SelectTrigger>
                 <SelectContent>
                   {allPresets.map((p) => (
-                    <SelectItem key={p.name} value={p.name} className="text-xs">{p.name}</SelectItem>
+                    <SelectItem key={p.name} value={p.name} className="text-xs">
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -153,7 +152,9 @@ export function MotionPresets({ system, onChange }: Props) {
                 </SelectTrigger>
                 <SelectContent>
                   {allPresets.map((p) => (
-                    <SelectItem key={p.name} value={p.name} className="text-xs">{p.name}</SelectItem>
+                    <SelectItem key={p.name} value={p.name} className="text-xs">
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -165,9 +166,8 @@ export function MotionPresets({ system, onChange }: Props) {
 
           <Separator />
 
-          {/* Custom presets */}
           <div className="grid gap-2">
-            <Label className="text-[10px] text-muted-foreground">Custom Presets</Label>
+            <Label className="text-[10px] text-muted-foreground font-semibold">Custom Presets</Label>
 
             <div className="flex gap-1">
               <Input
@@ -207,7 +207,10 @@ export function MotionPresets({ system, onChange }: Props) {
                           size="sm"
                           className="h-6 flex-1 justify-start truncate px-2 text-[10px]"
                           onClick={() => apply(preset)}
-                          onDoubleClick={() => { setRenamingIndex(i); setRenameValue(preset.name); }}
+                          onDoubleClick={() => {
+                            setRenamingIndex(i);
+                            setRenameValue(preset.name);
+                          }}
                           title="Click to apply · Double-click to rename"
                         >
                           {preset.name}

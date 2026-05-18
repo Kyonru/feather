@@ -21,7 +21,7 @@ export function RangePairField({ label, minKey, maxKey, system, onChange, step =
 
   return (
     <div className="col-span-2 grid gap-1">
-      <Label className="text-[10px] text-muted-foreground">{label}</Label>
+      <Label className="text-[10px] text-muted-foreground font-semibold">{label}</Label>
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
         <span className="text-[10px] font-medium text-muted-foreground">Min</span>
         <Input
