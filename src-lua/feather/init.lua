@@ -471,6 +471,12 @@ function Feather:__handleCommand(msg)
       if type(result) == "table" and result.clipboard then
         response.clipboard = result.clipboard
       end
+      if type(result) == "table" and result.zipAssets then
+        response.zipAssets = result.zipAssets
+      end
+      if type(result) == "table" then
+        response.data = result
+      end
       self:__sendWs(json.encode(response))
     end
     -- Re-send config so desktop picks up dynamic label changes

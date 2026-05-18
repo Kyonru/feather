@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { save as saveFileDialog } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { useQueryClient } from '@tanstack/react-query';
+import { zipSync, strToU8 } from 'fflate';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { useSettingsStore } from '@/store/settings';
@@ -18,6 +19,7 @@ import { isWeb } from '@/utils/platform';
 import { useDebuggerStore, type PausedState } from '@/store/debugger';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { sendCommand } from '@/lib/send-command';
+import { base64ToUint8Array } from '@/utils/arrays';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -27,6 +29,7 @@ export const sessionQueryKey = {
   observers: (sessionId: string) => [sessionId, 'observers'],
   assets: (sessionId: string) => [sessionId, 'assets'],
   plugin: (sessionId: string, pluginId: string) => [sessionId, 'plugin', pluginId],
+  pluginAction: (sessionId: string, pluginId: string, action: string) => [sessionId, 'plugin-action', pluginId, action],
   console: (sessionId: string) => [sessionId, 'console'],
   timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
   timeTravelFrames: (sessionId: string) => [sessionId, 'time-travel-frames'],
@@ -468,8 +471,34 @@ export const useWsConnection = () => {
           case 'plugin:action:response': {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const response = msg as any;
+            const pluginId = response.plugin;
+            const action = response.action;
+            if (pluginId && action) {
+              queryClient.setQueryData(sessionQueryKey.pluginAction(sessionId, pluginId, action), response);
+            }
             if (response.status === 'error') {
               toast.error(`Plugin action failed: ${response.message || 'Unknown error'}`);
+            } else if (response.zipAssets && isWeb()) {
+              toast.error('ZIP export is available in the desktop app');
+            } else if (response.zipAssets && !isWeb()) {
+              const archive: Record<string, Uint8Array> = {};
+              for (const file of response.zipAssets.files ?? []) {
+                archive[file.name] =
+                  file.encoding === 'base64' ? base64ToUint8Array(file.data) : strToU8(String(file.data ?? ''));
+              }
+              const bytes = zipSync(archive);
+              saveFileDialog({
+                defaultPath: response.zipAssets.filename ?? 'hot-particles.zip',
+                filters: [{ name: 'ZIP archive', extensions: ['zip'] }],
+              })
+                .then(async (path) => {
+                  if (!path) return;
+                  await writeFile(path, bytes);
+                  toast.success(`Saved to ${path}`);
+                })
+                .catch(() => {
+                  toast.error('Failed to save ZIP');
+                });
             } else if (response.download && !isWeb()) {
               // Generic file download: plugin returned data to save
               const { filename, content, extension } = response.download;

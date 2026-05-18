@@ -24,6 +24,7 @@ import Debugger from './pages/debugger';
 import TimeTravel from './pages/time-travel';
 import Compare from './pages/compare';
 import Assets from './pages/assets';
+import HotParticles from './pages/hot-particles';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
@@ -226,6 +227,14 @@ export const Router = () => {
                 element={
                   <RequireSession>
                     <Assets />
+                  </RequireSession>
+                }
+              />
+              <Route
+                path="/hot-particles"
+                element={
+                  <RequireSession>
+                    <HotParticles />
                   </RequireSession>
                 }
               />

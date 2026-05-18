@@ -7,7 +7,17 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
-import { BugIcon, ClockIcon, GaugeIcon, GitCompareArrowsIcon, ImagesIcon, LogsIcon, TelescopeIcon, TerminalIcon } from 'lucide-react';
+import {
+  BugIcon,
+  ClockIcon,
+  GaugeIcon,
+  GitCompareArrowsIcon,
+  ImagesIcon,
+  LogsIcon,
+  SparklesIcon,
+  TelescopeIcon,
+  TerminalIcon,
+} from 'lucide-react';
 import { useDebuggerStore } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
 
@@ -51,6 +61,11 @@ export function NavMain() {
       title: 'Assets',
       url: '/assets',
       icon: ImagesIcon,
+    },
+    {
+      title: 'Hot Particles',
+      url: '/hot-particles',
+      icon: SparklesIcon,
     },
     {
       title: 'Compare',

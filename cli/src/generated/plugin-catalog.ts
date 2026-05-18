@@ -113,6 +113,19 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
+    "id": "hot-particles",
+    "sourceDir": "hot-particles",
+    "name": "Hot Particles",
+    "description": "Author HotParticles-compatible composite particle effects with live in-game preview",
+    "version": "1.0.0",
+    "capabilities": [
+      "draw",
+      "filesystem"
+    ],
+    "optIn": false,
+    "disabled": false
+  },
+  {
     "id": "hot-reload",
     "sourceDir": "hot-reload",
     "name": "Hot Reload",
