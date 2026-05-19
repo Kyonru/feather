@@ -42,13 +42,13 @@ Install the Feather desktop app and CLI:
 1. Download the desktop app from [Releases](https://github.com/Kyonru/feather/releases).
 2. Install the CLI:
 
-```sh
+```bash
 npm install -g @kyonru/feather
 ```
 
 Initialize your project, open the Feather app, then run the game:
 
-```sh
+```bash
 feather init path/to/my-game
 feather run path/to/my-game
 ```
@@ -57,7 +57,7 @@ Feather is injected by the CLI for dev runs and debug builds, so your game code 
 
 Optional vendor setup for web, mobile, and packaged desktop workflows:
 
-```sh
+```bash
 feather build vendor add web --dir path/to/my-game
 feather run path/to/my-game --target web
 
@@ -70,13 +70,13 @@ feather run path/to/my-game --target ios
 
 For all build vendors, including desktop packaging runtimes:
 
-```sh
+```bash
 feather build vendor add all --dir path/to/my-game
 ```
 
 Build release artifacts from the same CLI flow:
 
-```sh
+```bash
 feather build love --dir path/to/my-game
 feather build android --dir path/to/my-game --release
 feather build ios --dir path/to/my-game --release
@@ -88,7 +88,7 @@ feather build steamos --dir path/to/my-game
 
 For more commands and options:
 
-```sh
+```bash
 feather --help
 feather run --help
 ```

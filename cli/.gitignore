@@ -1,3 +1,4 @@
 dist/
 lua/
 node_modules/
+bin/

@@ -14,7 +14,7 @@ if ! git diff --exit-code cli/src/generated/plugin-catalog.ts; then
 fi
 
 bash scripts/set-version.sh
-if ! git diff --exit-code package.json src-lua/feather/init.lua src-tauri/Cargo.toml src-tauri/tauri.conf.json; then
+if ! git diff --exit-code package.json src-lua/feather/init.lua src-tauri/Cargo.toml src-tauri/tauri.conf.json cli/package.json vscode-extension/package.json; then
   echo "[feather] Version files are out of sync — they have been updated, please stage them and commit again."
   exit 1
 fi

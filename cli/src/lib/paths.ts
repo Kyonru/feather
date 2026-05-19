@@ -2,10 +2,13 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 export function bundledLuaRoot(): string {
-  return resolve(__dirname, '../../lua');
+  // When running as a compiled binary, lua/ is shipped next to the executable.
+  const execDir = dirname(process.execPath);
+  const sibling = join(execDir, 'lua');
+  if (existsSync(join(sibling, 'feather', 'init.lua'))) return sibling;
+  // Fallback for npm/node: dist/lib/paths.js → ../../lua
+  return resolve(dirname(fileURLToPath(import.meta.url)), '../../lua');
 }
 
 export function repoLuaRoot(): string | null {

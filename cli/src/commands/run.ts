@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { findLoveBinary } from "../lib/love.js";
@@ -228,16 +228,7 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
       ["Args", opts.gameArgs?.join(" ")],
     ]);
 
-    const result = spawnSync(loveBin, [absGame, ...(opts.gameArgs ?? [])], {
-      stdio: "inherit",
-      env: process.env,
-    });
-
-    if (result.error) {
-      fail(`Failed to launch love: ${result.error.message}`, { cause: result.error });
-    }
-
-    return result.status ?? 0;
+    return await runLove(loveBin, [absGame, ...(opts.gameArgs ?? [])], process.env);
   }
 
   const shim = createShim({
@@ -258,18 +249,25 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
 
   const env = shimEnv(absGame, sessionName);
 
-  const result = spawnSync(loveBin, [shim.dir, ...(opts.gameArgs ?? [])], {
-    stdio: "inherit",
-    env,
-  });
-
-  shim.cleanup();
-
-  if (result.error) {
-    fail(`Failed to launch love: ${result.error.message}`, { cause: result.error });
+  try {
+    return await runLove(loveBin, [shim.dir, ...(opts.gameArgs ?? [])], env);
+  } finally {
+    shim.cleanup();
   }
+}
 
-  return result.status ?? 0;
+function runLove(loveBin: string, args: string[], env: NodeJS.ProcessEnv): Promise<number> {
+  return new Promise((resolveResult, reject) => {
+    const child = spawn(loveBin, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      env,
+    });
+
+    child.stdout?.on("data", (chunk: Buffer) => process.stdout.write(chunk));
+    child.stderr?.on("data", (chunk: Buffer) => process.stderr.write(chunk));
+    child.on("error", (err) => reject(new Error(`Failed to launch love: ${err.message}`, { cause: err })));
+    child.on("close", (code) => resolveResult(code ?? 0));
+  });
 }
 
 export function resolveRunBuildContext(absGame: string, buildConfig: string | undefined): {

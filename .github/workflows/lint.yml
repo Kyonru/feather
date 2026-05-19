@@ -31,6 +31,10 @@ jobs:
 
       - name: Run linting
         run: npm run lint
+
+      - name: Build and test VS Code extension
+        run: npm run extension:test
+
   lint-lua:
     name: Run Lua (Love2D) Linting
     runs-on: ubuntu-latest
