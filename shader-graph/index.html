@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://kyonru.github.io/feather/time-travel/">
+        <link rel="canonical" href="https://kyonru.github.io/feather/shader-graph/">
       
       
-        <link rel="prev" href="../shader-graph/">
+        <link rel="prev" href="../particle-system-playground/">
       
       
-        <link rel="next" href="../recommendations/">
+        <link rel="next" href="../time-travel/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Time Travel - Feather</title>
+        <title>Shader Graph - Feather</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#time-travel" class="md-skip">
+        <a href="#shader-graph" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Time Travel
+              Shader Graph
             
           </span>
         </div>
@@ -612,33 +612,6 @@
       
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../shader-graph/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Shader Graph
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
     
   
   
@@ -658,7 +631,7 @@
   <span class="md-ellipsis">
     
   
-    Time Travel
+    Shader Graph
   
 
     
@@ -676,7 +649,7 @@
   <span class="md-ellipsis">
     
   
-    Time Travel
+    Shader Graph
   
 
     
@@ -702,22 +675,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
+  <a href="#workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Setup
+        Workflow
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Setup">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Node Types">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#with-autolua" class="md-nav__link">
+  <a href="#input" class="md-nav__link">
     <span class="md-ellipsis">
       
-        With auto.lua
+        Input
       
     </span>
   </a>
@@ -725,10 +709,87 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#manual-setup" class="md-nav__link">
+  <a href="#math" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manual setup
+        Math
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#color" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Color
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Noise
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#effect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Effect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vertex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vertex
       
     </span>
   </a>
@@ -741,10 +802,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#registering-observers" class="md-nav__link">
+  <a href="#preset-flows" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Registering observers
+        Preset Flows
       
     </span>
   </a>
@@ -752,22 +813,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-the-timeline" class="md-nav__link">
+  <a href="#practical-tips" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using the timeline
+        Practical Tips
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using the timeline">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-recipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Recipes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Recipes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#basic-workflow" class="md-nav__link">
+  <a href="#texture-pass" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic workflow
+        Texture Pass
       
     </span>
   </a>
@@ -775,10 +847,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#reading-the-diff" class="md-nav__link">
+  <a href="#uv-distortion" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reading the diff
+        UV Distortion
       
     </span>
   </a>
@@ -786,10 +858,120 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#frame-navigation" class="md-nav__link">
+  <a href="#water-shimmer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Frame navigation
+        Water Shimmer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#masked-water" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Masked Water
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uv-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UV Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dissolve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dissolve
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#texture-strength" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Texture Strength
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opacity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Opacity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vertex-wave" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vertex Wave
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rim-glow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rim Glow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#procedural-mask-mix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Procedural Mask Mix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#about-depth-fade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        About Depth Fade
       
     </span>
   </a>
@@ -802,44 +984,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example-finding-the-frame-a-jump-breaks" class="md-nav__link">
+  <a href="#actions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example: finding the frame a jump breaks
+        Actions
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-with-the-step-debugger" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Integration with the step debugger
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Configuration">
+    <nav class="md-nav" aria-label="Actions">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#buffer-size-guide" class="md-nav__link">
+  <a href="#compile-shader" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Buffer size guide
+        compile-shader
       
     </span>
   </a>
@@ -852,10 +1012,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
+  <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Performance
+        Notes
       
     </span>
   </a>
@@ -866,6 +1026,33 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../time-travel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Time Travel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1594,22 +1781,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
+  <a href="#workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Setup
+        Workflow
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Setup">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Node Types">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#with-autolua" class="md-nav__link">
+  <a href="#input" class="md-nav__link">
     <span class="md-ellipsis">
       
-        With auto.lua
+        Input
       
     </span>
   </a>
@@ -1617,10 +1815,87 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#manual-setup" class="md-nav__link">
+  <a href="#math" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manual setup
+        Math
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#color" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Color
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Noise
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#effect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Effect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vertex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vertex
       
     </span>
   </a>
@@ -1633,10 +1908,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#registering-observers" class="md-nav__link">
+  <a href="#preset-flows" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Registering observers
+        Preset Flows
       
     </span>
   </a>
@@ -1644,22 +1919,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-the-timeline" class="md-nav__link">
+  <a href="#practical-tips" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using the timeline
+        Practical Tips
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using the timeline">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-recipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Recipes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Recipes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#basic-workflow" class="md-nav__link">
+  <a href="#texture-pass" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic workflow
+        Texture Pass
       
     </span>
   </a>
@@ -1667,10 +1953,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#reading-the-diff" class="md-nav__link">
+  <a href="#uv-distortion" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reading the diff
+        UV Distortion
       
     </span>
   </a>
@@ -1678,10 +1964,120 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#frame-navigation" class="md-nav__link">
+  <a href="#water-shimmer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Frame navigation
+        Water Shimmer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#masked-water" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Masked Water
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uv-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UV Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dissolve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dissolve
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#texture-strength" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Texture Strength
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opacity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Opacity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vertex-wave" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vertex Wave
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rim-glow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rim Glow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#procedural-mask-mix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Procedural Mask Mix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#about-depth-fade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        About Depth Fade
       
     </span>
   </a>
@@ -1694,44 +2090,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example-finding-the-frame-a-jump-breaks" class="md-nav__link">
+  <a href="#actions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example: finding the frame a jump breaks
+        Actions
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-with-the-step-debugger" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Integration with the step debugger
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Configuration">
+    <nav class="md-nav" aria-label="Actions">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#buffer-size-guide" class="md-nav__link">
+  <a href="#compile-shader" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Buffer size guide
+        compile-shader
       
     </span>
   </a>
@@ -1744,10 +2118,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
+  <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Performance
+        Notes
       
     </span>
   </a>
@@ -1774,242 +2148,316 @@
   
 
 
-<h1 id="time-travel">Time Travel<a class="headerlink" href="#time-travel" title="Permanent link">&para;</a></h1>
-<p>Time Travel records per-frame snapshots of your observer values into a ring buffer, then lets you scrub backwards through history to see exactly what changed and when. It answers the question: <em>"What was my game state 3 seconds before that crash?"</em></p>
-<hr />
-<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
-<h3 id="with-autolua">With auto.lua<a class="headerlink" href="#with-autolua" title="Permanent link">&para;</a></h3>
-<p>The time-travel plugin ships disabled by default. Enable it explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;time-travel&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">})</span>
-</code></pre></div>
-<p>To customize the buffer size:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;time-travel&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;time-travel&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">bufferSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2000</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">})</span>
-</code></pre></div>
-<h3 id="manual-setup">Manual setup<a class="headerlink" href="#manual-setup" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherDebugger</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="w"> </span><span class="s2">&quot;feather&quot;</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherPluginManager</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="w"> </span><span class="s2">&quot;feather.plugin_manager&quot;</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">TimeTravelPlugin</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="w"> </span><span class="s2">&quot;feather.plugins.time-travel&quot;</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nv">debug</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nv">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">TimeTravelPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;time-travel&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">      </span><span class="nv">bufferSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="p">}),</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">})</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="kr">end</span>
-</code></pre></div>
-<hr />
-<h2 id="registering-observers">Registering observers<a class="headerlink" href="#registering-observers" title="Permanent link">&para;</a></h2>
-<p>Time Travel snapshots whatever values you register with <code>observe()</code> each frame. The more you observe, the richer the history:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="c1">-- Player state</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;player.x&quot;</span><span class="p">,</span><span class="w">       </span><span class="nv">player</span><span class="p">.</span><span class="py">x</span><span class="p">)</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;player.y&quot;</span><span class="p">,</span><span class="w">       </span><span class="nv">player</span><span class="p">.</span><span class="py">y</span><span class="p">)</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;player.state&quot;</span><span class="p">,</span><span class="w">   </span><span class="nv">player</span><span class="p">.</span><span class="py">state</span><span class="p">)</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;player.health&quot;</span><span class="p">,</span><span class="w">  </span><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="p">)</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="c1">-- Physics</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;velocity.x&quot;</span><span class="p">,</span><span class="w">     </span><span class="nv">player</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">x</span><span class="p">)</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;velocity.y&quot;</span><span class="p">,</span><span class="w">     </span><span class="nv">player</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="p">)</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;on_ground&quot;</span><span class="p">,</span><span class="w">      </span><span class="nv">player</span><span class="p">.</span><span class="py">onGround</span><span class="p">)</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">  </span><span class="c1">-- Game world</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;enemy_count&quot;</span><span class="p">,</span><span class="w">    </span><span class="o">#</span><span class="nv">world</span><span class="p">.</span><span class="py">enemies</span><span class="p">)</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;active_room&quot;</span><span class="p">,</span><span class="w">    </span><span class="nv">world</span><span class="p">.</span><span class="py">currentRoom</span><span class="p">)</span>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="kr">end</span>
-</code></pre></div>
-<p>Observer values are formatted as strings before being stored — there is no deep clone of your game tables. The cost is proportional to the number of keys, not to their complexity.</p>
-<hr />
-<h2 id="using-the-timeline">Using the timeline<a class="headerlink" href="#using-the-timeline" title="Permanent link">&para;</a></h2>
-<h3 id="basic-workflow">Basic workflow<a class="headerlink" href="#basic-workflow" title="Permanent link">&para;</a></h3>
+<h1 id="shader-graph">Shader Graph<a class="headerlink" href="#shader-graph" title="Permanent link">&para;</a></h1>
+<p>Feather plugin that validates GLSL shaders authored in the Shader Graph visual editor.</p>
+<p>The desktop editor owns the graph UI and GLSL code generation. This runtime plugin only compiles the generated LÖVE shader source inside the connected game process so validation matches the user's graphics driver and LÖVE version.</p>
+<p>The node library is inspired by common visual shader graph systems, including Unity Shader Graph's category model: Artistic, Channel, Input, Math, Procedural, Utility, and UV. Feather's implementation is intentionally smaller and LÖVE-focused.</p>
+<p>Several higher-level nodes and presets are also inspired by common VFX Shader Graph recipes, including texture strength, opacity, dissolve masks, and vertex displacement. The water displacement nodes are inspired by Alex Griffith's LÖVE shader write-up, adapted to use procedural noise so Feather graphs stay self-contained. Unity-specific camera depth effects are not copied directly because LÖVE 2D shaders do not expose Unity's scene depth buffer in the same way.</p>
+<h2 id="workflow">Workflow<a class="headerlink" href="#workflow" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Open the <strong>Time Travel</strong> tab in the Feather desktop app.</li>
-<li>Click <strong>Start Recording</strong>. The plugin captures a snapshot every frame.</li>
-<li>Play your game and reproduce the bug.</li>
-<li>Click <strong>Stop &amp; Load</strong>. The desktop fetches all recorded frames.</li>
-<li>Drag the <strong>timeline scrubber</strong> (or use the <strong>‹</strong> and <strong>›</strong> buttons) to any frame.</li>
-<li>The <strong>Observer Snapshot</strong> panel shows every key's value at that frame.</li>
+<li>Open <strong>Shader Graph</strong> in Feather.</li>
+<li>On first open, Feather loads the <strong>Water Shimmer</strong> example so there is a complete graph ready to validate, edit, and apply.</li>
+<li>Drag nodes from the palette onto the canvas.</li>
+<li>Connect compatible ports by type.</li>
+<li>Connect the final <code>vec4</code> color into <strong>Fragment Output</strong>.</li>
+<li>Use <strong>Validate</strong> to compile in the running LÖVE game.</li>
+<li>Use <strong>Apply</strong> to send the generated shader to the selected Particle System Playground emitter.</li>
+<li>Export/import <code>.feathershgh</code> files when you want to save or share editable graph projects.</li>
 </ol>
-<h3 id="reading-the-diff">Reading the diff<a class="headerlink" href="#reading-the-diff" title="Permanent link">&para;</a></h3>
-<p>The snapshot table compares the current frame against the previous one and highlights what changed:</p>
+<p>Select a node and edit <strong>Node Name</strong> in the inspector when a graph needs more descriptive labels. Renaming a node changes the canvas label only; the original node type stays visible in the inspector and code generation is unchanged.</p>
+<h2 id="node-types">Node Types<a class="headerlink" href="#node-types" title="Permanent link">&para;</a></h2>
+<h3 id="input">Input<a class="headerlink" href="#input" title="Permanent link">&para;</a></h3>
+<p>Use input nodes as the raw data source for a shader.</p>
 <table>
 <thead>
 <tr>
-<th>Indicator</th>
-<th>Meaning</th>
+<th>Node</th>
+<th>Output</th>
+<th>Use</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>🟡 Yellow dot + strikethrough</td>
-<td>Value changed from the previous frame</td>
+<td>Texture Color</td>
+<td><code>vec4</code></td>
+<td>Current texture sample: <code>Texel(tex, texture_coords)</code></td>
 </tr>
 <tr>
-<td>🟢 Green dot</td>
-<td>Key appeared for the first time</td>
+<td>Texture Coords</td>
+<td><code>vec2</code></td>
+<td>UV coordinates, usually the starting point for distortion effects</td>
 </tr>
 <tr>
-<td>🔴 Red dot</td>
-<td>Key was no longer present</td>
+<td>Screen Coords</td>
+<td><code>vec2</code></td>
+<td>Pixel/screen position, useful for screen-space patterns</td>
+</tr>
+<tr>
+<td>Vertex Color</td>
+<td><code>vec4</code></td>
+<td>LÖVE color/tint passed into the shader</td>
+</tr>
+<tr>
+<td>Time</td>
+<td><code>float</code></td>
+<td>Animated effects; emits <code>extern number u_time</code></td>
+</tr>
+<tr>
+<td>Resolution</td>
+<td><code>vec2</code></td>
+<td>Uses <code>love_ScreenSize.xy</code></td>
+</tr>
+<tr>
+<td>Float / Vec2 / Vec3 / Vec4</td>
+<td>typed constants</td>
+<td>Editable values for colors, thresholds, speed, etc.</td>
 </tr>
 </tbody>
 </table>
-<p>Changed keys are sorted to the top so you can spot the transition immediately.</p>
-<h3 id="frame-navigation">Frame navigation<a class="headerlink" href="#frame-navigation" title="Permanent link">&para;</a></h3>
+<h3 id="math">Math<a class="headerlink" href="#math" title="Permanent link">&para;</a></h3>
+<p>Math nodes shape scalar values. They are most useful for masks, thresholds, animation curves, and mixing amounts.</p>
 <ul>
-<li><strong>Scrubber</strong> — drag to jump anywhere in the history.</li>
-<li><strong>‹ / ›</strong> buttons — move exactly one frame at a time, useful for pinpointing the exact frame a value flipped.</li>
-<li>Frame info above the scrubber shows: frame ID, timestamp in seconds, and frame delta time.</li>
+<li><code>Add</code>, <code>Subtract</code>, <code>Multiply</code>, <code>Divide</code>: combine scalar values.</li>
+<li><code>Power</code>: sharpen or soften masks.</li>
+<li><code>Clamp</code>: keep values inside a range.</li>
+<li><code>Lerp</code>: interpolate between two scalar values.</li>
+<li><code>Step</code>, <code>Smoothstep</code>: build hard or soft thresholds.</li>
+<li><code>Sin</code>, <code>Cos</code>: oscillation for wave and pulse effects.</li>
+<li><code>Abs</code>, <code>Fract</code>, <code>Floor</code>: repeating patterns, bands, pixel stepping.</li>
+<li><code>Min</code>, <code>Max</code>, <code>Modulo</code>, <code>Negate</code>, <code>Saturate</code>: scalar shaping and bounds.</li>
+<li><code>Remap</code>: convert one scalar range into another, useful for mask tuning.</li>
 </ul>
-<hr />
-<h2 id="example-finding-the-frame-a-jump-breaks">Example: finding the frame a jump breaks<a class="headerlink" href="#example-finding-the-frame-a-jump-breaks" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">-- Observe jump-related state every frame</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;on_ground&quot;</span><span class="p">,</span><span class="w">     </span><span class="nv">player</span><span class="p">.</span><span class="py">onGround</span><span class="p">)</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;velocity.y&quot;</span><span class="p">,</span><span class="w">    </span><span class="nv">player</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="p">)</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;jump_count&quot;</span><span class="p">,</span><span class="w">    </span><span class="nv">player</span><span class="p">.</span><span class="py">jumpCount</span><span class="p">)</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;state&quot;</span><span class="p">,</span><span class="w">         </span><span class="nv">player</span><span class="p">.</span><span class="py">state</span><span class="p">)</span>
-</code></pre></div>
-<p>After recording and scrubbing to the moment the jump felt wrong, you might see:</p>
+<h3 id="vector">Vector<a class="headerlink" href="#vector" title="Permanent link">&para;</a></h3>
+<p>Vector nodes convert between packed colors/vectors and scalar channels.</p>
+<ul>
+<li><code>Split Vec4</code>: split a <code>vec4</code> into RGBA floats.</li>
+<li><code>Combine4</code>: combine RGBA floats into a <code>vec4</code>.</li>
+<li><code>Split RGB</code> / <code>Combine RGB</code>: unpack and repack <code>vec3</code> values.</li>
+<li><code>Combine2</code>, <code>Combine3</code>: build <code>vec2</code> or <code>vec3</code>.</li>
+<li><code>SplitVec2</code>, <code>SplitVec3</code>: unpack vector channels.</li>
+<li><code>Swizzle Vec2</code>: get <code>xy</code> and <code>yx</code> variants.</li>
+<li><code>Normalize</code>, <code>Length</code>, <code>Dot</code>: <code>vec4</code> RGB utility operations.</li>
+<li><code>Distance Vec2</code>, <code>Length Vec2</code>, <code>Normalize Vec2</code>, <code>Dot Vec2</code>: UV/vector math for 2D masks.</li>
+</ul>
+<h3 id="color">Color<a class="headerlink" href="#color" title="Permanent link">&para;</a></h3>
+<p>Color nodes transform an existing <code>vec4</code>.</p>
+<ul>
+<li><code>Desaturate</code>: mix a color toward grayscale.</li>
+<li><code>One Minus</code>: invert a scalar mask.</li>
+<li><code>Hue Shift</code>: rotate color hue.</li>
+<li><code>Invert Color</code>: invert RGB by an editable amount.</li>
+<li><code>Contrast</code>: adjust contrast around 0.5.</li>
+<li><code>Posterize</code>: reduce colors to a fixed number of bands.</li>
+<li><code>Multiply Color</code>: multiply two <code>vec4</code> values.</li>
+</ul>
+<h3 id="noise">Noise<a class="headerlink" href="#noise" title="Permanent link">&para;</a></h3>
+<p>Noise nodes create procedural variation.</p>
+<ul>
+<li><code>Simple Noise</code>: deterministic hash noise from UV.</li>
+<li><code>Ripple</code>: UV distortion using sine waves.</li>
+<li><code>Voronoi Cells</code>: cellular mask for sparks, shields, energy, and organic breakup.</li>
+<li><code>Checkerboard</code>: alternating square mask.</li>
+</ul>
+<h3 id="uv">UV<a class="headerlink" href="#uv" title="Permanent link">&para;</a></h3>
+<p>UV nodes transform texture coordinates before sampling.</p>
+<ul>
+<li><code>Tiling And Offset</code>: scale and offset UVs.</li>
+<li><code>Rotate UV</code>: rotate UVs around the center.</li>
+<li><code>Twirl UV</code>: swirl UVs toward the center.</li>
+<li><code>Polar Coordinates</code>: convert UVs into radius/angle space.</li>
+</ul>
+<h3 id="effect">Effect<a class="headerlink" href="#effect" title="Permanent link">&para;</a></h3>
+<p>Effect nodes are higher-level building blocks for common 2D game shaders.</p>
 <table>
 <thead>
 <tr>
-<th>Frame</th>
-<th>on_ground</th>
-<th>velocity.y</th>
-<th>jump_count</th>
-<th>state</th>
+<th>Node</th>
+<th>Use</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>241</td>
-<td>true</td>
-<td>0</td>
-<td>0</td>
-<td>idle</td>
+<td>Sample Texture</td>
+<td>Samples the texture at a supplied UV, useful after UV distortion</td>
 </tr>
 <tr>
-<td>242</td>
-<td><strong>false</strong></td>
-<td><strong>-12</strong></td>
-<td><strong>1</strong></td>
-<td><strong>jumping</strong></td>
+<td>Texture Strength</td>
+<td>Sharpens texture alpha and boosts color intensity, useful for cracks, glows, and impact marks</td>
 </tr>
 <tr>
-<td>243</td>
-<td>false</td>
-<td>-10.4</td>
-<td>1</td>
-<td>jumping</td>
+<td>Opacity</td>
+<td>Multiplies texture alpha by a scalar fade value</td>
 </tr>
 <tr>
-<td>…</td>
-<td>…</td>
-<td>…</td>
-<td>…</td>
-<td>…</td>
+<td>Centered UV</td>
+<td>Converts UV into <code>uv - 0.5</code> and distance from center</td>
+</tr>
+<tr>
+<td>Fresnel / Rim 2D</td>
+<td>Radial edge mask for glow/rim effects on sprites and particles</td>
+</tr>
+<tr>
+<td>Alpha Outline</td>
+<td>Samples neighboring alpha to create sprite outlines</td>
+</tr>
+<tr>
+<td>Wave Distort</td>
+<td>Animated UV wave for water, heat, magic, flags</td>
+</tr>
+<tr>
+<td>Water Displace</td>
+<td>Procedural animated noise displacement for water, heat shimmer, and magic surfaces</td>
+</tr>
+<tr>
+<td>Masked Water</td>
+<td>Water displacement constrained by texture alpha, useful when only opaque regions should move</td>
+</tr>
+<tr>
+<td>Dissolve</td>
+<td>Noise threshold dissolve with a colored edge</td>
+</tr>
+<tr>
+<td>Hit Flash</td>
+<td>Mixes texture color toward a flash color</td>
+</tr>
+<tr>
+<td>Vignette</td>
+<td>Darkens or fades toward UV edges</td>
+</tr>
+<tr>
+<td>Pixelate</td>
+<td>Snaps UVs to a lower-resolution grid</td>
+</tr>
+<tr>
+<td>Chromatic Aberration</td>
+<td>Splits red/blue samples away from center</td>
 </tr>
 </tbody>
 </table>
-<p>Step backwards from where the bug manifests to frame 242 — the exact frame the jump was triggered — and check whether <code>velocity.y = -12</code> matches your expected jump force.</p>
-<hr />
-<h2 id="integration-with-the-step-debugger">Integration with the step debugger<a class="headerlink" href="#integration-with-the-step-debugger" title="Permanent link">&para;</a></h2>
-<p>If both the <strong>Step Debugger</strong> and <strong>Time Travel</strong> are active, Feather automatically pushes the current frame buffer to the desktop whenever a breakpoint fires — without you clicking anything.</p>
-<p>The <strong>Debugger</strong> toolbar shows a <strong>Time Travel (N frames)</strong> button. Clicking it navigates to the timeline pre-loaded with all recorded frames, positioned at the latest one.</p>
-<p><strong>Recommended setup for deep debugging:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nv">include</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;time-travel&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;time-travel&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">bufferSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">})</span>
-</code></pre></div>
-<p>With this config:</p>
-<ol>
-<li>Set a breakpoint anywhere near the bug.</li>
-<li>Start Time Travel recording.</li>
-<li>Run the game — it pauses at the breakpoint.</li>
-<li>The desktop shows the call stack, locals, <strong>and</strong> the frame history in one click.</li>
-<li>Use Step commands to walk forward; switch to Time Travel to walk backward.</li>
-</ol>
-<hr />
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<h3 id="output">Output<a class="headerlink" href="#output" title="Permanent link">&para;</a></h3>
+<p><code>Fragment Output</code> is the required final node for pixel shaders. If no color is connected, codegen falls back to <code>Texel(tex, texture_coords)</code>.</p>
+<h3 id="vertex">Vertex<a class="headerlink" href="#vertex" title="Permanent link">&para;</a></h3>
+<p>Vertex nodes are optional. Use them only when you need to change vertex positions.</p>
+<ul>
+<li><code>Vertex Position</code>: original vertex position.</li>
+<li><code>Vertex Wave 2D</code>: offsets vertex XY positions with a time-driven sine/cosine wave.</li>
+<li><code>Transform Matrix</code>: LÖVE transform/projection matrix.</li>
+<li><code>Mat x Vec</code>: matrix/vector multiplication.</li>
+<li><code>Vertex Output</code>: final vertex position.</li>
+</ul>
+<h2 id="preset-flows">Preset Flows<a class="headerlink" href="#preset-flows" title="Permanent link">&para;</a></h2>
+<p>The Shader Graph page includes complete preset graphs:</p>
+<ul>
+<li><strong>Texture Pass</strong>: baseline texture output.</li>
+<li><strong>Outline</strong>: alpha outline around a sprite.</li>
+<li><strong>Wave</strong>: animated UV distortion.</li>
+<li><strong>Dissolve</strong>: noise dissolve with edge color.</li>
+<li><strong>Hit Flash</strong>: damage/selection flash.</li>
+<li><strong>Rim Glow</strong>: 2D fresnel-style edge glow.</li>
+<li><strong>Pixelate</strong>: retro low-resolution sampling.</li>
+<li><strong>Chromatic Aberration</strong>: RGB channel split.</li>
+<li><strong>Posterize</strong>: toon/retro color bands.</li>
+<li><strong>Twirl Portal</strong>: centered UV swirl.</li>
+<li><strong>Rotating Texture</strong>: time-driven UV rotation.</li>
+<li><strong>Checker Flash</strong>: checker mask mixed into a flash color.</li>
+<li><strong>Voronoi Energy</strong>: cellular energy/shield mask.</li>
+<li><strong>Tiled Offset</strong>: tiled UV sampling.</li>
+<li><strong>Texture Strength</strong>: alpha/intensity shaping for marks, cracks, and glows.</li>
+<li><strong>Opacity Fade</strong>: straightforward alpha fade control.</li>
+<li><strong>Vertex Wave</strong>: vertex-stage wobble with a normal texture pass.</li>
+<li><strong>Water Shimmer</strong>: self-contained procedural UV displacement.</li>
+<li><strong>Masked Water Shimmer</strong>: alpha-constrained displacement that keeps transparent edges stable.</li>
+</ul>
+<p>Load a preset, validate it, then inspect how the nodes are connected. Presets are intended as editable starting points, not black boxes.</p>
+<h2 id="practical-tips">Practical Tips<a class="headerlink" href="#practical-tips" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Start most shaders with <code>Texture Coords</code> and <code>Texture Color</code>.</li>
+<li>Distort UV first, then use <code>Sample Texture</code> to read the texture at the modified UV.</li>
+<li>Use <code>Vec4Constant</code> for editable colors like outline, flash, and dissolve edge color.</li>
+<li>Use <code>FloatConstant</code> for user-tunable controls such as thickness, amount, speed, cutoff, and softness.</li>
+<li>Prefer <code>Smoothstep</code> over <code>Step</code> for effects that should have soft edges.</li>
+<li>Keep masks as <code>float</code> values until the final color mix.</li>
+<li>For particle shaders, preserve alpha unless you intentionally want to change particle fade behavior.</li>
+<li>Validate often. Some shader mistakes only appear on the active LÖVE runtime or graphics driver.</li>
+</ul>
+<h2 id="common-recipes">Common Recipes<a class="headerlink" href="#common-recipes" title="Permanent link">&para;</a></h2>
+<h3 id="texture-pass">Texture Pass<a class="headerlink" href="#texture-pass" title="Permanent link">&para;</a></h3>
+<p><code>Texture Color -&gt; Fragment Output</code></p>
+<p>Use this as the baseline when debugging.</p>
+<h3 id="uv-distortion">UV Distortion<a class="headerlink" href="#uv-distortion" title="Permanent link">&para;</a></h3>
+<p><code>Texture Coords -&gt; Wave Distort -&gt; Sample Texture -&gt; Fragment Output</code></p>
+<p>Add <code>Time</code>, <code>FloatConstant</code> amplitude, frequency, and speed inputs to animate it.</p>
+<h3 id="water-shimmer">Water Shimmer<a class="headerlink" href="#water-shimmer" title="Permanent link">&para;</a></h3>
+<p><code>Texture Coords + Time + speed + amplitude + scale -&gt; Water Displace -&gt; Sample Texture -&gt; Fragment Output</code></p>
+<p>This is the self-contained version of the classic LÖVE water displacement pattern: scroll noise, convert it into an XY offset, then sample the texture at the displaced UV. Use low amplitude values such as <code>0.01</code> to <code>0.04</code>; texture-space displacement gets strong quickly.</p>
+<h3 id="masked-water">Masked Water<a class="headerlink" href="#masked-water" title="Permanent link">&para;</a></h3>
+<p><code>Texture Color + Texture Coords + Time + speed + amplitude + scale + mask threshold -&gt; Masked Water -&gt; Fragment Output</code></p>
+<p>The masked version only uses the displaced sample when both the current pixel alpha and displaced source alpha are above the threshold. It is useful for water tiles, shoreline sprites, and particle textures where transparent edges should not smear.</p>
+<h3 id="uv-transform">UV Transform<a class="headerlink" href="#uv-transform" title="Permanent link">&para;</a></h3>
+<p><code>Texture Coords -&gt; Rotate UV/Twirl UV/Tiling And Offset -&gt; Sample Texture -&gt; Fragment Output</code></p>
+<p>Use this for portals, rotating particles, scrolling texture strips, and tiled materials.</p>
+<h3 id="outline">Outline<a class="headerlink" href="#outline" title="Permanent link">&para;</a></h3>
+<p><code>Texture Color + Texture Coords + Float thickness + Vec4 outline color -&gt; Alpha Outline -&gt; Fragment Output</code></p>
+<p>Good for sprites, interactable objects, and particle silhouettes.</p>
+<h3 id="dissolve">Dissolve<a class="headerlink" href="#dissolve" title="Permanent link">&para;</a></h3>
+<p><code>Texture Color + Texture Coords + cutoff + softness + edge color -&gt; Dissolve -&gt; Fragment Output</code></p>
+<p>Animate the cutoff value externally or edit it in the graph while prototyping.</p>
+<h3 id="texture-strength">Texture Strength<a class="headerlink" href="#texture-strength" title="Permanent link">&para;</a></h3>
+<p><code>Texture Color + Power + Strength -&gt; Texture Strength -&gt; Fragment Output</code></p>
+<p>Use <code>Power</code> to make alpha thinner or wider and <code>Strength</code> to brighten the visible color. This is useful for impact decals, ground cracks, soft glows, and particle textures where you want to tune intensity without editing the source image.</p>
+<h3 id="opacity">Opacity<a class="headerlink" href="#opacity" title="Permanent link">&para;</a></h3>
+<p><code>Texture Color + Opacity -&gt; Opacity -&gt; Fragment Output</code></p>
+<p>Keep this near the end of a graph when you want a simple overall fade.</p>
+<h3 id="vertex-wave">Vertex Wave<a class="headerlink" href="#vertex-wave" title="Permanent link">&para;</a></h3>
+<p><code>Vertex Position + Time + amplitude + frequency -&gt; Vertex Wave 2D -&gt; Vertex Output</code></p>
+<p>Pair it with a normal fragment path such as <code>Texture Color -&gt; Fragment Output</code>. It works best on sprites or meshes with enough vertices to show deformation; a single quad will wobble at its corners.</p>
+<h3 id="rim-glow">Rim Glow<a class="headerlink" href="#rim-glow" title="Permanent link">&para;</a></h3>
+<p><code>Texture Coords -&gt; Fresnel / Rim 2D -&gt; Hit Flash amount</code></p>
+<p>Feed texture color and a glow color into <code>Hit Flash</code>.</p>
+<h3 id="procedural-mask-mix">Procedural Mask Mix<a class="headerlink" href="#procedural-mask-mix" title="Permanent link">&para;</a></h3>
+<p><code>Texture Coords -&gt; Checkerboard/Voronoi Cells -&gt; Hit Flash amount</code></p>
+<p>Feed texture color and a highlight color into <code>Hit Flash</code>. This is a quick way to prototype shield, scan, grid, glitch, or energy effects.</p>
+<h3 id="about-depth-fade">About Depth Fade<a class="headerlink" href="#about-depth-fade" title="Permanent link">&para;</a></h3>
+<p>Depth fade is a useful Unity particle technique for softening intersections against scene geometry. Feather does not include a depth fade node yet because LÖVE's standard 2D shader path does not provide the same camera depth texture. For now, approximate soft edges with texture alpha, <code>Opacity</code>, <code>Vignette</code>, dissolve masks, or custom game-provided shader uniforms.</p>
+<h2 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">&para;</a></h2>
+<h3 id="compile-shader"><code>compile-shader</code><a class="headerlink" href="#compile-shader" title="Permanent link">&para;</a></h3>
+<p>Attempts to compile the provided GLSL source using <code>love.graphics.newShader</code>. Returns whether each stage compiled successfully, along with the driver error string if it failed.</p>
+<p><strong>Params</strong></p>
 <table>
 <thead>
 <tr>
-<th>Option</th>
+<th>Field</th>
 <th>Type</th>
-<th>Default</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>bufferSize</code></td>
-<td><code>number</code></td>
-<td><code>1000</code></td>
-<td>Maximum frames stored. When the buffer is full, the oldest frame is overwritten. At 60 fps this is ~16 seconds of history.</td>
+<td><code>pixelSource</code></td>
+<td><code>string</code></td>
+<td>GLSL pixel (fragment) shader source</td>
+</tr>
+<tr>
+<td><code>vertexSource</code></td>
+<td><code>string</code></td>
+<td>GLSL vertex shader source (optional)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="buffer-size-guide">Buffer size guide<a class="headerlink" href="#buffer-size-guide" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Game FPS</th>
-<th><code>bufferSize</code></th>
-<th>Coverage</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>60</td>
-<td>300</td>
-<td>~5 seconds</td>
-</tr>
-<tr>
-<td>60</td>
-<td>1000</td>
-<td>~16 seconds</td>
-</tr>
-<tr>
-<td>60</td>
-<td>3600</td>
-<td>~60 seconds</td>
-</tr>
-<tr>
-<td>30</td>
-<td>1000</td>
-<td>~33 seconds</td>
-</tr>
-</tbody>
-</table>
-<blockquote>
-<p><strong>Tip:</strong> Start with <code>bufferSize = 1000</code>. If the bug takes longer than ~15 seconds to trigger after you start recording, increase it. Very large buffers (5000+) may take a moment to transfer over the WebSocket when you click Stop &amp; Load.</p>
-</blockquote>
-<hr />
-<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
+<p><strong>Response</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">-- success</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">{</span><span class="w"> </span><span class="nv">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1">-- failure</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">{</span><span class="w"> </span><span class="nv">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">pixelError</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">vertexError</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p><code>pixelError</code> / <code>vertexError</code> are <code>nil</code> when that stage compiled successfully.</p>
+<h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Snapshots are captured in <code>update()</code> — one per frame.</li>
-<li>Observer values are pre-formatted strings (set by <code>observe()</code>), so snapshot cost is a shallow table copy: one string per key.</li>
-<li>Large observer strings are sent as binary text attachments when frames are transferred, keeping the JSON frame index compact.</li>
-<li>The ring buffer allocates a fixed table up front; there is no GC pressure during recording.</li>
-<li>Sending frames over the WebSocket happens only when you click <strong>Stop &amp; Load</strong> or <strong>Refresh</strong> — not during recording.</li>
+<li>Validation runs on the game process — a live LÖVE session must be connected.</li>
+<li>The plugin uses <code>pcall</code> so a bad shader never crashes the game.</li>
+<li>No draw calls are made; the shader object is discarded immediately after compilation.</li>
+<li>When vertex source is provided, validation compiles the combined pixel + vertex source because Feather applies shader graph output as a single LÖVE shader source.</li>
 </ul>
 
 

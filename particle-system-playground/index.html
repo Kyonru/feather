@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://kyonru.github.io/feather/assets/">
+        <link rel="canonical" href="https://kyonru.github.io/feather/particle-system-playground/">
       
       
-        <link rel="prev" href="../console/">
+        <link rel="prev" href="../assets/">
       
       
-        <link rel="next" href="../particle-system-playground/">
+        <link rel="next" href="../shader-graph/">
       
       
         
       
       
-      <link rel="icon" href="images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Assets - Feather</title>
+        <title>Particle System Playground - Feather</title>
       
     
     
-      <link rel="stylesheet" href="stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#assets" class="md-skip">
+        <a href="#particle-system-playground-runtime-plugin" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Assets
+              Particle System Playground
             
           </span>
         </div>
@@ -558,6 +558,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -577,7 +604,7 @@
   <span class="md-ellipsis">
     
   
-    Assets
+    Particle System Playground
   
 
     
@@ -595,7 +622,7 @@
   <span class="md-ellipsis">
     
   
-    Assets
+    Particle System Playground
   
 
     
@@ -621,38 +648,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
+  <a href="#game-api" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Setup
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#disabling-asset-previews" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Disabling asset previews
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#asset-lists" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Asset Lists
+        Game API
       
     </span>
   </a>
@@ -660,88 +659,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#previewing-textures-and-fonts" class="md-nav__link">
+  <a href="#scratch-composites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Previewing Textures And Fonts
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Previewing Textures And Fonts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#file-backed-textures" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        File-backed textures
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#procedural-textures" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Procedural textures
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#fonts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fonts
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#game-root" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Game Root
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Game Root">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#path-resolution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Path resolution
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#preview-controls" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Preview Controls
+        Scratch Composites
       
     </span>
   </a>
@@ -749,52 +670,46 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
+  <a href="#desktop-protocol" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Troubleshooting
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Troubleshooting">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#the-texture-list-is-empty" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The texture list is empty
+        Desktop Protocol
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#preview-says-the-file-is-not-available" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Preview says the file is not available
+        Export
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#procedural-previews-do-not-update-immediately" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#shaders" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Procedural previews do not update immediately
+        Shaders
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
   
 </li>
       
@@ -802,33 +717,6 @@
   
 </nav>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../particle-system-playground/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Particle System Playground
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1611,38 +1499,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
+  <a href="#game-api" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Setup
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#disabling-asset-previews" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Disabling asset previews
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#asset-lists" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Asset Lists
+        Game API
       
     </span>
   </a>
@@ -1650,88 +1510,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#previewing-textures-and-fonts" class="md-nav__link">
+  <a href="#scratch-composites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Previewing Textures And Fonts
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Previewing Textures And Fonts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#file-backed-textures" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        File-backed textures
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#procedural-textures" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Procedural textures
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#fonts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fonts
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#game-root" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Game Root
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Game Root">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#path-resolution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Path resolution
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#preview-controls" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Preview Controls
+        Scratch Composites
       
     </span>
   </a>
@@ -1739,52 +1521,46 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
+  <a href="#desktop-protocol" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Troubleshooting
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Troubleshooting">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#the-texture-list-is-empty" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The texture list is empty
+        Desktop Protocol
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#preview-says-the-file-is-not-available" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Preview says the file is not available
+        Export
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#procedural-previews-do-not-update-immediately" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#shaders" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Procedural previews do not update immediately
+        Shaders
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1808,160 +1584,161 @@
   
 
 
-<h1 id="assets">Assets<a class="headerlink" href="#assets" title="Permanent link">&para;</a></h1>
-<p>The <strong>Assets</strong> tab is a core Feather feature for inspecting images, fonts, and audio sources loaded by your LÖVE game at runtime. It is not a plugin and does not require any plugin registration.</p>
-<p>Feather tracks calls to:</p>
+<h1 id="particle-system-playground-runtime-plugin">Particle System Playground Runtime Plugin<a class="headerlink" href="#particle-system-playground-runtime-plugin" title="Permanent link">&para;</a></h1>
+<p>This built-in plugin backs Feather's Particle System Playground page. It lets the desktop create scratch particle composites, preview them in the running game, edit registered game-owned composites, and export a Lua module/ZIP.</p>
+<p>The feature is inspired by <a href="https://github.com/ReFreezed/HotParticles">ReFreezed/HotParticles</a>, a particle effect editor/exporter for LÖVE. Feather's implementation is clean-room and does not vendor upstream code or assets.</p>
+<p>The plugin id is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">particle</span><span class="o">-</span><span class="nv">system</span><span class="o">-</span><span class="nv">playground</span>
+</code></pre></div>
+<h2 id="game-api">Game API<a class="headerlink" href="#game-api" title="Permanent link">&para;</a></h2>
+<p>Game code can register an existing composite for inspection and live editing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">playground</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">pluginManager</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;particle-system-playground&quot;</span><span class="p">).</span><span class="nv">instance</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nv">playground</span><span class="p">:</span><span class="nf">addComposite</span><span class="p">(</span><span class="s2">&quot;Fire&quot;</span><span class="p">,</span><span class="w"> </span><span class="kr">function</span><span class="p">()</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="kr">return</span><span class="w"> </span><span class="nv">fireParticles</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kr">end</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nv">playground</span><span class="p">:</span><span class="nf">removeComposite</span><span class="p">(</span><span class="s2">&quot;Fire&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><code>addComposite(name, getter)</code> expects <code>getter()</code> to return a HotParticles-style table:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nv">system</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">love</span><span class="p">.</span><span class="py">graphics</span><span class="p">.</span><span class="nf">newParticleSystem</span><span class="p">(</span><span class="nv">image</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">),</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nv">blendMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nv">shader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nv">texturePath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gfx/fire.png&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nv">texturePreset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nv">shaderPath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nv">shaderFilename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="nv">kickStartSteps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nv">kickStartDt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="nv">emitAtStart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="p">}</span>
+</code></pre></div>
+<p>Game composites are not drawn by this plugin. The game remains responsible for drawing them. Feather edits their <code>ParticleSystem</code> values and metadata best-effort in place.</p>
+<h2 id="scratch-composites">Scratch Composites<a class="headerlink" href="#scratch-composites" title="Permanent link">&para;</a></h2>
+<p>Scratch composites are created from the desktop playground. The plugin owns their <code>love.ParticleSystem</code> instances, updates them, and draws them in the running game.</p>
+<p>Composite preview <code>x</code>/<code>y</code> and preview movement patterns change emitter positions via <code>ParticleSystem:setPosition(...)</code>. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.</p>
+<p>Supported preview movement patterns:</p>
 <ul>
-<li><code>love.graphics.newImage</code></li>
-<li><code>love.graphics.newFont</code></li>
-<li><code>love.audio.newSource</code></li>
+<li><code>none</code></li>
+<li><code>circle</code></li>
+<li><code>figure-eight</code></li>
+<li><code>irregular</code></li>
 </ul>
-<p>Assets appear in the desktop app after they are loaded by the game.</p>
-<hr />
-<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
-<p>No extra setup is required beyond running the game through the Feather CLI:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>web
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>android
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>ios
-</code></pre></div>
-<p>Open the <strong>Assets</strong> tab in the desktop app to view the tracked catalog.</p>
-<h3 id="disabling-asset-previews">Disabling asset previews<a class="headerlink" href="#disabling-asset-previews" title="Permanent link">&para;</a></h3>
-<p>Asset tracking is enabled by default. To disable it for a session:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">-- feather.config.lua</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nv">assetPreview</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">}</span>
-</code></pre></div>
-<p>When disabled, Feather does not hook <code>love.graphics.newImage</code>, <code>love.graphics.newFont</code>, <code>love.audio.newSource</code>, or <code>love.draw</code> for asset previews.</p>
-<p>You can also toggle asset previews for the active session from the <strong>Assets</strong> tab. Turning it off clears the current asset catalog in the desktop app. Turning it back on starts tracking assets loaded after the toggle; assets loaded while previewing was disabled are not backfilled.</p>
-<hr />
-<h2 id="asset-lists">Asset Lists<a class="headerlink" href="#asset-lists" title="Permanent link">&para;</a></h2>
-<p>The Assets tab has three views:</p>
+<p>Movement is preview-only behavior and is not exported as runtime logic.</p>
+<h2 id="desktop-protocol">Desktop Protocol<a class="headerlink" href="#desktop-protocol" title="Permanent link">&para;</a></h2>
+<p>The desktop uses Feather's existing plugin protocol:</p>
+<ul>
+<li><code>handleRequest()</code> returns the current composite list, active composite, active emitter, metadata, and particle properties.</li>
+<li><code>handleParamsUpdate()</code> receives debounced property updates from the UI.</li>
+<li><code>handleActionRequest()</code> handles selection, emitter/composite mutations, asset changes, and exports.</li>
+</ul>
+<p>Important actions:</p>
 <table>
 <thead>
 <tr>
-<th>View</th>
-<th>Tracks</th>
-<th>Details shown</th>
+<th>Action</th>
+<th>Effect</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Textures</td>
-<td><code>love.graphics.newImage</code></td>
-<td>dimensions, format, mipmaps, source path</td>
+<td><code>new-composite</code></td>
+<td>Create a scratch composite</td>
 </tr>
 <tr>
-<td>Fonts</td>
-<td><code>love.graphics.newFont</code></td>
-<td>font height, ascent, descent, source path when available</td>
+<td><code>delete-composite</code></td>
+<td>Delete the active scratch composite</td>
 </tr>
 <tr>
-<td>Audio</td>
-<td><code>love.audio.newSource</code></td>
-<td>source type, channel count, duration, source path</td>
+<td><code>add-system</code></td>
+<td>Add an emitter to a scratch composite</td>
+</tr>
+<tr>
+<td><code>remove-system</code></td>
+<td>Remove an emitter from a scratch composite</td>
+</tr>
+<tr>
+<td><code>select-composite</code></td>
+<td>Select the active composite</td>
+</tr>
+<tr>
+<td><code>select-system</code></td>
+<td>Select the active emitter</td>
+</tr>
+<tr>
+<td><code>set-texture</code></td>
+<td>Apply a texture preset, game path, or uploaded base64 texture</td>
+</tr>
+<tr>
+<td><code>set-shader</code></td>
+<td>Apply inline shader source or a shader path</td>
+</tr>
+<tr>
+<td><code>emit</code> / <code>emit-all</code></td>
+<td>Burst particles</td>
+</tr>
+<tr>
+<td><code>reset</code> / <code>reset-all</code></td>
+<td>Reset particle systems</td>
+</tr>
+<tr>
+<td><code>kick-start</code></td>
+<td>Advance the active emitter by configured kick-start steps</td>
+</tr>
+<tr>
+<td><code>export-code</code></td>
+<td>Return/copy generated Lua module code</td>
+</tr>
+<tr>
+<td><code>export-zip</code></td>
+<td>Return generated <code>init.lua</code> plus referenced assets</td>
 </tr>
 </tbody>
 </table>
-<p>Use the filter input to search by filename or source path.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Feather only sees assets loaded after Feather has initialized. If an asset is loaded before Feather starts, reload the game with Feather enabled earlier in startup.</p>
-</div>
-<hr />
-<h2 id="previewing-textures-and-fonts">Previewing Textures And Fonts<a class="headerlink" href="#previewing-textures-and-fonts" title="Permanent link">&para;</a></h2>
-<p>Click <strong>View</strong> on a texture or font row to load a preview.</p>
-<h3 id="file-backed-textures">File-backed textures<a class="headerlink" href="#file-backed-textures" title="Permanent link">&para;</a></h3>
-<p>When an image was loaded from a file path:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">player</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">love</span><span class="p">.</span><span class="py">graphics</span><span class="p">.</span><span class="nf">newImage</span><span class="p">(</span><span class="s2">&quot;assets/player.png&quot;</span><span class="p">)</span>
+<h2 id="export">Export<a class="headerlink" href="#export" title="Permanent link">&para;</a></h2>
+<p>Exports produce a Lua module shaped like:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">particles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nv">system</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">ps1</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nv">blendMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nv">shader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">shader1</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nv">texturePath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gfx/fire.png&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="nv">texturePreset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="nv">shaderPath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="nv">shaderFilename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;shader.glsl&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">    </span><span class="nv">kickStartSteps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="nv">kickStartDt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">    </span><span class="nv">emitAtStart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="p">}</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="kr">return</span><span class="w"> </span><span class="nv">particles</span>
 </code></pre></div>
-<p>Feather sends the original Lua path to the desktop. The desktop resolves that path against the session's <strong>Game Root</strong> folder and reads the image directly from disk.</p>
-<p>This avoids sending large image data over the WebSocket and keeps previews fast for normal project assets.</p>
-<h3 id="procedural-textures">Procedural textures<a class="headerlink" href="#procedural-textures" title="Permanent link">&para;</a></h3>
-<p>When an image was created from runtime data:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">imageData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">love</span><span class="p">.</span><span class="py">image</span><span class="p">.</span><span class="nf">newImageData</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">texture</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">love</span><span class="p">.</span><span class="py">graphics</span><span class="p">.</span><span class="nf">newImage</span><span class="p">(</span><span class="nv">imageData</span><span class="p">)</span>
+<p>ZIP export returns <code>init.lua</code> and any available texture/shader assets. Imported texture bytes are preserved for ZIP output. Game-path assets are read through <code>love.filesystem.read</code> when possible.</p>
+<h2 id="shaders">Shaders<a class="headerlink" href="#shaders" title="Permanent link">&para;</a></h2>
+<p>The desktop editor includes built-in particle shader presets such as glow, smoke, sparkle, dissolve, ring, and energy effects. Presets are plain LÖVE pixel shader source and can be edited before applying.</p>
+<p>Animated presets may declare:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">extern</span><span class="w"> </span><span class="n">number</span><span class="w"> </span><span class="n">u_time</span><span class="p">;</span>
 </code></pre></div>
-<p>There is no file path to read from disk. Feather renders the texture to a canvas in the game and sends a base64 PNG preview to the desktop.</p>
-<h3 id="fonts">Fonts<a class="headerlink" href="#fonts" title="Permanent link">&para;</a></h3>
-<p>Fonts are previewed by rendering sample text in the game and sending a PNG preview to the desktop.</p>
-<hr />
-<h2 id="game-root">Game Root<a class="headerlink" href="#game-root" title="Permanent link">&para;</a></h2>
-<p>The <strong>Game Root</strong> folder is the desktop-side root directory used to resolve asset paths and debugger source files.</p>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>If the game runs somewhere the desktop cannot read directly, such as a mobile device, remote machine, or bundled runtime, click <strong>Select Folder</strong> and choose the local copy of the game's root folder.</p>
-</div>
-<p>Feather automatically reports the source directory when the LÖVE version supports it.</p>
-<p>The selected folder is stored per session and is shared by:</p>
+<p>When a scratch composite is drawn, the plugin sends <code>u_time</code> with <code>love.timer.getTime()</code> if the active shader accepts it. Shaders that do not declare <code>u_time</code> are unaffected.</p>
+<h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Assets</strong> — resolves image paths for file-backed previews</li>
-<li><strong>Debugger</strong> — reads <code>.lua</code> source files for the file tree and source view</li>
+<li>This is a Feather-owned clean-room runtime/plugin implementation.</li>
+<li>It does not depend on upstream HotParticles code or assets.</li>
+<li>It does not import <code>.hotparticles</code> project files.</li>
+<li>Registered game composites can be edited, but exports are only complete when the plugin has enough texture/shader metadata or uploaded asset bytes.</li>
 </ul>
-<p>Click <strong>Auto</strong> to remove the manual folder and return to Feather's detected root.</p>
-<h3 id="path-resolution">Path resolution<a class="headerlink" href="#path-resolution" title="Permanent link">&para;</a></h3>
-<p>If Lua reports:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">assets</span><span class="o">/</span><span class="nv">player</span><span class="p">.</span><span class="py">png</span>
-</code></pre></div>
-<p>and the selected Game Root is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>/Users/me/projects/my-game
-</code></pre></div>
-<p>the desktop reads:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>/Users/me/projects/my-game/assets/player.png
-</code></pre></div>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>For absolute paths reported by the game, a manually selected Game Root still wins. Feather strips the absolute prefix and resolves the path inside the selected folder so remote/mobile paths can map to a local project copy.</p>
-</div>
-<hr />
-<h2 id="preview-controls">Preview Controls<a class="headerlink" href="#preview-controls" title="Permanent link">&para;</a></h2>
-<p>The preview panel supports:</p>
-<table>
-<thead>
-<tr>
-<th>Control</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Zoom in</td>
-<td>Increase zoom by 1.5x</td>
-</tr>
-<tr>
-<td>Zoom out</td>
-<td>Decrease zoom by 1.5x</td>
-</tr>
-<tr>
-<td>Fit</td>
-<td>Reset zoom to 100% and clear pan</td>
-</tr>
-<tr>
-<td>Drag</td>
-<td>Pan the canvas when zoomed above 100%</td>
-</tr>
-</tbody>
-</table>
-<p>When zoom is above 100%, Feather draws a pixel grid over the preview. This is useful for inspecting sprites, tiles, and procedural images at the pixel level.</p>
-<hr />
-<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<h3 id="the-texture-list-is-empty">The texture list is empty<a class="headerlink" href="#the-texture-list-is-empty" title="Permanent link">&para;</a></h3>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>Make sure the game loads images after Feather starts. When using <code>feather run</code>, the CLI starts Feather before your game's <code>main.lua</code> is loaded.</p>
-</div>
-<h3 id="preview-says-the-file-is-not-available">Preview says the file is not available<a class="headerlink" href="#preview-says-the-file-is-not-available" title="Permanent link">&para;</a></h3>
-<p>The desktop could not read the image from the resolved path. Select the correct <strong>Game Root</strong> folder in the Assets tab.</p>
-<p>This often happens when:</p>
-<ul>
-<li>the game is running on another machine</li>
-<li>the game is running on mobile</li>
-<li>the LÖVE source directory cannot be detected</li>
-<li>the game reports a path from a bundled/runtime environment</li>
-</ul>
-<h3 id="procedural-previews-do-not-update-immediately">Procedural previews do not update immediately<a class="headerlink" href="#procedural-previews-do-not-update-immediately" title="Permanent link">&para;</a></h3>
-<p>Procedural texture and font previews are rendered during <code>love.draw</code>. Make sure your game continues drawing while connected to Feather.</p>
 
 
 
@@ -2017,10 +1794,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
