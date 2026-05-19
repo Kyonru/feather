@@ -2,7 +2,7 @@ import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData } fr
 import { NODE_DEFS } from './nodeDefs';
 import { glslFloat } from './glslUtils';
 
-const PASSTHROUGH_PIXEL = [
+export const PASSTHROUGH_PIXEL = [
   'vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords) {',
   '  return Texel(tex, texture_coords) * color;',
   '}',

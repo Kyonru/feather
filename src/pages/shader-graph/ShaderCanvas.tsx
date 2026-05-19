@@ -15,10 +15,12 @@ import {
   type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Button } from '@/components/ui/button';
 import type { ShaderNodeData, NodeType } from '@/types/shader-graph';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { NODE_DEFS } from './nodeDefs';
 import { nodeTypes } from './nodes';
+import { Redo2Icon, Undo2Icon } from 'lucide-react';
 
 let idCounter = Date.now();
 function nextId() {
@@ -37,6 +39,10 @@ export function ShaderCanvas() {
   const selectEdge = useShaderGraphStore((s) => s.selectEdge);
   const selectedNodeId = useShaderGraphStore((s) => s.selectedNodeId);
   const selectedEdgeId = useShaderGraphStore((s) => s.selectedEdgeId);
+  const undo = useShaderGraphStore((s) => s.undo);
+  const redo = useShaderGraphStore((s) => s.redo);
+  const canUndo = useShaderGraphStore((s) => s.undoStack.length > 0);
+  const canRedo = useShaderGraphStore((s) => s.redoStack.length > 0);
 
   // Captured via onInit — avoids calling useReactFlow() at the same level as <ReactFlow>
   const rfRef = useRef<ReactFlowInstance<Node<ShaderNodeData>> | null>(null);
@@ -126,15 +132,30 @@ export function ShaderCanvas() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
+
+      const modifier = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+      if (modifier && key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (modifier && key === 'y') {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       if (selectedNodeId) removeNode(selectedNodeId);
       else if (selectedEdgeId) removeEdge(selectedEdgeId);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedNodeId, selectedEdgeId, removeNode, removeEdge]);
+  }, [selectedNodeId, selectedEdgeId, removeNode, removeEdge, redo, undo]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -161,6 +182,28 @@ export function ShaderCanvas() {
         deleteKeyCode={null}
         className="bg-background"
       >
+        <div className="absolute left-3 top-3 z-10 flex gap-1 rounded-md border bg-card/95 p-1 shadow-sm">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            disabled={!canUndo}
+            title="Undo (Cmd/Ctrl+Z)"
+            onClick={undo}
+          >
+            <Undo2Icon className="size-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            disabled={!canRedo}
+            title="Redo (Cmd/Ctrl+Shift+Z or Ctrl+Y)"
+            onClick={redo}
+          >
+            <Redo2Icon className="size-4" />
+          </Button>
+        </div>
         <Background gap={20} size={1} className="!text-muted-foreground/20" />
         <Controls className="[&>button]:bg-card [&>button]:border-border [&>button]:text-foreground" />
         <MiniMap className="!bg-card !border !border-border" nodeColor="hsl(var(--muted))" />
