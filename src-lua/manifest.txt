@@ -1,4 +1,5 @@
 core:feather/auto.lua
+core:feather/callback_bus.lua
 core:feather/core/assets.lua
 core:feather/core/base.lua
 core:feather/core/debug_overlay.lua

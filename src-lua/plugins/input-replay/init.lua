@@ -35,11 +35,14 @@ end
 ---@field captureJoystick boolean
 ---@field captureJoystickAxis boolean
 ---@field _originals table  Original love callbacks saved for restoration
+---@field _wrappers table   Stable love callback wrappers owned by the plugin
+---@field _callbackDisposers function[]
 ---@field _hooked boolean
 local InputReplayPlugin = Class({
   __includes = Base,
   init = function(self, config)
     self.options = config.options or {}
+    self.feather = config.feather
     self.logger = config.logger
     self.observer = config.observer
     self.events = {}
@@ -57,42 +60,83 @@ local InputReplayPlugin = Class({
     self.captureJoystick = self.options.captureJoystick ~= false
     self.captureJoystickAxis = self.options.captureJoystickAxis == true -- off by default (noisy)
     self._originals = {}
+    self._wrappers = {}
+    self._callbackDisposers = {}
     self._hooked = false
+
+    if config.callbacks then
+      self:_installCallbackBusHooks(config.callbacks)
+    end
   end,
 })
 
---- Install hooks on love callbacks to intercept input events.
---- Safe to call multiple times — only hooks once.
-function InputReplayPlugin:_installHooks()
-  if self._hooked then
+local CALLBACK_BUS_EVENTS = {
+  keypressed = true,
+  keyreleased = true,
+  mousepressed = true,
+  mousereleased = true,
+  touchpressed = true,
+  touchreleased = true,
+  joystickpressed = true,
+  joystickreleased = true,
+}
+
+local DIRECT_HOOK_EVENTS = {
+  mousemoved = true,
+  touchmoved = true,
+  joystickhat = true,
+  joystickaxis = true,
+  gamepadpressed = true,
+  gamepadreleased = true,
+  gamepadaxis = true,
+}
+
+function InputReplayPlugin:_shouldCapture(name)
+  if name == "keypressed" or name == "keyreleased" then
+    return self.captureKeys
+  elseif name == "mousepressed" or name == "mousereleased" then
+    return self.captureMouse
+  elseif name == "mousemoved" then
+    return self.captureMouseMove
+  elseif name == "touchpressed" or name == "touchreleased" then
+    return self.captureTouch
+  elseif name == "touchmoved" then
+    return self.captureTouchMove
+  elseif
+    name == "joystickpressed"
+    or name == "joystickreleased"
+    or name == "joystickhat"
+    or name == "gamepadpressed"
+    or name == "gamepadreleased"
+  then
+    return self.captureJoystick
+  elseif name == "joystickaxis" or name == "gamepadaxis" then
+    return self.captureJoystickAxis
+  end
+  return false
+end
+
+function InputReplayPlugin:_recordEvent(name, args)
+  if not self.recording or not self:_shouldCapture(name) then
     return
   end
-  self._hooked = true
+  if #self.events >= self.maxEvents then
+    return
+  end
+  self.events[#self.events + 1] = {
+    time = gettime() - self.recordStart,
+    type = name,
+    args = args,
+  }
+end
 
-  local selfRef = self
-
-  -- Helper: wrap a love callback, recording events when active
-  local function hookCallback(name, argsTransform)
-    local original = love[name]
-    selfRef._originals[name] = original
-
-    love[name] = function(...)
-      -- Record if active
-      if selfRef.recording then
-        local elapsed = gettime() - selfRef.recordStart
-        if #selfRef.events < selfRef.maxEvents then
-          local args = argsTransform and argsTransform(...) or { ... }
-          selfRef.events[#selfRef.events + 1] = {
-            time = elapsed,
-            type = name,
-            args = args,
-          }
-        end
-      end
-      -- Always call the original
-      if original then
-        return original(...)
-      end
+function InputReplayPlugin:_installCallbackBusHooks(callbacks)
+  local function register(name, argsTransform)
+    local ok, disposer = pcall(callbacks.register, name, function(...)
+      self:_recordEvent(name, argsTransform and argsTransform(...) or { ... })
+    end)
+    if ok and disposer then
+      self._callbackDisposers[#self._callbackDisposers + 1] = disposer
     end
   end
 
@@ -109,23 +153,98 @@ function InputReplayPlugin:_installHooks()
     return { id, ... }
   end
 
-  if self.captureKeys then
-    hookCallback("keypressed")
-    hookCallback("keyreleased")
+  register("keypressed")
+  register("keyreleased")
+  register("mousepressed")
+  register("mousereleased")
+  register("touchpressed", touchArgs)
+  register("touchreleased", touchArgs)
+  register("joystickpressed", joystickArgs)
+  register("joystickreleased", joystickArgs)
+end
+
+--- Install hooks on love callbacks to intercept input events.
+--- Safe to call multiple times — only hooks once.
+function InputReplayPlugin:_installHooks()
+  if self._hooked then
+    local function recapture(name)
+      local wrapper = self._wrappers[name]
+      local featherWrapper = self.feather
+        and self.feather.pluginManager
+        and self.feather.pluginManager._loveCallbackWrappers
+        and self.feather.pluginManager._loveCallbackWrappers[name]
+
+      if wrapper and DIRECT_HOOK_EVENTS[name] and love[name] ~= wrapper then
+        if love[name] ~= featherWrapper then
+          self._originals[name] = love[name]
+        end
+        love[name] = wrapper
+      end
+    end
+
+    if self.captureMouseMove then
+      recapture("mousemoved")
+    end
+
+    if self.captureTouchMove then
+      recapture("touchmoved")
+    end
+
+    if self.captureJoystick then
+      recapture("joystickhat")
+      recapture("gamepadpressed")
+      recapture("gamepadreleased")
+    end
+
+    if self.captureJoystickAxis then
+      recapture("joystickaxis")
+      recapture("gamepadaxis")
+    end
+
+    return
+  end
+  self._hooked = true
+
+  local selfRef = self
+
+  -- Helper: keep a stable love callback wrapper and re-capture later overrides.
+  local function hookCallback(name, argsTransform)
+    local wrapper = selfRef._wrappers[name]
+    if not wrapper then
+      wrapper = function(...)
+        selfRef:_recordEvent(name, argsTransform and argsTransform(...) or { ... })
+
+        local original = selfRef._originals[name]
+        if original and original ~= wrapper then
+          return original(...)
+        end
+      end
+
+      selfRef._wrappers[name] = wrapper
+    end
+
+    local current = love[name]
+    if current ~= wrapper then
+      selfRef._originals[name] = current
+      love[name] = wrapper
+    end
   end
 
-  if self.captureMouse then
-    hookCallback("mousepressed")
-    hookCallback("mousereleased")
+  -- Touch id is light userdata — store as string so events are JSON-serializable
+  -- and can be replayed consistently across save/load sessions.
+  local function touchArgs(id, x, y, dx, dy, pressure)
+    return { tostring(id), x, y, dx, dy, pressure }
+  end
+
+  -- Joystick userdata is stored as its numeric ID so events are JSON-serializable.
+  -- The ID is resolved back to the live object at replay time via REPLAY_RESOLVERS.
+  local function joystickArgs(joystick, ...)
+    local id = joystick:getID() -- returns id, instanceid; we keep only id
+    return { id, ... }
   end
 
   if self.captureMouseMove then
     hookCallback("mousemoved")
-  end
-
-  if self.captureTouch then
-    hookCallback("touchpressed", touchArgs)
-    hookCallback("touchreleased", touchArgs)
   end
 
   if self.captureTouchMove then
@@ -133,8 +252,6 @@ function InputReplayPlugin:_installHooks()
   end
 
   if self.captureJoystick then
-    hookCallback("joystickpressed", joystickArgs)
-    hookCallback("joystickreleased", joystickArgs)
     hookCallback("joystickhat", joystickArgs)
     hookCallback("gamepadpressed", joystickArgs)
     hookCallback("gamepadreleased", joystickArgs)
@@ -152,9 +269,12 @@ function InputReplayPlugin:_removeHooks()
     return
   end
   for name, original in pairs(self._originals) do
-    love[name] = original
+    if love[name] == self._wrappers[name] then
+      love[name] = original
+    end
   end
   self._originals = {}
+  self._wrappers = {}
   self._hooked = false
 end
 
@@ -253,8 +373,32 @@ local REPLAY_RESOLVERS = {
   end,
 }
 
+function InputReplayPlugin:_dispatchReplayEvent(event)
+  local resolver = REPLAY_RESOLVERS[event.type]
+  local replayArgs = resolver and resolver(event.args) or event.args
+  if not replayArgs then
+    return
+  end
+
+  if CALLBACK_BUS_EVENTS[event.type] and love[event.type] then
+    pcall(love[event.type], unpack(replayArgs))
+    return
+  end
+
+  local original = self._originals[event.type]
+  if original then
+    pcall(original, unpack(replayArgs))
+  elseif love[event.type] and love[event.type] ~= self._wrappers[event.type] then
+    pcall(love[event.type], unpack(replayArgs))
+  end
+end
+
 --- Called every frame by the plugin manager.
 function InputReplayPlugin:update()
+  if self._hooked then
+    self:_installHooks()
+  end
+
   if not self.replaying then
     return
   end
@@ -268,17 +412,7 @@ function InputReplayPlugin:update()
       break -- not yet
     end
 
-    -- Fire the original callback (not our hook, to avoid re-recording).
-    -- For joystick events the stored args use a numeric ID; resolve back to the
-    -- live Joystick object before firing.
-    local original = self._originals[event.type]
-    if original then
-      local resolver = REPLAY_RESOLVERS[event.type]
-      local replayArgs = resolver and resolver(event.args) or event.args
-      if replayArgs then
-        pcall(original, unpack(replayArgs))
-      end
-    end
+    self:_dispatchReplayEvent(event)
 
     self.replayIndex = self.replayIndex + 1
   end
@@ -536,6 +670,10 @@ end
 
 function InputReplayPlugin:finish(_feather)
   self:_removeHooks()
+  for _, dispose in ipairs(self._callbackDisposers) do
+    pcall(dispose)
+  end
+  self._callbackDisposers = {}
   self.recording = false
   self.replaying = false
 end

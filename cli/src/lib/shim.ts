@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 // Path to the bundled Lua library shipped with this CLI package.
 // In a source checkout `npm run build` does not run the publish-time Lua bundle,
 // so fall back to the repository's src-lua directory for local development.
-const PACKAGED_LUA = resolve(dirname(fileURLToPath(new URL('.', import.meta.url))), '../../lua');
-const SOURCE_LUA = resolve(dirname(fileURLToPath(new URL('.', import.meta.url))), '../../../src-lua');
+const MODULE_DIR = fileURLToPath(new URL('.', import.meta.url));
+const PACKAGED_LUA = resolve(MODULE_DIR, '../../lua');
+const SOURCE_LUA = resolve(MODULE_DIR, '../../../src-lua');
 
 export function bundledLuaRoot(): string {
   // When running as a compiled binary, lua/ ships next to the executable.
@@ -70,7 +71,12 @@ function serializeLuaConfig(cfg: Record<string, unknown>): string {
   return lines.join('\n');
 }
 
-function buildMainLua(opts: ShimOptions, pluginsDir?: string): string {
+function luaPackagePath(rootDir: string): string {
+  const normalized = rootDir.replace(/\\/g, '/');
+  return `${normalized}/?.lua;${normalized}/?/init.lua`;
+}
+
+function buildMainLua(opts: ShimOptions, featherDir: string, pluginsDir?: string): string {
   const sessionName = opts.sessionName ?? '';
   const configLines = opts.userConfig ? serializeLuaConfig(opts.userConfig) : '';
 
@@ -78,11 +84,13 @@ function buildMainLua(opts: ShimOptions, pluginsDir?: string): string {
   const pluginListLine = pluginIds.length > 0
     ? `FEATHER_PLUGIN_LIST = { ${pluginIds.map((id) => JSON.stringify(id)).join(', ')} }`
     : '';
-  // Add the plugins parent dir to package.path so require("plugins.X") resolves
-  // via the OS filesystem (no PhysFS / symlink dependency).
-  const packagePathLine = pluginsDir && pluginIds.length > 0
-    ? `package.path = package.path .. ";${dirname(pluginsDir).replace(/\\/g, '/')}/?.lua;${dirname(pluginsDir).replace(/\\/g, '/')}/?/init.lua"`
-    : '';
+  // Add runtime/plugin parent dirs to package.path so require() resolves via the
+  // OS filesystem instead of depending on PhysFS symlink behavior.
+  const packagePaths = new Set([luaPackagePath(dirname(featherDir))]);
+  if (pluginsDir && pluginIds.length > 0) {
+    packagePaths.add(luaPackagePath(dirname(pluginsDir)));
+  }
+  const packagePathLine = `package.path = package.path .. ";${[...packagePaths].join(';')}"`;
 
   return `-- Feather CLI injector — generated, do not edit
 -- Game files are symlinked into this directory so love.filesystem works as normal.
@@ -152,6 +160,7 @@ const SHIM_OWNED = new Set(['main.lua', 'conf.lua', 'feather', 'plugins']);
 export function createShim(opts: ShimOptions): Shim {
   const absGame = resolve(opts.gamePath);
   const dir = mkdtempSync(join(tmpdir(), 'feather-'));
+  const resolvedFeatherDir = featherRoot(opts.featherOverride);
 
   // Resolve plugins directory early so buildMainLua can embed the ID list and
   // package.path addition (bypasses PhysFS symlink dependency in auto.lua).
@@ -162,12 +171,12 @@ export function createShim(opts: ShimOptions): Shim {
       : (() => {
           const p = opts.pluginsOverride
             ? resolve(opts.pluginsOverride)
-            : pluginsRoot(featherRoot(opts.featherOverride), opts.featherOverride);
+            : pluginsRoot(resolvedFeatherDir, opts.featherOverride);
           return existsSync(p) ? p : undefined;
         })();
 
   // 1. Write shim entry points
-  writeFileSync(join(dir, 'main.lua'), buildMainLua(opts, resolvedPluginsDir));
+  writeFileSync(join(dir, 'main.lua'), buildMainLua(opts, resolvedFeatherDir, resolvedPluginsDir));
   writeFileSync(join(dir, 'conf.lua'), buildConfLua());
 
   // 2. Symlink every file/dir from the game into the shim root, except shim-owned names.
@@ -179,7 +188,7 @@ export function createShim(opts: ShimOptions): Shim {
 
   // 3. Add feather library — prefer game-local install (already symlinked above if present)
   if (!existsSync(join(dir, 'feather'))) {
-    symlinkSync(featherRoot(opts.featherOverride), join(dir, 'feather'), 'dir');
+    symlinkSync(resolvedFeatherDir, join(dir, 'feather'), 'dir');
   }
 
   // 4. Add plugins directory symlink — still created for love.filesystem access to

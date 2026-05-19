@@ -118,7 +118,48 @@ return {
 
 ### Love-event hooks
 
-Instead of patching `love.*` callbacks inside `init()`, override the corresponding `on*` method. `FeatherPluginManager` patches each love callback once and dispatches to all enabled plugins — this prevents conflicts when multiple plugins hook the same callback.
+Instead of patching `love.*` callbacks inside `init()`, use Feather's callback bus or override the corresponding `on*` method. `FeatherPluginManager` patches each love callback once and dispatches through a shared bus — this prevents conflicts when multiple plugins hook the same callback.
+
+### Callback bus
+
+`config.callbacks.register(name, fn, opts)` registers a handler on the shared runtime callback bus.
+
+```lua
+function MyPlugin:init(config)
+  self.disposeOverlay = config.callbacks.register("draw", function()
+    -- Runs after love.draw(); use love.graphics here
+  end)
+
+  config.callbacks.register("draw", function()
+    -- Rare override: run later than default callbacks
+  end, {
+    priority = 1000,
+  })
+end
+```
+
+Supported callback names are:
+
+- `draw`
+- `keypressed`
+- `keyreleased`
+- `mousepressed`
+- `mousereleased`
+- `touchpressed`
+- `touchreleased`
+- `joystickpressed`
+- `joystickreleased`
+
+Ordering rules:
+
+- No priority: FIFO, based on registration order.
+- Lower numeric priorities run earlier; higher numeric priorities run later.
+- Undefined priorities preserve FIFO order.
+- Equal priorities preserve FIFO order.
+
+Use priority as a rare escape hatch. Normal plugins should usually omit it.
+
+Legacy `on*` methods still work and are routed through the same callback bus. If your plugin only needs the standard love hooks, overriding `onDraw`, `onKeypressed`, and friends remains valid.
 
 ```lua
 function MyPlugin:onDraw()
@@ -211,7 +252,7 @@ The FeatherPluginManager handles the lifecycle of each plugin. Each plugin's `up
 
 #### Initialization
 
-- `init(config)`: Called when the plugin is initialized. `config.options` contains the options passed to `createPlugin`, and `config.logger` / `config.observer` are always available.
+- `init(config)`: Called when the plugin is initialized. `config.options` contains the options passed to `createPlugin`, `config.logger` / `config.observer` are always available, and `config.callbacks.register(...)` lets plugins join the shared love-event callback bus.
 - `getConfig()`: Returns the plugin configuration (type, icon, tab name, actions). Sent to the desktop app on connect.
 
 #### Data Push (every cycle)

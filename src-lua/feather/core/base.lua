@@ -29,6 +29,7 @@ function FeatherPlugin:init(config)
   self.options = config.options or {}
   self.logger = config.logger or {}
   self.observer = config.observer or {}
+  self.callbacks = config.callbacks or {}
   self.api = config.api
   self.minApi = config.minApi
   self.maxApi = config.maxApi

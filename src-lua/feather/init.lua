@@ -9,6 +9,7 @@ FEATHER_PATH = FEATHER_PATH or PATH
 local Class = require(FEATHER_PATH .. ".lib.class")
 local json = require(FEATHER_PATH .. ".lib.json")
 local errorhandler = require(FEATHER_PATH .. ".error_handler")
+local FeatherCallbackBus = require(FEATHER_PATH .. ".callback_bus")
 local FeatherPluginManager = require(FEATHER_PATH .. ".plugin_manager")
 local FeatherLogger = require(FEATHER_PATH .. ".core.logger")
 local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
@@ -26,6 +27,18 @@ local FEATHER_API = 5
 local FEATHER_VERSION = {
   name = FEATHER_VERSION_NAME,
   api = FEATHER_API,
+}
+
+local CALLBACK_NAMES = {
+  "draw",
+  "keypressed",
+  "keyreleased",
+  "mousepressed",
+  "mousereleased",
+  "touchpressed",
+  "touchreleased",
+  "joystickpressed",
+  "joystickreleased",
 }
 
 ---@class Feather: FeatherConfig
@@ -199,6 +212,7 @@ function Feather:init(config)
     self.assets = FeatherAssets(self.featherLogger)
   end
 
+  self.callbackBus = FeatherCallbackBus(CALLBACK_NAMES)
   self.pluginManager = FeatherPluginManager(self, self.featherLogger, self.featherObserver)
   self.pluginManager:hookLoveCallbacks()
   self.debugOverlay = FeatherDebugOverlay(self, conf.debugOverlay)
