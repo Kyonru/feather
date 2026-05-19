@@ -12,6 +12,7 @@ import {
 } from '../lib/install.js';
 import { configTemplate, luaKey, luaValue } from '../lib/config.js';
 import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init/index.js';
+import { mergeCapabilities } from '../ui/init/config.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
 import { fail } from '../lib/command.js';
@@ -27,9 +28,18 @@ export interface InitOptions {
   installDir?: string;
   yes?: boolean;
   mode?: InitMode;
+  allowInsecureConnection?: boolean;
 }
 
 const knownPlugins = pluginCatalog.map((plugin) => plugin.id);
+
+function addPluginCapabilities(config: Record<string, unknown>, pluginIds: Iterable<string>): void {
+  const current = config.capabilities as string[] | 'all' | undefined;
+  const merged = mergeCapabilities(current, pluginIds);
+  if (merged && merged !== 'all') {
+    config.capabilities = merged;
+  }
+}
 
 const toLocalName = (id: string) =>
   id
@@ -98,7 +108,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
           branch: opts.branch ?? 'main',
           installDir: opts.installDir ?? 'feather',
           installPlugins: opts.noPlugins ? false : true,
-          config: {},
+          config: opts.allowInsecureConnection ? { __DANGEROUS_INSECURE_CONNECTION__: true } : {},
           exclude: [],
         };
   const mode = setup.mode;
@@ -206,6 +216,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   }
 
   if (mode === 'auto') {
+    addPluginCapabilities(setup.config, installedPluginIds);
     const patched = patchMainLua(mainPath, installDir);
     if (patched) {
       printLine(`${icon.success} Patched main.lua with feather.auto require`);
@@ -219,6 +230,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
         : pluginsDisabled
           ? []
           : (opts.plugins ?? knownPlugins).filter((id) => !setup.exclude.includes(id));
+    addPluginCapabilities(setup.config, pluginIds);
     const created = writeManualDebugger(target, setup.config, pluginIds, installDir);
     const patched = patchMainLuaForManual(mainPath);
 
