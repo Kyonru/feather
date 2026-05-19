@@ -5,6 +5,7 @@ import {
   type InitMode,
   type InitSetup,
 } from "./model.js";
+import { pluginCatalog } from "../../generated/plugin-catalog.js";
 
 export type InitSetupState = {
   mode: InitMode;
@@ -37,6 +38,31 @@ export type InitSetupState = {
   appIdInput: string;
 };
 
+const pluginCapabilities = new Map(pluginCatalog.map((plugin) => [plugin.id, plugin.capabilities]));
+
+export function capabilitiesForPlugins(pluginIds: Iterable<string>): string[] {
+  const capabilities = new Set<string>();
+
+  for (const id of pluginIds) {
+    for (const capability of pluginCapabilities.get(id) ?? []) {
+      capabilities.add(capability);
+    }
+  }
+
+  return [...capabilities].sort();
+}
+
+export function mergeCapabilities(base: string[] | "all" | undefined, pluginIds: Iterable<string>): string[] | "all" | undefined {
+  const pluginCaps = capabilitiesForPlugins(pluginIds);
+  if (pluginCaps.length === 0) return base;
+
+  if (!base || base === "all") {
+    return pluginCaps;
+  }
+
+  return [...new Set([...base, ...pluginCaps])].sort();
+}
+
 export function buildInitSetup(input: InitSetupState): InitSetup {
   const config: Record<string, unknown> = {};
   if (input.sessionName.trim()) config.sessionName = input.sessionName.trim();
@@ -66,6 +92,14 @@ export function buildInitSetup(input: InitSetupState): InitSetup {
     config.assetPreview = input.toggles.has("assetPreview");
     config.binaryTextThreshold = numericValue(input.binaryTextThreshold, 4096);
     if (input.deviceId.trim()) config.deviceId = input.deviceId.trim();
+  }
+
+  const mergedCapabilities = mergeCapabilities(
+    config.capabilities as string[] | "all" | undefined,
+    input.pluginPromptsEnabled ? input.include : [],
+  );
+  if (mergedCapabilities && mergedCapabilities !== "all") {
+    config.capabilities = mergedCapabilities;
   }
 
   if (input.needsApiKey) {

@@ -108,6 +108,29 @@ if gamePath then
   end
   chunk()
 end
+
+-- CLI mode should not require game code to call DEBUGGER:update(dt).
+-- Wrap after loading the game so we preserve the user's love.update callback.
+-- If the game already calls DEBUGGER:update(dt), avoid a second update in the same frame.
+if DEBUGGER and type(DEBUGGER.update) == "function" and not DEBUGGER.__cliAutoUpdateInstalled then
+  DEBUGGER.__cliAutoUpdateInstalled = true
+  local featherUpdate = DEBUGGER.update
+  DEBUGGER.update = function(self, dt)
+    self.__cliAutoUpdatedThisFrame = true
+    return featherUpdate(self, dt)
+  end
+
+  local gameUpdate = love.update
+  love.update = function(dt)
+    DEBUGGER.__cliAutoUpdatedThisFrame = false
+    if gameUpdate then
+      gameUpdate(dt)
+    end
+    if not DEBUGGER.__cliAutoUpdatedThisFrame then
+      featherUpdate(DEBUGGER, dt)
+    end
+  end
+end
 `;
 }
 

@@ -7,14 +7,26 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
-import { BugIcon, ClockIcon, GaugeIcon, GitCompareArrowsIcon, ImagesIcon, LogsIcon, TelescopeIcon, TerminalIcon } from 'lucide-react';
+import {
+  BlendIcon,
+  BugIcon,
+  CableIcon,
+  ClockIcon,
+  GaugeIcon,
+  GitCompareArrowsIcon,
+  ImagesIcon,
+  LogsIcon,
+  SparklesIcon,
+  TelescopeIcon,
+  TerminalIcon,
+} from 'lucide-react';
 import { useDebuggerStore } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
 
 export function NavMain() {
   const sessionId = useSessionStore((state) => state.sessionId);
   const hasSession = !!sessionId;
-  const isPaused = useDebuggerStore((state) => sessionId ? !!state.pausedState[sessionId] : false);
+  const isPaused = useDebuggerStore((state) => (sessionId ? !!state.pausedState[sessionId] : false));
 
   const items = [
     {
@@ -33,19 +45,24 @@ export function NavMain() {
       icon: TelescopeIcon,
     },
     {
-      title: 'Console',
-      url: '/console',
-      icon: TerminalIcon,
-    },
-    {
       title: 'Debugger',
       url: '/debugger',
       icon: BugIcon,
     },
     {
-      title: 'Time Travel',
-      url: '/time-travel',
-      icon: ClockIcon,
+      title: 'Console',
+      url: '/console',
+      icon: TerminalIcon,
+    },
+    {
+      title: 'Particles Playground',
+      url: '/particle-system-playground',
+      icon: SparklesIcon,
+    },
+    {
+      title: 'Shader Graph',
+      url: '/shader-graph',
+      icon: BlendIcon,
     },
     {
       title: 'Assets',
@@ -53,9 +70,19 @@ export function NavMain() {
       icon: ImagesIcon,
     },
     {
+      title: 'Time Travel',
+      url: '/time-travel',
+      icon: ClockIcon,
+    },
+    {
       title: 'Compare',
       url: '/compare',
       icon: GitCompareArrowsIcon,
+    },
+    {
+      title: 'Session',
+      url: '/session',
+      icon: CableIcon,
     },
   ];
   const location = useLocation();

@@ -11,9 +11,58 @@ export interface FeatherConfig {
   [key: string]: unknown;
 }
 
+function stripLuaComments(src: string): string {
+  let out = "";
+  let i = 0;
+  let quote: '"' | "'" | null = null;
+
+  while (i < src.length) {
+    const ch = src[i];
+    const next = src[i + 1];
+
+    if (quote) {
+      out += ch;
+      if (ch === "\\" && next) {
+        out += next;
+        i += 2;
+        continue;
+      }
+      if (ch === quote) quote = null;
+      i += 1;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      out += ch;
+      i += 1;
+      continue;
+    }
+
+    if (ch === "-" && next === "-") {
+      if (src[i + 2] === "[" && src[i + 3] === "[") {
+        const end = src.indexOf("]]", i + 4);
+        if (end === -1) break;
+        i = end + 2;
+        continue;
+      }
+
+      while (i < src.length && src[i] !== "\n") i += 1;
+      continue;
+    }
+
+    out += ch;
+    i += 1;
+  }
+
+  return out;
+}
+
 // Minimal Lua table parser for simple `return { key = value, ... }` configs.
 // Handles strings, numbers, booleans, and flat string arrays.
 function parseLuaTable(src: string): Record<string, unknown> {
+  src = stripLuaComments(src);
+
   // Strip the outer `return { ... }` wrapper
   const match = src.match(/return\s*\{([\s\S]*)\}/);
   if (!match) return {};

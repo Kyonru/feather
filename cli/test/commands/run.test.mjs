@@ -141,6 +141,57 @@ test('run: shim preloads config before requiring feather.auto', () => {
   assert.ok(record.shimMain.includes('require("feather.auto")'));
 });
 
+test('run: shim auto-drives DEBUGGER update after loading the game', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', '--love', fakePath, gameDir]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(record.shimMain.includes('not DEBUGGER.__cliAutoUpdateInstalled'));
+  assert.ok(record.shimMain.includes('local gameUpdate = love.update'));
+  assert.ok(record.shimMain.includes('gameUpdate(dt)'));
+  assert.ok(record.shimMain.includes('featherUpdate(DEBUGGER, dt)'));
+});
+
+test('run: config parser ignores commented example options', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const configPath = join(gameDir, 'feather.config.lua');
+  writeFileSync(configPath, `
+return {
+  sessionName = "Real Config",
+  include = { "console" },
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  apiKey = "real-key",
+
+  -- appId = "feather-app-commented-placeholder",
+  -- include = { "hot-reload" },
+  -- exclude = { "hump.signal" },
+  -- mode = "disk",
+  -- debugger = {
+  --   enabled = true,
+  -- },
+}
+`);
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', '--love', fakePath, gameDir, '--config', configPath]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(record.env.FEATHER_SESSION_NAME, 'Real Config');
+  assert.ok(record.shimMain.includes('sessionName = "Real Config"'));
+  assert.ok(record.shimMain.includes('include = { "console" }'));
+  assert.equal(record.shimMain.includes('feather-app-commented-placeholder'), false);
+  assert.equal(record.shimMain.includes('include = { "hot-reload" }'), false);
+  assert.equal(record.shimMain.includes('mode = "disk"'), false);
+});
+
 test('run --no-debugger: launches game directly without Feather shim', () => {
   const dir = makeTmp();
   const gameDir = join(dir, 'game');

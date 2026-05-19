@@ -104,6 +104,7 @@ program
   .option('--plugins <ids>', 'Comma-separated list of plugins to install')
   .option('--mode <mode>', 'Setup mode: cli, auto, or manual', parseInitMode)
   .option('-y, --yes', 'Skip confirmation prompts')
+  .option('--allow-insecure-connection', 'Set __DANGEROUS_INSECURE_CONNECTION__ in feather.config.lua (required with --yes if appId is not configured)')
   .action((dir: string | undefined, opts) => runCliAction(() => initCommand(dir ?? '.', {
       branch: opts.branch as string,
       remote: opts.remote as boolean | undefined,
@@ -116,6 +117,7 @@ program
           : undefined,
       mode: opts.mode as InitMode | undefined,
       yes: opts.yes as boolean,
+      allowInsecureConnection: opts.allowInsecureConnection as boolean | undefined,
     })));
 
 program

@@ -151,7 +151,7 @@ test('doctor --production fails unsafe remote-control and production settings', 
   }
 });
 
-test('doctor --json makes missing Desktop App ID fail outside production', () => {
+test('doctor --json warns for missing Desktop App ID when insecure dev override is enabled', () => {
   const dir = makeTmp();
   writeGame(dir);
   writeFileSync(
@@ -166,10 +166,11 @@ test('doctor --json makes missing Desktop App ID fail outside production', () =>
   );
 
   const { result, parsed } = parseDoctorJsonResult(dir);
-  assert.equal(result.exitCode, 1, outputOf(result));
+  assert.equal(result.exitCode, 0, outputOf(result));
   assert.equal(parsed.production, false);
   const labels = new Map(parsed.checks.map((check) => [check.label, check]));
-  assert.equal(labels.get('Desktop App ID')?.severity, 'fail');
+  assert.equal(labels.get('Desktop App ID')?.severity, 'warn');
+  assert.equal(labels.get('Desktop App ID')?.detail, 'missing; insecure development override enabled');
   assert.equal(labels.get('__DANGEROUS_INSECURE_CONNECTION__')?.severity, 'warn');
   assert.equal(labels.get('Console API key')?.severity, 'warn');
   assert.equal(labels.get('Network host exposure')?.severity, 'warn');

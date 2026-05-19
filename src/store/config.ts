@@ -4,6 +4,7 @@ export interface SysInfo {
   arch: string;
   os: string;
   cpuCount: number;
+  loveVersion?: string;
 }
 
 export interface Config {

@@ -163,7 +163,7 @@ export function readBuildConfig(projectDir: string, configPath?: string): Feathe
     }
     return parsed as FeatherBuildConfig;
   } catch (err) {
-    throw new Error(`Invalid feather.build.json: ${(err as Error).message}`);
+    throw new Error(`Invalid feather.build.json: ${(err as Error).message}`, { cause: err });
   }
 }
 

@@ -34,6 +34,7 @@ function love.load()
     "audio-debug",
     "coroutine-monitor",
     "filesystem",
+    "particle-system-playground",
     "runtime-snapshot",
   }
   local missing = {}

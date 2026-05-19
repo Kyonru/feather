@@ -461,12 +461,13 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
 
     const appId = typeof config?.appId === 'string' ? config.appId.trim() : '';
     appIdMissing = mode !== 'disk' && !appId;
+    const appIdSeverity = appIdMissing ? (insecureConnection ? productionSeverity(true) : 'fail') : 'pass';
     add(
       checks,
       'Safety',
       'Desktop App ID',
-      appIdMissing ? 'fail' : 'pass',
-      appIdMissing ? 'missing' : mode === 'disk' ? 'not needed for disk mode' : 'configured',
+      appIdSeverity,
+      appIdMissing && insecureConnection ? 'missing; insecure development override enabled' : appIdMissing ? 'missing' : mode === 'disk' ? 'not needed for disk mode' : 'configured',
       appIdMissing ? 'Set appId in feather.config.lua before shipping socket/network builds.' : undefined,
     );
 

@@ -54,6 +54,8 @@ plugin:network-inspector:init.lua
 plugin:network-inspector:manifest.lua
 plugin:particle-editor:init.lua
 plugin:particle-editor:manifest.lua
+plugin:particle-system-playground:init.lua
+plugin:particle-system-playground:manifest.lua
 plugin:physics-debug:init.lua
 plugin:physics-debug:manifest.lua
 plugin:profiler:init.lua
@@ -62,6 +64,8 @@ plugin:runtime-snapshot:init.lua
 plugin:runtime-snapshot:manifest.lua
 plugin:screenshots:init.lua
 plugin:screenshots:manifest.lua
+plugin:shader-graph:init.lua
+plugin:shader-graph:manifest.lua
 plugin:time-travel:init.lua
 plugin:time-travel:manifest.lua
 plugin:timer-inspector:init.lua

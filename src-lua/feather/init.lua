@@ -20,7 +20,7 @@ local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
 
-local FEATHER_VERSION_NAME = "1.1.1"
+local FEATHER_VERSION_NAME = "1.2.0"
 local FEATHER_API = 5
 
 local FEATHER_VERSION = {
@@ -470,6 +470,12 @@ function Feather:__handleCommand(msg)
       -- Pass through clipboard directive if the plugin returned one
       if type(result) == "table" and result.clipboard then
         response.clipboard = result.clipboard
+      end
+      if type(result) == "table" and result.zipAssets then
+        response.zipAssets = result.zipAssets
+      end
+      if type(result) == "table" then
+        response.data = result
       end
       self:__sendWs(json.encode(response))
     end

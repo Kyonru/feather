@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.0] - 2026-05-19 - The one with the shader and particles playground
+
+### Added
+
+- **Shader Graph** — node-based visual GLSL editor for authoring Love2D pixel and vertex shaders without writing code.
+  - 40+ built-in nodes across 9 categories: Input, Math, Vector, Color, UV, Noise, Effect, Vertex, and Output.
+  - Input nodes: Texture Color, Texture Coords, Screen Coords, Vertex Color, Time, Resolution, Float, Vec2, Vec3, Vec4 constants.
+  - Math nodes: Add, Subtract, Multiply, Divide, Power, Sqrt, Abs, Clamp, Lerp, Step, Smoothstep, Fract, Floor, Ceil, Mod, Min, Max, Sign, Sin, Cos, Atan2.
+  - Vector nodes: Combine2, Combine3, SplitVec2, SplitVec3, Dot, Cross, Normalize, Length, MatVecMul, TransformMatrix.
+  - Color nodes: Desaturate, OneMinus, HueShift, InvertColor, Contrast, PosterizeColor, MultiplyColor.
+  - UV nodes: TilingOffset, RotateUV, TwirlUV, PolarCoordinates.
+  - Noise nodes: SimpleNoise, Ripple, VoronoiCells, Checkerboard.
+  - Vertex nodes: VertexPosition, VertexWave2D with a dedicated VertexOutput node for vertex shader authoring.
+  - Type-safe port connections — incompatible types are rejected; handle colors reflect the GLSL type.
+  - GLSL code generation with pixel and vertex shader output, extern declarations, and shared noise helpers.
+  - Live GLSL preview panel with syntax highlighting, copy to clipboard, line numbers, and light/dark theme support.
+  - Validate against the running game via the `shader-graph` Lua plugin (`compile-shader` action).
+  - Apply generated shader directly to a Particle System Playground composite target.
+  - Undo/redo history (up to 100 snapshots), Delete/Backspace to remove selected nodes or edges.
+  - Import/export graph as `.feathershgh` JSON files.
+  - Bundled preset graphs (chromatic aberration, pixelation, grayscale, vignette, wave distortion, and more).
+  - Enable/disable toggle integrated with the plugin control system; empty state when the plugin is not active.
+  - New `shader-graph` Lua plugin for in-game GLSL compilation and validation.
+
+- **Particle System Playground** — live editor for Love2D composite particle systems with real-time in-game preview.
+  - Side-by-side emitter list and full properties panel covering all 30+ Love2D `ParticleSystem` parameters.
+  - Visual property editors: color gradient with alpha curve lane, size curve with draggable Catmull-Rom spline, direction/spread gizmo, rotation/spin gizmo, circular force gizmo, linear acceleration plane, damping range editor, and texture offset gizmo.
+  - Range pair fields for all min/max properties (speed, spin, rotation, acceleration, damping) with a connecting bar visual.
+  - 30 built-in motion presets: Explosion, Whirlpool, Tornado, Wind Drift, Smoke Rise, Gravity Fall, Orbit, Shockwave, Fountain, Fire Sparks, Ember Float, Rain, Snow Drift, Magic Swirl, Portal Inhale, Portal Burst, Spiral Up, Spiral Down, Jet Thruster, Muzzle Flash, Blood Spray, Debris Arc, Dust Puff, Steam Vent, Bubbles, Water Splash, Leaf Gust, Sparks Shower, Energy Beam, Implosion — each with an intensify variant.
+  - Texture importer with base64 transport and live preview inside the editor.
+  - Shader editor panel with preset shader library and live apply to game.
+  - Composite and system selector for multi-emitter setups.
+  - Export panel for saving the full composite configuration.
+  - New `particle-system-playground` Lua plugin with `draw` and `filesystem` capabilities.
+
+- **Session page** — dedicated `/session` route showing an overview of the active game session.
+  - Session card: name, device ID, session ID, insecure connection warning.
+  - Environment card: OS, architecture, CPU cores, LÖVE version (when reported by the runtime), Feather runtime version, and API version.
+  - Plugins section: all plugins reported by the session with name, version, and enabled/disabled/incompatible badge.
+  - Packages section: reads `feather.lock.json` from the project root via Tauri file API; shows package name, version, and trust level badge (`verified` / `known` / `experimental`). Gracefully unavailable for file sessions, web mode, and remote machines.
+
+- **`feather init` capability inference** — when installing plugins in `auto` or `manual` mode, the generated `feather.config.lua` automatically includes the `capabilities` required by the selected plugins (e.g. installing `console` adds `filesystem`).
+  - New `--allow-insecure-connection` flag for non-interactive `--yes` flows: `__DANGEROUS_INSECURE_CONNECTION__` is no longer written by default; users must opt in explicitly.
+
+- **Lua config parser** — `feather run` now correctly strips Lua comments before parsing `feather.config.lua`, so commented-out example options no longer interfere with loaded values.
+
+- **`feather run` shim** — CLI-only projects now get an auto-shim that drives `DEBUGGER:update(dt)` without requiring changes to `main.lua`.
+
+### Changed
+
+- `feather doctor` downgrades missing `Desktop App ID` from `fail` to `warn` when `__DANGEROUS_INSECURE_CONNECTION__` is present, reflecting that it is an intentional development override rather than a misconfiguration.
+
+### Fixed
+
+- `feather run` no longer errors on CLI-only projects that have no embedded Feather runtime directory.
+
+### Tests
+
+- `init`: added tests for `--yes` without `--allow-insecure-connection` (config stays clean, doctor fails on appId), `--yes --allow-insecure-connection` (flag written, doctor downgrades to warn), plugin capability propagation into generated config, and interactive mode capability inference.
+- `doctor`: added test verifying the missing appId warning when the insecure dev override is enabled.
+- `run`: added tests for the CLI-only shim update hook and comment-stripping in the Lua config parser.
+
 ## [v1.1.1] - 2026-05-17 - The one with better defaults
 
 ### Changes
@@ -430,6 +492,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v1.2.0]: https://github.com/Kyonru/feather/compare/v1.1.1...v1.2.0
+[v1.1.1]: https://github.com/Kyonru/feather/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/Kyonru/feather/compare/v1.0.1...v1.1.0
 [v1.0.1]: https://github.com/Kyonru/feather/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/Kyonru/feather/compare/v0.10.0...v1.0.0

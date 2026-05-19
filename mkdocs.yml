@@ -29,16 +29,18 @@ theme:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Configuration: configuration.md
-  - Usage: usage.md
-  - Debugger: debugger.md
-  - Hot Reload: hot-reload.md
-  - Assets: assets.md
   - CLI:
       - Overview: cli.md
       - Package Management: packages.md
-  - Time Travel: time-travel.md
+  - Usage: usage.md
+  - Configuration: configuration.md
+  - Debugger: debugger.md
+  - Hot Reload: hot-reload.md
   - Console: console.md
+  - Assets: assets.md
+  - Particle System Playground: particle-system-playground.md
+  - Shader Graph: shader-graph.md
+  - Time Travel: time-travel.md
   - Recommendations: recommendations.md
   - Plugins:
       - Overview: plugins.md
@@ -52,6 +54,7 @@ nav:
       - Entity Inspector: plugins/entity-inspector.md
       - Filesystem: plugins/filesystem.md
       - HUMP Signal: plugins/hump-signal.md
+      - In-game overlay: plugins/ingame-overlay.md
       - Input Replay: plugins/input-replay.md
       - Lua State Machine: plugins/lua-state-machine.md
       - Memory Snapshot: plugins/memory-snapshot.md
@@ -59,6 +62,7 @@ nav:
       - Particle Editor: plugins/particle-editor.md
       - Physics Debug: plugins/physics-debug.md
       - Profiler: plugins/profiler.md
+      - Runtime Snapshot: plugins/runtime-snapshot.md
       - Screenshots: plugins/screenshots.md
       - Timer Inspector: plugins/timer-inspector.md
 

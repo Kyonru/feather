@@ -1191,11 +1191,27 @@ test('init mode: config builder preserves cli and advanced setup values', async 
   assert.deepEqual(setup.config.include, ['console']);
   assert.equal(setup.config.port, 5000);
   assert.equal(setup.config.mode, 'disk');
-  assert.deepEqual(setup.config.capabilities, ['logs', 'assets']);
+  assert.deepEqual(setup.config.capabilities, ['assets', 'filesystem', 'logs']);
   assert.equal(setup.config.captureScreenshot, true);
   assert.equal(setup.config.apiKey, 'StrongSecret123!');
   assert.deepEqual(setup.config.pluginOptions, { console: { evalEnabled: true } });
   assert.equal(setup.config.__DANGEROUS_INSECURE_CONNECTION__, true);
+});
+
+test('init mode: selected plugins add required capabilities automatically', async () => {
+  const { buildInitSetup } = await import('../../dist/ui/init/config.js');
+  const setup = buildInitSetup(
+    initSetupState({
+      include: new Set(['collision-debug', 'console', 'input-replay']),
+      exclude: new Set(),
+      advanced: false,
+      needsApiKey: true,
+      apiKey: 'StrongSecret123!',
+    }),
+  );
+
+  assert.deepEqual(setup.config.include, ['collision-debug', 'console', 'input-replay']);
+  assert.deepEqual(setup.config.capabilities, ['draw', 'filesystem', 'input']);
 });
 
 test('custom add: repo install writes selected files and lockfile metadata', async () => {

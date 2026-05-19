@@ -204,6 +204,19 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
+    "id": "particle-system-playground",
+    "sourceDir": "particle-system-playground",
+    "name": "Particles Playground",
+    "description": "Author composite particle effects with live in-game preview",
+    "version": "1.0.0",
+    "capabilities": [
+      "draw",
+      "filesystem"
+    ],
+    "optIn": false,
+    "disabled": false
+  },
+  {
     "id": "physics-debug",
     "sourceDir": "physics-debug",
     "name": "Physics Debug",
@@ -247,6 +260,16 @@ export const pluginCatalog = [
     ],
     "optIn": false,
     "disabled": true
+  },
+  {
+    "id": "shader-graph",
+    "sourceDir": "shader-graph",
+    "name": "Shader Graph",
+    "description": "Validate GLSL shaders authored in the Feather shader graph editor",
+    "version": "1.0.0",
+    "capabilities": [],
+    "optIn": false,
+    "disabled": false
   },
   {
     "id": "time-travel",
