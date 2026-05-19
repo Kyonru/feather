@@ -27,7 +27,12 @@ if (!love) {
   process.exit(1);
 }
 
+const pluginSelector = process.argv[2];
 const args = [gamePath, '--e2e'];
+
+if (pluginSelector) {
+  args.push(`--plugin-e2e=${pluginSelector}`);
+}
 let command = love;
 let commandArgs = args;
 

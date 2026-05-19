@@ -3,6 +3,7 @@ local Class = require("feather.lib.class")
 local FeatherPluginBase = require("feather.core.base")
 local FeatherPluginManager = require("feather.plugin_manager")
 local HotReloadPlugin = require("plugins.hot-reload")
+local PluginE2ESuite = require("e2e.plugins")
 
 local E2EPlugin = Class({
   __includes = FeatherPluginBase,
@@ -421,6 +422,48 @@ return M
   stressFeather:finish()
   love.draw = originalDraw
   love.keypressed = originalKeypressed
+
+  local assetDrawCount = 0
+  local assetHookCount = 0
+  local AssetHookPlugin = Class({
+    __includes = FeatherPluginBase,
+    init = function(self, config)
+      FeatherPluginBase.init(self, config)
+      config.callbacks.register("draw", function()
+        assetHookCount = assetHookCount + 1
+      end)
+    end,
+  })
+
+  love.draw = function()
+    assetDrawCount = assetDrawCount + 1
+  end
+
+  local assetFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Callback Asset Draw E2E",
+    deviceId = "callback-asset-draw-e2e",
+    assetPreview = true,
+    plugins = {
+      FeatherPluginManager.createPlugin(AssetHookPlugin, "asset-draw", {}),
+    },
+    debugger = {
+      enabled = false,
+    },
+  })
+
+  love.draw()
+  assetFeather:update(0)
+  love.draw()
+  assetFeather:update(0)
+  love.draw()
+  assertEqual(assetDrawCount, 3, "asset preview draw wrapper preserves game draw across rehooks")
+  assertEqual(assetHookCount, 3, "asset preview draw wrapper preserves callback bus draw across rehooks")
+  assetFeather:finish()
+  love.draw = originalDraw
+
+  PluginE2ESuite.run(assertEqual, assertTruthy)
 
   -- ── Auth handshake state machine ───────────────────────────────────────────
   -- Test the challenge-response logic in isolation. We use a disk-mode instance
