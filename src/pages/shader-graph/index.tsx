@@ -1,5 +1,5 @@
 import { ReactFlowProvider } from '@xyflow/react';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { DownloadIcon, FolderOpenIcon, Trash2Icon, WorkflowIcon } from 'lucide-react';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,7 @@ import { SHADER_GRAPH_PRESETS } from './presets';
 
 const FILE_VERSION = 1;
 const FILE_EXTENSION = 'feathershgh';
+const FIRST_OPEN_PRESET_ID = 'water-shimmer';
 
 type FeatherShaderGraphFile = {
   type: 'feather.shader-graph';
@@ -72,8 +73,32 @@ export default function ShaderGraph() {
   const shaderName = useShaderGraphStore((state) => state.shaderName);
   const playgroundTarget = useShaderGraphStore((state) => state.playgroundTarget);
   const lastGeneratedGlsl = useShaderGraphStore((state) => state.lastGeneratedGlsl);
+  const hasInitializedExample = useShaderGraphStore((state) => state.hasInitializedExample);
   const loadGraph = useShaderGraphStore((state) => state.loadGraph);
+  const setHasInitializedExample = useShaderGraphStore((state) => state.setHasInitializedExample);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (hasInitializedExample) return;
+
+    if (nodes.length > 0 || edges.length > 0) {
+      setHasInitializedExample(true);
+      return;
+    }
+
+    const preset = SHADER_GRAPH_PRESETS.find((item) => item.id === FIRST_OPEN_PRESET_ID);
+    if (!preset) {
+      setHasInitializedExample(true);
+      return;
+    }
+
+    loadGraph({
+      nodes: preset.nodes,
+      edges: preset.edges,
+      shaderName: preset.shaderName,
+      playgroundTarget,
+    });
+  }, [edges.length, hasInitializedExample, loadGraph, nodes.length, playgroundTarget, setHasInitializedExample]);
 
   const importRaw = (raw: string) => {
     const parsed = parseShaderGraphFile(raw);
@@ -162,7 +187,7 @@ export default function ShaderGraph() {
 
   return (
     <ReactFlowProvider>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b px-3 py-2">
           <div>
             <h1 className="text-sm font-semibold">Shader Graph</h1>
@@ -228,7 +253,7 @@ export default function ShaderGraph() {
         </header>
 
         {!shaderGraphPlugin.enabled ? (
-          <div className="flex min-h-0 flex-1 items-center justify-center">
+          <div className="flex h-0 min-h-0 flex-1 items-center justify-center overflow-hidden">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex size-10 items-center justify-center rounded-md border bg-muted/40">
                 <WorkflowIcon className="size-5 text-muted-foreground" />
@@ -246,7 +271,7 @@ export default function ShaderGraph() {
             </div>
           </div>
         ) : (
-          <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
+          <ResizablePanelGroup orientation="horizontal" className="h-0 min-h-0 flex-1 overflow-hidden">
             <ResizablePanel defaultSize="16%" minSize="12%" maxSize="25%" className="flex flex-col border-r">
               <div className="border-b px-3 py-2 shrink-0">
                 <span className="text-sm font-semibold">Nodes</span>
@@ -263,7 +288,7 @@ export default function ShaderGraph() {
             <ResizableHandle withHandle />
 
             <ResizablePanel defaultSize="27%" minSize="18%" maxSize="40%" className="flex flex-col border-l">
-              <ResizablePanelGroup orientation="vertical">
+              <ResizablePanelGroup orientation="vertical" className="h-full min-h-0">
                 <ResizablePanel defaultSize="35%" minSize="20%" className="flex flex-col overflow-hidden">
                   <div className="border-b px-3 py-2 shrink-0">
                     <span className="text-sm font-semibold">Inspector</span>

@@ -40,7 +40,8 @@ export function NodeInspector() {
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
                 {def.category}
               </div>
-              <div className="font-semibold">{def.label}</div>
+              <div className="font-semibold">{selected.data.label || def.label}</div>
+              <div className="text-[10px] text-muted-foreground">{def.label}</div>
             </div>
             <button
               onClick={() => removeNode(selected.id)}
@@ -49,6 +50,21 @@ export function NodeInspector() {
             >
               <Trash2Icon className="size-3.5" />
             </button>
+          </div>
+
+          <div className="grid gap-1">
+            <Label className="text-[10px] text-muted-foreground">Node Name</Label>
+            <Input
+              className="h-7 text-xs"
+              value={selected.data.label ?? def.label}
+              placeholder={def.label}
+              onChange={(e) => updateNodeData(selected.id, { label: e.target.value })}
+              onBlur={(e) => {
+                if (e.target.value.trim().length === 0) {
+                  updateNodeData(selected.id, { label: def.label });
+                }
+              }}
+            />
           </div>
 
           {selected.data.nodeType === 'FloatConstant' && (

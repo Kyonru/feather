@@ -231,6 +231,55 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [{ id: 'out', label: 'Out', type: 'float' }],
     emitGlsl: unary('floor'),
   },
+  Min: {
+    category: 'Math',
+    label: 'Min',
+    inputs: [{ id: 'a', label: 'A', type: 'float' }, { id: 'b', label: 'B', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = min(${i.a}, ${i.b});`,
+  },
+  Max: {
+    category: 'Math',
+    label: 'Max',
+    inputs: [{ id: 'a', label: 'A', type: 'float' }, { id: 'b', label: 'B', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = max(${i.a}, ${i.b});`,
+  },
+  Modulo: {
+    category: 'Math',
+    label: 'Modulo',
+    inputs: [{ id: 'a', label: 'A', type: 'float' }, { id: 'b', label: 'B', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = mod(${i.a}, max(abs(${i.b}), 0.0001));`,
+  },
+  Negate: {
+    category: 'Math',
+    label: 'Negate',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = -${i.in0};`,
+  },
+  Saturate: {
+    category: 'Math',
+    label: 'Saturate',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = clamp(${i.in0}, 0.0, 1.0);`,
+  },
+  Remap: {
+    category: 'Math',
+    label: 'Remap',
+    inputs: [
+      { id: 'value', label: 'Value', type: 'float' },
+      { id: 'inMin', label: 'In Min', type: 'float' },
+      { id: 'inMax', label: 'In Max', type: 'float' },
+      { id: 'outMin', label: 'Out Min', type: 'float' },
+      { id: 'outMax', label: 'Out Max', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: (i, o) =>
+      `float ${o.out}_t = (${i.value} - ${i.inMin}) / max(${i.inMax} - ${i.inMin}, 0.0001);\nfloat ${o.out} = mix(${i.outMin}, ${i.outMax}, ${o.out}_t);`,
+  },
 
   // ─── Vector ──────────────────────────────────────────────────────────────────
   Split4: {
@@ -282,6 +331,66 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [{ id: 'out', label: 'Out', type: 'float' }],
     emitGlsl: (i, o) => `float ${o.out} = dot(${i.a}.rgb, ${i.b}.rgb);`,
   },
+  SplitRGB: {
+    category: 'Vector',
+    label: 'Split RGB',
+    inputs: [{ id: 'vec', label: 'RGB', type: 'vec3' }],
+    outputs: [
+      { id: 'r', label: 'R', type: 'float' },
+      { id: 'g', label: 'G', type: 'float' },
+      { id: 'b', label: 'B', type: 'float' },
+    ],
+    emitGlsl: (i, o) => `float ${o.r} = ${i.vec}.r;\nfloat ${o.g} = ${i.vec}.g;\nfloat ${o.b} = ${i.vec}.b;`,
+  },
+  CombineRGB: {
+    category: 'Vector',
+    label: 'Combine RGB',
+    inputs: [
+      { id: 'r', label: 'R', type: 'float' },
+      { id: 'g', label: 'G', type: 'float' },
+      { id: 'b', label: 'B', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGB', type: 'vec3' }],
+    emitGlsl: (i, o) => `vec3 ${o.out} = vec3(${i.r}, ${i.g}, ${i.b});`,
+  },
+  SwizzleVec2: {
+    category: 'Vector',
+    label: 'Swizzle Vec2',
+    inputs: [{ id: 'vec', label: 'XY', type: 'vec2' }],
+    outputs: [
+      { id: 'xy', label: 'XY', type: 'vec2' },
+      { id: 'yx', label: 'YX', type: 'vec2' },
+    ],
+    emitGlsl: (i, o) => `vec2 ${o.xy} = ${i.vec}.xy;\nvec2 ${o.yx} = ${i.vec}.yx;`,
+  },
+  DistanceVec2: {
+    category: 'Vector',
+    label: 'Distance Vec2',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2' }, { id: 'b', label: 'B', type: 'vec2' }],
+    outputs: [{ id: 'out', label: 'Dist', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = distance(${i.a}, ${i.b});`,
+  },
+  LengthVec2: {
+    category: 'Vector',
+    label: 'Length Vec2',
+    inputs: [{ id: 'vec', label: 'XY', type: 'vec2' }],
+    outputs: [{ id: 'out', label: 'Len', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = length(${i.vec});`,
+  },
+  NormalizeVec2: {
+    category: 'Vector',
+    label: 'Normalize Vec2',
+    inputs: [{ id: 'vec', label: 'XY', type: 'vec2' }],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = normalize(${i.vec});`,
+  },
+  DotVec2: {
+    category: 'Vector',
+    label: 'Dot Vec2',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2' }, { id: 'b', label: 'B', type: 'vec2' }],
+    outputs: [{ id: 'out', label: 'Dot', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = dot(${i.a}, ${i.b});`,
+  },
 
   // ─── Color ───────────────────────────────────────────────────────────────────
   Desaturate: {
@@ -313,6 +422,46 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     emitGlsl: (i, o) =>
       `vec3 ${o.out}_p = vec3(0.55735) * dot(vec3(0.55735), ${i.color}.rgb);\nvec3 ${o.out}_u = ${i.color}.rgb - ${o.out}_p;\nvec3 ${o.out}_v = cross(vec3(0.55735), ${o.out}_u);\nvec4 ${o.out} = vec4(${o.out}_p + ${o.out}_u * cos(${i.shift} * 6.2832) + ${o.out}_v * sin(${i.shift} * 6.2832), ${i.color}.a);`,
   },
+  InvertColor: {
+    category: 'Color',
+    label: 'Invert Color',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4' },
+      { id: 'amount', label: 'Amount', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) =>
+      `vec4 ${o.out} = vec4(mix(${i.color}.rgb, 1.0 - ${i.color}.rgb, clamp(${i.amount}, 0.0, 1.0)), ${i.color}.a);`,
+  },
+  Contrast: {
+    category: 'Color',
+    label: 'Contrast',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4' },
+      { id: 'amount', label: 'Amount', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) =>
+      `vec4 ${o.out} = vec4((${i.color}.rgb - vec3(0.5)) * ${i.amount} + vec3(0.5), ${i.color}.a);`,
+  },
+  PosterizeColor: {
+    category: 'Color',
+    label: 'Posterize',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4' },
+      { id: 'steps', label: 'Steps', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) =>
+      `float ${o.out}_steps = max(1.0, ${i.steps});\nvec4 ${o.out} = vec4(floor(${i.color}.rgb * ${o.out}_steps) / ${o.out}_steps, ${i.color}.a);`,
+  },
+  MultiplyColor: {
+    category: 'Color',
+    label: 'Multiply Color',
+    inputs: [{ id: 'a', label: 'A', type: 'vec4' }, { id: 'b', label: 'B', type: 'vec4' }],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = ${i.a} * ${i.b};`,
+  },
 
   // ─── Noise ───────────────────────────────────────────────────────────────────
   SimpleNoise: {
@@ -335,6 +484,72 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
     emitGlsl: (i, o) => `vec2 ${o.out} = ${i.uv} + vec2(sin(${i.uv}.y * ${i.freq} + ${i.time}) * ${i.amp}, 0.0);`,
   },
+  VoronoiCells: {
+    category: 'Noise',
+    label: 'Voronoi Cells',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'Cells', type: 'float' }],
+    helperKey: 'noise',
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_p = ${i.uv} * max(${i.scale}, 0.0001);\nvec2 ${o.out}_cell = floor(${o.out}_p);\nvec2 ${o.out}_local = fract(${o.out}_p);\nfloat ${o.out} = 1.0;\nfor (int ${o.out}_y = -1; ${o.out}_y <= 1; ${o.out}_y++) { for (int ${o.out}_x = -1; ${o.out}_x <= 1; ${o.out}_x++) { vec2 ${o.out}_neighbor = vec2(float(${o.out}_x), float(${o.out}_y)); vec2 ${o.out}_point = ${o.out}_neighbor + vec2(feather_hash(${o.out}_cell + ${o.out}_neighbor), feather_hash(${o.out}_cell + ${o.out}_neighbor + vec2(5.2, 1.3))); ${o.out} = min(${o.out}, length(${o.out}_point - ${o.out}_local)); } }`,
+  },
+  Checkerboard: {
+    category: 'Noise',
+    label: 'Checkerboard',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_cell = floor(${i.uv} * max(${i.scale}, 1.0));\nfloat ${o.out} = mod(${o.out}_cell.x + ${o.out}_cell.y, 2.0);`,
+  },
+
+  // ─── UV ─────────────────────────────────────────────────────────────────────
+  TilingOffset: {
+    category: 'UV',
+    label: 'Tiling And Offset',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'tiling', label: 'Tiling', type: 'vec2' },
+      { id: 'offset', label: 'Offset', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = ${i.uv} * ${i.tiling} + ${i.offset};`,
+  },
+  RotateUV: {
+    category: 'UV',
+    label: 'Rotate UV',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'angle', label: 'Angle', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_p = ${i.uv} - vec2(0.5);\nfloat ${o.out}_s = sin(${i.angle});\nfloat ${o.out}_c = cos(${i.angle});\nvec2 ${o.out} = vec2(${o.out}_p.x * ${o.out}_c - ${o.out}_p.y * ${o.out}_s, ${o.out}_p.x * ${o.out}_s + ${o.out}_p.y * ${o.out}_c) + vec2(0.5);`,
+  },
+  TwirlUV: {
+    category: 'UV',
+    label: 'Twirl UV',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'strength', label: 'Strength', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_p = ${i.uv} - vec2(0.5);\nfloat ${o.out}_d = length(${o.out}_p);\nfloat ${o.out}_a = atan(${o.out}_p.y, ${o.out}_p.x) + ${i.strength} * (1.0 - clamp(${o.out}_d * 2.0, 0.0, 1.0));\nvec2 ${o.out} = vec2(cos(${o.out}_a), sin(${o.out}_a)) * ${o.out}_d + vec2(0.5);`,
+  },
+  PolarCoordinates: {
+    category: 'UV',
+    label: 'Polar Coordinates',
+    inputs: [{ id: 'uv', label: 'UV', type: 'vec2' }],
+    outputs: [{ id: 'out', label: 'Polar', type: 'vec2' }],
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_p = ${i.uv} - vec2(0.5);\nvec2 ${o.out} = vec2(length(${o.out}_p) * 2.0, atan(${o.out}_p.y, ${o.out}_p.x) / 6.2831853 + 0.5);`,
+  },
 
   // ─── Effects ────────────────────────────────────────────────────────────────
   SampleTexture: {
@@ -343,6 +558,28 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [{ id: 'uv', label: 'UV', type: 'vec2' }],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
     emitGlsl: (i, o) => `vec4 ${o.out} = Texel(tex, ${i.uv});`,
+  },
+  TextureStrength: {
+    category: 'Effect',
+    label: 'Texture Strength',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4' },
+      { id: 'power', label: 'Power', type: 'float' },
+      { id: 'strength', label: 'Strength', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) =>
+      `float ${o.out}_mask = pow(clamp(${i.color}.a, 0.0, 1.0), max(${i.power}, 0.0001));\nvec4 ${o.out} = vec4(${i.color}.rgb * ${i.strength}, clamp(${i.color}.a * ${o.out}_mask, 0.0, 1.0));`,
+  },
+  Opacity2D: {
+    category: 'Effect',
+    label: 'Opacity',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4' },
+      { id: 'opacity', label: 'Opacity', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = vec4(${i.color}.rgb, ${i.color}.a * clamp(${i.opacity}, 0.0, 1.0));`,
   },
   CenteredUV: {
     category: 'Effect',
@@ -392,6 +629,38 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
     emitGlsl: (i, o) =>
       `vec2 ${o.out} = ${i.uv} + vec2(sin((${i.uv}.y + ${i.time} * ${i.speed}) * ${i.freq}) * ${i.amp}, cos((${i.uv}.x + ${i.time} * ${i.speed}) * ${i.freq}) * ${i.amp} * 0.35);`,
+  },
+  WaterDisplace: {
+    category: 'Effect',
+    label: 'Water Displace',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'time', label: 'Time', type: 'float' },
+      { id: 'speed', label: 'Speed', type: 'float' },
+      { id: 'amp', label: 'Amp', type: 'float' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    helperKey: 'noise',
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_p = ${i.uv} * max(${i.scale}, 0.0001) + vec2(${i.time} * ${i.speed}, ${i.time} * ${i.speed} * 0.73);\nvec2 ${o.out}_cell = floor(${o.out}_p);\nvec2 ${o.out}_f = smoothstep(vec2(0.0), vec2(1.0), fract(${o.out}_p));\nfloat ${o.out}_a = mix(mix(feather_hash(${o.out}_cell), feather_hash(${o.out}_cell + vec2(1.0, 0.0)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(0.0, 1.0)), feather_hash(${o.out}_cell + vec2(1.0, 1.0)), ${o.out}_f.x), ${o.out}_f.y);\nfloat ${o.out}_b = mix(mix(feather_hash(${o.out}_cell + vec2(9.2, 3.4)), feather_hash(${o.out}_cell + vec2(10.2, 3.4)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(9.2, 4.4)), feather_hash(${o.out}_cell + vec2(10.2, 4.4)), ${o.out}_f.x), ${o.out}_f.y);\nvec2 ${o.out} = ${i.uv} + (vec2(${o.out}_a, ${o.out}_b) * 2.0 - 1.0) * ${i.amp};`,
+  },
+  MaskedWaterDisplace: {
+    category: 'Effect',
+    label: 'Masked Water',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4' },
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'time', label: 'Time', type: 'float' },
+      { id: 'speed', label: 'Speed', type: 'float' },
+      { id: 'amp', label: 'Amp', type: 'float' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+      { id: 'maskThreshold', label: 'Mask', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    helperKey: 'noise',
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_p = ${i.uv} * max(${i.scale}, 0.0001) + vec2(${i.time} * ${i.speed}, ${i.time} * ${i.speed} * 0.73);\nvec2 ${o.out}_cell = floor(${o.out}_p);\nvec2 ${o.out}_f = smoothstep(vec2(0.0), vec2(1.0), fract(${o.out}_p));\nfloat ${o.out}_a = mix(mix(feather_hash(${o.out}_cell), feather_hash(${o.out}_cell + vec2(1.0, 0.0)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(0.0, 1.0)), feather_hash(${o.out}_cell + vec2(1.0, 1.0)), ${o.out}_f.x), ${o.out}_f.y);\nfloat ${o.out}_b = mix(mix(feather_hash(${o.out}_cell + vec2(9.2, 3.4)), feather_hash(${o.out}_cell + vec2(10.2, 3.4)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(9.2, 4.4)), feather_hash(${o.out}_cell + vec2(10.2, 4.4)), ${o.out}_f.x), ${o.out}_f.y);\nvec2 ${o.out}_uv = ${i.uv} + (vec2(${o.out}_a, ${o.out}_b) * 2.0 - 1.0) * ${i.amp};\nvec4 ${o.out}_source = Texel(tex, ${o.out}_uv);\nfloat ${o.out}_mask = step(${i.maskThreshold}, min(${i.color}.a, ${o.out}_source.a));\nvec4 ${o.out} = mix(${i.color}, ${o.out}_source, ${o.out}_mask);`,
   },
   Dissolve2D: {
     category: 'Effect',
@@ -527,6 +796,19 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [{ id: 'out', label: 'Pos', type: 'vec4' }],
     emitGlsl: (_, o) => `vec4 ${o.out} = vertex_position;`,
   },
+  VertexWave2D: {
+    category: 'Vertex',
+    label: 'Vertex Wave 2D',
+    inputs: [
+      { id: 'pos', label: 'Pos', type: 'vec4' },
+      { id: 'time', label: 'Time', type: 'float' },
+      { id: 'amp', label: 'Amp', type: 'float' },
+      { id: 'freq', label: 'Freq', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'Pos', type: 'vec4' }],
+    emitGlsl: (i, o) =>
+      `vec4 ${o.out} = ${i.pos};\n${o.out}.xy += vec2(sin((${i.pos}.y + ${i.time} * 60.0) * ${i.freq}), cos((${i.pos}.x + ${i.time} * 60.0) * ${i.freq})) * ${i.amp};`,
+  },
   TransformMatrix: {
     category: 'Vertex',
     label: 'Transform Matrix',
@@ -549,6 +831,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Vector: 'border-l-purple-500',
   Color: 'border-l-pink-500',
   Noise: 'border-l-green-500',
+  UV: 'border-l-indigo-500',
   Effect: 'border-l-cyan-500',
   Output: 'border-l-red-500',
   Vertex: 'border-l-yellow-500',
@@ -587,22 +870,50 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
       'Abs',
       'Fract',
       'Floor',
+      'Min',
+      'Max',
+      'Modulo',
+      'Negate',
+      'Saturate',
+      'Remap',
     ],
   },
   {
     category: 'Vector',
-    nodes: ['Combine2', 'Combine3', 'Combine4', 'Split4', 'SplitVec2', 'SplitVec3', 'Normalize', 'Length', 'Dot'],
+    nodes: [
+      'Combine2',
+      'Combine3',
+      'Combine4',
+      'CombineRGB',
+      'Split4',
+      'SplitRGB',
+      'SplitVec2',
+      'SplitVec3',
+      'SwizzleVec2',
+      'Normalize',
+      'Length',
+      'Dot',
+      'DistanceVec2',
+      'LengthVec2',
+      'NormalizeVec2',
+      'DotVec2',
+    ],
   },
-  { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift'] },
-  { category: 'Noise', nodes: ['SimpleNoise', 'Ripple'] },
+  { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift', 'InvertColor', 'Contrast', 'PosterizeColor', 'MultiplyColor'] },
+  { category: 'Noise', nodes: ['SimpleNoise', 'Ripple', 'VoronoiCells', 'Checkerboard'] },
+  { category: 'UV', nodes: ['TilingOffset', 'RotateUV', 'TwirlUV', 'PolarCoordinates'] },
   {
     category: 'Effect',
     nodes: [
       'SampleTexture',
+      'TextureStrength',
+      'Opacity2D',
       'CenteredUV',
       'Fresnel2D',
       'Outline2D',
       'WaveDistort',
+      'WaterDisplace',
+      'MaskedWaterDisplace',
       'Dissolve2D',
       'HitFlash',
       'Vignette',
@@ -611,5 +922,5 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
     ],
   },
   { category: 'Output', nodes: ['FragmentOutput'] },
-  { category: 'Vertex', nodes: ['VertexPosition', 'TransformMatrix', 'MatVecMul', 'VertexOutput'] },
+  { category: 'Vertex', nodes: ['VertexPosition', 'VertexWave2D', 'TransformMatrix', 'MatVecMul', 'VertexOutput'] },
 ];

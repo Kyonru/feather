@@ -22,6 +22,7 @@ type ShaderGraphStore = {
   lastGeneratedGlsl: GeneratedGlsl | null;
   validationStatus: ValidationStatus;
   validationErrors: { pixelError?: string; vertexError?: string };
+  hasInitializedExample: boolean;
 
   setNodes: (nodes: Node<ShaderNodeData>[]) => void;
   setEdges: (edges: Edge[]) => void;
@@ -36,6 +37,7 @@ type ShaderGraphStore = {
   setLastGlsl: (glsl: GeneratedGlsl | null) => void;
   setValidationStatus: (status: ValidationStatus) => void;
   setValidationErrors: (errors: ShaderGraphStore['validationErrors']) => void;
+  setHasInitializedExample: (hasInitializedExample: boolean) => void;
   loadGraph: (graph: { nodes: Node<ShaderNodeData>[]; edges: Edge[]; shaderName?: string; playgroundTarget?: PlaygroundTarget | null }) => void;
   undo: () => void;
   redo: () => void;
@@ -91,6 +93,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       lastGeneratedGlsl: null,
       validationStatus: 'idle',
       validationErrors: {},
+      hasInitializedExample: false,
 
       setNodes: (nodes) => set((s) => withHistory(s, { nodes })),
       setEdges: (edges) => set((s) => withHistory(s, { edges })),
@@ -123,6 +126,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       setLastGlsl: (lastGeneratedGlsl) => set({ lastGeneratedGlsl }),
       setValidationStatus: (validationStatus) => set({ validationStatus }),
       setValidationErrors: (validationErrors) => set({ validationErrors }),
+      setHasInitializedExample: (hasInitializedExample) => set({ hasInitializedExample }),
       loadGraph: (graph) =>
         set({
           nodes: graph.nodes,
@@ -136,6 +140,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
           lastGeneratedGlsl: null,
           validationStatus: 'idle',
           validationErrors: {},
+          hasInitializedExample: true,
         }),
       undo: () =>
         set((s) => {
@@ -179,6 +184,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
         edges: s.edges,
         shaderName: s.shaderName,
         playgroundTarget: s.playgroundTarget,
+        hasInitializedExample: s.hasInitializedExample,
       }),
     },
   ),

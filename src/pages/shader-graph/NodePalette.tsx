@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
 import { useShaderGraphStore } from '@/store/shader-graph';
@@ -74,24 +75,28 @@ export function NodePalette() {
             </span>
             <div className="grid gap-1">
               <Label className="text-[10px] text-muted-foreground">Composite</Label>
-              <select
-                className="h-7 w-full rounded border bg-card px-2 text-xs"
-                value={playgroundTarget?.composite ?? ''}
-                onChange={(e) =>
+              <Select
+                value={playgroundTarget?.composite ?? 'none'}
+                onValueChange={(value) =>
                   setPlaygroundTarget(
-                    e.target.value
-                      ? { composite: e.target.value, systemIndex: playgroundTarget?.systemIndex ?? 1 }
+                    value !== 'none'
+                      ? { composite: value, systemIndex: playgroundTarget?.systemIndex ?? 1 }
                       : null,
                   )
                 }
               >
-                <option value="">— none —</option>
-                {composites.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="h-7 w-full text-xs">
+                  <SelectValue placeholder="Select composite" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {composites.map((composite) => (
+                    <SelectItem key={composite} value={composite}>
+                      {composite}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {playgroundTarget?.composite && (
               <div className="grid gap-1">

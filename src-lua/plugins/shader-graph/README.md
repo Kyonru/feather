@@ -4,15 +4,22 @@ Feather plugin that validates GLSL shaders authored in the Shader Graph visual e
 
 The desktop editor owns the graph UI and GLSL code generation. This runtime plugin only compiles the generated LÖVE shader source inside the connected game process so validation matches the user's graphics driver and LÖVE version.
 
+The node library is inspired by common visual shader graph systems, including Unity Shader Graph's category model: Artistic, Channel, Input, Math, Procedural, Utility, and UV. Feather's implementation is intentionally smaller and LÖVE-focused.
+
+Several higher-level nodes and presets are also inspired by common VFX Shader Graph recipes, including texture strength, opacity, dissolve masks, and vertex displacement. The water displacement nodes are inspired by Alex Griffith's LÖVE shader write-up, adapted to use procedural noise so Feather graphs stay self-contained. Unity-specific camera depth effects are not copied directly because LÖVE 2D shaders do not expose Unity's scene depth buffer in the same way.
+
 ## Workflow
 
 1. Open **Shader Graph** in Feather.
-2. Drag nodes from the palette onto the canvas.
-3. Connect compatible ports by type.
-4. Connect the final `vec4` color into **Fragment Output**.
-5. Use **Validate** to compile in the running LÖVE game.
-6. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
-7. Export/import `.feathershgh` files when you want to save or share editable graph projects.
+2. On first open, Feather loads the **Water Shimmer** example so there is a complete graph ready to validate, edit, and apply.
+3. Drag nodes from the palette onto the canvas.
+4. Connect compatible ports by type.
+5. Connect the final `vec4` color into **Fragment Output**.
+6. Use **Validate** to compile in the running LÖVE game.
+7. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
+8. Export/import `.feathershgh` files when you want to save or share editable graph projects.
+
+Select a node and edit **Node Name** in the inspector when a graph needs more descriptive labels. Renaming a node changes the canvas label only; the original node type stays visible in the inspector and code generation is unchanged.
 
 ## Node Types
 
@@ -41,16 +48,21 @@ Math nodes shape scalar values. They are most useful for masks, thresholds, anim
 - `Step`, `Smoothstep`: build hard or soft thresholds.
 - `Sin`, `Cos`: oscillation for wave and pulse effects.
 - `Abs`, `Fract`, `Floor`: repeating patterns, bands, pixel stepping.
+- `Min`, `Max`, `Modulo`, `Negate`, `Saturate`: scalar shaping and bounds.
+- `Remap`: convert one scalar range into another, useful for mask tuning.
 
 ### Vector
 
 Vector nodes convert between packed colors/vectors and scalar channels.
 
-- `Split`: split a `vec4` into RGBA floats.
-- `Combine`: combine RGBA floats into a `vec4`.
+- `Split Vec4`: split a `vec4` into RGBA floats.
+- `Combine4`: combine RGBA floats into a `vec4`.
+- `Split RGB` / `Combine RGB`: unpack and repack `vec3` values.
 - `Combine2`, `Combine3`: build `vec2` or `vec3`.
 - `SplitVec2`, `SplitVec3`: unpack vector channels.
-- `Normalize`, `Length`, `Dot`: vector utility operations.
+- `Swizzle Vec2`: get `xy` and `yx` variants.
+- `Normalize`, `Length`, `Dot`: `vec4` RGB utility operations.
+- `Distance Vec2`, `Length Vec2`, `Normalize Vec2`, `Dot Vec2`: UV/vector math for 2D masks.
 
 ### Color
 
@@ -59,6 +71,10 @@ Color nodes transform an existing `vec4`.
 - `Desaturate`: mix a color toward grayscale.
 - `One Minus`: invert a scalar mask.
 - `Hue Shift`: rotate color hue.
+- `Invert Color`: invert RGB by an editable amount.
+- `Contrast`: adjust contrast around 0.5.
+- `Posterize`: reduce colors to a fixed number of bands.
+- `Multiply Color`: multiply two `vec4` values.
 
 ### Noise
 
@@ -66,6 +82,17 @@ Noise nodes create procedural variation.
 
 - `Simple Noise`: deterministic hash noise from UV.
 - `Ripple`: UV distortion using sine waves.
+- `Voronoi Cells`: cellular mask for sparks, shields, energy, and organic breakup.
+- `Checkerboard`: alternating square mask.
+
+### UV
+
+UV nodes transform texture coordinates before sampling.
+
+- `Tiling And Offset`: scale and offset UVs.
+- `Rotate UV`: rotate UVs around the center.
+- `Twirl UV`: swirl UVs toward the center.
+- `Polar Coordinates`: convert UVs into radius/angle space.
 
 ### Effect
 
@@ -74,10 +101,14 @@ Effect nodes are higher-level building blocks for common 2D game shaders.
 | Node | Use |
 |---|---|
 | Sample Texture | Samples the texture at a supplied UV, useful after UV distortion |
+| Texture Strength | Sharpens texture alpha and boosts color intensity, useful for cracks, glows, and impact marks |
+| Opacity | Multiplies texture alpha by a scalar fade value |
 | Centered UV | Converts UV into `uv - 0.5` and distance from center |
 | Fresnel / Rim 2D | Radial edge mask for glow/rim effects on sprites and particles |
 | Alpha Outline | Samples neighboring alpha to create sprite outlines |
 | Wave Distort | Animated UV wave for water, heat, magic, flags |
+| Water Displace | Procedural animated noise displacement for water, heat shimmer, and magic surfaces |
+| Masked Water | Water displacement constrained by texture alpha, useful when only opaque regions should move |
 | Dissolve | Noise threshold dissolve with a colored edge |
 | Hit Flash | Mixes texture color toward a flash color |
 | Vignette | Darkens or fades toward UV edges |
@@ -93,6 +124,7 @@ Effect nodes are higher-level building blocks for common 2D game shaders.
 Vertex nodes are optional. Use them only when you need to change vertex positions.
 
 - `Vertex Position`: original vertex position.
+- `Vertex Wave 2D`: offsets vertex XY positions with a time-driven sine/cosine wave.
 - `Transform Matrix`: LÖVE transform/projection matrix.
 - `Mat x Vec`: matrix/vector multiplication.
 - `Vertex Output`: final vertex position.
@@ -109,6 +141,17 @@ The Shader Graph page includes complete preset graphs:
 - **Rim Glow**: 2D fresnel-style edge glow.
 - **Pixelate**: retro low-resolution sampling.
 - **Chromatic Aberration**: RGB channel split.
+- **Posterize**: toon/retro color bands.
+- **Twirl Portal**: centered UV swirl.
+- **Rotating Texture**: time-driven UV rotation.
+- **Checker Flash**: checker mask mixed into a flash color.
+- **Voronoi Energy**: cellular energy/shield mask.
+- **Tiled Offset**: tiled UV sampling.
+- **Texture Strength**: alpha/intensity shaping for marks, cracks, and glows.
+- **Opacity Fade**: straightforward alpha fade control.
+- **Vertex Wave**: vertex-stage wobble with a normal texture pass.
+- **Water Shimmer**: self-contained procedural UV displacement.
+- **Masked Water Shimmer**: alpha-constrained displacement that keeps transparent edges stable.
 
 Load a preset, validate it, then inspect how the nodes are connected. Presets are intended as editable starting points, not black boxes.
 
@@ -137,6 +180,24 @@ Use this as the baseline when debugging.
 
 Add `Time`, `FloatConstant` amplitude, frequency, and speed inputs to animate it.
 
+### Water Shimmer
+
+`Texture Coords + Time + speed + amplitude + scale -> Water Displace -> Sample Texture -> Fragment Output`
+
+This is the self-contained version of the classic LÖVE water displacement pattern: scroll noise, convert it into an XY offset, then sample the texture at the displaced UV. Use low amplitude values such as `0.01` to `0.04`; texture-space displacement gets strong quickly.
+
+### Masked Water
+
+`Texture Color + Texture Coords + Time + speed + amplitude + scale + mask threshold -> Masked Water -> Fragment Output`
+
+The masked version only uses the displaced sample when both the current pixel alpha and displaced source alpha are above the threshold. It is useful for water tiles, shoreline sprites, and particle textures where transparent edges should not smear.
+
+### UV Transform
+
+`Texture Coords -> Rotate UV/Twirl UV/Tiling And Offset -> Sample Texture -> Fragment Output`
+
+Use this for portals, rotating particles, scrolling texture strips, and tiled materials.
+
 ### Outline
 
 `Texture Color + Texture Coords + Float thickness + Vec4 outline color -> Alpha Outline -> Fragment Output`
@@ -149,11 +210,39 @@ Good for sprites, interactable objects, and particle silhouettes.
 
 Animate the cutoff value externally or edit it in the graph while prototyping.
 
+### Texture Strength
+
+`Texture Color + Power + Strength -> Texture Strength -> Fragment Output`
+
+Use `Power` to make alpha thinner or wider and `Strength` to brighten the visible color. This is useful for impact decals, ground cracks, soft glows, and particle textures where you want to tune intensity without editing the source image.
+
+### Opacity
+
+`Texture Color + Opacity -> Opacity -> Fragment Output`
+
+Keep this near the end of a graph when you want a simple overall fade.
+
+### Vertex Wave
+
+`Vertex Position + Time + amplitude + frequency -> Vertex Wave 2D -> Vertex Output`
+
+Pair it with a normal fragment path such as `Texture Color -> Fragment Output`. It works best on sprites or meshes with enough vertices to show deformation; a single quad will wobble at its corners.
+
 ### Rim Glow
 
 `Texture Coords -> Fresnel / Rim 2D -> Hit Flash amount`
 
 Feed texture color and a glow color into `Hit Flash`.
+
+### Procedural Mask Mix
+
+`Texture Coords -> Checkerboard/Voronoi Cells -> Hit Flash amount`
+
+Feed texture color and a highlight color into `Hit Flash`. This is a quick way to prototype shield, scan, grid, glitch, or energy effects.
+
+### About Depth Fade
+
+Depth fade is a useful Unity particle technique for softening intersections against scene geometry. Feather does not include a depth fade node yet because LÖVE's standard 2D shader path does not provide the same camera depth texture. For now, approximate soft edges with texture alpha, `Opacity`, `Vignette`, dissolve masks, or custom game-provided shader uniforms.
 
 ## Actions
 
