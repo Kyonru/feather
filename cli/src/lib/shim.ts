@@ -3,15 +3,17 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-
 // Path to the bundled Lua library shipped with this CLI package.
 // In a source checkout `npm run build` does not run the publish-time Lua bundle,
 // so fall back to the repository's src-lua directory for local development.
-const PACKAGED_LUA = resolve(__dirname, '../../lua');
-const SOURCE_LUA = resolve(__dirname, '../../../src-lua');
+const PACKAGED_LUA = resolve(dirname(fileURLToPath(new URL('.', import.meta.url))), '../../lua');
+const SOURCE_LUA = resolve(dirname(fileURLToPath(new URL('.', import.meta.url))), '../../../src-lua');
 
 export function bundledLuaRoot(): string {
+  // When running as a compiled binary, lua/ ships next to the executable.
+  const siblingLua = join(dirname(process.execPath), 'lua');
+  if (existsSync(join(siblingLua, 'feather', 'auto.lua'))) return siblingLua;
+  // Fallback for npm/node installs.
   if (existsSync(join(PACKAGED_LUA, 'feather', 'auto.lua'))) return PACKAGED_LUA;
   if (existsSync(join(SOURCE_LUA, 'feather', 'auto.lua'))) return SOURCE_LUA;
   return PACKAGED_LUA;

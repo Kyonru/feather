@@ -79,6 +79,36 @@
         "title": "Refresh",
         "category": "Feather",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "feather.toggleWatch",
+        "title": "Toggle Watch Mode",
+        "category": "Feather",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "feather.configure",
+        "title": "Configure",
+        "category": "Feather",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "feather.vendor",
+        "title": "Manage Vendors",
+        "category": "Feather",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "feather.selectTargets",
+        "title": "Select Run Targets",
+        "category": "Feather",
+        "icon": "$(target)"
+      },
+      {
+        "command": "feather.buildConfig",
+        "title": "Edit Build Config",
+        "category": "Feather",
+        "icon": "$(file-code)"
       }
     ],
     "viewsContainers": {
@@ -131,6 +161,31 @@
           "command": "feather.doctor",
           "when": "view == feather.projectView && viewItem == actionDoctor",
           "group": "inline"
+        },
+        {
+          "command": "feather.toggleWatch",
+          "when": "view == feather.projectView && viewItem == actionToggleWatch",
+          "group": "inline"
+        },
+        {
+          "command": "feather.configure",
+          "when": "view == feather.projectView && viewItem == actionConfigure",
+          "group": "inline"
+        },
+        {
+          "command": "feather.vendor",
+          "when": "view == feather.projectView && viewItem == actionVendor",
+          "group": "inline"
+        },
+        {
+          "command": "feather.selectTargets",
+          "when": "view == feather.projectView && viewItem == actionSelectTargets",
+          "group": "inline"
+        },
+        {
+          "command": "feather.buildConfig",
+          "when": "view == feather.projectView && viewItem == actionBuildConfig",
+          "group": "inline"
         }
       ]
     },
@@ -156,6 +211,17 @@
           "type": "string",
           "default": "",
           "description": "Default upload channel passed to Feather uploads."
+        },
+        "feather.watchMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled, Feather: Run Project uses watch instead of run (hot-reloads on file changes)."
+        },
+        "feather.runTargets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Run targets selected for Feather: Run Project (e.g. desktop, web, android, ios, steamos)."
         }
       }
     }

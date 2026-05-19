@@ -96,28 +96,6 @@ local function describeApiCompatibility(compatibility, currentApi)
   return "Requires a different Feather plugin API. Desktop API is " .. tostring(currentApi) .. "."
 end
 
-local function callbackReferences(callback, target)
-  if type(callback) ~= "function" or type(target) ~= "function" then
-    return false
-  end
-  if not debug or not debug.getupvalue then
-    return false
-  end
-
-  local index = 1
-  while true do
-    local name, value = debug.getupvalue(callback, index)
-    if not name then
-      break
-    end
-    if value == target then
-      return true
-    end
-    index = index + 1
-  end
-
-  return false
-end
 
 ---@param feather Feather
 ---@param logger FeatherLogger
@@ -410,7 +388,7 @@ function FeatherPluginManager:hookLoveCallbacks()
     end
 
     local current = love[name]
-    if current ~= wrapper and not callbackReferences(current, wrapper) then
+    if current ~= wrapper and not self._loveCallbackOriginals[name] then
       self._loveCallbackOriginals[name] = current
       love[name] = wrapper
     end
