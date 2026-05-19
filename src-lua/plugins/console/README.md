@@ -165,7 +165,11 @@ return player.velocity
 
 ## Security
 
-> **Warning:** Never enable the Console in builds you ship to players. Anyone who knows the host IP, port, and `apiKey` can execute arbitrary Lua code inside your game process.
+> [!CAUTION]
+> Never enable the Console in builds you ship to players. Anyone who knows the host IP, port, and `apiKey` can execute arbitrary Lua code inside your game process.
+
+> [!TIP]
+> If you are using Feather via the CLI for development only, you don't need to do anything, since feather code is not included in when you create your production builds.
 
 The plugin enforces multiple layers of protection:
 
@@ -176,7 +180,7 @@ The plugin enforces multiple layers of protection:
 5. **Output truncation** — Return values larger than `maxOutputSize` are truncated.
 6. **Sandboxed environment** — By default, code runs in a sandbox that inherits `_G` but overrides `print()` to capture output. Set `sandbox = false` to run code directly in the game's `_G` context.
 
-Recommended setup for development:
+Recommended setup for integrated development:
 
 ```lua
 local debugger = FeatherDebugger({
@@ -187,7 +191,7 @@ local debugger = FeatherDebugger({
 
 Set `FEATHER_KEY` in your shell and match it in Feather desktop **Settings → API Key**. This way the key is never committed to source control and the Console is inert in release builds.
 
-See [Recommendations → Level 3 — Exclude from the release build](../../docs/recommendations.md#level-3-exclude-from-the-release-build-recommended) for ways to strip Feather entirely from release builds.
+See [Recommendations → Level 3 — Exclude from the release build](./recommendations.md#level-3-exclude-from-the-release-build-recommended) for ways to strip Feather entirely from release builds.
 
 ---
 

@@ -85,7 +85,7 @@ When execution stops at a breakpoint, the desktop shows:
 
 The full stack trace — file, line, and function name for each frame. Click a frame to navigate to it in the source view. The highlighted frame is where execution is suspended.
 
-```
+```bash
 main.lua:42     love.update
 player.lua:18   Player:update
 player.lua:55   Player:applyGravity   ← paused here
@@ -95,7 +95,7 @@ player.lua:55   Player:applyGravity   ← paused here
 
 Locals and upvalues of the currently selected frame, expanded one level deep for tables:
 
-```
+```lua
 dt          = 0.016
 self        = { x = 142, y = 320, health = 75, state = "jumping", … }
 velocity    = { x = 2.5, y = -8.1 }

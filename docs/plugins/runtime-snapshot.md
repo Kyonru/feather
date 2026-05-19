@@ -1,1 +1,1 @@
-../src-lua/plugins/runtime-snapshot/README.md
+../../src-lua/plugins/runtime-snapshot/README.md

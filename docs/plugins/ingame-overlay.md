@@ -1,1 +1,1 @@
-../src-lua/plugins/ingame-overlay/README.md
+../../src-lua/plugins/ingame-overlay/README.md

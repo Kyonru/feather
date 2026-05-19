@@ -481,7 +481,7 @@ The `handleRequest` method returns data that the desktop renders below the actio
 
 Lua plugins can describe UI declaratively with `feather.ui` primitives. React is only the renderer; plugins should send stable Feather UI nodes and action keys, not raw React components or JavaScript.
 
-For the full schema, supported nodes, and complete examples, see [Plugin UI](plugin-ui.md).
+For the full schema, supported nodes, and complete examples, see [Plugin UI](plugins-ui.md).
 
 ```lua
 function MyPlugin:handleRequest(request, feather)
@@ -762,15 +762,15 @@ Actions can also be triggered from the desktop UI — button actions in `getConf
 
 Here are some examples of Feather plugins:
 
-- [Hump's Signal Plugin](../src-lua/plugins/hump/signal/README.md)
-- [Lua State Machine Plugin](../src-lua/plugins/lua-state-machine/README.md)
-- [Screenshot Plugin](../src-lua/plugins/screenshots/README.md)
-- [Particle Editor Plugin](../src-lua/plugins/particle-editor/README.md)
-- [Audio Debug Plugin](../src-lua/plugins/audio-debug/README.md)
-- [Coroutine Monitor Plugin](../src-lua/plugins/coroutine-monitor/README.md)
-- [Collision Debug Plugin](../src-lua/plugins/collision-debug/README.md)
-- [Animation Inspector Plugin](../src-lua/plugins/animation-inspector/README.md)
-- [Timer Inspector Plugin](../src-lua/plugins/timer-inspector/README.md)
+- [Hump's Signal Plugin](./plugins/hump-signal.md)
+- [Lua State Machine Plugin](./plugins/lua-state-machine.md)
+- [Screenshot Plugin](./plugins/screenshots.md)
+- [Particle Editor Plugin](./plugins/particle-editor.md)
+- [Audio Debug Plugin](./plugins/audio-debug.md)
+- [Coroutine Monitor Plugin](./plugins/coroutine-monitor.md)
+- [Collision Debug Plugin](./plugins/collision-debug.md)
+- [Animation Inspector Plugin](./plugins/animation-inspector.md)
+- [Timer Inspector Plugin](./plugins/timer-inspector.md)
 
 ## Plugin documentation
 
