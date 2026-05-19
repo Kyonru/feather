@@ -85,17 +85,10 @@ local function describeApiCompatibility(compatibility, currentApi)
   if compatibility.minApi ~= nil or compatibility.maxApi ~= nil then
     local min = compatibility.minApi ~= nil and tostring(compatibility.minApi) or "any"
     local max = compatibility.maxApi ~= nil and tostring(compatibility.maxApi) or "any"
-    return "Requires Feather plugin API "
-      .. min
-      .. "-"
-      .. max
-      .. "; desktop API is "
-      .. tostring(currentApi)
-      .. "."
+    return "Requires Feather plugin API " .. min .. "-" .. max .. "; desktop API is " .. tostring(currentApi) .. "."
   end
   return "Requires a different Feather plugin API. Desktop API is " .. tostring(currentApi) .. "."
 end
-
 
 ---@param feather Feather
 ---@param logger FeatherLogger
@@ -178,7 +171,10 @@ function FeatherPluginManager:init(feather, logger, observer)
         if not supported then
           self.logger:log({
             type = "error",
-            str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. describeApiCompatibility(compatibility, feather.version),
+            str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. describeApiCompatibility(
+              compatibility,
+              feather.version
+            ),
           })
         end
 
@@ -367,12 +363,29 @@ function FeatherPluginManager:hookLoveCallbacks()
     local wrapper = self._loveCallbackWrappers[name]
 
     if not wrapper then
+      self._dispatchingLoveCallbacks = self._dispatchingLoveCallbacks or {}
+
       wrapper = function(...)
-        local original = mgr._loveCallbackOriginals and mgr._loveCallbackOriginals[name]
-        if original and original ~= wrapper then
-          original(...)
+        if mgr._dispatchingLoveCallbacks[name] then
+          return
         end
+
+        mgr._dispatchingLoveCallbacks[name] = true
+
+        local original = mgr._loveCallbackOriginals and mgr._loveCallbackOriginals[name]
+
+        if original and original ~= wrapper then
+          local ok, err = pcall(original, ...)
+          if not ok and mgr.logger then
+            mgr.logger:log({
+              type = "error",
+              str = "[FeatherPluginManager] love." .. name .. " original callback error: " .. tostring(err),
+            })
+          end
+        end
+
         dispatch(method, ...)
+
         local overlay = mgr.feather and mgr.feather.debugOverlay
         if overlay then
           if method == "onDraw" and overlay.onDraw then
@@ -383,6 +396,8 @@ function FeatherPluginManager:hookLoveCallbacks()
             overlay:onTouchpressed(...)
           end
         end
+
+        mgr._dispatchingLoveCallbacks[name] = false
       end
       self._loveCallbackWrappers[name] = wrapper
     end
