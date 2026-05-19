@@ -262,6 +262,16 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
+    "id": "shader-graph",
+    "sourceDir": "shader-graph",
+    "name": "Shader Graph",
+    "description": "Validate GLSL shaders authored in the Feather shader graph editor",
+    "version": "1.0.0",
+    "capabilities": [],
+    "optIn": false,
+    "disabled": false
+  },
+  {
     "id": "time-travel",
     "sourceDir": "time-travel",
     "name": "Time Travel",

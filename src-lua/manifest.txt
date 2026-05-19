@@ -64,6 +64,8 @@ plugin:runtime-snapshot:init.lua
 plugin:runtime-snapshot:manifest.lua
 plugin:screenshots:init.lua
 plugin:screenshots:manifest.lua
+plugin:shader-graph:init.lua
+plugin:shader-graph:manifest.lua
 plugin:time-travel:init.lua
 plugin:time-travel:manifest.lua
 plugin:timer-inspector:init.lua

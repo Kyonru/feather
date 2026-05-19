@@ -25,6 +25,7 @@ import TimeTravel from './pages/time-travel';
 import Compare from './pages/compare';
 import Assets from './pages/assets';
 import ParticleSystemPlayground from './pages/particle-system-playground';
+import ShaderGraph from './pages/shader-graph';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
@@ -159,6 +160,17 @@ function RequireSession({ children }: { children: React.ReactNode }) {
 }
 
 export const Router = () => {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Backspace') return;
+      const el = e.target as HTMLElement;
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   return (
     <BrowserRouter>
       <SidebarProvider
@@ -246,6 +258,7 @@ export const Router = () => {
                   </RequireSession>
                 }
               />
+              <Route path="/shader-graph" element={<ShaderGraph />} />
 
               <Route path="/plugins">
                 <Route

@@ -17,6 +17,7 @@ import {
   SparklesIcon,
   TelescopeIcon,
   TerminalIcon,
+  WorkflowIcon,
 } from 'lucide-react';
 import { useDebuggerStore } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
@@ -71,6 +72,11 @@ export function NavMain() {
       title: 'Compare',
       url: '/compare',
       icon: GitCompareArrowsIcon,
+    },
+    {
+      title: 'Shader Graph',
+      url: '/shader-graph',
+      icon: WorkflowIcon,
     },
   ];
   const location = useLocation();
