@@ -8,7 +8,9 @@ import {
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
 import {
+  BlendIcon,
   BugIcon,
+  CableIcon,
   ClockIcon,
   GaugeIcon,
   GitCompareArrowsIcon,
@@ -17,7 +19,6 @@ import {
   SparklesIcon,
   TelescopeIcon,
   TerminalIcon,
-  WorkflowIcon,
 } from 'lucide-react';
 import { useDebuggerStore } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
@@ -44,24 +45,14 @@ export function NavMain() {
       icon: TelescopeIcon,
     },
     {
-      title: 'Console',
-      url: '/console',
-      icon: TerminalIcon,
-    },
-    {
       title: 'Debugger',
       url: '/debugger',
       icon: BugIcon,
     },
     {
-      title: 'Time Travel',
-      url: '/time-travel',
-      icon: ClockIcon,
-    },
-    {
-      title: 'Assets',
-      url: '/assets',
-      icon: ImagesIcon,
+      title: 'Console',
+      url: '/console',
+      icon: TerminalIcon,
     },
     {
       title: 'Particles Playground',
@@ -69,14 +60,29 @@ export function NavMain() {
       icon: SparklesIcon,
     },
     {
+      title: 'Shader Graph',
+      url: '/shader-graph',
+      icon: BlendIcon,
+    },
+    {
+      title: 'Assets',
+      url: '/assets',
+      icon: ImagesIcon,
+    },
+    {
+      title: 'Time Travel',
+      url: '/time-travel',
+      icon: ClockIcon,
+    },
+    {
       title: 'Compare',
       url: '/compare',
       icon: GitCompareArrowsIcon,
     },
     {
-      title: 'Shader Graph',
-      url: '/shader-graph',
-      icon: WorkflowIcon,
+      title: 'Session',
+      url: '/session',
+      icon: CableIcon,
     },
   ];
   const location = useLocation();

@@ -26,6 +26,7 @@ import Compare from './pages/compare';
 import Assets from './pages/assets';
 import ParticleSystemPlayground from './pages/particle-system-playground';
 import ShaderGraph from './pages/shader-graph';
+import SessionPage from './pages/session';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
@@ -259,6 +260,14 @@ export const Router = () => {
                 }
               />
               <Route path="/shader-graph" element={<ShaderGraph />} />
+              <Route
+                path="/session"
+                element={
+                  <RequireSession>
+                    <SessionPage />
+                  </RequireSession>
+                }
+              />
 
               <Route path="/plugins">
                 <Route
