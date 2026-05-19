@@ -2,6 +2,7 @@
 import {
   ANSI_RE,
   assert,
+  chmodSync,
   envWithPath,
   existsSync,
   join,
@@ -11,6 +12,7 @@ import {
   readFileSync,
   run,
   test,
+  writeFileSync,
   writeBuildConfig,
   writeFakeAppleLibrariesZip,
   writeFakeAppImageTool,
@@ -20,6 +22,8 @@ import {
   writeFakeLoveWindowsZip,
   writeFakeLoveAndroid,
   writeFakeLoveJs,
+  writeFakeNonNativeElfAppImage,
+  writeFakeUnsquashfs,
   writeFakeVendorGit,
   writeGame,
 } from './helpers.mjs';
@@ -347,4 +351,101 @@ test('build vendor add: missing git produces compact actionable error', () => {
   });
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('git is required'));
+});
+
+// ── AppImage extraction fallback (non-native ELF → unsquashfs) ───────────────
+
+test('build vendor add linux: falls back to unsquashfs with explicit offset when AppImage is non-native', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor Linux', version: '1.0.0', loveVersion: '11.5' });
+
+  // A foreign-architecture ELF with SquashFS magic at a known offset.
+  // Running it returns ENOEXEC on x86_64 Linux and all macOS variants.
+  const { appImage } = writeFakeNonNativeElfAppImage(dir);
+  const appImageTool = writeFakeAppImageTool(dir);
+  // Fake unsquashfs that creates the expected squashfs-root structure.
+  const unsquashfsBin = writeFakeUnsquashfs(dir);
+
+  const result = run(['build', 'vendor', 'add', 'linux', '--dir', dir, '--json'], {
+    env: envWithPath(unsquashfsBin, {
+      FEATHER_TEST_LOVE_LINUX_APPIMAGE: appImage,
+      FEATHER_TEST_APPIMAGETOOL: appImageTool,
+    }),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.vendors[0].target, 'linux');
+  assert.equal(existsSync(join(dir, 'vendor', 'love-linux', 'squashfs-root', 'bin', 'love')), true);
+  assert.equal(existsSync(join(dir, 'vendor', 'love-linux', 'appimagetool.AppImage')), true);
+});
+
+test('build vendor add linux: unsquashfs receives explicit -offset matching SquashFS magic position', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor Linux', version: '1.0.0', loveVersion: '11.5' });
+
+  const { appImage, sqfsOffset } = writeFakeNonNativeElfAppImage(dir);
+  const appImageTool = writeFakeAppImageTool(dir);
+
+  // Recording unsquashfs: writes received args to a JSON file, then creates squashfs-root.
+  const recordPath = join(dir, 'unsquashfs-args.json');
+  const binDir = join(dir, 'rec-bin');
+  mkdirSync(binDir, { recursive: true });
+  const script = join(binDir, 'unsquashfs');
+  writeFileSync(
+    script,
+    `#!/usr/bin/env node
+const fs = require('node:fs'), path = require('node:path');
+const args = process.argv.slice(2);
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(args));
+let dest = null;
+for (let i = 0; i < args.length - 1; i++) {
+  if (args[i] === '-d') { dest = args[i + 1]; break; }
+}
+if (!dest) process.exit(1);
+fs.mkdirSync(path.join(dest, 'bin'), { recursive: true });
+fs.writeFileSync(path.join(dest, 'bin', 'love'), '#!/bin/sh\\n');
+fs.chmodSync(path.join(dest, 'bin', 'love'), 0o755);
+process.exit(0);
+`,
+  );
+  chmodSync(script, 0o755);
+
+  const result = run(['build', 'vendor', 'add', 'linux', '--dir', dir, '--json'], {
+    env: envWithPath(binDir, {
+      FEATHER_TEST_LOVE_LINUX_APPIMAGE: appImage,
+      FEATHER_TEST_APPIMAGETOOL: appImageTool,
+    }),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+
+  const args = JSON.parse(readFileSync(recordPath, 'utf8'));
+  const offsetIdx = args.indexOf('-offset');
+  assert.ok(offsetIdx >= 0, 'unsquashfs was called with -offset');
+  assert.equal(Number(args[offsetIdx + 1]), sqfsOffset, '-offset value matches SquashFS magic position');
+});
+
+test('build vendor add linux: reports actionable error when AppImage cannot be extracted', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor Linux', version: '1.0.0', loveVersion: '11.5' });
+
+  const { appImage } = writeFakeNonNativeElfAppImage(dir);
+  const appImageTool = writeFakeAppImageTool(dir);
+
+  // Run without any unsquashfs in PATH.
+  const result = run(['build', 'vendor', 'add', 'linux', '--dir', dir, '--json'], {
+    env: {
+      ...process.env,
+      NO_COLOR: '1',
+      FORCE_COLOR: '0',
+      PATH: '',
+      FEATHER_TEST_LOVE_LINUX_APPIMAGE: appImage,
+      FEATHER_TEST_APPIMAGETOOL: appImageTool,
+    },
+  });
+  assert.equal(result.exitCode, 1);
+  const out = outputOf(result);
+  assert.ok(out.includes('brew install squashfs') || out.includes('Linux host'), out);
 });

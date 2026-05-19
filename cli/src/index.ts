@@ -438,17 +438,17 @@ export function createProgram(): Command {
     );
 
   plugin
-    .command('install <id>')
-    .description('Install a plugin from the Feather registry')
+    .command('install <ids...>')
+    .description('Install one or more plugins from the Feather registry')
     .option('--dir <path>', 'Project directory (default: current directory)')
     .option('--remote', 'Download from GitHub instead of copying the local/bundled Lua runtime')
     .option('--branch <branch>', 'GitHub branch to download from when using --remote', 'main')
     .option('--local-src <path>', 'Copy plugins from a local src-lua style directory')
     .option('--install-dir <path>', 'Feather install directory', 'feather')
-    .action((id: string, opts) =>
+    .action((ids: string[], opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
-        return pluginInstallCommand(id, {
+        return pluginInstallCommand(ids, {
           dir: merged.dir as string | undefined,
           branch: merged.branch as string,
           installDir: merged.installDir as string,

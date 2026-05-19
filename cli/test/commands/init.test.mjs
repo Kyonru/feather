@@ -119,6 +119,34 @@ test('init e2e: defaults to cli mode and creates config without embedding runtim
   }
 });
 
+test('init e2e: cli mode records selected plugins in generated config', () => {
+  const workspace = makeTmp();
+  const project = join(workspace, 'cli-plugins-game');
+
+  try {
+    writeE2eGame(project);
+
+    runOk([
+      'init',
+      project,
+      '--mode',
+      'cli',
+      '--plugins',
+      'console,input-replay',
+      '--yes',
+      '--allow-insecure-connection',
+    ]);
+
+    const config = readFileSync(join(project, 'feather.config.lua'), 'utf8');
+    assert.match(config, /include\s*=\s*\{\s*"console",\s*"input-replay"\s*\}/);
+    assert.match(config, /capabilities\s*=\s*\{\s*"filesystem",\s*"input"\s*\}/);
+  } finally {
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  }
+});
+
 test('init --yes without --allow-insecure-connection: config omits __DANGEROUS_INSECURE_CONNECTION__ and doctor fails on missing appId', () => {
   const workspace = makeTmp();
   const project = join(workspace, 'secure-game');

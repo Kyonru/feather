@@ -99,6 +99,11 @@ test('run: source checkout build exposes feather.auto without a bundled cli/lua 
   assert.equal(result.exitCode, 0, outputOf(result));
   const record = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.equal(record.featherAutoExists, true);
+  assert.ok(
+    [join(dirname(LOCAL_SRC), 'cli', 'lua'), LOCAL_SRC].some((root) =>
+      record.shimMain.includes(`${root.replace(/\\/g, '/')}/?.lua`),
+    ),
+  );
 });
 
 test('run: accepts configPath aliases and recovers npm-stripped config path argument', () => {

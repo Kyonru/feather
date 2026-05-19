@@ -41,6 +41,16 @@ function addPluginCapabilities(config: Record<string, unknown>, pluginIds: Itera
   }
 }
 
+function addIncludedPlugins(config: Record<string, unknown>, pluginIds: Iterable<string>): void {
+  const include = new Set(Array.isArray(config.include) ? config.include.filter((id): id is string => typeof id === 'string') : []);
+  for (const id of pluginIds) {
+    include.add(id);
+  }
+  if (include.size > 0) {
+    config.include = [...include].sort();
+  }
+}
+
 const toLocalName = (id: string) =>
   id
     .split(/[-.]/)
@@ -124,6 +134,9 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   const useRemote = opts.remote === true || setup.source === 'remote';
 
   if (mode === 'cli') {
+    const pluginIds = pluginsDisabled ? [] : (opts.plugins ?? []).filter((id) => !setup.exclude.includes(id));
+    addIncludedPlugins(setup.config, pluginIds);
+    addPluginCapabilities(setup.config, pluginIds);
     writeConfig(target, setup.config, {
       mode,
       installDir,

@@ -31,6 +31,20 @@ test('plugin install: local source copies console manifest', () => {
   assert.ok(outputOf(result).includes('Installed console'));
 });
 
+test('plugin install: accepts multiple ids and resolves parent project from nested game dir', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  mkdirSync(gameDir, { recursive: true });
+  writeFileSync(join(gameDir, 'main.lua'), 'function love.draw() end\n');
+  writeFileSync(join(dir, 'feather.config.lua'), 'return {}\n');
+
+  const result = run(['plugin', 'install', 'console', 'input-replay', '--local-src', LOCAL_SRC, '--dir', gameDir]);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'console', 'manifest.lua')), true);
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'input-replay', 'manifest.lua')), true);
+  assert.equal(existsSync(join(gameDir, 'feather')), false);
+});
+
 test('plugin update: explicit local update refreshes damaged files', () => {
   const dir = makeTmp();
   run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);

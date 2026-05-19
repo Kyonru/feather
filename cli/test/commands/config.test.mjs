@@ -38,6 +38,18 @@ test('config plugins: adds included plugins and merges required capabilities', (
   assert.match(config, /capabilities\s*=\s*\{\s*"filesystem",\s*"input",\s*"logs"\s*\}/);
 });
 
+test('config plugins: resolves parent config when dir points at nested game main.lua', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { include = { "runtime-snapshot" } }\n');
+
+  const result = run(['config', 'plugins', '--dir', gameDir, '--include', 'console']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+
+  assert.match(readFileSync(join(dir, 'feather.config.lua'), 'utf8'), /include\s*=\s*\{\s*"console",\s*"runtime-snapshot"\s*\}/);
+});
+
 test('config plugins: exclude removes included plugin and writes exclude list', () => {
   const dir = makeTmp();
   writeGame(dir);

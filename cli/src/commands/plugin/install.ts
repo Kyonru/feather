@@ -13,29 +13,42 @@ import { resolveLocalLuaRoot } from '../../lib/paths.js';
 import { assertValidPluginId, pluginIdToSourceDir } from '../../lib/plugin-utils.js';
 import { type PluginSourceOptions, resolvePluginProjectDir, warnDangerousPlugin } from './shared.js';
 
-export async function pluginInstallCommand(pluginId: string, opts: PluginSourceOptions): Promise<void> {
+export async function pluginInstallCommand(pluginIds: string | string[], opts: PluginSourceOptions): Promise<void> {
   const projectDir = resolvePluginProjectDir(opts.dir);
   const branch = opts.branch ?? 'main';
   const installDir = opts.installDir ?? 'feather';
-  try {
-    assertValidPluginId(pluginId);
-  } catch (err) {
-    fail((err as Error).message);
+  const ids = (Array.isArray(pluginIds) ? pluginIds : [pluginIds]).flatMap((value) =>
+    value.split(',').map((id) => id.trim()).filter(Boolean),
+  );
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) {
+    fail('Plugin id is required.');
+  }
+  for (const pluginId of uniqueIds) {
+    try {
+      assertValidPluginId(pluginId);
+    } catch (err) {
+      fail((err as Error).message);
+    }
   }
 
   if (!opts.remote) {
     const sourceRoot = resolveLocalLuaRoot(opts);
     const available = getLocalPluginIds(sourceRoot);
-    const sourceExists = existsSync(join(sourceRoot, 'plugins', pluginIdToSourceDir(pluginId)));
-    if (!available.includes(pluginId) && !sourceExists) {
-      fail(`Unknown plugin: ${pluginId}`, { details: ['Available: ' + available.join(', ')] });
+    for (const pluginId of uniqueIds) {
+      const sourceExists = existsSync(join(sourceRoot, 'plugins', pluginIdToSourceDir(pluginId)));
+      if (!available.includes(pluginId) && !sourceExists) {
+        fail(`Unknown plugin: ${pluginId}`, { details: ['Available: ' + available.join(', ')] });
+      }
     }
 
-    const spinner = createSpinner(`Copying ${pluginId}…`).start();
+    const spinner = createSpinner(`Copying ${uniqueIds.join(', ')}…`).start();
     try {
-      installPluginsFromLocal([pluginId], sourceRoot, projectDir, installDir);
-      spinner.succeed(`Installed ${pluginId}`);
-      warnDangerousPlugin(pluginId);
+      installPluginsFromLocal(uniqueIds, sourceRoot, projectDir, installDir);
+      spinner.succeed(`Installed ${uniqueIds.join(', ')}`);
+      for (const pluginId of uniqueIds) {
+        warnDangerousPlugin(pluginId);
+      }
     } catch (err) {
       spinner.fail((err as Error).message);
       fail((err as Error).message, { cause: err, silent: true });
@@ -54,17 +67,21 @@ export async function pluginInstallCommand(pluginId: string, opts: PluginSourceO
   }
 
   const available = getPluginIds(entries);
-  if (!available.includes(pluginId)) {
-    fail(`Unknown plugin: ${pluginId}`, { details: ['Available: ' + available.join(', ')] });
+  for (const pluginId of uniqueIds) {
+    if (!available.includes(pluginId)) {
+      fail(`Unknown plugin: ${pluginId}`, { details: ['Available: ' + available.join(', ')] });
+    }
   }
 
-  const installSpinner = createSpinner(`Installing ${pluginId}…`).start();
-  try {
-    await installPlugin(pluginId, entries, projectDir, branch, undefined, installDir);
-    installSpinner.succeed(`Installed ${pluginId}`);
-    warnDangerousPlugin(pluginId);
-  } catch (err) {
-    installSpinner.fail((err as Error).message);
-    fail((err as Error).message, { cause: err, silent: true });
+  for (const pluginId of uniqueIds) {
+    const installSpinner = createSpinner(`Installing ${pluginId}…`).start();
+    try {
+      await installPlugin(pluginId, entries, projectDir, branch, undefined, installDir);
+      installSpinner.succeed(`Installed ${pluginId}`);
+      warnDangerousPlugin(pluginId);
+    } catch (err) {
+      installSpinner.fail((err as Error).message);
+      fail((err as Error).message, { cause: err, silent: true });
+    }
   }
 }

@@ -62,6 +62,7 @@ function writeLock(dir, packages) {
 }
 
 function writeGame(dir) {
+  mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, 'main.lua'),
     `function love.update(dt)
@@ -72,6 +73,17 @@ end
 `,
   );
 }
+
+test('package project resolver: nested game dir resolves parent project metadata', async () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return {}\n');
+  writeLock(dir, {});
+
+  const { resolvePackageProjectDir } = await import('../../dist/commands/package/shared.js');
+  assert.equal(resolvePackageProjectDir(gameDir), dir);
+});
 
 function sourceFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

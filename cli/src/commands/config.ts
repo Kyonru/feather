@@ -6,6 +6,7 @@ import { assertSafeProjectTarget } from '../lib/path-safety.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { mergeCapabilities } from '../ui/init/config.js';
 import { icon, printLine } from '../lib/output.js';
+import { findConfigDir } from '../lib/paths.js';
 
 export type ConfigPluginsOptions = {
   dir?: string;
@@ -58,7 +59,7 @@ function upsertTopLevelValue(source: string, key: string, value: unknown): strin
 }
 
 export async function configPluginsCommand(opts: ConfigPluginsOptions = {}): Promise<void> {
-  const projectDir = resolve(opts.dir ?? '.');
+  const projectDir = findConfigDir(opts.dir ? resolve(opts.dir) : process.cwd());
   const includeIds = parseIds(opts.include);
   const excludeIds = parseIds(opts.exclude);
 

@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { loadPackageCatalog, loadPluginCatalog, readInstalledPackageIds, type PackageEntry, type PluginEntry } from './catalog';
 import { runCommandsInTerminal, runInTerminal } from './cli';
 import { FeatherProjectProvider } from './featherPanel';
@@ -29,6 +31,17 @@ function requireProjectDir(): string | undefined {
     return undefined;
   }
   return root;
+}
+
+function ensureGitignoreEntry(dir: string, entry: string): void {
+  const gitignorePath = join(dir, '.gitignore');
+  const existing = existsSync(gitignorePath) ? readFileSync(gitignorePath, 'utf8') : '';
+  const lines = existing.split('\n').map((l) => l.trimEnd());
+  if (lines.some((l) => l === entry)) return;
+  const updated = existing.endsWith('\n') || existing === ''
+    ? existing + entry + '\n'
+    : existing + '\n' + entry + '\n';
+  writeFileSync(gitignorePath, updated, 'utf8');
 }
 
 function isWatchMode(): boolean {
@@ -351,7 +364,7 @@ async function registerCommands(
       const commands =
         action.value === 'install'
           ? [
-              ...ids.map((id) => ['plugin', 'install', id, '--dir', root]),
+              ['plugin', 'install', ...ids, '--dir', root],
               ['config', 'plugins', '--dir', root, '--include', ids.join(',')],
             ]
           : action.value === 'remove'
@@ -375,30 +388,41 @@ async function registerCommands(
       const installedIds = readInstalledPackageIds(root);
       const packages = loadPackageCatalog(context, installedIds);
       const selected = await vscode.window.showQuickPick(packages.map(packagePick), {
+        canPickMany: true,
         matchOnDescription: true,
         matchOnDetail: true,
-        placeHolder: 'Select a package',
+        placeHolder: 'Select package(s)',
       });
-      if (!selected) return;
+      if (!selected || selected.length === 0) return;
+
+      if (selected.length > 1) {
+        const ids = selected.map((item) => item.pkg.id);
+        runInTerminal(context, 'Feather: Package install', ['package', 'install', ...ids, '--dir', root, '--yes'], root);
+        provider.refresh();
+        setTimeout(() => provider.refresh(), 1500);
+        return;
+      }
+
+      const pkg = selected[0].pkg;
       const action = await vscode.window.showQuickPick<Pick<'install' | 'update' | 'remove'>>(
-        selected.pkg.installed
+        pkg.installed
           ? [
-              { label: 'Update', description: selected.pkg.version, value: 'update' },
+              { label: 'Update', description: pkg.version, value: 'update' },
               { label: 'Remove', description: 'Delete package files and lockfile entry.', value: 'remove' },
             ]
           : [
-              { label: 'Install', description: selected.pkg.version, value: 'install' },
+              { label: 'Install', description: pkg.version, value: 'install' },
             ],
-        { placeHolder: `${selected.pkg.id}: choose action` },
+        { placeHolder: `${pkg.id}: choose action` },
       );
       if (!action) return;
 
       const command =
         action.value === 'remove'
-          ? ['package', 'remove', selected.pkg.id, '--dir', root, '--yes']
+          ? ['package', 'remove', pkg.id, '--dir', root, '--yes']
           : action.value === 'update'
-            ? ['package', 'update', selected.pkg.id, '--dir', root]
-            : ['package', 'install', selected.pkg.id, '--dir', root, '--yes'];
+            ? ['package', 'update', pkg.id, '--dir', root]
+            : ['package', 'install', pkg.id, '--dir', root, '--yes'];
       runInTerminal(context, `Feather: Package ${action.value}`, command, root);
       provider.refresh();
       setTimeout(() => provider.refresh(), 1500);
@@ -436,7 +460,19 @@ async function registerCommands(
       );
       if (!vendor) return;
 
-      runInTerminal(context, 'Feather: Vendor add', ['build', 'vendor', 'add', vendor.value, '--dir', root], root);
+      const defaultUri = vscode.Uri.file(root);
+      const dirUris = await vscode.window.showOpenDialog({
+        canSelectFolders: true,
+        canSelectFiles: false,
+        canSelectMany: false,
+        defaultUri,
+        openLabel: 'Install vendors here',
+        title: 'Select vendor installation directory',
+      });
+      const vendorDir = dirUris?.[0]?.fsPath ?? root;
+
+      ensureGitignoreEntry(vendorDir, '/vendor');
+      runInTerminal(context, 'Feather: Vendor add', ['build', 'vendor', 'add', vendor.value, '--dir', vendorDir], vendorDir);
     }),
   );
 

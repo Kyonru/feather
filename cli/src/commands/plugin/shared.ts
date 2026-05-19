@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { normalizeInstallDir } from '../../lib/install.js';
-import { findProjectDir } from '../../lib/paths.js';
+import { findPackageDir } from '../../lib/paths.js';
 import { dangerousPluginIds, findInstalledPluginDirs, readPluginManifest } from '../../lib/plugin-utils.js';
 import { printWarning } from '../../lib/output.js';
 
@@ -14,7 +14,7 @@ export type PluginSourceOptions = {
 };
 
 export function resolvePluginProjectDir(dir?: string): string {
-  return dir ? resolve(dir) : findProjectDir();
+  return findPackageDir(dir ? resolve(dir) : process.cwd());
 }
 
 export function pluginsDir(projectDir: string, installDir = 'feather'): string {

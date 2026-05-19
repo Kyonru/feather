@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { findConfigDir } from "./paths.js";
 
 export interface FeatherConfig {
   sessionName?: string;
@@ -101,9 +102,16 @@ export function loadConfig(gamePath: string, override?: string): FeatherConfig |
     : [
         join(gamePath, "feather.config.lua"),
         join(gamePath, ".featherrc.lua"),
+        join(dirname(resolve(gamePath)), "feather.config.lua"),
+        join(dirname(resolve(gamePath)), ".featherrc.lua"),
+        join(findConfigDir(gamePath), "feather.config.lua"),
+        join(findConfigDir(gamePath), ".featherrc.lua"),
       ];
 
+  const seen = new Set<string>();
   for (const path of candidates) {
+    if (seen.has(path)) continue;
+    seen.add(path);
     if (!existsSync(path)) continue;
     try {
       const src = readFileSync(path, "utf8");
