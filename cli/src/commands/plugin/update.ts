@@ -12,15 +12,20 @@ import { createSpinner, printMuted } from '../../lib/output.js';
 import { resolveLocalLuaRoot } from '../../lib/paths.js';
 import { assertValidPluginId, pluginIdToSourceDir } from '../../lib/plugin-utils.js';
 import { choosePluginUpdateWorkflow } from '../../ui/plugin-workflow.js';
-import { getInstalledPluginIds, pluginsDir, resolvePluginProjectDir, warnDangerousPlugin } from './shared.js';
+import { getInstalledPluginIds, pluginsDir, resolveManaged, resolvePluginProjectDir, warnDangerousPlugin } from './shared.js';
 
 export async function pluginUpdateCommand(
   pluginId: string | undefined,
-  opts: { dir?: string; branch?: string; installDir?: string; remote?: boolean; localSrc?: string; yes?: boolean },
+  opts: { dir?: string; branch?: string; installDir?: string; remote?: boolean; localSrc?: string; yes?: boolean; managed?: string },
 ): Promise<void> {
   const projectDir = resolvePluginProjectDir(opts.dir);
   const branch = opts.branch ?? 'main';
   const installDir = opts.installDir ?? 'feather';
+
+  if (resolveManaged(projectDir, installDir, opts.managed) === 'cli') {
+    printMuted('CLI-managed project: plugins are bundled in the Feather CLI binary. Update the CLI to get the latest plugins.');
+    return;
+  }
   const dirPath = pluginsDir(projectDir, installDir);
   if (pluginId) {
     try {

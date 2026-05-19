@@ -412,6 +412,7 @@ export function createProgram(): Command {
     .option('--branch <branch>', 'GitHub branch to download from when using --remote', 'main')
     .option('--local-src <path>', 'Copy plugins from a local src-lua style directory')
     .option('--install-dir <path>', 'Feather install directory', 'feather')
+    .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
     .action((opts) =>
       runCliAction(() =>
         pluginWorkflowCommand({
@@ -430,10 +431,11 @@ export function createProgram(): Command {
     .command('list [dir]')
     .description('List installed plugins')
     .option('--install-dir <path>', 'Feather install directory', 'feather')
+    .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
     .action((dir: string | undefined, opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
-        return pluginListCommand(dir ?? (merged.dir as string | undefined), merged.installDir as string);
+        return pluginListCommand(dir ?? (merged.dir as string | undefined), merged.installDir as string, merged.managed as string | undefined);
       }),
     );
 
@@ -445,6 +447,7 @@ export function createProgram(): Command {
     .option('--branch <branch>', 'GitHub branch to download from when using --remote', 'main')
     .option('--local-src <path>', 'Copy plugins from a local src-lua style directory')
     .option('--install-dir <path>', 'Feather install directory', 'feather')
+    .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
     .action((ids: string[], opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
@@ -454,6 +457,7 @@ export function createProgram(): Command {
           installDir: merged.installDir as string,
           remote: merged.remote as boolean | undefined,
           localSrc: merged.localSrc as string | undefined,
+          managed: merged.managed as string | undefined,
         });
       }),
     );
@@ -464,6 +468,7 @@ export function createProgram(): Command {
     .option('--dir <path>', 'Project directory (default: current directory)')
     .option('--install-dir <path>', 'Feather install directory', 'feather')
     .option('-y, --yes', 'Skip interactive confirmation')
+    .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
     .action((id: string, opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
@@ -471,6 +476,7 @@ export function createProgram(): Command {
           dir: merged.dir as string | undefined,
           installDir: merged.installDir as string,
           yes: merged.yes as boolean | undefined,
+          managed: merged.managed as string | undefined,
         });
       }),
     );
@@ -484,6 +490,7 @@ export function createProgram(): Command {
     .option('--local-src <path>', 'Copy plugins from a local src-lua style directory')
     .option('--install-dir <path>', 'Feather install directory', 'feather')
     .option('-y, --yes', 'Skip interactive selection and update all installed plugins when no id is given')
+    .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
     .action((id: string | undefined, opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
@@ -494,6 +501,7 @@ export function createProgram(): Command {
           remote: merged.remote as boolean | undefined,
           localSrc: merged.localSrc as string | undefined,
           yes: merged.yes as boolean | undefined,
+          managed: merged.managed as string | undefined,
         });
       }),
     );

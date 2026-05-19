@@ -11,7 +11,8 @@ import { fail } from '../../lib/command.js';
 import { createSpinner } from '../../lib/output.js';
 import { resolveLocalLuaRoot } from '../../lib/paths.js';
 import { assertValidPluginId, pluginIdToSourceDir } from '../../lib/plugin-utils.js';
-import { type PluginSourceOptions, resolvePluginProjectDir, warnDangerousPlugin } from './shared.js';
+import { configPluginsCommand } from '../config.js';
+import { type PluginSourceOptions, resolveManaged, resolvePluginProjectDir, warnDangerousPlugin } from './shared.js';
 
 export async function pluginInstallCommand(pluginIds: string | string[], opts: PluginSourceOptions): Promise<void> {
   const projectDir = resolvePluginProjectDir(opts.dir);
@@ -30,6 +31,16 @@ export async function pluginInstallCommand(pluginIds: string | string[], opts: P
     } catch (err) {
       fail((err as Error).message);
     }
+  }
+
+  // CLI mode: plugin Lua files live in the bundled CLI runtime; only feather.config.lua
+  // `include` list needs updating. `--managed cli` overrides auto-detection.
+  if (resolveManaged(projectDir, installDir, opts.managed) === 'cli') {
+    await configPluginsCommand({ dir: projectDir, include: uniqueIds.join(',') });
+    for (const pluginId of uniqueIds) {
+      warnDangerousPlugin(pluginId);
+    }
+    return;
   }
 
   if (!opts.remote) {

@@ -4,6 +4,7 @@ import { findConfigDir } from "./paths.js";
 
 export interface FeatherConfig {
   sessionName?: string;
+  managed?: string;
   include?: string[];
   exclude?: string[];
   pluginOptions?: Record<string, Record<string, unknown>>;

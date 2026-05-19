@@ -13,6 +13,7 @@ import {
   test,
   writeFileSync,
   writeLocalPluginSource,
+  writeMinimalRuntime,
 } from './helpers.mjs';
 
 test('plugin list: missing plugin directory is a clean empty state', () => {
@@ -24,6 +25,7 @@ test('plugin list: missing plugin directory is a clean empty state', () => {
 
 test('plugin install: local source copies console manifest', () => {
   const dir = makeTmp();
+  writeMinimalRuntime(dir);
   const result = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
   assert.equal(result.exitCode, 0, outputOf(result));
   const manifest = readFileSync(join(dir, 'feather', 'plugins', 'console', 'manifest.lua'), 'utf8');
@@ -37,6 +39,7 @@ test('plugin install: accepts multiple ids and resolves parent project from nest
   mkdirSync(gameDir, { recursive: true });
   writeFileSync(join(gameDir, 'main.lua'), 'function love.draw() end\n');
   writeFileSync(join(dir, 'feather.config.lua'), 'return {}\n');
+  writeMinimalRuntime(dir);
 
   const result = run(['plugin', 'install', 'console', 'input-replay', '--local-src', LOCAL_SRC, '--dir', gameDir]);
   assert.equal(result.exitCode, 0, outputOf(result));
@@ -47,6 +50,7 @@ test('plugin install: accepts multiple ids and resolves parent project from nest
 
 test('plugin update: explicit local update refreshes damaged files', () => {
   const dir = makeTmp();
+  writeMinimalRuntime(dir);
   run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
   const installedInit = join(dir, 'feather', 'plugins', 'console', 'init.lua');
   writeFileSync(installedInit, 'damaged');
@@ -62,6 +66,7 @@ test('plugin update: explicit local update refreshes damaged files', () => {
 
 test('plugin update: local --yes updates all installed plugins without selection', () => {
   const dir = makeTmp();
+  writeMinimalRuntime(dir);
   run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
   run(['plugin', 'install', 'hot-reload', '--local-src', LOCAL_SRC, '--dir', dir]);
   const consoleInit = join(dir, 'feather', 'plugins', 'console', 'init.lua');
@@ -90,6 +95,7 @@ test('plugin install: unknown local plugin exits 1', () => {
 
 test('plugin install: local manifest is validated before copying', () => {
   const dir = makeTmp();
+  writeMinimalRuntime(dir);
   const source = join(makeTmp(), 'src-lua');
   writeLocalPluginSource(source, 'bad-plugin', { version: null });
 
@@ -101,6 +107,7 @@ test('plugin install: local manifest is validated before copying', () => {
 
 test('plugin install: local manifest id must match plugin path', () => {
   const dir = makeTmp();
+  writeMinimalRuntime(dir);
   const source = join(makeTmp(), 'src-lua');
   writeLocalPluginSource(source, 'console', { manifestId: 'other-plugin' });
 
@@ -121,6 +128,7 @@ test('plugin install: refuses install directory symlink escaping project', () =>
   const dir = makeTmp();
   const outside = join(makeTmp(), 'outside-runtime');
   mkdirSync(outside, { recursive: true });
+  writeFileSync(join(outside, 'init.lua'), 'return {}\n');
   symlinkSync(outside, join(dir, 'feather'), 'dir');
 
   const result = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
@@ -150,6 +158,38 @@ test('plugin remove: refuses plugin directory symlink escaping project', () => {
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('Plugin remove target resolves outside project root'));
   assert.equal(existsSync(join(outside, 'plugins', 'console', 'manifest.lua')), true);
+});
+
+test('plugin install: CLI mode project only updates feather.config.lua include list, does not copy files', () => {
+  // A CLI-mode project has feather.config.lua but NO feather/init.lua.
+  // Plugin code lives in the bundled runtime; only the include list needs updating.
+  const dir = makeTmp();
+  writeFileSync(join(dir, 'main.lua'), 'function love.draw() end\n');
+  writeFileSync(join(dir, 'feather.config.lua'), 'return {}\n');
+
+  const result = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(result.exitCode, 0, outputOf(result));
+
+  // Plugin files must NOT be copied into the project
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'console', 'manifest.lua')), false);
+
+  // feather.config.lua must have console in the include list
+  const config = readFileSync(join(dir, 'feather.config.lua'), 'utf8');
+  assert.ok(config.includes('"console"'), `include list should contain "console"\n${config}`);
+});
+
+test('plugin install: CLI mode accepts multiple ids and adds all to include list', () => {
+  const dir = makeTmp();
+  writeFileSync(join(dir, 'main.lua'), 'function love.draw() end\n');
+  writeFileSync(join(dir, 'feather.config.lua'), 'return {}\n');
+
+  const result = run(['plugin', 'install', 'console', 'input-replay', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(result.exitCode, 0, outputOf(result));
+
+  assert.equal(existsSync(join(dir, 'feather', 'plugins')), false);
+  const config = readFileSync(join(dir, 'feather.config.lua'), 'utf8');
+  assert.ok(config.includes('"console"'), config);
+  assert.ok(config.includes('"input-replay"'), config);
 });
 
 test('plugin list: malformed manifests do not crash and use directory fallback id', () => {

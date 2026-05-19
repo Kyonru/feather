@@ -18,7 +18,14 @@ const knownPluginIds = new Set(pluginCatalog.map((plugin) => plugin.id));
 
 function parseIds(value: string | undefined): string[] {
   if (!value) return [];
-  return [...new Set(value.split(',').map((id) => id.trim()).filter(Boolean))];
+  return [
+    ...new Set(
+      value
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function assertKnownPlugins(ids: string[]): void {
@@ -40,8 +47,13 @@ function setArray(config: Record<string, unknown>, key: 'include' | 'exclude', v
 
 function upsertTopLevelValue(source: string, key: string, value: unknown): string {
   const rendered = value === undefined ? undefined : `  ${key} = ${luaValue(value, 2)},`;
-  const assignment = new RegExp(`^\\s*${key}\\s*=\\s*(?:\\{[^\\n]*\\}|\"[^\"]*\"|'[^']*'|true|false|-?\\d+(?:\\.\\d+)?),?\\s*$`, 'm');
-  const inlineAssignment = new RegExp(`([,{]\\s*)${key}\\s*=\\s*(?:\\{[^}]*\\}|\"[^\"]*\"|'[^']*'|true|false|-?\\d+(?:\\.\\d+)?)(,?)`);
+  const assignment = new RegExp(
+    `^\\s*${key}\\s*=\\s*(?:\\{[^\\n]*\\}|"[^"]*"|'[^']*'|true|false|-?\\d+(?:\\.\\d+)?),?\\s*$`,
+    'm',
+  );
+  const inlineAssignment = new RegExp(
+    `([,{]\\s*)${key}\\s*=\\s*(?:\\{[^}]*\\}|"[^"]*"|'[^']*'|true|false|-?\\d+(?:\\.\\d+)?)(,?)`,
+  );
 
   if (assignment.test(source)) {
     return source.replace(assignment, rendered ?? '');
@@ -52,7 +64,9 @@ function upsertTopLevelValue(source: string, key: string, value: unknown): strin
   }
 
   if (rendered) {
-    return source.replace(/return\s*\{\s*\n/, (match) => `${match}${rendered}\n`);
+    const multiLine = source.replace(/return\s*\{\s*\n/, (match) => `${match}${rendered}\n`);
+    if (multiLine !== source) return multiLine;
+    return source.replace(/return\s*\{\s*\}/, `return {\n${rendered}\n}`);
   }
 
   return source;
@@ -91,8 +105,12 @@ export async function configPluginsCommand(opts: ConfigPluginsOptions = {}): Pro
 
   const config = { ...(loaded as FeatherConfig) } as Record<string, unknown>;
   const originalSource = readFileSync(configPath, 'utf8');
-  const include = new Set(Array.isArray(config.include) ? config.include.filter((id): id is string => typeof id === 'string') : []);
-  const exclude = new Set(Array.isArray(config.exclude) ? config.exclude.filter((id): id is string => typeof id === 'string') : []);
+  const include = new Set(
+    Array.isArray(config.include) ? config.include.filter((id): id is string => typeof id === 'string') : [],
+  );
+  const exclude = new Set(
+    Array.isArray(config.exclude) ? config.exclude.filter((id): id is string => typeof id === 'string') : [],
+  );
 
   for (const id of includeIds) {
     include.add(id);
@@ -107,10 +125,7 @@ export async function configPluginsCommand(opts: ConfigPluginsOptions = {}): Pro
   setArray(config, 'include', include);
   setArray(config, 'exclude', exclude);
 
-  const mergedCapabilities = mergeCapabilities(
-    config.capabilities as string[] | 'all' | undefined,
-    include,
-  );
+  const mergedCapabilities = mergeCapabilities(config.capabilities as string[] | 'all' | undefined, include);
   if (mergedCapabilities && mergedCapabilities !== 'all') {
     config.capabilities = mergedCapabilities;
   }

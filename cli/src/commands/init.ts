@@ -133,6 +133,10 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   const alreadyInstalled = existsSync(installInitPath);
   const useRemote = opts.remote === true || setup.source === 'remote';
 
+  // Record the init mode so plugin commands can detect CLI vs embedded without
+  // relying on the presence/absence of feather/init.lua in the project tree.
+  setup.config.managed = mode;
+
   if (mode === 'cli') {
     const pluginIds = pluginsDisabled ? [] : (opts.plugins ?? []).filter((id) => !setup.exclude.includes(id));
     addIncludedPlugins(setup.config, pluginIds);
