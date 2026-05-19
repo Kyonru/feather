@@ -14,6 +14,12 @@ export type ConfigPluginsOptions = {
   exclude?: string;
 };
 
+export type ConfigManagedOptions = {
+  dir?: string;
+};
+
+const VALID_MANAGED_MODES = ['cli', 'auto', 'manual'] as const;
+
 const knownPluginIds = new Set(pluginCatalog.map((plugin) => plugin.id));
 
 function parseIds(value: string | undefined): string[] {
@@ -137,4 +143,31 @@ export async function configPluginsCommand(opts: ConfigPluginsOptions = {}): Pro
 
   writeFileSync(configPath, nextSource);
   printLine(`${icon.success} Updated feather.config.lua plugin settings`);
+}
+
+export async function configManagedCommand(mode: string, opts: ConfigManagedOptions = {}): Promise<void> {
+  if (!(VALID_MANAGED_MODES as readonly string[]).includes(mode)) {
+    fail(`Invalid mode: ${mode}`, {
+      details: [`Valid modes: ${VALID_MANAGED_MODES.join(', ')}`],
+    });
+  }
+
+  const projectDir = findConfigDir(opts.dir ? resolve(opts.dir) : process.cwd());
+  let configPath: string;
+  try {
+    configPath = assertSafeProjectTarget(projectDir, 'feather.config.lua', 'Config update target');
+  } catch (err) {
+    fail((err as Error).message);
+  }
+
+  if (!existsSync(configPath)) {
+    fail(`No feather.config.lua found in ${projectDir}.`, {
+      details: ['Run `feather init` first.'],
+    });
+  }
+
+  const source = readFileSync(configPath, 'utf8');
+  const next = upsertTopLevelValue(source, 'managed', mode);
+  writeFileSync(configPath, next);
+  printLine(`${icon.success} Updated managed mode to "${mode}"`);
 }

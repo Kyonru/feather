@@ -53,6 +53,8 @@ export type BuildVendorResult = {
   repo: string;
   installed: boolean;
   skipped: boolean;
+  /** True when skipped because the vendor directory already exists (not --force, not SteamOS reuse). */
+  alreadyExists: boolean;
   configUpdated: boolean;
   actions: string[];
 };
@@ -63,6 +65,7 @@ export type BuildVendorAddResult = {
   configPath: string;
   loveVersion: string;
   vendors: BuildVendorResult[];
+  skippedTargets: ConcreteBuildVendorTarget[];
 };
 
 export type BuildVendorListEntry = {
@@ -130,6 +133,7 @@ export async function addBuildVendors(targets: BuildVendorTargetInput[], options
     configPath,
     loveVersion,
     vendors: results,
+    skippedTargets: results.filter((r) => r.alreadyExists).map((r) => r.target),
   };
 }
 
@@ -195,8 +199,20 @@ async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendor
     && vendorPathValid(targetPath, 'steamos')
     && !input.force;
 
-  if (existsSync(targetPath) && !input.force && !canReuseSteamosRuntime) {
-    throw new Error(`${input.target} vendor directory already exists: ${targetPath}. Use --force to replace it.`);
+  const alreadyExists = existsSync(targetPath) && !input.force && !canReuseSteamosRuntime;
+  if (alreadyExists) {
+    return {
+      target: input.target,
+      path: targetPath,
+      relativePath,
+      ref: input.ref,
+      repo,
+      installed: false,
+      skipped: false,
+      alreadyExists: true,
+      configUpdated: false,
+      actions: [],
+    };
   }
 
   if (canReuseSteamosRuntime) {
@@ -250,6 +266,7 @@ async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendor
     repo,
     installed: !input.dryRun && !canReuseSteamosRuntime,
     skipped: canReuseSteamosRuntime,
+    alreadyExists: false,
     configUpdated: input.updateConfig && !input.dryRun,
     actions,
   };

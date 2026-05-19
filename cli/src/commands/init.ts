@@ -221,7 +221,7 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
         let failed = 0;
         for (const id of pluginIds) {
           try {
-            installPluginsFromLocal([id], sourceRoot, target, installDir);
+            installPluginsFromLocal([id], sourceRoot, target, installDir, undefined, true);
             pluginSpinner.text = `Copied plugin: ${id}`;
           } catch {
             failed++;

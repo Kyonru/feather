@@ -287,15 +287,19 @@ test('build vendor add --no-config: fetches vendor without writing build config'
   assert.equal(parsed.vendors[0].configUpdated, false);
 });
 
-test('build vendor add: existing directories and conflicting config require --force', () => {
+test('build vendor add: existing directory is skipped (not a fatal error); conflicting configured path still requires --force', () => {
   const dir = makeTmp();
   writeGame(dir);
   mkdirSync(join(dir, 'vendor', 'love-android'), { recursive: true });
 
+  // Existing directory: no longer fails — returns skippedTargets instead.
   const existing = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--json']);
-  assert.equal(existing.exitCode, 1);
-  assert.ok(outputOf(existing).includes('--force'));
+  assert.equal(existing.exitCode, 0, outputOf(existing));
+  const parsed = JSON.parse(existing.stdout);
+  assert.equal(parsed.vendors[0].alreadyExists, true);
+  assert.ok(parsed.skippedTargets.includes('android'));
 
+  // Conflicting configured path still fails without --force.
   writeBuildConfig(dir, { targets: { android: { loveAndroidDir: 'native/love-android' } } });
   const conflict = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--dry-run', '--json']);
   assert.equal(conflict.exitCode, 1);
@@ -448,4 +452,49 @@ test('build vendor add linux: reports actionable error when AppImage cannot be e
   assert.equal(result.exitCode, 1);
   const out = outputOf(result);
   assert.ok(out.includes('brew install squashfs') || out.includes('Linux host'), out);
+});
+
+test('build vendor add: skips existing vendor and warns without --force', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor Skip', version: '1.0.0', loveVersion: '11.5' });
+  const { binDir } = writeFakeVendorGit(dir);
+
+  // Install android vendor first.
+  run(['build', 'vendor', 'add', 'android', '--dir', dir, '--json'], { env: envWithPath(binDir) });
+  assert.equal(existsSync(join(dir, 'vendor', 'love-android', 'gradlew')), true);
+
+  // Run again — should skip, not fail.
+  const result = run(['build', 'vendor', 'add', 'android', '--dir', dir, '--json'], {
+    env: envWithPath(binDir),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.vendors[0].target, 'android');
+  assert.equal(parsed.vendors[0].alreadyExists, true);
+  assert.equal(parsed.skippedTargets[0], 'android');
+});
+
+test('build vendor add --force: overwrites existing vendor directory', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeBuildConfig(dir, { name: 'Vendor Force', version: '1.0.0', loveVersion: '11.5' });
+  const { binDir } = writeFakeVendorGit(dir);
+
+  // Install android vendor first.
+  run(['build', 'vendor', 'add', 'android', '--dir', dir, '--json'], { env: envWithPath(binDir) });
+  // Write a sentinel file to detect overwrite.
+  writeFileSync(join(dir, 'vendor', 'love-android', 'sentinel.txt'), 'original');
+
+  // Run again with --force — should overwrite.
+  const result = run(['build', 'vendor', 'add', 'android', '--force', '--dir', dir, '--json'], {
+    env: envWithPath(binDir),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.vendors[0].target, 'android');
+  assert.equal(parsed.vendors[0].alreadyExists, false);
+  assert.equal(parsed.skippedTargets.length, 0);
+  // Sentinel file gone — directory was replaced.
+  assert.equal(existsSync(join(dir, 'vendor', 'love-android', 'sentinel.txt')), false);
 });

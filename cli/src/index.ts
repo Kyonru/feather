@@ -13,7 +13,7 @@ import { watchCommand } from './commands/watch.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
 import { buildTargets } from './lib/build/config.js';
 import { uploadCommand } from './commands/upload.js';
-import { configPluginsCommand } from './commands/config.js';
+import { configManagedCommand, configPluginsCommand } from './commands/config.js';
 import {
   pluginListCommand,
   pluginInstallCommand,
@@ -202,6 +202,18 @@ export function createProgram(): Command {
           dir: opts.dir as string | undefined,
           include: opts.include as string | undefined,
           exclude: opts.exclude as string | undefined,
+        }),
+      ),
+    );
+
+  config
+    .command('managed <mode>')
+    .description('Set the managed mode in feather.config.lua (cli, auto, manual)')
+    .option('--dir <path>', 'Project directory (default: current directory)')
+    .action((mode, opts) =>
+      runCliAction(() =>
+        configManagedCommand(mode as string, {
+          dir: opts.dir as string | undefined,
         }),
       ),
     );
@@ -448,6 +460,7 @@ export function createProgram(): Command {
     .option('--local-src <path>', 'Copy plugins from a local src-lua style directory')
     .option('--install-dir <path>', 'Feather install directory', 'feather')
     .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
+    .option('--force', 'Overwrite already-installed plugins without prompting')
     .action((ids: string[], opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
@@ -458,6 +471,7 @@ export function createProgram(): Command {
           remote: merged.remote as boolean | undefined,
           localSrc: merged.localSrc as string | undefined,
           managed: merged.managed as string | undefined,
+          force: merged.force as boolean | undefined,
         });
       }),
     );

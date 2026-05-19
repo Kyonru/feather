@@ -13,6 +13,7 @@ export type PluginSourceOptions = {
   remote?: boolean;
   localSrc?: string;
   managed?: string;
+  force?: boolean;
 };
 
 /**

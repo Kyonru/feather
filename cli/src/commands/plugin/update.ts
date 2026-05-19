@@ -78,7 +78,7 @@ export async function pluginUpdateCommand(
     for (const id of ids) {
       const s = createSpinner(`Updating ${id}…`).start();
       try {
-        installPluginsFromLocal([id], sourceRoot, projectDir, installDir);
+        installPluginsFromLocal([id], sourceRoot, projectDir, installDir, undefined, true);
         s.succeed(`Updated ${id}`);
         warnDangerousPlugin(id);
       } catch (err) {
@@ -106,7 +106,7 @@ export async function pluginUpdateCommand(
   for (const id of ids) {
     const s = createSpinner(`Updating ${id}…`).start();
     try {
-      await installPlugin(id, entries, projectDir, branch, undefined, installDir);
+      await installPlugin(id, entries, projectDir, branch, undefined, installDir, true);
       s.succeed(`Updated ${id}`);
       warnDangerousPlugin(id);
     } catch (err) {

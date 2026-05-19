@@ -116,8 +116,9 @@ export function installPluginsFromLocal(
   sourceRoot: string,
   targetDir: string,
   installDir = "feather",
-  onProgress?: (file: string) => void
-): void {
+  onProgress?: (file: string) => void,
+  force = false,
+): { installed: string[]; skipped: string[] } {
   const pluginsRoot = join(sourceRoot, "plugins");
   if (!existsSync(pluginsRoot)) throw new Error(`No plugins directory found at ${pluginsRoot}`);
 
@@ -130,12 +131,20 @@ export function installPluginsFromLocal(
     return { pluginId, sourceDir, source };
   });
 
+  const installed: string[] = [];
+  const skipped: string[] = [];
   for (const { pluginId, sourceDir, source } of plans) {
     const dest = assertSafeProjectTarget(targetDir, join(root, "plugins", sourceDir), "Plugin install target");
+    if (!force && existsSync(dest)) {
+      skipped.push(pluginId);
+      continue;
+    }
     mkdirSync(dirname(dest), { recursive: true });
     cpSync(source, dest, { recursive: true, force: true });
+    installed.push(pluginId);
     onProgress?.(pluginId);
   }
+  return { installed, skipped };
 }
 
 export async function installPlugin(
@@ -144,12 +153,17 @@ export async function installPlugin(
   targetDir: string,
   branch = "main",
   onProgress?: (file: string) => void,
-  installDir = "feather"
-): Promise<void> {
+  installDir = "feather",
+  force = false,
+): Promise<{ skipped: boolean }> {
   assertValidPluginId(pluginId);
   const pluginEntries = entries.filter((e) => e.type === "plugin" && e.plugin === pluginId);
   if (pluginEntries.length === 0) throw new Error(`Unknown plugin: ${pluginId}`);
   const root = normalizeInstallDir(installDir);
+  const pluginDir = assertSafeProjectTarget(targetDir, join(root, "plugins", pluginIdToSourceDir(pluginId)), "Plugin install target");
+  if (!force && existsSync(pluginDir)) {
+    return { skipped: true };
+  }
   const plans = pluginEntries.map((entry) => {
     const sourceDir = entry.sourceDir ?? pluginId.replace(/\./g, "/");
     const file = entry.file ?? entry.path.replace(new RegExp(`^plugins/${sourceDir}/`), "");
@@ -176,6 +190,7 @@ export async function installPlugin(
     await downloadFile(entry.path, dest, branch);
     onProgress?.(entry.path);
   }
+  return { skipped: false };
 }
 
 export function getPluginIds(entries: ManifestEntry[]): string[] {

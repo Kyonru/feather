@@ -222,6 +222,11 @@
           "items": { "type": "string" },
           "default": [],
           "description": "Run targets selected for Feather: Run Project (e.g. desktop, web, android, ios, steamos)."
+        },
+        "feather.vendorDir": {
+          "type": "string",
+          "default": "",
+          "description": "Directory where build vendor files are installed. Remembered per workspace after the first Feather: Vendor add."
         }
       }
     }

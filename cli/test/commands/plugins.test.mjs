@@ -203,3 +203,58 @@ test('plugin list: malformed manifests do not crash and use directory fallback i
   assert.ok(result.stdout.includes('bad-plugin'));
   assert.ok(result.stdout.includes('Bad Plugin'));
 });
+
+test('plugin install: skips already-installed plugin and warns in non-TTY mode', () => {
+  const dir = makeTmp();
+  writeMinimalRuntime(dir);
+
+  // First install succeeds.
+  const first = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(first.exitCode, 0, outputOf(first));
+  const manifestPath = join(dir, 'feather', 'plugins', 'console', 'manifest.lua');
+  assert.equal(existsSync(manifestPath), true);
+
+  // Overwrite the manifest to detect whether it's been replaced.
+  writeFileSync(manifestPath, '-- sentinel\n');
+
+  // Second install without --force: should skip, file must remain unchanged.
+  const second = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(second.exitCode, 0, outputOf(second));
+  assert.ok(outputOf(second).includes('already installed'), outputOf(second));
+  assert.equal(readFileSync(manifestPath, 'utf8'), '-- sentinel\n');
+});
+
+test('plugin install --force: overwrites already-installed plugin', () => {
+  const dir = makeTmp();
+  writeMinimalRuntime(dir);
+
+  // First install.
+  run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
+  const manifestPath = join(dir, 'feather', 'plugins', 'console', 'manifest.lua');
+  writeFileSync(manifestPath, '-- sentinel\n');
+
+  // Second install with --force: should overwrite.
+  const result = run(['plugin', 'install', 'console', '--force', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(outputOf(result).includes('Installed'), outputOf(result));
+  assert.notEqual(readFileSync(manifestPath, 'utf8'), '-- sentinel\n');
+});
+
+test('plugin install: installs new plugins and skips already-installed ones in the same batch', () => {
+  const dir = makeTmp();
+  writeMinimalRuntime(dir);
+
+  // Pre-install console.
+  run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
+  const consoleSentinel = join(dir, 'feather', 'plugins', 'console', 'manifest.lua');
+  writeFileSync(consoleSentinel, '-- sentinel\n');
+
+  // Install both console (already exists) and input-replay (new).
+  const result = run(['plugin', 'install', 'console', 'input-replay', '--local-src', LOCAL_SRC, '--dir', dir]);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  // input-replay should be installed.
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'input-replay', 'manifest.lua')), true);
+  // console should be skipped — sentinel still intact.
+  assert.equal(readFileSync(consoleSentinel, 'utf8'), '-- sentinel\n');
+  assert.ok(outputOf(result).includes('already installed'), outputOf(result));
+});

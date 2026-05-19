@@ -143,9 +143,10 @@ async function registerCommands(
           return;
         }
         if (action === 'Fetch Vendors') {
+          const savedVendorDir = featherConfig().get<string>('vendorDir')?.trim() ?? root;
           for (const t of missingVendors) {
             const arg = vendorArg(t)!;
-            runInTerminal(context, `Feather: Vendor (${t})`, ['build', 'vendor', 'add', arg, '--dir', root], root);
+            runInTerminal(context, `Feather: Vendor (${t})`, ['build', 'vendor', 'add', arg, '--dir', savedVendorDir], savedVendorDir);
           }
           return;
         }
@@ -460,16 +461,25 @@ async function registerCommands(
       );
       if (!vendor) return;
 
-      const defaultUri = vscode.Uri.file(root);
-      const dirUris = await vscode.window.showOpenDialog({
-        canSelectFolders: true,
-        canSelectFiles: false,
-        canSelectMany: false,
-        defaultUri,
-        openLabel: 'Install vendors here',
-        title: 'Select vendor installation directory',
-      });
-      const vendorDir = dirUris?.[0]?.fsPath ?? root;
+      const cfg = featherConfig();
+      const savedVendorDir = cfg.get<string>('vendorDir')?.trim();
+
+      let vendorDir: string;
+      if (savedVendorDir) {
+        vendorDir = savedVendorDir;
+      } else {
+        const defaultUri = vscode.Uri.file(root);
+        const dirUris = await vscode.window.showOpenDialog({
+          canSelectFolders: true,
+          canSelectFiles: false,
+          canSelectMany: false,
+          defaultUri,
+          openLabel: 'Install vendors here',
+          title: 'Select vendor installation directory',
+        });
+        vendorDir = dirUris?.[0]?.fsPath ?? root;
+        await cfg.update('vendorDir', vendorDir, vscode.ConfigurationTarget.Workspace);
+      }
 
       ensureGitignoreEntry(vendorDir, '/vendor');
       runInTerminal(context, 'Feather: Vendor add', ['build', 'vendor', 'add', vendor.value, '--dir', vendorDir], vendorDir);

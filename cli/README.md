@@ -88,10 +88,10 @@ feather init --install-dir lib/feather            # configure like FEATHER_DIR=l
 
 By default, `feather init` opens an interactive terminal picker powered by Ink with CLI mode selected:
 
-| Mode     | Behavior                                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `cli`    | Recommended. Creates `feather.config.lua` for `feather run` without changing game code.                                  |
-| `auto`   | Advanced embedded mode. Copies core/plugins and patches `main.lua` with a guarded `require("feather.auto")`.             |
+| Mode     | Behavior                                                                                                                |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `cli`    | Recommended. Creates `feather.config.lua` for `feather run` without changing game code.                                 |
+| `auto`   | Advanced embedded mode. Copies core/plugins and patches `main.lua` with a guarded `require("feather.auto")`.            |
 | `manual` | Advanced embedded mode. Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua` when enabled. |
 
 Install source priority:
@@ -451,10 +451,44 @@ feather build vendor add desktop
 feather build vendor add all --json
 feather build vendor add android --ref 11.5
 feather build vendor add ios --ref 11.5 --json
+feather build vendor add web --force          # overwrite existing vendor directory
 feather build vendor list
 ```
 
-`build vendor add` installs local build vendors into `vendor/` and updates `feather.build.json` by default. Web fetches `2dengine/love.js` into `vendor/love.js`. Android fetches `love2d/love-android` with submodules. iOS fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode tree. Desktop vendors download official LÖVE runtimes for Windows, macOS, and Linux; SteamOS reuses the Linux runtime unless configured separately. Mobile and desktop versions come from `loveVersion` or `--ref`, falling back to `11.5`; web defaults to the love.js `main` branch unless `--web-ref` or `--ref` is passed.
+## `build vendor add`
+
+Installs local build vendors into `vendor/` and updates `feather.build.json` by default.
+
+If a vendor directory already exists, it is skipped and installation continues for the remaining vendors. In interactive terminals, Feather prompts whether the existing vendor should be overwritten. Use `--force` to overwrite existing vendors without prompting.
+
+### Vendor Sources
+
+- **Web** — Fetches `2dengine/love.js` into `vendor/love.js`
+- **Android** — Fetches `love2d/love-android` with submodules
+- **iOS** — Fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode project tree
+- **Desktop** — Downloads official LÖVE runtimes for:
+  - Windows
+  - macOS
+  - Linux
+- **SteamOS** — Reuses the Linux runtime unless configured separately
+
+### Version Resolution
+
+> [!NOTE]
+> Only 11.5 has been tested, future Love2D releases will be officially supported short after launch.
+
+Mobile and desktop vendors resolve versions using:
+
+1. `loveVersion`
+2. `--ref`
+
+If neither is provided, Feather defaults to `11.5`.
+
+Web vendors behave slightly differently:
+
+- Defaults to the `main` branch of `love.js`
+- Can be pinned using `--web-ref`
+- Falls back to `--ref` if provided
 
 ```json
 {
@@ -627,6 +661,9 @@ In an interactive terminal, `feather update` opens an Ink workflow to choose loc
 
 This updates all `core:` files listed in `manifest.txt`. Plugin files are not touched — use `feather plugin update` for those.
 
+> [!NOTE]
+> CLI-managed projects (initialized with `feather init` in `cli` mode) do not embed the runtime in the project. For those projects `feather update` prints an informational message and exits — update the CLI package itself to get the latest runtime.
+
 ---
 
 ### `feather plugin`
@@ -674,7 +711,22 @@ feather plugin install console
 feather plugin install time-travel --remote --branch main
 feather plugin install console --local-src ../feather/src-lua
 feather plugin install console --install-dir lib/feather
+feather plugin install console input-replay           # install multiple at once
+feather plugin install console --force                # overwrite if already installed
 ```
+
+If a plugin is already installed, `feather plugin install` skips it and continues installing the others. In an interactive terminal it then offers to overwrite the skipped plugins. Pass `--force` to overwrite without prompting.
+
+**Options:**
+
+| Option                 | Description                                                   |
+| ---------------------- | ------------------------------------------------------------- |
+| `--force`              | Overwrite already-installed plugins without prompting.        |
+| `--remote`             | Download from GitHub instead of the local/bundled runtime.    |
+| `--branch <branch>`    | GitHub branch or tag when using `--remote` (default: `main`). |
+| `--local-src <path>`   | Copy from a local `src-lua` style directory.                  |
+| `--install-dir <path>` | Install directory (default: `feather`).                       |
+| `--dir <path>`         | Project directory (default: current directory).               |
 
 #### `feather plugin remove <id>`
 
@@ -698,6 +750,50 @@ feather plugin update --remote --branch main
 When no plugin ID or source flag is provided in an interactive terminal, `feather plugin update` opens an Ink workflow where you can choose the source and select installed plugins. Use `-y`, `--remote`, or `--local-src` for CI or scripts.
 
 Use `--install-dir <path>` with plugin commands when the project was initialized outside the default `feather/` directory.
+
+Use `--managed <mode>` to override the managed-mode detection read from `feather.config.lua`. Accepted values are `cli`, `auto`, and `manual`. This is rarely needed; the config file is the source of truth.
+
+---
+
+### `feather config`
+
+Update values in `feather.config.lua` without opening the file.
+
+#### `feather config plugins`
+
+Add or remove plugins from the `include`/`exclude` lists and keep the `capabilities` allowlist in sync.
+
+```bash
+feather config plugins --include console,input-replay
+feather config plugins --exclude hump.signal
+feather config plugins --include profiler --exclude runtime-snapshot --dir path/to/my-game
+```
+
+**Options:**
+
+| Option            | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| `--include <ids>` | Comma-separated plugin IDs to add to `include`.         |
+| `--exclude <ids>` | Comma-separated plugin IDs to add to `exclude`.         |
+| `--dir <path>`    | Project directory (default: current directory).         |
+
+#### `feather config managed <mode>`
+
+Change the `managed` field that controls how Feather detects the integration mode. Useful when you want to override what `feather init` wrote without re-initialising the project.
+
+```bash
+feather config managed cli
+feather config managed auto
+feather config managed manual --dir path/to/my-game
+```
+
+Valid modes are `cli`, `auto`, and `manual`. This updates the config field only — it does not patch `main.lua`, install the runtime, or generate `feather.debugger.lua`. Use `feather init --mode <mode>` for a full mode transition.
+
+**Options:**
+
+| Option         | Description                                     |
+| -------------- | ----------------------------------------------- |
+| `--dir <path>` | Project directory (default: current directory). |
 
 ---
 
