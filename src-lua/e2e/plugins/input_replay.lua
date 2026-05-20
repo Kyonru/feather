@@ -11,6 +11,12 @@ function InputReplaySuite.run(assertEqual, assertTruthy)
   local preReplayRecordCount = 0
   local lateRecordOverrideCount = 0
   local lateReplayOverrideCount = 0
+  local originalKeyboardIsDown = love.keyboard and love.keyboard.isDown
+  local originalKeyboardIsScancodeDown = love.keyboard and love.keyboard.isScancodeDown
+  local originalMouseIsDown = love.mouse and love.mouse.isDown
+  local originalMouseGetPosition = love.mouse and love.mouse.getPosition
+  local originalMouseGetX = love.mouse and love.mouse.getX
+  local originalMouseGetY = love.mouse and love.mouse.getY
 
   love.keypressed = function()
     preReplayRecordCount = preReplayRecordCount + 1
@@ -74,9 +80,43 @@ function InputReplaySuite.run(assertEqual, assertTruthy)
     inputReplayFeather:update(0)
     assertEqual(lateReplayOverrideCount, 2, "input replay replays through late keypressed override")
     assertEqual(replay.replaying, false, "input replay stops after queued replay events finish")
+
+    replay.events = {
+      { time = 0, type = "keypressed", args = { "right", "d", false } },
+      { time = 999, type = "keyreleased", args = { "right", "d" } },
+    }
+    replay:startReplay()
+    inputReplayFeather:update(0)
+    assertEqual(love.keyboard.isDown("right"), true, "input replay exposes held keys to love.keyboard.isDown")
+    assertEqual(love.keyboard.isScancodeDown("d"), true, "input replay exposes held scancodes to love.keyboard.isScancodeDown")
+    replay:stopReplay()
+
+    replay.events = {
+      { time = 0, type = "mousepressed", args = { 42, 64, 1, false, 1 } },
+      { time = 999, type = "mousereleased", args = { 42, 64, 1, false, 1 } },
+    }
+    replay:startReplay()
+    inputReplayFeather:update(0)
+    local mouseX, mouseY = love.mouse.getPosition()
+    assertEqual(love.mouse.isDown(1), true, "input replay exposes held mouse buttons to love.mouse.isDown")
+    assertEqual(mouseX, 42, "input replay exposes replay mouse x position")
+    assertEqual(mouseY, 64, "input replay exposes replay mouse y position")
+    assertEqual(love.mouse.getX(), 42, "input replay exposes replay mouse x getter")
+    assertEqual(love.mouse.getY(), 64, "input replay exposes replay mouse y getter")
+    replay:stopReplay()
   end, debug.traceback)
 
   love.keypressed = originalReplayKeypressed
+  if love.keyboard then
+    love.keyboard.isDown = originalKeyboardIsDown
+    love.keyboard.isScancodeDown = originalKeyboardIsScancodeDown
+  end
+  if love.mouse then
+    love.mouse.isDown = originalMouseIsDown
+    love.mouse.getPosition = originalMouseGetPosition
+    love.mouse.getX = originalMouseGetX
+    love.mouse.getY = originalMouseGetY
+  end
   inputReplayFeather:finish()
 
   if not ok then

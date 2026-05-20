@@ -36,8 +36,11 @@ end
 ---@field captureJoystickAxis boolean
 ---@field _originals table  Original love callbacks saved for restoration
 ---@field _wrappers table   Stable love callback wrappers owned by the plugin
+---@field _pollOriginals table Original polling functions saved for restoration
+---@field _virtualInput table Replay-time input state for polling APIs
 ---@field _callbackDisposers function[]
 ---@field _hooked boolean
+---@field _pollHooked boolean
 local InputReplayPlugin = Class({
   __includes = Base,
   init = function(self, config)
@@ -61,8 +64,17 @@ local InputReplayPlugin = Class({
     self.captureJoystickAxis = self.options.captureJoystickAxis == true -- off by default (noisy)
     self._originals = {}
     self._wrappers = {}
+    self._pollOriginals = {}
+    self._virtualInput = {
+      keys = {},
+      scancodes = {},
+      mouseButtons = {},
+      mouseX = nil,
+      mouseY = nil,
+    }
     self._callbackDisposers = {}
     self._hooked = false
+    self._pollHooked = false
 
     if config.callbacks then
       self:_installCallbackBusHooks(config.callbacks)
@@ -300,6 +312,165 @@ function InputReplayPlugin:stopRecording()
   end
 end
 
+function InputReplayPlugin:_resetVirtualInput()
+  self._virtualInput = {
+    keys = {},
+    scancodes = {},
+    mouseButtons = {},
+    mouseX = nil,
+    mouseY = nil,
+  }
+end
+
+function InputReplayPlugin:_setVirtualKey(key, scancode, down)
+  if key ~= nil then
+    self._virtualInput.keys[key] = down and true or nil
+  end
+  if scancode ~= nil then
+    self._virtualInput.scancodes[scancode] = down and true or nil
+  end
+end
+
+function InputReplayPlugin:_setVirtualMouse(button, down, x, y)
+  if button ~= nil then
+    self._virtualInput.mouseButtons[button] = down and true or nil
+  end
+  if x ~= nil then
+    self._virtualInput.mouseX = x
+  end
+  if y ~= nil then
+    self._virtualInput.mouseY = y
+  end
+end
+
+function InputReplayPlugin:_installPollingHooks()
+  if self._pollHooked then
+    return
+  end
+  self._pollHooked = true
+
+  if love.keyboard then
+    if love.keyboard.isDown then
+      self._pollOriginals.keyboardIsDown = love.keyboard.isDown
+      love.keyboard.isDown = function(...)
+        local keys = { ... }
+        for _, key in ipairs(keys) do
+          if self._virtualInput.keys[key] then
+            return true
+          end
+        end
+        return self._pollOriginals.keyboardIsDown(...)
+      end
+    end
+
+    if love.keyboard.isScancodeDown then
+      self._pollOriginals.keyboardIsScancodeDown = love.keyboard.isScancodeDown
+      love.keyboard.isScancodeDown = function(...)
+        local scancodes = { ... }
+        for _, scancode in ipairs(scancodes) do
+          if self._virtualInput.scancodes[scancode] then
+            return true
+          end
+        end
+        return self._pollOriginals.keyboardIsScancodeDown(...)
+      end
+    end
+  end
+
+  if love.mouse then
+    if love.mouse.isDown then
+      self._pollOriginals.mouseIsDown = love.mouse.isDown
+      love.mouse.isDown = function(...)
+        local buttons = { ... }
+        for _, button in ipairs(buttons) do
+          if self._virtualInput.mouseButtons[button] then
+            return true
+          end
+        end
+        return self._pollOriginals.mouseIsDown(...)
+      end
+    end
+
+    if love.mouse.getPosition then
+      self._pollOriginals.mouseGetPosition = love.mouse.getPosition
+      love.mouse.getPosition = function()
+        if self._virtualInput.mouseX ~= nil and self._virtualInput.mouseY ~= nil then
+          return self._virtualInput.mouseX, self._virtualInput.mouseY
+        end
+        return self._pollOriginals.mouseGetPosition()
+      end
+    end
+
+    if love.mouse.getX then
+      self._pollOriginals.mouseGetX = love.mouse.getX
+      love.mouse.getX = function()
+        if self._virtualInput.mouseX ~= nil then
+          return self._virtualInput.mouseX
+        end
+        return self._pollOriginals.mouseGetX()
+      end
+    end
+
+    if love.mouse.getY then
+      self._pollOriginals.mouseGetY = love.mouse.getY
+      love.mouse.getY = function()
+        if self._virtualInput.mouseY ~= nil then
+          return self._virtualInput.mouseY
+        end
+        return self._pollOriginals.mouseGetY()
+      end
+    end
+  end
+end
+
+function InputReplayPlugin:_removePollingHooks()
+  if not self._pollHooked then
+    return
+  end
+
+  if love.keyboard then
+    if self._pollOriginals.keyboardIsDown then
+      love.keyboard.isDown = self._pollOriginals.keyboardIsDown
+    end
+    if self._pollOriginals.keyboardIsScancodeDown then
+      love.keyboard.isScancodeDown = self._pollOriginals.keyboardIsScancodeDown
+    end
+  end
+
+  if love.mouse then
+    if self._pollOriginals.mouseIsDown then
+      love.mouse.isDown = self._pollOriginals.mouseIsDown
+    end
+    if self._pollOriginals.mouseGetPosition then
+      love.mouse.getPosition = self._pollOriginals.mouseGetPosition
+    end
+    if self._pollOriginals.mouseGetX then
+      love.mouse.getX = self._pollOriginals.mouseGetX
+    end
+    if self._pollOriginals.mouseGetY then
+      love.mouse.getY = self._pollOriginals.mouseGetY
+    end
+  end
+
+  self._pollOriginals = {}
+  self._pollHooked = false
+end
+
+function InputReplayPlugin:_applyVirtualInput(event)
+  local args = event.args or {}
+  if event.type == "keypressed" then
+    self:_setVirtualKey(args[1], args[2], true)
+  elseif event.type == "keyreleased" then
+    self:_setVirtualKey(args[1], args[2], false)
+  elseif event.type == "mousepressed" then
+    self:_setVirtualMouse(args[3], true, args[1], args[2])
+  elseif event.type == "mousereleased" then
+    self:_setVirtualMouse(args[3], false, args[1], args[2])
+  elseif event.type == "mousemoved" then
+    self:_setVirtualMouse(nil, nil, args[1], args[2])
+  end
+end
+
 --- Start replaying recorded events. Calls the original love callbacks at the recorded timestamps.
 function InputReplayPlugin:startReplay()
   if self.recording then
@@ -309,6 +480,8 @@ function InputReplayPlugin:startReplay()
     return
   end
   self:_installHooks()
+  self:_resetVirtualInput()
+  self:_installPollingHooks()
   self.replaying = true
   self.replayStart = gettime()
   self.replayIndex = 1
@@ -320,6 +493,8 @@ end
 --- Stop replay.
 function InputReplayPlugin:stopReplay()
   self.replaying = false
+  self:_resetVirtualInput()
+  self:_removePollingHooks()
   if self.logger and self.logger.log then
     self.logger:log({ type = "trace", str = "[InputReplay] Replay stopped" })
   end
@@ -374,6 +549,8 @@ local REPLAY_RESOLVERS = {
 }
 
 function InputReplayPlugin:_dispatchReplayEvent(event)
+  self:_applyVirtualInput(event)
+
   local resolver = REPLAY_RESOLVERS[event.type]
   local replayArgs = resolver and resolver(event.args) or event.args
   if not replayArgs then
@@ -669,6 +846,7 @@ function InputReplayPlugin:handleParamsUpdate(request, _feather)
 end
 
 function InputReplayPlugin:finish(_feather)
+  self:_removePollingHooks()
   self:_removeHooks()
   for _, dispose in ipairs(self._callbackDisposers) do
     pcall(dispose)
