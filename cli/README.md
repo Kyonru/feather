@@ -384,7 +384,7 @@ Doctor checks:
 - installed plugin manifests
 - missing, unknown, malformed, or development-only plugins
 - package lockfile integrity, version drift, and source provenance
-- build/upload dependencies when `--build-target` or `--upload-target` is provided
+- build dependencies when `--build-target` is provided, plus upload readiness when an upload target is requested or `feather.build.json` is present
 - `USE_DEBUGGER` guards and `FEATHER-INIT` markers
 - risky settings such as hot reload, screenshot capture, and Console API keys
 - Feather desktop WebSocket reachability
@@ -621,6 +621,7 @@ Upload a built artifact. V1 supports Itch through `butler`; Steam is registered 
 
 ```bash
 feather upload itch web --dir path/to/my-game
+feather upload itch android --dir path/to/my-game --build
 feather upload itch web --channel html5 --if-changed
 feather upload itch web --dry-run --json
 feather upload steam linux
@@ -634,6 +635,8 @@ butler push <artifact> <user/game>:<channel> --userversion <version>
 
 The Itch project and default channels come from `feather.build.json`. Use `--channel` or `--user-version` to override them in CI.
 
+When `--build` is used, upload always performs a production-safe build first. Android and iOS upload builds force release mode, debugger embedding is disabled, `--allow-unsafe` and `--allow-feather-runtime` are rejected, and generated inspectable artifacts are checked for Feather runtime/debug files before upload. `--allow-feather-runtime` only applies when uploading an existing artifact you built yourself.
+
 **Options:**
 
 | Option                     | Description                                         |
@@ -646,6 +649,8 @@ The Itch project and default channels come from `feather.build.json`. Use `--cha
 | `--dry-run`                | Show the upload command without running it.         |
 | `--if-changed`             | Pass `--if-changed` to supported uploaders.         |
 | `--hidden`                 | Pass `--hidden` to supported uploaders.             |
+| `--build`                  | Build a production-safe artifact before uploading.  |
+| `--allow-feather-runtime`  | Override safety checks only for existing artifacts. |
 | `--json`                   | Print machine-readable output only.                 |
 
 Run `feather doctor --upload-target itch` to check for `butler`, Itch project config, and CI auth hints. Use `BUTLER_API_KEY` in CI or `butler login` locally.

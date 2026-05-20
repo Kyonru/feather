@@ -42,6 +42,7 @@ export type BuildOptions = LoadBuildConfigOptions & {
   noPlugins?: boolean;
   featherOverride?: string;
   pluginsOverride?: string;
+  skipProductionConfigPreflight?: boolean;
   verbose?: boolean;
   log?: NativeBuildLogger;
 };
@@ -118,7 +119,7 @@ export function runBuild(options: BuildOptions): BuildResult {
     assertReleaseTargetSupported(options.target, Boolean(options.release));
     const config = loadBuildConfig(options);
     assertBuildConfigValidForTarget(config, options.target, Boolean(options.release));
-    assertProductionBuildSafe(config, options.allowUnsafe);
+    assertProductionBuildSafe(config, options.allowUnsafe || options.skipProductionConfigPreflight);
     assertNoSymlinkEscape(config.projectDir, config.outDir, 'Build output directory');
 
     if (options.dryRun) return planBuild(options);

@@ -12,9 +12,11 @@ import {
   test,
   writeBuildConfig,
   writeFakeCommand,
+  writeFakeLoveAndroid,
   writeFakeLoveJs,
   writeFileSync,
   writeGame,
+  readStoredZipEntries,
 } from './helpers.mjs';
 
 function writeUnsafeUploadManifest(
@@ -211,6 +213,108 @@ test('upload itch: --build --dry-run builds an artifact and returns upload JSON 
   assert.equal(parsed.dryRun, true);
   assert.equal(parsed.project, 'tester/build-upload');
   assert.equal(parsed.safety.status, 'safe');
+});
+
+test('upload itch: --build creates a clean artifact even when dev Feather config is unsafe', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  writeToDisk = true,
+  include = { "console" },
+  debugger = {
+    enabled = true,
+    hotReload = {
+      enabled = true,
+      allow = { "game.*" },
+      persistToDisk = true,
+    },
+  },
+}
+`,
+  );
+  writeBuildConfig(dir, {
+    name: 'Clean Upload',
+    version: '1.0.0',
+    targets: { web: { loveJsDir: 'love.js' } },
+    upload: { itch: { project: 'tester/clean-upload', channels: { web: 'html5' } } },
+  });
+
+  const result = run(['upload', 'itch', 'web', '--dir', dir, '--build', '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.safety.status, 'safe');
+});
+
+test('upload itch: --build android forces release mode without Feather runtime', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const { recordPath } = writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Android Upload',
+    version: '1.0.0',
+    productId: 'com.example.uploadandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+    upload: { itch: { project: 'tester/android-upload', channels: { android: 'android' } } },
+  });
+
+  const result = run(['upload', 'itch', 'android', '--dir', dir, '--build', '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.artifact.endsWith('android-upload-1.0.0-android.aab'), true);
+  assert.equal(parsed.warning, undefined);
+  const loveEntries = readStoredZipEntries(join(dir, 'builds', 'android-upload-1.0.0.love'));
+  assert.equal(loveEntries.has('.feather-main.lua'), false);
+  assert.equal(loveEntries.has('feather/auto.lua'), false);
+  assert.equal(loveEntries.has('feather.config.lua'), false);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(record.records[0].argv.some((arg) => /bundle/i.test(arg)));
+  assert.ok(record.records[0].argv.some((arg) => /release/i.test(arg)));
+});
+
+test('upload itch: --build rejects unsafe overrides', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  writeBuildConfig(dir, {
+    name: 'Guarded Upload',
+    version: '1.0.0',
+    targets: { web: { loveJsDir: 'love.js' } },
+    upload: { itch: { project: 'tester/guarded-upload', channels: { web: 'html5' } } },
+  });
+
+  const allowUnsafe = run(['upload', 'itch', 'web', '--dir', dir, '--build', '--allow-unsafe', '--dry-run', '--json']);
+  assert.equal(allowUnsafe.exitCode, 1);
+  assert.ok(outputOf(allowUnsafe).includes('remove --allow-unsafe'));
+
+  const allowRuntime = run(['upload', 'itch', 'web', '--dir', dir, '--build', '--allow-feather-runtime', '--dry-run', '--json']);
+  assert.equal(allowRuntime.exitCode, 1);
+  assert.ok(outputOf(allowRuntime).includes('remove --allow-feather-runtime'));
+});
+
+test('upload itch: --build blocks generated artifacts containing Feather runtime', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveJs(dir);
+  mkdirSync(join(dir, 'feather'), { recursive: true });
+  writeFileSync(join(dir, 'feather', 'init.lua'), 'return {}\n');
+  writeBuildConfig(dir, {
+    name: 'Embedded Runtime Upload',
+    version: '1.0.0',
+    includeRuntime: true,
+    targets: { web: { loveJsDir: 'love.js' } },
+    upload: { itch: { project: 'tester/embedded-runtime-upload', channels: { web: 'html5' } } },
+  });
+
+  const result = run(['upload', 'itch', 'web', '--dir', dir, '--build', '--dry-run', '--json']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Upload build blocked'));
+  assert.ok(outputOf(result).includes('feather/'));
 });
 
 test('upload itch: missing project reports a clear headless error', () => {

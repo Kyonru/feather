@@ -166,6 +166,11 @@ local function run()
   assertTruthy(feather, "feather creates debugger instance")
   assertTruthy(feather.hotReloader, "hot reloader is available")
   local helloConfig = feather:__getConfig()
+  local envGamePath = os.getenv("FEATHER_GAME_PATH")
+  if envGamePath and #envGamePath > 0 then
+    assertEqual(helloConfig.root_path, envGamePath, "CLI run config root_path uses real game path")
+    assertEqual(helloConfig.sourceDir, envGamePath, "CLI run config sourceDir uses real game path")
+  end
   assertEqual(helloConfig.debugger.hotReload.enabled, true, "hello config includes hot reload state")
   assertEqual(helloConfig.plugins["api-compatible"].incompatible, false, "compatible plugin remains available")
   assertEqual(helloConfig.plugins["api-compatible"].disabled, false, "compatible plugin remains enabled")

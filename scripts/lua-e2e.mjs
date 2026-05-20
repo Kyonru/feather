@@ -47,6 +47,10 @@ if (process.platform === 'linux' && !process.env.DISPLAY) {
 console.log(`lua-e2e: ${command} ${commandArgs.join(' ')}`);
 const result = spawnSync(command, commandArgs, {
   cwd: root,
+  env: {
+    ...process.env,
+    FEATHER_GAME_PATH: gamePath,
+  },
   encoding: 'utf8',
   timeout: 15000,
 });

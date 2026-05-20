@@ -168,27 +168,42 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     hasProjectDir ? undefined : 'Pass the game directory to `feather doctor <dir>`.',
   );
 
-  if (hasProjectDir && (opts.buildTarget || opts.uploadTarget)) {
+  if (hasProjectDir) {
     try {
       const buildConfig = loadBuildConfig({ projectDir });
       const configExists = existsSync(buildConfig.configPath);
-      add(
-        checks,
-        'Build',
-        'feather.build.json',
-        configExists ? 'pass' : 'warn',
-        configExists ? buildConfig.configPath : 'missing',
-        configExists ? undefined : 'Create feather.build.json to share local and CI build settings.',
-      );
-      const writable = outDirWritableDetail(buildConfig.outDir);
-      add(
-        checks,
-        'Build',
-        'Build output directory',
-        writable.ok ? 'pass' : 'fail',
-        writable.detail,
-        writable.ok ? undefined : 'Choose a writable outDir in feather.build.json or pass --out-dir.',
-      );
+      const discoveredUploadTargets: SupportedUploadDoctorTarget[] = [];
+      if (!opts.uploadTarget && buildConfig.upload.itch) discoveredUploadTargets.push('itch');
+      if (!opts.uploadTarget && !buildConfig.upload.itch && configExists) discoveredUploadTargets.push('itch');
+      const uploadTargetsToCheck: SupportedUploadDoctorTarget[] = opts.uploadTarget === 'itch' ? ['itch'] : discoveredUploadTargets;
+      const shouldCheckBuildConfig = Boolean(opts.buildTarget || opts.uploadTarget || buildConfig.upload.itch);
+      if (shouldCheckBuildConfig) {
+        add(
+          checks,
+          'Build',
+          'feather.build.json',
+          configExists ? 'pass' : 'warn',
+          configExists ? buildConfig.configPath : 'missing',
+          configExists ? undefined : 'Create feather.build.json to share local and CI build settings.',
+        );
+        const writable = outDirWritableDetail(buildConfig.outDir);
+        add(
+          checks,
+          'Build',
+          'Build output directory',
+          writable.ok ? 'pass' : 'fail',
+          writable.detail,
+          writable.ok ? undefined : 'Choose a writable outDir in feather.build.json or pass --out-dir.',
+        );
+      } else if (uploadTargetsToCheck.length > 0) {
+        add(
+          checks,
+          'Build',
+          'feather.build.json',
+          'pass',
+          buildConfig.configPath,
+        );
+      }
 
       if (opts.buildTarget && isDoctorBuildTarget(opts.buildTarget)) {
         const fromAll = opts.buildTarget === 'all';
@@ -200,33 +215,10 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         }
       }
 
-      if (opts.uploadTarget === 'itch') {
-        const itchProject = buildConfig.upload.itch?.project;
-        add(
-          checks,
-          'Upload',
-          'Itch project',
-          itchProject ? 'pass' : 'fail',
-          itchProject ?? 'missing',
-          'Set upload.itch.project in feather.build.json, for example "user/game".',
-        );
-        const butler = commandVersion('butler', ['--version']);
-        add(
-          checks,
-          'Upload',
-          'butler',
-          butler ? 'pass' : 'fail',
-          butler ? butler : 'not found',
-          butler ? undefined : 'Install butler from https://itch.io/docs/butler/ and make sure it is on PATH.',
-        );
-        add(
-          checks,
-          'Upload',
-          'BUTLER_API_KEY',
-          process.env.BUTLER_API_KEY ? 'pass' : 'warn',
-          process.env.BUTLER_API_KEY ? 'configured' : 'missing',
-          process.env.BUTLER_API_KEY ? undefined : 'Set BUTLER_API_KEY in CI or run `butler login` locally.',
-        );
+      for (const uploadTarget of uploadTargetsToCheck) {
+        addUploadTargetChecks(checks, buildConfig, uploadTarget, {
+          required: Boolean(opts.uploadTarget || buildConfig.upload[uploadTarget]),
+        });
       }
     } catch (err) {
       add(checks, 'Build', 'feather.build.json', 'fail', (err as Error).message, 'Fix feather.build.json before building or uploading.');
@@ -342,6 +334,15 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   }
   const projectDirArg = shellArg(projectDir);
   const installDirArg = shellArg(effectiveInstallDir);
+  if (configOnlyMode && activeIncludedPluginIds.some((id) => knownPluginIds.has(id))) {
+    add(
+      checks,
+      'Plugins',
+      'CLI-managed plugins',
+      'pass',
+      `${activeIncludedPluginIds.filter((id) => knownPluginIds.has(id)).length} included from bundled runtime`,
+    );
+  }
   if (hasRuntime) {
     add(
       checks,
@@ -413,6 +414,8 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       );
       continue;
     }
+
+    if (configOnlyMode) continue;
 
     if (!installedPlugins.has(id)) {
       missingIncludedPlugins.push(id);
@@ -999,9 +1002,47 @@ function androidReleaseSigningSeverity(buildConfig: ReturnType<typeof loadBuildC
 
 const desktopBuildTargets = ['windows', 'macos', 'linux', 'steamos'] as const;
 type DoctorDesktopBuildTarget = typeof desktopBuildTargets[number];
+const supportedUploadDoctorTargets = ['itch'] as const;
+type SupportedUploadDoctorTarget = typeof supportedUploadDoctorTargets[number];
 
 function isDoctorDesktopBuildTarget(target: string): target is DoctorDesktopBuildTarget {
   return (desktopBuildTargets as readonly string[]).includes(target);
+}
+
+function addUploadTargetChecks(
+  checks: DoctorCheck[],
+  buildConfig: ReturnType<typeof loadBuildConfig>,
+  target: SupportedUploadDoctorTarget,
+  options: { required?: boolean } = {},
+): void {
+  if (target !== 'itch') return;
+  const required = Boolean(options.required);
+  const itchProject = buildConfig.upload.itch?.project;
+  add(
+    checks,
+    'Upload',
+    'Itch project',
+    itchProject ? 'pass' : required ? 'fail' : 'info',
+    itchProject ?? 'missing',
+    'Set upload.itch.project in feather.build.json, for example "user/game".',
+  );
+  const butler = commandVersion('butler', ['--version']);
+  add(
+    checks,
+    'Upload',
+    'butler',
+    butler ? 'pass' : required ? 'fail' : 'info',
+    butler ? butler : 'not found',
+    butler ? undefined : 'Install butler from https://itch.io/docs/butler/ and make sure it is on PATH.',
+  );
+  add(
+    checks,
+    'Upload',
+    'BUTLER_API_KEY',
+    process.env.BUTLER_API_KEY ? 'pass' : required ? 'warn' : 'info',
+    process.env.BUTLER_API_KEY ? 'configured' : 'missing',
+    process.env.BUTLER_API_KEY ? undefined : 'Set BUTLER_API_KEY in CI or run `butler login` locally.',
+  );
 }
 
 async function addDesktopBuildChecks(

@@ -389,12 +389,12 @@ export function createProgram(): Command {
     .option('-y, --yes', 'Skip upload confirmation in non-interactive mode')
     .option('--build', 'Build the selected target before uploading')
     .option('--out-dir <path>', 'Build output directory when used with --build')
-    .option('--release', 'Build signed/store-oriented mobile release artifacts when used with --build')
-    .option('--allow-unsafe', 'Allow production-unsafe Feather config during --build')
+    .option('--release', 'Deprecated for upload builds; mobile upload builds always use release mode')
+    .option('--allow-unsafe', 'Rejected with --build; upload builds always run production safety checks')
     .option('--clean', 'Remove the output directory before --build')
     .option('--no-cache', 'Disable Android/iOS dev native build cache during --build')
     .option('--verbose', 'Show build command output when used with --build')
-    .option('--allow-feather-runtime', 'Allow uploading artifacts that include or may include Feather runtime files')
+    .option('--allow-feather-runtime', 'Allow uploading existing artifacts that include or may include Feather runtime files')
     .action((target: string, buildTarget: string | undefined, opts) =>
       runCliAction(() =>
         uploadCommand(target, buildTarget, {

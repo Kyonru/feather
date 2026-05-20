@@ -152,14 +152,24 @@ function nonEmptyInput(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function projectManagedMode(root: string): InitModeValue | undefined {
+  const configPath = join(root, 'feather.config.lua');
+  if (!existsSync(configPath)) return undefined;
+  const source = readFileSync(configPath, 'utf8');
+  const configMode = /\bmanaged\s*=\s*["'](cli|auto|manual)["']/.exec(source)?.[1];
+  if (configMode === 'cli' || configMode === 'auto' || configMode === 'manual') return configMode;
+  const metadataMode = /^--\s*mode:\s*(cli|auto|manual)\s*$/m.exec(source)?.[1];
+  return metadataMode === 'cli' || metadataMode === 'auto' || metadataMode === 'manual' ? metadataMode : undefined;
+}
+
 async function pickInitMode(): Promise<InitModeValue | undefined> {
   const mode = await vscode.window.showQuickPick<Pick<InitModeValue>>(
     [
-      { label: 'CLI mode', description: 'No game-code changes. Use Feather: Run Project.', value: 'cli' },
-      { label: 'Auto mode', description: 'Patch main.lua with guarded feather.auto loader.', value: 'auto' },
-      { label: 'Manual mode', description: 'Create feather.debugger.lua and guarded loader.', value: 'manual' },
+      { label: '$(terminal) CLI mode', description: 'Recommended. No game-code changes; use Feather: Run Project.', value: 'cli' },
+      { label: '$(tools) Auto embedded mode', description: 'Advanced. Patch main.lua with guarded feather.auto loader.', value: 'auto' },
+      { label: '$(file-code) Manual embedded mode', description: 'Advanced. Create feather.debugger.lua and guarded loader.', value: 'manual' },
     ],
-    { placeHolder: 'Select init mode' },
+    { placeHolder: 'Select setup mode' },
   );
   return mode?.value;
 }
@@ -171,8 +181,8 @@ async function buildInitCommandPlan(
 ): Promise<InitCommandPlan | undefined> {
   const flow = await vscode.window.showQuickPick<Pick<'quick' | 'custom'>>(
     [
-      { label: 'Quick init', description: 'Default plugins, bundled runtime, local dev connection.', value: 'quick' },
-      { label: 'Customize init', description: 'Choose session name, security, source, install dir, and plugins.', value: 'custom' },
+      { label: 'Recommended setup', description: 'CLI-style defaults: bundled runtime and default creative plugins.', value: 'quick' },
+      { label: 'Customize setup', description: 'Choose session name, security, runtime source, plugins, and hot reload.', value: 'custom' },
     ],
     { placeHolder: 'Choose init setup' },
   );
@@ -186,7 +196,6 @@ async function buildInitCommandPlan(
         '--mode',
         mode,
         '--yes',
-        '--allow-insecure-connection',
         '--plugins',
         DEFAULT_INIT_PLUGIN_ID_LIST.join(','),
       ],
@@ -539,15 +548,32 @@ async function registerCommands(
     vscode.commands.registerCommand('feather.plugins', async () => {
       const root = requireProjectDir();
       if (!root) return;
+      const cliManaged = projectManagedMode(root) === 'cli';
       const action = await vscode.window.showQuickPick<Pick<'install' | 'update' | 'remove'>>(
         [
-          { label: 'Install plugins', description: 'Copy plugins into the project and include them in config.', value: 'install' },
-          { label: 'Update plugins', description: 'Refresh installed plugin files from the bundled runtime.', value: 'update' },
-          { label: 'Remove plugins', description: 'Delete plugin folders and exclude them in config.', value: 'remove' },
+          {
+            label: 'Install plugins',
+            description: cliManaged ? 'Add bundled plugins to feather.config.lua include list.' : 'Copy plugins into the project and include them in config.',
+            value: 'install',
+          },
+          {
+            label: 'Update plugins',
+            description: cliManaged ? 'CLI-managed plugin code is bundled with Feather.' : 'Refresh installed plugin files from the bundled runtime.',
+            value: 'update',
+          },
+          {
+            label: 'Remove plugins',
+            description: cliManaged ? 'Remove plugins from feather.config.lua include list.' : 'Delete plugin folders and exclude them in config.',
+            value: 'remove',
+          },
         ],
         { placeHolder: 'Plugin action' },
       );
       if (!action) return;
+      if (cliManaged && action.value === 'update') {
+        vscode.window.showInformationMessage('CLI-managed plugin code is bundled with Feather. Update the extension or CLI to update plugin files.');
+        return;
+      }
 
       const plugins = await pickPlugins(context, `Select plugins to ${action.value}`);
       if (!plugins || plugins.length === 0) return;
@@ -557,7 +583,14 @@ async function registerCommands(
         : undefined;
       if (action.value === 'install' && ids.includes('hot-reload') && !hotReloadAllow) return;
       const commands =
-        action.value === 'install'
+        action.value === 'install' && cliManaged
+          ? [
+              ['plugin', 'install', ...ids, '--managed', 'cli', '--dir', root],
+              ...(hotReloadAllow && hotReloadAllow.length > 0
+                ? [['config', 'hot-reload', '--dir', root, '--allow', hotReloadAllow.join(',')]]
+                : []),
+            ]
+        : action.value === 'install'
           ? [
               ['plugin', 'install', ...ids, '--dir', root],
               ['config', 'plugins', '--dir', root, '--include', ids.join(',')],
@@ -565,6 +598,8 @@ async function registerCommands(
                 ? [['config', 'hot-reload', '--dir', root, '--allow', hotReloadAllow.join(',')]]
                 : []),
             ]
+        : action.value === 'remove' && cliManaged
+          ? ids.map((id) => ['plugin', 'remove', id, '--managed', 'cli', '--dir', root, '--yes'])
           : action.value === 'remove'
             ? [
                 ...ids.map((id) => ['plugin', 'remove', id, '--dir', root, '--yes']),

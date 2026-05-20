@@ -29,6 +29,24 @@ local FEATHER_VERSION = {
   api = FEATHER_API,
 }
 
+local function is_absolute_path(path)
+  return path:sub(1, 1) == "/" or path:match("^%a:[/\\]") ~= nil
+end
+
+local function join_path(base, child)
+  if not child or #child == 0 then
+    return base
+  end
+  if is_absolute_path(child) then
+    return child
+  end
+  local suffix = base:sub(-1)
+  if suffix == "/" or suffix == "\\" then
+    return base .. child
+  end
+  return base .. "/" .. child
+end
+
 local CALLBACK_NAMES = {
   "draw",
   "keypressed",
@@ -338,13 +356,15 @@ function Feather:__sendHello()
 end
 
 function Feather:__getConfig()
-  local root_path = get_current_dir()
+  local cliGamePath = os.getenv("FEATHER_GAME_PATH")
+  local hasCliGamePath = type(cliGamePath) == "string" and #cliGamePath > 0
+  local root_path = hasCliGamePath and cliGamePath or get_current_dir()
   if #self.baseDir > 0 then
-    root_path = root_path .. "/" .. self.baseDir
+    root_path = join_path(root_path, self.baseDir)
   end
   local sourceDir = root_path
   ---@diagnostic disable-next-line: undefined-field
-  if love.filesystem.getSourceDirectory then
+  if not hasCliGamePath and love.filesystem.getSourceDirectory then
     ---@diagnostic disable-next-line: undefined-field
     sourceDir = love.filesystem.getSourceDirectory()
   end
