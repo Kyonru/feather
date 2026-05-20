@@ -109,6 +109,12 @@
         "title": "Edit Build Config",
         "category": "Feather",
         "icon": "$(file-code)"
+      },
+      {
+        "command": "feather.buildRelease",
+        "title": "Create Release Build",
+        "category": "Feather",
+        "icon": "$(rocket)"
       }
     ],
     "viewsContainers": {
@@ -185,6 +191,11 @@
         {
           "command": "feather.buildConfig",
           "when": "view == feather.projectView && viewItem == actionBuildConfig",
+          "group": "inline"
+        },
+        {
+          "command": "feather.buildRelease",
+          "when": "view == feather.projectView && viewItem == actionBuildRelease",
           "group": "inline"
         }
       ]

@@ -15,8 +15,15 @@ type InitModeValue = 'cli' | 'auto' | 'manual';
 type InitSecurityMode = 'appId' | 'insecure' | 'unset';
 type InitSourceMode = 'bundled' | 'remote' | 'local';
 type InitPluginMode = 'default' | 'select' | 'none';
+type ReleaseBuildTarget = 'android' | 'ios';
+type ReleaseBuildOption = 'clean' | 'dry-run' | 'no-cache' | 'verbose';
 
 interface InitCommandPlan {
+  args: string[];
+}
+
+interface ReleaseBuildPlan {
+  target: ReleaseBuildTarget;
   args: string[];
 }
 
@@ -311,6 +318,66 @@ async function pickTargets(currentTargets: RunTarget[], watchMode: boolean): Pro
   return picked?.map((i) => i.target);
 }
 
+async function buildReleaseBuildPlan(root: string): Promise<ReleaseBuildPlan | undefined> {
+  const target = await vscode.window.showQuickPick<Pick<ReleaseBuildTarget>>(
+    [
+      {
+        label: '$(device-mobile) Android release',
+        description: 'Build signed/store-oriented AAB and APK artifacts.',
+        value: 'android',
+      },
+      {
+        label: '$(device-mobile) iOS release',
+        description: 'Build signed/store-oriented IPA and app artifacts.',
+        value: 'ios',
+      },
+    ],
+    { placeHolder: 'Select release build target', title: 'Feather: Create Release Build' },
+  );
+  if (!target) return undefined;
+
+  const options = await vscode.window.showQuickPick<vscode.QuickPickItem & { value: ReleaseBuildOption }>(
+    [
+      {
+        label: '$(trash) Clean output',
+        description: 'Remove previous build output and native cache before building.',
+        value: 'clean',
+        picked: true,
+      },
+      {
+        label: '$(beaker) Dry run',
+        description: 'Show the build plan without writing artifacts.',
+        value: 'dry-run',
+      },
+      {
+        label: '$(database) Disable native cache',
+        description: 'Force native Android/iOS build steps to run fresh.',
+        value: 'no-cache',
+      },
+      {
+        label: '$(list-unordered) Verbose logs',
+        description: 'Show native build commands and tool output.',
+        value: 'verbose',
+      },
+    ],
+    {
+      canPickMany: true,
+      placeHolder: 'Select release build options',
+      title: `Feather: ${target.value} Release Options`,
+    },
+  );
+  if (!options) return undefined;
+
+  const selected = new Set(options.map((option) => option.value));
+  const args = ['build', target.value, '--dir', root, '--release', '--no-debugger'];
+  if (selected.has('clean')) args.push('--clean');
+  if (selected.has('dry-run')) args.push('--dry-run');
+  if (selected.has('no-cache')) args.push('--no-cache');
+  if (selected.has('verbose')) args.push('--verbose');
+
+  return { target: target.value, args };
+}
+
 async function registerCommands(
   context: vscode.ExtensionContext,
   provider: FeatherProjectProvider,
@@ -512,6 +579,21 @@ async function registerCommands(
       const root = requireProjectDir();
       if (!root) return;
       openBuildConfigPanel(context, root);
+    }),
+  );
+
+  // ── Release build ────────────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand('feather.buildRelease', async () => {
+      const root = requireProjectDir();
+      if (!root) return;
+
+      const plan = await buildReleaseBuildPlan(root);
+      if (!plan) return;
+
+      runInTerminal(context, `Feather: ${plan.target} Release Build`, plan.args, root);
+      refreshProjectUi(provider, updateStatus);
+      setTimeout(() => refreshProjectUi(provider, updateStatus), 1500);
     }),
   );
 

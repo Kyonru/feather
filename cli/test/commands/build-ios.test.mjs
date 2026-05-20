@@ -13,6 +13,7 @@ import {
   writeBuildConfig,
   writeFakeCommand,
   writeFakeLoveIos,
+  writeFileSync,
   writeGame,
   readStoredZipEntries,
 } from './helpers.mjs';
@@ -443,6 +444,88 @@ process.exit(0);
   assert.equal(record.records.length, 1);
   assert.ok(record.records[0].argv.includes('archive'));
   assert.ok(record.records[0].argv.includes('CODE_SIGNING_ALLOWED=NO'));
+});
+
+test('build ios --release: ignores dev Feather config when runtime is excluded', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  include = { "console" },
+  debugger = { hotReload = { enabled = true, allow = { "game.*" } } },
+  writeToDisk = true,
+}
+`,
+  );
+  writeBuildConfig(dir, {
+    name: 'Release Dev Config iOS',
+    version: '1.0.0',
+    targets: {
+      ios: {
+        loveIosDir: 'love-ios',
+        bundleIdentifier: 'com.example.releasedevconfigios',
+        release: {
+          archivePath: 'builds/dev-config.xcarchive',
+          exportPath: 'builds/dev-config-export',
+        },
+      },
+    },
+  });
+  const recordPath = join(dir, 'xcodebuild-dev-config-record.json');
+  const { binDir } = writeFakeCommand(
+    dir,
+    'xcodebuild',
+    `
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+if (args.includes('archive')) {
+  const archivePath = args[args.indexOf('-archivePath') + 1];
+  const app = path.join(archivePath, 'Products', 'Applications', 'love-ios.app');
+  fs.mkdirSync(app, { recursive: true });
+  fs.writeFileSync(path.join(archivePath, 'Info.plist'), 'fake archive');
+  fs.writeFileSync(path.join(app, 'Info.plist'), 'fake app');
+  fs.writeFileSync(path.join(app, 'love-ios'), 'fake executable');
+}
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: args }, null, 2));
+process.exit(0);
+`,
+  );
+
+  const result = run(['build', 'ios', '--dir', dir, '--release', '--no-debugger', '--json'], {
+    env: envWithPath(binDir, { FEATHER_TEST_ALLOW_IOS_BUILD: '1' }),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const loveEntries = readStoredZipEntries(join(dir, 'builds', 'release-dev-config-ios-1.0.0.love'));
+  assert.equal(loveEntries.has('.feather-main.lua'), false);
+  assert.equal(loveEntries.has('feather/auto.lua'), false);
+  assert.equal(loveEntries.has('feather.config.lua'), false);
+});
+
+test('build ios --release: blocks explicit Feather runtime inclusion', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveIos(dir);
+  writeBuildConfig(dir, {
+    name: 'Release Runtime iOS',
+    version: '1.0.0',
+    includeRuntime: true,
+    targets: {
+      ios: {
+        loveIosDir: 'love-ios',
+        bundleIdentifier: 'com.example.releaseruntimeios',
+      },
+    },
+  });
+
+  const result = run(['build', 'ios', '--dir', dir, '--release', '--no-debugger', '--json'], {
+    env: { ...process.env, FEATHER_TEST_ALLOW_IOS_BUILD: '1' },
+  });
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Feather runtime is included in the build output'));
 });
 
 test('build ios: non-macOS hosts fail with setup guidance', { skip: process.platform === 'darwin' }, () => {

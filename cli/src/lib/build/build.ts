@@ -74,14 +74,14 @@ export function assertBuildTargetSupported(target: BuildTarget): asserts target 
 export function assertProductionBuildSafe(config: ResolvedBuildConfig, allowUnsafe = false): void {
   if (allowUnsafe) return;
   const configPath = join(config.projectDir, 'feather.config.lua');
-  if (!existsSync(configPath)) return;
-  const source = readFileSync(configPath, 'utf8');
+  const source = existsSync(configPath) ? readFileSync(configPath, 'utf8') : '';
   const socketMode = !/mode\s*=\s*["']disk["']/.test(source);
   const hasAppId = /appId\s*=\s*["'][^"']+["']/.test(source);
   const host = source.match(/host\s*=\s*["']([^"']+)["']/)?.[1] ?? '127.0.0.1';
   const unsafe = [
+    config.includeRuntime ? 'Feather runtime is included in the build output' : '',
     /__DANGEROUS_INSECURE_CONNECTION__\s*=\s*true/.test(source) ? '__DANGEROUS_INSECURE_CONNECTION__ is enabled' : '',
-    socketMode && !hasAppId ? 'appId is missing for socket/network mode' : '',
+    source && socketMode && !hasAppId ? 'appId is missing for socket/network mode' : '',
     host === '0.0.0.0' || host === '::' ? `network host is exposed (${host})` : '',
     /include\s*=\s*\{[\s\S]*["']console["']/.test(source) ? 'console plugin is included' : '',
     /hotReload\s*=\s*\{[\s\S]*enabled\s*=\s*true/.test(source) ? 'hot reload is enabled' : '',
@@ -119,7 +119,12 @@ export function runBuild(options: BuildOptions): BuildResult {
     assertReleaseTargetSupported(options.target, Boolean(options.release));
     const config = loadBuildConfig(options);
     assertBuildConfigValidForTarget(config, options.target, Boolean(options.release));
-    assertProductionBuildSafe(config, options.allowUnsafe || options.skipProductionConfigPreflight);
+    const releaseBuildWithoutFeatherRuntime =
+      (options.target === 'android' || options.target === 'ios') && Boolean(options.release) && !config.includeRuntime;
+    assertProductionBuildSafe(
+      config,
+      options.allowUnsafe || options.skipProductionConfigPreflight || releaseBuildWithoutFeatherRuntime,
+    );
     assertNoSymlinkEscape(config.projectDir, config.outDir, 'Build output directory');
 
     if (options.dryRun) return planBuild(options);
