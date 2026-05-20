@@ -49,7 +49,7 @@ export function buildSlug(name: string): string {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'game';
+    .replace(/^-+/, '').replace(/-+$/, '') || 'game';
 }
 
 export function artifactBaseName(config: ResolvedBuildConfig): string {

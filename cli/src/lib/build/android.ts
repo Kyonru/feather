@@ -316,7 +316,7 @@ function setGradleProperty(source: string, key: string, value: string): string {
   const line = `${key}=${value}`;
   const pattern = new RegExp(`^${escapeRegExp(key)}=.*$`, 'm');
   if (pattern.test(source)) return source.replace(pattern, line);
-  return `${source.replace(/\s*$/, '')}\n${line}\n`;
+  return `${source.trimEnd()}\n${line}\n`;
 }
 
 function utf8ByteArray(value: string): string {

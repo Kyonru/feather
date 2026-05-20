@@ -626,7 +626,7 @@ function findIosResourcesPhaseId(project: string): string | null {
 }
 
 function ensureResourceBuildFile(project: string, resourcesPhaseId: string, buildFileId: string): string {
-  const phasePattern = new RegExp(`(${resourcesPhaseId} /\\* Resources \\*/ = \\{[\\s\\S]*?files = \\(\\n)([\\s\\S]*?)(\\n\\s*\\);)`);
+  const phasePattern = new RegExp(`(${escapeRegExp(resourcesPhaseId)} /\\* Resources \\*/ = \\{[\\s\\S]*?files = \\(\\n)([\\s\\S]*?)(\\n\\s*\\);)`);
   return project.replace(phasePattern, (match, prefix: string, files: string, suffix: string) => {
     if (files.includes(`${buildFileId} /* game.love in Resources */`)) return match;
     return `${prefix}\t\t\t\t${buildFileId} /* game.love in Resources */,\n${files}${suffix}`;

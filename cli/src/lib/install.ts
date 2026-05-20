@@ -166,7 +166,8 @@ export async function installPlugin(
   }
   const plans = pluginEntries.map((entry) => {
     const sourceDir = entry.sourceDir ?? pluginId.replace(/\./g, "/");
-    const file = entry.file ?? entry.path.replace(new RegExp(`^plugins/${sourceDir}/`), "");
+    const prefix = `plugins/${sourceDir}/`;
+    const file = entry.file ?? (entry.path.startsWith(prefix) ? entry.path.slice(prefix.length) : entry.path);
     if (sourceDir !== pluginIdToSourceDir(pluginId)) throw new Error(`Plugin manifest path mismatch: ${pluginId} should live in plugins/${pluginIdToSourceDir(pluginId)}`);
     try {
       assertSafeRelativePath(file, "Plugin file path");
