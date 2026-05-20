@@ -23,6 +23,7 @@ import {
   PluginContentImageType,
   PluginContentProps,
   PluginDataType,
+  PluginParamValue,
   PluginTableCellValue,
   PluginTableColumn,
   PluginTableRow,
@@ -373,6 +374,7 @@ export function PluginContentTree({
   total,
   shown,
   onParamsChange,
+  pendingParams,
 }: {
   nodes: PluginTreeNode[];
   sources: string[];
@@ -382,8 +384,11 @@ export function PluginContentTree({
   total?: number;
   shown?: number;
   onParamsChange?: (params: Record<string, string>) => void;
+  pendingParams?: Record<string, PluginParamValue>;
 }) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const selectedSourceValue = Number(pendingString(pendingParams?.selectedSource) ?? selectedSource);
+  const searchFilterValue = pendingString(pendingParams?.searchFilter) ?? searchFilter;
 
   const toggleNode = useCallback((path: string) => {
     setExpandedNodes((prev) => {
@@ -403,7 +408,7 @@ export function PluginContentTree({
         {sources.length > 1 && (
           <select
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
-            value={selectedSource}
+            value={selectedSourceValue}
             onChange={(e) => onParamsChange?.({ selectedSource: e.target.value })}
           >
             {sources.map((name, i) => (
@@ -416,7 +421,7 @@ export function PluginContentTree({
         <input
           className="rounded-md border bg-background px-3 py-1.5 text-sm w-48"
           placeholder="Filter entities…"
-          defaultValue={searchFilter}
+          value={searchFilterValue}
           onChange={(e) => onParamsChange?.({ searchFilter: e.target.value })}
         />
         {total != null && shown != null && (
@@ -563,6 +568,9 @@ const renderUiScalar = (value: PluginTableCellValue) => {
 
 const getUiControlName = (node: PluginUiNode) => node.name ?? node.id ?? node.action;
 
+const pendingString = (value: PluginParamValue | undefined) => value === undefined ? undefined : String(value);
+const pendingBool = (value: PluginParamValue | undefined) => value === true || value === 'true';
+
 const renderUiLabel = (node: PluginUiNode, control: ReactNode) => {
   const label = node.label ?? node.title;
   if (!label && !node.description) return control;
@@ -579,16 +587,15 @@ const renderUiLabel = (node: PluginUiNode, control: ReactNode) => {
 function PluginUiCheckbox({
   node,
   onParamsChange,
+  pendingParams,
 }: {
   node: PluginUiNode;
   onParamsChange?: (params: Record<string, string>) => void;
+  pendingParams?: Record<string, PluginParamValue>;
 }) {
   const name = getUiControlName(node);
-  const [checked, setChecked] = useState(node.checked === true);
-
-  useEffect(() => {
-    setChecked(node.checked === true);
-  }, [node.checked]);
+  const pending = name ? pendingParams?.[name] : undefined;
+  const checked = pending === undefined ? node.checked === true : pendingBool(pending);
 
   return (
     <div className="space-y-1.5">
@@ -601,7 +608,6 @@ function PluginUiCheckbox({
         onClick={() => {
           if (!name) return;
           const nextChecked = !checked;
-          setChecked(nextChecked);
           onParamsChange?.({ [name]: nextChecked ? 'true' : 'false' });
         }}
         className={cn(
@@ -622,10 +628,12 @@ function PluginUiRenderer({
   node,
   onAction,
   onParamsChange,
+  pendingParams,
 }: {
   node: PluginUiNode;
   onAction?: (action: string) => void;
   onParamsChange?: (params: Record<string, string>) => void;
+  pendingParams?: Record<string, PluginParamValue>;
 }) {
   const children = node.children?.map((child, index) => (
     <PluginUiRenderer
@@ -633,6 +641,7 @@ function PluginUiRenderer({
       node={child}
       onAction={onAction}
       onParamsChange={onParamsChange}
+      pendingParams={pendingParams}
     />
   ));
 
@@ -684,11 +693,12 @@ function PluginUiRenderer({
 
   if (node.type === 'input') {
     const name = getUiControlName(node);
+    const value = pendingString(name ? pendingParams?.[name] : undefined) ?? renderUiScalar(node.value) ?? '';
     return renderUiLabel(
       node,
       <Input
         type="text"
-        defaultValue={renderUiScalar(node.value) ?? ''}
+        value={value}
         placeholder={node.placeholder}
         disabled={node.disabled || !name}
         onChange={(event) => name && onParamsChange?.({ [name]: event.target.value })}
@@ -698,10 +708,11 @@ function PluginUiRenderer({
 
   if (node.type === 'textarea') {
     const name = getUiControlName(node);
+    const value = pendingString(name ? pendingParams?.[name] : undefined) ?? renderUiScalar(node.value) ?? '';
     return renderUiLabel(
       node,
       <Textarea
-        defaultValue={renderUiScalar(node.value) ?? ''}
+        value={value}
         placeholder={node.placeholder}
         disabled={node.disabled || !name}
         onChange={(event) => name && onParamsChange?.({ [name]: event.target.value })}
@@ -710,11 +721,13 @@ function PluginUiRenderer({
   }
 
   if (node.type === 'checkbox') {
-    return <PluginUiCheckbox node={node} onParamsChange={onParamsChange} />;
+    return <PluginUiCheckbox node={node} onParamsChange={onParamsChange} pendingParams={pendingParams} />;
   }
 
   if (node.type === 'switch') {
     const name = getUiControlName(node);
+    const pending = name ? pendingParams?.[name] : undefined;
+    const checked = pending === undefined ? node.checked === true : pendingBool(pending);
     return (
       <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
         <div className="space-y-1">
@@ -722,7 +735,7 @@ function PluginUiRenderer({
           {node.description ? <p className="text-xs text-muted-foreground">{node.description}</p> : null}
         </div>
         <Switch
-          checked={node.checked === true}
+          checked={checked}
           disabled={node.disabled || !name}
           onCheckedChange={(checked) => name && onParamsChange?.({ [name]: checked ? 'true' : 'false' })}
         />
@@ -732,10 +745,12 @@ function PluginUiRenderer({
 
   if (node.type === 'select') {
     const name = getUiControlName(node);
+    const value = pendingString(name ? pendingParams?.[name] : undefined)
+      ?? (typeof node.value === 'string' ? node.value : undefined);
     return renderUiLabel(
       node,
       <Select
-        defaultValue={typeof node.value === 'string' ? node.value : undefined}
+        value={value}
         disabled={node.disabled || !name}
         onValueChange={(value) => name && onParamsChange?.({ [name]: value })}
       >
@@ -809,7 +824,12 @@ function PluginUiRenderer({
       <ul className="list-disc space-y-1 pl-5 text-sm">
         {node.children?.map((child, index) => (
           <li key={child.id ?? `${child.type}:${index}`}>
-            <PluginUiRenderer node={child} onAction={onAction} onParamsChange={onParamsChange} />
+            <PluginUiRenderer
+              node={child}
+              onAction={onAction}
+              onParamsChange={onParamsChange}
+              pendingParams={pendingParams}
+            />
           </li>
         ))}
       </ul>
@@ -865,6 +885,7 @@ function PluginUiRenderer({
         searchFilter=""
         loading={false}
         onParamsChange={onParamsChange}
+        pendingParams={pendingParams}
       />
     );
   }
@@ -883,7 +904,12 @@ function PluginUiRenderer({
         </TabsList>
         {node.children?.map((child, index) => (
           <TabsContent key={child.id ?? index} value={child.id ?? child.title ?? `tab-${index}`}>
-            <PluginUiRenderer node={child} onAction={onAction} onParamsChange={onParamsChange} />
+            <PluginUiRenderer
+              node={child}
+              onAction={onAction}
+              onParamsChange={onParamsChange}
+              pendingParams={pendingParams}
+            />
           </TabsContent>
         ))}
       </Tabs>
@@ -901,12 +927,18 @@ export function PluginContent(
   props: PluginContentProps & {
     onAction?: (action: string) => void;
     onParamsChange?: (params: Record<string, string>) => void;
+    pendingParams?: Record<string, PluginParamValue>;
   },
 ) {
   if (props.type === 'ui') {
     return (
       <div className="space-y-3">
-        <PluginUiRenderer node={props.tree} onAction={props.onAction} onParamsChange={props.onParamsChange} />
+        <PluginUiRenderer
+          node={props.tree}
+          onAction={props.onAction}
+          onParamsChange={props.onParamsChange}
+          pendingParams={props.pendingParams}
+        />
         {props.loading && (
           <div className="flex justify-center py-4">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
@@ -931,6 +963,7 @@ export function PluginContent(
         total={props.total}
         shown={props.shown}
         onParamsChange={props.onParamsChange}
+        pendingParams={props.pendingParams}
       />
     );
   }

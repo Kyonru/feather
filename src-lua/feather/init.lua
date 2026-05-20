@@ -523,6 +523,7 @@ function Feather:__handleCommand(msg)
     local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
     local request = { method = "PUT", path = path, params = msg.params or {}, headers = {} }
     self.pluginManager:handleParamsUpdate(request, self)
+    self:__sendHello()
   elseif msg.type == "cmd:plugin:set_enabled" and msg.plugin then
     local enabled = msg.enabled == true
     local ok = false

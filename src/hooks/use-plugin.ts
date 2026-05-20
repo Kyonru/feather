@@ -9,6 +9,8 @@ import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
 
+export type PluginParamValue = string | boolean;
+
 /** Strip the /plugins/ prefix so the ID matches what Lua uses as plugin.identifier */
 function normalizePluginId(pluginId: string): string {
   return pluginId.replace(/^\/plugins\//, '');
@@ -208,7 +210,7 @@ export type PluginContentProps =
 export const usePluginAction = (pluginId: string) => {
   const sessionId = useSessionStore((state) => state.sessionId);
   const normalized = normalizePluginId(pluginId);
-  const [params, setParams] = useState<Record<string, string | boolean>>({});
+  const [params, setParams] = useState<Record<string, PluginParamValue>>({});
   const paramsRef = useRef(params);
   paramsRef.current = params;
 
@@ -258,8 +260,10 @@ export const usePluginAction = (pluginId: string) => {
     [sessionId, normalized],
   );
 
-  const onActionChange = (action: string, value: string | boolean) => {
-    setParams((prev) => ({ ...prev, [action]: value }));
+  const onActionChange = (action: string, value: PluginParamValue) => {
+    const next = { ...paramsRef.current, [action]: value };
+    paramsRef.current = next;
+    setParams(next);
     updateOptions();
   };
 
@@ -267,7 +271,7 @@ export const usePluginAction = (pluginId: string) => {
     sendCommand({ type: 'cmd:plugin:toggle', plugin: normalized });
   };
 
-  return { onAction, onFileAction, onCancel, onActionChange, onToggle };
+  return { onAction, onFileAction, onCancel, onActionChange, onToggle, pendingParams: params };
 };
 
 export function usePlugin(pluginId: string) {
