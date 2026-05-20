@@ -18,6 +18,7 @@ import {
   uploadTargets,
 } from '../../lib/build/config.js';
 import { androidProductId, iosBundleIdentifier, validateBuildConfigForTarget } from '../../lib/build/validation.js';
+import { fastlanePath } from '../../lib/build/release.js';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntrySourceSummary, lockfileUrlFindings } from '../../lib/package/provenance.js';
@@ -879,6 +880,28 @@ async function addBuildTargetChecks(
         ? androidReleaseSigningFix(buildConfig)
         : 'Use --release to check signed AAB/APK setup.',
     );
+    if (release && hasFastlaneConfig(buildConfig, 'android')) {
+      addFastlaneChecks(checks, buildConfig, target, label);
+      const fastlane = androidConfig.release?.fastlane ?? {};
+      add(
+        checks,
+        'Build',
+        label('Google Play service account'),
+        fastlane.serviceAccountJsonEnv && process.env[fastlane.serviceAccountJsonEnv] ? 'pass' : 'fail',
+        fastlane.serviceAccountJsonEnv
+          ? process.env[fastlane.serviceAccountJsonEnv] ? fastlane.serviceAccountJsonEnv : `${fastlane.serviceAccountJsonEnv} missing`
+          : 'not configured',
+        'Set targets.android.release.fastlane.serviceAccountJsonEnv and provide the JSON key path in that environment variable.',
+      );
+      add(
+        checks,
+        'Build',
+        label('Android Fastlane signing env'),
+        androidFastlaneSigningReady(buildConfig) ? 'pass' : 'warn',
+        androidFastlaneSigningDetail(buildConfig),
+        'Set targets.android.release.fastlane keystorePath, keyAlias, storePasswordEnv, and keyPasswordEnv for Fastlane-managed signing.',
+      );
+    }
     return;
   }
 
@@ -951,6 +974,29 @@ async function addBuildTargetChecks(
         iosConfig.release?.exportOptionsPlist ?? iosConfig.release?.exportMethod ?? 'generated development export options',
         'Set targets.ios.release.exportOptionsPlist or exportMethod for App Store/TestFlight exports.',
       );
+      if (hasFastlaneConfig(buildConfig, 'ios')) {
+        addFastlaneChecks(checks, buildConfig, target, label);
+        const fastlane = iosConfig.release?.fastlane ?? {};
+        const apiKeyConfigured = Boolean(
+          (fastlane.appStoreConnectApiKeyPathEnv && process.env[fastlane.appStoreConnectApiKeyPathEnv])
+          || (
+            fastlane.appStoreConnectIssuerIdEnv
+            && process.env[fastlane.appStoreConnectIssuerIdEnv]
+            && fastlane.appStoreConnectKeyIdEnv
+            && process.env[fastlane.appStoreConnectKeyIdEnv]
+            && fastlane.appStoreConnectKeyContentEnv
+            && process.env[fastlane.appStoreConnectKeyContentEnv]
+          ),
+        );
+        add(
+          checks,
+          'Build',
+          label('App Store Connect API key'),
+          apiKeyConfigured ? 'pass' : 'fail',
+          apiKeyConfigured ? 'configured' : 'missing',
+          'Set an App Store Connect API key env path, or issuer/key id/key content env names under targets.ios.release.fastlane.',
+        );
+      }
     }
     return;
   }
@@ -998,6 +1044,69 @@ function androidReleaseSigningSeverity(buildConfig: ReturnType<typeof loadBuildC
     release.keyPasswordEnv && process.env[release.keyPasswordEnv] ? '' : release.keyPasswordEnv,
   ].filter(Boolean);
   return missingEnv.length === 0 && release.keystorePath && existsSync(keystorePath) && release.keyAlias ? 'pass' : 'fail';
+}
+
+function hasFastlaneConfig(buildConfig: ReturnType<typeof loadBuildConfig>, target: 'android' | 'ios'): boolean {
+  if (buildConfig.release.fastlane) return true;
+  if (existsSync(fastlanePath(buildConfig))) return true;
+  return target === 'android'
+    ? Boolean(buildConfig.targets.android?.release?.fastlane)
+    : Boolean(buildConfig.targets.ios?.release?.fastlane);
+}
+
+function addFastlaneChecks(
+  checks: DoctorCheck[],
+  buildConfig: ReturnType<typeof loadBuildConfig>,
+  target: SupportedBuildTarget,
+  label: (singleTargetLabel: string, allTargetBase?: string) => string,
+): void {
+  const dir = fastlanePath(buildConfig);
+  add(
+    checks,
+    'Build',
+    label('Fastlane directory'),
+    existsSync(dir) ? 'pass' : 'fail',
+    existsSync(dir) ? dir : 'not found',
+    `Run \`feather release init --dir ${buildConfig.projectDir}\`.`,
+  );
+  const fastlane = commandVersion('fastlane', ['--version']);
+  const gemfile = existsSync(join(buildConfig.projectDir, 'Gemfile'));
+  const bundle = gemfile ? commandVersion('bundle', ['--version']) : null;
+  add(
+    checks,
+    'Build',
+    label(target === 'ios' ? 'Fastlane' : 'Fastlane'),
+    fastlane || bundle ? 'pass' : 'fail',
+    fastlane ?? (bundle ? `${bundle}; fastlane via bundle exec` : 'not found'),
+    'Install Fastlane directly or add it to your Gemfile and run bundle install.',
+  );
+}
+
+function androidFastlaneSigningReady(buildConfig: ReturnType<typeof loadBuildConfig>): boolean {
+  const release = buildConfig.targets.android?.release?.fastlane;
+  if (!release) return false;
+  const keystorePath = release.keystorePath ? resolve(buildConfig.projectDir, release.keystorePath) : '';
+  return Boolean(
+    release.keystorePath
+    && existsSync(keystorePath)
+    && release.keyAlias
+    && release.storePasswordEnv
+    && process.env[release.storePasswordEnv]
+    && release.keyPasswordEnv
+    && process.env[release.keyPasswordEnv],
+  );
+}
+
+function androidFastlaneSigningDetail(buildConfig: ReturnType<typeof loadBuildConfig>): string {
+  const release = buildConfig.targets.android?.release?.fastlane;
+  if (!release) return 'not configured';
+  const missing = [
+    release.keystorePath ? '' : 'keystorePath',
+    release.keyAlias ? '' : 'keyAlias',
+    release.storePasswordEnv && process.env[release.storePasswordEnv] ? '' : release.storePasswordEnv ?? 'storePasswordEnv',
+    release.keyPasswordEnv && process.env[release.keyPasswordEnv] ? '' : release.keyPasswordEnv ?? 'keyPasswordEnv',
+  ].filter(Boolean);
+  return missing.length > 0 ? `missing ${missing.join(', ')}` : 'configured';
 }
 
 const desktopBuildTargets = ['windows', 'macos', 'linux', 'steamos'] as const;

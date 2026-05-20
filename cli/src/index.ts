@@ -9,6 +9,7 @@ import { removeCommand } from './commands/remove.js';
 import { doctorCommand } from './commands/doctor.js';
 import { updateCommand } from './commands/update.js';
 import { buildCommand } from './commands/build.js';
+import { releaseInitCommand, releaseRunCommand } from './commands/release.js';
 import { watchCommand } from './commands/watch.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
 import { buildTargets } from './lib/build/config.js';
@@ -372,6 +373,65 @@ export function createProgram(): Command {
         }),
       ),
     );
+
+  const release = program
+    .command('release')
+    .description('Run Fastlane-backed mobile release lanes');
+
+  release
+    .command('init')
+    .description('Create editable Fastlane release files')
+    .option('--dir <path>', 'Project directory (default: current directory)')
+    .option('--config <path>', 'Path to feather.build.json')
+    .option('--dry-run', 'Show planned files without writing them')
+    .option('--json', 'Output machine-readable JSON')
+    .action((opts) =>
+      runCliAction(() =>
+        releaseInitCommand({
+          dir: opts.dir as string | undefined,
+          config: opts.config as string | undefined,
+          dryRun: opts.dryRun as boolean | undefined,
+          json: opts.json as boolean | undefined,
+        }),
+      ),
+    );
+
+  function addReleaseTargetCommand(target: 'ios' | 'android'): void {
+    release
+      .command(`${target} [lane]`)
+      .description(`Run a Fastlane ${target} release lane: beta, production, metadata, or screenshots`)
+      .option('--dir <path>', 'Project directory (default: current directory)')
+      .option('--config <path>', 'Path to feather.build.json')
+      .option('--out-dir <path>', 'Build output directory')
+      .option('--name <name>', 'Build product name')
+      .option('--version <version>', 'Build product version')
+      .option('--dry-run', 'Show the release plan without running Fastlane')
+      .option('--json', 'Output machine-readable JSON')
+      .option('--clean', 'Remove the output directory before release build')
+      .option('--no-cache', 'Disable Android/iOS native build cache during release build')
+      .option('--verbose', 'Show build/Fastlane command output')
+      .option('--skip-build', 'Run the Fastlane lane using existing build artifacts')
+      .action((lane: string | undefined, opts) =>
+        runCliAction(() =>
+          releaseRunCommand(target, lane, {
+            dir: opts.dir as string | undefined,
+            config: opts.config as string | undefined,
+            outDir: opts.outDir as string | undefined,
+            name: opts.name as string | undefined,
+            version: opts.version as string | undefined,
+            dryRun: opts.dryRun as boolean | undefined,
+            json: opts.json as boolean | undefined,
+            clean: opts.clean as boolean | undefined,
+            noCache: opts.cache === false,
+            verbose: opts.verbose as boolean | undefined,
+            skipBuild: opts.skipBuild as boolean | undefined,
+          }),
+        ),
+      );
+  }
+
+  addReleaseTargetCommand('ios');
+  addReleaseTargetCommand('android');
 
   program
     .command('upload [target] [build-target]')

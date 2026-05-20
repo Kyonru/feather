@@ -21,6 +21,8 @@ const IOS_EXPORT_METHODS = new Set([
   'debugging',
 ]);
 const IOS_SIGNING_STYLES = new Set(['automatic', 'manual']);
+const FASTLANE_BUNDLE_EXEC_MODES = new Set(['auto', 'always', 'never']);
+const FASTLANE_RELEASE_STATUSES = new Set(['completed', 'draft', 'halted', 'inProgress']);
 const ANDROID_ORIENTATIONS = new Set([
   'unspecified',
   'landscape',
@@ -64,7 +66,9 @@ export function assertBuildConfigValidForTarget(config: ResolvedBuildConfig, tar
 export function validateAndroidBuildConfig(config: ResolvedBuildConfig, release = false): BuildValidationIssue[] {
   const android = config.targets.android ?? {};
   const releaseConfig = android.release ?? {};
+  const fastlane = releaseConfig.fastlane ?? {};
   const issues: BuildValidationIssue[] = [];
+  validateFastlaneRootConfig(config, 'android', issues);
   const productId = android.productId ?? config.productId ?? defaultProductId(config, 'android');
   if (!ANDROID_PRODUCT_ID_RE.test(productId)) {
     issues.push({
@@ -121,8 +125,34 @@ export function validateAndroidBuildConfig(config: ResolvedBuildConfig, release 
       ['targets.android.release.bundleArtifactPath', releaseConfig.bundleArtifactPath],
       ['targets.android.release.apkArtifactPath', releaseConfig.apkArtifactPath],
       ['targets.android.release.keystorePath', releaseConfig.keystorePath],
+      ['targets.android.release.fastlane.keystorePath', fastlane.keystorePath],
     ] as const) {
       if (value !== undefined) validateRelativePathish(value, field, 'android', issues);
+    }
+    for (const [field, value] of [
+      ['targets.android.release.fastlane.packageName', fastlane.packageName],
+      ['targets.android.release.fastlane.track', fastlane.track],
+      ['targets.android.release.fastlane.keyAlias', fastlane.keyAlias],
+    ] as const) {
+      if (value !== undefined && !isNonEmptySingleLine(value)) {
+        issues.push({ target: 'android', field, message: 'Use a non-empty single-line value.' });
+      }
+    }
+    if (fastlane.releaseStatus !== undefined && !FASTLANE_RELEASE_STATUSES.has(fastlane.releaseStatus)) {
+      issues.push({
+        target: 'android',
+        field: 'targets.android.release.fastlane.releaseStatus',
+        message: `Use one of: ${[...FASTLANE_RELEASE_STATUSES].join(', ')}.`,
+      });
+    }
+    for (const [field, value] of [
+      ['targets.android.release.fastlane.serviceAccountJsonEnv', fastlane.serviceAccountJsonEnv],
+      ['targets.android.release.fastlane.storePasswordEnv', fastlane.storePasswordEnv],
+      ['targets.android.release.fastlane.keyPasswordEnv', fastlane.keyPasswordEnv],
+    ] as const) {
+      if (value !== undefined && !ENV_NAME_RE.test(value)) {
+        issues.push({ target: 'android', field, message: 'Use a valid environment variable name.' });
+      }
     }
     const signingFields = [
       releaseConfig.keystorePath,
@@ -157,7 +187,9 @@ export function validateAndroidBuildConfig(config: ResolvedBuildConfig, release 
 export function validateIosBuildConfig(config: ResolvedBuildConfig, release = false): BuildValidationIssue[] {
   const ios = config.targets.ios ?? {};
   const releaseConfig = ios.release ?? {};
+  const fastlane = releaseConfig.fastlane ?? {};
   const issues: BuildValidationIssue[] = [];
+  validateFastlaneRootConfig(config, 'ios', issues);
   const bundleId = ios.bundleIdentifier ?? ios.productId ?? config.productId ?? defaultProductId(config, 'ios');
   if (!IOS_BUNDLE_ID_RE.test(bundleId)) {
     issues.push({
@@ -237,8 +269,70 @@ export function validateIosBuildConfig(config: ResolvedBuildConfig, release = fa
         message: 'Use automatic or manual.',
       });
     }
+    for (const [field, value] of [
+      ['targets.ios.release.fastlane.bundleIdentifier', fastlane.bundleIdentifier],
+    ] as const) {
+      if (value !== undefined && !IOS_BUNDLE_ID_RE.test(value)) {
+        issues.push({ target: 'ios', field, message: 'Use a reverse-DNS iOS bundle id, for example com.example.game.' });
+      }
+    }
+    for (const [field, value] of [
+      ['targets.ios.release.fastlane.teamId', fastlane.teamId],
+    ] as const) {
+      if (value !== undefined && (!isNonEmptySingleLine(value) || !TEAM_ID_RE.test(value))) {
+        issues.push({ target: 'ios', field, message: 'Use an Apple team id containing only letters and numbers.' });
+      }
+    }
+    if (fastlane.exportMethod !== undefined && !IOS_EXPORT_METHODS.has(fastlane.exportMethod)) {
+      issues.push({
+        target: 'ios',
+        field: 'targets.ios.release.fastlane.exportMethod',
+        message: `Use one of: ${[...IOS_EXPORT_METHODS].join(', ')}.`,
+      });
+    }
+    for (const [field, value] of [
+      ['targets.ios.release.fastlane.matchType', fastlane.matchType],
+    ] as const) {
+      if (value !== undefined && !isNonEmptySingleLine(value)) {
+        issues.push({ target: 'ios', field, message: 'Use a non-empty single-line value.' });
+      }
+    }
+    for (const [field, value] of [
+      ['targets.ios.release.fastlane.appStoreConnectApiKeyPathEnv', fastlane.appStoreConnectApiKeyPathEnv],
+      ['targets.ios.release.fastlane.appStoreConnectIssuerIdEnv', fastlane.appStoreConnectIssuerIdEnv],
+      ['targets.ios.release.fastlane.appStoreConnectKeyIdEnv', fastlane.appStoreConnectKeyIdEnv],
+      ['targets.ios.release.fastlane.appStoreConnectKeyContentEnv', fastlane.appStoreConnectKeyContentEnv],
+      ['targets.ios.release.fastlane.matchGitUrlEnv', fastlane.matchGitUrlEnv],
+      ['targets.ios.release.fastlane.matchPasswordEnv', fastlane.matchPasswordEnv],
+    ] as const) {
+      if (value !== undefined && !ENV_NAME_RE.test(value)) {
+        issues.push({ target: 'ios', field, message: 'Use a valid environment variable name.' });
+      }
+    }
   }
   return issues;
+}
+
+function validateFastlaneRootConfig(
+  config: ResolvedBuildConfig,
+  target: 'android' | 'ios',
+  issues: BuildValidationIssue[],
+): void {
+  const fastlane = config.release?.fastlane ?? {};
+  if (fastlane.path !== undefined) {
+    try {
+      assertSafeRelativePath(fastlane.path, 'release.fastlane.path');
+    } catch (err) {
+      issues.push({ target, field: 'release.fastlane.path', message: (err as Error).message });
+    }
+  }
+  if (fastlane.bundleExec !== undefined && !FASTLANE_BUNDLE_EXEC_MODES.has(fastlane.bundleExec)) {
+    issues.push({
+      target,
+      field: 'release.fastlane.bundleExec',
+      message: `Use one of: ${[...FASTLANE_BUNDLE_EXEC_MODES].join(', ')}.`,
+    });
+  }
 }
 
 export function defaultProductId(config: ResolvedBuildConfig, target: 'android' | 'ios'): string {

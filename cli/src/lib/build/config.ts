@@ -29,6 +29,16 @@ export type AndroidBuildTargetConfig = {
     keyAlias?: string;
     storePasswordEnv?: string;
     keyPasswordEnv?: string;
+    fastlane?: {
+      packageName?: string;
+      track?: string;
+      releaseStatus?: string;
+      serviceAccountJsonEnv?: string;
+      keystorePath?: string;
+      keyAlias?: string;
+      storePasswordEnv?: string;
+      keyPasswordEnv?: string;
+    };
   };
 };
 
@@ -54,6 +64,18 @@ export type IosBuildTargetConfig = {
     teamId?: string;
     configuration?: string;
     sdk?: string;
+    fastlane?: {
+      bundleIdentifier?: string;
+      teamId?: string;
+      exportMethod?: string;
+      appStoreConnectApiKeyPathEnv?: string;
+      appStoreConnectIssuerIdEnv?: string;
+      appStoreConnectKeyIdEnv?: string;
+      appStoreConnectKeyContentEnv?: string;
+      matchGitUrlEnv?: string;
+      matchPasswordEnv?: string;
+      matchType?: string;
+    };
   };
 };
 
@@ -76,6 +98,12 @@ export type FeatherBuildConfig = {
   exclude?: string[];
   icon?: string;
   includeRuntime?: boolean;
+  release?: {
+    fastlane?: {
+      path?: string;
+      bundleExec?: 'auto' | 'always' | 'never';
+    };
+  };
   targets?: {
     web?: {
       loveJsDir?: string;
@@ -114,6 +142,7 @@ export type ResolvedBuildConfig = {
   exclude: string[];
   icon?: string;
   includeRuntime: boolean;
+  release: NonNullable<FeatherBuildConfig['release']>;
   targets: NonNullable<FeatherBuildConfig['targets']>;
   upload: NonNullable<FeatherBuildConfig['upload']>;
 };
@@ -219,6 +248,7 @@ export function loadBuildConfig(options: LoadBuildConfigOptions = {}): ResolvedB
     exclude,
     icon: raw.icon,
     includeRuntime,
+    release: raw.release ?? {},
     targets: raw.targets ?? {},
     upload: raw.upload ?? {},
   };

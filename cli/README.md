@@ -507,6 +507,12 @@ Web vendors behave slightly differently:
   "sourceDir": ".",
   "outDir": "builds",
   "exclude": ["screenshots/**", "tmp/**"],
+  "release": {
+    "fastlane": {
+      "path": "fastlane",
+      "bundleExec": "auto"
+    }
+  },
   "targets": {
     "web": {
       "loveJsDir": "vendor/love.js"
@@ -524,7 +530,13 @@ Web vendors behave slightly differently:
         "keystorePath": "signing/release.keystore",
         "keyAlias": "release",
         "storePasswordEnv": "ANDROID_STORE_PASSWORD",
-        "keyPasswordEnv": "ANDROID_KEY_PASSWORD"
+        "keyPasswordEnv": "ANDROID_KEY_PASSWORD",
+        "fastlane": {
+          "packageName": "com.example.mygame",
+          "track": "internal",
+          "releaseStatus": "completed",
+          "serviceAccountJsonEnv": "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"
+        }
       }
     },
     "ios": {
@@ -538,7 +550,13 @@ Web vendors behave slightly differently:
         "exportMethod": "app-store-connect",
         "signingStyle": "manual",
         "provisioningProfileSpecifier": "My Game App Store",
-        "teamId": "ABCDE12345"
+        "teamId": "ABCDE12345",
+        "fastlane": {
+          "bundleIdentifier": "com.example.mygame",
+          "teamId": "ABCDE12345",
+          "exportMethod": "app-store",
+          "appStoreConnectApiKeyPathEnv": "APP_STORE_CONNECT_API_KEY_PATH"
+        }
       }
     },
     "windows": {
@@ -611,7 +629,38 @@ Mobile build notes:
 - Release Android/iOS builds use fresh native workspaces by default for reproducibility.
 - `feather doctor --build-target android --release` validates product id, Gradle wrapper, JDK, Android SDK, and signing env setup.
 - `feather doctor --build-target ios --release` validates bundle id, macOS/Xcode setup, template path, export options, and signing hints.
-- Play Console and App Store upload are not included in this pass.
+
+### `feather release`
+
+`feather release` is an optional Fastlane-backed layer for signed store-ready mobile workflows. It scaffolds editable Fastlane files, runs a clean Feather-free mobile release build for `beta` and `production`, checks generated artifacts for Feather runtime/debug files, and invokes the selected lane with explicit `FEATHER_*` environment variables.
+
+```bash
+feather release init --dir path/to/my-game
+feather release ios beta --dir path/to/my-game
+feather release ios production --dir path/to/my-game
+feather release android beta --dir path/to/my-game
+feather release android production --dir path/to/my-game
+feather release android metadata --dir path/to/my-game --skip-build
+feather release ios screenshots --dir path/to/my-game --skip-build
+```
+
+Fastlane remains optional: `feather build android --release` and `feather build ios --release` still work without it. If a `Gemfile` exists, Feather runs `bundle exec fastlane`; otherwise it runs `fastlane` directly. Secrets stay in environment variables or files referenced by environment variables, never directly in `feather.build.json`.
+
+**Options:**
+
+| Option              | Description                                           |
+| ------------------- | ----------------------------------------------------- |
+| `--dir <path>`      | Project directory (default: current directory).       |
+| `--config <path>`   | Path to `feather.build.json`.                         |
+| `--out-dir <path>`  | Build output directory override.                      |
+| `--name <name>`     | Product name override.                                |
+| `--version <value>` | Product version override.                             |
+| `--dry-run`         | Show the release command without running Fastlane.    |
+| `--json`            | Print machine-readable output only.                   |
+| `--clean`           | Remove build output before the release build.         |
+| `--no-cache`        | Disable native build cache during the release build.  |
+| `--verbose`         | Show native build and Fastlane output.                |
+| `--skip-build`      | Run Fastlane using existing build manifest artifacts. |
 
 ---
 

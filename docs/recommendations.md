@@ -108,6 +108,18 @@ feather upload itch web --dir path/to/my-game --dry-run --json
 
 Web builds package a local love.js player; mobile targets use official LÖVE templates; desktop targets use local LÖVE runtime vendors. Mobile release mode is opt-in with `--release` and produces Android AAB/APK or iOS archive/IPA artifacts. Release builds do not auto-embed Feather's debugger runtime.
 
+For store-oriented mobile releases, Feather can also scaffold and run editable Fastlane lanes:
+
+```bash
+feather release init --dir path/to/my-game
+feather release ios beta --dir path/to/my-game
+feather release ios production --dir path/to/my-game
+feather release android beta --dir path/to/my-game
+feather release android production --dir path/to/my-game
+```
+
+Fastlane is optional. Feather still creates the clean mobile artifact first, then passes explicit `FEATHER_*` environment variables to the selected lane. Keep secrets such as App Store Connect keys, Google Play service account JSON, Android keystore passwords, and match credentials in your shell or CI environment; `feather.build.json` should only contain non-secret ids and environment variable names.
+
 ---
 
 ## Performance
