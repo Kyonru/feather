@@ -672,23 +672,25 @@ export function createProgram(): Command {
     .option('--runtime-config <path>', 'Path to feather.config.lua for debugger embedding')
     .option('--verbose', 'Show build commands and native tool output')
     .action((gamePath: string | undefined, opts) =>
-      watchCommand(gamePath, {
-        target: opts.target as 'desktop' | 'android' | 'ios' | 'steamos' | undefined,
-        love: opts.love as string | undefined,
-        debugger: opts.debugger !== false && !opts.disableDebugger,
-        device: opts.device as string | undefined,
-        debounce: opts.debounce as number | undefined,
-        restart: opts.restart as boolean | undefined,
-        buildConfig: opts.buildConfig as string | undefined,
-        outDir: opts.outDir as string | undefined,
-        noPlugins: opts.plugins === false,
-        adbReverse: opts.adbReverse as boolean | undefined,
-        port: opts.port as number | undefined,
-        featherPath: opts.featherPath as string | undefined,
-        pluginsDir: opts.pluginsDir as string | undefined,
-        runtimeConfig: opts.runtimeConfig as string | undefined,
-        verbose: opts.verbose as boolean | undefined,
-      }),
+      runCliAction(() =>
+        watchCommand(gamePath, {
+          target: opts.target as 'desktop' | 'android' | 'ios' | 'steamos' | undefined,
+          love: opts.love as string | undefined,
+          debugger: opts.debugger !== false && !opts.disableDebugger,
+          device: opts.device as string | undefined,
+          debounce: opts.debounce as number | undefined,
+          restart: opts.restart as boolean | undefined,
+          buildConfig: opts.buildConfig as string | undefined,
+          outDir: opts.outDir as string | undefined,
+          noPlugins: opts.plugins === false,
+          adbReverse: opts.adbReverse as boolean | undefined,
+          port: opts.port as number | undefined,
+          featherPath: opts.featherPath as string | undefined,
+          pluginsDir: opts.pluginsDir as string | undefined,
+          runtimeConfig: opts.runtimeConfig as string | undefined,
+          verbose: opts.verbose as boolean | undefined,
+        }),
+      ),
     );
 
   return program;
