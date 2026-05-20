@@ -350,6 +350,104 @@ test('init e2e: cli mode records selected plugins in generated config', () => {
   }
 });
 
+test('init e2e: cli mode includes default creative plugins', () => {
+  const workspace = makeTmp();
+  const project = join(workspace, 'cli-default-plugins-game');
+
+  try {
+    writeE2eGame(project);
+
+    runOk([
+      'init',
+      project,
+      '--mode',
+      'cli',
+      '--yes',
+      '--allow-insecure-connection',
+    ]);
+
+    const config = readFileSync(join(project, 'feather.config.lua'), 'utf8');
+    assert.match(config, /include\s*=\s*\{\s*"particle-system-playground",\s*"shader-graph"\s*\}/);
+    assert.match(config, /capabilities\s*=\s*\{\s*"draw",\s*"filesystem"\s*\}/);
+    assert.match(config, /debug\s*=\s*true/);
+    assert.match(config, /autoRegisterErrorHandler\s*=\s*true/);
+    assert.doesNotMatch(config, /^\s*hotReload\s*=/m);
+  } finally {
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  }
+});
+
+test('init e2e: cli mode hot reload writes debugger allowlist config', () => {
+  const workspace = makeTmp();
+  const project = join(workspace, 'cli-hot-reload-game');
+
+  try {
+    writeE2eGame(project);
+
+    runOk([
+      'init',
+      project,
+      '--mode',
+      'cli',
+      '--plugins',
+      'hot-reload',
+      '--hot-reload-allow',
+      'game.player,game.systems.combat',
+      '--yes',
+      '--allow-insecure-connection',
+    ]);
+
+    const config = readFileSync(join(project, 'feather.config.lua'), 'utf8');
+    assert.match(config, /include\s*=\s*\{\s*"hot-reload"\s*\}/);
+    assert.match(config, /debug\s*=\s*true/);
+    assert.match(config, /autoRegisterErrorHandler\s*=\s*true/);
+    assert.match(config, /debugger\s*=\s*\{/);
+    assert.match(config, /enabled\s*=\s*true/);
+    assert.match(config, /hotReload\s*=\s*\{/);
+    assert.match(config, /allow\s*=\s*\{\s*"game\.player",\s*"game\.systems\.combat"\s*\}/);
+    assert.match(config, /deny\s*=\s*\{\s*"main",\s*"conf",\s*"feather\.\*"\s*\}/);
+    assert.match(config, /persistToDisk\s*=\s*false/);
+  } finally {
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  }
+});
+
+test('init e2e: cli mode writes session name and app id from flags', () => {
+  const workspace = makeTmp();
+  const project = join(workspace, 'cli-custom-config-game');
+
+  try {
+    writeE2eGame(project);
+
+    runOk([
+      'init',
+      project,
+      '--mode',
+      'cli',
+      '--session-name',
+      'Custom Session',
+      '--app-id',
+      'feather-app-test',
+      '--no-plugins',
+      '--yes',
+    ]);
+
+    const config = readFileSync(join(project, 'feather.config.lua'), 'utf8');
+    assert.match(config, /sessionName\s*=\s*"Custom Session"/);
+    assert.match(config, /appId\s*=\s*"feather-app-test"/);
+    assert.doesNotMatch(config, /^\s*__DANGEROUS_INSECURE_CONNECTION__\s*=\s*true/m);
+    assert.doesNotMatch(config, /^\s*include\s*=/m);
+  } finally {
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  }
+});
+
 test('init --yes without --allow-insecure-connection: config omits __DANGEROUS_INSECURE_CONNECTION__ and doctor fails on missing appId', () => {
   const workspace = makeTmp();
   const project = join(workspace, 'secure-game');

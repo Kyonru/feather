@@ -13,7 +13,7 @@ import { watchCommand } from './commands/watch.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
 import { buildTargets } from './lib/build/config.js';
 import { uploadCommand } from './commands/upload.js';
-import { configManagedCommand, configPluginsCommand } from './commands/config.js';
+import { configHotReloadCommand, configManagedCommand, configPluginsCommand } from './commands/config.js';
 import {
   pluginListCommand,
   pluginInstallCommand,
@@ -41,6 +41,14 @@ function parseInitMode(value: string): InitMode {
     throw new Error('Mode must be one of: cli, auto, manual');
   }
   return value as InitMode;
+}
+
+function parseCommaList(value: unknown): string[] | undefined {
+  if (typeof value !== 'string' || !value) return undefined;
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export function createProgram(): Command {
@@ -110,6 +118,9 @@ export function createProgram(): Command {
     .option('--install-dir <path>', 'Install directory for auto/manual modes', 'feather')
     .option('--no-plugins', 'Skip plugin installation')
     .option('--plugins <ids>', 'Comma-separated list of plugins to install')
+    .option('--hot-reload-allow <modules>', 'Comma-separated Lua module names to allow for hot reload')
+    .option('--session-name <name>', 'Session name shown in the Feather desktop app')
+    .option('--app-id <id>', 'Desktop App ID allowed to send commands to this game')
     .option('--mode <mode>', 'Setup mode: cli, auto, or manual', parseInitMode)
     .option('-y, --yes', 'Skip confirmation prompts')
     .option(
@@ -124,13 +135,13 @@ export function createProgram(): Command {
           localSrc: opts.localSrc as string | undefined,
           installDir: opts.installDir as string,
           noPlugins: opts.plugins === false,
-          plugins:
-            opts.plugins && opts.plugins !== true
-              ? (opts.plugins as string).split(',').map((s: string) => s.trim())
-              : undefined,
+          plugins: parseCommaList(opts.plugins as string | undefined),
+          hotReloadAllow: parseCommaList(opts.hotReloadAllow as string | undefined),
           mode: opts.mode as InitMode | undefined,
           yes: opts.yes as boolean,
           allowInsecureConnection: opts.allowInsecureConnection as boolean | undefined,
+          appId: opts.appId as string | undefined,
+          sessionName: opts.sessionName as string | undefined,
         }),
       ),
     );
@@ -214,6 +225,20 @@ export function createProgram(): Command {
       runCliAction(() =>
         configManagedCommand(mode as string, {
           dir: opts.dir as string | undefined,
+        }),
+      ),
+    );
+
+  config
+    .command('hot-reload')
+    .description('Enable hot reload config and set its module allowlist')
+    .option('--dir <path>', 'Project directory (default: current directory)')
+    .option('--allow <modules>', 'Comma-separated Lua module names to allow')
+    .action((opts) =>
+      runCliAction(() =>
+        configHotReloadCommand({
+          dir: opts.dir as string | undefined,
+          allow: opts.allow as string | undefined,
         }),
       ),
     );

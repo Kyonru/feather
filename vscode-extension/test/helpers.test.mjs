@@ -49,3 +49,28 @@ test('project status reports config, runtime, plugins, and packages', () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('project status counts CLI-managed included plugins from config', () => {
+  const root = mkdtempSync(join(tmpdir(), 'feather-vscode-test-'));
+  try {
+    writeFileSync(join(root, 'main.lua'), '');
+    writeFileSync(
+      join(root, 'feather.config.lua'),
+      `return {
+  managed = "cli",
+  include = { "console", "hot-reload", "profiler" },
+  exclude = { "profiler" },
+
+  -- include = { "commented-out" },
+}
+`,
+    );
+
+    const status = getProjectStatus(root);
+    assert.equal(status.hasConfig, true);
+    assert.equal(status.hasRuntime, false);
+    assert.equal(status.pluginCount, 2);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

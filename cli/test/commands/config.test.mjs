@@ -113,6 +113,33 @@ test('config managed: updates an existing managed field', () => {
   assert.doesNotMatch(config, /managed\s*=\s*"auto"/);
 });
 
+test('config hot-reload: enables plugin and writes debugger allowlist', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  managed = "cli",
+  include = { "shader-graph" },
+  capabilities = { "draw" },
+}
+`,
+  );
+
+  const result = run(['config', 'hot-reload', '--dir', dir, '--allow', 'game.player,game.systems.combat']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+
+  const config = readFileSync(join(dir, 'feather.config.lua'), 'utf8');
+  assert.match(config, /debug\s*=\s*true/);
+  assert.match(config, /autoRegisterErrorHandler\s*=\s*true/);
+  assert.match(config, /include\s*=\s*\{\s*"hot-reload",\s*"shader-graph"\s*\}/);
+  assert.match(config, /capabilities\s*=\s*\{\s*"draw",\s*"filesystem"\s*\}/);
+  assert.match(config, /debugger\s*=\s*\{/);
+  assert.match(config, /hotReload\s*=\s*\{/);
+  assert.match(config, /allow\s*=\s*\{\s*"game\.player",\s*"game\.systems\.combat"\s*\}/);
+  assert.match(config, /deny\s*=\s*\{\s*"main",\s*"conf",\s*"feather\.\*"\s*\}/);
+});
+
 test('config managed: rejects invalid mode', () => {
   const dir = makeTmp();
   writeGame(dir);

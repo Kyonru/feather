@@ -103,6 +103,14 @@ local function describeApiCompatibility(compatibility, currentApi)
   return "Requires a different Feather plugin API. Desktop API is " .. tostring(currentApi) .. "."
 end
 
+local function isCallable(value)
+  if type(value) == "function" then
+    return true
+  end
+  local meta = type(value) == "table" and getmetatable(value) or nil
+  return type(meta) == "table" and type(meta.__call) == "function"
+end
+
 ---@param feather Feather
 ---@param logger FeatherLogger
 ---@param observer FeatherObserver
@@ -147,7 +155,18 @@ function FeatherPluginManager:init(feather, logger, observer)
       callbackDisposers = {},
     }
 
-    if not isApiCompatible(compatibility, feather.version) then
+    if not isCallable(plugin.plugin) then
+      pluginRecord.disabled = true
+      table.insert(self.plugins, pluginRecord)
+      self.logger:log({
+        type = "warn",
+        str = "Plugin <"
+          .. tostring(plugin.identifier)
+          .. "> is disabled: expected a callable plugin module, got "
+          .. type(plugin.plugin)
+          .. ".",
+      })
+    elseif not isApiCompatible(compatibility, feather.version) then
       local message = describeApiCompatibility(compatibility, feather.version)
       pluginRecord.disabled = true
       pluginRecord.incompatible = true

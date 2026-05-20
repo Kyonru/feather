@@ -1,17 +1,28 @@
 import * as vscode from 'vscode';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import * as os from 'node:os';
 import { shellQuote } from './command';
 
-function getBinaryPath(context: vscode.ExtensionContext): string {
+interface CliInvocation {
+  command: string;
+  argsPrefix: string[];
+}
+
+function getCliInvocation(context: vscode.ExtensionContext): CliInvocation {
+  const devLauncher = join(context.extensionPath, 'bundled-bin', 'feather-dev.mjs');
+  if (existsSync(devLauncher)) {
+    return { command: 'node', argsPrefix: [devLauncher] };
+  }
+
   const p = os.platform();
   const a = os.arch();
   const name =
     p === 'darwin' && a === 'arm64' ? 'feather' :
     p === 'darwin' ? 'feather-darwin-x64' :
     p === 'win32' ? 'feather-win-x64.exe' : 'feather-linux-x64';
-  return join(context.extensionPath, 'bundled-bin', name);
+  return { command: join(context.extensionPath, 'bundled-bin', name), argsPrefix: [] };
 }
 
 export function runInTerminal(
@@ -29,12 +40,12 @@ export function runCommandsInTerminal(
   commands: string[][],
   cwd: string,
 ): vscode.Terminal {
-  const bin = getBinaryPath(context);
+  const cli = getCliInvocation(context);
   const existing = vscode.window.terminals.find((t) => t.name === name);
   existing?.dispose();
   const terminal = vscode.window.createTerminal({ name, cwd });
   for (const args of commands) {
-    terminal.sendText([bin, ...args].map(shellQuote).join(' '));
+    terminal.sendText([cli.command, ...cli.argsPrefix, ...args].map(shellQuote).join(' '));
   }
   terminal.show();
   return terminal;
@@ -45,5 +56,6 @@ export function spawnFeather(
   args: string[],
   cwd: string,
 ): ChildProcess {
-  return spawn(getBinaryPath(context), args, { cwd, shell: false });
+  const cli = getCliInvocation(context);
+  return spawn(cli.command, [...cli.argsPrefix, ...args], { cwd, shell: false });
 }

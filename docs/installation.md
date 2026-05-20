@@ -15,6 +15,18 @@ A new session tab appears in the Feather desktop app automatically. No `require`
 > [!NOTE]
 > Use plain `feather run` for local desktop iteration where the CLI launches LÖVE directly. Use `feather run --target web|android|ios` when you want the CLI to build, serve, install, or launch a configured platform target.
 
+`feather init` defaults to CLI-managed mode. It creates `feather.config.lua` with development defaults, enables error capture, and includes `particle-system-playground` plus `shader-graph`. Other plugins can be enabled later:
+
+```bash
+feather config plugins --include profiler,input-replay --dir path/to/my-game
+```
+
+Hot Reload is development-only remote code execution, so it uses a separate allowlist command:
+
+```bash
+feather config hot-reload --allow game.player,game.systems.combat --dir path/to/my-game
+```
+
 ### Vendors and Platform Runs
 
 Add local LÖVE runtimes/templates once per project, then run or build those targets:
@@ -84,6 +96,8 @@ curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-
 ```
 
 This creates a `feather/` directory (core library) and a `plugins/` directory (all built-in plugins) in your current folder.
+
+The script installs normal built-in plugins by default, including `particle-system-playground` and `shader-graph`. It skips Console, Hot Reload, HUMP Signal, and Lua State Machine unless you opt in or override `FEATHER_SKIP_PLUGINS`.
 
 **Customize with environment variables:**
 

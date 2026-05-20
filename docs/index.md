@@ -46,6 +46,13 @@ feather run path/to/my-game
 
 Feather is injected by the CLI for dev runs and debug builds, so your game code does not need a manual `require` for any target.
 
+By default, CLI init enables error capture and includes the creative plugins `particle-system-playground` and `shader-graph`. Other plugins are controlled through `feather.config.lua`:
+
+```bash
+feather config plugins --include profiler,input-replay --dir path/to/my-game
+feather config hot-reload --allow game.player --dir path/to/my-game
+```
+
 > [!CAUTION]
 > `feather run` is for development. Do not publish builds created from a run session; create user-facing builds with `feather build <target> --release` so Feather debugging tools are not included.
 

@@ -18,6 +18,11 @@ export type ConfigManagedOptions = {
   dir?: string;
 };
 
+export type ConfigHotReloadOptions = {
+  dir?: string;
+  allow?: string;
+};
+
 const VALID_MANAGED_MODES = ['cli', 'auto', 'manual'] as const;
 
 const knownPluginIds = new Set(pluginCatalog.map((plugin) => plugin.id));
@@ -51,8 +56,87 @@ function setArray(config: Record<string, unknown>, key: 'include' | 'exclude', v
   }
 }
 
+function hotReloadDebuggerConfig(allow: string[]): Record<string, unknown> {
+  return {
+    enabled: true,
+    hotReload: {
+      enabled: true,
+      allow,
+      deny: ['main', 'conf', 'feather.*'],
+      persistToDisk: false,
+      clearOnBoot: false,
+      requireLocalNetwork: true,
+    },
+  };
+}
+
+function valueEnd(source: string, start: number): number {
+  let i = start;
+  while (i < source.length && /\s/.test(source[i])) i++;
+
+  if (source[i] !== '{') {
+    const lineEnd = source.indexOf('\n', i);
+    return lineEnd === -1 ? source.length : lineEnd;
+  }
+
+  let depth = 0;
+  let quote: '"' | "'" | null = null;
+  while (i < source.length) {
+    const ch = source[i];
+    const next = source[i + 1];
+
+    if (quote) {
+      if (ch === '\\' && next) {
+        i += 2;
+        continue;
+      }
+      if (ch === quote) quote = null;
+      i++;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      i++;
+      continue;
+    }
+
+    if (ch === '-' && next === '-') {
+      while (i < source.length && source[i] !== '\n') i++;
+      continue;
+    }
+
+    if (ch === '{') depth++;
+    if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        i++;
+        while (i < source.length && /[ \t]/.test(source[i])) i++;
+        if (source[i] === ',') i++;
+        return i;
+      }
+    }
+    i++;
+  }
+
+  return source.length;
+}
+
+function replaceTopLevelAssignment(source: string, key: string, rendered: string | undefined): string | undefined {
+  const assignment = new RegExp(`^\\s*${key}\\s*=`, 'm');
+  const match = assignment.exec(source);
+  if (!match) return undefined;
+
+  const equals = source.indexOf('=', match.index);
+  const end = valueEnd(source, equals + 1);
+  return `${source.slice(0, match.index)}${rendered ?? ''}${source.slice(end)}`;
+}
+
 function upsertTopLevelValue(source: string, key: string, value: unknown): string {
   const rendered = value === undefined ? undefined : `  ${key} = ${luaValue(value, 2)},`;
+  const replaced = replaceTopLevelAssignment(source, key, rendered);
+  if (replaced !== undefined) return replaced;
+
   const assignment = new RegExp(
     `^\\s*${key}\\s*=\\s*(?:\\{[^\\n]*\\}|"[^"]*"|'[^']*'|true|false|-?\\d+(?:\\.\\d+)?),?\\s*$`,
     'm',
@@ -170,4 +254,61 @@ export async function configManagedCommand(mode: string, opts: ConfigManagedOpti
   const next = upsertTopLevelValue(source, 'managed', mode);
   writeFileSync(configPath, next);
   printLine(`${icon.success} Updated managed mode to "${mode}"`);
+}
+
+export async function configHotReloadCommand(opts: ConfigHotReloadOptions = {}): Promise<void> {
+  const projectDir = findConfigDir(opts.dir ? resolve(opts.dir) : process.cwd());
+  const allow = parseIds(opts.allow);
+
+  if (allow.length === 0) {
+    fail('No hot reload allowlist requested.', {
+      details: ['Pass --allow <module.names>.'],
+    });
+  }
+
+  let configPath: string;
+  try {
+    configPath = assertSafeProjectTarget(projectDir, 'feather.config.lua', 'Config update target');
+  } catch (err) {
+    fail((err as Error).message);
+  }
+
+  if (!existsSync(configPath)) {
+    fail(`No feather.config.lua found in ${projectDir}.`, {
+      details: ['Run `feather init` first.'],
+    });
+  }
+
+  const loaded = loadConfig(projectDir);
+  if (!loaded) {
+    fail(`Failed to load ${join(projectDir, 'feather.config.lua')}.`);
+  }
+
+  const config = { ...(loaded as FeatherConfig) } as Record<string, unknown>;
+  const include = new Set(
+    Array.isArray(config.include) ? config.include.filter((id): id is string => typeof id === 'string') : [],
+  );
+  const exclude = new Set(
+    Array.isArray(config.exclude) ? config.exclude.filter((id): id is string => typeof id === 'string') : [],
+  );
+  include.add('hot-reload');
+  exclude.delete('hot-reload');
+  setArray(config, 'include', include);
+  setArray(config, 'exclude', exclude);
+
+  const mergedCapabilities = mergeCapabilities(config.capabilities as string[] | 'all' | undefined, include);
+  if (mergedCapabilities && mergedCapabilities !== 'all') {
+    config.capabilities = mergedCapabilities;
+  }
+
+  let nextSource = readFileSync(configPath, 'utf8');
+  nextSource = upsertTopLevelValue(nextSource, 'debug', true);
+  nextSource = upsertTopLevelValue(nextSource, 'autoRegisterErrorHandler', true);
+  nextSource = upsertTopLevelValue(nextSource, 'include', config.include);
+  nextSource = upsertTopLevelValue(nextSource, 'exclude', config.exclude);
+  nextSource = upsertTopLevelValue(nextSource, 'capabilities', config.capabilities);
+  nextSource = upsertTopLevelValue(nextSource, 'debugger', hotReloadDebuggerConfig(allow));
+
+  writeFileSync(configPath, nextSource);
+  printLine(`${icon.success} Updated hot reload allowlist`);
 }

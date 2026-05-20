@@ -1,4 +1,4 @@
-import { cpSync, existsSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,33 +8,46 @@ const repoRoot = join(extensionRoot, '..');
 
 const cliBin = join(repoRoot, 'cli', 'bin');
 const cliLua = join(repoRoot, 'cli', 'lua');
+const sourceLua = join(repoRoot, 'src-lua');
 const cliGenerated = join(repoRoot, 'cli', 'dist', 'generated');
 const bundledBin = join(extensionRoot, 'bundled-bin');
 
-if (!existsSync(cliBin)) {
-  throw new Error('Missing cli/bin/. Run `npm run build:binary --workspace=cli` first.');
-}
-
-if (!existsSync(join(cliLua, 'feather', 'init.lua'))) {
-  throw new Error('Missing cli/lua/feather/init.lua. Run `npm run bundle:lua --workspace=cli` first.');
+const luaSource = existsSync(join(cliLua, 'feather', 'init.lua')) ? cliLua : sourceLua;
+if (!existsSync(join(luaSource, 'feather', 'init.lua'))) {
+  throw new Error('Missing Lua runtime. Run `npm run bundle:lua --workspace=cli` first.');
 }
 
 rmSync(bundledBin, { recursive: true, force: true });
+mkdirSync(bundledBin, { recursive: true });
 
-// Copy platform binaries
-cpSync(cliBin, bundledBin, { recursive: true });
+let bundleMode;
+if (existsSync(cliBin)) {
+  // Copy platform binaries for packaged extension builds.
+  cpSync(cliBin, bundledBin, { recursive: true });
+  bundleMode = 'platform binaries';
+} else {
+  // Local extension development does not require Bun-compiled binaries. The
+  // extension detects this file and launches the compiled CLI with Node.
+  writeFileSync(
+    join(bundledBin, 'feather-dev.mjs'),
+    `#!/usr/bin/env node
+import { runCli } from '../../cli/dist/index.js';
+
+process.exitCode = await runCli();
+`,
+  );
+  bundleMode = 'dev CLI launcher';
+}
 
 // Copy Lua runtime next to the binaries (bundledLuaRoot() checks process.execPath + '/lua')
-cpSync(cliLua, join(bundledBin, 'lua'), { recursive: true });
+cpSync(luaSource, join(bundledBin, 'lua'), { recursive: true });
 
 // Copy registry.json for the packages catalog
 cpSync(join(cliGenerated, 'registry.json'), join(bundledBin, 'registry.json'));
 
 // Generate plugin-catalog.json from the ESM plugin-catalog.js
 const { pluginCatalog } = await import(join(cliGenerated, 'plugin-catalog.js'));
-writeFileSync(
-  join(bundledBin, 'plugin-catalog.json'),
-  JSON.stringify(pluginCatalog, null, 2) + '\n',
-);
+writeFileSync(join(bundledBin, 'plugin-catalog.json'), JSON.stringify(pluginCatalog, null, 2) + '\n');
 
-console.log('Prepared bundled-bin/ with platform binaries, lua/, registry.json, and plugin-catalog.json');
+// eslint-disable-next-line no-undef
+console.log(`Prepared bundled-bin/ with ${bundleMode}, lua/, registry.json, and plugin-catalog.json`);

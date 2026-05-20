@@ -116,6 +116,23 @@ return {
 | `optIn`        | `boolean`  | If `true`, the plugin is not registered at all unless its ID appears in `config.include`.                                                 |
 | `disabled`     | `boolean`  | If `true`, the plugin registers and appears in the UI but starts inactive. Users can enable it from the desktop, or via `config.include`. |
 
+### Loading and enabling plugins
+
+`feather.auto` scans the bundled or installed plugin directory and reads each `manifest.lua`.
+
+- Plugins with `optIn = false` and `disabled = false` load automatically unless their ID is in `config.exclude`.
+- Plugins with `optIn = true` are skipped unless their ID is in `config.include`.
+- Plugins with `disabled = true` are registered but inactive unless their ID is in `config.include`.
+
+CLI-managed projects use `feather.config.lua` as the source of truth for plugin selection. Use the CLI helpers to edit that list and keep capabilities in sync:
+
+```bash
+feather config plugins --include profiler,input-replay
+feather config plugins --exclude shader-graph
+```
+
+`feather init` includes `particle-system-playground` and `shader-graph` by default in CLI mode. Development-only plugins such as `console` and `hot-reload` remain explicit opt-ins.
+
 ### Love-event hooks
 
 Instead of patching `love.*` callbacks inside `init()`, use Feather's callback bus or override the corresponding `on*` method. `FeatherPluginManager` patches each love callback once and dispatches through a shared bus — this prevents conflicts when multiple plugins hook the same callback.

@@ -76,6 +76,8 @@ feather init                                      # configure current directory 
 feather init path/to/my-game                      # configure a specific directory
 feather init --no-plugins                         # feather core only, no plugins
 feather init --plugins screenshots,profiler
+feather init --plugins hot-reload --hot-reload-allow game.player,game.systems.combat
+feather init --session-name "My Game" --app-id feather-app-...
 feather init --remote --branch v0.7.0             # use a specific runtime release
 feather init --local-src ../feather/src-lua       # use a local source tree
 feather init --install-dir lib/feather            # configure like FEATHER_DIR=lib/feather
@@ -93,6 +95,8 @@ By default, `feather init` opens an interactive terminal picker powered by Ink w
 | `cli`    | Recommended. Creates `feather.config.lua` for `feather run` without changing game code.                                 |
 | `auto`   | Advanced embedded mode. Copies core/plugins and patches `main.lua` with a guarded `require("feather.auto")`.            |
 | `manual` | Advanced embedded mode. Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua` when enabled. |
+
+CLI mode writes a development config with `debug = true`, `autoRegisterErrorHandler = true`, and `managed = "cli"`. Unless you pass `--plugins` or `--no-plugins`, it includes `particle-system-playground` and `shader-graph` so the creative tooling is ready immediately. Opt-in or dangerous plugins, such as Console and Hot Reload, still require an explicit include.
 
 Install source priority:
 
@@ -147,7 +151,7 @@ The interactive flow asks for:
 - Git branch or tag when using GitHub download, matching `FEATHER_BRANCH`
 - whether to install built-in plugins, matching `FEATHER_PLUGINS`
 - optional plugins to force-enable, such as Console, Physics Debug, and Timer Inspector
-- plugins to skip/exclude, matching `FEATHER_SKIP_PLUGINS`; Console, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults
+- plugins to skip/exclude, matching `FEATHER_SKIP_PLUGINS`; Console, Hot Reload, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults
 - advanced connection/runtime options from `feather.config.lua`, including host/port, socket vs disk mode, observers, logging, debugger, asset previews, capabilities, and binary threshold
 - a strong API key when Console is included
 
@@ -190,16 +194,19 @@ return DEBUGGER
 
 **Options:**
 
-| Option                 | Description                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `--remote`             | Download from GitHub instead of copying the local/bundled Lua runtime.         |
-| `--branch <branch>`    | GitHub branch or tag to download from when using `--remote` (default: `main`). |
-| `--local-src <path>`   | Copy from a local `src-lua` style directory.                                   |
-| `--install-dir <path>` | Install directory for auto/manual modes (default: `feather`).                  |
-| `--no-plugins`         | Skip plugin installation.                                                      |
-| `--plugins <ids>`      | Comma-separated list of plugin IDs to install (default: all).                  |
-| `--mode <mode>`        | Setup mode: `cli`, `auto`, or `manual`.                                        |
-| `-y, --yes`            | Skip confirmation prompts.                                                     |
+| Option                       | Description                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `--remote`                   | Download from GitHub instead of copying the local/bundled Lua runtime.                               |
+| `--branch <branch>`          | GitHub branch or tag to download from when using `--remote` (default: `main`).                       |
+| `--local-src <path>`         | Copy from a local `src-lua` style directory.                                                         |
+| `--install-dir <path>`       | Install directory for auto/manual modes (default: `feather`).                                        |
+| `--no-plugins`               | Skip plugin installation and omit the CLI-mode default include list.                                 |
+| `--plugins <ids>`            | Comma-separated plugin IDs. In CLI mode this overrides the default creative plugins.                 |
+| `--hot-reload-allow <names>` | Comma-separated Lua module names allowed for Hot Reload; also includes the `hot-reload` plugin.      |
+| `--session-name <name>`      | Session name shown in the Feather desktop app.                                                       |
+| `--app-id <id>`              | Desktop App ID allowed to send commands to this game.                                                |
+| `--mode <mode>`              | Setup mode: `cli`, `auto`, or `manual`.                                                              |
+| `-y, --yes`                  | Skip confirmation prompts.                                                                           |
 
 ---
 
@@ -775,6 +782,24 @@ feather config plugins --include profiler --exclude runtime-snapshot --dir path/
 | ----------------- | ------------------------------------------------------- |
 | `--include <ids>` | Comma-separated plugin IDs to add to `include`.         |
 | `--exclude <ids>` | Comma-separated plugin IDs to add to `exclude`.         |
+| `--dir <path>`    | Project directory (default: current directory).         |
+
+#### `feather config hot-reload`
+
+Enable the opt-in `hot-reload` plugin and write a narrow `debugger.hotReload.allow` list.
+
+```bash
+feather config hot-reload --allow game.player,game.systems.combat
+feather config hot-reload --allow game.player --dir path/to/my-game
+```
+
+This also writes `debug = true`, `autoRegisterErrorHandler = true`, `include = { "hot-reload", ... }`, the required `filesystem` capability, and safe defaults such as `deny = { "main", "conf", "feather.*" }` and `persistToDisk = false`.
+
+**Options:**
+
+| Option            | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| `--allow <names>` | Comma-separated Lua module names Hot Reload may update. |
 | `--dir <path>`    | Project directory (default: current directory).         |
 
 #### `feather config managed <mode>`

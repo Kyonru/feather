@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { loadPackageCatalog, loadPluginCatalog, readInstalledPackageIds, type PackageEntry, type PluginEntry } from './catalog';
 import { runCommandsInTerminal, runInTerminal } from './cli';
 import { FeatherProjectProvider } from './featherPanel';
@@ -11,6 +11,17 @@ import { ALL_RUN_TARGETS, vendorPresent, vendorLabel, vendorArg, targetIcon, typ
 type Pick<T extends string> = vscode.QuickPickItem & { value: T };
 type PluginPick = vscode.QuickPickItem & { plugin: PluginEntry };
 type PackagePick = vscode.QuickPickItem & { pkg: PackageEntry };
+type InitModeValue = 'cli' | 'auto' | 'manual';
+type InitSecurityMode = 'appId' | 'insecure' | 'unset';
+type InitSourceMode = 'bundled' | 'remote' | 'local';
+type InitPluginMode = 'default' | 'select' | 'none';
+
+interface InitCommandPlan {
+  args: string[];
+}
+
+const DEFAULT_INIT_PLUGIN_IDS = new Set(['particle-system-playground', 'shader-graph']);
+const DEFAULT_INIT_PLUGIN_ID_LIST = [...DEFAULT_INIT_PLUGIN_IDS];
 
 function workspaceRoots(): string[] {
   return vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
@@ -52,12 +63,33 @@ function savedTargets(): RunTarget[] {
   return (featherConfig().get<string[]>('runTargets') ?? []) as RunTarget[];
 }
 
-function pluginPick(plugin: PluginEntry): PluginPick {
+function refreshProjectUi(provider: FeatherProjectProvider, updateStatus: () => void): void {
+  updateStatus();
+  provider.refresh();
+}
+
+function registerRefreshWatcher(
+  context: vscode.ExtensionContext,
+  pattern: string,
+  provider: FeatherProjectProvider,
+  updateStatus: () => void,
+): void {
+  const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+  context.subscriptions.push(
+    watcher,
+    watcher.onDidCreate(() => refreshProjectUi(provider, updateStatus)),
+    watcher.onDidChange(() => refreshProjectUi(provider, updateStatus)),
+    watcher.onDidDelete(() => refreshProjectUi(provider, updateStatus)),
+  );
+}
+
+function pluginPick(plugin: PluginEntry, picked = false): PluginPick {
   const caps = plugin.capabilities.length > 0 ? ` · ${plugin.capabilities.join(', ')}` : '';
   return {
     label: plugin.name,
     description: plugin.id,
     detail: `${plugin.description}${caps}`,
+    picked,
     plugin,
   };
 }
@@ -71,15 +103,182 @@ function packagePick(pkg: PackageEntry): PackagePick {
   };
 }
 
-async function pickPlugins(context: vscode.ExtensionContext, placeHolder: string): Promise<PluginEntry[] | undefined> {
+async function pickPlugins(
+  context: vscode.ExtensionContext,
+  placeHolder: string,
+  defaultPickedIds: ReadonlySet<string> = new Set(),
+): Promise<PluginEntry[] | undefined> {
   const catalog = await loadPluginCatalog(context);
-  const picked = await vscode.window.showQuickPick(catalog.map(pluginPick), {
+  const picked = await vscode.window.showQuickPick(catalog.map((plugin) => pluginPick(plugin, defaultPickedIds.has(plugin.id))), {
     canPickMany: true,
     matchOnDescription: true,
     matchOnDetail: true,
     placeHolder,
   });
   return picked?.map((item) => item.plugin);
+}
+
+function hotReloadModuleName(root: string, filePath: string): string | undefined {
+  const rel = relative(root, filePath).replace(/\\/g, '/');
+  if (!rel || rel.startsWith('../') || rel === '..' || rel.startsWith('/')) return undefined;
+  if (!rel.endsWith('.lua')) return undefined;
+  const withoutExt = rel.slice(0, -'.lua'.length);
+  const modulePath = withoutExt.endsWith('/init') ? withoutExt.slice(0, -'/init'.length) : withoutExt;
+  return modulePath.split('/').filter(Boolean).join('.');
+}
+
+async function pickHotReloadAllowlist(root: string): Promise<string[] | undefined> {
+  const uris = await vscode.window.showOpenDialog({
+    canSelectFiles: true,
+    canSelectFolders: false,
+    canSelectMany: true,
+    defaultUri: vscode.Uri.file(root),
+    filters: { Lua: ['lua'] },
+    openLabel: 'Allow hot reload',
+    title: 'Feather: Select Lua files hot reload may update',
+  });
+  if (!uris) return undefined;
+
+  const modules = [...new Set(uris.map((uri) => hotReloadModuleName(root, uri.fsPath)).filter((id): id is string => Boolean(id)))];
+  if (modules.length === 0) {
+    vscode.window.showWarningMessage('Select Lua files inside the project folder for hot reload.');
+    return undefined;
+  }
+  return modules;
+}
+
+function nonEmptyInput(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+async function pickInitMode(): Promise<InitModeValue | undefined> {
+  const mode = await vscode.window.showQuickPick<Pick<InitModeValue>>(
+    [
+      { label: 'CLI mode', description: 'No game-code changes. Use Feather: Run Project.', value: 'cli' },
+      { label: 'Auto mode', description: 'Patch main.lua with guarded feather.auto loader.', value: 'auto' },
+      { label: 'Manual mode', description: 'Create feather.debugger.lua and guarded loader.', value: 'manual' },
+    ],
+    { placeHolder: 'Select init mode' },
+  );
+  return mode?.value;
+}
+
+async function buildInitCommandPlan(
+  context: vscode.ExtensionContext,
+  root: string,
+  mode: InitModeValue,
+): Promise<InitCommandPlan | undefined> {
+  const flow = await vscode.window.showQuickPick<Pick<'quick' | 'custom'>>(
+    [
+      { label: 'Quick init', description: 'Default plugins, bundled runtime, local dev connection.', value: 'quick' },
+      { label: 'Customize init', description: 'Choose session name, security, source, install dir, and plugins.', value: 'custom' },
+    ],
+    { placeHolder: 'Choose init setup' },
+  );
+  if (!flow) return undefined;
+
+  if (flow.value === 'quick') {
+    return {
+      args: [
+        'init',
+        root,
+        '--mode',
+        mode,
+        '--yes',
+        '--allow-insecure-connection',
+        '--plugins',
+        DEFAULT_INIT_PLUGIN_ID_LIST.join(','),
+      ],
+    };
+  }
+
+  const args = ['init', root, '--mode', mode, '--yes'];
+
+  const sessionName = nonEmptyInput(await vscode.window.showInputBox({
+    prompt: 'Session name shown in Feather (optional)',
+    value: '',
+    placeHolder: 'My Game',
+  }));
+  if (sessionName) args.push('--session-name', sessionName);
+
+  const security = await vscode.window.showQuickPick<Pick<InitSecurityMode>>(
+    [
+      { label: 'Desktop App ID', description: 'Restrict commands to your Feather desktop app.', value: 'appId' },
+      { label: 'Insecure local dev', description: 'Allow any desktop connection. Use only for trusted development.', value: 'insecure' },
+      { label: 'Leave unset', description: 'Doctor will warn until appId or insecure mode is configured.', value: 'unset' },
+    ],
+    { placeHolder: 'Select connection security' },
+  );
+  if (!security) return undefined;
+  if (security.value === 'appId') {
+    const appId = nonEmptyInput(await vscode.window.showInputBox({
+      prompt: 'Desktop App ID from Feather Settings > Security',
+      placeHolder: 'feather-app-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      validateInput: (value) => value.trim() ? undefined : 'App ID cannot be empty',
+    }));
+    if (!appId) return undefined;
+    args.push('--app-id', appId);
+  } else if (security.value === 'insecure') {
+    args.push('--allow-insecure-connection');
+  }
+
+  const source = await vscode.window.showQuickPick<Pick<InitSourceMode>>(
+    [
+      { label: 'Bundled runtime', description: 'Use the runtime packaged with this extension/CLI.', value: 'bundled' },
+      { label: 'GitHub branch or tag', description: 'Download runtime files from GitHub.', value: 'remote' },
+      { label: 'Local src-lua folder', description: 'Copy runtime files from a local source checkout.', value: 'local' },
+    ],
+    { placeHolder: 'Select runtime source' },
+  );
+  if (!source) return undefined;
+  if (source.value === 'remote') {
+    const branch = nonEmptyInput(await vscode.window.showInputBox({
+      prompt: 'GitHub branch or tag',
+      value: 'main',
+      validateInput: (value) => value.trim() ? undefined : 'Branch cannot be empty',
+    }));
+    if (!branch) return undefined;
+    args.push('--remote', '--branch', branch);
+  } else if (source.value === 'local') {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFolders: true,
+      canSelectFiles: false,
+      canSelectMany: false,
+      defaultUri: vscode.Uri.file(root),
+      openLabel: 'Use src-lua',
+      title: 'Feather: Select local src-lua folder',
+    });
+    const localSrc = uris?.[0]?.fsPath;
+    if (!localSrc) return undefined;
+    args.push('--local-src', localSrc);
+  }
+
+  const pluginMode = await vscode.window.showQuickPick<Pick<InitPluginMode>>(
+    [
+      { label: 'Default creative plugins', description: DEFAULT_INIT_PLUGIN_ID_LIST.join(', '), value: 'default' },
+      { label: 'Select plugins', description: 'Choose exactly which plugins init should include.', value: 'select' },
+      { label: 'No plugins', description: 'Create Feather config/runtime only.', value: 'none' },
+    ],
+    { placeHolder: 'Select plugin setup' },
+  );
+  if (!pluginMode) return undefined;
+
+  let pluginIds = pluginMode.value === 'default' ? DEFAULT_INIT_PLUGIN_ID_LIST : [];
+  if (pluginMode.value === 'none') {
+    args.push('--no-plugins');
+  } else if (pluginMode.value === 'select') {
+    const plugins = await pickPlugins(context, 'Select plugins to install now', DEFAULT_INIT_PLUGIN_IDS);
+    if (!plugins) return undefined;
+    pluginIds = plugins.map((plugin) => plugin.id);
+  }
+
+  const hotReloadAllow = pluginIds.includes('hot-reload') ? await pickHotReloadAllowlist(root) : undefined;
+  if (pluginIds.includes('hot-reload') && !hotReloadAllow) return undefined;
+  if (pluginIds.length > 0) args.push('--plugins', pluginIds.join(','));
+  if (hotReloadAllow && hotReloadAllow.length > 0) args.push('--hot-reload-allow', hotReloadAllow.join(','));
+
+  return { args };
 }
 
 async function pickTargets(currentTargets: RunTarget[], watchMode: boolean): Promise<RunTarget[] | undefined> {
@@ -313,24 +512,15 @@ async function registerCommands(
       const root = requireProjectDir();
       if (!root) return;
 
-      const mode = await vscode.window.showQuickPick<Pick<'cli' | 'auto' | 'manual'>>(
-        [
-          { label: 'CLI mode', description: 'No game-code changes. Use Feather: Run Project.', value: 'cli' },
-          { label: 'Auto mode', description: 'Patch main.lua with guarded feather.auto loader.', value: 'auto' },
-          { label: 'Manual mode', description: 'Create feather.debugger.lua and guarded loader.', value: 'manual' },
-        ],
-        { placeHolder: 'Select init mode' },
-      );
+      const mode = await pickInitMode();
       if (!mode) return;
 
-      const plugins = await pickPlugins(context, 'Select plugins to install now');
-      if (!plugins) return;
+      const plan = await buildInitCommandPlan(context, root, mode);
+      if (!plan) return;
 
-      const args = ['init', root, '--mode', mode.value, '--yes', '--allow-insecure-connection'];
-      if (plugins.length > 0) args.push('--plugins', plugins.map((plugin) => plugin.id).join(','));
-      runInTerminal(context, 'Feather: Init', args, root);
-      provider.refresh();
-      setTimeout(() => provider.refresh(), 1500);
+      runInTerminal(context, 'Feather: Init', plan.args, root);
+      refreshProjectUi(provider, updateStatus);
+      setTimeout(() => refreshProjectUi(provider, updateStatus), 1500);
     }),
   );
 
@@ -362,11 +552,18 @@ async function registerCommands(
       const plugins = await pickPlugins(context, `Select plugins to ${action.value}`);
       if (!plugins || plugins.length === 0) return;
       const ids = plugins.map((plugin) => plugin.id);
+      const hotReloadAllow = action.value === 'install' && ids.includes('hot-reload')
+        ? await pickHotReloadAllowlist(root)
+        : undefined;
+      if (action.value === 'install' && ids.includes('hot-reload') && !hotReloadAllow) return;
       const commands =
         action.value === 'install'
           ? [
               ['plugin', 'install', ...ids, '--dir', root],
               ['config', 'plugins', '--dir', root, '--include', ids.join(',')],
+              ...(hotReloadAllow && hotReloadAllow.length > 0
+                ? [['config', 'hot-reload', '--dir', root, '--allow', hotReloadAllow.join(',')]]
+                : []),
             ]
           : action.value === 'remove'
             ? [
@@ -376,8 +573,8 @@ async function registerCommands(
             : ids.map((id) => ['plugin', 'update', id, '--dir', root, '--yes']);
 
       runCommandsInTerminal(context, `Feather: Plugins ${action.value}`, commands, root);
-      provider.refresh();
-      setTimeout(() => provider.refresh(), 1500);
+      refreshProjectUi(provider, updateStatus);
+      setTimeout(() => refreshProjectUi(provider, updateStatus), 1500);
     }),
   );
 
@@ -539,8 +736,8 @@ async function registerCommands(
       const confirmed = await vscode.window.showWarningMessage('Remove Feather from this project?', { modal: true }, 'Remove');
       if (confirmed !== 'Remove') return;
       runInTerminal(context, 'Feather: Remove', ['remove', root, '--yes'], root);
-      provider.refresh();
-      setTimeout(() => provider.refresh(), 1500);
+      refreshProjectUi(provider, updateStatus);
+      setTimeout(() => refreshProjectUi(provider, updateStatus), 1500);
     }),
   );
 
@@ -550,8 +747,8 @@ async function registerCommands(
       const root = requireProjectDir();
       if (!root) return;
       runInTerminal(context, 'Feather: Update', ['update', root, '--yes'], root);
-      provider.refresh();
-      setTimeout(() => provider.refresh(), 1500);
+      refreshProjectUi(provider, updateStatus);
+      setTimeout(() => refreshProjectUi(provider, updateStatus), 1500);
     }),
   );
 
@@ -591,12 +788,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     };
     updateStatus();
     statusItem.show();
+    registerRefreshWatcher(context, '**/feather.config.lua', provider, updateStatus);
+    registerRefreshWatcher(context, '**/.featherrc.lua', provider, updateStatus);
+    registerRefreshWatcher(context, '**/feather.lock.json', provider, updateStatus);
+    registerRefreshWatcher(context, '**/feather/plugins/**', provider, updateStatus);
 
     context.subscriptions.push(
       statusItem,
       vscode.workspace.onDidChangeWorkspaceFolders(() => {
-        updateStatus();
-        provider.refresh();
+        refreshProjectUi(provider, updateStatus);
       }),
       vscode.workspace.onDidChangeConfiguration((event) => {
         if (
@@ -604,8 +804,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           event.affectsConfiguration('feather.watchMode') ||
           event.affectsConfiguration('feather.runTargets')
         ) {
-          updateStatus();
-          provider.refresh();
+          refreshProjectUi(provider, updateStatus);
         }
       }),
     );

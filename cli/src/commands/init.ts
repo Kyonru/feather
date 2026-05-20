@@ -13,6 +13,7 @@ import {
 import { configTemplate, luaKey, luaValue } from '../lib/config.js';
 import { chooseInitMode, type InitMode, type InitSetup } from '../ui/init/index.js';
 import { mergeCapabilities } from '../ui/init/config.js';
+import { defaultIncludedPluginIds } from '../ui/init/model.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
 import { fail } from '../lib/command.js';
@@ -29,6 +30,9 @@ export interface InitOptions {
   yes?: boolean;
   mode?: InitMode;
   allowInsecureConnection?: boolean;
+  appId?: string;
+  sessionName?: string;
+  hotReloadAllow?: string[];
 }
 
 const knownPlugins = pluginCatalog.map((plugin) => plugin.id);
@@ -49,6 +53,30 @@ function addIncludedPlugins(config: Record<string, unknown>, pluginIds: Iterable
   if (include.size > 0) {
     config.include = [...include].sort();
   }
+}
+
+function addCliDebugDefaults(config: Record<string, unknown>): void {
+  if (config.debug === undefined) config.debug = true;
+  if (config.autoRegisterErrorHandler === undefined) config.autoRegisterErrorHandler = true;
+}
+
+function hotReloadDebuggerConfig(allow: string[]): Record<string, unknown> {
+  return {
+    enabled: true,
+    hotReload: {
+      enabled: true,
+      allow,
+      deny: ['main', 'conf', 'feather.*'],
+      persistToDisk: false,
+      clearOnBoot: false,
+      requireLocalNetwork: true,
+    },
+  };
+}
+
+function addHotReloadConfig(config: Record<string, unknown>, allow: string[]): void {
+  addCliDebugDefaults(config);
+  config.debugger = hotReloadDebuggerConfig(allow);
 }
 
 const toLocalName = (id: string) =>
@@ -118,7 +146,14 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
           branch: opts.branch ?? 'main',
           installDir: opts.installDir ?? 'feather',
           installPlugins: opts.noPlugins ? false : true,
-          config: opts.allowInsecureConnection ? { __DANGEROUS_INSECURE_CONNECTION__: true } : {},
+          config: {
+            ...(opts.sessionName?.trim() ? { sessionName: opts.sessionName.trim() } : {}),
+            ...(opts.appId?.trim()
+              ? { appId: opts.appId.trim() }
+              : opts.allowInsecureConnection
+                ? { __DANGEROUS_INSECURE_CONNECTION__: true }
+                : {}),
+          },
           exclude: [],
         };
   const mode = setup.mode;
@@ -138,9 +173,17 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
   setup.config.managed = mode;
 
   if (mode === 'cli') {
-    const pluginIds = pluginsDisabled ? [] : (opts.plugins ?? []).filter((id) => !setup.exclude.includes(id));
+    addCliDebugDefaults(setup.config);
+    const requestedPlugins = opts.plugins ?? defaultIncludedPluginIds;
+    const pluginIds = pluginsDisabled ? [] : requestedPlugins.filter((id) => !setup.exclude.includes(id));
+    if (!pluginsDisabled && opts.hotReloadAllow && opts.hotReloadAllow.length > 0 && !pluginIds.includes('hot-reload')) {
+      pluginIds.push('hot-reload');
+    }
     addIncludedPlugins(setup.config, pluginIds);
     addPluginCapabilities(setup.config, pluginIds);
+    if (!pluginsDisabled && (pluginIds.includes('hot-reload') || (opts.hotReloadAllow && opts.hotReloadAllow.length > 0))) {
+      addHotReloadConfig(setup.config, opts.hotReloadAllow ?? []);
+    }
     writeConfig(target, setup.config, {
       mode,
       installDir,

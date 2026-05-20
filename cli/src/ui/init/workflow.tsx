@@ -5,6 +5,7 @@ import { buildInitSetup } from "./config.js";
 import {
   configToggles,
   dangerousInsecureConnection,
+  defaultIncludedPlugins,
   defaultSkippedPlugins,
   installSources,
   isStrongApiKey,
@@ -56,7 +57,7 @@ function InitSetupPrompt({
   const [includeCursor, setIncludeCursor] = useState(0);
   const [excludeCursor, setExcludeCursor] = useState(0);
   const [toggleCursor, setToggleCursor] = useState(0);
-  const [include, setInclude] = useState<Set<string>>(new Set());
+  const [include, setInclude] = useState<Set<string>>(new Set(defaultIncludedPlugins));
   const [exclude, setExclude] = useState<Set<string>>(new Set(defaultSkippedPlugins));
   const [advanced, setAdvanced] = useState(false);
   const [host, setHost] = useState("127.0.0.1");

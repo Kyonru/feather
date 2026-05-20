@@ -17,6 +17,13 @@ The direct Lua API is still available for unusual projects that intentionally ve
 > [!WARNING]
 > Manual setup can leave Feather code, remote debugging hooks, or powerful plugins such as Console in places you did not intend to ship. Use it only if you understand the security consequences of accidental or unintended use. Prefer the CLI-managed workflow for normal development and releases.
 
+CLI init creates a `feather.config.lua` with `debug = true`, automatic error capture enabled, and the default creative plugins `particle-system-playground` and `shader-graph` included. Add or remove plugins with:
+
+```bash
+feather config plugins --include profiler,input-replay --dir path/to/my-game
+feather config plugins --exclude shader-graph --dir path/to/my-game
+```
+
 ```lua
 local FeatherDebugger = require "feather"
 local FeatherPluginManager = require "feather.plugin_manager"

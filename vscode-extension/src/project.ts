@@ -42,6 +42,37 @@ function packageCount(root: string): number {
   }
 }
 
+function configArrayValues(source: string, key: 'include' | 'exclude'): string[] {
+  const withoutLineComments = source
+    .split('\n')
+    .map((line) => line.replace(/--.*$/, ''))
+    .join('\n');
+  const match = new RegExp(`\\b${key}\\s*=\\s*\\{([\\s\\S]*?)\\}`).exec(withoutLineComments);
+  if (!match) return [];
+  return [...match[1].matchAll(/["']([^"']+)["']/g)].map((item) => item[1]);
+}
+
+function managedMode(source: string): string | undefined {
+  return /\bmanaged\s*=\s*["']([^"']+)["']/.exec(source)?.[1];
+}
+
+function cliManagedPluginCount(root: string, hasRuntime: boolean): number | undefined {
+  const configPath = join(root, 'feather.config.lua');
+  if (!existsSync(configPath)) return undefined;
+
+  try {
+    const source = readFileSync(configPath, 'utf8');
+    const mode = managedMode(source);
+    if (mode !== 'cli' && hasRuntime) return undefined;
+
+    const excluded = new Set(configArrayValues(source, 'exclude'));
+    const included = new Set(configArrayValues(source, 'include').filter((id) => !excluded.has(id)));
+    return included.size;
+  } catch {
+    return undefined;
+  }
+}
+
 export function getProjectStatus(root: string | undefined): ProjectStatus {
   if (!root) {
     return {
@@ -55,13 +86,15 @@ export function getProjectStatus(root: string | undefined): ProjectStatus {
     };
   }
 
+  const hasRuntime = existsSync(join(root, 'feather', 'init.lua'));
+
   return {
     root,
     hasWorkspace: true,
     hasMain: existsSync(join(root, 'main.lua')),
     hasConfig: existsSync(join(root, 'feather.config.lua')),
-    hasRuntime: existsSync(join(root, 'feather', 'init.lua')),
-    pluginCount: countManifestFiles(join(root, 'feather', 'plugins')),
+    hasRuntime,
+    pluginCount: cliManagedPluginCount(root, hasRuntime) ?? countManifestFiles(join(root, 'feather', 'plugins')),
     packageCount: packageCount(root),
   };
 }

@@ -140,7 +140,7 @@ function FeatherLogger:__countOnRepeat(type, ...)
   end
 end
 
----@alias LogType "output" | "trace" | "error" | "feather:finish" | "feather:start" | "fatal"
+---@alias LogType "output" | "trace" | "warn" | "error" | "feather:finish" | "feather:start" | "fatal"
 ---@class FeatherLine
 ---@field type LogType
 ---@field str? string
