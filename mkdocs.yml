@@ -32,6 +32,7 @@ nav:
   - CLI:
       - Overview: cli.md
       - Package Management: packages.md
+  - VS Code Extension: vscode-extension.md
   - Usage: usage.md
   - Configuration: configuration.md
   - Debugger: debugger.md

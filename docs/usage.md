@@ -14,6 +14,8 @@ feather run path/to/my-game --target ios
 
 The direct Lua API is still available for unusual projects that intentionally vendor Feather themselves.
 
+If you work in VS Code, the [VS Code extension](vscode-extension.md) exposes the same CLI-managed workflow from the Feather activity bar, including init, run/watch, doctor, plugin/package management, release builds, uploads, and project settings.
+
 > [!WARNING]
 > Manual setup can leave Feather code, remote debugging hooks, or powerful plugins such as Console in places you did not intend to ship. Use it only if you understand the security consequences of accidental or unintended use. Prefer the CLI-managed workflow for normal development and releases.
 

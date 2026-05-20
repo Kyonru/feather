@@ -77,6 +77,8 @@ feather remove path/to/my-game --yes
 
 See [CLI](cli.md) for all commands, flags, and `feather.config.lua` options.
 
+Prefer working from VS Code? The [VS Code extension](vscode-extension.md) wraps the same CLI-managed setup, run, doctor, plugin, package, build, and upload flows inside the editor.
+
 For CI or release scripts that need a security-only JSON report:
 
 ```bash
