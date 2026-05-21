@@ -162,10 +162,17 @@ Supported callback names are:
 - `keyreleased`
 - `mousepressed`
 - `mousereleased`
+- `mousemoved`
 - `touchpressed`
 - `touchreleased`
+- `touchmoved`
 - `joystickpressed`
 - `joystickreleased`
+- `joystickhat`
+- `joystickaxis`
+- `gamepadpressed`
+- `gamepadreleased`
+- `gamepadaxis`
 
 Ordering rules:
 
@@ -176,7 +183,7 @@ Ordering rules:
 
 Use priority as a rare escape hatch. Normal plugins should usually omit it.
 
-Legacy `on*` methods still work and are routed through the same callback bus. If your plugin only needs the standard love hooks, overriding `onDraw`, `onKeypressed`, and friends remains valid.
+Legacy `on*` methods still work and are routed through the same callback bus. If your plugin only needs Love callback hooks, overriding `onDraw`, `onKeypressed`, `onMousemoved`, and friends remains valid.
 
 ```lua
 function MyPlugin:onDraw()
@@ -190,16 +197,22 @@ end
 function MyPlugin:onKeyreleased(key, scancode) end
 function MyPlugin:onMousepressed(x, y, button, istouch, presses) end
 function MyPlugin:onMousereleased(x, y, button, istouch, presses) end
+function MyPlugin:onMousemoved(x, y, dx, dy, istouch) end
 function MyPlugin:onTouchpressed(id, x, y, dx, dy, pressure) end
 function MyPlugin:onTouchreleased(id, x, y, dx, dy, pressure) end
+function MyPlugin:onTouchmoved(id, x, y, dx, dy, pressure) end
 function MyPlugin:onJoystickpressed(joystick, button) end
 function MyPlugin:onJoystickreleased(joystick, button) end
+function MyPlugin:onJoystickhat(joystick, hat, direction) end
+function MyPlugin:onJoystickaxis(joystick, axis, value) end
+function MyPlugin:onGamepadpressed(joystick, button) end
+function MyPlugin:onGamepadreleased(joystick, button) end
+function MyPlugin:onGamepadaxis(joystick, axis, value) end
 ```
 
 Only override the methods you need — unused ones default to no-ops in the base class.
 
-> [!NOTE]
-> `input-replay` keeps its own hook system because it simulates love events during replay. Routing those through the central dispatcher would cause recursion.
+Replay plugins should also use the callback bus for recording. They may still temporarily wrap polling APIs such as `love.keyboard.isDown` or `love.mouse.getPosition` during playback, because replaying polled input is simulation rather than callback observation.
 
 ### Capabilities
 

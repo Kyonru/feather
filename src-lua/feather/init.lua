@@ -53,10 +53,17 @@ local CALLBACK_NAMES = {
   "keyreleased",
   "mousepressed",
   "mousereleased",
+  "mousemoved",
   "touchpressed",
   "touchreleased",
+  "touchmoved",
   "joystickpressed",
   "joystickreleased",
+  "joystickhat",
+  "joystickaxis",
+  "gamepadpressed",
+  "gamepadreleased",
+  "gamepadaxis",
 }
 
 ---@class Feather: FeatherConfig

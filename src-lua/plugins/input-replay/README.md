@@ -36,7 +36,7 @@ FeatherPluginManager.createPlugin(InputReplayPlugin, "input-replay", {
 
 ### Recording
 
-When you press **Record**, the plugin wraps LÖVE's input callbacks (`love.keypressed`, `love.keyreleased`, `love.mousepressed`, `love.mousereleased`, and optionally `love.mousemoved`) to intercept events. Each event is stored with:
+When you press **Record**, the plugin records input through Feather's shared callback bus. Each event is stored with:
 
 - **Timestamp** — seconds elapsed since recording started (high-resolution via `socket.gettime` or `love.timer.getTime`)
 - **Type** — which callback fired
@@ -46,7 +46,7 @@ The original callbacks still execute normally — recording is transparent to th
 
 ### Replaying
 
-When you press **Replay**, the plugin fires the recorded events at their original timestamps by calling the original (pre-hook) LÖVE callbacks. This means:
+When you press **Replay**, the plugin fires the recorded events at their original timestamps through the active LÖVE callbacks. This means:
 
 - Events replay in the exact order they were recorded
 - Timing is preserved relative to replay start
@@ -63,9 +63,9 @@ Replay stops automatically when all events have been fired, or manually via the 
 
 ### Hook Safety
 
-- Hooks are installed lazily (only when recording or replaying starts)
-- Original callbacks are preserved and restored on `finish()`
-- If a callback didn't exist before hooking, the hook still works (and fires with no original to call)
+- Recording uses Feather's shared callback bus instead of installing plugin-owned LÖVE callback wrappers.
+- During playback, temporary polling shims mirror `love.keyboard.isDown`, `love.mouse.isDown`, and mouse position APIs so polling-based controls can observe replayed input.
+- Replay does not re-record events, so callback dispatch avoids feedback loops.
 
 ## 🎮 Actions
 

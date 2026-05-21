@@ -174,10 +174,17 @@ local CALLBACK_BUS_EVENTS = {
   keyreleased = true,
   mousepressed = true,
   mousereleased = true,
+  mousemoved = true,
   touchpressed = true,
   touchreleased = true,
+  touchmoved = true,
   joystickpressed = true,
   joystickreleased = true,
+  joystickhat = true,
+  joystickaxis = true,
+  gamepadpressed = true,
+  gamepadreleased = true,
+  gamepadaxis = true,
 }
 
 local SessionReplayPlugin = Class({
@@ -225,11 +232,8 @@ local SessionReplayPlugin = Class({
     self._lastFlushAt = 0
     self._stateRegistrations = {}
     self._missingRestorers = {}
-    self._originals = {}
-    self._wrappers = {}
     self._pollOriginals = {}
     self._virtualInput = { keys = {}, scancodes = {}, mouseButtons = {}, mouseX = nil, mouseY = nil }
-    self._hooked = false
     self._pollHooked = false
     self._callbackDisposers = {}
 
@@ -368,71 +372,17 @@ function SessionReplayPlugin:_installCallbackBusHooks(callbacks)
   register("keyreleased")
   register("mousepressed")
   register("mousereleased")
+  register("mousemoved")
   register("touchpressed", touchArgs)
   register("touchreleased", touchArgs)
+  register("touchmoved", touchArgs)
   register("joystickpressed", joystickArgs)
   register("joystickreleased", joystickArgs)
-end
-
-function SessionReplayPlugin:_installHooks()
-  if self._hooked then
-    return
-  end
-  self._hooked = true
-  local selfRef = self
-
-  local function hookCallback(name, argsTransform)
-    local wrapper = function(...)
-      selfRef:_recordInputEvent(name, argsTransform and argsTransform(...) or { ... })
-      local original = selfRef._originals[name]
-      ---@diagnostic disable-next-line: undefined-global
-      if original and original ~= wrapper then
-        return original(...)
-      end
-    end
-    selfRef._wrappers[name] = wrapper
-    selfRef._originals[name] = love[name]
-    love[name] = wrapper
-  end
-
-  local function touchArgs(id, x, y, dx, dy, pressure)
-    return { tostring(id), x, y, dx, dy, pressure }
-  end
-
-  local function joystickArgs(joystick, ...)
-    local id = joystick and joystick.getID and joystick:getID() or tostring(joystick)
-    return { id, ... }
-  end
-
-  if self.captureMouseMove then
-    hookCallback("mousemoved")
-  end
-  if self.captureTouchMove then
-    hookCallback("touchmoved", touchArgs)
-  end
-  if self.captureJoystick then
-    hookCallback("joystickhat", joystickArgs)
-    hookCallback("gamepadpressed", joystickArgs)
-    hookCallback("gamepadreleased", joystickArgs)
-  end
-  if self.captureJoystickAxis then
-    hookCallback("joystickaxis", joystickArgs)
-    hookCallback("gamepadaxis", joystickArgs)
-  end
-end
-
-function SessionReplayPlugin:_removeHooks()
-  if not self._hooked then
-    return
-  end
-  for name, original in pairs(self._originals) do
-    if love[name] == self._wrappers[name] then
-      love[name] = original
-    end
-  end
-  self._originals = {}
-  self._wrappers = {}
-  self._hooked = false
+  register("joystickhat", joystickArgs)
+  register("joystickaxis", joystickArgs)
+  register("gamepadpressed", joystickArgs)
+  register("gamepadreleased", joystickArgs)
+  register("gamepadaxis", joystickArgs)
 end
 
 function SessionReplayPlugin:_resetVirtualInput()
@@ -606,13 +556,6 @@ function SessionReplayPlugin:_dispatchReplayInput(event)
   end
   if CALLBACK_BUS_EVENTS[event.type] and love[event.type] then
     pcall(love[event.type], unpack(replayArgs))
-    return
-  end
-  local original = self._originals[event.type]
-  if original then
-    pcall(original, unpack(replayArgs))
-  elseif love[event.type] and love[event.type] ~= self._wrappers[event.type] then
-    pcall(love[event.type], unpack(replayArgs))
   end
 end
 
@@ -659,7 +602,6 @@ function SessionReplayPlugin:startRecording(opts)
   self._lastFlushAt = self.recordStart
   self:_writeManifest("recording")
   self.recording = true
-  self:_installHooks()
   self:_log("Recording started: " .. self.currentReplayId)
   return self.currentReplayId
 end
@@ -909,7 +851,6 @@ function SessionReplayPlugin:startReplay(idOrPath)
   self.replayInputIndex = 1
   self.replayStateIndex = 1
   self._missingRestorers = {}
-  self:_installHooks()
   self:_resetVirtualInput()
   self:_installPollingHooks()
   self:_applyInitialStates()
@@ -1290,7 +1231,6 @@ function SessionReplayPlugin:finish()
   self.recording = false
   self.replaying = false
   self:_removePollingHooks()
-  self:_removeHooks()
   for _, dispose in ipairs(self._callbackDisposers) do
     pcall(dispose)
   end

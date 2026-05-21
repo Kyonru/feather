@@ -18,10 +18,17 @@ local LOVE_CALLBACKS = {
   { name = "keyreleased", method = "onKeyreleased" },
   { name = "mousepressed", method = "onMousepressed" },
   { name = "mousereleased", method = "onMousereleased" },
+  { name = "mousemoved", method = "onMousemoved" },
   { name = "touchpressed", method = "onTouchpressed" },
   { name = "touchreleased", method = "onTouchreleased" },
+  { name = "touchmoved", method = "onTouchmoved" },
   { name = "joystickpressed", method = "onJoystickpressed" },
   { name = "joystickreleased", method = "onJoystickreleased" },
+  { name = "joystickhat", method = "onJoystickhat" },
+  { name = "joystickaxis", method = "onJoystickaxis" },
+  { name = "gamepadpressed", method = "onGamepadpressed" },
+  { name = "gamepadreleased", method = "onGamepadreleased" },
+  { name = "gamepadaxis", method = "onGamepadaxis" },
 }
 
 local function normalizeApiCompatibility(api)

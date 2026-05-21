@@ -63,6 +63,8 @@ local stressHookCount = 0
 local stressHookSum = 0
 local stressKeyCount = 0
 local stressKeySum = 0
+local stressMouseMoveCount = 0
+local stressMouseMoveSum = 0
 
 local OrderedPlugin = Class({
   __includes = FeatherPluginBase,
@@ -100,6 +102,11 @@ function StressPlugin:init(config)
     stressKeyCount = stressKeyCount + 1
     stressKeySum = stressKeySum + self.options.index
   end)
+
+  config.callbacks.register("mousemoved", function()
+    stressMouseMoveCount = stressMouseMoveCount + 1
+    stressMouseMoveSum = stressMouseMoveSum + self.options.index
+  end)
 end
 
 local function resetCallbackOrder()
@@ -113,6 +120,8 @@ local function resetStressHooks()
   stressHookSum = 0
   stressKeyCount = 0
   stressKeySum = 0
+  stressMouseMoveCount = 0
+  stressMouseMoveSum = 0
 end
 
 local function assertDrawOrder(feather, expected, name)
@@ -307,12 +316,14 @@ return M
   local stressPlugins = {}
   local originalDraw = love.draw
   local originalKeypressed = love.keypressed
+  local originalMousemoved = love.mousemoved
   local beforeOverrideCount = 0
   local afterOverrideCount = 0
   local repeatedOverrideCount = 0
   local beforeKeyOverrideCount = 0
   local afterKeyOverrideCount = 0
   local repeatedKeyOverrideCount = 0
+  local beforeMouseMoveOverrideCount = 0
 
   love.draw = function()
     beforeOverrideCount = beforeOverrideCount + 1
@@ -320,6 +331,10 @@ return M
 
   love.keypressed = function()
     beforeKeyOverrideCount = beforeKeyOverrideCount + 1
+  end
+
+  love.mousemoved = function()
+    beforeMouseMoveOverrideCount = beforeMouseMoveOverrideCount + 1
   end
 
   for index = 1, pluginCount do
@@ -360,6 +375,18 @@ return M
     stressKeySum,
     expectedHookSum,
     "all 1000 plugin keypressed hooks run exactly once with pre-Feather override"
+  )
+  love.mousemoved(10, 20, 1, 2, false)
+  assertEqual(beforeMouseMoveOverrideCount, 1, "external mousemoved override registered before Feather still runs")
+  assertEqual(
+    stressMouseMoveCount,
+    pluginCount,
+    "all 1000 plugins receive mousemoved when external override existed before Feather"
+  )
+  assertEqual(
+    stressMouseMoveSum,
+    expectedHookSum,
+    "all 1000 plugin mousemoved hooks run exactly once with pre-Feather override"
   )
 
   love.draw = function()
@@ -427,6 +454,7 @@ return M
   stressFeather:finish()
   love.draw = originalDraw
   love.keypressed = originalKeypressed
+  love.mousemoved = originalMousemoved
 
   local assetDrawCount = 0
   local assetHookCount = 0
