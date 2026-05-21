@@ -1,6 +1,6 @@
 -- CLI-managed Session Replay multiplayer example.
 -- Run from the repo root:
---   npm run feather -- run src-lua/example/session_replay_multiplayer
+--   npm run feather -- run src-lua/example/session_replay/multiplayer
 
 return {
   sessionName = "Session Replay Multiplayer",

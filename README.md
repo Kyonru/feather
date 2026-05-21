@@ -96,7 +96,6 @@ feather run --help
 
 See the [CLI docs](docs/cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload`.
 
-Session Replay is a repro aid, not a full save-state emulator. Feather records inputs, timing, and the state streams your game exposes; reliable playback comes from starting at a known checkpoint and restoring the state that affects simulation. See [Session Replay](docs/session-replay.md) for examples, including a single-player demo that toggles between reproducible and intentionally divergent scenes, plus a multiplayer seeded-arena demo for roguelike-style reproduction.
 
 ---
 

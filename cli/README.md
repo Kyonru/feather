@@ -210,6 +210,42 @@ return DEBUGGER
 
 ---
 
+### `feather replay init`
+
+Create a centralized Session Replay adapter so replay code lives in one project file instead of being scattered through gameplay systems.
+
+```bash
+feather replay init
+feather replay init --dir path/to/my-game
+feather replay init --path dev/replay.lua
+feather replay init --force
+feather replay init --no-config
+```
+
+By default this creates `dev/replay.lua`. If `feather.config.lua` exists, it also enables the `session-replay` plugin.
+
+The generated adapter exposes:
+
+- `register()` to install the `DEBUGGER:replayRegister()` capture/restore hook
+- `start()` to start recording with an explicit initial baseline
+- `stop()` to stop and load the recording
+- `play()` to replay the selected session
+- `capture()` and `restore()` placeholders for your game checkpoint logic
+
+Wire it once from your game:
+
+```lua
+local replay = require("dev.replay")
+
+function love.load()
+  replay.register()
+end
+```
+
+Then edit `dev/replay.lua` to delegate to your save, checkpoint, scene-loading, seed, or debug-state systems. The adapter no-ops when `DEBUGGER` is unavailable, so the game can require it safely while keeping Feather-specific logic contained.
+
+---
+
 ### `feather run [game-path]`
 
 Inject Feather into a Love2D game and run it.

@@ -1,10 +1,10 @@
--- CLI-managed Session Replay example.
+-- CLI-managed Session Replay adapter example.
 -- Run from the repo root:
---   npm run feather -- run src-lua/example/session_replay
+--   npm run feather -- run src-lua/example/session_replay/adapter
 
 return {
-  sessionName = "Session Replay Example",
-  deviceId = "session-replay-example",
+  sessionName = "Session Replay Adapter",
+  deviceId = "session-replay-adapter",
   include = { "session-replay" },
   sampleRate = 0.25,
   captureScreenshot = false,
@@ -13,7 +13,6 @@ return {
   pluginOptions = {
     ["session-replay"] = {
       keyframeInterval = 2,
-      captureMouseMove = true,
     },
   },
   __DANGEROUS_INSECURE_CONNECTION__ = true,

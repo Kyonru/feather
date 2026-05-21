@@ -10,6 +10,7 @@ import { doctorCommand } from './commands/doctor.js';
 import { updateCommand } from './commands/update.js';
 import { buildCommand } from './commands/build.js';
 import { releaseInitCommand, releaseRunCommand } from './commands/release.js';
+import { replayInitCommand } from './commands/replay.js';
 import { watchCommand } from './commands/watch.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
 import { buildTargets } from './lib/build/config.js';
@@ -201,6 +202,26 @@ export function createProgram(): Command {
     );
 
   const config = program.command('config').description('Update Feather configuration values');
+
+  const replay = program.command('replay').description('Scaffold and manage Session Replay adapters');
+
+  replay
+    .command('init')
+    .description('Create a centralized Session Replay adapter file')
+    .option('--dir <path>', 'Project directory (default: current directory)')
+    .option('--path <path>', 'Adapter path inside the project', 'dev/replay.lua')
+    .option('--force', 'Overwrite an existing adapter file')
+    .option('--no-config', 'Do not update feather.config.lua to include session-replay')
+    .action((opts) =>
+      runCliAction(() =>
+        replayInitCommand({
+          dir: opts.dir as string | undefined,
+          path: opts.path as string | undefined,
+          force: opts.force as boolean | undefined,
+          config: opts.config as boolean | undefined,
+        }),
+      ),
+    );
 
   config
     .command('plugins')

@@ -207,6 +207,58 @@ Session Replay mitigates some of the setup cost:
 
 Feather should not try to magically serialize the whole game to avoid this cost. That would be more surprising and more dangerous than an explicit adapter. The safest model is: Feather records inputs and transports replay data; your game owns the checkpoint contract.
 
+## Replay Adapter
+
+Use a Replay Adapter when you want Session Replay without spreading Feather-specific calls throughout the game. The adapter is one project-local file that owns capture, restore, baseline, and optional programmatic controls.
+
+Create the scaffold:
+
+```bash
+feather replay init --dir path/to/my-game
+```
+
+This creates:
+
+```text
+dev/replay.lua
+```
+
+If `feather.config.lua` exists, the command also enables the `session-replay` plugin. Use `--no-config` to skip that update, `--path <path.lua>` to choose another adapter path, or `--force` to overwrite an existing adapter.
+
+Then wire the adapter once:
+
+```lua
+local replay = require("dev.replay")
+
+function love.load()
+  replay.register()
+end
+
+function love.keypressed(key)
+  if key == "f5" then
+    replay.start()
+  elseif key == "f6" then
+    replay.stop()
+  elseif key == "f7" then
+    replay.play()
+  end
+end
+```
+
+Edit `dev/replay.lua` so its `capture()` and `restore()` functions call your game systems. A good adapter usually delegates to existing save, checkpoint, scene-loading, or debug-state modules:
+
+```lua
+local function capture()
+  return saveSystem.captureDebugCheckpoint()
+end
+
+local function restore(state)
+  saveSystem.restoreDebugCheckpoint(state)
+end
+```
+
+The adapter can be required in production safely because it no-ops when `DEBUGGER` is unavailable. Production release builds should still exclude replay files and Feather runtime artifacts.
+
 ## Input Coverage
 
 Session Replay records keyboard, mouse button, touch, joystick, and gamepad callbacks.
@@ -246,11 +298,12 @@ The page shows available replay sessions, recording status, duration, input coun
 The repository includes runnable examples:
 
 ```bash
-npm run feather -- run src-lua/example/session_replay
-npm run feather -- run src-lua/example/session_replay_multiplayer
+npm run feather -- run src-lua/example/session_replay/single_player
+npm run feather -- run src-lua/example/session_replay/multiplayer
+npm run feather -- run src-lua/example/session_replay/adapter
 ```
 
-The single-player example includes two scenes. Press `Tab` to switch between a reproducible checkpoint scene and a divergent scene that intentionally omits a moving hazard from its replay state. The multiplayer example uses a seeded arena, showing how roguelike-style games can restore fixed generated content from a seed while replaying mutable state such as players, scores, and pickups.
+The single-player example includes two scenes. Press `Tab` to switch between a reproducible checkpoint scene and a divergent scene that intentionally omits a moving hazard from its replay state. The multiplayer example uses a seeded arena, showing how roguelike-style games can restore fixed generated content from a seed while replaying mutable state such as players, scores, and pickups. The adapter example keeps all Feather-specific replay calls inside `dev/replay.lua`.
 
 ## Programmatic Control
 

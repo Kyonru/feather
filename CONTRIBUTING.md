@@ -134,8 +134,9 @@ Run Lua examples:
 
 ```sh
 npm run feather -- run src-lua/example/test_cli
-npm run feather -- run src-lua/example/session_replay
-npm run feather -- run src-lua/example/session_replay_multiplayer
+npm run feather -- run src-lua/example/session_replay/single_player
+npm run feather -- run src-lua/example/session_replay/multiplayer
+npm run feather -- run src-lua/example/session_replay/adapter
 ```
 
 Run Android development builds:

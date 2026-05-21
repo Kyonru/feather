@@ -46,7 +46,7 @@ local function registerReplay()
     })
     log("Session Replay registered through CLI injection.")
   else
-    log("Run with: npm run feather -- run src-lua/example/session_replay")
+    log("Run with: npm run feather -- run src-lua/example/session_replay/single_player")
   end
 end
 
