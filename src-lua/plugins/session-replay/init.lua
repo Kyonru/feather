@@ -1241,7 +1241,6 @@ function SessionReplayPlugin:getConfig()
   return {
     type = "session-replay",
     icon = "repeat",
-    tabName = "Session Replay",
     docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/session-replay",
     recording = self.recording,
     replaying = self.replaying,
