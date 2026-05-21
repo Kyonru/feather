@@ -86,11 +86,41 @@ export const NODE_TYPES = [
   'SplitVec3',
   'Combine2',
   'Combine3',
+  // Math
+  'Sqrt',
+  'Ceil',
+  'Round',
+  'Sign',
+  'Tan',
+  'Log',
+  'Exp',
+  'Atan2',
+  // Vector
+  'CrossVec3',
+  'LerpVec4',
+  'ScaleVec2',
+  'ScaleVec4',
+  // Color
+  'BlendAdd',
+  'BlendScreen',
+  'BlendOverlay',
+  'Brightness',
+  'GammaCorrect',
+  // Noise
+  'GradientNoise',
+  'FBMNoise',
+  // UV
+  'ZoomUV',
+  'FlipUV',
+  // SDF
+  'SDFCircle',
+  'SDFRect',
+  'SDFSample',
 ] as const;
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Noise' | 'UV' | 'Effect' | 'Output' | 'Vertex';
+export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Noise' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;
