@@ -12,6 +12,7 @@ export type SessionReplayStatus = {
   inputCount: number;
   stateCount: number;
   initialStateCount: number;
+  checkpointCount: number;
   streamCount: number;
   missingRestorers: string[];
 };
@@ -28,6 +29,16 @@ export type SessionReplayRecording = {
   files: SessionReplayFile[];
 };
 
+export type SessionReplayCheckpoint = {
+  id: string;
+  time: number;
+  label?: string;
+  source?: string;
+  inputIndex?: number;
+  stateIndex?: number;
+  stateCount?: number;
+};
+
 export type SessionReplaySummary = {
   id: string;
   status?: string;
@@ -38,6 +49,7 @@ export type SessionReplaySummary = {
   stateCount: number;
   initialStateCount?: number;
   keyframeCount?: number;
+  checkpointCount?: number;
   streamCount: number;
 };
 
@@ -51,6 +63,7 @@ const DEFAULT_STATUS: SessionReplayStatus = {
   inputCount: 0,
   stateCount: 0,
   initialStateCount: 0,
+  checkpointCount: 0,
   streamCount: 0,
   missingRestorers: [],
 };
@@ -68,6 +81,50 @@ function recordingFromFiles(files: SessionReplayFile[]): SessionReplayRecording 
   } catch {
     return null;
   }
+}
+
+export function checkpointsFromRecording(recording: SessionReplayRecording | null | undefined): SessionReplayCheckpoint[] {
+  const manifestId = replayRecordingId(recording);
+  if (!recording || !manifestId) return [];
+  let initialStateCount: number | undefined;
+  const initialContent = recording.files.find((file) => file.path === 'initial.json')?.content;
+  if (initialContent) {
+    try {
+      const initialStates = JSON.parse(initialContent) as unknown;
+      initialStateCount = Array.isArray(initialStates) ? initialStates.length : undefined;
+    } catch {
+      initialStateCount = undefined;
+    }
+  }
+  const initial = {
+    id: '0',
+    time: 0,
+    label: 'Start',
+    source: 'initial',
+    inputIndex: 1,
+    stateIndex: 1,
+    stateCount: initialStateCount,
+  };
+  const index = recording.files.find((file) => file.path === 'checkpoints.jsonl')?.content ?? '';
+  const checkpoints: SessionReplayCheckpoint[] = [];
+  for (const line of index.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      const checkpoint = JSON.parse(trimmed) as Partial<SessionReplayCheckpoint>;
+      if (checkpoint.id === undefined || checkpoint.id === null) continue;
+      const id = String(checkpoint.id);
+      checkpoints.push({
+        ...checkpoint,
+        id,
+        label: checkpoint.label || id,
+        time: Number(checkpoint.time ?? 0),
+      });
+    } catch {
+      // Ignore malformed checkpoint lines so older/corrupt replays can still load.
+    }
+  }
+  return [initial, ...checkpoints].sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
 }
 
 export function useSessionReplay() {
@@ -147,11 +204,19 @@ export function useSessionReplay() {
     queryClient.setQueryData(sessionQueryKey.sessionReplayRecording(sessionId), id ? (recordings ?? {})[id] ?? null : null);
   };
 
-  const playRecording = (id?: string) => {
+  const playRecording = (id?: string, opts?: { seekTo?: string | number }) => {
     if (!sessionId) return;
     if (status?.recording) return;
     const replayId = id ?? selectedReplayId ?? status?.replayId ?? undefined;
-    sendCommand(sessionId, { type: 'cmd:session_replay:play', data: replayId ? { id: replayId } : {} }).catch(() => {});
+    sendCommand(sessionId, { type: 'cmd:session_replay:play', data: { ...(replayId ? { id: replayId } : {}), ...opts } }).catch(
+      () => {},
+    );
+  };
+
+  const seekRecording = (target: string | number, play = false) => {
+    if (!sessionId) return;
+    if (status?.recording) return;
+    sendCommand(sessionId, { type: 'cmd:session_replay:seek', data: { target, play } }).catch(() => {});
   };
 
   const stopReplay = () => {
@@ -209,6 +274,7 @@ export function useSessionReplay() {
     requestRecording,
     requestReplayList,
     playRecording,
+    seekRecording,
     stopReplay,
     importRecording,
     deleteRecording,

@@ -49,6 +49,8 @@ When a session starts, Feather creates the replay folder and baseline files up f
 - `initial.json`
 - `inputs.jsonl`
 - `state-0001.jsonl`
+- `checkpoints.jsonl`
+- `checkpoints/<checkpoint-id>.json`
 
 Input and state events are then captured in memory first and flushed to disk in small batches from the plugin update loop, on stop, and before export/load. This keeps input callbacks lightweight so the first captured key, mouse, touch, or joystick event is not also paying the cost of opening replay files.
 
@@ -125,6 +127,56 @@ if DEBUGGER then
   DEBUGGER:replayInitialState("game", captureSceneCheckpoint())
 end
 ```
+
+## Seekable Checkpoints
+
+Session Replay can seek by restoring a checkpoint and replaying forward from that point. This supports jumping forward or backward without reverse-simulating the game.
+
+The initial baseline is checkpoint `0`. You can create named manual checkpoints during recording:
+
+```lua
+if DEBUGGER then
+  DEBUGGER:replayCheckpoint("before_boss")
+end
+```
+
+You can also pass explicit state overrides for a checkpoint when a scene or save system has a better snapshot than the registered capture functions:
+
+```lua
+if DEBUGGER then
+  DEBUGGER:replayCheckpoint({
+    id = "shop_entry",
+    label = "Shop Entry",
+  }, {
+    game = captureShopCheckpoint(),
+  })
+end
+```
+
+Seek from code by time, checkpoint id, or label:
+
+```lua
+if DEBUGGER then
+  DEBUGGER:seekSessionReplay("before_boss")
+  DEBUGGER:playSessionReplay(nil, { seekTo = 12.5 })
+end
+```
+
+Automatic checkpoints are available but opt-in:
+
+```lua
+return {
+  include = { "session-replay" },
+  pluginOptions = {
+    ["session-replay"] = {
+      checkpointInterval = 10,
+      maxCheckpoints = 100,
+    },
+  },
+}
+```
+
+Prefer manual checkpoints for large sessions or heavy state snapshots. Automatic checkpoints repeatedly call registered capture functions and write full checkpoint files, so they can add disk and serialization cost.
 
 ## Seeded And Procedural Content
 
