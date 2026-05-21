@@ -158,3 +158,33 @@ return {
 Open the **Time Travel** tab, click **Start Recording**, reproduce the bug, then click **Stop & Load** to fetch and scrub through the captured frames.
 
 → [Full Time Travel documentation](time-travel.md)
+
+---
+
+## Session Replay
+
+Session Replay combines input replay with developer-selected state checkpoints so you can reproduce playthroughs.
+
+Enable it from `feather.config.lua`:
+
+```lua
+return {
+  include = { "session-replay" },
+}
+```
+
+Add guarded state capture where it helps reproduction:
+
+```lua
+if DEBUGGER then
+  DEBUGGER:replayState("player", {
+    x = player.x,
+    y = player.y,
+    health = player.health,
+  })
+end
+```
+
+For reliable playback, register a restore handler with `DEBUGGER:replayRegister()`. Feather captures an initial baseline at recording start, then records inputs and the state deltas you provide; it does not magically serialize the whole game.
+
+→ [Full Session Replay documentation](session-replay.md)

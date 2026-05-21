@@ -18,6 +18,9 @@ const FEATHER_PATTERNS = [
   /(?:^|\/)feather\.config\.lua$/,
   /(?:^|\/)feather\.debugger\.lua$/,
   /(?:^|\/)feather-build-manifest\.json$/,
+  /(?:^|\/)feather_replays(?:\/|$)/,
+  /(?:^|\/)[^/]+\.featherreplay$/,
+  /(?:^|\/)session-replay(?:\/|$)/,
 ];
 const ZIP_LIKE_EXTENSIONS = new Set(['.aab', '.apk', '.ipa', '.love', '.zip']);
 const MAX_NESTED_ARCHIVE_DEPTH = 6;

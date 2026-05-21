@@ -139,7 +139,7 @@ test('doctor --production fails unsafe remote-control and production settings', 
     `return {
   __DANGEROUS_INSECURE_CONNECTION__ = true,
   host = "0.0.0.0",
-  include = { "console", "hot-reload" },
+    include = { "console", "hot-reload" },
   apiKey = "dev",
   captureScreenshot = true,
   writeToDisk = true,
@@ -173,6 +173,29 @@ test('doctor --production fails unsafe remote-control and production settings', 
   ]) {
     assert.equal(labels.get(label)?.severity, 'fail', `${label} should fail in production`);
   }
+});
+
+test('doctor --production fails session replay config and local replay artifacts', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  mkdirSync(join(dir, 'feather_replays', 'session_1'), { recursive: true });
+  writeFileSync(join(dir, 'bug.featherreplay'), 'archive');
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  appId = "feather-app-test-1234567890",
+  include = { "session-replay" },
+}
+`,
+  );
+
+  const { result, parsed } = parseDoctorJsonResult(dir, ['--production']);
+  assert.equal(result.exitCode, 1);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Session replay')?.severity, 'fail');
+  assert.equal(labels.get('Session replay artifacts')?.severity, 'fail');
+  assert.ok(labels.get('Session replay artifacts')?.detail.includes('feather_replays/'));
+  assert.ok(labels.get('Session replay artifacts')?.detail.includes('bug.featherreplay'));
 });
 
 test('doctor --json warns for missing Desktop App ID when insecure dev override is enabled', () => {

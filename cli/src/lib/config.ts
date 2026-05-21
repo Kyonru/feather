@@ -94,6 +94,93 @@ function parseLuaTable(src: string): Record<string, unknown> {
     if (items.length > 0) result[m[1]] = items;
   }
 
+  const pluginOptions = parsePluginOptions(body);
+  if (Object.keys(pluginOptions).length > 0) {
+    result.pluginOptions = pluginOptions;
+  }
+
+  return result;
+}
+
+function findTableBody(src: string, key: string): string | null {
+  const match = new RegExp(`(?:^|[^\\w])${key}\\s*=\\s*\\{`).exec(src);
+  if (!match) return null;
+
+  const open = match.index + match[0].lastIndexOf('{');
+  let depth = 0;
+  let quote: '"' | "'" | null = null;
+  for (let i = open; i < src.length; i += 1) {
+    const ch = src[i];
+    if (quote) {
+      if (ch === '\\') {
+        i += 1;
+      } else if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === '{') depth += 1;
+    if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) return src.slice(open + 1, i);
+    }
+  }
+  return null;
+}
+
+function parseSimpleValue(raw: string): unknown {
+  const value = raw.trim().replace(/,$/, '').trim();
+  const stringMatch = value.match(/^["']([^"']*)["']$/);
+  if (stringMatch) return stringMatch[1];
+  if (/^-?\d+(?:\.\d+)?$/.test(value)) return Number(value);
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  if (value.startsWith('{') && value.endsWith('}')) {
+    const items = [...value.matchAll(/"([^"]*)"/g)].map((i) => i[1]);
+    if (items.length > 0) return items;
+  }
+  return undefined;
+}
+
+function parseOptionsObject(src: string): Record<string, unknown> {
+  const options: Record<string, unknown> = {};
+  for (const m of src.matchAll(/(\w+)\s*=\s*("[^"]*"|'[^']*'|-?\d+(?:\.\d+)?|true|false|\{[^{}]*\})/g)) {
+    const parsed = parseSimpleValue(m[2]);
+    if (parsed !== undefined) options[m[1]] = parsed;
+  }
+  return options;
+}
+
+function parsePluginOptions(body: string): Record<string, Record<string, unknown>> {
+  const pluginBody = findTableBody(body, 'pluginOptions');
+  if (!pluginBody) return {};
+
+  const result: Record<string, Record<string, unknown>> = {};
+  const entryPattern = /(?:\["([^"]+)"\]|([A-Za-z_]\w*))\s*=\s*\{/g;
+  let match: RegExpExecArray | null;
+  while ((match = entryPattern.exec(pluginBody))) {
+    const id = match[1] ?? match[2];
+    const open = match.index + match[0].lastIndexOf('{');
+    let depth = 0;
+    let close = -1;
+    for (let i = open; i < pluginBody.length; i += 1) {
+      if (pluginBody[i] === '{') depth += 1;
+      if (pluginBody[i] === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          close = i;
+          break;
+        }
+      }
+    }
+    if (close === -1) continue;
+    result[id] = parseOptionsObject(pluginBody.slice(open + 1, close));
+    entryPattern.lastIndex = close + 1;
+  }
   return result;
 }
 

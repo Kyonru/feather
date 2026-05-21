@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { findLoveBinary, getLoveVersion } from '../../lib/love.js';
 import { loadConfig } from '../../lib/config.js';
@@ -63,6 +63,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   let hotReloadEnabled = false;
   let broadHotReload = false;
   let hotReloadPersistence = false;
+  let sessionReplayIncluded = false;
   let debuggerEnabled = false;
   let writeToDisk = false;
   let weakNetworkAuth = true;
@@ -528,6 +529,17 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       );
     }
 
+    sessionReplayIncluded = hasConfigArrayValue(activeConfigSource, 'include', 'session-replay')
+      || pluginDirs.some((dir) => readPluginManifest(dir)?.id === 'session-replay');
+    add(
+      checks,
+      'Safety',
+      'Session replay',
+      productionSeverity(sessionReplayIncluded),
+      sessionReplayIncluded ? 'enabled' : 'disabled',
+      sessionReplayIncluded ? 'Remove session-replay from production configs and builds; replay files are development artifacts.' : undefined,
+    );
+
     debuggerEnabled = luaBoolEnabled(activeConfigSource, 'debugger') || /debugger\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
     add(
       checks,
@@ -557,6 +569,25 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       'Create feather.config.lua with a strong appId before shipping socket/network builds.',
     );
   }
+
+  const replayDirPath = join(projectDir, 'feather_replays');
+  const replayArchives = existsSync(projectDir)
+    ? readdirSync(projectDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.featherreplay'))
+      .map((entry) => entry.name)
+      .sort()
+    : [];
+  const hasReplayArtifacts = existsSync(replayDirPath) || replayArchives.length > 0;
+  add(
+    checks,
+    'Safety',
+    'Session replay artifacts',
+    productionSeverity(hasReplayArtifacts),
+    hasReplayArtifacts
+      ? [existsSync(replayDirPath) ? 'feather_replays/' : '', ...replayArchives].filter(Boolean).join(', ')
+      : 'not present',
+    hasReplayArtifacts ? 'Remove local replay captures before committing, sharing, building, or uploading production artifacts.' : undefined,
+  );
 
   const lockfilePath = join(projectDir, 'feather.lock.json');
   if (existsSync(lockfilePath)) {

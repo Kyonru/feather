@@ -82,6 +82,13 @@ local CALLBACK_NAMES = {
 ---@field protected __pushObservers fun(self: Feather)
 ---@field protected __pushAssets fun(self: Feather)
 ---@field attachBinary fun(self: Feather, mime: string, bytes: string): table
+---@field startSessionReplay fun(self: Feather, opts?: table): string|nil
+---@field stopSessionReplay fun(self: Feather): string|nil
+---@field playSessionReplay fun(self: Feather, idOrPath?: string): boolean|nil
+---@field replayInitialState fun(self: Feather, name: string, state: table, opts?: table): boolean|nil
+---@field replayState fun(self: Feather, name: string, state: table, opts?: table): boolean|nil
+---@field replay fun(self: Feather, name: string, state: table, opts?: table): boolean|nil
+---@field replayRegister fun(self: Feather, name: string, captureFn?: function, restoreFn?: function, opts?: table): boolean|nil
 ---@field ui table Declarative UI node builders for plugins
 local Feather = Class({})
 
@@ -646,6 +653,24 @@ function Feather:__handleCommand(msg)
     if plugin then
       plugin.instance:sendFrames(msg.data, self)
     end
+  elseif msg.type and msg.type:match("^cmd:session_replay:") then
+    local plugin = self.pluginManager:getPlugin("session-replay")
+    if plugin and plugin.instance and not plugin.disabled then
+      local ok, err = plugin.instance:handleSessionReplayCommand(msg, self)
+      if not ok and err then
+        self:__sendWs(json.encode({
+          type = "session_replay:error",
+          session = self.sessionId,
+          data = { message = tostring(err) },
+        }))
+      end
+    else
+      self:__sendWs(json.encode({
+        type = "session_replay:error",
+        session = self.sessionId,
+        data = { message = "Session Replay plugin is not enabled. Include session-replay in feather.config.lua." },
+      }))
+    end
   elseif msg.type == "cmd:eval" and msg.code then
     local consolePlugin = self.pluginManager:getPlugin("console")
     if consolePlugin and consolePlugin.instance and not consolePlugin.disabled then
@@ -870,6 +895,99 @@ end
 ---@param params table
 function Feather:action(plugin, action, params)
   self.pluginManager:action(plugin, action, params, self)
+end
+
+function Feather:__sessionReplayPlugin()
+  if not self.debug or not self.pluginManager then
+    return nil
+  end
+  local plugin = self.pluginManager:getPlugin("session-replay")
+  if not plugin or not plugin.instance or plugin.disabled then
+    return nil
+  end
+  return plugin.instance
+end
+
+function Feather:startSessionReplay(opts)
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.startRecording then
+    local id, err = plugin:startRecording(opts or {})
+    if plugin.sendStatus then
+      plugin:sendStatus(self)
+    end
+    if plugin.sendReplayList then
+      plugin:sendReplayList(self)
+    end
+    return id, err
+  end
+  return nil
+end
+
+function Feather:stopSessionReplay()
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.stopRecording then
+    local id = plugin:stopRecording(self)
+    if plugin.sendStatus then
+      plugin:sendStatus(self)
+    end
+    if plugin.sendReplayList then
+      plugin:sendReplayList(self)
+    end
+    return id
+  end
+  return nil
+end
+
+function Feather:playSessionReplay(idOrPath)
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.startReplay then
+    local ok, err = plugin:startReplay(idOrPath)
+    if plugin.sendStatus then
+      plugin:sendStatus(self)
+    end
+    return ok, err
+  end
+  return nil
+end
+
+function Feather:replayInitialState(name, state, opts)
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.recordInitialState then
+    return plugin:recordInitialState(name, state, opts or {})
+  end
+  return nil
+end
+
+function Feather:stopSessionReplayPlayback()
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.stopReplay then
+    plugin:stopReplay()
+    if plugin.sendStatus then
+      plugin:sendStatus(self)
+    end
+    return true
+  end
+  return nil
+end
+
+function Feather:replayState(name, state, opts)
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.recordState then
+    return plugin:recordState(name, state, opts or {})
+  end
+  return nil
+end
+
+function Feather:replay(name, state, opts)
+  return self:replayState(name, state, opts)
+end
+
+function Feather:replayRegister(name, captureFn, restoreFn, opts)
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.registerState then
+    return plugin:registerState(name, captureFn, restoreFn, opts or {})
+  end
+  return nil
 end
 
 ---@param enabled boolean

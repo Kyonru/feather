@@ -16,6 +16,7 @@ The goal is to make the day-to-day loop of writing and testing a LÖVE game fast
 - **Variable inspection** — Watch values update as the game runs.
 - **Error capturing** — Errors are caught and shown with a full stack trace.
 - **Step debugger** — Breakpoints, step over/into/out, call stack, local variable inspection.
+- **Session Replay** — Record inputs plus game-defined state checkpoints so playthroughs can be replayed, exported, and debugged later.
 - **Console / REPL** — Execute Lua in the running game (opt-in, requires an `apiKey`).
 - **Plugin system** — 18+ built-in plugins (collision debug, animation inspector, audio debug, particle editor, and more). Plugins define their UI in Lua; the desktop app renders it automatically.
 - **Multi-session** — Connect multiple games at the same time.
@@ -95,6 +96,8 @@ feather run --help
 
 See the [CLI docs](docs/cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload`.
 
+Session Replay is a repro aid, not a full save-state emulator. Feather records inputs, timing, and the state streams your game exposes; reliable playback comes from starting at a known checkpoint and restoring the state that affects simulation. See [Session Replay](docs/session-replay.md) for examples, including a single-player demo that toggles between reproducible and intentionally divergent scenes, plus a multiplayer seeded-arena demo for roguelike-style reproduction.
+
 ---
 
 ## Package manager
@@ -118,6 +121,7 @@ Available libraries include anim8, bump, hump, lume, flux, inspect, middleclass,
 - [CLI](docs/cli.md)
 - [Configuration](docs/configuration.md)
 - [Usage](docs/usage.md) — observers, logging, console, step debugger
+- [Session Replay](docs/session-replay.md)
 - [Plugins](docs/plugins.md)
 - [Packages](packages/README.md)
 - [Recommendations](docs/recommendations.md) — security, performance, release builds

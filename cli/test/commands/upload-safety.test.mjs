@@ -80,3 +80,21 @@ test('upload safety detects Feather inside .app bundle love archive', () => {
   assert.ok(safety.detectedFiles.includes('Contents/Resources/feather/init.lua'));
   assert.ok(safety.detectedFiles.includes('game.love!feather/init.lua'));
 });
+
+test('upload safety detects session replay artifacts', () => {
+  const dir = makeTmp();
+  const artifact = join(dir, 'game.love');
+  writeFileSync(
+    artifact,
+    zip([
+      ['main.lua', 'function love.draw() end\n'],
+      ['feather_replays/session_1/manifest.json', '{}'],
+      ['bug.featherreplay', 'archive'],
+    ]),
+  );
+
+  const safety = inspectUploadArtifact(artifact);
+  assert.equal(safety.status, 'unsafe');
+  assert.ok(safety.detectedFiles.includes('bug.featherreplay'));
+  assert.ok(safety.detectedFiles.includes('feather_replays/session_1/manifest.json'));
+});

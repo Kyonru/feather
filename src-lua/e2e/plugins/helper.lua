@@ -120,6 +120,11 @@ local pluginSpecs = {
     suiteModulePath = "e2e.plugins.shader_graph",
   },
   {
+    id = "session-replay",
+    modulePath = "plugins.session-replay",
+    suiteModulePath = "e2e.plugins.session_replay",
+  },
+  {
     id = "time-travel",
     modulePath = "plugins.time-travel",
     suiteModulePath = "e2e.plugins.time_travel",

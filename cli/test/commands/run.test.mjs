@@ -146,6 +146,50 @@ test('run: shim preloads config before requiring feather.auto', () => {
   assert.ok(record.shimMain.includes('require("feather.auto")'));
 });
 
+test('run: serializes nested plugin options for any plugin into the CLI shim', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const configPath = join(gameDir, 'feather.config.lua');
+  writeFileSync(
+    configPath,
+    `return {
+  sessionName = "Plugin Config",
+  include = { "session-replay", "hot-reload", "console" },
+  pluginOptions = {
+    ["session-replay"] = {
+      captureJoystickAxis = true,
+      keyframeInterval = 2,
+    },
+    ["hot-reload"] = {
+      enabled = true,
+      allow = { "gameplay", "systems.player" },
+      persistToDisk = false,
+    },
+    console = {
+      evalEnabled = true,
+    },
+  },
+}
+`,
+  );
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', '--love', fakePath, gameDir]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.match(record.shimMain, /pluginOptions\s*=\s*\{/);
+  assert.match(record.shimMain, /\["session-replay"\]\s*=\s*\{/);
+  assert.match(record.shimMain, /captureJoystickAxis\s*=\s*true/);
+  assert.match(record.shimMain, /keyframeInterval\s*=\s*2/);
+  assert.match(record.shimMain, /\["hot-reload"\]\s*=\s*\{/);
+  assert.match(record.shimMain, /allow\s*=\s*\{\s*"gameplay",\s*"systems\.player"\s*\}/);
+  assert.match(record.shimMain, /persistToDisk\s*=\s*false/);
+  assert.match(record.shimMain, /console\s*=\s*\{/);
+  assert.match(record.shimMain, /evalEnabled\s*=\s*true/);
+});
+
 test('run: shim auto-drives DEBUGGER update after loading the game', () => {
   const dir = makeTmp();
   const gameDir = join(dir, 'game');

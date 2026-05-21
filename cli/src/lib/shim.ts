@@ -58,17 +58,38 @@ function scanPluginIds(pluginsDir: string): string[] {
   }
 }
 
-function serializeLuaConfig(cfg: Record<string, unknown>): string {
-  const lines: string[] = [];
-  for (const [k, v] of Object.entries(cfg)) {
-    if (typeof v === 'string') lines.push(`  ${k} = ${JSON.stringify(v)},`);
-    else if (typeof v === 'number' || typeof v === 'boolean') lines.push(`  ${k} = ${v},`);
-    else if (Array.isArray(v)) {
-      const items = v.map((i) => (typeof i === 'string' ? JSON.stringify(i) : String(i)));
-      lines.push(`  ${k} = { ${items.join(', ')} },`);
-    }
+function luaKey(key: string): string {
+  return /^[A-Za-z_]\w*$/.test(key) ? key : `[${JSON.stringify(key)}]`;
+}
+
+function luaValue(value: unknown): string | null {
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) {
+    const items = value.map(luaValue).filter((item): item is string => item !== null);
+    return `{ ${items.join(', ')} }`;
   }
-  return lines.join('\n');
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .map(([key, nested]) => {
+        const serialized = luaValue(nested);
+        return serialized === null ? null : `${luaKey(key)} = ${serialized}`;
+      })
+      .filter((entry): entry is string => entry !== null);
+    return `{ ${entries.join(', ')} }`;
+  }
+  return null;
+}
+
+function serializeLuaConfig(cfg: Record<string, unknown>): string {
+  return Object.entries(cfg)
+    .map(([key, value]) => {
+      const serialized = luaValue(value);
+      return serialized === null ? null : `  ${luaKey(key)} = ${serialized},`;
+    })
+    .filter((line): line is string => line !== null)
+    .join('\n');
 }
 
 function luaPackagePath(rootDir: string): string {

@@ -1,0 +1,22 @@
+return {
+  id = "session-replay",
+  name = "Session Replay",
+  description = "Record input and developer-provided state checkpoints for reproducible playthroughs",
+  version = "0.1.0",
+  api = { min = 5 },
+  capabilities = { "input", "filesystem", "binary" },
+  optIn = true,
+  disabled = true,
+  opts = {
+    captureKeys = true,
+    captureMouse = true,
+    captureMouseMove = false,
+    captureTouch = true,
+    captureTouchMove = false,
+    captureJoystick = true,
+    captureJoystickAxis = false,
+    maxInputEvents = 20000,
+    keyframeInterval = 5,
+    chunkMaxEvents = 1000,
+  },
+}

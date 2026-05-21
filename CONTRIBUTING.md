@@ -1,15 +1,29 @@
 # Contributing to Feather
 
-Thanks for helping make Feather better. This project spans a React/Tauri desktop app, a TypeScript CLI, a VS Code extension, and an embedded Lua runtime for LÖVE games, so the best contributions are small, well-tested, and clear about which part of the stack they touch.
+Thanks for helping make Feather better. Feather spans a React/Tauri desktop app, a TypeScript CLI, a VS Code extension, and an embedded Lua runtime for LÖVE games. The best contributions are focused, testable, documented, and careful about the fact that Feather runs inside someone else's game during development.
 
-Feather uses [Ink](https://github.com/vadimdemedes/ink) for interactive CLI workflows. Ink's own contributing guide is a good reference for the kind of contribution style we want too: focused changes, reproducible tests, and human-reviewed work.
+Feather's current product direction is polish first: make setup, debugging, plugin workflows, release safety, and docs feel reliable before adding more surface area. New features should make LÖVE developers faster at debugging, validating, shipping, or reproducing a problem.
 
-## Before You Start
+## Working Principles
 
-- Open an issue or draft PR for large features, protocol changes, or plugin API changes.
-- Keep PRs focused. A bug fix, documentation update, CLI workflow, or Lua runtime change should usually stand on its own.
-- Include docs when behavior changes. User-facing CLI, plugin, debugger, hot reload, or security changes should update `docs/` and `cli/README.md` (the source for `docs/cli.md`).
-- Treat Feather as development tooling that can run inside someone's game. Security-sensitive features such as Console, hot reload, and app ID validation should stay opt-in and clearly documented.
+- Keep changes small and scoped. A CLI fix, Lua plugin change, desktop workflow, docs update, or VS Code extension change should usually stand on its own.
+- Prefer CLI-managed development flows. Normal examples and integrations should work with `feather run` and `feather.config.lua`, not by requiring Feather directly from game code.
+- Keep production builds Feather-free by default. Release builds must exclude Feather runtime files, `feather.config.lua`, plugins, local replay/debug artifacts, and generated development files unless the user explicitly opts into a debug build.
+- Treat Console, hot reload, filesystem writes, insecure app pairing, debugger hooks, and replay/session capture as development-only features. They must be opt-in and clearly documented.
+- Keep plugin APIs declarative and serializable. Lua plugins should expose data and actions; React should render generic plugin UI unless a dedicated desktop page is genuinely needed.
+- Update docs when behavior changes. If a user-facing command, config field, plugin option, extension command, build behavior, or safety check changes, update the relevant docs in the same PR.
+
+## For Agents And Automation
+
+If you are an automated coding agent, follow these extra rules:
+
+- Read the relevant files before editing. Use `rg` and focused file reads to understand the existing pattern.
+- Check `git status --short` before and after. Never revert unrelated changes; assume they belong to the user.
+- Do not modify `package-lock.json` unless dependencies actually changed.
+- Use `apply_patch` or normal editor-style edits. Avoid broad rewrites and formatting churn.
+- Run the narrowest useful tests first, then broader checks when the change crosses boundaries.
+- If a check cannot run because local tooling is missing, say so plainly and include the exact failure.
+- Do not leave generated files stale. If a generated file changes because it should, include it. If it changes accidentally, restore it carefully.
 
 ## Development Setup
 
@@ -26,74 +40,108 @@ npm run cli:build
 npm run feather -- --help
 ```
 
-Run the desktop app in development:
+Run the desktop app:
 
 ```sh
 npm run tauri dev
 ```
 
-Serve the docs:
+Serve docs:
 
 ```sh
 npm run docs
 ```
 
-## Common Development Workflows
+## Project Layout
 
-### Run the CLI
+- `src/` contains the React desktop app.
+- `src-tauri/` contains the Tauri shell and WebSocket server.
+- `cli/` contains the Feather CLI, build/upload/release logic, package manager, and Ink workflows.
+- `cli/test/commands/` contains CLI end-to-end tests using Node's built-in test runner.
+- `src-lua/feather/` contains the embedded Lua runtime.
+- `src-lua/plugins/` contains built-in Lua plugins.
+- `src-lua/example/` contains runnable LÖVE examples.
+- `vscode-extension/` contains the VS Code extension.
+- `docs/` contains the MkDocs documentation site.
+- `packages/` contains curated package registry entries.
 
-When changing CLI code or the bundled Lua runtime, rebuild the Lua bundle and CLI before running local commands:
+`docs/cli.md` is a symlink to `cli/README.md`, and `docs/vscode-extension.md` is a symlink to `vscode-extension/README.md`. Edit the source file directly when your editor or tool has trouble writing through symlinks.
 
-```sh
-bash ./scripts/bundle-lua.sh
-npm run cli:build
-npm run feather doctor
+## CLI-Managed Examples
+
+Most examples should be plain LÖVE projects. Do not add direct `require("feather")`, `require("feather.auto")`, `FeatherDebugger(...)`, or `DEBUGGER:update(dt)` to normal examples unless the example is specifically demonstrating manual/auto embedding.
+
+Prefer this shape:
+
+```txt
+src-lua/example/my_example/
+  main.lua
+  conf.lua
+  feather.config.lua
 ```
 
-Use `npm run feather -- <command>` from the repo root. The `--` separates npm arguments from Feather arguments:
+Run it with:
 
 ```sh
-npm run feather -- --help
+npm run feather -- run src-lua/example/my_example
+```
+
+Example game code may use guarded runtime APIs:
+
+```lua
+if DEBUGGER then
+  DEBUGGER:observe("player.x", player.x)
+end
+```
+
+Plugin options belong in `feather.config.lua`:
+
+```lua
+return {
+  include = { "session-replay", "hot-reload" },
+  pluginOptions = {
+    ["session-replay"] = {
+      captureJoystickAxis = true,
+    },
+    ["hot-reload"] = {
+      enabled = true,
+      allow = { "gameplay" },
+    },
+  },
+}
+```
+
+The CLI shim must preserve `pluginOptions` for any plugin, including IDs with dashes. If you change config parsing or shim generation, add or update CLI tests that prove nested plugin options survive injection.
+
+## Common Workflows
+
+Run the CLI:
+
+```sh
+npm run cli:build
 npm run feather -- doctor src-lua/example/test_cli
 npm run feather -- run src-lua/example/test_cli
 ```
 
-### Run a single CLI test file
-
-The full CLI test suite runs all `*.test.mjs` files. To iterate on a single file:
+Run a focused CLI test file:
 
 ```sh
-npm run cli:build && node --test cli/test/commands/config.test.mjs
+npm run cli:build
+node --test cli/test/commands/run.test.mjs
 ```
 
-### Run Game Examples
-
-Run the `test_cli` example directly with verbose game arguments and an explicit config:
+Run Lua examples:
 
 ```sh
-npm run feather -- run src-lua/example/test_cli -- --verbose --config=src-lua/example/test_cli/feather.config.lua
+npm run feather -- run src-lua/example/test_cli
+npm run feather -- run src-lua/example/session_replay
+npm run feather -- run src-lua/example/session_replay_multiplayer
 ```
 
-You can also run from `src-lua` and ask the example harness to load `test_cli`:
-
-```sh
-npm run feather -- run src-lua --test-cli -- --verbose --config=src-lua/example/test_cli/feather.config.lua
-```
-
-Keep the desktop app open while running examples if you are testing debugger, plugin, observer, log, or WebSocket behavior.
-
-### Run Android Development Builds
-
-Android workflows need Android SDK/JDK tooling, `adb`, and a local LÖVE Android vendor. Fetch the vendor first:
+Run Android development builds:
 
 ```sh
 npm run feather -- build vendor add android --dir src-lua/example/test_cli
-npm run feather -- build vendor list --dir src-lua/example/test_cli
-```
-
-Then build or run Android:
-
-```sh
 npm run feather -- build android --dir src-lua/example/test_cli --verbose
 npm run feather -- run src-lua/example/test_cli --target android --verbose
 ```
@@ -105,102 +153,9 @@ npm run feather -- build android --dir src-lua/example/test_cli --no-cache --ver
 npm run feather -- build android --dir src-lua/example/test_cli --clean --verbose
 ```
 
-### Develop the VS Code Extension
+## Verification
 
-Build the extension (this runs `prepare.mjs` which copies the bundled CLI, then compiles TypeScript):
-
-```sh
-npm run extension:build
-```
-
-Launch an Extension Development Host with F5 in VS Code, or run the unit tests headlessly:
-
-```sh
-npm run extension:test
-```
-
-For integration tests that open a real VS Code window:
-
-```sh
-npm run extension:test:integration
-```
-
-To package a `.vsix` for local installation:
-
-```sh
-npm run extension:package
-```
-
-## Project Layout
-
-- `src/` contains the React desktop app.
-- `src-tauri/` contains the Tauri shell and WebSocket server.
-- `cli/` contains the Feather CLI and Ink workflows.
-- `cli/lua/` contains the bundled Lua runtime shipped inside the CLI package.
-- `cli/test/commands/` contains the CLI end-to-end test suite (Node.js built-in test runner).
-- `src-lua/feather/` contains the embedded Lua runtime.
-- `src-lua/plugins/` contains built-in Lua plugins.
-- `src-lua/example/` contains runnable LÖVE examples.
-- `vscode-extension/` contains the VS Code extension.
-- `vscode-extension/src/` contains the extension TypeScript source.
-- `vscode-extension/bundled-cli/` is generated by `extension:prepare` — do not commit it.
-- `docs/` contains the MkDocs documentation site.
-
-> [!NOTE]
-> `docs/cli.md` is a symlink to `cli/README.md`. Edit `cli/README.md` directly, same applies for most documents in docs — tools that refuse to write through symlinks will otherwise silently fail.
-
-## Commit Messages
-
-Commit subjects must start with one of these prefixes:
-
-```txt
-ci:
-cli:
-package:
-plugin:
-app:
-lua:
-tauri:
-feather:
-docs:
-vscode-extension:
-```
-
-Examples:
-
-```txt
-cli: add interactive remove workflow
-app: improve session empty state
-lua: harden hot reload allowlist checks
-tauri: validate websocket payloads
-vscode-extension: added vendor view
-package: changed luarock/npm/extension name
-plugin: new plugin
-docs: document app id pairing
-```
-
-## Generated Files
-
-Some files are generated and must stay in sync:
-
-- `src-lua/manifest.txt`
-- `cli/src/generated/plugin-catalog.ts`
-- `cli/src/generated/registry.json`
-- version fields in `package.json`, `src-lua/feather/init.lua`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`
-
-The pre-commit hook checks these automatically. You can refresh them manually:
-
-```sh
-bash scripts/generate-manifest.sh
-npm run generate:plugin-catalog
-bash scripts/set-version.sh
-```
-
-`vscode-extension/bundled-cli/` is generated by `npm run extension:prepare`. It is gitignored and should never be committed.
-
-## Checks
-
-Run the checks that match your change. For broad changes, run all of them.
+Run the checks that match your change. For broad changes, run more than one lane.
 
 ```sh
 npm run typecheck:web
@@ -215,43 +170,129 @@ npm run extension:build
 npm run extension:test
 ```
 
-Use the focused lanes when possible:
+Focused guidance:
 
-- React app changes: `npm run typecheck:web`, `npm run lint`, and Playwright if UI behavior changed.
-- CLI changes: `npm run cli:build` and `npm run test:cli:e2e`.
-- Lua runtime/plugin changes: `npm run typecheck:lua` and `npm run test:lua:e2e`.
+- React desktop changes: `npm run typecheck:web`, `npm run lint`, and Playwright if visible behavior changed.
+- CLI changes: `npm run cli:build` and the relevant `node --test cli/test/commands/*.test.mjs` file.
+- Lua runtime or plugin changes: `npm run typecheck:lua`, `npm run test:lua:e2e`, and any focused Lua e2e path if available.
+- Build/upload/release safety changes: run targeted build, doctor, upload-safety, and release tests.
 - Tauri/WebSocket changes: `npm run test:tauri:e2e`.
 - VS Code extension changes: `npm run extension:build` and `npm run extension:test`.
-- Docs-only changes: `npm run docs` and skim the rendered page.
+- Docs-only changes: read the edited Markdown and run `npm run docs` when practical.
+
+If `love`, `luacheck`, Android SDK, Xcode, Fastlane, or other local tooling is missing, document that in the PR or final handoff. Do not pretend the check passed.
+
+## Generated Files
+
+Some files are generated and must stay in sync:
+
+- `src-lua/manifest.txt`
+- `cli/src/generated/plugin-catalog.ts`
+- `cli/src/generated/registry.json`
+- version fields in `package.json`, `src-lua/feather/init.lua`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`
+
+Refresh them with:
+
+```sh
+bash scripts/generate-manifest.sh
+npm run generate:plugin-catalog
+npm run generate:registry
+bash scripts/set-version.sh
+```
+
+`npm run check:plugin-catalog` and `npm run check:registry` intentionally fail when generated output differs from git. If the generated diff is expected, commit it.
+
+Generated or local-only folders such as `vscode-extension/bundled-cli/`, `vscode-extension/bundled-bin/`, build outputs, caches, and replay/debug artifacts should not be committed.
 
 ## Lua Runtime Guidelines
 
-- Keep Feather disabled in production unless the user explicitly enables it.
-- Guard generated imports with `USE_DEBUGGER`.
-- Do not make Console, hot reload, or remote code execution features load by default.
-- Do not allow hot reload to modify Feather internals or plugin allowlist/security configuration.
-- Keep plugin APIs declarative and serializable. Lua plugins describe UI and behavior; React renders it.
-- When adding built-in plugins, update the plugin manifest/catalog and documentation.
+- Keep Feather disabled in production unless the user explicitly chooses a debug build.
+- Guard manual integration with `USE_DEBUGGER` when touching auto/manual init flows.
+- Keep CLI mode clean: the CLI injects Feather and drives `DEBUGGER:update(dt)`.
+- Do not make Console, hot reload, session replay, filesystem writes, or remote code execution load by default in production-oriented configs.
+- Keep runtime APIs JSON-serializable when data crosses the WebSocket/plugin boundary.
+- Avoid global mutation unless the plugin explicitly wraps LÖVE callbacks or exposes a guarded `DEBUGGER` API.
+- Add Lua e2e coverage for runtime behavior, callback wrapping, replay, protocol, or plugin lifecycle changes.
+
+## Plugin Guidelines
+
+Built-in plugins live under `src-lua/plugins/<plugin-id>/` and should usually include:
+
+```txt
+src-lua/plugins/<plugin-id>/
+  init.lua
+  manifest.lua
+  README.md
+```
+
+After adding or changing a built-in plugin:
+
+```sh
+bash scripts/generate-manifest.sh
+npm run generate:plugin-catalog
+npm run cli:build
+npm run typecheck:lua
+npm run test:lua:e2e
+```
+
+Plugin contribution tips:
+
+- Prefer improving existing plugins over adding more plugins.
+- Mark opt-in, disabled, dangerous, or development-only behavior clearly in `manifest.lua` and docs.
+- Keep plugin state session-local.
+- Document setup, options, security implications, and at least one minimal snippet.
+- Use `pluginOptions` in `feather.config.lua` for CLI-managed configuration.
+- Avoid plugin-specific React code unless the workflow needs a dedicated desktop page. If you add one, keep the generic plugin tab useful for status and simple actions.
+
+## Desktop App Guidelines
+
+- Keep session data scoped to the active session. Never leak logs, plugin state, replay metadata, assets, or file roots between sessions.
+- Show useful empty states when no session is selected or a session lacks a capability.
+- Make requests optimistic only when rollback/error state is clear.
+- Handle web mode and Tauri mode gracefully.
+- Keep file access rooted in user-selected or configured directories.
+- Use existing app patterns, query keys, routing, and shared UI components.
 
 ## CLI Guidelines
 
-- Prefer interactive Ink workflows for commands that need several choices.
 - Keep non-interactive flags available for scripts and CI.
-- Make generated Lua easy to remove later. Preserve `FEATHER-INIT` style comments and metadata when touching init/remove flows.
-- When adding a command that installs files, follow the skip-on-exists pattern: skip items that already exist, install the rest, then offer an interactive override prompt. Use `--force` to bypass without prompting.
-- When adding setup options, update `cli/README.md` (which is also `docs/cli.md`), `docs/configuration.md`, and generated config templates.
+- Use Ink workflows for commands that need several choices, but never make automation depend on an interactive prompt.
+- Preserve config and generated Lua in a form users can understand and remove.
+- Follow skip-on-exists behavior for file installers. Use `--force` when overwriting is intentional.
+- Keep `doctor` useful. New setup requirements should have a doctor check and a clear remediation message.
+- When adding setup options, update `cli/README.md`, `docs/configuration.md`, and generated config templates.
+- Build and upload commands must run production safety checks before shipping user-facing artifacts.
+
+## Build, Upload, And Release Safety
+
+Production paths should be boringly strict.
+
+- Release builds should exclude Feather runtime, plugins, `feather.config.lua`, `.feather-main.lua`, replay files, `.featherreplay`, logs, and generated debug artifacts.
+- Upload safety should inspect existing artifacts where possible, including `.love`, `.zip`, `.apk`, `.aab`, `.ipa`, and app bundles.
+- `feather doctor --production` should fail or warn on unsafe config, debug runtime footprints, missing signing/upload dependencies, weak app pairing, hot reload persistence, Console exposure, and replay artifacts.
+- If a development config is unsafe, prefer offering a production staging/build path over asking users to manually edit several fields.
 
 ## VS Code Extension Guidelines
 
-- The extension is a thin UI controller — it should `spawn` the CLI binary for all Feather logic and never re-implement CLI behavior itself.
-- Keep extension commands mapped 1-to-1 to CLI commands. If a behavior doesn't exist in the CLI, add it there first.
-- Workspace-scoped settings (such as remembered vendor directories) should use `ConfigurationTarget.Workspace`, not `Global`.
-- When adding a new extension command, register it in both `vscode-extension/src/extension.ts` and `vscode-extension/package.json` (`contributes.commands`).
-- `bundled-cli/` is populated by `extension:prepare` and gitignored. Never commit it or reference it from source.
+- The extension is a UI controller for the CLI. It should spawn the bundled CLI and avoid re-implementing CLI logic.
+- Keep extension commands mapped closely to CLI commands. If behavior does not exist in the CLI, add it there first.
+- Workspace-scoped settings should use `ConfigurationTarget.Workspace`, not `Global`, when they are project-specific.
+- Register new commands in both `vscode-extension/src/extension.ts` and `vscode-extension/package.json`.
+- Build/package flows should use the bundled CLI/binary prepared by `vscode-extension/scripts/prepare.mjs`.
+- Do not commit generated extension bundles.
+
+## Documentation Guidelines
+
+- User-facing CLI behavior belongs in `cli/README.md` and, when broader, in `docs/usage.md` or a dedicated page.
+- Runtime config belongs in `docs/configuration.md`.
+- Plugin behavior belongs in `src-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `docs/<feature>.md` page and a `mkdocs.yml` nav entry.
+- VS Code extension behavior belongs in `vscode-extension/README.md`.
+- Prefer copy-pasteable commands and small guarded Lua examples.
+- Be explicit about what Feather does not do. For example, Session Replay records inputs and developer-selected state; it does not serialize an entire game.
 
 ## Package Catalog Contributions
 
-Use the helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `packages/<id>.json`, and regenerate `cli/src/generated/registry.json`.
+Use helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `packages/<id>.json`, and regenerate `cli/src/generated/registry.json`.
 
 For GitHub-hosted packages:
 
@@ -259,7 +300,7 @@ For GitHub-hosted packages:
 npm run package:add
 ```
 
-For packages distributed as direct file URLs:
+For direct file URLs:
 
 ```sh
 npm run package:add-url
@@ -279,62 +320,44 @@ Package contribution tips:
 - Prefer tagged releases. If a package has no tags, pin a specific commit.
 - Keep install targets narrow and predictable, usually under `lib/<package-id>/`.
 - Include a realistic `require` path and a small usage example.
-- Use `verified` only for packages that have been reviewed and pinned with checksums. Use `known` for checksum-pinned sources that still need extra review.
+- Use `verified` only for packages reviewed and pinned with checksums. Use `known` for checksum-pinned sources that still need extra review.
 - Commit both `packages/<id>.json` and `cli/src/generated/registry.json`.
 
-## Plugin Contributions
+## Commit Messages
 
-Built-in plugins live under `src-lua/plugins/<plugin-id>/`. A plugin should usually include:
+Commit subjects should start with one of these prefixes:
 
 ```txt
-src-lua/plugins/<plugin-id>/
-  init.lua
-  manifest.lua
-  README.md
+ci:
+cli:
+package:
+plugin:
+app:
+lua:
+tauri:
+feather:
+docs:
+vscode-extension:
 ```
 
-Start from a small existing plugin such as `runtime-snapshot`, `timer-inspector`, or `bookmark` when adding a new one. Keep plugin UI declarative through `getConfig()` so the desktop app can render it without plugin-specific React code.
+Examples:
 
-After adding or changing a built-in plugin:
-
-```sh
-bash scripts/generate-manifest.sh
-npm run generate:plugin-catalog
-npm run typecheck:lua
-npm run test:lua:e2e
-npm run cli:build
-npm run feather -- plugin list src-lua/example/test_cli
+```txt
+cli: preserve plugin options in run shim
+app: add session replay page
+lua: harden hot reload allowlist checks
+plugin: add session replay docs
+docs: document cli-managed examples
+vscode-extension: add release build command
 ```
-
-To install and test a local plugin in an example project:
-
-```sh
-npm run feather -- plugin install <plugin-id> --dir src-lua/example/test_cli --local-src src-lua
-npm run feather -- run src-lua/example/test_cli
-```
-
-Plugin contribution tips:
-
-- Keep runtime state session-local and avoid global mutation unless the plugin explicitly wraps a LÖVE callback.
-- Document setup, options, security implications, and at least one minimal usage snippet in the plugin `README.md`.
-- Mark development-only or dangerous behavior clearly in `manifest.lua` and docs.
-- Avoid desktop app changes unless the feature is generic for all server-driven plugins.
-- Do not make plugins load Console, hot reload, filesystem writes, or remote code execution by default.
-
-## Desktop App Guidelines
-
-- Keep session-scoped behavior session-scoped. Avoid leaking data between connected games.
-- Show empty states when no session is selected or a session does not support a feature.
-- Handle web mode and Tauri mode gracefully.
-- Keep file access rooted in user-selected or configured directories.
-- Unless it's a generic code addition, plugins PR should not include plugin specific code for the Desktop app.
 
 ## Pull Requests
 
-Please include:
+Include:
 
 - What changed and why.
 - Screenshots or short recordings for visible UI changes.
-- The commands you ran.
-- Any follow-up work or known limitations.
-- AI Disclaimer
+- The commands you ran and their results.
+- Any checks you could not run and why.
+- Known limitations or follow-up work.
+- AI assistance disclosure when applicable.

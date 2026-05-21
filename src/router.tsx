@@ -22,6 +22,7 @@ import Plugins from './pages/plugins';
 import Console from './pages/console';
 import Debugger from './pages/debugger';
 import TimeTravel from './pages/time-travel';
+import SessionReplay from './pages/session-replay';
 import Compare from './pages/compare';
 import Assets from './pages/assets';
 import ParticleSystemPlayground from './pages/particle-system-playground';
@@ -232,6 +233,14 @@ export const Router = () => {
                 element={
                   <RequireSession>
                     <TimeTravel />
+                  </RequireSession>
+                }
+              />
+              <Route
+                path="/session-replay"
+                element={
+                  <RequireSession>
+                    <SessionReplay />
                   </RequireSession>
                 }
               />

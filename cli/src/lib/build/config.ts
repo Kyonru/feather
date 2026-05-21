@@ -164,6 +164,9 @@ const DEFAULT_EXCLUDES = [
   'feather.config.lua',
   'feather.lock.json',
   'feather.build.json',
+  'feather_replays',
+  '*.featherreplay',
+  '**/*.featherreplay',
 ];
 
 export function isBuildTarget(value: string): value is BuildTarget {

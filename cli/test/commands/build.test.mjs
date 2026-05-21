@@ -6,6 +6,7 @@ import {
   existsSync,
   join,
   makeTmp,
+  mkdirSync,
   outputOf,
   readFileSync,
   run,
@@ -71,6 +72,22 @@ test('build love: creates only a .love package and writes manifest', () => {
   assert.equal(existsSync(join(dir, 'builds', 'love-package-2.0.0.love')), true);
   const manifest = JSON.parse(readFileSync(join(dir, 'builds', 'feather-build-manifest.json'), 'utf8'));
   assert.equal(manifest.target, 'love');
+});
+
+test('build love: excludes local session replay artifacts by default', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  mkdirSync(join(dir, 'feather_replays', 'session_1'), { recursive: true });
+  writeFileSync(join(dir, 'feather_replays', 'session_1', 'manifest.json'), '{}');
+  writeFileSync(join(dir, 'bug.featherreplay'), 'archive');
+  writeBuildConfig(dir, { name: 'Replay Clean Package', version: '1.0.0' });
+
+  const result = run(['build', 'love', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const entries = readStoredZipEntries(join(dir, 'builds', 'replay-clean-package-1.0.0.love'));
+  assert.equal(entries.has('main.lua'), true);
+  assert.equal(entries.has('bug.featherreplay'), false);
+  assert.equal(entries.has('feather_replays/session_1/manifest.json'), false);
 });
 
 for (const target of ['windows', 'macos', 'linux', 'steamos']) {
