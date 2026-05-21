@@ -1040,29 +1040,63 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   },
 
   // ─── SDF ─────────────────────────────────────────────────────────────────────
+  SDFLine: {
+    category: 'SDF',
+    label: 'SDF Line',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'float' },
+      { id: 'width', label: 'Width', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = abs(${i.uv}.x - ${i.position}) - 0.5 * ${i.width};`,
+  },
   SDFCircle: {
     category: 'SDF',
     label: 'SDF Circle',
     inputs: [
       { id: 'uv', label: 'UV', type: 'vec2' },
-      { id: 'center', label: 'Center', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2' },
       { id: 'radius', label: 'Radius', type: 'float' },
     ],
     outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
-    emitGlsl: (i, o) => `float ${o.out} = length(${i.uv} - ${i.center}) - ${i.radius};`,
+    emitGlsl: (i, o) => `float ${o.out} = length(${i.uv} - ${i.position}) - ${i.radius};`,
   },
   SDFRect: {
     category: 'SDF',
     label: 'SDF Rect',
     inputs: [
       { id: 'uv', label: 'UV', type: 'vec2' },
-      { id: 'center', label: 'Center', type: 'vec2' },
-      { id: 'size', label: 'Size', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2' },
+      { id: 'width', label: 'Width', type: 'float' },
+      { id: 'height', label: 'Height', type: 'float' },
       { id: 'corner', label: 'Corner R', type: 'float' },
     ],
     outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
     emitGlsl: (i, o) =>
-      `vec2 ${o.out}_d = abs(${i.uv} - ${i.center}) - ${i.size} * 0.5;\nfloat ${o.out} = length(max(${o.out}_d, 0.0)) + min(max(${o.out}_d.x, ${o.out}_d.y), 0.0) - ${i.corner};`,
+      `vec2 ${o.out}_d = abs(${i.uv} - ${i.position}) - 0.5 * vec2(${i.width}, ${i.height});\nfloat ${o.out} = min(max(${o.out}_d.x, ${o.out}_d.y), 0.0) + length(max(${o.out}_d, vec2(0.0))) - ${i.corner};`,
+  },
+  SDFPolygon: {
+    category: 'SDF',
+    label: 'SDF Polygon',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2' },
+      { id: 'radius', label: 'Radius', type: 'float' },
+      { id: 'sides', label: 'Sides', type: 'float' },
+      { id: 'corner', label: 'Corner R', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_f = ${i.uv} - ${i.position};`,
+      `float ${o.out}_angle = 6.2831853071 / max(${i.sides}, 3.0);`,
+      `float ${o.out}_snap = round(atan(${o.out}_f.y, ${o.out}_f.x) / ${o.out}_angle) * ${o.out}_angle;`,
+      `vec2 ${o.out}_n = vec2(cos(${o.out}_snap), sin(${o.out}_snap));`,
+      `vec2 ${o.out}_d = vec2(sin(${o.out}_snap), -cos(${o.out}_snap));`,
+      `float ${o.out}_sl = ${i.radius} * tan(0.5 * ${o.out}_angle);`,
+      `float ${o.out}_t = dot(${o.out}_d, ${o.out}_f);`,
+      `float ${o.out} = (abs(${o.out}_t) < ${o.out}_sl ? dot(${o.out}_f, ${o.out}_n) - ${i.radius} : length(${o.out}_f - (${i.radius} * ${o.out}_n + ${o.out}_d * clamp(${o.out}_t, -${o.out}_sl, ${o.out}_sl)))) - ${i.corner};`,
+    ].join('\n'),
   },
   SDFSample: {
     category: 'SDF',
@@ -1070,10 +1104,69 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [
       { id: 'sdf', label: 'SDF', type: 'float' },
       { id: 'offset', label: 'Offset', type: 'float' },
-      { id: 'softness', label: 'Soft', type: 'float' },
     ],
     outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
-    emitGlsl: (i, o) => `float ${o.out} = 1.0 - smoothstep(-max(${i.softness}, 0.0001), 0.0, ${i.sdf} - ${i.offset});`,
+    emitGlsl: (i, o) => [
+      `float ${o.out}_d = ${i.sdf} - ${i.offset};`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  SDFSampleStrip: {
+    category: 'SDF',
+    label: 'SDF Sample Strip',
+    inputs: [
+      { id: 'sdf', label: 'SDF', type: 'float' },
+      { id: 'offsetMin', label: 'Min', type: 'float' },
+      { id: 'offsetMax', label: 'Max', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_d = max(-(${i.sdf} - ${i.offsetMin}), ${i.sdf} - ${i.offsetMax});`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  SDFBoolean: {
+    category: 'SDF',
+    label: 'SDF Boolean',
+    inputs: [
+      { id: 'a', label: 'A', type: 'float' },
+      { id: 'b', label: 'B', type: 'float' },
+    ],
+    outputs: [
+      { id: 'union', label: 'Union', type: 'float' },
+      { id: 'intersect', label: 'Intersect', type: 'float' },
+      { id: 'diff', label: 'Diff A-B', type: 'float' },
+    ],
+    emitGlsl: (i, o) => [
+      `float ${o.union} = min(${i.a}, ${i.b});`,
+      `float ${o.intersect} = max(${i.a}, ${i.b});`,
+      `float ${o.diff} = max(${i.a}, -${i.b});`,
+    ].join('\n'),
+  },
+  SDFSoftBoolean: {
+    category: 'SDF',
+    label: 'SDF Soft Boolean',
+    inputs: [
+      { id: 'a', label: 'A', type: 'float' },
+      { id: 'b', label: 'B', type: 'float' },
+      { id: 'smoothing', label: 'Smooth', type: 'float' },
+    ],
+    outputs: [
+      { id: 'union', label: 'Union', type: 'float' },
+      { id: 'intersect', label: 'Intersect', type: 'float' },
+      { id: 'diff', label: 'Diff A-B', type: 'float' },
+    ],
+    emitGlsl: (i, o) => {
+      const s = `max(${i.smoothing}, 0.0001)`;
+      return [
+        `float ${o.union}_t = clamp(0.5 * (1.0 + (${i.b} - ${i.a}) / ${s}), 0.0, 1.0);`,
+        `float ${o.union} = mix(${i.b}, ${i.a}, ${o.union}_t) - ${s} * ${o.union}_t * (1.0 - ${o.union}_t);`,
+        `float ${o.intersect}_t = clamp(0.5 * (1.0 + (${i.a} - ${i.b}) / ${s}), 0.0, 1.0);`,
+        `float ${o.intersect} = -(mix(-${i.b}, -${i.a}, ${o.intersect}_t) - ${s} * ${o.intersect}_t * (1.0 - ${o.intersect}_t));`,
+        `float ${o.diff}_t = clamp(0.5 * (1.0 + (${i.a} + ${i.b}) / ${s}), 0.0, 1.0);`,
+        `float ${o.diff} = -(mix(${i.b}, -${i.a}, ${o.diff}_t) - ${s} * ${o.diff}_t * (1.0 - ${o.diff}_t));`,
+      ].join('\n');
+    },
   },
 };
 
@@ -1188,5 +1281,5 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
   },
   { category: 'Output', nodes: ['FragmentOutput'] },
   { category: 'Vertex', nodes: ['VertexPosition', 'VertexWave2D', 'TransformMatrix', 'MatVecMul', 'VertexOutput'] },
-  { category: 'SDF', nodes: ['SDFCircle', 'SDFRect', 'SDFSample'] },
+  { category: 'SDF', nodes: ['SDFLine', 'SDFCircle', 'SDFRect', 'SDFPolygon', 'SDFSample', 'SDFSampleStrip', 'SDFBoolean', 'SDFSoftBoolean'] },
 ];

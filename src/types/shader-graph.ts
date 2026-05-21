@@ -113,9 +113,14 @@ export const NODE_TYPES = [
   'ZoomUV',
   'FlipUV',
   // SDF
+  'SDFLine',
   'SDFCircle',
   'SDFRect',
+  'SDFPolygon',
   'SDFSample',
+  'SDFSampleStrip',
+  'SDFBoolean',
+  'SDFSoftBoolean',
 ] as const;
 
 export type NodeType = (typeof NODE_TYPES)[number];
