@@ -19,6 +19,14 @@ return PluginE2EHelper.createSmokeSuite("session-replay", {
     end)
 
     replay:startRecording({ id = "session-replay-e2e" })
+    assertTruthy(
+      love.filesystem.getInfo("feather_replays/session-replay-e2e/inputs.jsonl"),
+      "session replay pre-creates the input stream when recording starts"
+    )
+    assertTruthy(
+      love.filesystem.getInfo("feather_replays/session-replay-e2e/state-0001.jsonl"),
+      "session replay pre-creates the state stream when recording starts"
+    )
     replay:recordState("player", { x = 1, y = 2 }, { keyframe = true })
     replay:recordState("player", { x = 1, y = 2 })
     replay:recordState("player", { x = 3, y = 4 })

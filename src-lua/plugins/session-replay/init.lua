@@ -163,6 +163,12 @@ local function countStreams(streams)
   return count
 end
 
+local function clearArray(value)
+  for index = #value, 1, -1 do
+    value[index] = nil
+  end
+end
+
 local CALLBACK_BUS_EVENTS = {
   keypressed = true,
   keyreleased = true,
@@ -190,6 +196,14 @@ local SessionReplayPlugin = Class({
     self.maxInputEvents = self.options.maxInputEvents or 20000
     self.keyframeInterval = self.options.keyframeInterval or 5
     self.chunkMaxEvents = self.options.chunkMaxEvents or 1000
+    self.flushInterval = tonumber(self.options.flushInterval) or 0.2
+    self.flushMaxLines = tonumber(self.options.flushMaxLines) or 128
+    if self.flushInterval < 0 then
+      self.flushInterval = 0
+    end
+    if self.flushMaxLines < 1 then
+      self.flushMaxLines = 1
+    end
     self.captureKeys = self.options.captureKeys ~= false
     self.captureMouse = self.options.captureMouse ~= false
     self.captureMouseMove = self.options.captureMouseMove == true
@@ -206,6 +220,9 @@ local SessionReplayPlugin = Class({
     self.initialStates = {}
     self._lastState = {}
     self._lastKeyframeAt = {}
+    self._pendingInputLines = {}
+    self._pendingStateLines = {}
+    self._lastFlushAt = 0
     self._stateRegistrations = {}
     self._missingRestorers = {}
     self._originals = {}
@@ -279,6 +296,35 @@ function SessionReplayPlugin:_writeManifest(status)
   writeFile(self:_manifestPath(), json.encode(self.manifest))
 end
 
+function SessionReplayPlugin:_queueInputLine(line)
+  self._pendingInputLines[#self._pendingInputLines + 1] = line
+  if #self._pendingInputLines >= self.flushMaxLines then
+    self:_flushReplayWrites()
+  end
+end
+
+function SessionReplayPlugin:_queueStateLine(line)
+  self._pendingStateLines[#self._pendingStateLines + 1] = line
+  if #self._pendingStateLines >= self.flushMaxLines then
+    self:_flushReplayWrites()
+  end
+end
+
+function SessionReplayPlugin:_flushReplayWrites()
+  if not self.currentReplayDir then
+    return
+  end
+  if #self._pendingInputLines > 0 then
+    appendFile(self:_inputPath(), table.concat(self._pendingInputLines))
+    clearArray(self._pendingInputLines)
+  end
+  if #self._pendingStateLines > 0 then
+    appendFile(self:_statePath(), table.concat(self._pendingStateLines))
+    clearArray(self._pendingStateLines)
+  end
+  self._lastFlushAt = gettime()
+end
+
 function SessionReplayPlugin:_recordInputEvent(name, args)
   if not self.recording or self.replaying or not self:_shouldCapture(name) then
     return
@@ -296,7 +342,7 @@ function SessionReplayPlugin:_recordInputEvent(name, args)
     self.manifest.inputCount = #self.inputEvents
     self.manifest.duration = event.time
   end
-  appendFile(self:_inputPath(), json.encode(event) .. "\n")
+  self:_queueInputLine(json.encode(event) .. "\n")
 end
 
 function SessionReplayPlugin:_installCallbackBusHooks(callbacks)
@@ -582,13 +628,15 @@ function SessionReplayPlugin:startRecording(opts)
   self.currentReplayId = opts.id or nowId()
   self.currentReplayDir = joinPath(self.rootDir, self.currentReplayId)
   ensureDirectory(self.currentReplayDir)
-  self.recording = true
   self.recordStart = gettime()
   self.inputEvents = {}
   self.stateEvents = {}
   self.initialStates = {}
   self._lastState = {}
   self._lastKeyframeAt = {}
+  self._pendingInputLines = {}
+  self._pendingStateLines = {}
+  self._lastFlushAt = self.recordStart
   self.manifest = {
     version = 1,
     id = self.currentReplayId,
@@ -602,11 +650,15 @@ function SessionReplayPlugin:startRecording(opts)
     streams = {},
     chunks = { "initial.json", "inputs.jsonl", "state-0001.jsonl" },
   }
-  self:_captureInitialStates(opts)
   writeFile(self:_inputPath(), "")
   writeFile(self:_statePath(), "")
+  writeFile(self:_initialPath(), "[]")
+  self:_captureInitialStates(opts)
   writeFile(self:_initialPath(), json.encode(self.initialStates))
+  self.recordStart = gettime()
+  self._lastFlushAt = self.recordStart
   self:_writeManifest("recording")
+  self.recording = true
   self:_installHooks()
   self:_log("Recording started: " .. self.currentReplayId)
   return self.currentReplayId
@@ -616,6 +668,7 @@ function SessionReplayPlugin:stopRecording(feather)
   if not self.recording then
     return self.currentReplayId
   end
+  self:_flushReplayWrites()
   self.recording = false
   if self.manifest then
     self.manifest.duration = gettime() - self.recordStart
@@ -674,7 +727,7 @@ function SessionReplayPlugin:recordState(name, state, opts)
       self.manifest.keyframeCount = (self.manifest.keyframeCount or 0) + 1
     end
   end
-  appendFile(self:_statePath(), json.encode(event) .. "\n")
+  self:_queueStateLine(json.encode(event) .. "\n")
   return true
 end
 
@@ -894,6 +947,9 @@ end
 function SessionReplayPlugin:update(_dt, feather)
   if self.recording then
     self:_captureRegisteredStates(gettime() - self.recordStart)
+    if (gettime() - self._lastFlushAt) >= self.flushInterval then
+      self:_flushReplayWrites()
+    end
   end
 
   if not self.replaying then
@@ -958,6 +1014,7 @@ function SessionReplayPlugin:sendRecording(feather, idOrPath)
     return false, "No replay selected"
   end
   if self.recording and self.manifest then
+    self:_flushReplayWrites()
     self:_writeManifest("recording")
   end
   local files = {
@@ -1117,6 +1174,8 @@ function SessionReplayPlugin:deleteReplay(id)
     self.inputEvents = {}
     self.stateEvents = {}
     self.initialStates = {}
+    self._pendingInputLines = {}
+    self._pendingStateLines = {}
   end
   return true
 end
@@ -1194,6 +1253,8 @@ function SessionReplayPlugin:handleActionRequest(request, feather)
     self.stateEvents = {}
     self.initialStates = {}
     self._lastState = {}
+    self._pendingInputLines = {}
+    self._pendingStateLines = {}
     self._missingRestorers = {}
     self:sendStatus(feather)
     return true
@@ -1225,6 +1286,7 @@ function SessionReplayPlugin:handleRequest(_request, _feather)
 end
 
 function SessionReplayPlugin:finish()
+  self:_flushReplayWrites()
   self.recording = false
   self.replaying = false
   self:_removePollingHooks()

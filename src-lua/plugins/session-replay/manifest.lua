@@ -18,5 +18,7 @@ return {
     maxInputEvents = 20000,
     keyframeInterval = 5,
     chunkMaxEvents = 1000,
+    flushInterval = 0.2,
+    flushMaxLines = 128,
   },
 }

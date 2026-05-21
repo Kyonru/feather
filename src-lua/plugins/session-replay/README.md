@@ -41,6 +41,33 @@ end
 
 Session Replay stores sparse deltas. If a named state stream serializes to the same value as the previous sample, Feather skips it. Periodic keyframes are still written so longer recordings have stable checkpoints.
 
+## Recording Files And Flushes
+
+When a session starts, Feather creates the replay folder and baseline files up front:
+
+- `manifest.json`
+- `initial.json`
+- `inputs.jsonl`
+- `state-0001.jsonl`
+
+Input and state events are then captured in memory first and flushed to disk in small batches from the plugin update loop, on stop, and before export/load. This keeps input callbacks lightweight so the first captured key, mouse, touch, or joystick event is not also paying the cost of opening replay files.
+
+You can tune the tradeoff:
+
+```lua
+return {
+  include = { "session-replay" },
+  pluginOptions = {
+    ["session-replay"] = {
+      flushInterval = 0.2,
+      flushMaxLines = 128,
+    },
+  },
+}
+```
+
+Lower values reduce possible data loss if the game crashes mid-recording. Higher values reduce disk I/O during heavy input or state capture.
+
 ## Reliable Restore
 
 For reliable reproduction, register a capture and restore pair:
