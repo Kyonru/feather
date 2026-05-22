@@ -1187,6 +1187,130 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     ].join('\n'),
   },
 
+  // ─── Quaternion ─────────────────────────────────────────────────────────────
+  QuaternionInverse: {
+    category: 'Quaternion',
+    label: 'Quaternion Inverse',
+    inputs: [{ id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 }],
+    outputs: [{ id: 'out', label: 'Q^-1', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = vec4(-${i.q}.xyz, ${i.q}.w) / max(dot(${i.q}, ${i.q}), 0.000001);`,
+  },
+  QuaternionFromEuler: {
+    category: 'Quaternion',
+    label: 'Quaternion From Euler',
+    inputs: [{ id: 'angles', label: 'Euler Deg', type: 'vec3', defaultValue: [0, 0, 0], min: -360, max: 360, step: 1 }],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_s = sin(0.5 * radians(${i.angles}));`,
+      `vec3 ${o.out}_c = cos(0.5 * radians(${i.angles}));`,
+      `vec4 ${o.out} = vec4(`,
+      `  ${o.out}_c.y * ${o.out}_s.x * ${o.out}_c.z + ${o.out}_s.y * ${o.out}_c.x * ${o.out}_s.z,`,
+      `  ${o.out}_s.y * ${o.out}_c.x * ${o.out}_c.z - ${o.out}_c.y * ${o.out}_s.x * ${o.out}_s.z,`,
+      `  ${o.out}_c.y * ${o.out}_c.x * ${o.out}_s.z - ${o.out}_s.y * ${o.out}_s.x * ${o.out}_c.z,`,
+      `  ${o.out}_c.y * ${o.out}_c.x * ${o.out}_c.z + ${o.out}_s.y * ${o.out}_s.x * ${o.out}_s.z`,
+      `);`,
+      `${o.out} = normalize(${o.out});`,
+    ].join('\n'),
+  },
+  QuaternionFromAngleAxis: {
+    category: 'Quaternion',
+    label: 'Quaternion From Angle Axis',
+    inputs: [
+      { id: 'angle', label: 'Angle Deg', type: 'float', defaultValue: 45, min: -360, max: 360, step: 1 },
+      { id: 'axis', label: 'Axis', type: 'vec3', defaultValue: [0, 0, 1], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_axis_raw = ${i.axis};`,
+      `vec3 ${o.out}_axis = length(${o.out}_axis_raw) > 0.000001 ? normalize(${o.out}_axis_raw) : vec3(0.0, 0.0, 1.0);`,
+      `float ${o.out}_half = 0.5 * radians(${i.angle});`,
+      `float ${o.out}_s = sin(${o.out}_half);`,
+      `vec4 ${o.out} = normalize(vec4(${o.out}_s * ${o.out}_axis, cos(${o.out}_half)));`,
+    ].join('\n'),
+  },
+  QuaternionToAngleAxis: {
+    category: 'Quaternion',
+    label: 'Quaternion To Angle Axis',
+    inputs: [{ id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 }],
+    outputs: [
+      { id: 'angle', label: 'Angle Deg', type: 'float' },
+      { id: 'axis', label: 'Axis', type: 'vec3' },
+    ],
+    emitGlsl: (i, o) => [
+      `vec4 ${o.axis}_q = normalize(${i.q});`,
+      `float ${o.axis}_len = length(${o.axis}_q.xyz);`,
+      `vec3 ${o.axis} = ${o.axis}_len > 0.000001 ? ${o.axis}_q.xyz / ${o.axis}_len : vec3(1.0, 0.0, 0.0);`,
+      `float ${o.angle} = degrees(2.0 * atan(${o.axis}_len, ${o.axis}_q.w));`,
+    ].join('\n'),
+  },
+  QuaternionFromToRotation: {
+    category: 'Quaternion',
+    label: 'Quaternion From To Rotation',
+    inputs: [
+      { id: 'from', label: 'From', type: 'vec3', defaultValue: [1, 0, 0], step: 0.01 },
+      { id: 'to', label: 'To', type: 'vec3', defaultValue: [0, 1, 0], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_from_raw = ${i.from};`,
+      `vec3 ${o.out}_to_raw = ${i.to};`,
+      `vec3 ${o.out}_from = length(${o.out}_from_raw) > 0.000001 ? normalize(${o.out}_from_raw) : vec3(1.0, 0.0, 0.0);`,
+      `vec3 ${o.out}_to = length(${o.out}_to_raw) > 0.000001 ? normalize(${o.out}_to_raw) : vec3(1.0, 0.0, 0.0);`,
+      `vec3 ${o.out}_axis = cross(${o.out}_from, ${o.out}_to);`,
+      `float ${o.out}_w = sqrt(max(dot(${o.out}_from, ${o.out}_from) * dot(${o.out}_to, ${o.out}_to), 0.0)) + dot(${o.out}_from, ${o.out}_to);`,
+      `vec4 ${o.out} = normalize(vec4(${o.out}_axis, ${o.out}_w));`,
+    ].join('\n'),
+  },
+  QuaternionMultiply: {
+    category: 'Quaternion',
+    label: 'Quaternion Multiply',
+    inputs: [
+      { id: 'p', label: 'P', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+      { id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'P x Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec4 ${o.out} = vec4(${i.p}.w * ${i.q}.xyz + ${i.q}.w * ${i.p}.xyz + cross(${i.p}.xyz, ${i.q}.xyz), ${i.p}.w * ${i.q}.w - dot(${i.p}.xyz, ${i.q}.xyz));`,
+      `${o.out} = dot(${o.out}, ${o.out}) > 0.000001 ? normalize(${o.out}) : vec4(0.0, 0.0, 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  QuaternionRotateVector: {
+    category: 'Quaternion',
+    label: 'Quaternion Rotate Vector',
+    inputs: [
+      { id: 'vec', label: 'Vector', type: 'vec3', defaultValue: [1, 0, 0], step: 0.01 },
+      { id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (i, o) => [
+      `vec4 ${o.out}_q_raw = ${i.q};`,
+      `vec4 ${o.out}_q = dot(${o.out}_q_raw, ${o.out}_q_raw) > 0.000001 ? normalize(${o.out}_q_raw) : vec4(0.0, 0.0, 0.0, 1.0);`,
+      `vec3 ${o.out}_t = 2.0 * cross(${o.out}_q.xyz, ${i.vec});`,
+      `vec3 ${o.out} = ${i.vec} + ${o.out}_q.w * ${o.out}_t + cross(${o.out}_q.xyz, ${o.out}_t);`,
+    ].join('\n'),
+  },
+  QuaternionSlerp: {
+    category: 'Quaternion',
+    label: 'Quaternion Slerp',
+    inputs: [
+      { id: 'p', label: 'P', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+      { id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+      { id: 't', label: 'T', type: 'float', defaultValue: 0.5, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec4 ${o.out}_p = normalize(${i.p});`,
+      `vec4 ${o.out}_q = normalize(${i.q});`,
+      `float ${o.out}_cos = dot(${o.out}_p, ${o.out}_q);`,
+      `${o.out}_q = ${o.out}_cos < 0.0 ? -${o.out}_q : ${o.out}_q;`,
+      `${o.out}_cos = abs(${o.out}_cos);`,
+      `float ${o.out}_t = clamp(${i.t}, 0.0, 1.0);`,
+      `float ${o.out}_half = acos(clamp(${o.out}_cos, -1.0, 1.0));`,
+      `float ${o.out}_sin = sin(${o.out}_half);`,
+      `vec4 ${o.out} = ${o.out}_sin < 0.0001 ? normalize(mix(${o.out}_p, ${o.out}_q, ${o.out}_t)) : normalize((sin(${o.out}_half * (1.0 - ${o.out}_t)) / ${o.out}_sin) * ${o.out}_p + (sin(${o.out}_half * ${o.out}_t) / ${o.out}_sin) * ${o.out}_q);`,
+    ].join('\n'),
+  },
+
   // ─── Vector (extended) ───────────────────────────────────────────────────────
   CrossVec3: {
     category: 'Vector',
@@ -1849,6 +1973,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Input: 'border-l-blue-500',
   Math: 'border-l-orange-500',
   Complex: 'border-l-amber-500',
+  Quaternion: 'border-l-fuchsia-500',
   Vector: 'border-l-purple-500',
   Color: 'border-l-pink-500',
   Composite: 'border-l-rose-500',
@@ -1913,6 +2038,7 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
     ],
   },
   { category: 'Complex', nodes: ['ComplexConjugate', 'ComplexReciprocal', 'ComplexMultiply', 'ComplexDivide', 'ComplexExp', 'ComplexLog', 'ComplexPower'] },
+  { category: 'Quaternion', nodes: ['QuaternionInverse', 'QuaternionFromEuler', 'QuaternionFromAngleAxis', 'QuaternionToAngleAxis', 'QuaternionFromToRotation', 'QuaternionMultiply', 'QuaternionRotateVector', 'QuaternionSlerp'] },
   {
     category: 'Vector',
     nodes: [

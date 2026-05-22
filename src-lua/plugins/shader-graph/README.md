@@ -64,6 +64,19 @@ Complex nodes treat a `vec2` as a complex number, where `x` is the real componen
 - `Complex Log`: complex logarithm.
 - `Complex Power`: raises one complex value to another.
 
+### Quaternion
+
+Quaternion nodes treat a `vec4` as a quaternion, where `xyz` is the vector component and `w` is the scalar component. They are useful for building orientation math, rotating 3D vectors, and driving procedural 2D UV rotation through a Z-axis quaternion.
+
+- `Quaternion Inverse`: inverse/conjugate for undoing a rotation.
+- `Quaternion From Euler`: builds a quaternion from Euler angles in degrees.
+- `Quaternion From Angle Axis`: builds a quaternion from an angle in degrees and an axis vector.
+- `Quaternion To Angle Axis`: extracts angle and axis values from a quaternion.
+- `Quaternion From To Rotation`: builds the rotation from one direction vector to another.
+- `Quaternion Multiply`: combines two quaternion rotations.
+- `Quaternion Rotate Vector`: rotates a `vec3` by a quaternion.
+- `Quaternion Slerp`: spherical interpolation between two quaternions.
+
 ### Vector
 
 Vector nodes convert between packed colors/vectors and scalar channels.
@@ -228,6 +241,7 @@ The Shader Graph page includes complete preset graphs:
 - **Twirl Portal**: centered UV swirl.
 - **Complex Power Warp**: bends centered UVs with complex-number power math.
 - **Rotating Texture**: time-driven UV rotation.
+- **Quaternion UV Rotate**: rotates centered UVs through a generated Z-axis quaternion.
 - **Checker Flash**: checker mask mixed into a flash color.
 - **Pattern Whirl**: radial procedural whirl mask mixed into the texture.
 - **Voronoi Energy**: cellular energy/shield mask.
