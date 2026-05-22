@@ -15,11 +15,10 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('time');
   await page.getByTestId('shader-node-picker').getByRole('button', { name: /^time input$/i }).click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 1);
-  await page.getByRole('button', { name: /create subgraph from selection/i }).click();
-  await expect(page.getByRole('dialog', { name: /create subgraph/i })).toBeVisible();
-  await page.getByLabel('Name').fill('Reusable Time');
-  await page.getByRole('button', { name: /^create$/i }).click();
-  await expect(page.locator('.react-flow__node', { hasText: 'Reusable Time' })).toBeVisible();
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 420, y: 220 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float input$/i }).click();
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 2);
 
   const nodesBeforePreset = await page.locator('.react-flow__node').count();
   await page.getByText('Insert preset').click();

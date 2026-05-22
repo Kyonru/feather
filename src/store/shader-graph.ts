@@ -19,6 +19,8 @@ type ShaderGraphStore = {
   redoStack: GraphSnapshot[];
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
+  activeSubgraphId: string | null;
+  subgraphBreadcrumb: string[];
   shaderName: string;
   playgroundTarget: PlaygroundTarget | null;
   textureUploads: Record<string, ShaderTextureUpload>;
@@ -44,6 +46,8 @@ type ShaderGraphStore = {
   updateNodeData: (id: string, patch: Partial<ShaderNodeData>) => void;
   selectNode: (id: string | null) => void;
   selectEdge: (id: string | null) => void;
+  enterSubgraph: (id: string) => void;
+  exitSubgraph: () => void;
   setShaderName: (name: string) => void;
   setPlaygroundTarget: (target: PlaygroundTarget | null) => void;
   setTextureUpload: (nodeId: string, upload: ShaderTextureUpload) => void;
@@ -73,6 +77,38 @@ function snapshot(state: Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs'>
 
 function sameGraph(a: GraphSnapshot, b: GraphSnapshot): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function activeGraph(state: Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs' | 'activeSubgraphId'>) {
+  const subgraph = state.activeSubgraphId ? state.subgraphs.find((item) => item.id === state.activeSubgraphId) : null;
+  return subgraph ? { nodes: subgraph.nodes, edges: subgraph.edges } : { nodes: state.nodes, edges: state.edges };
+}
+
+function patchActiveGraph(
+  state: ShaderGraphStore,
+  graph: Partial<Pick<GraphSnapshot, 'nodes' | 'edges'>>,
+): Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs'> {
+  if (!state.activeSubgraphId) {
+    return {
+      nodes: graph.nodes ?? state.nodes,
+      edges: graph.edges ?? state.edges,
+      subgraphs: state.subgraphs,
+    };
+  }
+
+  return {
+    nodes: state.nodes,
+    edges: state.edges,
+    subgraphs: state.subgraphs.map((subgraph) =>
+      subgraph.id === state.activeSubgraphId
+        ? {
+          ...subgraph,
+          nodes: graph.nodes ?? subgraph.nodes,
+          edges: graph.edges ?? subgraph.edges,
+        }
+        : subgraph,
+    ),
+  };
 }
 
 function withHistory(
@@ -110,6 +146,8 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       redoStack: [],
       selectedNodeId: null,
       selectedEdgeId: null,
+      activeSubgraphId: null,
+      subgraphBreadcrumb: [],
       shaderName: 'my-shader',
       playgroundTarget: null,
       textureUploads: {},
@@ -119,53 +157,83 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       hasInitializedExample: false,
       cleanGraphHash: graphHash({ nodes: [], edges: [], subgraphs: [] }),
 
-      setNodes: (nodes) => set((s) => withHistory(s, { nodes })),
-      setEdges: (edges) => set((s) => withHistory(s, { edges })),
+      setNodes: (nodes) => set((s) => withHistory(s, patchActiveGraph(s, { nodes }))),
+      setEdges: (edges) => set((s) => withHistory(s, patchActiveGraph(s, { edges }))),
       setSubgraphs: (subgraphs) => set((s) => withHistory(s, { subgraphs })),
-      addNode: (node) => set((s) => withHistory(s, { nodes: [...s.nodes, node] })),
+      addNode: (node) =>
+        set((s) => {
+          const graph = activeGraph(s);
+          return withHistory(s, patchActiveGraph(s, { nodes: [...graph.nodes, node] }));
+        }),
       addNodesAndEdges: (newNodes, newEdges, selectedNodeId = null) =>
-        set((s) =>
-          withHistory(s, {
-            nodes: [...s.nodes, ...newNodes],
-            edges: [...s.edges, ...newEdges],
+        set((s) => {
+          const graph = activeGraph(s);
+          return withHistory(s, {
+            ...patchActiveGraph(s, {
+              nodes: [...graph.nodes, ...newNodes],
+              edges: [...graph.edges, ...newEdges],
+            }),
             selectedNodeId,
             selectedEdgeId: null,
-          }),
-        ),
+          });
+        }),
       replaceSelectionWithSubgraph: ({ subgraph, nodes, edges, selectedNodeId }) =>
         set((s) =>
           withHistory(s, {
-            nodes,
-            edges,
+            ...patchActiveGraph(s, { nodes, edges }),
             subgraphs: [...s.subgraphs.filter((item) => item.id !== subgraph.id), subgraph],
             selectedNodeId,
             selectedEdgeId: null,
           }),
         ),
       removeNode: (id) =>
-        set((s) =>
-          withHistory(s, {
-            nodes: s.nodes.filter((n) => n.id !== id),
-            edges: s.edges.filter((e) => e.source !== id && e.target !== id),
+        set((s) => {
+          const graph = activeGraph(s);
+          return withHistory(s, {
+            ...patchActiveGraph(s, {
+              nodes: graph.nodes.filter((n) => n.id !== id),
+              edges: graph.edges.filter((e) => e.source !== id && e.target !== id),
+            }),
             selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
             textureUploads: Object.fromEntries(Object.entries(s.textureUploads).filter(([nodeId]) => nodeId !== id)),
-          }),
-        ),
+          });
+        }),
       removeEdge: (id) =>
-        set((s) =>
-          withHistory(s, {
-            edges: s.edges.filter((e) => e.id !== id),
+        set((s) => {
+          const graph = activeGraph(s);
+          return withHistory(s, {
+            ...patchActiveGraph(s, {
+              edges: graph.edges.filter((e) => e.id !== id),
+            }),
             selectedEdgeId: s.selectedEdgeId === id ? null : s.selectedEdgeId,
-          }),
-        ),
+          });
+        }),
       updateNodeData: (id, patch) =>
-        set((s) =>
-          withHistory(s, {
-            nodes: s.nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n)),
-          }),
-        ),
+        set((s) => {
+          const graph = activeGraph(s);
+          return withHistory(s, patchActiveGraph(s, {
+            nodes: graph.nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n)),
+          }));
+        }),
       selectNode: (selectedNodeId) => set({ selectedNodeId, selectedEdgeId: null }),
       selectEdge: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null }),
+      enterSubgraph: (id) =>
+        set((s) => ({
+          activeSubgraphId: id,
+          subgraphBreadcrumb: s.activeSubgraphId ? [...s.subgraphBreadcrumb, s.activeSubgraphId] : s.subgraphBreadcrumb,
+          selectedNodeId: null,
+          selectedEdgeId: null,
+        })),
+      exitSubgraph: () =>
+        set((s) => {
+          const parentId = s.subgraphBreadcrumb.at(-1) ?? null;
+          return {
+            activeSubgraphId: parentId,
+            subgraphBreadcrumb: s.subgraphBreadcrumb.slice(0, -1),
+            selectedNodeId: null,
+            selectedEdgeId: null,
+          };
+        }),
       setShaderName: (shaderName) => set({ shaderName }),
       setPlaygroundTarget: (playgroundTarget) => set({ playgroundTarget }),
       setTextureUpload: (nodeId, upload) =>
@@ -203,6 +271,8 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             playgroundTarget: graph.playgroundTarget ?? null,
             selectedNodeId: null,
             selectedEdgeId: null,
+            activeSubgraphId: null,
+            subgraphBreadcrumb: [],
             textureUploads: {},
             undoStack: [],
             redoStack: [],
@@ -225,6 +295,8 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             redoStack: [...s.redoStack, snapshot(s)].slice(-HISTORY_LIMIT),
             selectedNodeId: null,
             selectedEdgeId: null,
+            activeSubgraphId: null,
+            subgraphBreadcrumb: [],
             lastGeneratedGlsl: null,
             validationStatus: 'idle',
             validationErrors: {},
@@ -242,6 +314,8 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             redoStack: s.redoStack.slice(0, -1),
             selectedNodeId: null,
             selectedEdgeId: null,
+            activeSubgraphId: null,
+            subgraphBreadcrumb: [],
             lastGeneratedGlsl: null,
             validationStatus: 'idle',
             validationErrors: {},

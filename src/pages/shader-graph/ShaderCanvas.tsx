@@ -24,7 +24,7 @@ import type { ShaderNodeData, NodeType } from '@/types/shader-graph';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { getNodeDef, NODE_DEFS } from './nodeDefs';
 import { nodeTypes } from './nodes';
-import { CombineIcon, Redo2Icon, SearchIcon, Undo2Icon } from 'lucide-react';
+import { ArrowLeftIcon, CombineIcon, Redo2Icon, SearchIcon, Undo2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/use-theme';
 import {
@@ -68,6 +68,8 @@ function miniMapNodeColor(node: Node<ShaderNodeData>): string {
 export function ShaderCanvas() {
   const nodes = useShaderGraphStore((s) => s.nodes);
   const edges = useShaderGraphStore((s) => s.edges);
+  const subgraphs = useShaderGraphStore((s) => s.subgraphs);
+  const activeSubgraphId = useShaderGraphStore((s) => s.activeSubgraphId);
   const setNodes = useShaderGraphStore((s) => s.setNodes);
   const setEdges = useShaderGraphStore((s) => s.setEdges);
   const addNode = useShaderGraphStore((s) => s.addNode);
@@ -81,6 +83,8 @@ export function ShaderCanvas() {
   const selectedEdgeId = useShaderGraphStore((s) => s.selectedEdgeId);
   const undo = useShaderGraphStore((s) => s.undo);
   const redo = useShaderGraphStore((s) => s.redo);
+  const enterSubgraph = useShaderGraphStore((s) => s.enterSubgraph);
+  const exitSubgraph = useShaderGraphStore((s) => s.exitSubgraph);
   const canUndo = useShaderGraphStore((s) => s.undoStack.length > 0);
   const canRedo = useShaderGraphStore((s) => s.redoStack.length > 0);
   const [nodePicker, setNodePicker] = useState<{ x: number; y: number; position: { x: number; y: number }; search: string } | null>(null);
@@ -91,30 +95,38 @@ export function ShaderCanvas() {
 
   // Captured via onInit — avoids calling useReactFlow() at the same level as <ReactFlow>
   const rfRef = useRef<ReactFlowInstance<Node<ShaderNodeData>> | null>(null);
+  const activeSubgraph = activeSubgraphId ? subgraphs.find((subgraph) => subgraph.id === activeSubgraphId) : null;
+  const graphNodes = activeSubgraph?.nodes ?? nodes;
+  const graphEdges = activeSubgraph?.edges ?? edges;
+
+  useEffect(() => {
+    setSelectedNodeIds(new Set());
+  }, [activeSubgraphId]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<Node<ShaderNodeData>>[]) => {
-      setNodes(applyNodeChanges(changes, nodes));
+      setNodes(applyNodeChanges(changes, graphNodes));
     },
-    [nodes, setNodes],
+    [graphNodes, setNodes],
   );
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      setEdges(applyEdgeChanges(changes, edges));
+      setEdges(applyEdgeChanges(changes, graphEdges));
     },
-    [edges, setEdges],
+    [graphEdges, setEdges],
   );
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      setEdges(addEdge(connection, edges));
+      setEdges(addEdge(connection, graphEdges));
     },
-    [edges, setEdges],
+    [graphEdges, setEdges],
   );
 
   const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: Node) => {
+      if (event.shiftKey || event.metaKey || event.ctrlKey) return;
       selectNode(node.id);
       setSelectedNodeIds(new Set([node.id]));
     },
@@ -126,6 +138,15 @@ export function ShaderCanvas() {
       selectEdge(edge.id);
     },
     [selectEdge],
+  );
+
+  const onNodeDoubleClick = useCallback(
+    (_: React.MouseEvent, node: Node<ShaderNodeData>) => {
+      if (node.data.nodeType !== 'SubgraphInstance' || !node.data.subgraphId) return;
+      enterSubgraph(String(node.data.subgraphId));
+      setSelectedNodeIds(new Set());
+    },
+    [enterSubgraph],
   );
 
   const onPaneClick = useCallback(() => {
@@ -150,8 +171,8 @@ export function ShaderCanvas() {
     (connection: Connection | Edge) => {
       if (!connection.source || !connection.target) return false;
       if (connection.source === connection.target) return false;
-      const sourceNode = nodes.find((n) => n.id === connection.source);
-      const targetNode = nodes.find((n) => n.id === connection.target);
+      const sourceNode = graphNodes.find((n) => n.id === connection.source);
+      const targetNode = graphNodes.find((n) => n.id === connection.target);
       if (!sourceNode || !targetNode) return false;
       const sourceDef = getNodeDef(sourceNode.data);
       const targetDef = getNodeDef(targetNode.data);
@@ -161,7 +182,7 @@ export function ShaderCanvas() {
       if (!sourcePort || !targetPort) return false;
       return sourcePort.type === targetPort.type;
     },
-    [nodes],
+    [graphNodes],
   );
 
   // Drop handler lives on the wrapper div so it fires regardless of ReactFlow internals
@@ -222,14 +243,14 @@ export function ShaderCanvas() {
   }, [nodePicker?.search]);
 
   const getSelectedIds = useCallback(() => {
-    const selectedIds = new Set([...selectedNodeIds, ...nodes.filter((node) => node.selected).map((node) => node.id)]);
+    const selectedIds = new Set([...selectedNodeIds, ...graphNodes.filter((node) => node.selected).map((node) => node.id)]);
     if (selectedNodeId) selectedIds.add(selectedNodeId);
     return selectedIds;
-  }, [nodes, selectedNodeId, selectedNodeIds]);
+  }, [graphNodes, selectedNodeId, selectedNodeIds]);
 
   const openSubgraphDialog = useCallback(() => {
-    if (getSelectedIds().size === 0) {
-      toast.info('Select one or more nodes to create a subgraph.');
+    if (getSelectedIds().size < 2) {
+      toast.info('Select at least two nodes to create a subgraph.');
       return;
     }
     setSubgraphName('Subgraph');
@@ -240,8 +261,8 @@ export function ShaderCanvas() {
     const name = subgraphName.trim();
     if (!name) return;
     const selectedIds = getSelectedIds();
-    if (selectedIds.size === 0) return;
-    const result = inferSubgraphFromSelection(nodes, edges, selectedIds, name);
+    if (selectedIds.size < 2) return;
+    const result = inferSubgraphFromSelection(graphNodes, graphEdges, selectedIds, name);
     if (!result) return;
     replaceSelectionWithSubgraph({
       subgraph: result.subgraph,
@@ -251,19 +272,19 @@ export function ShaderCanvas() {
     });
     setSelectedNodeIds(new Set([result.instance.id]));
     setSubgraphDialogOpen(false);
-  }, [edges, getSelectedIds, nodes, replaceSelectionWithSubgraph, subgraphName]);
+  }, [getSelectedIds, graphEdges, graphNodes, replaceSelectionWithSubgraph, subgraphName]);
 
   useEffect(() => {
     const onSuggest = (event: Event) => {
       const detail = (event as CustomEvent<{ nodeId: string; portId: string; direction: 'input' | 'output'; x: number; y: number }>).detail;
-      const port = portRefs(nodes, detail.direction).find((candidate) => candidate.nodeId === detail.nodeId && candidate.portId === detail.portId);
+      const port = portRefs(graphNodes, detail.direction).find((candidate) => candidate.nodeId === detail.nodeId && candidate.portId === detail.portId);
       if (!port) return;
       setNodePicker(null);
-      setSuggestionMenu({ x: detail.x, y: detail.y, port, items: linkSuggestions(nodes, port) });
+      setSuggestionMenu({ x: detail.x, y: detail.y, port, items: linkSuggestions(graphNodes, port) });
     };
     window.addEventListener('shader-graph:port-suggest', onSuggest);
     return () => window.removeEventListener('shader-graph:port-suggest', onSuggest);
-  }, [nodes]);
+  }, [graphNodes]);
 
   const applySuggestion = useCallback(
     (suggestion: LinkSuggestion) => {
@@ -277,7 +298,7 @@ export function ShaderCanvas() {
           sourceHandle: source.portId,
           target: target.nodeId,
           targetHandle: target.portId,
-        }, edges));
+        }, graphEdges));
         setSuggestionMenu(null);
         return;
       }
@@ -295,7 +316,7 @@ export function ShaderCanvas() {
       };
       const input = def.inputs.find((port) => port.type === active.type) ?? def.inputs[0];
       const output = def.outputs.find((port) => port.type === active.type) ?? def.outputs[0];
-      const nextEdges = [...edges];
+      const nextEdges = [...graphEdges];
       if (active.direction === 'output' && input) {
         nextEdges.push({
           id: `${active.nodeId}:${active.portId}->${bridge.id}:${input.id}`,
@@ -313,10 +334,10 @@ export function ShaderCanvas() {
           targetHandle: active.portId,
         });
       }
-      addNodesAndEdges([bridge], nextEdges.filter((edge) => !edges.some((existing) => existing.id === edge.id)), bridge.id);
+      addNodesAndEdges([bridge], nextEdges.filter((edge) => !graphEdges.some((existing) => existing.id === edge.id)), bridge.id);
       setSuggestionMenu(null);
     },
-    [addNodesAndEdges, edges, setEdges, suggestionMenu],
+    [addNodesAndEdges, graphEdges, setEdges, suggestionMenu],
   );
 
   useEffect(() => {
@@ -367,12 +388,14 @@ export function ShaderCanvas() {
       }}
     >
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        key={activeSubgraphId ?? 'root'}
+        nodes={graphNodes}
+        edges={graphEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
         onSelectionChange={onSelectionChange}
@@ -384,9 +407,27 @@ export function ShaderCanvas() {
         nodeTypes={nodeTypes}
         fitView
         deleteKeyCode={null}
+        selectionOnDrag
+        panOnDrag={[1, 2]}
         colorMode={theme}
       >
         <div className="absolute left-3 top-3 z-10 flex gap-1 rounded-md border bg-card/95 p-1 shadow-sm">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            disabled={!activeSubgraph}
+            aria-label="Back to parent graph"
+            title="Back to parent graph"
+            onClick={exitSubgraph}
+          >
+            <ArrowLeftIcon className="size-4" />
+          </Button>
+          {activeSubgraph && (
+            <div className="flex h-7 items-center px-2 text-xs font-medium text-muted-foreground">
+              {activeSubgraph.name}
+            </div>
+          )}
           <Button
             size="icon"
             variant="ghost"

@@ -90,6 +90,8 @@ export function NodeInspector() {
   const {
     nodes,
     edges,
+    subgraphs,
+    activeSubgraphId,
     selectedNodeId,
     selectedEdgeId,
     textureUploads,
@@ -106,9 +108,12 @@ export function NodeInspector() {
   const [customModalOpen, setCustomModalOpen] = useState(false);
   const [customDraft, setCustomDraft] = useState('');
 
-  const selected = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
+  const activeSubgraph = activeSubgraphId ? subgraphs.find((subgraph) => subgraph.id === activeSubgraphId) : null;
+  const graphNodes = activeSubgraph?.nodes ?? nodes;
+  const graphEdges = activeSubgraph?.edges ?? edges;
+  const selected = selectedNodeId ? graphNodes.find((n) => n.id === selectedNodeId) : null;
   const def = selected ? getNodeDef(selected.data) : null;
-  const selectedEdge = selectedEdgeId ? edges.find((e) => e.id === selectedEdgeId) : null;
+  const selectedEdge = selectedEdgeId ? graphEdges.find((e) => e.id === selectedEdgeId) : null;
   const selectedVec4 = selected ? vec4Value(selected.data.values?.val) : [0, 0, 0, 1] as [number, number, number, number];
   const selectedTextureUpload = selected ? textureUploads[selected.id] : null;
   const customDraftValidation = validateCustomFunctionSource(customDraft);
@@ -151,7 +156,7 @@ export function NodeInspector() {
     const outputIds = new Set(nextDef.outputs.map((port) => port.id));
 
     setEdges(
-      edges.filter((edge) => {
+      graphEdges.filter((edge) => {
         if (edge.target === selected.id && edge.targetHandle && !inputIds.has(edge.targetHandle)) return false;
         if (edge.source === selected.id && edge.sourceHandle && !outputIds.has(edge.sourceHandle)) return false;
         return true;
@@ -491,7 +496,7 @@ export function NodeInspector() {
             <div className="grid gap-2">
               <div className="text-[10px] text-muted-foreground font-medium mb-0.5">Inputs</div>
               {def.inputs.map((port) => {
-                const connected = edges.some((edge) => edge.target === selected.id && edge.targetHandle === port.id);
+                const connected = graphEdges.some((edge) => edge.target === selected.id && edge.targetHandle === port.id);
                 return (
                   <div key={port.id} className="grid gap-1 rounded border border-border/70 p-2">
                     <div className="flex items-center justify-between gap-2">
