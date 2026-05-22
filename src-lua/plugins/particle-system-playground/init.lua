@@ -1358,8 +1358,8 @@ function ParticleSystemPlaygroundPlugin:_applyShader(name, index, params)
           if not raw then
             return nil, "Shader texture data is not valid base64"
           end
-          local filename = sanitizeFilename(texture.filename, uniform .. ".png")
-          local okData, fileData = pcall(love.filesystem.newFileData, raw, filename)
+          local texFilename = sanitizeFilename(texture.filename, uniform .. ".png")
+          local okData, fileData = pcall(love.filesystem.newFileData, raw, texFilename)
           if not okData or not fileData then
             return nil, "Could not create shader texture file data"
           end

@@ -284,7 +284,7 @@ function ShaderGraphPlugin:_previewShader(params)
   end
 
   local color = previewColor(params.color)
-  local drawable = nil
+  local drawable
   local baseTexture = params.baseTexture
   if type(baseTexture) == "table" and baseTexture.dataBase64 then
     local image, imageErr = imageFromUpload(baseTexture, "preview-texture.png")
