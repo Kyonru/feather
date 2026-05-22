@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Static love.js preview bridge for standalone shader and particle previews, including showcase build/preview scripts and a publishing workflow.
 - Shader Graph custom function, texture input, texture uniform color, texture upload, and preview texture support.
 - Expanded Shader Graph node library with complex math, quaternion operations, symmetry, random, pixel-perfect primitives, patterns, halftone, Lab color helpers, composite, Truchet tiles, improved SDF nodes, and broader vertex shader authoring.
+- Added Shader Graph vector math nodes for component-wise `vec2`/`vec3`/`vec4` add, subtract, multiply, divide, and scalar scaling.
 - Shader Graph preset and UI improvements for graph authoring, node inspection, code preview, and standalone preview controls.
 - Session Replay checkpoints, seeking, baseline restore, sparse state deltas, and Lua E2E coverage for replay flows.
 - Pre-push hook that runs CLI E2E, Lua E2E, app Playwright E2E, and showcase Playwright E2E before pushing.

@@ -21,6 +21,10 @@ function binary(op: string): Emit {
   return (i, o) => `float ${o.out} = ${i.a} ${op} ${i.b};`;
 }
 
+function vectorBinary(type: 'vec2' | 'vec3' | 'vec4', op: string): Emit {
+  return (i, o) => `${type} ${o.out} = ${i.a} ${op} ${i.b};`;
+}
+
 function halftoneChannel(base: string, uv: string, offset: string, scale: string, mode: string, out: string, prefix: string): string[] {
   return [
     `vec2 ${prefix}_offset = ${offset} / max(${scale}, 0.0001);`,
@@ -1564,6 +1568,126 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   },
 
   // ─── Vector (extended) ───────────────────────────────────────────────────────
+  AddVec2: {
+    category: 'Vector',
+    label: 'Add Vec2',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2' },
+      { id: 'b', label: 'B', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: vectorBinary('vec2', '+'),
+  },
+  AddVec3: {
+    category: 'Vector',
+    label: 'Add Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: vectorBinary('vec3', '+'),
+  },
+  AddVec4: {
+    category: 'Vector',
+    label: 'Add Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: vectorBinary('vec4', '+'),
+  },
+  SubtractVec2: {
+    category: 'Vector',
+    label: 'Subtract Vec2',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2' },
+      { id: 'b', label: 'B', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: vectorBinary('vec2', '-'),
+  },
+  SubtractVec3: {
+    category: 'Vector',
+    label: 'Subtract Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: vectorBinary('vec3', '-'),
+  },
+  SubtractVec4: {
+    category: 'Vector',
+    label: 'Subtract Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: vectorBinary('vec4', '-'),
+  },
+  MultiplyVec2: {
+    category: 'Vector',
+    label: 'Multiply Vec2',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2' },
+      { id: 'b', label: 'B', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: vectorBinary('vec2', '*'),
+  },
+  MultiplyVec3: {
+    category: 'Vector',
+    label: 'Multiply Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: vectorBinary('vec3', '*'),
+  },
+  MultiplyVec4: {
+    category: 'Vector',
+    label: 'Multiply Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: vectorBinary('vec4', '*'),
+  },
+  DivideVec2: {
+    category: 'Vector',
+    label: 'Divide Vec2',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2' },
+      { id: 'b', label: 'B', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: vectorBinary('vec2', '/'),
+  },
+  DivideVec3: {
+    category: 'Vector',
+    label: 'Divide Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: vectorBinary('vec3', '/'),
+  },
+  DivideVec4: {
+    category: 'Vector',
+    label: 'Divide Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: vectorBinary('vec4', '/'),
+  },
   CrossVec3: {
     category: 'Vector',
     label: 'Cross Vec3',
@@ -1594,6 +1718,16 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     ],
     outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
     emitGlsl: (i, o) => `vec2 ${o.out} = ${i.vec} * ${i.scale};`,
+  },
+  ScaleVec3: {
+    category: 'Vector',
+    label: 'Scale Vec3',
+    inputs: [
+      { id: 'vec', label: 'XYZ', type: 'vec3' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (i, o) => `vec3 ${o.out} = ${i.vec} * ${i.scale};`,
   },
   ScaleVec4: {
     category: 'Vector',
@@ -2325,9 +2459,22 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
       'LengthVec2',
       'NormalizeVec2',
       'DotVec2',
+      'AddVec2',
+      'AddVec3',
+      'AddVec4',
+      'SubtractVec2',
+      'SubtractVec3',
+      'SubtractVec4',
+      'MultiplyVec2',
+      'MultiplyVec3',
+      'MultiplyVec4',
+      'DivideVec2',
+      'DivideVec3',
+      'DivideVec4',
       'CrossVec3',
       'LerpVec4',
       'ScaleVec2',
+      'ScaleVec3',
       'ScaleVec4',
     ],
   },

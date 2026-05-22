@@ -131,6 +131,8 @@ Vector nodes convert between packed colors/vectors and scalar channels.
 - `Swizzle Vec2`: get `xy` and `yx` variants.
 - `Normalize`, `Length`, `Dot`: `vec4` RGB utility operations.
 - `Distance Vec2`, `Length Vec2`, `Normalize Vec2`, `Dot Vec2`: UV/vector math for 2D masks.
+- `Add`, `Subtract`, `Multiply`, and `Divide` variants for `vec2`, `vec3`, and `vec4`: component-wise vector math.
+- `Scale Vec2`, `Scale Vec3`, `Scale Vec4`: multiply a vector by a scalar.
 
 ### Color
 
