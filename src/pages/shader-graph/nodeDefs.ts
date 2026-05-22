@@ -51,6 +51,31 @@ function patternStripeMask(coord: string, widths: string, out: string): string[]
   ];
 }
 
+function pixelBasis(uv: string, position: string, out: string): string[] {
+  return [
+    `vec2 ${out}_f = ${uv} - ${position};`,
+    `vec2 ${out}_dx = dFdx(${uv});`,
+    `vec2 ${out}_dy = dFdy(${uv});`,
+    `float ${out}_det = ${out}_dx.x * ${out}_dy.y - ${out}_dx.y * ${out}_dy.x;`,
+    `float ${out}_inv_det = 1.0 / (abs(${out}_det) < 0.000001 ? 0.000001 : ${out}_det);`,
+  ];
+}
+
+function pixelLineCross(uv: string, position: string, direction: string, out: string, derivativeUv = uv): string[] {
+  return [
+    `vec2 ${out}_d = ${direction};`,
+    `vec2 ${out}_f = ${uv} - ${position};`,
+    `vec2 ${out}_dx = dFdx(${derivativeUv});`,
+    `vec2 ${out}_dy = dFdy(${derivativeUv});`,
+    `float ${out}_denom_x = ${out}_dx.y * ${out}_d.x - ${out}_dx.x * ${out}_d.y;`,
+    `float ${out}_denom_y = ${out}_dy.y * ${out}_d.x - ${out}_dy.x * ${out}_d.y;`,
+    `${out}_denom_x = abs(${out}_denom_x) < 0.000001 ? 0.000001 : ${out}_denom_x;`,
+    `${out}_denom_y = abs(${out}_denom_y) < 0.000001 ? 0.000001 : ${out}_denom_y;`,
+    `float ${out}_q1 = (${out}_d.x * ${out}_f.y - ${out}_d.y * ${out}_f.x) / ${out}_denom_x;`,
+    `float ${out}_q2 = (${out}_d.x * ${out}_f.y - ${out}_d.y * ${out}_f.x) / ${out}_denom_y;`,
+  ];
+}
+
 export const NODE_DEFS: Record<NodeType, NodeDef> = {
   // ─── Input ──────────────────────────────────────────────────────────────────
   TextureColor: {
@@ -744,6 +769,184 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
     emitGlsl: (i, o) =>
       `vec2 ${o.out}_cells = max(vec2(1.0), love_ScreenSize.xy / max(${i.amount}, 1.0));\nvec2 ${o.out} = floor(${i.uv} * ${o.out}_cells) / ${o.out}_cells;`,
+  },
+
+  // ─── Pixel Perfect ──────────────────────────────────────────────────────────
+  PixelPoint: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Point',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      ...pixelBasis(i.uv, i.position, o.out),
+      `float ${o.out}_tx = (${o.out}_dy.y * ${o.out}_f.x - ${o.out}_dy.x * ${o.out}_f.y) * ${o.out}_inv_det;`,
+      `float ${o.out}_ty = (-${o.out}_dx.y * ${o.out}_f.x + ${o.out}_dx.x * ${o.out}_f.y) * ${o.out}_inv_det;`,
+      `float ${o.out} = (${o.out}_tx > -0.5 && ${o.out}_tx <= 0.5 && ${o.out}_ty > -0.5 && ${o.out}_ty <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelPointGrid: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Point Grid',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.1, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_nearest = ${i.position} + max(${i.width}, 0.0001) * floor((${i.uv} - ${i.position}) / max(${i.width}, 0.0001) + vec2(0.5));`,
+      ...pixelBasis(i.uv, `${o.out}_nearest`, o.out),
+      `float ${o.out}_tx = (${o.out}_dy.y * ${o.out}_f.x - ${o.out}_dy.x * ${o.out}_f.y) * ${o.out}_inv_det;`,
+      `float ${o.out}_ty = (-${o.out}_dx.y * ${o.out}_f.x + ${o.out}_dx.x * ${o.out}_f.y) * ${o.out}_inv_det;`,
+      `float ${o.out} = (${o.out}_tx > -0.5 && ${o.out}_tx <= 0.5 && ${o.out}_ty > -0.5 && ${o.out}_ty <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelRay: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Ray',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'direction', label: 'Direction', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      ...pixelLineCross(i.uv, i.position, i.direction, o.out),
+      `float ${o.out} = (${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelRays: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Rays',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'direction', label: 'Direction', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.1, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_normal = normalize(vec2(-${i.direction}.y, ${i.direction}.x));`,
+      `vec2 ${o.out}_nearest = ${i.uv} - max(${i.width}, 0.0001) * floor(dot(${o.out}_normal, ${i.uv} - ${i.position}) / max(${i.width}, 0.0001) + 0.5) * ${o.out}_normal;`,
+      ...pixelLineCross(`${o.out}_nearest`, i.position, i.direction, o.out, i.uv),
+      `float ${o.out} = (${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelLine: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Line',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [0.2, 0.25], min: 0, max: 1, step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [0.8, 0.75], min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_d = ${i.b} - ${i.a};`,
+      `vec2 ${o.out}_f = ${i.uv} - ${i.a};`,
+      `vec2 ${o.out}_dx = dFdx(${i.uv});`,
+      `vec2 ${o.out}_dy = dFdy(${i.uv});`,
+      `float ${o.out}_denom1 = ${o.out}_dx.y * ${o.out}_d.x - ${o.out}_dx.x * ${o.out}_d.y;`,
+      `float ${o.out}_denom2 = ${o.out}_dy.y * ${o.out}_d.x - ${o.out}_dy.x * ${o.out}_d.y;`,
+      `${o.out}_denom1 = abs(${o.out}_denom1) < 0.000001 ? 0.000001 : ${o.out}_denom1;`,
+      `${o.out}_denom2 = abs(${o.out}_denom2) < 0.000001 ? 0.000001 : ${o.out}_denom2;`,
+      `float ${o.out}_inv1 = 1.0 / ${o.out}_denom1;`,
+      `float ${o.out}_inv2 = 1.0 / ${o.out}_denom2;`,
+      `float ${o.out}_p1 = -(${o.out}_dx.x * ${o.out}_f.y - ${o.out}_dx.y * ${o.out}_f.x) * ${o.out}_inv1;`,
+      `float ${o.out}_q1 = (${o.out}_d.x * ${o.out}_f.y - ${o.out}_d.y * ${o.out}_f.x) * ${o.out}_inv1;`,
+      `float ${o.out}_p2 = -(${o.out}_dy.x * ${o.out}_f.y - ${o.out}_dy.y * ${o.out}_f.x) * ${o.out}_inv2;`,
+      `float ${o.out}_q2 = (${o.out}_d.x * ${o.out}_f.y - ${o.out}_d.y * ${o.out}_f.x) * ${o.out}_inv2;`,
+      `float ${o.out} = (${o.out}_p1 >= 0.0 && ${o.out}_p1 <= 1.0 && ${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_p2 >= 0.0 && ${o.out}_p2 <= 1.0 && ${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelLines: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Lines',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [0.2, 0.25], min: 0, max: 1, step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [0.8, 0.75], min: 0, max: 1, step: 0.01 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.1, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_d0 = ${i.b} - ${i.a};`,
+      `vec2 ${o.out}_normal = normalize(vec2(-${o.out}_d0.y, ${o.out}_d0.x));`,
+      `vec2 ${o.out}_shifted_uv = ${i.uv} - max(${i.width}, 0.0001) * floor(dot(${o.out}_normal, ${i.uv} - ${i.a}) / max(${i.width}, 0.0001) + 0.5) * ${o.out}_normal;`,
+      `vec2 ${o.out}_d = ${o.out}_d0;`,
+      `vec2 ${o.out}_f = ${o.out}_shifted_uv - ${i.a};`,
+      `vec2 ${o.out}_dx = dFdx(${i.uv});`,
+      `vec2 ${o.out}_dy = dFdy(${i.uv});`,
+      `float ${o.out}_denom1 = ${o.out}_dx.y * ${o.out}_d.x - ${o.out}_dx.x * ${o.out}_d.y;`,
+      `float ${o.out}_denom2 = ${o.out}_dy.y * ${o.out}_d.x - ${o.out}_dy.x * ${o.out}_d.y;`,
+      `${o.out}_denom1 = abs(${o.out}_denom1) < 0.000001 ? 0.000001 : ${o.out}_denom1;`,
+      `${o.out}_denom2 = abs(${o.out}_denom2) < 0.000001 ? 0.000001 : ${o.out}_denom2;`,
+      `float ${o.out}_inv1 = 1.0 / ${o.out}_denom1;`,
+      `float ${o.out}_inv2 = 1.0 / ${o.out}_denom2;`,
+      `float ${o.out}_p1 = -(${o.out}_dx.x * ${o.out}_f.y - ${o.out}_dx.y * ${o.out}_f.x) * ${o.out}_inv1;`,
+      `float ${o.out}_q1 = (${o.out}_d.x * ${o.out}_f.y - ${o.out}_d.y * ${o.out}_f.x) * ${o.out}_inv1;`,
+      `float ${o.out}_p2 = -(${o.out}_dy.x * ${o.out}_f.y - ${o.out}_dy.y * ${o.out}_f.x) * ${o.out}_inv2;`,
+      `float ${o.out}_q2 = (${o.out}_d.x * ${o.out}_f.y - ${o.out}_d.y * ${o.out}_f.x) * ${o.out}_inv2;`,
+      `float ${o.out} = (${o.out}_p1 >= 0.0 && ${o.out}_p1 <= 1.0 && ${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_p2 >= 0.0 && ${o.out}_p2 <= 1.0 && ${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelCircle: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Circle',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'center', label: 'Center', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.35, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_f = ${i.uv} - ${i.center};`,
+      `vec2 ${o.out}_dx = dFdx(${i.uv});`,
+      `vec2 ${o.out}_dy = dFdy(${i.uv});`,
+      `float ${o.out}_r2 = ${i.radius} * ${i.radius};`,
+      `vec2 ${o.out}_fx1 = ${o.out}_f - 0.5 * ${o.out}_dx;`,
+      `vec2 ${o.out}_fx2 = ${o.out}_f + 0.5 * ${o.out}_dx;`,
+      `vec2 ${o.out}_fy1 = ${o.out}_f - 0.5 * ${o.out}_dy;`,
+      `vec2 ${o.out}_fy2 = ${o.out}_f + 0.5 * ${o.out}_dy;`,
+      `float ${o.out} = ((dot(${o.out}_fx1, ${o.out}_fx1) - ${o.out}_r2) * (dot(${o.out}_fx2, ${o.out}_fx2) - ${o.out}_r2) <= 0.0 || (dot(${o.out}_fy1, ${o.out}_fy1) - ${o.out}_r2) * (dot(${o.out}_fy2, ${o.out}_fy2) - ${o.out}_r2) <= 0.0) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelPolygon: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Polygon',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'center', label: 'Center', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.35, min: 0.001, max: 1, step: 0.01 },
+      { id: 'sides', label: 'Sides', type: 'float', defaultValue: 6, min: 3, max: 12, step: 1 },
+      { id: 'angle', label: 'Angle', type: 'float', defaultValue: 0, min: -360, max: 360, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_f = ${i.uv} - ${i.center};`,
+      `float ${o.out}_angle = radians(${i.angle});`,
+      `float ${o.out}_sa = sin(${o.out}_angle);`,
+      `float ${o.out}_ca = cos(${o.out}_angle);`,
+      `${o.out}_f = vec2(${o.out}_f.y * ${o.out}_sa + ${o.out}_f.x * ${o.out}_ca, ${o.out}_f.y * ${o.out}_ca - ${o.out}_f.x * ${o.out}_sa);`,
+      `float ${o.out}_sector = 6.28318530718 / max(${i.sides}, 3.0);`,
+      `float ${o.out}_theta = atan(${o.out}_f.y, ${o.out}_f.x);`,
+      `float ${o.out}_snap = floor(${o.out}_theta / ${o.out}_sector + 0.5) * ${o.out}_sector;`,
+      `vec2 ${o.out}_d = vec2(sin(${o.out}_snap), -cos(${o.out}_snap));`,
+      `vec2 ${o.out}_normal = vec2(cos(${o.out}_snap), sin(${o.out}_snap));`,
+      `vec2 ${o.out}_edge_f = ${o.out}_f - ${o.out}_normal * ${i.radius};`,
+      `vec2 ${o.out}_dx = dFdx(${i.uv});`,
+      `vec2 ${o.out}_dy = dFdy(${i.uv});`,
+      `float ${o.out}_denom_x = ${o.out}_dx.y * ${o.out}_d.x - ${o.out}_dx.x * ${o.out}_d.y;`,
+      `float ${o.out}_denom_y = ${o.out}_dy.y * ${o.out}_d.x - ${o.out}_dy.x * ${o.out}_d.y;`,
+      `${o.out}_denom_x = abs(${o.out}_denom_x) < 0.000001 ? 0.000001 : ${o.out}_denom_x;`,
+      `${o.out}_denom_y = abs(${o.out}_denom_y) < 0.000001 ? 0.000001 : ${o.out}_denom_y;`,
+      `float ${o.out}_q1 = (${o.out}_d.x * ${o.out}_edge_f.y - ${o.out}_d.y * ${o.out}_edge_f.x) / ${o.out}_denom_x;`,
+      `float ${o.out}_q2 = (${o.out}_d.x * ${o.out}_edge_f.y - ${o.out}_d.y * ${o.out}_edge_f.x) / ${o.out}_denom_y;`,
+      `float ${o.out} = (${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
   },
   ChromaticAberration: {
     category: 'Effect',
@@ -1585,6 +1788,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Noise: 'border-l-green-500',
   Pattern: 'border-l-emerald-500',
   Halftone: 'border-l-lime-500',
+  'Pixel Perfect': 'border-l-sky-500',
   UV: 'border-l-indigo-500',
   Effect: 'border-l-cyan-500',
   Output: 'border-l-red-500',
@@ -1671,6 +1875,7 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
   { category: 'Noise', nodes: ['SimpleNoise', 'GradientNoise', 'FBMNoise', 'TruchetTiles', 'Ripple', 'VoronoiCells', 'Checkerboard'] },
   { category: 'Pattern', nodes: ['PatternZigZag', 'PatternSineWaves', 'PatternRoundWaves', 'PatternDots', 'PatternSpiral', 'PatternWhirl'] },
   { category: 'Halftone', nodes: ['HalftoneMono', 'HalftoneColor'] },
+  { category: 'Pixel Perfect', nodes: ['PixelPoint', 'PixelPointGrid', 'PixelRay', 'PixelRays', 'PixelLine', 'PixelLines', 'PixelCircle', 'PixelPolygon'] },
   { category: 'UV', nodes: ['TilingOffset', 'RotateUV', 'TwirlUV', 'PolarCoordinates', 'ZoomUV', 'FlipUV'] },
   {
     category: 'Effect',

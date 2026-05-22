@@ -83,6 +83,14 @@ export const NODE_TYPES = [
   'Vignette',
   'Pixelate',
   'ChromaticAberration',
+  'PixelPoint',
+  'PixelPointGrid',
+  'PixelRay',
+  'PixelRays',
+  'PixelLine',
+  'PixelLines',
+  'PixelCircle',
+  'PixelPolygon',
   'FragmentOutput',
   'VertexPosition',
   'VertexWave2D',
@@ -149,7 +157,7 @@ export const NODE_TYPES = [
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
+export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;

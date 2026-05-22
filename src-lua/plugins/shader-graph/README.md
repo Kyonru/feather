@@ -116,6 +116,19 @@ Halftone nodes create print-style dot patterns from grayscale or RGB input.
 - `Halftone Color`: applies separate red, green, and blue halftone screens. `Mode` is stepped from `0` to `2`: `0` Circle, `1` Smooth, `2` Square.
   `Scale` controls dot density: higher values make smaller, denser dots; lower values make larger, more separated dots.
 
+### Pixel Perfect
+
+Pixel Perfect nodes create derivative-based one-pixel primitive masks. They are useful for crisp procedural guides, outlines, reticles, scan marks, debug overlays, and pixel-art effects. Use `Pixelate` when you want chunky texture sampling; use these nodes when you want exact single-pixel marks.
+
+- `Pixel Point`: one-pixel mask at a UV position.
+- `Pixel Point Grid`: repeating one-pixel point grid.
+- `Pixel Ray`: one-pixel infinite ray.
+- `Pixel Rays`: repeated parallel one-pixel rays.
+- `Pixel Line`: one-pixel line segment between two UV points.
+- `Pixel Lines`: repeated one-pixel line segments.
+- `Pixel Circle`: one-pixel circular outline.
+- `Pixel Polygon`: one-pixel regular polygon outline.
+
 ### UV
 
 UV nodes transform texture coordinates before sampling.
@@ -194,6 +207,7 @@ The Shader Graph page includes complete preset graphs:
 - **Hit Flash**: damage/selection flash.
 - **Rim Glow**: 2D fresnel-style edge glow.
 - **Pixelate**: retro low-resolution sampling.
+- **Pixel Perfect Circle**: one-pixel circular ink line over the source texture.
 - **Chromatic Aberration**: RGB channel split with an editable center offset.
 - **Alpha Composite**: Porter-Duff compositing between overlapping procedural shapes.
 - **Lab Complementary**: perceptual complementary color mix using Lab/LCH color space.
