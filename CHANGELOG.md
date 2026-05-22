@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI Fastlane draft support
 - Lua plugin unit tests
 - Lua callback bus with priority overrides
+- Standalone Showcase build for trying Shader Graph and Particle System Playground in the browser without connecting a game.
+- Static love.js preview bridge for standalone shader and particle previews, including showcase build/preview scripts and a publishing workflow.
+- Shader Graph custom function, texture input, texture uniform color, texture upload, and preview texture support.
+- Expanded Shader Graph node library with complex math, quaternion operations, symmetry, random, pixel-perfect primitives, patterns, halftone, Lab color helpers, composite, Truchet tiles, improved SDF nodes, and broader vertex shader authoring.
+- Shader Graph preset and UI improvements for graph authoring, node inspection, code preview, and standalone preview controls.
+- Session Replay checkpoints, seeking, baseline restore, sparse state deltas, and Lua E2E coverage for replay flows.
+- Pre-push hook that runs CLI E2E, Lua E2E, app Playwright E2E, and showcase Playwright E2E before pushing.
 
 ### Changed
 
@@ -29,6 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved CLI Linux vendoring
 - Updated roadmap
 - Shim hooks on load
+- Improved standalone Shader Graph and Particle System Playground ergonomics, including local in-browser state for showcase mode.
+- Improved Shader Graph WebGL preview adaptation for LÖVE shader syntax and precision-qualified uniforms.
+- Improved Particle System Playground preview payload handling and emitter list behavior.
+- Improved Lua E2E reliability in headless CI by disabling audio for E2E runs and making the Lua E2E timeout configurable.
+- Improved audio-debug behavior when `love.audio` is unavailable, allowing headless smoke tests to run.
+- Improved doctor reporting for dangerous installed plugins even when bundled catalog data is unavailable or stale.
+- Moved standalone showcase deployment toward Railway hosting so love.js previews can be served with COOP/COEP/CSP headers.
 
 ### Fixed
 
@@ -36,6 +50,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed optimistic plugin updates
 - Fixed input replay
 - Fixed stack overflow on LÖVE hooks
+- Fixed Shader Graph `u_time` precision mismatch between vertex and fragment shaders in love.js/WebGL.
+- Fixed Shader Graph rounded functions and generated GLSL/WebGL preview handling.
+- Fixed standalone showcase Playwright coverage so the showcase test runs only in the dedicated showcase config and uses current preview iframe selectors.
+- Fixed CLI Linux AppImage vendor extraction fallback to use `unsquashfs -offset` when direct AppImage execution fails or is non-native.
+- Fixed CI-only Lua E2E ALSA/audio startup failures in xvfb environments.
+- Fixed doctor E2E fixture setup for dangerous bundled plugin trust checks.
+
+### Tests
+
+- Added standalone showcase Playwright smoke test and dedicated showcase Playwright config.
+- Added Lua plugin E2E smoke coverage, including session replay flows.
+- Added CLI doctor trust coverage for unknown and dangerous installed plugins.
+- Added CLI Linux AppImage fallback tests for `unsquashfs` offset detection and actionable extraction errors.
+- Added pre-push local verification for CLI, Lua, app, and showcase E2E lanes.
 
 ## [v1.2.0] - 2026-05-19 - The one with the shader and particles playground
 

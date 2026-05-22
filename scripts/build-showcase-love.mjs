@@ -28,7 +28,7 @@ await writeFile(
     '',
     'This branch contains generated static files for the Feather standalone showcase.',
     '',
-    'The `/showcase-lovejs/` path is the isolated LÖVE preview boundary. When replacing the included bridge with the full 2dengine love.js player, serve this path with:',
+    'The `./showcase-lovejs/` path is the isolated LÖVE preview boundary. When replacing the included bridge with the full 2dengine love.js player, serve this path with:',
     '',
     '- `Cross-Origin-Opener-Policy: same-origin`',
     '- `Cross-Origin-Embedder-Policy: require-corp`',

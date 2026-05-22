@@ -34,6 +34,7 @@
     "showcase:build": "tsc --noEmit -p tsconfig.json --composite false && vite build --config vite.showcase.config.ts && node scripts/prepare-showcase-lovejs.mjs && node scripts/build-showcase-love.mjs",
     "showcase:prepare-lovejs": "node scripts/prepare-showcase-lovejs.mjs",
     "showcase:preview": "vite preview --config vite.showcase.config.ts",
+    "showcase:start": "node scripts/serve-showcase.mjs",
     "preview": "vite preview",
     "typecheck:web": "tsc --noEmit -p tsconfig.json --composite false",
     "typecheck:lua": "luacheck src-lua",

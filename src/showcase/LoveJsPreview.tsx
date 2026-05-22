@@ -23,6 +23,7 @@ export function LoveJsPreview({ title, description, payload, className, floating
   const loadedRef = useRef(false);
   const payloadRef = useRef(payload);
   const [minimized, setMinimized] = useState(false);
+  const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/index.html?g=showcase.love&v=11.5`;
 
   // Drag
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
@@ -130,7 +131,7 @@ export function LoveJsPreview({ title, description, payload, className, floating
             <iframe
               ref={iframeRef}
               title={title}
-              src="/showcase-lovejs/index.html?g=showcase.love&v=11.5"
+              src={previewSrc}
               className="block h-full w-full border-0"
               onLoad={handleLoad}
             />
@@ -171,7 +172,7 @@ export function LoveJsPreview({ title, description, payload, className, floating
         <iframe
           ref={iframeRef}
           title={title}
-          src="/showcase-lovejs/index.html?g=showcase.love&v=11.5"
+          src={previewSrc}
           className="h-full min-h-72 w-full border-0"
           onLoad={handleLoad}
         />
