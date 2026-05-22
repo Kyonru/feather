@@ -1121,6 +1121,72 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     emitGlsl: (i, o) => `float ${o.out} = atan(${i.y}, ${i.x});`,
   },
 
+  // ─── Complex ────────────────────────────────────────────────────────────────
+  ComplexConjugate: {
+    category: 'Complex',
+    label: 'Complex Conjugate',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2', defaultValue: [0.5, 0.25], step: 0.01 }],
+    outputs: [{ id: 'out', label: 'A*', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(${i.a}.x, -${i.a}.y);`,
+  },
+  ComplexReciprocal: {
+    category: 'Complex',
+    label: 'Complex Reciprocal',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2', defaultValue: [1, 0], step: 0.01 }],
+    outputs: [{ id: 'out', label: '1 / A', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(${i.a}.x, -${i.a}.y) / max(dot(${i.a}, ${i.a}), 0.000001);`,
+  },
+  ComplexMultiply: {
+    category: 'Complex',
+    label: 'Complex Multiply',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [0, 1], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'A x B', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(${i.a}.x * ${i.b}.x - ${i.a}.y * ${i.b}.y, ${i.a}.x * ${i.b}.y + ${i.a}.y * ${i.b}.x);`,
+  },
+  ComplexDivide: {
+    category: 'Complex',
+    label: 'Complex Divide',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'A / B', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(${i.a}.x * ${i.b}.x + ${i.a}.y * ${i.b}.y, ${i.a}.y * ${i.b}.x - ${i.a}.x * ${i.b}.y) / max(dot(${i.b}, ${i.b}), 0.000001);`,
+  },
+  ComplexExp: {
+    category: 'Complex',
+    label: 'Complex Exp',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2', defaultValue: [0, 1], step: 0.01 }],
+    outputs: [{ id: 'out', label: 'e^A', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = exp(${i.a}.x) * vec2(cos(${i.a}.y), sin(${i.a}.y));`,
+  },
+  ComplexLog: {
+    category: 'Complex',
+    label: 'Complex Log',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2', defaultValue: [1, 0], step: 0.01 }],
+    outputs: [{ id: 'out', label: 'log(A)', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(0.5 * log(max(dot(${i.a}, ${i.a}), 0.000001)), atan(${i.a}.y, ${i.a}.x));`,
+  },
+  ComplexPower: {
+    category: 'Complex',
+    label: 'Complex Power',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [0.5, 0.5], step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [2, 0], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'A^B', type: 'vec2' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_arg = atan(${i.a}.y, ${i.a}.x);`,
+      `float ${o.out}_len2 = max(dot(${i.a}, ${i.a}), 0.000001);`,
+      `float ${o.out}_angle = ${i.b}.x * ${o.out}_arg + 0.5 * ${i.b}.y * log(${o.out}_len2);`,
+      `float ${o.out}_scale = pow(${o.out}_len2, 0.5 * ${i.b}.x) * exp(-${i.b}.y * ${o.out}_arg);`,
+      `vec2 ${o.out} = ${o.out}_scale * vec2(cos(${o.out}_angle), sin(${o.out}_angle));`,
+    ].join('\n'),
+  },
+
   // ─── Vector (extended) ───────────────────────────────────────────────────────
   CrossVec3: {
     category: 'Vector',
@@ -1782,6 +1848,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
 export const CATEGORY_COLORS: Record<string, string> = {
   Input: 'border-l-blue-500',
   Math: 'border-l-orange-500',
+  Complex: 'border-l-amber-500',
   Vector: 'border-l-purple-500',
   Color: 'border-l-pink-500',
   Composite: 'border-l-rose-500',
@@ -1845,6 +1912,7 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
       'Atan2',
     ],
   },
+  { category: 'Complex', nodes: ['ComplexConjugate', 'ComplexReciprocal', 'ComplexMultiply', 'ComplexDivide', 'ComplexExp', 'ComplexLog', 'ComplexPower'] },
   {
     category: 'Vector',
     nodes: [

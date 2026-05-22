@@ -52,6 +52,18 @@ Math nodes shape scalar values. They are most useful for masks, thresholds, anim
 - `Min`, `Max`, `Modulo`, `Negate`, `Saturate`: scalar shaping and bounds.
 - `Remap`: convert one scalar range into another, useful for mask tuning.
 
+### Complex
+
+Complex nodes treat a `vec2` as a complex number, where `x` is the real component and `y` is the imaginary component. They are useful for procedural UV warps, conformal-style transforms, spirals, inversions, and math-driven pattern generation.
+
+- `Complex Conjugate`: outputs `(x, -y)`.
+- `Complex Reciprocal`: outputs `1 / A`.
+- `Complex Multiply`: multiplies two complex values.
+- `Complex Divide`: divides one complex value by another.
+- `Complex Exp`: complex exponential.
+- `Complex Log`: complex logarithm.
+- `Complex Power`: raises one complex value to another.
+
 ### Vector
 
 Vector nodes convert between packed colors/vectors and scalar channels.
@@ -214,6 +226,7 @@ The Shader Graph page includes complete preset graphs:
 - **Posterize**: toon/retro color bands.
 - **Halftone Dots**: comic-print treatment with posterized color, RGB dot screens, warm paper tint, and vignette.
 - **Twirl Portal**: centered UV swirl.
+- **Complex Power Warp**: bends centered UVs with complex-number power math.
 - **Rotating Texture**: time-driven UV rotation.
 - **Checker Flash**: checker mask mixed into a flash color.
 - **Pattern Whirl**: radial procedural whirl mask mixed into the texture.

@@ -111,6 +111,14 @@ export const NODE_TYPES = [
   'Log',
   'Exp',
   'Atan2',
+  // Complex
+  'ComplexConjugate',
+  'ComplexReciprocal',
+  'ComplexMultiply',
+  'ComplexDivide',
+  'ComplexExp',
+  'ComplexLog',
+  'ComplexPower',
   // Vector
   'CrossVec3',
   'LerpVec4',
@@ -157,7 +165,7 @@ export const NODE_TYPES = [
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
+export type NodeCategory = 'Input' | 'Math' | 'Complex' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;
