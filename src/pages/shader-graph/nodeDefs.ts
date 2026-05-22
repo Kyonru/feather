@@ -1038,6 +1038,87 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     emitGlsl: (i, o) => `vec4 ${o.out} = vec4(pow(clamp(${i.color}.rgb, 0.0001, 1.0), vec3(1.0 / max(${i.gamma}, 0.0001))), ${i.color}.a);`,
   },
 
+  // ─── Lab/LCH color helpers ──────────────────────────────────────────────────
+  LabColorConvert: {
+    category: 'Color',
+    label: 'Lab Convert',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'from', label: 'From', type: 'float', defaultValue: 0, min: 0, max: 2, step: 1 },
+      { id: 'to', label: 'To', type: 'float', defaultValue: 1, min: 0, max: 2, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Color', type: 'vec4' }],
+    helperKey: 'lab-color',
+    emitGlsl: (i, o) => [
+      `float ${o.out}_from = clamp(floor(${i.from} + 0.5), 0.0, 2.0);`,
+      `float ${o.out}_to = clamp(floor(${i.to} + 0.5), 0.0, 2.0);`,
+      `vec3 ${o.out}_lab = ${i.color}.rgb;`,
+      `if (${o.out}_from < 0.5) { ${o.out}_lab = feather_rgb_to_lab(${i.color}.rgb); }`,
+      `else if (${o.out}_from > 1.5) { ${o.out}_lab = feather_lch_to_lab(${i.color}.rgb); }`,
+      `vec3 ${o.out}_converted = ${o.out}_lab;`,
+      `if (${o.out}_to < 0.5) { ${o.out}_converted = feather_lab_to_rgb(${o.out}_lab); }`,
+      `else if (${o.out}_to > 1.5) { ${o.out}_converted = feather_lab_to_lch(${o.out}_lab); }`,
+      `vec4 ${o.out} = vec4(${o.out}_converted, ${i.color}.a);`,
+    ].join('\n'),
+  },
+  LabComplementary: {
+    category: 'Color',
+    label: 'Lab Complementary',
+    inputs: [{ id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 }],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    helperKey: 'lab-color',
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_lab = feather_rgb_to_lab(${i.color}.rgb);`,
+      `${o.out}_lab.yz = -${o.out}_lab.yz;`,
+      `vec4 ${o.out} = vec4(feather_lab_to_rgb(${o.out}_lab), ${i.color}.a);`,
+    ].join('\n'),
+  },
+  LabSplitScheme: {
+    category: 'Color',
+    label: 'Lab Split Scheme',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'angle', label: 'Angle', type: 'float', defaultValue: 120, min: 0, max: 180, step: 1 },
+    ],
+    outputs: [
+      { id: 'plus', label: '+Angle', type: 'vec4' },
+      { id: 'minus', label: '-Angle', type: 'vec4' },
+    ],
+    helperKey: 'lab-color',
+    emitGlsl: (i, o) => [
+      `vec3 ${o.plus}_lch = feather_lab_to_lch(feather_rgb_to_lab(${i.color}.rgb));`,
+      `float ${o.plus}_angle = radians(${i.angle});`,
+      `vec3 ${o.plus}_plus_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z + ${o.plus}_angle));`,
+      `vec3 ${o.plus}_minus_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z - ${o.plus}_angle));`,
+      `vec4 ${o.plus} = vec4(feather_lab_to_rgb(${o.plus}_plus_lab), ${i.color}.a);`,
+      `vec4 ${o.minus} = vec4(feather_lab_to_rgb(${o.plus}_minus_lab), ${i.color}.a);`,
+    ].join('\n'),
+  },
+  LabDualScheme: {
+    category: 'Color',
+    label: 'Lab Dual Scheme',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'angle', label: 'Angle', type: 'float', defaultValue: 90, min: 0, max: 180, step: 1 },
+    ],
+    outputs: [
+      { id: 'plus', label: '+Angle', type: 'vec4' },
+      { id: 'opposite', label: 'Opposite', type: 'vec4' },
+      { id: 'oppositePlus', label: 'Opposite +Angle', type: 'vec4' },
+    ],
+    helperKey: 'lab-color',
+    emitGlsl: (i, o) => [
+      `vec3 ${o.plus}_lch = feather_lab_to_lch(feather_rgb_to_lab(${i.color}.rgb));`,
+      `float ${o.plus}_angle = radians(${i.angle});`,
+      `vec3 ${o.plus}_plus_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z + ${o.plus}_angle));`,
+      `vec3 ${o.plus}_opposite_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z + 3.14159265359));`,
+      `vec3 ${o.plus}_opposite_plus_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z + 3.14159265359 + ${o.plus}_angle));`,
+      `vec4 ${o.plus} = vec4(feather_lab_to_rgb(${o.plus}_plus_lab), ${i.color}.a);`,
+      `vec4 ${o.opposite} = vec4(feather_lab_to_rgb(${o.plus}_opposite_lab), ${i.color}.a);`,
+      `vec4 ${o.oppositePlus} = vec4(feather_lab_to_rgb(${o.plus}_opposite_plus_lab), ${i.color}.a);`,
+    ].join('\n'),
+  },
+
   // ─── Noise (extended) ────────────────────────────────────────────────────────
   GradientNoise: {
     category: 'Noise',
@@ -1459,7 +1540,7 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
       'ScaleVec4',
     ],
   },
-  { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift', 'InvertColor', 'Contrast', 'PosterizeColor', 'MultiplyColor', 'BlendAdd', 'BlendScreen', 'BlendOverlay', 'Brightness', 'GammaCorrect'] },
+  { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift', 'InvertColor', 'Contrast', 'PosterizeColor', 'MultiplyColor', 'BlendAdd', 'BlendScreen', 'BlendOverlay', 'Brightness', 'GammaCorrect', 'LabColorConvert', 'LabComplementary', 'LabSplitScheme', 'LabDualScheme'] },
   { category: 'Composite', nodes: ['CompositeAlpha'] },
   { category: 'Noise', nodes: ['SimpleNoise', 'GradientNoise', 'FBMNoise', 'TruchetTiles', 'Ripple', 'VoronoiCells', 'Checkerboard'] },
   { category: 'Halftone', nodes: ['HalftoneMono', 'HalftoneColor'] },

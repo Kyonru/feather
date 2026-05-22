@@ -14,6 +14,33 @@ const NOISE_HELPER = [
   '}',
 ].join('\n');
 
+const LAB_COLOR_HELPER = [
+  'vec3 feather_lab_f(vec3 t) {',
+  '  return mix(7.7870370374 * t + vec3(0.13793103448), pow(max(t, vec3(0.0)), vec3(0.3333333333)), step(vec3(0.00885645167), t));',
+  '}',
+  'vec3 feather_lab_f_inv(vec3 t) {',
+  '  return mix(0.12841854934 * (t - vec3(0.13793103448)), t * t * t, step(vec3(0.20689655172), t));',
+  '}',
+  'vec3 feather_rgb_to_lab(vec3 rgb) {',
+  '  mat3 rgbToXyz = mat3(0.4124564, 0.2126729, 0.0193339, 0.3575761, 0.7151522, 0.1191920, 0.1804375, 0.0721750, 0.9503041);',
+  '  vec3 xyz = (rgbToXyz * clamp(rgb, 0.0, 1.0)) / vec3(0.95047, 1.0, 1.08883);',
+  '  vec3 f = feather_lab_f(xyz);',
+  '  return vec3(116.0 * f.y - 16.0, 500.0 * (f.x - f.y), 200.0 * (f.y - f.z));',
+  '}',
+  'vec3 feather_lab_to_rgb(vec3 lab) {',
+  '  mat3 xyzToRgb = mat3(3.2404542, -0.9692660, 0.0556434, -1.5371385, 1.8760108, -0.2040259, -0.4985314, 0.0415560, 1.0572252);',
+  '  vec3 f = vec3(lab.y / 500.0, 0.0, -lab.z / 200.0) + vec3((lab.x + 16.0) / 116.0);',
+  '  vec3 xyz = vec3(0.95047, 1.0, 1.08883) * feather_lab_f_inv(f);',
+  '  return clamp(xyzToRgb * xyz, 0.0, 1.0);',
+  '}',
+  'vec3 feather_lab_to_lch(vec3 lab) {',
+  '  return vec3(lab.x, length(lab.yz), atan(lab.z, lab.y));',
+  '}',
+  'vec3 feather_lch_to_lab(vec3 lch) {',
+  '  return vec3(lch.x, lch.y * cos(lch.z), lch.y * sin(lch.z));',
+  '}',
+].join('\n');
+
 function varName(nodeId: string, portId: string): string {
   return `v_${nodeId.replace(/[^a-zA-Z0-9_]/g, '_')}_${portId.replace(/[^a-zA-Z0-9_]/g, '_')}`;
 }
@@ -113,11 +140,11 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
   const reachable = collectReachable(fragOut.id, nodes, edges);
 
   const externSet = new Set<string>();
-  let needsNoise = false;
+  const helperKeys = new Set<string>();
   for (const node of reachable) {
     const def = NODE_DEFS[node.data.nodeType];
     def?.externs?.forEach((e) => externSet.add(e));
-    if (def?.helperKey === 'noise') needsNoise = true;
+    if (def?.helperKey) helperKeys.add(def.helperKey);
   }
 
   let vertReachable: ShaderNodeInstance[] = [];
@@ -126,7 +153,7 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
     for (const node of vertReachable) {
       const def = NODE_DEFS[node.data.nodeType];
       def?.externs?.forEach((e) => externSet.add(e));
-      if (def?.helperKey === 'noise') needsNoise = true;
+      if (def?.helperKey) helperKeys.add(def.helperKey);
     }
   }
 
@@ -144,7 +171,8 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
 
   const parts: string[] = [];
   if (externSet.size) parts.push([...externSet].join('\n'));
-  if (needsNoise) parts.push(NOISE_HELPER);
+  if (helperKeys.has('noise')) parts.push(NOISE_HELPER);
+  if (helperKeys.has('lab-color')) parts.push(LAB_COLOR_HELPER);
   parts.push(buildEffect(bodyLines, returnExpr));
 
   const pixel = parts.join('\n\n');

@@ -115,6 +115,8 @@ const PRESET_LABELS: Record<string, string> = {
   width: 'Rectangle Width',
   truchet: 'Build Truchet Mask',
   'line-color': 'Line Color',
+  'lab-complement': 'Perceptual Complement',
+  'lab-mix': 'Complement Mix',
 };
 
 const PRESET_LABELS_BY_ID: Record<string, string> = {
@@ -314,6 +316,26 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
       { from: 'b-layer', out: 'out', to: 'composite', in: 'b' },
       { from: 'composite-mode', out: 'out', to: 'composite', in: 'mode' },
       { from: 'composite', out: 'out', to: 'out', in: 'color' },
+    ],
+  ),
+  preset(
+    'lab-complementary',
+    'Lab Complementary',
+    'Mixes a texture toward its perceptual Lab/LCH complementary color.',
+    'lab-complementary',
+    [
+      { id: 'tex', type: 'TextureColor', x: 0, y: 0 },
+      { id: 'lab-complement', type: 'LabComplementary', x: 310, y: 0 },
+      { id: 'lab-mix', type: 'FloatConstant', x: 0, y: 140, values: { val: 0.45 }, min: 0, max: 1, step: 0.01 },
+      { id: 'flash', type: 'HitFlash', x: 650, y: 45, label: 'Mix Complement' },
+      { id: 'out', type: 'FragmentOutput', x: 980, y: 65 },
+    ],
+    [
+      { from: 'tex', out: 'out', to: 'lab-complement', in: 'color' },
+      { from: 'tex', out: 'out', to: 'flash', in: 'color' },
+      { from: 'lab-complement', out: 'out', to: 'flash', in: 'flashColor' },
+      { from: 'lab-mix', out: 'out', to: 'flash', in: 'amount' },
+      { from: 'flash', out: 'out', to: 'out', in: 'color' },
     ],
   ),
   preset(

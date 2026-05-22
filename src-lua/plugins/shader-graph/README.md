@@ -76,6 +76,10 @@ Color nodes transform an existing `vec4`.
 - `Contrast`: adjust contrast around 0.5.
 - `Posterize`: reduce colors to a fixed number of bands.
 - `Multiply Color`: multiply two `vec4` values.
+- `Lab Convert`: converts a `vec4` between RGB, Lab, and LCH. `From` and `To` use `0` RGB, `1` Lab, `2` LCH.
+- `Lab Complementary`: returns the perceptual complementary color by flipping the Lab `a` and `b` axes.
+- `Lab Split Scheme`: outputs two colors offset around the LCH hue circle by an editable angle.
+- `Lab Dual Scheme`: outputs a rectangle/tetradic color scheme from the source color and angle.
 
 ### Composite
 
@@ -181,6 +185,7 @@ The Shader Graph page includes complete preset graphs:
 - **Pixelate**: retro low-resolution sampling.
 - **Chromatic Aberration**: RGB channel split with an editable center offset.
 - **Alpha Composite**: Porter-Duff compositing between overlapping procedural shapes.
+- **Lab Complementary**: perceptual complementary color mix using Lab/LCH color space.
 - **Posterize**: toon/retro color bands.
 - **Halftone Dots**: comic-print treatment with posterized color, RGB dot screens, warm paper tint, and vignette.
 - **Twirl Portal**: centered UV swirl.

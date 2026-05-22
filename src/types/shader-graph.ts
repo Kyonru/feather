@@ -115,6 +115,10 @@ export const NODE_TYPES = [
   'CompositeAlpha',
   'Brightness',
   'GammaCorrect',
+  'LabColorConvert',
+  'LabComplementary',
+  'LabSplitScheme',
+  'LabDualScheme',
   // Noise
   'GradientNoise',
   'FBMNoise',
