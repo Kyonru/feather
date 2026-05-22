@@ -9,6 +9,7 @@ type PresetNode = {
   y: number;
   label?: string;
   values?: Record<string, number | number[]>;
+  uniformName?: string;
   min?: number;
   max?: number;
   step?: number;
@@ -142,6 +143,11 @@ const PRESET_LABELS: Record<string, string> = {
   'vert-out': 'Final Vertex Position',
   wave: 'Wave Distortion',
   water: 'Water Offset',
+  'water-amp': 'Water Amplitude',
+  'water-noise': 'Simplex Noise Texture',
+  'water-noise-uv': 'Scrolling Noise UV',
+  'water-shift': 'Texture Water Displacement',
+  'water-speed': 'Noise Scroll Speed',
   width: 'Rectangle Width',
   truchet: 'Build Truchet Mask',
   'line-color': 'Line Color',
@@ -159,6 +165,7 @@ const PRESET_TYPE_LABELS: Partial<Record<NodeType, string>> = {
   SDFSample: 'Sample SDF Mask',
   TextureColor: 'Source Texture',
   TextureCoords: 'Source UVs',
+  TextureInput: 'Texture Input',
 };
 
 const PRESET_LABELS_BY_KEY: Partial<Record<`${NodeType}:${string}`, string>> = {
@@ -170,7 +177,7 @@ function presetLabel(id: string, type: NodeType) {
   return PRESET_LABELS_BY_KEY[`${type}:${id}`] ?? PRESET_LABELS[id] ?? PRESET_LABELS_BY_ID[id] ?? PRESET_TYPE_LABELS[type] ?? NODE_DEFS[type].label;
 }
 
-function node({ id, type, x, y, label, values, min, max, step }: PresetNode): ShaderNodeInstance {
+function node({ id, type, x, y, label, values, uniformName, min, max, step }: PresetNode): ShaderNodeInstance {
   return {
     id,
     type: 'shaderNode',
@@ -179,6 +186,7 @@ function node({ id, type, x, y, label, values, min, max, step }: PresetNode): Sh
       label: label ?? presetLabel(id, type),
       nodeType: type,
       ...(values ? { values } : {}),
+      ...(uniformName ? { uniformName } : {}),
       ...(min !== undefined ? { min } : {}),
       ...(max !== undefined ? { max } : {}),
       ...(step !== undefined ? { step } : {}),
@@ -1093,6 +1101,40 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
       { from: 'scale', out: 'out', to: 'water', in: 'scale' },
       { from: 'mask', out: 'out', to: 'water', in: 'maskThreshold' },
       { from: 'water', out: 'out', to: 'out', in: 'color' },
+    ],
+  ),
+  preset(
+    'texture-noise-water',
+    'Texture Noise Water',
+    'Recreates a texture-noise water displacement shader with an uploaded color simplex noise texture.',
+    'texture-noise-water',
+    [
+      { id: 'uv', type: 'TextureCoords', x: 0, y: 0, label: 'Water Tile UVs' },
+      { id: 'time', type: 'Time', x: 0, y: 140, label: 'Animated Time' },
+      { id: 'noise-width', type: 'FloatConstant', x: 0, y: 280, label: 'Noise Width', values: { val: 64 }, min: 1, max: 512, step: 1 },
+      { id: 'sprite-width', type: 'FloatConstant', x: 0, y: 420, label: 'Sprite Width', values: { val: 65 }, min: 1, max: 512, step: 1 },
+      { id: 'water-speed', type: 'FloatConstant', x: 0, y: 560, values: { val: 0.05 }, min: -1, max: 1, step: 0.001 },
+      { id: 'water-amp', type: 'FloatConstant', x: 0, y: 700, values: { val: 0.05 }, min: 0, max: 0.25, step: 0.001 },
+      { id: 'water-noise-uv', type: 'WaterNoiseUV', x: 360, y: 210 },
+      { id: 'water-noise', type: 'TextureInput', x: 720, y: 210, uniformName: 'simplex' },
+      { id: 'noise-sample', type: 'SampleTexture', x: 970, y: 245, label: 'Sample Simplex Noise' },
+      { id: 'water-shift', type: 'WaterDisplaceV2', x: 1260, y: 260 },
+      { id: 'sample', type: 'SampleTexture', x: 1610, y: 300 },
+      { id: 'out', type: 'FragmentOutput', x: 1890, y: 300 },
+    ],
+    [
+      { from: 'uv', out: 'out', to: 'water-noise-uv', in: 'uv' },
+      { from: 'time', out: 'out', to: 'water-noise-uv', in: 'time' },
+      { from: 'noise-width', out: 'out', to: 'water-noise-uv', in: 'noiseWidth' },
+      { from: 'sprite-width', out: 'out', to: 'water-noise-uv', in: 'spriteWidth' },
+      { from: 'water-speed', out: 'out', to: 'water-noise-uv', in: 'speed' },
+      { from: 'water-noise', out: 'texture', to: 'noise-sample', in: 'texture' },
+      { from: 'water-noise-uv', out: 'out', to: 'noise-sample', in: 'uv' },
+      { from: 'uv', out: 'out', to: 'water-shift', in: 'uv' },
+      { from: 'noise-sample', out: 'out', to: 'water-shift', in: 'noiseColor' },
+      { from: 'water-amp', out: 'out', to: 'water-shift', in: 'amp' },
+      { from: 'water-shift', out: 'out', to: 'sample', in: 'uv' },
+      { from: 'sample', out: 'out', to: 'out', in: 'color' },
     ],
   ),
 ];

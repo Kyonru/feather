@@ -1,5 +1,5 @@
 import type { GlslType, NodeDef, NodeType, ShaderNodeData } from '@/types/shader-graph';
-import { glslFloat } from './glslUtils';
+import { glslFloat, shaderTextureUniformName } from './glslUtils';
 
 export const PORT_TYPE_COLORS: Record<GlslType, string> = {
   float: '#94a3b8',
@@ -7,6 +7,7 @@ export const PORT_TYPE_COLORS: Record<GlslType, string> = {
   vec3: '#60a5fa',
   vec4: '#c084fc',
   mat4: '#fb923c',
+  image: '#38bdf8',
 };
 
 type Emit = (inVars: Record<string, string>, outVars: Record<string, string>, data: ShaderNodeData) => string;
@@ -84,6 +85,20 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
     emitGlsl: (_, o) => `vec4 ${o.out} = Texel(tex, texture_coords);`,
+  },
+  TextureInput: {
+    category: 'Input',
+    label: 'Texture Input',
+    inputs: [],
+    outputs: [{ id: 'texture', label: 'Image', type: 'image' }],
+    emitGlsl: () => '',
+  },
+  TextureUniformColor: {
+    category: 'Input',
+    label: 'Texture Uniform Color',
+    inputs: [{ id: 'uv', label: 'UV', type: 'vec2' }],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o, d) => `vec4 ${o.out} = Texel(${shaderTextureUniformName(String(d.__nodeId ?? 'texture'), d.uniformName)}, ${i.uv});`,
   },
   TextureCoords: {
     category: 'Input',
@@ -612,9 +627,12 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   SampleTexture: {
     category: 'Effect',
     label: 'Sample Texture',
-    inputs: [{ id: 'uv', label: 'UV', type: 'vec2' }],
+    inputs: [
+      { id: 'texture', label: 'Texture', type: 'image' },
+      { id: 'uv', label: 'UV', type: 'vec2' },
+    ],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
-    emitGlsl: (i, o) => `vec4 ${o.out} = Texel(tex, ${i.uv});`,
+    emitGlsl: (i, o) => `vec4 ${o.out} = Texel(${i.texture}, ${i.uv});`,
   },
   TextureStrength: {
     category: 'Effect',
@@ -718,6 +736,32 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     helperKey: 'noise',
     emitGlsl: (i, o) =>
       `vec2 ${o.out}_p = ${i.uv} * max(${i.scale}, 0.0001) + vec2(${i.time} * ${i.speed}, ${i.time} * ${i.speed} * 0.73);\nvec2 ${o.out}_cell = floor(${o.out}_p);\nvec2 ${o.out}_f = smoothstep(vec2(0.0), vec2(1.0), fract(${o.out}_p));\nfloat ${o.out}_a = mix(mix(feather_hash(${o.out}_cell), feather_hash(${o.out}_cell + vec2(1.0, 0.0)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(0.0, 1.0)), feather_hash(${o.out}_cell + vec2(1.0, 1.0)), ${o.out}_f.x), ${o.out}_f.y);\nfloat ${o.out}_b = mix(mix(feather_hash(${o.out}_cell + vec2(9.2, 3.4)), feather_hash(${o.out}_cell + vec2(10.2, 3.4)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(9.2, 4.4)), feather_hash(${o.out}_cell + vec2(10.2, 4.4)), ${o.out}_f.x), ${o.out}_f.y);\nvec2 ${o.out}_uv = ${i.uv} + (vec2(${o.out}_a, ${o.out}_b) * 2.0 - 1.0) * ${i.amp};\nvec4 ${o.out}_source = Texel(tex, ${o.out}_uv);\nfloat ${o.out}_mask = step(${i.maskThreshold}, min(${i.color}.a, ${o.out}_source.a));\nvec4 ${o.out} = mix(${i.color}, ${o.out}_source, ${o.out}_mask);`,
+  },
+  WaterNoiseUV: {
+    category: 'Effect',
+    label: 'Water Noise UV',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'time', label: 'Time', type: 'float' },
+      { id: 'noiseWidth', label: 'Noise W', type: 'float', defaultValue: 64, min: 1, max: 512, step: 1 },
+      { id: 'spriteWidth', label: 'Sprite W', type: 'float', defaultValue: 65, min: 1, max: 512, step: 1 },
+      { id: 'speed', label: 'Speed', type: 'float', defaultValue: 0.05, min: -1, max: 1, step: 0.001 },
+    ],
+    outputs: [{ id: 'out', label: 'Noise UV', type: 'vec2' }],
+    emitGlsl: (i, o) =>
+      `float ${o.out}_ratio = ${i.spriteWidth} / max(${i.noiseWidth}, 0.0001);\nfloat ${o.out}_speed = ${i.speed} * ${o.out}_ratio;\nvec2 ${o.out} = fract(${i.uv} * ${o.out}_ratio + vec2(${o.out}_speed * ${i.time}, ${o.out}_speed * ${i.time}));`,
+  },
+  WaterDisplaceV2: {
+    category: 'Effect',
+    label: 'Water Displace V2',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'noiseColor', label: 'Noise', type: 'vec4' },
+      { id: 'amp', label: 'Amp', type: 'float', defaultValue: 0.05, min: 0, max: 0.25, step: 0.001 },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    emitGlsl: (i, o) =>
+      `vec4 ${o.out}_noise = ${i.noiseColor};\nfloat ${o.out}_xy = ${o.out}_noise.b * 0.7071;\n${o.out}_noise.r -= ${o.out}_xy;\n${o.out}_noise.g -= ${o.out}_xy;\nvec2 ${o.out} = ${i.uv} + (((${i.amp} * 2.0) * vec2(${o.out}_noise)) - ${i.amp});`,
   },
   Dissolve2D: {
     category: 'Effect',
@@ -2195,6 +2239,8 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
     category: 'Input',
     nodes: [
       'TextureColor',
+      'TextureInput',
+      'TextureUniformColor',
       'TextureCoords',
       'ScreenCoords',
       'VertexColor',
@@ -2287,6 +2333,8 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
       'WaveDistort',
       'WaterDisplace',
       'MaskedWaterDisplace',
+      'WaterNoiseUV',
+      'WaterDisplaceV2',
       'Dissolve2D',
       'HitFlash',
       'Vignette',

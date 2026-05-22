@@ -1,7 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ShaderNodeData, PlaygroundTarget, GeneratedGlsl } from '@/types/shader-graph';
+import type { ShaderNodeData, PlaygroundTarget, GeneratedGlsl, ShaderTextureUpload } from '@/types/shader-graph';
 
 type ValidationStatus = 'idle' | 'validating' | 'ok' | 'error';
 
@@ -19,6 +19,7 @@ type ShaderGraphStore = {
   selectedEdgeId: string | null;
   shaderName: string;
   playgroundTarget: PlaygroundTarget | null;
+  textureUploads: Record<string, ShaderTextureUpload>;
   lastGeneratedGlsl: GeneratedGlsl | null;
   validationStatus: ValidationStatus;
   validationErrors: { pixelError?: string; vertexError?: string };
@@ -34,6 +35,8 @@ type ShaderGraphStore = {
   selectEdge: (id: string | null) => void;
   setShaderName: (name: string) => void;
   setPlaygroundTarget: (target: PlaygroundTarget | null) => void;
+  setTextureUpload: (nodeId: string, upload: ShaderTextureUpload) => void;
+  clearTextureUpload: (nodeId: string) => void;
   setLastGlsl: (glsl: GeneratedGlsl | null) => void;
   setValidationStatus: (status: ValidationStatus) => void;
   setValidationErrors: (errors: ShaderGraphStore['validationErrors']) => void;
@@ -57,7 +60,7 @@ function sameGraph(a: GraphSnapshot, b: GraphSnapshot): boolean {
 
 function withHistory(
   state: ShaderGraphStore,
-  patch: Partial<Pick<ShaderGraphStore, 'nodes' | 'edges' | 'selectedNodeId' | 'selectedEdgeId'>>,
+  patch: Partial<Pick<ShaderGraphStore, 'nodes' | 'edges' | 'selectedNodeId' | 'selectedEdgeId' | 'textureUploads'>>,
 ) {
   const before = snapshot(state);
   const after = {
@@ -90,6 +93,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       selectedEdgeId: null,
       shaderName: 'my-shader',
       playgroundTarget: null,
+      textureUploads: {},
       lastGeneratedGlsl: null,
       validationStatus: 'idle',
       validationErrors: {},
@@ -104,6 +108,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             nodes: s.nodes.filter((n) => n.id !== id),
             edges: s.edges.filter((e) => e.source !== id && e.target !== id),
             selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
+            textureUploads: Object.fromEntries(Object.entries(s.textureUploads).filter(([nodeId]) => nodeId !== id)),
           }),
         ),
       removeEdge: (id) =>
@@ -123,6 +128,19 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       selectEdge: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null }),
       setShaderName: (shaderName) => set({ shaderName }),
       setPlaygroundTarget: (playgroundTarget) => set({ playgroundTarget }),
+      setTextureUpload: (nodeId, upload) =>
+        set((s) => ({
+          textureUploads: {
+            ...s.textureUploads,
+            [nodeId]: upload,
+          },
+        })),
+      clearTextureUpload: (nodeId) =>
+        set((s) => {
+          const next = { ...s.textureUploads };
+          delete next[nodeId];
+          return { textureUploads: next };
+        }),
       setLastGlsl: (lastGeneratedGlsl) => set({ lastGeneratedGlsl }),
       setValidationStatus: (validationStatus) => set({ validationStatus }),
       setValidationErrors: (validationErrors) => set({ validationErrors }),
@@ -135,6 +153,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
           playgroundTarget: graph.playgroundTarget ?? null,
           selectedNodeId: null,
           selectedEdgeId: null,
+          textureUploads: {},
           undoStack: [],
           redoStack: [],
           lastGeneratedGlsl: null,

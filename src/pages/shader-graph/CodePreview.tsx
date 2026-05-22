@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,10 @@ import { useTheme } from '@/hooks/use-theme';
 import oneLight from '@/assets/theme/light';
 import onDark from '@/assets/theme/dark';
 import { cn } from '@/utils/styles';
-import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, FolderOpenIcon, XIcon } from 'lucide-react';
+import { codegen } from './codegen';
+import { pickShaderTexture } from './textureUpload';
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -41,10 +44,11 @@ export function CodePreview() {
     validationErrors,
     nodes,
     edges,
+    textureUploads,
     generateAndStore,
     validateShader,
     applyToPlayground,
-    previewShader,
+    sendShaderPreview,
     clearPreview,
     playgroundTarget,
   } = useShaderGraph();
@@ -54,13 +58,26 @@ export function CodePreview() {
   const [previewShape, setPreviewShape] = useState<ShaderPreviewShape>('circle');
   const [previewColor, setPreviewColor] = useState('#ffffff');
   const [previewEnabled, setPreviewEnabled] = useState(false);
-  const previewShaderRef = useRef(previewShader);
+  const [baseTexture, setBaseTexture] = useState<{ filename: string; dataBase64: string } | null>(null);
+  const sendShaderPreviewRef = useRef(sendShaderPreview);
   const debouncedNodes = useDebouncedValue(nodes, 180);
   const debouncedEdges = useDebouncedValue(edges, 180);
   const debouncedPreviewShape = useDebouncedValue(previewShape, 180);
   const debouncedPreviewColor = useDebouncedValue(previewColor, 180);
 
-  const glsl = lastGeneratedGlsl ?? generateAndStore();
+  const glsl = useMemo(() => lastGeneratedGlsl ?? codegen(nodes, edges), [edges, lastGeneratedGlsl, nodes]);
+  const textureUniforms = useMemo(() => glsl.textures ?? [], [glsl.textures]);
+  const uploadedUniformTextures = useMemo(
+    () =>
+      textureUniforms
+        .map((texture) => {
+          const upload = textureUploads[texture.nodeId];
+          return upload ? { ...upload, uniform: texture.uniform } : null;
+        })
+        .filter((texture): texture is { filename: string; dataBase64: string; uniform: string } => !!texture),
+    [textureUniforms, textureUploads],
+  );
+  const hasMissingTextureUploads = textureUniforms.some((texture) => !textureUploads[texture.nodeId]);
   const fullSource = glsl.vertex
     ? `${glsl.pixel}\n\n// ── Vertex ──\n${glsl.vertex}`
     : glsl.pixel;
@@ -87,9 +104,16 @@ export function CodePreview() {
     setPreviewShape(nextShape);
   }
 
+  async function uploadBaseTexture() {
+    const texture = await pickShaderTexture();
+    if (!texture) return;
+    setBaseTexture(texture);
+    toast.success(`Preview texture loaded: ${texture.filename}`);
+  }
+
   useEffect(() => {
-    previewShaderRef.current = previewShader;
-  }, [previewShader]);
+    sendShaderPreviewRef.current = sendShaderPreview;
+  }, [sendShaderPreview]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -99,8 +123,12 @@ export function CodePreview() {
 
   useEffect(() => {
     if (!sessionId || !previewEnabled) return;
-    void previewShaderRef.current(debouncedPreviewShape, colorFromHex(debouncedPreviewColor));
-  }, [debouncedEdges, debouncedNodes, debouncedPreviewColor, debouncedPreviewShape, previewEnabled, sessionId]);
+    const nextGlsl = codegen(debouncedNodes, debouncedEdges);
+    void sendShaderPreviewRef.current(nextGlsl, debouncedPreviewShape, colorFromHex(debouncedPreviewColor), {
+      baseTexture,
+      textures: uploadedUniformTextures,
+    });
+  }, [baseTexture, debouncedEdges, debouncedNodes, debouncedPreviewColor, debouncedPreviewShape, previewEnabled, sessionId, uploadedUniformTextures]);
 
   const statusColor = {
     idle: 'bg-muted text-muted-foreground',
@@ -191,8 +219,9 @@ export function CodePreview() {
         <Button
           size="sm"
           className="h-7 text-xs flex-1"
-          disabled={!sessionId || !playgroundTarget}
-          onClick={() => applyToPlayground()}
+          disabled={!sessionId || !playgroundTarget || hasMissingTextureUploads}
+          title={hasMissingTextureUploads ? 'Upload all texture inputs in the node inspector before applying this shader' : undefined}
+          onClick={() => applyToPlayground(uploadedUniformTextures)}
         >
           Apply
         </Button>
@@ -241,6 +270,29 @@ export function CodePreview() {
           {previewEnabled ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
           {previewEnabled ? 'Preview Off' : 'Preview On'}
         </Button>
+      </div>
+
+      <div className="border-t px-3 py-2 grid gap-2 shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Preview Texture
+            </div>
+            <div className="truncate text-[10px] text-muted-foreground">
+              {baseTexture?.filename ?? 'Temporary shape texture'}
+            </div>
+          </div>
+          <div className="flex gap-1">
+            {baseTexture && (
+              <Button size="icon" variant="ghost" className="size-7" title="Clear preview texture" onClick={() => setBaseTexture(null)}>
+                <XIcon className="size-3.5" />
+              </Button>
+            )}
+            <Button size="icon" variant="outline" className="size-7" title="Upload preview texture" disabled={!sessionId} onClick={() => void uploadBaseTexture()}>
+              <FolderOpenIcon className="size-3.5" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

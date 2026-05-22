@@ -1,6 +1,6 @@
 import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData, PortDef } from '@/types/shader-graph';
 import { NODE_DEFS } from './nodeDefs';
-import { glslFloat } from './glslUtils';
+import { glslFloat, shaderTextureUniformName } from './glslUtils';
 
 export const PASSTHROUGH_PIXEL = [
   'vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords) {',
@@ -66,12 +66,33 @@ function defaultValue(port: PortDef, nodeData: ShaderNodeData): string {
     }
     case 'mat4':
       return 'mat4(1.0)';
+    case 'image':
+      return 'tex';
     default:
       return '0.0';
   }
 }
 
-function buildNodeBody(node: ShaderNodeInstance, edges: ShaderEdge[]): string[] {
+function outputExpression(nodeMap: Map<string, ShaderNodeInstance>, nodeId: string, portId: string): string {
+  const node = nodeMap.get(nodeId);
+  if (node?.data.nodeType === 'TextureInput' && portId === 'texture') {
+    return shaderTextureUniformName(node.id, node.data.uniformName);
+  }
+  return varName(nodeId, portId);
+}
+
+function collectTextureUniform(node: ShaderNodeInstance, textureMap: Map<string, { nodeId: string; uniform: string; label: string }>, externSet: Set<string>) {
+  if (node.data.nodeType !== 'TextureInput' && node.data.nodeType !== 'TextureUniformColor') return;
+  const uniform = shaderTextureUniformName(node.id, node.data.uniformName);
+  externSet.add(`extern Image ${uniform};`);
+  textureMap.set(uniform, {
+    nodeId: node.id,
+    uniform,
+    label: String(node.data.label || NODE_DEFS[node.data.nodeType].label),
+  });
+}
+
+function buildNodeBody(node: ShaderNodeInstance, edges: ShaderEdge[], nodeMap: Map<string, ShaderNodeInstance>): string[] {
   const def = NODE_DEFS[node.data.nodeType];
   if (!def?.emitGlsl) return [];
 
@@ -79,7 +100,7 @@ function buildNodeBody(node: ShaderNodeInstance, edges: ShaderEdge[]): string[] 
   for (const port of def.inputs) {
     const edge = edges.find((e) => e.target === node.id && e.targetHandle === port.id);
     inVars[port.id] = edge?.sourceHandle
-      ? varName(edge.source, edge.sourceHandle)
+      ? outputExpression(nodeMap, edge.source, edge.sourceHandle)
       : defaultValue(port, node.data);
   }
 
@@ -88,7 +109,7 @@ function buildNodeBody(node: ShaderNodeInstance, edges: ShaderEdge[]): string[] 
     outVars[port.id] = varName(node.id, port.id);
   }
 
-  const glsl = def.emitGlsl(inVars, outVars, node.data);
+  const glsl = def.emitGlsl(inVars, outVars, { ...node.data, __nodeId: node.id });
   return glsl ? glsl.split('\n').map((s) => s.trim()).filter(Boolean) : [];
 }
 
@@ -134,17 +155,20 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
   const vertOut = nodes.find((n) => n.data.nodeType === 'VertexOutput');
 
   if (!nodes.length || !fragOut) {
-    return { pixel: PASSTHROUGH_PIXEL, vertex: null, hash: 'passthrough' };
+    return { pixel: PASSTHROUGH_PIXEL, vertex: null, hash: 'passthrough', textures: [] };
   }
 
   const reachable = collectReachable(fragOut.id, nodes, edges);
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
   const externSet = new Set<string>();
   const helperKeys = new Set<string>();
+  const textureMap = new Map<string, { nodeId: string; uniform: string; label: string }>();
   for (const node of reachable) {
     const def = NODE_DEFS[node.data.nodeType];
     def?.externs?.forEach((e) => externSet.add(e));
     if (def?.helperKey) helperKeys.add(def.helperKey);
+    collectTextureUniform(node, textureMap, externSet);
   }
 
   let vertReachable: ShaderNodeInstance[] = [];
@@ -154,19 +178,20 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
       const def = NODE_DEFS[node.data.nodeType];
       def?.externs?.forEach((e) => externSet.add(e));
       if (def?.helperKey) helperKeys.add(def.helperKey);
+      collectTextureUniform(node, textureMap, externSet);
     }
   }
 
   const bodyLines: string[] = [];
   for (const node of reachable) {
     if (node.data.nodeType !== 'FragmentOutput') {
-      bodyLines.push(...buildNodeBody(node, edges));
+      bodyLines.push(...buildNodeBody(node, edges, nodeMap));
     }
   }
 
   const fragColorEdge = edges.find((e) => e.target === fragOut.id && e.targetHandle === 'color');
   const returnExpr = fragColorEdge?.sourceHandle
-    ? varName(fragColorEdge.source, fragColorEdge.sourceHandle)
+    ? outputExpression(nodeMap, fragColorEdge.source, fragColorEdge.sourceHandle)
     : 'Texel(tex, texture_coords)';
 
   const parts: string[] = [];
@@ -182,17 +207,17 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
     const vertLines: string[] = [];
     for (const node of vertReachable) {
       if (node.data.nodeType !== 'VertexOutput') {
-        vertLines.push(...buildNodeBody(node, edges));
+        vertLines.push(...buildNodeBody(node, edges, nodeMap));
       }
     }
     const posEdge = edges.find((e) => e.target === vertOut.id && e.targetHandle === 'pos');
     const vertReturn = posEdge?.sourceHandle
-      ? varName(posEdge.source, posEdge.sourceHandle)
+      ? outputExpression(nodeMap, posEdge.source, posEdge.sourceHandle)
       : 'vertex_position';
 
     vertex = buildPosition(vertLines, vertReturn);
   }
 
   const hash = btoa(pixel.slice(0, 64)).slice(0, 16);
-  return { pixel, vertex, hash };
+  return { pixel, vertex, hash, textures: [...textureMap.values()] };
 }

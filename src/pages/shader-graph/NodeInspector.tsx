@@ -1,11 +1,15 @@
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { NODE_DEFS } from './nodeDefs';
 import type { NodeType, PortDef } from '@/types/shader-graph';
-import { Trash2Icon } from 'lucide-react';
+import { FolderOpenIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useState } from 'react';
+import { shaderTextureUniformName } from './glslUtils';
+import { pickShaderTexture } from './textureUpload';
+import { toast } from 'sonner';
 
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
@@ -72,7 +76,10 @@ export function NodeInspector() {
     edges,
     selectedNodeId,
     selectedEdgeId,
+    textureUploads,
     updateNodeData,
+    setTextureUpload,
+    clearTextureUpload,
     setShaderName,
     shaderName,
     removeNode,
@@ -84,6 +91,7 @@ export function NodeInspector() {
   const def = selected ? NODE_DEFS[selected.data.nodeType as NodeType] : null;
   const selectedEdge = selectedEdgeId ? edges.find((e) => e.id === selectedEdgeId) : null;
   const selectedVec4 = selected ? vec4Value(selected.data.values?.val) : [0, 0, 0, 1] as [number, number, number, number];
+  const selectedTextureUpload = selected ? textureUploads[selected.id] : null;
 
   function updateSelectedVec4(next: [number, number, number, number]) {
     if (!selected) return;
@@ -93,6 +101,14 @@ export function NodeInspector() {
   function updateSelectedInput(port: PortDef, next: number | number[]) {
     if (!selected) return;
     updateNodeData(selected.id, { values: { ...selected.data.values, [port.id]: next } });
+  }
+
+  async function uploadSelectedTexture() {
+    if (!selected) return;
+    const texture = await pickShaderTexture();
+    if (!texture) return;
+    setTextureUpload(selected.id, texture);
+    toast.success(`${selected.data.label || 'Texture'} loaded: ${texture.filename}`);
   }
 
   function renderPortValueEditor(port: PortDef) {
@@ -114,6 +130,14 @@ export function NodeInspector() {
           value={finiteValue(rawValue)}
           onChange={(e) => updateSelectedInput(port, clampValue(parseFloat(e.target.value), port))}
         />
+      );
+    }
+
+    if (port.type === 'image') {
+      return (
+        <p className="text-[10px] text-muted-foreground">
+          Uses the main sprite texture unless a texture input is connected.
+        </p>
       );
     }
 
@@ -337,6 +361,53 @@ export function NodeInspector() {
                   </div>
                 </TabsContent>
               </Tabs>
+            </div>
+          )}
+
+          {(selected.data.nodeType === 'TextureInput' || selected.data.nodeType === 'TextureUniformColor') && (
+            <div className="grid gap-2 rounded border border-border/70 p-2">
+              <div className="grid gap-1">
+                <Label className="text-[10px] text-muted-foreground">Uniform Name</Label>
+                <Input
+                  className="h-7 text-xs font-mono"
+                  value={String(selected.data.uniformName ?? '')}
+                  placeholder={shaderTextureUniformName(selected.id)}
+                  onChange={(e) => updateNodeData(selected.id, { uniformName: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-medium text-muted-foreground">Texture File</div>
+                  <div className="truncate text-[10px] text-muted-foreground">
+                    {selectedTextureUpload?.filename ?? 'Fallback texture until a file is loaded'}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  {selectedTextureUpload && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      title="Clear texture file"
+                      onClick={() => clearTextureUpload(selected.id)}
+                    >
+                      <XIcon className="size-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="size-7"
+                    title="Upload texture file"
+                    onClick={() => void uploadSelectedTexture()}
+                  >
+                    <FolderOpenIcon className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Preview and runtime uploads bind this texture by name. Use one node for each extra texture.
+              </p>
             </div>
           )}
 

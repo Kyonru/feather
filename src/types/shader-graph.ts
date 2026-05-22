@@ -1,6 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 
-export type GlslType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4';
+export type GlslType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4' | 'image';
 
 export type PortDef = {
   id: string;
@@ -14,6 +14,8 @@ export type PortDef = {
 
 export const NODE_TYPES = [
   'TextureColor',
+  'TextureInput',
+  'TextureUniformColor',
   'TextureCoords',
   'ScreenCoords',
   'VertexColor',
@@ -78,6 +80,8 @@ export const NODE_TYPES = [
   'WaveDistort',
   'WaterDisplace',
   'MaskedWaterDisplace',
+  'WaterNoiseUV',
+  'WaterDisplaceV2',
   'Dissolve2D',
   'HitFlash',
   'Vignette',
@@ -211,8 +215,18 @@ export type PlaygroundTarget = {
   systemIndex: number;
 };
 
+export type ShaderTextureUpload = {
+  filename: string;
+  dataBase64: string;
+};
+
 export type GeneratedGlsl = {
   pixel: string;
   vertex: string | null;
   hash: string;
+  textures?: Array<{
+    nodeId: string;
+    uniform: string;
+    label: string;
+  }>;
 };

@@ -1,5 +1,6 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
 local Base = require(FEATHER_PATH .. ".core.base")
+local base64 = require(FEATHER_PATH .. ".lib.base64")
 
 local ShaderGraphPlugin = Class({ __includes = Base })
 
@@ -10,6 +11,55 @@ local PREVIEW_SHAPES = {
 }
 
 local DEFAULT_PREVIEW_SIZE = 128
+local B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local B64_LOOKUP = {}
+for i = 1, #B64_CHARS do
+  B64_LOOKUP[B64_CHARS:sub(i, i)] = i - 1
+end
+
+local function decodeBase64(data)
+  data = tostring(data or ""):gsub("%s+", "")
+  if data == "" then
+    return nil
+  end
+
+  if type(base64.decode) == "function" then
+    local ok, decoded = pcall(base64.decode, data)
+    if ok then
+      return decoded
+    end
+  end
+
+  local out = {}
+  local index = 1
+  for i = 1, #data, 4 do
+    local c1 = data:sub(i, i)
+    local c2 = data:sub(i + 1, i + 1)
+    local c3 = data:sub(i + 2, i + 2)
+    local c4 = data:sub(i + 3, i + 3)
+    local n1 = B64_LOOKUP[c1]
+    local n2 = B64_LOOKUP[c2]
+    local n3 = c3 ~= "=" and B64_LOOKUP[c3] or nil
+    local n4 = c4 ~= "=" and B64_LOOKUP[c4] or nil
+
+    if not n1 or not n2 then
+      return nil
+    end
+
+    out[index] = string.char(n1 * 4 + math.floor(n2 / 16))
+    index = index + 1
+    if n3 then
+      out[index] = string.char((n2 % 16) * 16 + math.floor(n3 / 4))
+      index = index + 1
+    end
+    if n3 and n4 then
+      out[index] = string.char((n3 % 4) * 64 + n4)
+      index = index + 1
+    end
+  end
+
+  return table.concat(out)
+end
 
 local function restoreCanvas(canvas)
   if canvas then
@@ -113,6 +163,76 @@ local function makePreviewCanvas(shape, size, color)
   return canvas
 end
 
+local function imageFromUpload(upload, fallbackName)
+  if type(upload) ~= "table" then
+    return nil, "Texture upload is missing"
+  end
+  local raw = decodeBase64(upload.dataBase64)
+  if not raw then
+    return nil, "Texture data is not valid base64"
+  end
+  local filename = tostring(upload.filename or fallbackName or "texture.png")
+  local okData, fileData = pcall(love.filesystem.newFileData, raw, filename)
+  if not okData or not fileData then
+    return nil, "Could not create texture file data"
+  end
+  local okImage, image = pcall(love.graphics.newImage, fileData)
+  if not okImage or not image then
+    return nil, "Could not create image from uploaded texture"
+  end
+  pcall(image.setFilter, image, "nearest", "nearest")
+  return image
+end
+
+local function makeFallbackTexture(size)
+  size = size or 64
+  local imageData = love.image.newImageData(size, size)
+  for y = 0, size - 1 do
+    for x = 0, size - 1 do
+      local v = ((x * 37 + y * 17) % 255) / 255
+      imageData:setPixel(x, y, v, 1 - v, ((x + y) % 255) / 255, 1)
+    end
+  end
+  local image = love.graphics.newImage(imageData)
+  pcall(image.setFilter, image, "nearest", "nearest")
+  return image
+end
+
+local function sendTextureUniforms(shader, uniforms, uploads)
+  local retained = {}
+  local byUniform = {}
+  if type(uploads) == "table" then
+    for _, upload in ipairs(uploads) do
+      if type(upload) == "table" and upload.uniform then
+        byUniform[tostring(upload.uniform)] = upload
+      end
+    end
+  end
+
+  if type(uniforms) == "table" then
+    for _, info in ipairs(uniforms) do
+      local uniform = type(info) == "table" and tostring(info.uniform or "") or ""
+      if uniform ~= "" then
+        local image = nil
+        local upload = byUniform[uniform]
+        if upload then
+          image = imageFromUpload(upload, tostring(upload.filename or uniform .. ".png"))
+        end
+        if not image then
+          image = makeFallbackTexture(64)
+        end
+        local ok, err = pcall(shader.send, shader, uniform, image)
+        if not ok then
+          return nil, "Could not bind texture uniform `" .. uniform .. "`: " .. tostring(err)
+        end
+        retained[#retained + 1] = image
+      end
+    end
+  end
+
+  return retained
+end
+
 local function compileShader(params)
   local pixelSource = params.pixelSource or ""
   local vertexSource = params.vertexSource or ""
@@ -164,16 +284,34 @@ function ShaderGraphPlugin:_previewShader(params)
   end
 
   local color = previewColor(params.color)
-  local okCanvas, canvasOrErr = pcall(makePreviewCanvas, shape, params.size, color)
-  if not okCanvas then
-    return { status = "error", pixelError = tostring(canvasOrErr) }
+  local drawable = nil
+  local baseTexture = params.baseTexture
+  if type(baseTexture) == "table" and baseTexture.dataBase64 then
+    local image, imageErr = imageFromUpload(baseTexture, "preview-texture.png")
+    if not image then
+      return { status = "error", pixelError = imageErr }
+    end
+    drawable = image
+  else
+    local okCanvas, canvasOrErr = pcall(makePreviewCanvas, shape, params.size, color)
+    if not okCanvas then
+      return { status = "error", pixelError = tostring(canvasOrErr) }
+    end
+    drawable = canvasOrErr
+  end
+
+  local textures, textureErr = sendTextureUniforms(shader, params.textureUniforms, params.textures)
+  if not textures then
+    return { status = "error", pixelError = textureErr }
   end
 
   self.preview = {
     shader = shader,
-    canvas = canvasOrErr,
+    drawable = drawable,
     shape = shape,
     color = color,
+    baseTexture = type(baseTexture) == "table" and baseTexture.filename or nil,
+    textures = textures,
     updatedAt = love.timer and love.timer.getTime() or os.clock(),
   }
 
@@ -185,9 +323,9 @@ function ShaderGraphPlugin:onDraw()
     return
   end
 
-  local canvas = self.preview.canvas
+  local drawable = self.preview.drawable
   local shader = self.preview.shader
-  if not canvas or not shader then
+  if not drawable or not shader then
     return
   end
 
@@ -198,7 +336,7 @@ function ShaderGraphPlugin:onDraw()
   local width = love.graphics.getWidth()
   local height = love.graphics.getHeight()
   local previewSize = math.min(280, math.max(128, math.min(width, height) * 0.42))
-  local scale = previewSize / canvas:getWidth()
+  local scale = previewSize / drawable:getWidth()
   local x = (width - previewSize) / 2
   local y = (height - previewSize) / 2
 
@@ -212,14 +350,15 @@ function ShaderGraphPlugin:onDraw()
   love.graphics.setLineWidth(1)
   love.graphics.rectangle("line", x - 10, y - 10, previewSize + 20, previewSize + 42, 6, 6)
   love.graphics.setColor(1, 1, 1, 0.72)
-  love.graphics.print("Shader Preview: " .. self.preview.shape, x - 4, y + previewSize + 12)
+  local label = self.preview.baseTexture or self.preview.shape
+  love.graphics.print("Shader Preview: " .. label, x - 4, y + previewSize + 12)
 
   if shader.send and love.timer then
     pcall(shader.send, shader, "u_time", love.timer.getTime())
   end
   love.graphics.setShader(shader)
   love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.draw(canvas, x, y, 0, scale, scale)
+  love.graphics.draw(drawable, x, y, 0, scale, scale)
 
   love.graphics.setBlendMode(previousBlend, previousAlphaMode)
   love.graphics.setShader(previousShader)
@@ -255,6 +394,7 @@ function ShaderGraphPlugin:getConfig()
     preview = self.preview and {
       shape = self.preview.shape,
       color = self.preview.color,
+      baseTexture = self.preview.baseTexture,
       active = true,
     } or nil,
   }

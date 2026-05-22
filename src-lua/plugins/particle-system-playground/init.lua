@@ -817,6 +817,7 @@ local function createDefaultSystem(index, template)
     title = "Emitter " .. tostring(index),
     blendMode = "alpha",
     shader = nil,
+    shaderTextures = {},
     shaderPath = "",
     shaderFilename = "",
     shaderSource = "",
@@ -1065,6 +1066,11 @@ function ParticleSystemPlaygroundPlugin:onDraw()
           pcall(love.graphics.setBlendMode, system.blendMode or "alpha")
           if system.shader and system.shader.send and love.timer then
             pcall(system.shader.send, system.shader, "u_time", love.timer.getTime())
+            if type(system.shaderTextures) == "table" then
+              for uniform, image in pairs(system.shaderTextures) do
+                pcall(system.shader.send, system.shader, uniform, image)
+              end
+            end
           end
           love.graphics.setShader(system.shader)
           love.graphics.setColor(1, 1, 1, 1)
@@ -1341,7 +1347,36 @@ function ParticleSystemPlaygroundPlugin:_applyShader(name, index, params)
     return nil, tostring(shader)
   end
 
+  local shaderTextures = {}
+  if type(params.textures) == "table" then
+    for _, texture in ipairs(params.textures) do
+      if type(texture) == "table" then
+        local uniform = safeString(texture.uniform, "")
+        local dataBase64 = safeString(texture.dataBase64, "")
+        if uniform ~= "" and dataBase64 ~= "" then
+          local raw = decodeBase64(dataBase64)
+          if not raw then
+            return nil, "Shader texture data is not valid base64"
+          end
+          local filename = sanitizeFilename(texture.filename, uniform .. ".png")
+          local okData, fileData = pcall(love.filesystem.newFileData, raw, filename)
+          if not okData or not fileData then
+            return nil, "Could not create shader texture file data"
+          end
+          local okImage, image = pcall(love.graphics.newImage, fileData)
+          if not okImage or not image then
+            return nil, "Could not create shader texture image"
+          end
+          pcall(image.setFilter, image, "nearest", "nearest")
+          shaderTextures[uniform] = image
+          pcall(shader.send, shader, uniform, image)
+        end
+      end
+    end
+  end
+
   sys.shader = shader
+  sys.shaderTextures = shaderTextures
   sys.shaderPath = path
   sys.shaderFilename = filename
   sys.shaderSource = source

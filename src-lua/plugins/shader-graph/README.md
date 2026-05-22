@@ -6,7 +6,7 @@ The desktop editor owns the graph UI and GLSL code generation. This runtime plug
 
 The node library is inspired by common visual shader graph systems, including Unity Shader Graph's category model: Artistic, Channel, Input, Math, Procedural, Utility, and UV. Feather's implementation is intentionally smaller and LÖVE-focused.
 
-Several higher-level nodes and presets are also inspired by common VFX Shader Graph recipes, including texture strength, opacity, dissolve masks, and vertex displacement. The water displacement nodes are inspired by Alex Griffith's LÖVE shader write-up, adapted to use procedural noise so Feather graphs stay self-contained. Unity-specific camera depth effects are not copied directly because LÖVE 2D shaders do not expose Unity's scene depth buffer in the same way.
+Several higher-level nodes and presets are also inspired by common VFX Shader Graph recipes, including texture strength, opacity, dissolve masks, water displacement, and vertex displacement. Feather includes both a self-contained procedural water preset and a texture-noise water preset that uses an uploaded color noise texture. Unity-specific camera depth effects are not copied directly because LÖVE 2D shaders do not expose Unity's scene depth buffer in the same way.
 
 ## Workflow
 
@@ -16,7 +16,7 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 4. Connect compatible ports by type.
 5. Connect the final `vec4` color into **Fragment Output**.
 6. Use **Validate** to compile in the running LÖVE game.
-7. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. While preview is enabled, graph edits, shape changes, and preview color changes re-apply automatically.
+7. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically.
 8. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
 9. Export/import `.feathershgh` files when you want to save or share editable graph projects.
 
@@ -28,15 +28,17 @@ Select a node and edit **Node Name** in the inspector when a graph needs more de
 
 Use input nodes as the raw data source for a shader.
 
-| Node | Output | Use |
-|---|---|---|
-| Texture Color | `vec4` | Current texture sample: `Texel(tex, texture_coords)` |
-| Texture Coords | `vec2` | UV coordinates, usually the starting point for distortion effects |
-| Screen Coords | `vec2` | Pixel/screen position, useful for screen-space patterns |
-| Vertex Color | `vec4` | LÖVE color/tint passed into the shader |
-| Time | `float` | Animated effects; emits `extern number u_time` |
-| Resolution | `vec2` | Uses `love_ScreenSize.xy` |
-| Float / Vec2 / Vec3 / Vec4 | typed constants | Editable values for colors, thresholds, speed, etc. |
+| Node                       | Output          | Use                                                                                      |
+| -------------------------- | --------------- | ---------------------------------------------------------------------------------------- |
+| Texture Color              | `vec4`          | Current texture sample: `Texel(tex, texture_coords)`                                     |
+| Texture Input              | `Image`         | Uploaded auxiliary texture uniform; add one node per extra texture                       |
+| Texture Uniform Color      | `vec4`          | Compatibility helper that samples an uploaded auxiliary `Image` uniform at a supplied UV |
+| Texture Coords             | `vec2`          | UV coordinates, usually the starting point for distortion effects                        |
+| Screen Coords              | `vec2`          | Pixel/screen position, useful for screen-space patterns                                  |
+| Vertex Color               | `vec4`          | LÖVE color/tint passed into the shader                                                   |
+| Time                       | `float`         | Animated effects; emits `extern number u_time`                                           |
+| Resolution                 | `vec2`          | Uses `love_ScreenSize.xy`                                                                |
+| Float / Vec2 / Vec3 / Vec4 | typed constants | Editable values for colors, thresholds, speed, etc.                                      |
 
 ### Math
 
@@ -208,22 +210,24 @@ SDF primitives include centered defaults, so a newly dropped circle, rectangle, 
 
 Effect nodes are higher-level building blocks for common 2D game shaders.
 
-| Node | Use |
-|---|---|
-| Sample Texture | Samples the texture at a supplied UV, useful after UV distortion |
-| Texture Strength | Sharpens texture alpha and boosts color intensity, useful for cracks, glows, and impact marks |
-| Opacity | Multiplies texture alpha by a scalar fade value |
-| Centered UV | Converts UV into `uv - 0.5` and distance from center |
-| Fresnel / Rim 2D | Radial edge mask for glow/rim effects on sprites and particles |
-| Sprite Outline | Samples neighboring alpha around the current sprite to create a configurable outline color |
-| Wave Distort | Animated UV wave for water, heat, magic, flags |
-| Water Displace | Procedural animated noise displacement for water, heat shimmer, and magic surfaces |
-| Masked Water | Water displacement constrained by texture alpha, useful when only opaque regions should move |
-| Dissolve | Noise threshold dissolve with a colored edge |
-| Hit Flash | Mixes texture color toward a flash color |
-| Vignette | Darkens or fades toward UV edges |
-| Pixelate | Snaps UVs to a lower-resolution grid |
-| Chromatic Aberration | Splits red/blue samples away from an adjustable center offset |
+| Node                 | Use                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| Sample Texture       | Samples the texture at a supplied UV, useful after UV distortion                                       |
+| Texture Strength     | Sharpens texture alpha and boosts color intensity, useful for cracks, glows, and impact marks          |
+| Opacity              | Multiplies texture alpha by a scalar fade value                                                        |
+| Centered UV          | Converts UV into `uv - 0.5` and distance from center                                                   |
+| Fresnel / Rim 2D     | Radial edge mask for glow/rim effects on sprites and particles                                         |
+| Sprite Outline       | Samples neighboring alpha around the current sprite to create a configurable outline color             |
+| Wave Distort         | Animated UV wave for water, heat, magic, flags                                                         |
+| Water Displace       | Procedural animated noise displacement for water, heat shimmer, and magic surfaces                     |
+| Masked Water         | Water displacement constrained by texture alpha, useful when only opaque regions should move           |
+| Water Noise UV     | Scrolls tiled noise UVs using sprite width, noise width, speed, and time                              |
+| Water Displace V2  | Displaces UVs from RGB noise texture channels                                                         |
+| Dissolve             | Noise threshold dissolve with a colored edge                                                           |
+| Hit Flash            | Mixes texture color toward a flash color                                                               |
+| Vignette             | Darkens or fades toward UV edges                                                                       |
+| Pixelate             | Snaps UVs to a lower-resolution grid                                                                   |
+| Chromatic Aberration | Splits red/blue samples away from an adjustable center offset                                          |
 
 ### Output
 
@@ -271,6 +275,7 @@ The Shader Graph page includes complete preset graphs:
 - **Opacity Fade**: straightforward alpha fade control.
 - **Vertex Wave**: vertex-stage wobble with a normal texture pass.
 - **Water Shimmer**: self-contained procedural UV displacement.
+- **Texture Noise Water**: texture-noise water shader with uploaded `water.png` as the preview texture and uploaded `simplex-noise-64.png` bound to `simplex`.
 - **SDF Circle Mask**: soft procedural circle clip.
 - **SDF Rounded Rectangle**: rounded rectangle clip using an SDF primitive.
 - **SDF Ring Glow**: procedural ring highlight using SDF strip sampling.
@@ -310,6 +315,16 @@ Add `Time`, `FloatConstant` amplitude, frequency, and speed inputs to animate it
 `Texture Coords + Time + speed + amplitude + scale -> Water Displace -> Sample Texture -> Fragment Output`
 
 This is the self-contained version of the classic LÖVE water displacement pattern: scroll noise, convert it into an XY offset, then sample the texture at the displaced UV. Use low amplitude values such as `0.01` to `0.04`; texture-space displacement gets strong quickly.
+
+### Texture Noise Water
+
+Load the **Texture Noise Water** preset to reproduce a texture-noise water shader. Upload `water.png` as the preview texture, then upload `simplex-noise-64.png` for the `simplex` texture uniform. The graph follows this structure:
+
+`Texture Coords + Time + Noise Width + Sprite Width + Speed -> Water Noise UV -> Texture Input(simplex) -> Sample Texture -> Water Displace V2 -> Sample Texture -> Fragment Output`
+
+This preset is based on Alex J. Griffith's LÖVE water shader post: [alexjgriffith.com/3.html](https://alexjgriffith.com/3.html). Feather keeps the node and preset names generic, while preserving the article's `water.png` plus `simplex-noise-64.png` texture-noise approach.
+
+The original `simplex-noise-64.png` is a color noise texture, so Feather samples it through a `Texture Input` node instead of trying to replace it with scalar procedural noise. That keeps the red, green, and blue channel displacement behavior intact, and the same pattern works for future multi-texture shaders.
 
 ### Masked Water
 
@@ -389,9 +404,9 @@ Attempts to compile the provided GLSL source using `love.graphics.newShader`. Re
 
 **Params**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `pixelSource` | `string` | GLSL pixel (fragment) shader source |
+| Field          | Type     | Description                          |
+| -------------- | -------- | ------------------------------------ |
+| `pixelSource`  | `string` | GLSL pixel (fragment) shader source  |
 | `vertexSource` | `string` | GLSL vertex shader source (optional) |
 
 **Response**
@@ -412,13 +427,13 @@ Compiles the provided GLSL source, creates a temporary padded shape texture, and
 
 **Params**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `pixelSource` | `string` | GLSL pixel (fragment) shader source |
-| `vertexSource` | `string` | GLSL vertex shader source (optional) |
-| `shape` | `string` | `circle`, `line`, or `rectangle`; defaults to `circle` |
-| `color` | `number[]` | Preview element RGBA color, normalized `0..1`; defaults to white |
-| `size` | `number` | Temporary texture size in pixels; defaults to `128` |
+| Field          | Type       | Description                                                      |
+| -------------- | ---------- | ---------------------------------------------------------------- |
+| `pixelSource`  | `string`   | GLSL pixel (fragment) shader source                              |
+| `vertexSource` | `string`   | GLSL vertex shader source (optional)                             |
+| `shape`        | `string`   | `circle`, `line`, or `rectangle`; defaults to `circle`           |
+| `color`        | `number[]` | Preview element RGBA color, normalized `0..1`; defaults to white |
+| `size`         | `number`   | Temporary texture size in pixels; defaults to `128`              |
 
 **Response**
 
