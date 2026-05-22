@@ -22,4 +22,11 @@ function love.conf(t)
   t.window.width = 800
   t.window.height = 600
   t.console = false
+
+  for _, value in ipairs(arg or {}) do
+    if value == "--e2e" then
+      t.modules.audio = false
+      break
+    end
+  end
 end
