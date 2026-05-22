@@ -426,6 +426,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../vscode-extension/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../usage/" class="md-nav__link">
         
   
@@ -669,6 +696,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../session-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../recommendations/" class="md-nav__link">
         
   
@@ -706,10 +760,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" checked>
         
           
-          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="0">
             
   
   
@@ -727,8 +781,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_14">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_16">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1874,7 +1928,7 @@
 </table>
 <h2 id="how-it-works">🔍 How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <h3 id="recording">Recording<a class="headerlink" href="#recording" title="Permanent link">&para;</a></h3>
-<p>When you press <strong>Record</strong>, the plugin wraps LÖVE's input callbacks (<code>love.keypressed</code>, <code>love.keyreleased</code>, <code>love.mousepressed</code>, <code>love.mousereleased</code>, and optionally <code>love.mousemoved</code>) to intercept events. Each event is stored with:</p>
+<p>When you press <strong>Record</strong>, the plugin records input through Feather's shared callback bus. Each event is stored with:</p>
 <ul>
 <li><strong>Timestamp</strong> — seconds elapsed since recording started (high-resolution via <code>socket.gettime</code> or <code>love.timer.getTime</code>)</li>
 <li><strong>Type</strong> — which callback fired</li>
@@ -1882,7 +1936,7 @@
 </ul>
 <p>The original callbacks still execute normally — recording is transparent to the game.</p>
 <h3 id="replaying">Replaying<a class="headerlink" href="#replaying" title="Permanent link">&para;</a></h3>
-<p>When you press <strong>Replay</strong>, the plugin fires the recorded events at their original timestamps by calling the original (pre-hook) LÖVE callbacks. This means:</p>
+<p>When you press <strong>Replay</strong>, the plugin fires the recorded events at their original timestamps through the active LÖVE callbacks. This means:</p>
 <ul>
 <li>Events replay in the exact order they were recorded</li>
 <li>Timing is preserved relative to replay start</li>
@@ -1898,9 +1952,9 @@
 </ul>
 <h3 id="hook-safety">Hook Safety<a class="headerlink" href="#hook-safety" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Hooks are installed lazily (only when recording or replaying starts)</li>
-<li>Original callbacks are preserved and restored on <code>finish()</code></li>
-<li>If a callback didn't exist before hooking, the hook still works (and fires with no original to call)</li>
+<li>Recording uses Feather's shared callback bus instead of installing plugin-owned LÖVE callback wrappers.</li>
+<li>During playback, temporary polling shims mirror <code>love.keyboard.isDown</code>, <code>love.mouse.isDown</code>, and mouse position APIs so polling-based controls can observe replayed input.</li>
+<li>Replay does not re-record events, so callback dispatch avoids feedback loops.</li>
 </ul>
 <h2 id="actions">🎮 Actions<a class="headerlink" href="#actions" title="Permanent link">&para;</a></h2>
 <p>The Feather desktop app shows these controls:</p>

@@ -426,6 +426,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../vscode-extension/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../usage/" class="md-nav__link">
         
   
@@ -517,6 +544,17 @@
     <span class="md-ellipsis">
       
         Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generated-cli-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated CLI Config
       
     </span>
   </a>
@@ -860,6 +898,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../session-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../recommendations/" class="md-nav__link">
         
   
@@ -895,10 +960,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
         
           
-          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="0">
             
   
   
@@ -916,8 +981,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_14">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1588,6 +1653,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#generated-cli-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated CLI Config
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#hot-reload" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1928,23 +2004,43 @@
 <p class="admonition-title">Warning</p>
 <p><code>captureScreenshot</code> can affect performance because it captures the current frame when errors are handled. Enable it only when you need visual error context.</p>
 </div>
+<h2 id="generated-cli-config">Generated CLI Config<a class="headerlink" href="#generated-cli-config" title="Permanent link">&para;</a></h2>
+<p><code>feather init</code> defaults to CLI-managed mode. In that mode Feather creates <code>feather.config.lua</code> without patching game code, and <code>feather run</code> injects the runtime when you launch the game.</p>
+<p>The generated CLI config includes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nv">managed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;cli&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nv">autoRegisterErrorHandler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;particle-system-playground&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;shader-graph&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nv">capabilities</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;draw&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;filesystem&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">}</span>
+</code></pre></div>
+<p>Those default plugins are normal bundled plugins, not special cases. Other plugins are enabled by adding their IDs to <code>include</code>, either manually or with the CLI:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>profiler,input-replay
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--exclude<span class="w"> </span>shader-graph
+</code></pre></div>
+<p>Plugins marked <code>optIn = true</code> or <code>disabled = true</code> in their <code>manifest.lua</code> only become active when included. This is how development-only tools such as Console and Hot Reload stay off unless you ask for them.</p>
 <h2 id="hot-reload">Hot Reload<a class="headerlink" href="#hot-reload" title="Permanent link">&para;</a></h2>
 <p>Hot reload is configured under <code>debugger.hotReload</code>, but the command handler only exists when the opt-in <code>hot-reload</code> plugin is installed and included:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;hot-reload&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nv">hotReload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">      </span><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">      </span><span class="nv">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;game.player&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;game.systems.*&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">      </span><span class="nv">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;main&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;conf&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;feather.*&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">      </span><span class="nv">persistToDisk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">      </span><span class="nv">clearOnBoot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">      </span><span class="nv">requireLocalNetwork</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;hot-reload&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nv">hotReload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">      </span><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="nv">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;game.player&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;game.systems.*&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">      </span><span class="nv">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;main&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;conf&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;feather.*&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">      </span><span class="nv">persistToDisk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">      </span><span class="nv">clearOnBoot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">      </span><span class="nv">requireLocalNetwork</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">}</span>
+</code></pre></div>
+<p>The CLI can write the same shape for you:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>feather<span class="w"> </span>init<span class="w"> </span>path/to/my-game<span class="w"> </span>--plugins<span class="w"> </span>hot-reload<span class="w"> </span>--hot-reload-allow<span class="w"> </span>game.player,game.systems.combat<span class="w"> </span>--yes
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>feather<span class="w"> </span>config<span class="w"> </span>hot-reload<span class="w"> </span>--allow<span class="w"> </span>game.player,game.systems.combat<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
 <p>See <a href="../hot-reload/">Hot Reload</a> for the full workflow.</p>
 <div class="admonition warning">
@@ -1958,8 +2054,8 @@
 <h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
 <p>Feather uses a <strong>nonce-based challenge-response handshake</strong> to authenticate each connection before any game data is exchanged.</p>
 <p>The CLI can audit these settings:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--production
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--security<span class="w"> </span>--json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--production
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--security<span class="w"> </span>--json
 </code></pre></div>
 <p><code>--production</code> fails on unsafe release settings. <code>--security --json</code> emits a machine-readable security report and redacts sensitive values such as <code>apiKey</code>.</p>
 <h3 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h3>
@@ -1971,18 +2067,18 @@
 <p>No game data (<code>feather:hello</code>, observers, logs, etc.) is sent until the handshake completes.</p>
 <h3 id="setting-up-appid">Setting up appId<a class="headerlink" href="#setting-up-appid" title="Permanent link">&para;</a></h3>
 <p>Copy your App ID from <strong>Feather → Settings → Security → Desktop App ID</strong> and add it to your config:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">appId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-app-id-here&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nv">appId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-app-id-here&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">}</span>
 </code></pre></div>
 <p>The same <code>appId</code> must be set in both the desktop settings and your game config. If they don't match, the connection is rejected and the game logs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[Feather] Auth failed. Check that appId in feather.config.lua matches your Feather desktop App ID.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>[Feather] Auth failed. Check that appId in feather.config.lua matches your Feather desktop App ID.
 </code></pre></div>
 <h3 id="insecure-mode">Insecure mode<a class="headerlink" href="#insecure-mode" title="Permanent link">&para;</a></h3>
 <p>For quick local prototyping or LAN jam builds where you don't want to manage a fixed App ID:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nv">__DANGEROUS_INSECURE_CONNECTION__</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nv">__DANGEROUS_INSECURE_CONNECTION__</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">}</span>
 </code></pre></div>
 <p>The desktop will accept the connection and show an insecure badge on the session tab. The field name is intentionally verbose — it must be set explicitly to acknowledge the risk.</p>
 <div class="admonition danger">
@@ -1991,10 +2087,10 @@
 </div>
 <h3 id="console-api-key">Console API key<a class="headerlink" href="#console-api-key" title="Permanent link">&para;</a></h3>
 <p>The Console plugin can evaluate Lua inside the running game. If <code>console</code> is included, configure a strong <code>apiKey</code> and match it in Feather desktop Settings:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nv">apiKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;a-long-random-per-session-secret&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nv">apiKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;a-long-random-per-session-secret&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">}</span>
 </code></pre></div>
 <p>Doctor reports whether the key is configured or weak, but does not print the key value.</p>
 <hr />
@@ -2004,25 +2100,25 @@
 <li>Start the Feather desktop app from the <a href="https://github.com/Kyonru/feather/releases">releases page</a>.</li>
 <li>Run your game with Feather enabled — you'll see:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>[Feather] WS client created — connecting to 127.0.0.1:4004
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>[Feather] Connected — handshake complete
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>[Feather] WS client created — connecting to 127.0.0.1:4004
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>[Feather] Connected — handshake complete
 </code></pre></div>
 <p>The game automatically reconnects if the desktop app is restarted.</p>
 <hr />
 <h2 id="mobile-remote-devices">Mobile &amp; Remote Devices<a class="headerlink" href="#mobile-remote-devices" title="Permanent link">&para;</a></h2>
 <h3 id="android-usb-via-adb-reverse">Android (USB via ADB reverse)<a class="headerlink" href="#android-usb-via-adb-reverse" title="Permanent link">&para;</a></h3>
 <p>Forward the device's <code>localhost:4004</code> to your computer:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>adb<span class="w"> </span>reverse<span class="w"> </span>tcp:4004<span class="w"> </span>tcp:4004
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>adb<span class="w"> </span>reverse<span class="w"> </span>tcp:4004<span class="w"> </span>tcp:4004
 </code></pre></div>
 <p>Then use the default config — the game connects to <code>127.0.0.1:4004</code>, which ADB routes to your computer:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span><span class="w"> </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span><span class="w"> </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span>
 </code></pre></div>
 <h3 id="android-ios-wi-fi">Android / iOS (Wi-Fi)<a class="headerlink" href="#android-ios-wi-fi" title="Permanent link">&para;</a></h3>
 <p>Point <code>host</code> to your computer's local IP:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;192.168.1.42&quot;</span><span class="p">,</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;192.168.1.42&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="p">})</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
@@ -2030,10 +2126,10 @@
 </div>
 <h3 id="offline-disk-mode">Offline / disk mode<a class="headerlink" href="#offline-disk-mode" title="Permanent link">&para;</a></h3>
 <p>Skip WebSocket entirely and write only log files — useful when there's no shared network:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nv">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;disk&quot;</span><span class="p">,</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nv">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;disk&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="p">})</span>
 </code></pre></div>
 <p>Transfer the <code>.featherlog</code> file from the device and open it in the Feather app via <strong>Open Log File</strong>.</p>
 

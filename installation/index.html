@@ -634,6 +634,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../vscode-extension/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../usage/" class="md-nav__link">
         
   
@@ -877,6 +904,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../session-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../recommendations/" class="md-nav__link">
         
   
@@ -912,10 +966,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
         
           
-          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="0">
             
   
   
@@ -933,8 +987,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_14">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1786,69 +1840,77 @@
 <p class="admonition-title">Note</p>
 <p>Use plain <code>feather run</code> for local desktop iteration where the CLI launches LÖVE directly. Use <code>feather run --target web|android|ios</code> when you want the CLI to build, serve, install, or launch a configured platform target.</p>
 </div>
+<p><code>feather init</code> defaults to CLI-managed mode. It creates <code>feather.config.lua</code> with development defaults, enables error capture, and includes <code>particle-system-playground</code> plus <code>shader-graph</code>. Other plugins can be enabled later:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>profiler,input-replay<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+</code></pre></div>
+<p>Hot Reload is development-only remote code execution, so it uses a separate allowlist command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>feather<span class="w"> </span>config<span class="w"> </span>hot-reload<span class="w"> </span>--allow<span class="w"> </span>game.player,game.systems.combat<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+</code></pre></div>
 <h3 id="vendors-and-platform-runs">Vendors and Platform Runs<a class="headerlink" href="#vendors-and-platform-runs" title="Permanent link">&para;</a></h3>
 <p>Add local LÖVE runtimes/templates once per project, then run or build those targets:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>web
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>android
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>ios
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>web
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>android
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>ios
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
 <p><code>feather build vendor add all</code> also installs desktop runtime vendors for Windows, macOS, Linux, and SteamOS packaging. Vendor fetching does not install Android SDK, JDK, Xcode, NSIS, or signing assets.</p>
 <p>Check all platform readiness in one pass:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>all
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>all
 </code></pre></div>
 <p>Common run and build commands:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>web
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>android
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>ios
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>feather<span class="w"> </span>build<span class="w"> </span>love<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>feather<span class="w"> </span>build<span class="w"> </span>windows<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>feather<span class="w"> </span>build<span class="w"> </span>macos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>feather<span class="w"> </span>build<span class="w"> </span>linux<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>feather<span class="w"> </span>build<span class="w"> </span>steamos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>web
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>android
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>ios
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>feather<span class="w"> </span>build<span class="w"> </span>love<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>feather<span class="w"> </span>build<span class="w"> </span>windows<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>feather<span class="w"> </span>build<span class="w"> </span>macos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>feather<span class="w"> </span>build<span class="w"> </span>linux<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>feather<span class="w"> </span>build<span class="w"> </span>steamos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
 <p>Release builds do not auto-embed Feather's debugger runtime. If you used a managed init mode while experimenting, Feather can clean up its own generated blocks/files before packaging:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--dry-run
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--yes
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--dry-run
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>feather<span class="w"> </span>remove<span class="w"> </span>path/to/my-game<span class="w"> </span>--yes
 </code></pre></div>
 <p>See <a href="../cli/">CLI</a> for all commands, flags, and <code>feather.config.lua</code> options.</p>
+<p>Prefer working from VS Code? The <a href="../vscode-extension/">VS Code extension</a> wraps the same CLI-managed setup, run, doctor, plugin, package, build, and upload flows inside the editor.</p>
 <p>For CI or release scripts that need a security-only JSON report:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--security<span class="w"> </span>--json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>path/to/my-game<span class="w"> </span>--security<span class="w"> </span>--json
 </code></pre></div>
 <hr />
 <h2 id="advanced-install-script">Advanced: Install Script<a class="headerlink" href="#advanced-install-script" title="Permanent link">&para;</a></h2>
 <p>The install script is an advanced/manual path. Prefer the CLI above unless you intentionally want to vendor the Lua runtime yourself.</p>
 <p>Download the core library and all plugins with a single command:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
 </code></pre></div>
 <p>This creates a <code>feather/</code> directory (core library) and a <code>plugins/</code> directory (all built-in plugins) in your current folder.</p>
+<p>The script installs normal built-in plugins by default, including <code>particle-system-playground</code> and <code>shader-graph</code>. It skips Console, Hot Reload, HUMP Signal, and Lua State Machine unless you opt in or override <code>FEATHER_SKIP_PLUGINS</code>.</p>
 <p><strong>Customize with environment variables:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Install into a custom directory</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">FEATHER_DIR</span><span class="o">=</span>lib/feather<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Download from a specific branch or tag</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="nv">FEATHER_BRANCH</span><span class="o">=</span>v0.6.0<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Skip certain plugins</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="nv">FEATHER_SKIP_PLUGINS</span><span class="o">=</span><span class="s2">&quot;network-inspector,memory-snapshot&quot;</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Skip all plugins (core only)</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="nv">FEATHER_PLUGINS</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Include console (opt-in, excluded by default)</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="nv">FEATHER_INCLUDE_CONSOLE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="c1"># Include hot reload (opt-in, development-only remote code execution)</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="nv">FEATHER_INCLUDE_HOT_RELOAD</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Install into a custom directory</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nv">FEATHER_DIR</span><span class="o">=</span>lib/feather<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Download from a specific branch or tag</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="nv">FEATHER_BRANCH</span><span class="o">=</span>v0.6.0<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># Skip certain plugins</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="nv">FEATHER_SKIP_PLUGINS</span><span class="o">=</span><span class="s2">&quot;network-inspector,memory-snapshot&quot;</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="c1"># Skip all plugins (core only)</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="nv">FEATHER_PLUGINS</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="c1"># Include console (opt-in, excluded by default)</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="nv">FEATHER_INCLUDE_CONSOLE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="c1"># Include hot reload (opt-in, development-only remote code execution)</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="nv">FEATHER_INCLUDE_HOT_RELOAD</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
 </code></pre></div>
 <h2 id="advanced-direct-download">Advanced: Direct Download<a class="headerlink" href="#advanced-direct-download" title="Permanent link">&para;</a></h2>
 <ol>
@@ -1856,37 +1918,37 @@
 <li>Unzip and copy the <code>feather/</code> folder into your project, e.g. <code>lib/feather/</code>.</li>
 <li>Require it by path:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">Feather</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="w"> </span><span class="s2">&quot;lib.feather&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">Feather</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="w"> </span><span class="s2">&quot;lib.feather&quot;</span>
 </code></pre></div>
 <h2 id="advanced-luarocks">Advanced: LuaRocks<a class="headerlink" href="#advanced-luarocks" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>luarocks<span class="w"> </span>install<span class="w"> </span>feather
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>luarocks<span class="w"> </span>install<span class="w"> </span>feather
 </code></pre></div>
 <p>Then at the top of <code>main.lua</code>, before any <code>require</code> calls:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;luarocks.loader&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">Feather</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;luarocks.loader&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">Feather</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather&quot;</span><span class="p">)</span>
 </code></pre></div>
 <p>Or install into a local tree:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>luarocks<span class="w"> </span>install<span class="w"> </span>feather<span class="w"> </span>--tree<span class="w"> </span>./lua_modules
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>luarocks<span class="w"> </span>install<span class="w"> </span>feather<span class="w"> </span>--tree<span class="w"> </span>./lua_modules
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nb">package.path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">package.path</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;;./lua_modules/share/lua/5.1/?.lua&quot;</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">Feather</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">package.path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">package.path</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;;./lua_modules/share/lua/5.1/?.lua&quot;</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">Feather</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather&quot;</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h2 id="updating">Updating<a class="headerlink" href="#updating" title="Permanent link">&para;</a></h2>
 <h3 id="using-the-cli">Using the CLI<a class="headerlink" href="#using-the-cli" title="Permanent link">&para;</a></h3>
 <p>If you installed via <code>@kyonru/feather</code>, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>feather<span class="w"> </span>update
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>feather<span class="w"> </span>update
 </code></pre></div>
 <p>This re-downloads the feather core files from GitHub into your project. To update a specific plugin:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>screenshots
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>screenshots
 </code></pre></div>
 <h3 id="using-the-install-script">Using the install script<a class="headerlink" href="#using-the-install-script" title="Permanent link">&para;</a></h3>
 <p>Re-run the script with the target version tag — it overwrites existing files in place:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Update to a specific release</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="nv">FEATHER_BRANCH</span><span class="o">=</span>v0.7.0<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="c1"># Update to the latest commit on main</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Update to a specific release</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nv">FEATHER_BRANCH</span><span class="o">=</span>v0.7.0<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1"># Update to the latest commit on main</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-feather.sh<span class="k">)</span><span class="s2">&quot;</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -1902,35 +1964,35 @@
 <h2 id="custom-paths">Custom Paths<a class="headerlink" href="#custom-paths" title="Permanent link">&para;</a></h2>
 <h3 id="feather_path"><code>FEATHER_PATH</code><a class="headerlink" href="#feather_path" title="Permanent link">&para;</a></h3>
 <p>Feather uses the global <code>FEATHER_PATH</code> to resolve its internal <code>require</code> calls. It is set automatically when you <code>require "feather"</code>. You only need to set it manually if the <code>feather/</code> folder is outside Lua's <code>package.path</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nv">FEATHER_PATH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lib.feather&quot;</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">Feather</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="w"> </span><span class="s2">&quot;lib.feather&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nv">FEATHER_PATH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lib.feather&quot;</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">Feather</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="w"> </span><span class="s2">&quot;lib.feather&quot;</span>
 </code></pre></div>
 <h3 id="feather_plugin_path"><code>FEATHER_PLUGIN_PATH</code><a class="headerlink" href="#feather_plugin_path" title="Permanent link">&para;</a></h3>
 <p>Tells <code>feather.auto</code> where to find built-in plugins. By default it mirrors <code>FEATHER_PATH</code>. Set it when the <code>plugins/</code> folder is installed somewhere separate from the core:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nv">FEATHER_PATH</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lib.feather.&quot;</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nv">FEATHER_PLUGIN_PATH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lib.feather-plugins.&quot;</span>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lib.feather.auto&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nv">FEATHER_PATH</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lib.feather.&quot;</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="nv">FEATHER_PLUGIN_PATH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;lib.feather-plugins.&quot;</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lib.feather.auto&quot;</span><span class="p">)</span>
 </code></pre></div>
 <p>Both variables must end with a <code>.</code> when set manually and must be set <strong>before</strong> calling <code>require("feather.auto")</code>.</p>
 <hr />
 <h2 id="installing-individual-plugins">Installing individual plugins<a class="headerlink" href="#installing-individual-plugins" title="Permanent link">&para;</a></h2>
 <p>Add plugins to an existing installation without re-running the full installer:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># Install one plugin</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>bash<span class="w"> </span>install-plugin.sh<span class="w"> </span>screenshots
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># Install several at once</span>
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>bash<span class="w"> </span>install-plugin.sh<span class="w"> </span>screenshots<span class="w"> </span>profiler<span class="w"> </span>console
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
-<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="c1"># Pipe directly from GitHub</span>
-<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-plugin.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash<span class="w"> </span>-s<span class="w"> </span>--<span class="w"> </span>screenshots<span class="w"> </span>profiler
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Install one plugin</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>bash<span class="w"> </span>install-plugin.sh<span class="w"> </span>screenshots
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="c1"># Install several at once</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>bash<span class="w"> </span>install-plugin.sh<span class="w"> </span>screenshots<span class="w"> </span>profiler<span class="w"> </span>console
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="c1"># Pipe directly from GitHub</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-plugin.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash<span class="w"> </span>-s<span class="w"> </span>--<span class="w"> </span>screenshots<span class="w"> </span>profiler
 </code></pre></div>
 <p>Run without arguments to see the full list of available plugins:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>bash<span class="w"> </span>install-plugin.sh
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>bash<span class="w"> </span>install-plugin.sh
 </code></pre></div>
 <p>After installing, register the plugins in your manual setup:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;screenshots&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;profiler&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">).</span><span class="nf">setup</span><span class="p">({</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;screenshots&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;profiler&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="p">})</span>
 </code></pre></div>
 
 
