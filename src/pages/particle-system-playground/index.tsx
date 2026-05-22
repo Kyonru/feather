@@ -13,6 +13,8 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { ShaderEditor } from './components/ShaderEditor';
 import { TextureImporter } from './components/TextureImporter';
 
+export type ParticleSystemPlaygroundController = ReturnType<typeof useParticleSystemPlayground>;
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="grid gap-3 rounded-md border bg-card p-3">
@@ -22,8 +24,17 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function ParticleSystemPlaygroundPage() {
-  const playground = useParticleSystemPlayground();
+export default function ParticleSystemPlaygroundPage({
+  playgroundOverride,
+  standalone = false,
+  preview,
+}: {
+  playgroundOverride?: ParticleSystemPlaygroundController;
+  standalone?: boolean;
+  preview?: React.ReactNode;
+} = {}) {
+  const livePlayground = useParticleSystemPlayground();
+  const playground = playgroundOverride ?? livePlayground;
   const pluginControl = usePluginControl('particle-system-playground');
   const composite = playground.composite;
   const system = playground.activeSystem;
@@ -50,7 +61,9 @@ export default function ParticleSystemPlaygroundPage() {
           <AlertTriangleIcon className="size-8 text-muted-foreground" />
           <h1 className="text-lg font-semibold">Particles Playground is disabled</h1>
           <p className="text-sm text-muted-foreground">
-            Enable the built-in plugin for this session to author particle effects.
+            {standalone
+              ? 'The standalone showcase keeps this tool enabled with local sample data.'
+              : 'Enable the built-in plugin for this session to author particle effects.'}
           </p>
           <Button
             size="sm"
@@ -141,6 +154,8 @@ export default function ParticleSystemPlaygroundPage() {
                 </div>
               )}
             </header>
+
+            {preview}
 
             {!system || !composite ? (
               <div className="grid min-h-72 place-items-center rounded-md border bg-card p-8 text-center text-sm text-muted-foreground">
