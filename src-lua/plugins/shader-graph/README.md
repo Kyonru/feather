@@ -227,7 +227,7 @@ Keep this near the end of a graph when you want a simple overall fade.
 
 `Vertex Position + Time + amplitude + frequency -> Vertex Wave 2D -> Vertex Output`
 
-Pair it with a normal fragment path such as `Texture Color -> Fragment Output`. It works best on sprites or meshes with enough vertices to show deformation; a single quad will wobble at its corners.
+Pair it with a normal fragment path such as `Texture Color -> Fragment Output`. Vertex Output expects local/object-space vertex positions; Shader Graph applies LÖVE's `transform_projection` matrix automatically. It works best on sprites or meshes with enough vertices to show deformation; a single quad will wobble at its corners.
 
 ### Rim Glow
 

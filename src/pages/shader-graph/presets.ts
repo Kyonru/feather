@@ -481,7 +481,7 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
       { id: 'frag-out', type: 'FragmentOutput', x: 320, y: 0 },
       { id: 'pos', type: 'VertexPosition', x: 0, y: 180 },
       { id: 'time', type: 'Time', x: 0, y: 300 },
-      { id: 'amp', type: 'FloatConstant', x: 0, y: 420, values: { val: 5 } },
+      { id: 'amp', type: 'FloatConstant', x: 0, y: 420, values: { val: 12 } },
       { id: 'freq', type: 'FloatConstant', x: 0, y: 540, values: { val: 0.035 } },
       { id: 'wave', type: 'VertexWave2D', x: 330, y: 300 },
       { id: 'vert-out', type: 'VertexOutput', x: 680, y: 330 },

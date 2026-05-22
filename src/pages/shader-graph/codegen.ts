@@ -96,7 +96,7 @@ function buildPosition(bodyLines: string[], returnExpr: string): string {
   return [
     'vec4 position(mat4 transform_projection, vec4 vertex_position) {',
     ...bodyLines.map((l) => `  ${l}`),
-    `  return ${returnExpr};`,
+    `  return transform_projection * ${returnExpr};`,
     '}',
   ].join('\n');
 }
@@ -159,7 +159,7 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
     const posEdge = edges.find((e) => e.target === vertOut.id && e.targetHandle === 'pos');
     const vertReturn = posEdge?.sourceHandle
       ? varName(posEdge.source, posEdge.sourceHandle)
-      : 'transform_projection * vertex_position';
+      : 'vertex_position';
 
     vertex = buildPosition(vertLines, vertReturn);
   }
