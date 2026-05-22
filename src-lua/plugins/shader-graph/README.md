@@ -77,6 +77,12 @@ Color nodes transform an existing `vec4`.
 - `Posterize`: reduce colors to a fixed number of bands.
 - `Multiply Color`: multiply two `vec4` values.
 
+### Composite
+
+Composite nodes combine two straight-alpha `vec4` colors using Porter-Duff alpha compositing equations.
+
+- `Composite`: combines color `A` and color `B`. `Mode` is stepped from `0` to `4`: `0` Over, `1` In, `2` Out, `3` Atop, `4` Xor.
+
 ### Noise
 
 Noise nodes create procedural variation.
@@ -166,6 +172,7 @@ The Shader Graph page includes complete preset graphs:
 - **Rim Glow**: 2D fresnel-style edge glow.
 - **Pixelate**: retro low-resolution sampling.
 - **Chromatic Aberration**: RGB channel split with an editable center offset.
+- **Alpha Composite**: Porter-Duff compositing between overlapping procedural shapes.
 - **Posterize**: toon/retro color bands.
 - **Twirl Portal**: centered UV swirl.
 - **Rotating Texture**: time-driven UV rotation.

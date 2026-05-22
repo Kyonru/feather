@@ -112,6 +112,7 @@ export const NODE_TYPES = [
   'BlendAdd',
   'BlendScreen',
   'BlendOverlay',
+  'CompositeAlpha',
   'Brightness',
   'GammaCorrect',
   // Noise
@@ -134,7 +135,7 @@ export const NODE_TYPES = [
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Noise' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
+export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;

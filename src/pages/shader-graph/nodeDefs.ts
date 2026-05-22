@@ -961,6 +961,40 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     emitGlsl: (i, o) =>
       `vec3 ${o.out}_dark = 2.0 * ${i.a}.rgb * ${i.b}.rgb;\nvec3 ${o.out}_light = 1.0 - 2.0 * (1.0 - ${i.a}.rgb) * (1.0 - ${i.b}.rgb);\nvec4 ${o.out} = vec4(mix(${o.out}_dark, ${o.out}_light, step(vec3(0.5), ${i.a}.rgb)), max(${i.a}.a, ${i.b}.a));`,
   },
+  CompositeAlpha: {
+    category: 'Composite',
+    label: 'Composite',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec4', defaultValue: [0, 0, 0, 0], min: 0, max: 1, step: 0.01 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 4, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => {
+      const safe = (alpha: string) => `max(${alpha}, 0.0001)`;
+      return [
+        `vec4 ${o.out}_a = vec4(${i.a}.rgb, clamp(${i.a}.a, 0.0, 1.0));`,
+        `vec4 ${o.out}_b = vec4(${i.b}.rgb, clamp(${i.b}.a, 0.0, 1.0));`,
+        `float ${o.out}_mode = clamp(floor(${i.mode} + 0.5), 0.0, 4.0);`,
+        `float ${o.out}_over_alpha = ${o.out}_a.a + ${o.out}_b.a * (1.0 - ${o.out}_a.a);`,
+        `vec4 ${o.out}_over = vec4((${o.out}_a.rgb * ${o.out}_a.a + ${o.out}_b.rgb * ${o.out}_b.a * (1.0 - ${o.out}_a.a)) / ${safe(`${o.out}_over_alpha`)}, ${o.out}_over_alpha);`,
+        `float ${o.out}_in_alpha = ${o.out}_a.a * ${o.out}_b.a;`,
+        `vec4 ${o.out}_in = vec4((${o.out}_a.rgb * ${o.out}_a.a * ${o.out}_b.a) / ${safe(`${o.out}_in_alpha`)}, ${o.out}_in_alpha);`,
+        `float ${o.out}_out_alpha = ${o.out}_a.a * (1.0 - ${o.out}_b.a);`,
+        `vec4 ${o.out}_out = vec4((${o.out}_a.rgb * ${o.out}_a.a * (1.0 - ${o.out}_b.a)) / ${safe(`${o.out}_out_alpha`)}, ${o.out}_out_alpha);`,
+        `float ${o.out}_atop_alpha = ${o.out}_b.a;`,
+        `vec4 ${o.out}_atop = vec4((${o.out}_a.rgb * ${o.out}_a.a * ${o.out}_b.a + ${o.out}_b.rgb * ${o.out}_b.a * (1.0 - ${o.out}_a.a)) / ${safe(`${o.out}_atop_alpha`)}, ${o.out}_atop_alpha);`,
+        `float ${o.out}_xor_alpha = ${o.out}_a.a + ${o.out}_b.a - 2.0 * ${o.out}_a.a * ${o.out}_b.a;`,
+        `vec4 ${o.out}_xor = vec4((${o.out}_a.rgb * ${o.out}_a.a * (1.0 - ${o.out}_b.a) + ${o.out}_b.rgb * ${o.out}_b.a * (1.0 - ${o.out}_a.a)) / ${safe(`${o.out}_xor_alpha`)}, ${o.out}_xor_alpha);`,
+        `float ${o.out}_is_over = 1.0 - step(0.5, abs(${o.out}_mode - 0.0));`,
+        `float ${o.out}_is_in = 1.0 - step(0.5, abs(${o.out}_mode - 1.0));`,
+        `float ${o.out}_is_out = 1.0 - step(0.5, abs(${o.out}_mode - 2.0));`,
+        `float ${o.out}_is_atop = 1.0 - step(0.5, abs(${o.out}_mode - 3.0));`,
+        `float ${o.out}_is_xor = 1.0 - step(0.5, abs(${o.out}_mode - 4.0));`,
+        `vec4 ${o.out} = ${o.out}_over * ${o.out}_is_over + ${o.out}_in * ${o.out}_is_in + ${o.out}_out * ${o.out}_is_out + ${o.out}_atop * ${o.out}_is_atop + ${o.out}_xor * ${o.out}_is_xor;`,
+      ].join('\n');
+    },
+  },
   Brightness: {
     category: 'Color',
     label: 'Brightness',
@@ -1284,6 +1318,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Math: 'border-l-orange-500',
   Vector: 'border-l-purple-500',
   Color: 'border-l-pink-500',
+  Composite: 'border-l-rose-500',
   Noise: 'border-l-green-500',
   UV: 'border-l-indigo-500',
   Effect: 'border-l-cyan-500',
@@ -1367,6 +1402,7 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
     ],
   },
   { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift', 'InvertColor', 'Contrast', 'PosterizeColor', 'MultiplyColor', 'BlendAdd', 'BlendScreen', 'BlendOverlay', 'Brightness', 'GammaCorrect'] },
+  { category: 'Composite', nodes: ['CompositeAlpha'] },
   { category: 'Noise', nodes: ['SimpleNoise', 'GradientNoise', 'FBMNoise', 'TruchetTiles', 'Ripple', 'VoronoiCells', 'Checkerboard'] },
   { category: 'UV', nodes: ['TilingOffset', 'RotateUV', 'TwirlUV', 'PolarCoordinates', 'ZoomUV', 'FlipUV'] },
   {
