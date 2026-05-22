@@ -104,6 +104,28 @@ return {
   assert.equal(labels.has('Plugin shader-graph'), false);
 });
 
+test('doctor --json treats managed = cli as bundled without legacy metadata comments', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  appId = "feather-app-test-1234567890",
+  managed = "cli",
+  include = { "console", "shader-graph" },
+}
+`,
+  );
+
+  const parsed = parseDoctorJson(dir);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Embedded Feather runtime').severity, 'info');
+  assert.equal(labels.get('CLI-managed plugins').severity, 'pass');
+  assert.equal(labels.get('CLI-managed plugins').detail, '2 included from bundled runtime');
+  assert.equal(labels.has('Plugin console'), false);
+  assert.equal(labels.has('Plugin shader-graph'), false);
+});
+
 test('doctor --json reports malformed plugin manifests with recovery text', () => {
   const dir = makeTmp();
   writeGame(dir);

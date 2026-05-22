@@ -257,7 +257,8 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     add(checks, 'Project', 'feather.config.lua', 'warn', 'missing', 'Run `feather init` to create a shared config.');
   }
 
-  const managedMode = configSource ? parseManagedValue(configSource, 'mode') : null;
+  const configManagedMode = typeof config?.managed === 'string' ? config.managed : null;
+  const managedMode = (configSource ? parseManagedValue(configSource, 'mode') : null) ?? configManagedMode;
   const managedInstallDir = configSource ? parseManagedValue(configSource, 'installDir') : null;
   const effectiveInstallDir = normalizeInstallDir(opts.installDir ?? managedInstallDir ?? installDir);
   const mode = typeof config?.mode === 'string' ? config.mode : 'socket';
