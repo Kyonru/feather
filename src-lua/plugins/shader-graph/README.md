@@ -16,7 +16,7 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 4. Connect compatible ports by type.
 5. Connect the final `vec4` color into **Fragment Output**.
 6. Use **Validate** to compile in the running LÖVE game.
-7. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. While preview is enabled, graph edits re-apply to the preview automatically.
+7. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. While preview is enabled, graph edits, shape changes, and preview color changes re-apply automatically.
 8. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
 9. Export/import `.feathershgh` files when you want to save or share editable graph projects.
 
@@ -114,7 +114,7 @@ Effect nodes are higher-level building blocks for common 2D game shaders.
 | Hit Flash | Mixes texture color toward a flash color |
 | Vignette | Darkens or fades toward UV edges |
 | Pixelate | Snaps UVs to a lower-resolution grid |
-| Chromatic Aberration | Splits red/blue samples away from center |
+| Chromatic Aberration | Splits red/blue samples away from an adjustable center offset |
 
 ### Output
 
@@ -141,7 +141,7 @@ The Shader Graph page includes complete preset graphs:
 - **Hit Flash**: damage/selection flash.
 - **Rim Glow**: 2D fresnel-style edge glow.
 - **Pixelate**: retro low-resolution sampling.
-- **Chromatic Aberration**: RGB channel split.
+- **Chromatic Aberration**: RGB channel split with an editable center offset.
 - **Posterize**: toon/retro color bands.
 - **Twirl Portal**: centered UV swirl.
 - **Rotating Texture**: time-driven UV rotation.
@@ -241,6 +241,12 @@ Feed texture color and a glow color into `Hit Flash`.
 
 Feed texture color and a highlight color into `Hit Flash`. This is a quick way to prototype shield, scan, grid, glitch, or energy effects.
 
+### Chromatic Aberration
+
+`Texture Coords + amount + center offset -> Chromatic Aberration -> Fragment Output`
+
+The offset input shifts the split center from `vec2(0.5)`. Use small values such as `vec2(0.08, 0.0)` to bias the red/blue separation toward one side of a sprite or screen effect.
+
 ### About Depth Fade
 
 Depth fade is a useful Unity particle technique for softening intersections against scene geometry. Feather does not include a depth fade node yet because LÖVE's standard 2D shader path does not provide the same camera depth texture. For now, approximate soft edges with texture alpha, `Opacity`, `Vignette`, dissolve masks, or custom game-provided shader uniforms.
@@ -281,13 +287,14 @@ Compiles the provided GLSL source, creates a temporary padded shape texture, and
 | `pixelSource` | `string` | GLSL pixel (fragment) shader source |
 | `vertexSource` | `string` | GLSL vertex shader source (optional) |
 | `shape` | `string` | `circle`, `line`, or `rectangle`; defaults to `circle` |
+| `color` | `number[]` | Preview element RGBA color, normalized `0..1`; defaults to white |
 | `size` | `number` | Temporary texture size in pixels; defaults to `128` |
 
 **Response**
 
 ```lua
 -- success
-{ status = "ok", shape = "circle" }
+{ status = "ok", shape = "circle", color = { 1, 1, 1, 1 } }
 
 -- failure
 { status = "error", pixelError = "...", vertexError = "..." }

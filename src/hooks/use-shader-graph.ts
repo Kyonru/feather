@@ -10,6 +10,7 @@ const PLUGIN_ID = 'particle-system-playground';
 const SHADER_GRAPH_PLUGIN = 'shader-graph';
 
 export type ShaderPreviewShape = 'circle' | 'line' | 'rectangle';
+export type ShaderPreviewColor = [number, number, number, number];
 
 type CompilePayload = { status: 'ok' | 'error'; pixelError?: string; vertexError?: string };
 type CompileResponse = {
@@ -73,14 +74,14 @@ export function useShaderGraph() {
   }, [generateAndStore, sessionId, store]);
 
   const previewShader = useCallback(
-    async (shape: ShaderPreviewShape) => {
+    async (shape: ShaderPreviewShape, color: ShaderPreviewColor) => {
       if (!sessionId) return;
       const glsl = generateAndStore();
       await sendCommand(sessionId, {
         type: 'cmd:plugin:action',
         plugin: SHADER_GRAPH_PLUGIN,
         action: 'preview-shader',
-        params: { pixelSource: glsl.pixel, vertexSource: glsl.vertex ?? '', shape },
+        params: { pixelSource: glsl.pixel, vertexSource: glsl.vertex ?? '', shape, color },
       });
     },
     [generateAndStore, sessionId],

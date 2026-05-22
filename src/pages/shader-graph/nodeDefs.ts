@@ -719,10 +719,11 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [
       { id: 'uv', label: 'UV', type: 'vec2' },
       { id: 'amount', label: 'Amount', type: 'float' },
+      { id: 'offset', label: 'Offset', type: 'vec2' },
     ],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
     emitGlsl: (i, o) =>
-      `vec2 ${o.out}_dir = normalize(${i.uv} - vec2(0.5));\nvec2 ${o.out}_off = ${o.out}_dir * ${i.amount};\nvec4 ${o.out}_base = Texel(tex, ${i.uv});\nvec4 ${o.out} = vec4(Texel(tex, ${i.uv} + ${o.out}_off).r, ${o.out}_base.g, Texel(tex, ${i.uv} - ${o.out}_off).b, ${o.out}_base.a);`,
+      `vec2 ${o.out}_center = vec2(0.5) + ${i.offset};\nvec2 ${o.out}_delta = ${i.uv} - ${o.out}_center;\nvec2 ${o.out}_dir = length(${o.out}_delta) > 0.0001 ? normalize(${o.out}_delta) : vec2(0.0);\nvec2 ${o.out}_off = ${o.out}_dir * ${i.amount};\nvec4 ${o.out}_base = Texel(tex, ${i.uv});\nvec4 ${o.out} = vec4(Texel(tex, ${i.uv} + ${o.out}_off).r, ${o.out}_base.g, Texel(tex, ${i.uv} - ${o.out}_off).b, ${o.out}_base.a);`,
   },
 
   // ─── Output ──────────────────────────────────────────────────────────────────

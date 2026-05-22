@@ -19,6 +19,32 @@ local function restoreCanvas(canvas)
   end
 end
 
+local function clamp01(value, fallback)
+  value = tonumber(value)
+  if value == nil then
+    return fallback
+  end
+  if value < 0 then
+    return 0
+  end
+  if value > 1 then
+    return 1
+  end
+  return value
+end
+
+local function previewColor(value)
+  if type(value) ~= "table" then
+    return { 1, 1, 1, 1 }
+  end
+  return {
+    clamp01(value[1] or value.r, 1),
+    clamp01(value[2] or value.g, 1),
+    clamp01(value[3] or value.b, 1),
+    clamp01(value[4] or value.a, 1),
+  }
+end
+
 local function buildShader(pixelSource, vertexSource)
   pixelSource = pixelSource or ""
   vertexSource = vertexSource or ""
@@ -44,7 +70,7 @@ local function buildShader(pixelSource, vertexSource)
   return pixelShaderOrErr
 end
 
-local function makePreviewCanvas(shape, size)
+local function makePreviewCanvas(shape, size, color)
   size = tonumber(size) or DEFAULT_PREVIEW_SIZE
   if size < 32 then
     size = 32
@@ -66,7 +92,7 @@ local function makePreviewCanvas(shape, size)
   love.graphics.clear(0, 0, 0, 0)
   love.graphics.setShader()
   love.graphics.setBlendMode("alpha")
-  love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.setColor(color[1], color[2], color[3], color[4])
 
   if shape == "rectangle" then
     love.graphics.rectangle("fill", pad, pad, size - pad * 2, size - pad * 2)
@@ -137,7 +163,8 @@ function ShaderGraphPlugin:_previewShader(params)
     return { status = "error", pixelError = pixelError, vertexError = vertexError }
   end
 
-  local okCanvas, canvasOrErr = pcall(makePreviewCanvas, shape, params.size)
+  local color = previewColor(params.color)
+  local okCanvas, canvasOrErr = pcall(makePreviewCanvas, shape, params.size, color)
   if not okCanvas then
     return { status = "error", pixelError = tostring(canvasOrErr) }
   end
@@ -146,10 +173,11 @@ function ShaderGraphPlugin:_previewShader(params)
     shader = shader,
     canvas = canvasOrErr,
     shape = shape,
+    color = color,
     updatedAt = love.timer and love.timer.getTime() or os.clock(),
   }
 
-  return { status = "ok", shape = shape }
+  return { status = "ok", shape = shape, color = color }
 end
 
 function ShaderGraphPlugin:onDraw()
@@ -226,6 +254,7 @@ function ShaderGraphPlugin:getConfig()
     icon = "blend",
     preview = self.preview and {
       shape = self.preview.shape,
+      color = self.preview.color,
       active = true,
     } or nil,
   }

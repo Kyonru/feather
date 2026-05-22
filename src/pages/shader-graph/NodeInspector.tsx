@@ -1,9 +1,41 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { NODE_DEFS } from './nodeDefs';
 import type { NodeType } from '@/types/shader-graph';
 import { Trash2Icon } from 'lucide-react';
+import { useState } from 'react';
+
+function clamp01(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
+
+function vec4Value(value: unknown): [number, number, number, number] {
+  const raw = Array.isArray(value) ? value : [0, 0, 0, 1];
+  return [
+    clamp01(Number(raw[0] ?? 0)),
+    clamp01(Number(raw[1] ?? 0)),
+    clamp01(Number(raw[2] ?? 0)),
+    clamp01(Number(raw[3] ?? 1)),
+  ];
+}
+
+function vec4ToHex(value: [number, number, number, number]) {
+  const part = (channel: number) =>
+    Math.round(clamp01(channel) * 255)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${part(value[0])}${part(value[1])}${part(value[2])}`;
+}
+
+function hexToRgb(value: string) {
+  const match = value.match(/^#?([0-9a-f]{6})$/i);
+  if (!match) return null;
+  const int = Number.parseInt(match[1], 16);
+  return [((int >> 16) & 255) / 255, ((int >> 8) & 255) / 255, (int & 255) / 255] as const;
+}
 
 export function NodeInspector() {
   const {
@@ -17,10 +49,17 @@ export function NodeInspector() {
     removeNode,
     removeEdge,
   } = useShaderGraphStore();
+  const [vec4EditMode, setVec4EditMode] = useState<'vector' | 'color'>('vector');
 
   const selected = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
   const def = selected ? NODE_DEFS[selected.data.nodeType as NodeType] : null;
   const selectedEdge = selectedEdgeId ? edges.find((e) => e.id === selectedEdgeId) : null;
+  const selectedVec4 = selected ? vec4Value(selected.data.values?.val) : [0, 0, 0, 1] as [number, number, number, number];
+
+  function updateSelectedVec4(next: [number, number, number, number]) {
+    if (!selected) return;
+    updateNodeData(selected.id, { values: { ...selected.data.values, val: next } });
+  }
 
   return (
     <div className="flex flex-col gap-3 p-3 text-xs">
@@ -132,26 +171,76 @@ export function NodeInspector() {
 
           {selected.data.nodeType === 'Vec4Constant' && (
             <div className="grid gap-1">
-              <Label className="text-[10px] text-muted-foreground">R / G / B / A</Label>
-              <div className="grid grid-cols-2 gap-1">
-                {[0, 1, 2, 3].map((idx) => (
-                  <Input
-                    key={idx}
-                    className="h-7 text-xs"
-                    type="number"
-                    step={0.01}
-                    min={0}
-                    max={1}
-                    value={((selected.data.values?.val as number[]) ?? [0, 0, 0, 1])[idx]}
-                    onChange={(e) => {
-                      const prev = (selected.data.values?.val as number[]) ?? [0, 0, 0, 1];
-                      const next = [...prev] as [number, number, number, number];
-                      next[idx] = parseFloat(e.target.value);
-                      updateNodeData(selected.id, { values: { ...selected.data.values, val: next } });
-                    }}
-                  />
-                ))}
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-[10px] text-muted-foreground">Vec4 Value</Label>
+                <span
+                  className="size-5 rounded border border-input"
+                  style={{ backgroundColor: vec4ToHex(selectedVec4), opacity: selectedVec4[3] }}
+                />
               </div>
+              <Tabs value={vec4EditMode} onValueChange={(value) => setVec4EditMode(value as 'vector' | 'color')}>
+                <TabsList className="h-7 w-full rounded-md">
+                  <TabsTrigger className="h-5 text-[10px]" value="vector">Vector</TabsTrigger>
+                  <TabsTrigger className="h-5 text-[10px]" value="color">Color</TabsTrigger>
+                </TabsList>
+                <TabsContent value="vector" className="mt-1">
+                  <div className="grid grid-cols-2 gap-1">
+                    {[0, 1, 2, 3].map((idx) => (
+                      <Input
+                        key={idx}
+                        aria-label={['R', 'G', 'B', 'A'][idx]}
+                        className="h-7 text-xs"
+                        type="number"
+                        step={0.01}
+                        min={0}
+                        max={1}
+                        value={selectedVec4[idx]}
+                        onChange={(e) => {
+                          const next = [...selectedVec4] as [number, number, number, number];
+                          next[idx] = clamp01(parseFloat(e.target.value));
+                          updateSelectedVec4(next);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="color" className="mt-1">
+                  <div className="flex items-center gap-2">
+                    <label
+                      className="relative size-8 shrink-0 overflow-hidden rounded-md border border-input bg-transparent shadow-xs transition-colors hover:bg-muted"
+                      title="Edit RGB as color"
+                    >
+                      <span className="sr-only">Edit RGB as color</span>
+                      <span
+                        className="absolute inset-1 rounded-sm"
+                        style={{ backgroundColor: vec4ToHex(selectedVec4) }}
+                      />
+                      <input
+                        type="color"
+                        value={vec4ToHex(selectedVec4)}
+                        onChange={(event) => {
+                          const rgb = hexToRgb(event.target.value);
+                          if (!rgb) return;
+                          updateSelectedVec4([rgb[0], rgb[1], rgb[2], selectedVec4[3]]);
+                        }}
+                        className="absolute inset-0 size-full cursor-pointer opacity-0"
+                      />
+                    </label>
+                    <Input
+                      aria-label="Alpha"
+                      className="h-8 text-xs"
+                      type="number"
+                      step={0.01}
+                      min={0}
+                      max={1}
+                      value={selectedVec4[3]}
+                      onChange={(e) =>
+                        updateSelectedVec4([selectedVec4[0], selectedVec4[1], selectedVec4[2], clamp01(parseFloat(e.target.value))])
+                      }
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           )}
 

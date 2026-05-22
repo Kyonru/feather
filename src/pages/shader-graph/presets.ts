@@ -27,13 +27,93 @@ export type ShaderGraphPreset = {
   edges: Edge[];
 };
 
+const PRESET_LABELS: Record<string, string> = {
+  amp: 'Amplitude',
+  amount: 'Effect Amount',
+  boolean: 'Subtract Shape',
+  cells: 'Voronoi Cell Mask',
+  center: 'Shape Center',
+  'center-a': 'Main Circle Center',
+  'center-b': 'Cutout Circle Center',
+  'center-offset': 'Split Center Offset',
+  checker: 'Checker Mask',
+  chromatic: 'Channel Split',
+  corner: 'Corner Radius',
+  cut: 'Dissolve Cutoff',
+  dissolve: 'Dissolve Texture',
+  'edge-color': 'Edge Color',
+  'energy-color': 'Energy Color',
+  'fill-color': 'Fill Color',
+  flash: 'Apply Color Mix',
+  'flash-color': 'Flash Color',
+  freq: 'Frequency',
+  'frag-out': 'Texture Output',
+  'glow-color': 'Glow Color',
+  intensity: 'Glow Intensity',
+  invert: 'Invert Mask',
+  mask: 'Alpha Mask Threshold',
+  mix: 'Blend Glow',
+  offset: 'UV Offset',
+  'opacity-node': 'Apply Opacity',
+  opacity: 'Opacity Amount',
+  out: 'Final Output',
+  outline: 'Build Outline',
+  'outline-color': 'Outline Color',
+  pixelate: 'Pixelate UVs',
+  pos: 'Vertex Position',
+  posterize: 'Reduce Color Bands',
+  power: 'Power',
+  radius: 'Shape Radius',
+  'radius-a': 'Main Circle Radius',
+  'radius-b': 'Cutout Circle Radius',
+  rim: 'Rim Mask',
+  rotate: 'Rotate UVs',
+  scale: 'Pattern Scale',
+  sdf: 'Build SDF',
+  'sdf-a': 'Main Circle SDF',
+  'sdf-b': 'Cutout Circle SDF',
+  sides: 'Polygon Sides',
+  soft: 'Edge Softness',
+  speed: 'Animation Speed',
+  steps: 'Color Steps',
+  strength: 'Effect Strength',
+  strip: 'Sample Ring Band',
+  tex: 'Source Texture',
+  thickness: 'Outline Thickness',
+  tiling: 'Tile Count',
+  'tiling-offset': 'Tile And Offset UVs',
+  time: 'Animated Time',
+  twirl: 'Twirl UVs',
+  uv: 'Source UVs',
+  'vert-out': 'Final Vertex Position',
+  wave: 'Wave Distortion',
+  water: 'Water Offset',
+};
+
+const PRESET_TYPE_LABELS: Partial<Record<NodeType, string>> = {
+  FragmentOutput: 'Final Output',
+  SampleTexture: 'Sample Texture',
+  SDFSample: 'Sample SDF Mask',
+  TextureColor: 'Source Texture',
+  TextureCoords: 'Source UVs',
+};
+
+const PRESET_LABELS_BY_KEY: Partial<Record<`${NodeType}:${string}`, string>> = {
+  'FloatConstant:opacity': 'Opacity Amount',
+  'Opacity2D:opacity': 'Apply Opacity Mask',
+};
+
+function presetLabel(id: string, type: NodeType) {
+  return PRESET_LABELS_BY_KEY[`${type}:${id}`] ?? PRESET_LABELS[id] ?? PRESET_TYPE_LABELS[type] ?? NODE_DEFS[type].label;
+}
+
 function node({ id, type, x, y, label, values }: PresetNode): ShaderNodeInstance {
   return {
     id,
     type: 'shaderNode',
     position: { x, y },
     data: {
-      label: label ?? NODE_DEFS[type].label,
+      label: label ?? presetLabel(id, type),
       nodeType: type,
       ...(values ? { values } : {}),
     } satisfies ShaderNodeData,
@@ -220,12 +300,14 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
     [
       { id: 'uv', type: 'TextureCoords', x: 0, y: 0 },
       { id: 'amount', type: 'FloatConstant', x: 0, y: 140, values: { val: 0.006 } },
-      { id: 'chromatic', type: 'ChromaticAberration', x: 300, y: 55 },
-      { id: 'out', type: 'FragmentOutput', x: 660, y: 75 },
+      { id: 'center-offset', type: 'Vec2Constant', x: 0, y: 280, values: { val: [0, 0] } },
+      { id: 'chromatic', type: 'ChromaticAberration', x: 300, y: 95 },
+      { id: 'out', type: 'FragmentOutput', x: 660, y: 115 },
     ],
     [
       { from: 'uv', out: 'out', to: 'chromatic', in: 'uv' },
       { from: 'amount', out: 'out', to: 'chromatic', in: 'amount' },
+      { from: 'center-offset', out: 'out', to: 'chromatic', in: 'offset' },
       { from: 'chromatic', out: 'out', to: 'out', in: 'color' },
     ],
   ),

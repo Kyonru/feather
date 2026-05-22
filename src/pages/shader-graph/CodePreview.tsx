@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { type ShaderPreviewShape, useShaderGraph } from '@/hooks/use-shader-graph';
+import { type ShaderPreviewColor, type ShaderPreviewShape, useShaderGraph } from '@/hooks/use-shader-graph';
 import { useSessionStore } from '@/store/session';
 import { useTheme } from '@/hooks/use-theme';
 import oneLight from '@/assets/theme/light';
@@ -26,6 +26,13 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debouncedValue;
 }
 
+function colorFromHex(value: string): ShaderPreviewColor {
+  const match = value.match(/^#?([0-9a-f]{6})$/i);
+  if (!match) return [1, 1, 1, 1];
+  const int = Number.parseInt(match[1], 16);
+  return [((int >> 16) & 255) / 255, ((int >> 8) & 255) / 255, (int & 255) / 255, 1];
+}
+
 export function CodePreview() {
   const sessionId = useSessionStore((s) => s.sessionId);
   const {
@@ -45,11 +52,13 @@ export function CodePreview() {
   const hlTheme = theme === 'dark' ? onDark : oneLight;
   const [copied, setCopied] = useState(false);
   const [previewShape, setPreviewShape] = useState<ShaderPreviewShape>('circle');
+  const [previewColor, setPreviewColor] = useState('#ffffff');
   const [previewEnabled, setPreviewEnabled] = useState(false);
   const previewShaderRef = useRef(previewShader);
   const debouncedNodes = useDebouncedValue(nodes, 180);
   const debouncedEdges = useDebouncedValue(edges, 180);
   const debouncedPreviewShape = useDebouncedValue(previewShape, 180);
+  const debouncedPreviewColor = useDebouncedValue(previewColor, 180);
 
   const glsl = lastGeneratedGlsl ?? generateAndStore();
   const fullSource = glsl.vertex
@@ -90,8 +99,8 @@ export function CodePreview() {
 
   useEffect(() => {
     if (!sessionId || !previewEnabled) return;
-    void previewShaderRef.current(debouncedPreviewShape);
-  }, [debouncedEdges, debouncedNodes, debouncedPreviewShape, previewEnabled, sessionId]);
+    void previewShaderRef.current(debouncedPreviewShape, colorFromHex(debouncedPreviewColor));
+  }, [debouncedEdges, debouncedNodes, debouncedPreviewColor, debouncedPreviewShape, previewEnabled, sessionId]);
 
   const statusColor = {
     idle: 'bg-muted text-muted-foreground',
@@ -204,6 +213,23 @@ export function CodePreview() {
             <SelectItem value="rectangle">Rectangle</SelectItem>
           </SelectContent>
         </Select>
+        <label
+          className="relative size-7 shrink-0 overflow-hidden rounded-md border border-input bg-transparent shadow-xs transition-colors hover:bg-muted"
+          title="Preview element color"
+        >
+          <span className="sr-only">Preview element color</span>
+          <span
+            className="absolute inset-1 rounded-sm"
+            style={{ backgroundColor: previewColor }}
+          />
+          <input
+            type="color"
+            value={previewColor}
+            disabled={!sessionId}
+            onChange={(event) => setPreviewColor(event.target.value)}
+            className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+          />
+        </label>
         <Button
           size="sm"
           variant={previewEnabled ? 'default' : 'outline'}
