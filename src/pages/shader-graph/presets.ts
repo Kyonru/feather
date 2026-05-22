@@ -83,7 +83,7 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
   preset(
     'outline',
     'Outline',
-    'Alpha-based sprite outline with editable color and thickness.',
+    'Sprite-alpha outline with editable color and screen-space thickness.',
     'outline',
     [
       { id: 'tex', type: 'TextureColor', x: 0, y: 0 },

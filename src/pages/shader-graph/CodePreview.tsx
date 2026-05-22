@@ -1,15 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useShaderGraph } from '@/hooks/use-shader-graph';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { type ShaderPreviewShape, useShaderGraph } from '@/hooks/use-shader-graph';
 import { useSessionStore } from '@/store/session';
 import { useTheme } from '@/hooks/use-theme';
 import oneLight from '@/assets/theme/light';
 import onDark from '@/assets/theme/dark';
 import { cn } from '@/utils/styles';
-import { CheckIcon, CopyIcon } from 'lucide-react';
+import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedValue(value);
+    }, delayMs);
+
+    return () => window.clearTimeout(timeout);
+  }, [delayMs, value]);
+
+  return debouncedValue;
+}
 
 export function CodePreview() {
   const sessionId = useSessionStore((s) => s.sessionId);
@@ -17,14 +32,24 @@ export function CodePreview() {
     lastGeneratedGlsl,
     validationStatus,
     validationErrors,
+    nodes,
+    edges,
     generateAndStore,
     validateShader,
     applyToPlayground,
+    previewShader,
+    clearPreview,
     playgroundTarget,
   } = useShaderGraph();
   const theme = useTheme();
   const hlTheme = theme === 'dark' ? onDark : oneLight;
   const [copied, setCopied] = useState(false);
+  const [previewShape, setPreviewShape] = useState<ShaderPreviewShape>('circle');
+  const [previewEnabled, setPreviewEnabled] = useState(false);
+  const previewShaderRef = useRef(previewShader);
+  const debouncedNodes = useDebouncedValue(nodes, 180);
+  const debouncedEdges = useDebouncedValue(edges, 180);
+  const debouncedPreviewShape = useDebouncedValue(previewShape, 180);
 
   const glsl = lastGeneratedGlsl ?? generateAndStore();
   const fullSource = glsl.vertex
@@ -37,6 +62,36 @@ export function CodePreview() {
       setTimeout(() => setCopied(false), 1500);
     });
   }
+
+  async function handlePreviewToggle() {
+    if (!sessionId) return;
+    if (previewEnabled) {
+      await clearPreview();
+      setPreviewEnabled(false);
+      return;
+    }
+    setPreviewEnabled(true);
+  }
+
+  function handlePreviewShapeChange(value: string) {
+    const nextShape = value as ShaderPreviewShape;
+    setPreviewShape(nextShape);
+  }
+
+  useEffect(() => {
+    previewShaderRef.current = previewShader;
+  }, [previewShader]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setPreviewEnabled(false);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId || !previewEnabled) return;
+    void previewShaderRef.current(debouncedPreviewShape);
+  }, [debouncedEdges, debouncedNodes, debouncedPreviewShape, previewEnabled, sessionId]);
 
   const statusColor = {
     idle: 'bg-muted text-muted-foreground',
@@ -131,6 +186,34 @@ export function CodePreview() {
           onClick={() => applyToPlayground()}
         >
           Apply
+        </Button>
+      </div>
+
+      <div className="border-t px-3 py-2 flex items-center gap-2 shrink-0">
+        <Select
+          value={previewShape}
+          onValueChange={handlePreviewShapeChange}
+          disabled={!sessionId}
+        >
+          <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
+            <SelectValue aria-label={previewShape} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="circle">Circle</SelectItem>
+            <SelectItem value="line">Line</SelectItem>
+            <SelectItem value="rectangle">Rectangle</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          size="sm"
+          variant={previewEnabled ? 'default' : 'outline'}
+          className="h-7 text-xs px-2 min-w-24"
+          disabled={!sessionId}
+          onClick={() => void handlePreviewToggle()}
+          title="Toggle shader preview on a temporary shape in the running game"
+        >
+          {previewEnabled ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
+          {previewEnabled ? 'Preview Off' : 'Preview On'}
         </Button>
       </div>
     </div>

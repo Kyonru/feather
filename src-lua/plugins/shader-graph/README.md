@@ -16,8 +16,9 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 4. Connect compatible ports by type.
 5. Connect the final `vec4` color into **Fragment Output**.
 6. Use **Validate** to compile in the running LÖVE game.
-7. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
-8. Export/import `.feathershgh` files when you want to save or share editable graph projects.
+7. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. While preview is enabled, graph edits re-apply to the preview automatically.
+8. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
+9. Export/import `.feathershgh` files when you want to save or share editable graph projects.
 
 Select a node and edit **Node Name** in the inspector when a graph needs more descriptive labels. Renaming a node changes the canvas label only; the original node type stays visible in the inspector and code generation is unchanged.
 
@@ -105,7 +106,7 @@ Effect nodes are higher-level building blocks for common 2D game shaders.
 | Opacity | Multiplies texture alpha by a scalar fade value |
 | Centered UV | Converts UV into `uv - 0.5` and distance from center |
 | Fresnel / Rim 2D | Radial edge mask for glow/rim effects on sprites and particles |
-| Alpha Outline | Samples neighboring alpha to create sprite outlines |
+| Sprite Outline | Samples neighboring alpha around the current sprite to create a configurable outline color |
 | Wave Distort | Animated UV wave for water, heat, magic, flags |
 | Water Displace | Procedural animated noise displacement for water, heat shimmer, and magic surfaces |
 | Masked Water | Water displacement constrained by texture alpha, useful when only opaque regions should move |
@@ -200,9 +201,9 @@ Use this for portals, rotating particles, scrolling texture strips, and tiled ma
 
 ### Outline
 
-`Texture Color + Texture Coords + Float thickness + Vec4 outline color -> Alpha Outline -> Fragment Output`
+`Texture Color + Texture Coords + Float thickness + Vec4 outline color -> Sprite Outline -> Fragment Output`
 
-Good for sprites, interactable objects, and particle silhouettes.
+Good for sprites, interactable objects, and particle silhouettes. The outline node paints transparent pixels adjacent to sprite alpha, so the original sprite remains unchanged while the outline color fills the silhouette edge.
 
 ### Dissolve
 
@@ -269,9 +270,37 @@ Attempts to compile the provided GLSL source using `love.graphics.newShader`. Re
 
 `pixelError` / `vertexError` are `nil` when that stage compiled successfully.
 
+### `preview-shader`
+
+Compiles the provided GLSL source, creates a temporary padded shape texture, and draws it in-game with the shader until preview is cleared. This is useful for sprite shaders, especially outline graphs, before applying the shader to a Particle System Playground emitter.
+
+**Params**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pixelSource` | `string` | GLSL pixel (fragment) shader source |
+| `vertexSource` | `string` | GLSL vertex shader source (optional) |
+| `shape` | `string` | `circle`, `line`, or `rectangle`; defaults to `circle` |
+| `size` | `number` | Temporary texture size in pixels; defaults to `128` |
+
+**Response**
+
+```lua
+-- success
+{ status = "ok", shape = "circle" }
+
+-- failure
+{ status = "error", pixelError = "...", vertexError = "..." }
+```
+
+### `clear-preview`
+
+Clears the active temporary shader preview.
+
 ## Notes
 
 - Validation runs on the game process — a live LÖVE session must be connected.
 - The plugin uses `pcall` so a bad shader never crashes the game.
-- No draw calls are made; the shader object is discarded immediately after compilation.
+- Validation discards shader objects immediately; previews keep the shader and temporary shape canvas only for the preview window.
 - When vertex source is provided, validation compiles the combined pixel + vertex source because Feather applies shader graph output as a single LÖVE shader source.
+- Runtime preview is drawn by the Shader Graph plugin itself, so it does not require a Particle System Playground target.

@@ -9,6 +9,8 @@ import { codegen } from '@/pages/shader-graph/codegen';
 const PLUGIN_ID = 'particle-system-playground';
 const SHADER_GRAPH_PLUGIN = 'shader-graph';
 
+export type ShaderPreviewShape = 'circle' | 'line' | 'rectangle';
+
 type CompilePayload = { status: 'ok' | 'error'; pixelError?: string; vertexError?: string };
 type CompileResponse = {
   status?: 'success' | 'error' | 'ok';
@@ -70,6 +72,30 @@ export function useShaderGraph() {
     });
   }, [generateAndStore, sessionId, store]);
 
+  const previewShader = useCallback(
+    async (shape: ShaderPreviewShape) => {
+      if (!sessionId) return;
+      const glsl = generateAndStore();
+      await sendCommand(sessionId, {
+        type: 'cmd:plugin:action',
+        plugin: SHADER_GRAPH_PLUGIN,
+        action: 'preview-shader',
+        params: { pixelSource: glsl.pixel, vertexSource: glsl.vertex ?? '', shape },
+      });
+    },
+    [generateAndStore, sessionId],
+  );
+
+  const clearPreview = useCallback(async () => {
+    if (!sessionId) return;
+    await sendCommand(sessionId, {
+      type: 'cmd:plugin:action',
+      plugin: SHADER_GRAPH_PLUGIN,
+      action: 'clear-preview',
+      params: {},
+    });
+  }, [sessionId]);
+
   const compileResult = compileQuery.data;
 
   useEffect(() => {
@@ -95,5 +121,5 @@ export function useShaderGraph() {
     });
   }, [compileResult, store]);
 
-  return { ...store, generateAndStore, validateShader, applyToPlayground };
+  return { ...store, generateAndStore, validateShader, applyToPlayground, previewShader, clearPreview };
 }

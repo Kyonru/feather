@@ -605,7 +605,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   },
   Outline2D: {
     category: 'Effect',
-    label: 'Alpha Outline',
+    label: 'Sprite Outline',
     inputs: [
       { id: 'color', label: 'Color', type: 'vec4' },
       { id: 'uv', label: 'UV', type: 'vec2' },
@@ -614,7 +614,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     ],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
     emitGlsl: (i, o) =>
-      `vec2 ${o.out}_px = ${i.thickness} / love_ScreenSize.xy;\nfloat ${o.out}_a = max(max(Texel(tex, ${i.uv} + vec2(${o.out}_px.x, 0.0)).a, Texel(tex, ${i.uv} - vec2(${o.out}_px.x, 0.0)).a), max(Texel(tex, ${i.uv} + vec2(0.0, ${o.out}_px.y)).a, Texel(tex, ${i.uv} - vec2(0.0, ${o.out}_px.y)).a));\nvec4 ${o.out} = mix(vec4(${i.outlineColor}.rgb, ${o.out}_a * ${i.outlineColor}.a), ${i.color}, ${i.color}.a);`,
+      `vec2 ${o.out}_uv_step = max(fwidth(${i.uv}), vec2(0.000001)) * max(${i.thickness}, 0.0);\nfloat ${o.out}_source_alpha = clamp(${i.color}.a, 0.0, 1.0);\nfloat ${o.out}_neighbor_alpha = 0.0;\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + vec2(${o.out}_uv_step.x, 0.0)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} - vec2(${o.out}_uv_step.x, 0.0)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + vec2(0.0, ${o.out}_uv_step.y)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} - vec2(0.0, ${o.out}_uv_step.y)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + ${o.out}_uv_step).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} - ${o.out}_uv_step).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + vec2(${o.out}_uv_step.x, -${o.out}_uv_step.y)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + vec2(-${o.out}_uv_step.x, ${o.out}_uv_step.y)).a);\nfloat ${o.out}_outline_alpha = ${i.outlineColor}.a * smoothstep(0.001, 0.5, ${o.out}_neighbor_alpha);\nfloat ${o.out}_alpha = ${o.out}_source_alpha + ${o.out}_outline_alpha * (1.0 - ${o.out}_source_alpha);\nfloat ${o.out}_source_coverage = smoothstep(0.18, 0.92, ${o.out}_source_alpha);\nvec3 ${o.out}_rgb = mix(${i.outlineColor}.rgb, ${i.color}.rgb, ${o.out}_source_coverage);\nvec4 ${o.out} = vec4(${o.out}_rgb, ${o.out}_alpha);`,
   },
   WaveDistort: {
     category: 'Effect',
