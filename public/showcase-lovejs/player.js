@@ -33,24 +33,34 @@
   }
 
   function drawShaderPreview(width, height) {
-    const radius = Math.min(width, height) * 0.22;
+    const size = Math.min(width, height) * 0.44;
     const x = width * 0.5;
     const y = height * 0.5;
-    const gradient = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.4, radius * 0.1, x, y, radius);
-    gradient.addColorStop(0, '#f8fafc');
-    gradient.addColorStop(0.48, '#38bdf8');
-    gradient.addColorStop(1, '#7c3aed');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#67e8f9';
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    const shape = payload.previewShape || 'circle';
+    const color = payload.previewColor || '#38bdf8';
+    const pad = size * 0.22;
+
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+
+    if (shape === 'rectangle') {
+      ctx.fillRect(x - size / 2 + pad, y - size / 2 + pad, size - pad * 2, size - pad * 2);
+    } else if (shape === 'line') {
+      ctx.lineWidth = Math.max(6, size * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(x - size / 2 + pad, y + size / 2 - pad);
+      ctx.lineTo(x + size / 2 - pad, y - size / 2 + pad);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(String(payload.shaderName || 'shader graph'), x, y + radius + 28);
+    ctx.fillText(String(payload.shaderName || 'shader graph'), x, y + size * 0.3 + 28);
   }
 
   function drawParticles(width, height) {

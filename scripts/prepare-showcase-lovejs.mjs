@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -8,15 +9,9 @@ const outDir = path.join(root, 'dist-showcase/showcase-lovejs');
 const cacheDir = path.join(root, '.showcase-vendor/love.js');
 const repo = 'https://github.com/2dengine/love.js';
 
-const envVendor = process.env.SHOWCASE_LOVEJS_DIR
-  ? path.resolve(root, process.env.SHOWCASE_LOVEJS_DIR)
-  : undefined;
+const envVendor = process.env.SHOWCASE_LOVEJS_DIR ? path.resolve(root, process.env.SHOWCASE_LOVEJS_DIR) : undefined;
 
-const candidates = [
-  envVendor,
-  path.join(root, 'vendor/love.js'),
-  cacheDir,
-].filter(Boolean);
+const candidates = [envVendor, path.join(root, 'vendor/love.js'), cacheDir].filter(Boolean);
 
 let vendorDir = candidates.find((candidate) => isLoveJsVendor(candidate));
 
@@ -40,7 +35,9 @@ if (!vendorDir && process.env.SHOWCASE_LOVEJS_SKIP_FETCH !== '1') {
 
 if (!vendorDir) {
   console.warn('[showcase] Real love.js player not found; keeping the bridge preview from public/showcase-lovejs/.');
-  console.warn('[showcase] Set SHOWCASE_LOVEJS_DIR=/path/to/love.js or run `feather build vendor add web --dir .` to use the real player.');
+  console.warn(
+    '[showcase] Set SHOWCASE_LOVEJS_DIR=/path/to/love.js or run `feather build vendor add web --dir .` to use the real player.',
+  );
   process.exit(0);
 }
 
@@ -52,16 +49,36 @@ await cp(vendorDir, outDir, {
   filter: (source) => !source.includes(`${path.sep}.git${path.sep}`) && !source.endsWith(`${path.sep}.git`),
 });
 await patchIndex(outDir);
+await patchPlayer(outDir);
 console.log(`[showcase] Copied love.js player from ${path.relative(root, vendorDir) || vendorDir}`);
 
 function isLoveJsVendor(dir) {
-  return Boolean(dir)
-    && existsSync(path.join(dir, 'index.html'))
-    && (
-      existsSync(path.join(dir, 'player.js'))
-      || existsSync(path.join(dir, 'player.min.js'))
-      || existsSync(path.join(dir, 'love.js'))
-    );
+  return (
+    Boolean(dir) &&
+    existsSync(path.join(dir, 'index.html')) &&
+    (existsSync(path.join(dir, 'player.js')) ||
+      existsSync(path.join(dir, 'player.min.js')) ||
+      existsSync(path.join(dir, 'love.js')))
+  );
+}
+
+async function patchPlayer(dir) {
+  const bridge = [
+    '',
+    '// Feather showcase bridge: store postMessage preview payload for love.js.eval() polling',
+    'window._featherPayload = null;',
+    'window.addEventListener(\'message\', function(e) {',
+    '  if (!e.data || e.data.source !== \'feather-showcase\' || e.data.type !== \'preview:update\') return;',
+    '  window._featherPayload = e.data.payload || null;',
+    '});',
+    '',
+  ].join('\n');
+  const candidates = ['player.min.js', 'player.js'].map((f) => path.join(dir, f));
+  const target = candidates.find((f) => existsSync(f));
+  if (!target) return;
+  const existing = await readFile(target, 'utf8');
+  if (existing.includes('_featherPayload')) return;
+  await writeFile(target, existing + bridge);
 }
 
 async function patchIndex(dir) {

@@ -1,5 +1,5 @@
 import { ReactFlowProvider } from '@xyflow/react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { DownloadIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,18 @@ export function ShowcaseShaderGraph() {
   const loadGraph = useShaderGraphStore((state) => state.loadGraph);
   const setHasInitializedExample = useShaderGraphStore((state) => state.setHasInitializedExample);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewParams, setPreviewParams] = useState<{
+    shape: string;
+    color: string;
+    baseTexture: { filename: string; dataBase64: string } | null;
+  }>({ shape: 'circle', color: '#ffffff', baseTexture: null });
+
+  const handlePreviewParamsChange = useCallback(
+    (params: { shape: string; color: string; baseTexture: { filename: string; dataBase64: string } | null }) => {
+      setPreviewParams(params);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (hasInitializedExample) return;
@@ -220,14 +232,22 @@ export function ShowcaseShaderGraph() {
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize="34%" minSize="24%" className="flex flex-col overflow-hidden">
-                <CodePreview />
+                <CodePreview standalone onPreviewParamsChange={handlePreviewParamsChange} />
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize="30%" minSize="20%" className="flex flex-col overflow-hidden p-2">
                 <LoveJsPreview
                   title="Shader Preview"
                   description="The standalone build posts generated GLSL into this isolated preview frame."
-                  payload={{ tool: 'shader-graph', shaderName, pixel: glsl.pixel, vertex: glsl.vertex }}
+                  payload={{
+                    tool: 'shader-graph',
+                    shaderName,
+                    pixel: glsl.pixel,
+                    vertex: glsl.vertex,
+                    previewShape: previewParams.shape,
+                    previewColor: previewParams.color,
+                    baseTexture: previewParams.baseTexture,
+                  }}
                   className="h-full"
                 />
               </ResizablePanel>

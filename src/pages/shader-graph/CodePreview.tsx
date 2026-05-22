@@ -36,8 +36,21 @@ function colorFromHex(value: string): ShaderPreviewColor {
   return [((int >> 16) & 255) / 255, ((int >> 8) & 255) / 255, (int & 255) / 255, 1];
 }
 
-export function CodePreview() {
+type PreviewParams = {
+  shape: ShaderPreviewShape;
+  color: string;
+  baseTexture: { filename: string; dataBase64: string } | null;
+};
+
+export function CodePreview({
+  standalone,
+  onPreviewParamsChange,
+}: {
+  standalone?: boolean;
+  onPreviewParamsChange?: (params: PreviewParams) => void;
+} = {}) {
   const sessionId = useSessionStore((s) => s.sessionId);
+  const previewAvailable = !!sessionId || !!standalone;
   const {
     lastGeneratedGlsl,
     validationStatus,
@@ -60,6 +73,7 @@ export function CodePreview() {
   const [previewEnabled, setPreviewEnabled] = useState(false);
   const [baseTexture, setBaseTexture] = useState<{ filename: string; dataBase64: string } | null>(null);
   const sendShaderPreviewRef = useRef(sendShaderPreview);
+  const onPreviewParamsChangeRef = useRef(onPreviewParamsChange);
   const debouncedNodes = useDebouncedValue(nodes, 180);
   const debouncedEdges = useDebouncedValue(edges, 180);
   const debouncedPreviewShape = useDebouncedValue(previewShape, 180);
@@ -90,9 +104,9 @@ export function CodePreview() {
   }
 
   async function handlePreviewToggle() {
-    if (!sessionId) return;
+    if (!previewAvailable) return;
     if (previewEnabled) {
-      await clearPreview();
+      if (sessionId) await clearPreview();
       setPreviewEnabled(false);
       return;
     }
@@ -116,10 +130,19 @@ export function CodePreview() {
   }, [sendShaderPreview]);
 
   useEffect(() => {
-    if (!sessionId) {
+    onPreviewParamsChangeRef.current = onPreviewParamsChange;
+  }, [onPreviewParamsChange]);
+
+  useEffect(() => {
+    if (!sessionId && !standalone) {
       setPreviewEnabled(false);
     }
-  }, [sessionId]);
+  }, [sessionId, standalone]);
+
+  useEffect(() => {
+    if (!standalone) return;
+    onPreviewParamsChangeRef.current?.({ shape: previewShape, color: previewColor, baseTexture });
+  }, [previewShape, previewColor, baseTexture, standalone]);
 
   useEffect(() => {
     if (!sessionId || !previewEnabled) return;
@@ -129,6 +152,7 @@ export function CodePreview() {
       textures: uploadedUniformTextures,
     });
   }, [baseTexture, debouncedEdges, debouncedNodes, debouncedPreviewColor, debouncedPreviewShape, previewEnabled, sessionId, uploadedUniformTextures]);
+
 
   const statusColor = {
     idle: 'bg-muted text-muted-foreground',
@@ -231,7 +255,7 @@ export function CodePreview() {
         <Select
           value={previewShape}
           onValueChange={handlePreviewShapeChange}
-          disabled={!sessionId}
+          disabled={!previewAvailable}
         >
           <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
             <SelectValue aria-label={previewShape} />
@@ -254,7 +278,7 @@ export function CodePreview() {
           <input
             type="color"
             value={previewColor}
-            disabled={!sessionId}
+            disabled={!previewAvailable}
             onChange={(event) => setPreviewColor(event.target.value)}
             className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
           />
@@ -263,9 +287,9 @@ export function CodePreview() {
           size="sm"
           variant={previewEnabled ? 'default' : 'outline'}
           className="h-7 text-xs px-2 min-w-24"
-          disabled={!sessionId}
+          disabled={!previewAvailable}
           onClick={() => void handlePreviewToggle()}
-          title="Toggle shader preview on a temporary shape in the running game"
+          title={standalone ? 'Toggle shader preview in the isolated preview frame' : 'Toggle shader preview on a temporary shape in the running game'}
         >
           {previewEnabled ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
           {previewEnabled ? 'Preview Off' : 'Preview On'}
@@ -288,7 +312,7 @@ export function CodePreview() {
                 <XIcon className="size-3.5" />
               </Button>
             )}
-            <Button size="icon" variant="outline" className="size-7" title="Upload preview texture" disabled={!sessionId} onClick={() => void uploadBaseTexture()}>
+            <Button size="icon" variant="outline" className="size-7" title="Upload preview texture" disabled={!previewAvailable} onClick={() => void uploadBaseTexture()}>
               <FolderOpenIcon className="size-3.5" />
             </Button>
           </div>

@@ -12,20 +12,32 @@ type LoveJsPreviewProps = {
 
 export function LoveJsPreview({ title, description, payload, className }: LoveJsPreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const loadedRef = useRef(false);
+  const payloadRef = useRef(payload);
 
-  useEffect(() => {
+  payloadRef.current = payload;
+
+  function sendPayload(p: Record<string, unknown>) {
     iframeRef.current?.contentWindow?.postMessage(
-      {
-        source: 'feather-showcase',
-        type: 'preview:update',
-        payload,
-      },
+      { source: 'feather-showcase', type: 'preview:update', payload: p },
       '*',
     );
+  }
+
+  useEffect(() => {
+    if (loadedRef.current) {
+      sendPayload(payload);
+    }
   }, [payload]);
+
+  function handleLoad() {
+    loadedRef.current = true;
+    sendPayload(payloadRef.current);
+  }
 
   function reloadPreview() {
     if (!iframeRef.current) return;
+    loadedRef.current = false;
     iframeRef.current.contentWindow?.location.reload();
   }
 
@@ -51,6 +63,7 @@ export function LoveJsPreview({ title, description, payload, className }: LoveJs
           title={`${title} love.js preview`}
           src="/showcase-lovejs/index.html?g=showcase.love&v=11.5"
           className="h-full min-h-72 w-full border-0"
+          onLoad={handleLoad}
         />
       </div>
       <p className="text-[10px] text-muted-foreground">
