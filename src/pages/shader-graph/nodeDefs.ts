@@ -1,5 +1,6 @@
 import type { GlslType, NodeDef, NodeType, ShaderNodeData } from '@/types/shader-graph';
 import { glslFloat, shaderTextureUniformName } from './glslUtils';
+import { customFunctionNodeDef } from './customNode';
 
 export const PORT_TYPE_COLORS: Record<GlslType, string> = {
   float: '#94a3b8',
@@ -78,6 +79,13 @@ function pixelLineCross(uv: string, position: string, direction: string, out: st
 }
 
 export const NODE_DEFS: Record<NodeType, NodeDef> = {
+  CustomFunction: {
+    category: 'Custom',
+    label: 'Custom Function',
+    inputs: [],
+    outputs: [],
+    emitGlsl: () => '',
+  },
   // ─── Input ──────────────────────────────────────────────────────────────────
   TextureColor: {
     category: 'Input',
@@ -2213,7 +2221,15 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   },
 };
 
+export function getNodeDef(data: ShaderNodeData): NodeDef {
+  if (data.nodeType === 'CustomFunction') {
+    return customFunctionNodeDef(data);
+  }
+  return NODE_DEFS[data.nodeType];
+}
+
 export const CATEGORY_COLORS: Record<string, string> = {
+  Custom: 'border-l-zinc-500',
   Input: 'border-l-blue-500',
   Math: 'border-l-orange-500',
   Complex: 'border-l-amber-500',
@@ -2235,6 +2251,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
+  { category: 'Custom', nodes: ['CustomFunction'] },
   {
     category: 'Input',
     nodes: [

@@ -1,6 +1,7 @@
 import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData, PortDef } from '@/types/shader-graph';
-import { NODE_DEFS } from './nodeDefs';
+import { getNodeDef, NODE_DEFS } from './nodeDefs';
 import { glslFloat, shaderTextureUniformName } from './glslUtils';
+import { customFunctionSource, validateCustomFunctionSource } from './customNode';
 
 export const PASSTHROUGH_PIXEL = [
   'vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords) {',
@@ -93,7 +94,7 @@ function collectTextureUniform(node: ShaderNodeInstance, textureMap: Map<string,
 }
 
 function buildNodeBody(node: ShaderNodeInstance, edges: ShaderEdge[], nodeMap: Map<string, ShaderNodeInstance>): string[] {
-  const def = NODE_DEFS[node.data.nodeType];
+  const def = getNodeDef(node.data);
   if (!def?.emitGlsl) return [];
 
   const inVars: Record<string, string> = {};
@@ -111,6 +112,13 @@ function buildNodeBody(node: ShaderNodeInstance, edges: ShaderEdge[], nodeMap: M
 
   const glsl = def.emitGlsl(inVars, outVars, { ...node.data, __nodeId: node.id });
   return glsl ? glsl.split('\n').map((s) => s.trim()).filter(Boolean) : [];
+}
+
+function collectCustomFunction(node: ShaderNodeInstance, customFunctionSet: Set<string>) {
+  if (node.data.nodeType !== 'CustomFunction') return;
+  const source = customFunctionSource(node.data);
+  if (!validateCustomFunctionSource(source).signature) return;
+  customFunctionSet.add(source);
 }
 
 function collectReachable(startId: string, nodes: ShaderNodeInstance[], edges: ShaderEdge[]): ShaderNodeInstance[] {
@@ -163,22 +171,25 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
 
   const externSet = new Set<string>();
   const helperKeys = new Set<string>();
+  const customFunctionSet = new Set<string>();
   const textureMap = new Map<string, { nodeId: string; uniform: string; label: string }>();
   for (const node of reachable) {
-    const def = NODE_DEFS[node.data.nodeType];
+    const def = getNodeDef(node.data);
     def?.externs?.forEach((e) => externSet.add(e));
     if (def?.helperKey) helperKeys.add(def.helperKey);
     collectTextureUniform(node, textureMap, externSet);
+    collectCustomFunction(node, customFunctionSet);
   }
 
   let vertReachable: ShaderNodeInstance[] = [];
   if (vertOut) {
     vertReachable = collectReachable(vertOut.id, nodes, edges);
     for (const node of vertReachable) {
-      const def = NODE_DEFS[node.data.nodeType];
+      const def = getNodeDef(node.data);
       def?.externs?.forEach((e) => externSet.add(e));
       if (def?.helperKey) helperKeys.add(def.helperKey);
       collectTextureUniform(node, textureMap, externSet);
+      collectCustomFunction(node, customFunctionSet);
     }
   }
 
@@ -198,6 +209,7 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
   if (externSet.size) parts.push([...externSet].join('\n'));
   if (helperKeys.has('noise')) parts.push(NOISE_HELPER);
   if (helperKeys.has('lab-color')) parts.push(LAB_COLOR_HELPER);
+  if (customFunctionSet.size) parts.push([...customFunctionSet].join('\n\n'));
   parts.push(buildEffect(bodyLines, returnExpr));
 
   const pixel = parts.join('\n\n');

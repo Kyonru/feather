@@ -13,6 +13,7 @@ export type PortDef = {
 };
 
 export const NODE_TYPES = [
+  'CustomFunction',
   'TextureColor',
   'TextureInput',
   'TextureUniformColor',
@@ -188,7 +189,7 @@ export const NODE_TYPES = [
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Input' | 'Math' | 'Complex' | 'Quaternion' | 'Symmetry' | 'Random' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
+export type NodeCategory = 'Custom' | 'Input' | 'Math' | 'Complex' | 'Quaternion' | 'Symmetry' | 'Random' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;

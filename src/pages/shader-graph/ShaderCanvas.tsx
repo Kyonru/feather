@@ -18,13 +18,25 @@ import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
 import type { ShaderNodeData, NodeType } from '@/types/shader-graph';
 import { useShaderGraphStore } from '@/store/shader-graph';
-import { NODE_DEFS } from './nodeDefs';
+import { getNodeDef, NODE_DEFS } from './nodeDefs';
 import { nodeTypes } from './nodes';
 import { Redo2Icon, Undo2Icon } from 'lucide-react';
+import { DEFAULT_CUSTOM_FUNCTION_CODE } from './customNode';
 
 let idCounter = Date.now();
 function nextId() {
   return `node-${++idCounter}`;
+}
+
+function defaultNodeData(nodeType: NodeType, label: string): ShaderNodeData {
+  if (nodeType === 'CustomFunction') {
+    return {
+      label,
+      nodeType,
+      customCode: DEFAULT_CUSTOM_FUNCTION_CODE,
+    };
+  }
+  return { label, nodeType };
 }
 
 export function ShaderCanvas() {
@@ -93,8 +105,8 @@ export function ShaderCanvas() {
       const sourceNode = nodes.find((n) => n.id === connection.source);
       const targetNode = nodes.find((n) => n.id === connection.target);
       if (!sourceNode || !targetNode) return false;
-      const sourceDef = NODE_DEFS[sourceNode.data.nodeType as NodeType];
-      const targetDef = NODE_DEFS[targetNode.data.nodeType as NodeType];
+      const sourceDef = getNodeDef(sourceNode.data);
+      const targetDef = getNodeDef(targetNode.data);
       if (!sourceDef || !targetDef) return false;
       const sourcePort = sourceDef.outputs.find((p) => p.id === connection.sourceHandle);
       const targetPort = targetDef.inputs.find((p) => p.id === connection.targetHandle);
@@ -123,7 +135,7 @@ export function ShaderCanvas() {
         id,
         type: 'shaderNode',
         position,
-        data: { label: def.label, nodeType },
+        data: defaultNodeData(nodeType, def.label),
       });
       selectNode(id);
     },

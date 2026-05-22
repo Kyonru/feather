@@ -15,14 +15,36 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 3. Drag nodes from the palette onto the canvas.
 4. Connect compatible ports by type.
 5. Connect the final `vec4` color into **Fragment Output**.
-6. Use **Validate** to compile in the running LÖVE game.
-7. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically.
-8. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
-9. Export/import `.feathershgh` files when you want to save or share editable graph projects.
+6. Use **Custom Function** when a graph needs a small hand-written GLSL function. Function parameters become input ports; the return value and `out` parameters become output ports.
+7. Use **Validate** to compile in the running LÖVE game.
+8. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically.
+9. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
+10. Export/import `.feathershgh` files when you want to save or share editable graph projects.
 
 Select a node and edit **Node Name** in the inspector when a graph needs more descriptive labels. Renaming a node changes the canvas label only; the original node type stays visible in the inspector and code generation is unchanged.
 
 ## Node Types
+
+### Custom
+
+Use **Custom Function** for small GLSL snippets that are easier to express as code than as node chains.
+
+```glsl
+vec4 custom_tint(vec4 color, float strength) {
+  return vec4(color.rgb * strength, color.a);
+}
+```
+
+The editor parses the function signature in the node modal. Regular parameters become inputs, a non-`void` return value becomes a `Result` output, and `out` parameters become additional outputs:
+
+```glsl
+void custom_mask(vec2 uv, out float mask, out vec4 color) {
+  mask = smoothstep(0.45, 0.5, length(uv - vec2(0.5)));
+  color = vec4(vec3(mask), 1.0);
+}
+```
+
+Keep custom functions self-contained and pass values in through ports. The node validates the signature and braces before saving, then the final shader should still be compiled with **Validate** against the connected LÖVE runtime.
 
 ### Input
 

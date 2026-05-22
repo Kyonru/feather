@@ -1,15 +1,18 @@
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { GlslCodeInput } from '@/components/ui/glsl-code-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShaderGraphStore } from '@/store/shader-graph';
-import { NODE_DEFS } from './nodeDefs';
-import type { NodeType, PortDef } from '@/types/shader-graph';
-import { FolderOpenIcon, Trash2Icon, XIcon } from 'lucide-react';
+import { getNodeDef, PORT_TYPE_COLORS } from './nodeDefs';
+import type { PortDef } from '@/types/shader-graph';
+import { Code2Icon, FolderOpenIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { shaderTextureUniformName } from './glslUtils';
 import { pickShaderTexture } from './textureUpload';
 import { toast } from 'sonner';
+import { customFunctionNodeDef, customFunctionSource, validateCustomFunctionSource } from './customNode';
 
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
@@ -70,6 +73,19 @@ function portStep(port: PortDef): number {
   return port.step ?? 0.01;
 }
 
+function PortBadge({ port }: { port: PortDef }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/40 px-1.5 py-0.5 font-mono text-[10px]">
+      <span
+        className="size-2 rounded-full"
+        style={{ backgroundColor: PORT_TYPE_COLORS[port.type] }}
+      />
+      <span className="font-sans text-foreground">{port.label}</span>
+      <span className="text-muted-foreground">{port.type}</span>
+    </span>
+  );
+}
+
 export function NodeInspector() {
   const {
     nodes,
@@ -78,6 +94,7 @@ export function NodeInspector() {
     selectedEdgeId,
     textureUploads,
     updateNodeData,
+    setEdges,
     setTextureUpload,
     clearTextureUpload,
     setShaderName,
@@ -86,12 +103,15 @@ export function NodeInspector() {
     removeEdge,
   } = useShaderGraphStore();
   const [vec4EditMode, setVec4EditMode] = useState<'vector' | 'color'>('vector');
+  const [customModalOpen, setCustomModalOpen] = useState(false);
+  const [customDraft, setCustomDraft] = useState('');
 
   const selected = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
-  const def = selected ? NODE_DEFS[selected.data.nodeType as NodeType] : null;
+  const def = selected ? getNodeDef(selected.data) : null;
   const selectedEdge = selectedEdgeId ? edges.find((e) => e.id === selectedEdgeId) : null;
   const selectedVec4 = selected ? vec4Value(selected.data.values?.val) : [0, 0, 0, 1] as [number, number, number, number];
   const selectedTextureUpload = selected ? textureUploads[selected.id] : null;
+  const customDraftValidation = validateCustomFunctionSource(customDraft);
 
   function updateSelectedVec4(next: [number, number, number, number]) {
     if (!selected) return;
@@ -109,6 +129,37 @@ export function NodeInspector() {
     if (!texture) return;
     setTextureUpload(selected.id, texture);
     toast.success(`${selected.data.label || 'Texture'} loaded: ${texture.filename}`);
+  }
+
+  function openCustomFunctionModal() {
+    if (!selected) return;
+    setCustomDraft(customFunctionSource(selected.data));
+    setCustomModalOpen(true);
+  }
+
+  function saveCustomFunction() {
+    if (!selected) return;
+    const validation = validateCustomFunctionSource(customDraft);
+    if (!validation.signature) {
+      toast.error(validation.errors[0] ?? 'Custom function is not valid.');
+      return;
+    }
+
+    const nextData = { ...selected.data, customCode: customDraft };
+    const nextDef = customFunctionNodeDef(nextData);
+    const inputIds = new Set(nextDef.inputs.map((port) => port.id));
+    const outputIds = new Set(nextDef.outputs.map((port) => port.id));
+
+    setEdges(
+      edges.filter((edge) => {
+        if (edge.target === selected.id && edge.targetHandle && !inputIds.has(edge.targetHandle)) return false;
+        if (edge.source === selected.id && edge.sourceHandle && !outputIds.has(edge.sourceHandle)) return false;
+        return true;
+      }),
+    );
+    updateNodeData(selected.id, { customCode: customDraft });
+    setCustomModalOpen(false);
+    toast.success('Custom function updated');
   }
 
   function renderPortValueEditor(port: PortDef) {
@@ -214,6 +265,31 @@ export function NodeInspector() {
               }}
             />
           </div>
+
+          {selected.data.nodeType === 'CustomFunction' && (
+            <div className="grid gap-2 rounded border border-border/70 p-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-medium text-muted-foreground">Function</div>
+                  <div className="truncate font-mono text-[10px] text-muted-foreground">
+                    {validateCustomFunctionSource(customFunctionSource(selected.data)).signature?.functionName ?? 'Invalid custom function'}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 px-2 text-xs"
+                  onClick={openCustomFunctionModal}
+                >
+                  <Code2Icon className="size-3.5" />
+                  Edit
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Parameters become input ports. A return value and `out` parameters become output ports.
+              </p>
+            </div>
+          )}
 
           {selected.data.nodeType === 'FloatConstant' && (
             <div className="grid gap-1">
@@ -471,6 +547,70 @@ export function NodeInspector() {
           Select a node or edge to inspect it.
         </p>
       )}
+
+      <Dialog open={customModalOpen} onOpenChange={setCustomModalOpen}>
+        <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Custom GLSL Function</DialogTitle>
+            <DialogDescription>
+              Write one GLSL function. Input parameters become graph inputs; the return value and `out` parameters become outputs.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid min-h-0 gap-3">
+            <GlslCodeInput
+              value={customDraft}
+              onChange={setCustomDraft}
+              autoFocus
+              placeholder="vec4 my_node(vec4 color, float amount) { return color * amount; }"
+              maxHeight={420}
+            />
+
+            <div className="grid gap-2 rounded border border-border/70 p-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Validation
+              </div>
+              {customDraftValidation.signature ? (
+                <div className="grid gap-1 text-[10px] text-muted-foreground">
+                  <div>
+                    <span className="font-medium text-foreground">{customDraftValidation.signature.functionName}</span>
+                    <span className="font-mono"> returns {customDraftValidation.signature.returnType}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    Inputs:{' '}
+                    {customDraftValidation.signature.inputs.length
+                      ? customDraftValidation.signature.inputs.map((port) => <PortBadge key={port.id} port={port} />)
+                      : 'none'}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    Outputs:{' '}
+                    {customDraftValidation.signature.outputs.length
+                      ? customDraftValidation.signature.outputs.map((port) => <PortBadge key={port.id} port={port} />)
+                      : 'none'}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-1">
+                  {customDraftValidation.errors.map((error) => (
+                    <p key={error} className="font-mono text-[10px] text-red-600 dark:text-red-400">
+                      {error}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="sm" variant="outline" onClick={() => setCustomModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" disabled={!customDraftValidation.signature} onClick={saveCustomFunction}>
+              Save Function
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

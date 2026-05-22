@@ -1,13 +1,13 @@
 import { Fragment } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { cn } from '@/utils/styles';
-import type { ShaderNodeData, NodeType } from '@/types/shader-graph';
-import { NODE_DEFS, CATEGORY_COLORS, PORT_TYPE_COLORS } from '../nodeDefs';
+import type { ShaderNodeData } from '@/types/shader-graph';
+import { getNodeDef, CATEGORY_COLORS, PORT_TYPE_COLORS } from '../nodeDefs';
 
 const ROW_H = 20;
 
 export function ShaderNode({ data, selected }: NodeProps<Node<ShaderNodeData>>) {
-  const def = NODE_DEFS[data.nodeType as NodeType];
+  const def = getNodeDef(data);
   if (!def) return null;
   const colorClass = CATEGORY_COLORS[def.category] ?? 'border-l-gray-500';
   const rows = Math.max(def.inputs.length, def.outputs.length, 1);
