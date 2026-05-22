@@ -77,6 +77,14 @@ Quaternion nodes treat a `vec4` as a quaternion, where `xyz` is the vector compo
 - `Quaternion Rotate Vector`: rotates a `vec3` by a quaternion.
 - `Quaternion Slerp`: spherical interpolation between two quaternions.
 
+### Symmetry
+
+Symmetry nodes fold or tile UV coordinates before sampling. They are useful for kaleidoscope effects, mirrored sprites, repeating motifs, procedural tiles, and compact pattern authoring.
+
+- `Reflection Symmetry`: mirrors UVs across a line defined by position and direction, with optional glide offset.
+- `Rotation Symmetry`: folds UVs into radial sectors around a position. `Order` controls the number of repeated sectors.
+- `Tiling Symmetry`: maps UVs into local tile coordinates and also outputs cell index and cell position. `Mode` is stepped from `0` to `3`: `0` Square, `1` Hexagon, `2` Triangle, `3` Herringbone.
+
 ### Vector
 
 Vector nodes convert between packed colors/vectors and scalar channels.
@@ -242,6 +250,7 @@ The Shader Graph page includes complete preset graphs:
 - **Complex Power Warp**: bends centered UVs with complex-number power math.
 - **Rotating Texture**: time-driven UV rotation.
 - **Quaternion UV Rotate**: rotates centered UVs through a generated Z-axis quaternion.
+- **Symmetry Kaleidoscope**: folds UVs through rotation and reflection symmetry before sampling.
 - **Checker Flash**: checker mask mixed into a flash color.
 - **Pattern Whirl**: radial procedural whirl mask mixed into the texture.
 - **Voronoi Energy**: cellular energy/shield mask.

@@ -128,6 +128,10 @@ export const NODE_TYPES = [
   'QuaternionMultiply',
   'QuaternionRotateVector',
   'QuaternionSlerp',
+  // Symmetry
+  'ReflectionSymmetry',
+  'RotationSymmetry',
+  'TilingSymmetry',
   // Vector
   'CrossVec3',
   'LerpVec4',
@@ -174,7 +178,7 @@ export const NODE_TYPES = [
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Input' | 'Math' | 'Complex' | 'Quaternion' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
+export type NodeCategory = 'Input' | 'Math' | 'Complex' | 'Quaternion' | 'Symmetry' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;
