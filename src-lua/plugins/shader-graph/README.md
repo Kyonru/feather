@@ -58,7 +58,7 @@ Use input nodes as the raw data source for a shader.
 | Texture Coords             | `vec2`          | UV coordinates, usually the starting point for distortion effects                        |
 | Screen Coords              | `vec2`          | Pixel/screen position, useful for screen-space patterns                                  |
 | Vertex Color               | `vec4`          | LÖVE color/tint passed into the shader                                                   |
-| Time                       | `float`         | Animated effects; emits `extern number u_time`                                           |
+| Time                       | `float`         | Animated effects; emits `extern highp number u_time`                                     |
 | Resolution                 | `vec2`          | Uses `love_ScreenSize.xy`                                                                |
 | Float / Vec2 / Vec3 / Vec4 | typed constants | Editable values for colors, thresholds, speed, etc.                                      |
 

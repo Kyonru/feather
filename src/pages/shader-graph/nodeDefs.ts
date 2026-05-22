@@ -134,7 +134,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     label: 'Time',
     inputs: [],
     outputs: [{ id: 'out', label: 'T', type: 'float' }],
-    externs: ['extern number u_time;'],
+    externs: ['extern highp number u_time;'],
     emitGlsl: (_, o) => `float ${o.out} = u_time;`,
   },
   Resolution: {

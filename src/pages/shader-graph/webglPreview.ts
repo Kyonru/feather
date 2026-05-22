@@ -22,7 +22,8 @@ export function adaptLoveShader(lovePixel: string): string {
   const screenP = sigMatch?.[4] ?? 'screen_coords';
 
   let src = lovePixel;
-  src = src.replace(/\bextern\s+Image\s+/g, 'uniform sampler2D ');
+  src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?Image\s+/g, 'uniform $1sampler2D ');
+  src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?number\s+/g, 'uniform $1float ');
   src = src.replace(/\bextern\s+/g, 'uniform ');
   src = src.replace(/\bTexel\s*\(/g, 'texture2D(');
   // Rename effect() to avoid conflict, keep body intact
@@ -37,7 +38,6 @@ export function adaptLoveShader(lovePixel: string): string {
     'varying vec2 v_screenCoord;',
     'uniform sampler2D u_tex;',
     'uniform vec4 u_color;',
-    'uniform float u_time;',
     'uniform vec2 u_resolution;',
     '',
   ].join('\n');
