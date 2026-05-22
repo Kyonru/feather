@@ -2,7 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 
 export type GlslType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4';
 
-export type PortDef = { id: string; label: string; type: GlslType };
+export type PortDef = { id: string; label: string; type: GlslType; defaultValue?: number | number[] };
 
 export const NODE_TYPES = [
   'TextureColor',

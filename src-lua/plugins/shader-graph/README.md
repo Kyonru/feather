@@ -95,6 +95,29 @@ UV nodes transform texture coordinates before sampling.
 - `Twirl UV`: swirl UVs toward the center.
 - `Polar Coordinates`: convert UVs into radius/angle space.
 
+### SDF
+
+Signed distance field nodes create crisp procedural shape masks from UVs. Feather's SDF set follows the common primitive/sample/boolean structure used by Shader Graph SDF node collections.
+
+**Primitives**
+
+- `SDF Line`: vertical line mask with position and width controls.
+- `SDF Circle`: circle centered at a position with a radius.
+- `SDF Rectangle`: rectangle centered at a position with width, height, and corner radius.
+- `SDF Polygon`: regular polygon with position, radius, side count, and corner radius.
+
+**Sampling**
+
+- `SDF Sample`: converts an SDF value into an anti-aliased filled mask.
+- `SDF Sample Strip`: converts a distance range into an anti-aliased outline/ring mask.
+
+**Booleans**
+
+- `SDF Boolean`: outputs hard union, intersection, and difference.
+- `SDF Soft Boolean`: outputs smoothed union, intersection, and difference with a smoothing control.
+
+SDF primitives include centered defaults, so a newly dropped circle, rectangle, polygon, or sampled strip produces a visible shape before every input is wired manually.
+
 ### Effect
 
 Effect nodes are higher-level building blocks for common 2D game shaders.
@@ -152,6 +175,11 @@ The Shader Graph page includes complete preset graphs:
 - **Opacity Fade**: straightforward alpha fade control.
 - **Vertex Wave**: vertex-stage wobble with a normal texture pass.
 - **Water Shimmer**: self-contained procedural UV displacement.
+- **SDF Circle Mask**: soft procedural circle clip.
+- **SDF Rounded Rectangle**: rounded rectangle clip using an SDF primitive.
+- **SDF Ring Glow**: procedural ring highlight using SDF strip sampling.
+- **SDF Hex Badge**: visibly clips the texture with a smaller regular polygon mask.
+- **SDF Crescent**: difference of two circle fields.
 - **Masked Water Shimmer**: alpha-constrained displacement that keeps transparent edges stable.
 
 Load a preset, validate it, then inspect how the nodes are connected. Presets are intended as editable starting points, not black boxes.

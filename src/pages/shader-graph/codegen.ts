@@ -1,4 +1,4 @@
-import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData } from '@/types/shader-graph';
+import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData, PortDef } from '@/types/shader-graph';
 import { NODE_DEFS } from './nodeDefs';
 import { glslFloat } from './glslUtils';
 
@@ -18,8 +18,9 @@ function varName(nodeId: string, portId: string): string {
   return `v_${nodeId.replace(/[^a-zA-Z0-9_]/g, '_')}_${portId.replace(/[^a-zA-Z0-9_]/g, '_')}`;
 }
 
-function defaultValue(type: string, nodeData: ShaderNodeData, portId: string): string {
-  const val = nodeData.values?.[portId];
+function defaultValue(port: PortDef, nodeData: ShaderNodeData): string {
+  const type = port.type;
+  const val = nodeData.values?.[port.id] ?? port.defaultValue;
 
   switch (type) {
     case 'float':
@@ -52,7 +53,7 @@ function buildNodeBody(node: ShaderNodeInstance, edges: ShaderEdge[]): string[] 
     const edge = edges.find((e) => e.target === node.id && e.targetHandle === port.id);
     inVars[port.id] = edge?.sourceHandle
       ? varName(edge.source, edge.sourceHandle)
-      : defaultValue(port.type, node.data, port.id);
+      : defaultValue(port, node.data);
   }
 
   const outVars: Record<string, string> = {};

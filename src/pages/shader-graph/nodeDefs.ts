@@ -1046,8 +1046,8 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     label: 'SDF Line',
     inputs: [
       { id: 'uv', label: 'UV', type: 'vec2' },
-      { id: 'position', label: 'Position', type: 'float' },
-      { id: 'width', label: 'Width', type: 'float' },
+      { id: 'position', label: 'Position', type: 'float', defaultValue: 0.5 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.1 },
     ],
     outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
     emitGlsl: (i, o) => `float ${o.out} = abs(${i.uv}.x - ${i.position}) - 0.5 * ${i.width};`,
@@ -1057,21 +1057,21 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     label: 'SDF Circle',
     inputs: [
       { id: 'uv', label: 'UV', type: 'vec2' },
-      { id: 'position', label: 'Position', type: 'vec2' },
-      { id: 'radius', label: 'Radius', type: 'float' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5] },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.25 },
     ],
     outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
     emitGlsl: (i, o) => `float ${o.out} = length(${i.uv} - ${i.position}) - ${i.radius};`,
   },
   SDFRect: {
     category: 'SDF',
-    label: 'SDF Rect',
+    label: 'SDF Rectangle',
     inputs: [
       { id: 'uv', label: 'UV', type: 'vec2' },
-      { id: 'position', label: 'Position', type: 'vec2' },
-      { id: 'width', label: 'Width', type: 'float' },
-      { id: 'height', label: 'Height', type: 'float' },
-      { id: 'corner', label: 'Corner R', type: 'float' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5] },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.5 },
+      { id: 'height', label: 'Height', type: 'float', defaultValue: 0.5 },
+      { id: 'corner', label: 'Corner R', type: 'float', defaultValue: 0 },
     ],
     outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
     emitGlsl: (i, o) =>
@@ -1082,21 +1082,19 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     label: 'SDF Polygon',
     inputs: [
       { id: 'uv', label: 'UV', type: 'vec2' },
-      { id: 'position', label: 'Position', type: 'vec2' },
-      { id: 'radius', label: 'Radius', type: 'float' },
-      { id: 'sides', label: 'Sides', type: 'float' },
-      { id: 'corner', label: 'Corner R', type: 'float' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5] },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.25 },
+      { id: 'sides', label: 'Sides', type: 'float', defaultValue: 6 },
+      { id: 'corner', label: 'Corner R', type: 'float', defaultValue: 0 },
     ],
     outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
     emitGlsl: (i, o) => [
       `vec2 ${o.out}_f = ${i.uv} - ${i.position};`,
-      `float ${o.out}_angle = 6.2831853071 / max(${i.sides}, 3.0);`,
-      `float ${o.out}_snap = round(atan(${o.out}_f.y, ${o.out}_f.x) / ${o.out}_angle) * ${o.out}_angle;`,
-      `vec2 ${o.out}_n = vec2(cos(${o.out}_snap), sin(${o.out}_snap));`,
-      `vec2 ${o.out}_d = vec2(sin(${o.out}_snap), -cos(${o.out}_snap));`,
-      `float ${o.out}_sl = ${i.radius} * tan(0.5 * ${o.out}_angle);`,
-      `float ${o.out}_t = dot(${o.out}_d, ${o.out}_f);`,
-      `float ${o.out} = (abs(${o.out}_t) < ${o.out}_sl ? dot(${o.out}_f, ${o.out}_n) - ${i.radius} : length(${o.out}_f - (${i.radius} * ${o.out}_n + ${o.out}_d * clamp(${o.out}_t, -${o.out}_sl, ${o.out}_sl)))) - ${i.corner};`,
+      `float ${o.out}_sides = max(${i.sides}, 3.0);`,
+      `float ${o.out}_angle = atan(${o.out}_f.y, ${o.out}_f.x) + 3.14159265359;`,
+      `float ${o.out}_sector = 6.28318530718 / ${o.out}_sides;`,
+      `float ${o.out}_radial = cos(floor(0.5 + ${o.out}_angle / ${o.out}_sector) * ${o.out}_sector - ${o.out}_angle) * length(${o.out}_f);`,
+      `float ${o.out} = ${o.out}_radial - ${i.radius} - ${i.corner};`,
     ].join('\n'),
   },
   SDFSample: {
@@ -1104,7 +1102,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     label: 'SDF Sample',
     inputs: [
       { id: 'sdf', label: 'SDF', type: 'float' },
-      { id: 'offset', label: 'Offset', type: 'float' },
+      { id: 'offset', label: 'Offset', type: 'float', defaultValue: 0 },
     ],
     outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
     emitGlsl: (i, o) => [
@@ -1117,8 +1115,8 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     label: 'SDF Sample Strip',
     inputs: [
       { id: 'sdf', label: 'SDF', type: 'float' },
-      { id: 'offsetMin', label: 'Min', type: 'float' },
-      { id: 'offsetMax', label: 'Max', type: 'float' },
+      { id: 'offsetMin', label: 'Min', type: 'float', defaultValue: -0.05 },
+      { id: 'offsetMax', label: 'Max', type: 'float', defaultValue: 0.05 },
     ],
     outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
     emitGlsl: (i, o) => [
@@ -1150,7 +1148,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [
       { id: 'a', label: 'A', type: 'float' },
       { id: 'b', label: 'B', type: 'float' },
-      { id: 'smoothing', label: 'Smooth', type: 'float' },
+      { id: 'smoothing', label: 'Smooth', type: 'float', defaultValue: 0.1 },
     ],
     outputs: [
       { id: 'union', label: 'Union', type: 'float' },

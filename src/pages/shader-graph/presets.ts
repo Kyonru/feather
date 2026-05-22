@@ -66,6 +66,7 @@ const PRESET_LABELS: Record<string, string> = {
   radius: 'Shape Radius',
   'radius-a': 'Main Circle Radius',
   'radius-b': 'Cutout Circle Radius',
+  rect: 'Build Rectangle SDF',
   rim: 'Rim Mask',
   rotate: 'Rotate UVs',
   scale: 'Pattern Scale',
@@ -88,6 +89,11 @@ const PRESET_LABELS: Record<string, string> = {
   'vert-out': 'Final Vertex Position',
   wave: 'Wave Distortion',
   water: 'Water Offset',
+  width: 'Rectangle Width',
+};
+
+const PRESET_LABELS_BY_ID: Record<string, string> = {
+  height: 'Rectangle Height',
 };
 
 const PRESET_TYPE_LABELS: Partial<Record<NodeType, string>> = {
@@ -104,7 +110,7 @@ const PRESET_LABELS_BY_KEY: Partial<Record<`${NodeType}:${string}`, string>> = {
 };
 
 function presetLabel(id: string, type: NodeType) {
-  return PRESET_LABELS_BY_KEY[`${type}:${id}`] ?? PRESET_LABELS[id] ?? PRESET_TYPE_LABELS[type] ?? NODE_DEFS[type].label;
+  return PRESET_LABELS_BY_KEY[`${type}:${id}`] ?? PRESET_LABELS[id] ?? PRESET_LABELS_BY_ID[id] ?? PRESET_TYPE_LABELS[type] ?? NODE_DEFS[type].label;
 }
 
 function node({ id, type, x, y, label, values }: PresetNode): ShaderNodeInstance {
@@ -546,6 +552,35 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
     ],
   ),
   preset(
+    'sdf-rounded-rectangle',
+    'SDF Rounded Rectangle',
+    'Clips the texture to a rounded rectangle using a signed distance field.',
+    'sdf-rounded-rectangle',
+    [
+      { id: 'uv', type: 'TextureCoords', x: 0, y: 0 },
+      { id: 'tex', type: 'TextureColor', x: 0, y: 130 },
+      { id: 'center', type: 'Vec2Constant', x: 0, y: 260, values: { val: [0.5, 0.5] } },
+      { id: 'width', type: 'FloatConstant', x: 0, y: 400, values: { val: 0.58 } },
+      { id: 'height', type: 'FloatConstant', x: 0, y: 520, values: { val: 0.36 } },
+      { id: 'corner', type: 'FloatConstant', x: 0, y: 640, values: { val: 0.06 } },
+      { id: 'rect', type: 'SDFRect', x: 340, y: 280 },
+      { id: 'sample', type: 'SDFSample', x: 650, y: 310 },
+      { id: 'opacity', type: 'Opacity2D', x: 920, y: 220 },
+      { id: 'out', type: 'FragmentOutput', x: 1200, y: 245 },
+    ],
+    [
+      { from: 'uv', out: 'out', to: 'rect', in: 'uv' },
+      { from: 'center', out: 'out', to: 'rect', in: 'position' },
+      { from: 'width', out: 'out', to: 'rect', in: 'width' },
+      { from: 'height', out: 'out', to: 'rect', in: 'height' },
+      { from: 'corner', out: 'out', to: 'rect', in: 'corner' },
+      { from: 'rect', out: 'out', to: 'sample', in: 'sdf' },
+      { from: 'tex', out: 'out', to: 'opacity', in: 'color' },
+      { from: 'sample', out: 'out', to: 'opacity', in: 'opacity' },
+      { from: 'opacity', out: 'out', to: 'out', in: 'color' },
+    ],
+  ),
+  preset(
     'sdf-ring-glow',
     'SDF Ring Glow',
     'Samples the strip outline of a circle SDF to overlay a glowing ring on the texture.',
@@ -579,15 +614,15 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
   preset(
     'sdf-hex-badge',
     'SDF Hex Badge',
-    'Clips the texture to a hexagonal shape with rounded corners using SDFPolygon.',
+    'Clips the texture to a visibly smaller hexagonal mask using SDFPolygon.',
     'sdf-hex-badge',
     [
       { id: 'uv', type: 'TextureCoords', x: 0, y: 0 },
       { id: 'tex', type: 'TextureColor', x: 0, y: 130 },
       { id: 'center', type: 'Vec2Constant', x: 0, y: 260, values: { val: [0.5, 0.5] } },
-      { id: 'radius', type: 'FloatConstant', x: 0, y: 400, values: { val: 0.42 } },
+      { id: 'radius', type: 'FloatConstant', x: 0, y: 400, values: { val: 0.28 } },
       { id: 'sides', type: 'FloatConstant', x: 0, y: 520, values: { val: 6 } },
-      { id: 'corner', type: 'FloatConstant', x: 0, y: 640, values: { val: 0.02 } },
+      { id: 'corner', type: 'FloatConstant', x: 0, y: 640, values: { val: 0 } },
       { id: 'sdf', type: 'SDFPolygon', x: 340, y: 290 },
       { id: 'sample', type: 'SDFSample', x: 650, y: 320 },
       { id: 'opacity', type: 'Opacity2D', x: 920, y: 230 },
