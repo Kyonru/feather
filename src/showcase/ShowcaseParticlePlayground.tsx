@@ -16,16 +16,14 @@ export function ShowcaseParticlePlayground() {
   );
 
   return (
-    <ParticleSystemPlaygroundPage
-      playgroundOverride={playground}
-      standalone
-      preview={
-        <LoveJsPreview
-          title="Particle Preview"
-          description="The standalone build posts local particle settings into this isolated preview frame."
-          payload={payload}
-        />
-      }
-    />
+    <div className="relative h-full min-h-0 overflow-hidden">
+      <ParticleSystemPlaygroundPage playgroundOverride={playground} standalone />
+      <LoveJsPreview
+        floating
+        title="Particle Preview"
+        description="The standalone build posts local particle settings into this isolated preview frame."
+        payload={payload}
+      />
+    </div>
   );
 }

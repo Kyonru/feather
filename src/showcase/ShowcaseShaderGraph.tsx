@@ -160,7 +160,7 @@ export function ShowcaseShaderGraph() {
 
   return (
     <ReactFlowProvider>
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
         <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b px-3 py-2">
           <div>
             <h1 className="text-sm font-semibold">Shader Graph</h1>
@@ -231,29 +231,26 @@ export function ShowcaseShaderGraph() {
                 </ScrollArea>
               </ResizablePanel>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize="34%" minSize="24%" className="flex flex-col overflow-hidden">
+              <ResizablePanel defaultSize="64%" minSize="24%" className="flex flex-col overflow-hidden">
                 <CodePreview standalone onPreviewParamsChange={handlePreviewParamsChange} />
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize="30%" minSize="20%" className="flex flex-col overflow-hidden p-2">
-                <LoveJsPreview
-                  title="Shader Preview"
-                  description="The standalone build posts generated GLSL into this isolated preview frame."
-                  payload={{
-                    tool: 'shader-graph',
-                    shaderName,
-                    pixel: glsl.pixel,
-                    vertex: glsl.vertex,
-                    previewShape: previewParams.shape,
-                    previewColor: previewParams.color,
-                    baseTexture: previewParams.baseTexture,
-                  }}
-                  className="h-full"
-                />
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
         </ResizablePanelGroup>
+        <LoveJsPreview
+          floating
+          title="Shader Preview"
+          description="The standalone build posts generated GLSL into this isolated preview frame."
+          payload={{
+            tool: 'shader-graph',
+            shaderName,
+            pixel: glsl.pixel,
+            vertex: glsl.vertex,
+            previewShape: previewParams.shape,
+            previewColor: previewParams.color,
+            baseTexture: previewParams.baseTexture,
+          }}
+        />
       </div>
     </ReactFlowProvider>
   );
