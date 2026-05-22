@@ -97,6 +97,17 @@ Noise nodes create procedural variation.
 - `Voronoi Cells`: cellular mask for sparks, shields, energy, and organic breakup.
 - `Checkerboard`: alternating square mask.
 
+### Pattern
+
+Pattern nodes create anti-aliased geometric masks from UVs.
+
+- `Zig Zag`: stripe mask bent into triangular zig zags.
+- `Sine Waves`: stripe mask following sine waves.
+- `Round Waves`: stripe mask made from arc segments.
+- `Dots`: repeating dot grid with row offset and radius controls.
+- `Spiral`: Archimedean spiral mask.
+- `Whirl`: radial stripe mask twisted around the center.
+
 ### Halftone
 
 Halftone nodes create print-style dot patterns from grayscale or RGB input.
@@ -191,6 +202,7 @@ The Shader Graph page includes complete preset graphs:
 - **Twirl Portal**: centered UV swirl.
 - **Rotating Texture**: time-driven UV rotation.
 - **Checker Flash**: checker mask mixed into a flash color.
+- **Pattern Whirl**: radial procedural whirl mask mixed into the texture.
 - **Voronoi Energy**: cellular energy/shield mask.
 - **Truchet Tiles**: animated procedural randomized arc tiles mixed into the texture.
 - **Tiled Offset**: tiled UV sampling.

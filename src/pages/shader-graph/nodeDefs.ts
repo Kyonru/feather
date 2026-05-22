@@ -41,6 +41,16 @@ function halftoneChannel(base: string, uv: string, offset: string, scale: string
   ];
 }
 
+function patternStripeMask(coord: string, widths: string, out: string): string[] {
+  return [
+    `float ${out}_width = max(${widths}.x + ${widths}.y, 0.0001);`,
+    `float ${out}_m = mod(${coord}, ${out}_width);`,
+    `${out}_m = mod(${out}_m + ${out}_width, ${out}_width);`,
+    `float ${out}_d = abs(${out}_m - 0.5 * ${out}_width) - 0.5 * ${widths}.y;`,
+    `float ${out} = clamp(${out}_d / max(fwidth(${out}_d), 0.0001), 0.0, 1.0);`,
+  ];
+}
+
 export const NODE_DEFS: Record<NodeType, NodeDef> = {
   // ─── Input ──────────────────────────────────────────────────────────────────
   TextureColor: {
@@ -1263,6 +1273,121 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     ].join('\n'),
   },
 
+  // ─── Pattern ────────────────────────────────────────────────────────────────
+  PatternZigZag: {
+    category: 'Pattern',
+    label: 'Zig Zag',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [0.1, 0.1], min: 0.001, max: 1, step: 0.01 },
+      { id: 'wavelength', label: 'Wavelength', type: 'float', defaultValue: 0.5, min: 0.001, max: 2, step: 0.01 },
+      { id: 'amplitude', label: 'Amplitude', type: 'float', defaultValue: 0.1, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_wave = ${i.amplitude} * (1.0 - 2.0 * abs(fract(${i.uv}.x / max(${i.wavelength}, 0.0001)) - 0.5));`,
+      ...patternStripeMask(`${i.uv}.y - ${o.out}_wave`, i.widths, o.out),
+    ].join('\n'),
+  },
+  PatternSineWaves: {
+    category: 'Pattern',
+    label: 'Sine Waves',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [0.1, 0.1], min: 0.001, max: 1, step: 0.01 },
+      { id: 'wavelength', label: 'Wavelength', type: 'float', defaultValue: 0.5, min: 0.001, max: 2, step: 0.01 },
+      { id: 'amplitude', label: 'Amplitude', type: 'float', defaultValue: 0.1, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_wave = 0.5 * ${i.amplitude} * sin(6.28318530718 * ${i.uv}.x / max(${i.wavelength}, 0.0001));`,
+      ...patternStripeMask(`${i.uv}.y - ${o.out}_wave`, i.widths, o.out),
+    ].join('\n'),
+  },
+  PatternRoundWaves: {
+    category: 'Pattern',
+    label: 'Round Waves',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [0.1, 0.1], min: 0.001, max: 1, step: 0.01 },
+      { id: 'wavelength', label: 'Wavelength', type: 'float', defaultValue: 0.5, min: 0.001, max: 2, step: 0.01 },
+      { id: 'amplitude', label: 'Amplitude', type: 'float', defaultValue: 0.1, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_wave_len = max(${i.wavelength}, 0.0001);`,
+      `float ${o.out}_x = mod(${i.uv}.x, ${o.out}_wave_len);`,
+      `${o.out}_x = mod(${o.out}_x + ${o.out}_wave_len, ${o.out}_wave_len);`,
+      `float ${o.out}_arc_x = 0.25 * ${o.out}_wave_len;`,
+      `float ${o.out}_arc_y = 0.5 * max(${i.amplitude}, 0.0001);`,
+      `float ${o.out}_offset = (${o.out}_arc_x * ${o.out}_arc_x - ${o.out}_arc_y * ${o.out}_arc_y) / (2.0 * ${o.out}_arc_y);`,
+      `float ${o.out}_radius = ${o.out}_offset + ${o.out}_arc_y;`,
+      `float ${o.out}_x2 = ${o.out}_x < 0.5 * ${o.out}_wave_len ? 0.25 * ${o.out}_wave_len - ${o.out}_x : 0.75 * ${o.out}_wave_len - ${o.out}_x;`,
+      `float ${o.out}_wave = (${o.out}_x < 0.5 * ${o.out}_wave_len ? 1.0 : -1.0) * (sqrt(max(${o.out}_radius * ${o.out}_radius - ${o.out}_x2 * ${o.out}_x2, 0.0)) - ${o.out}_offset);`,
+      ...patternStripeMask(`${i.uv}.y - ${o.out}_wave`, i.widths, o.out),
+    ].join('\n'),
+  },
+  PatternDots: {
+    category: 'Pattern',
+    label: 'Dots',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'spacing', label: 'Spacing', type: 'vec2', defaultValue: [0.2, 0.2], min: 0.001, max: 1, step: 0.01 },
+      { id: 'offset', label: 'Offset', type: 'float', defaultValue: 0.1, min: -1, max: 1, step: 0.01 },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.05, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_spacing = max(abs(${i.spacing}), vec2(0.0001));`,
+      `float ${o.out}_det = max(${o.out}_spacing.x * ${o.out}_spacing.y, 0.0001);`,
+      `float ${o.out}_tx = (${o.out}_spacing.y * ${i.uv}.x - ${i.offset} * ${i.uv}.y) / ${o.out}_det;`,
+      `float ${o.out}_ty = ${o.out}_spacing.x * ${i.uv}.y / ${o.out}_det;`,
+      `${o.out}_tx = mod(${o.out}_tx + 0.5, 1.0) - 0.5;`,
+      `${o.out}_ty = mod(${o.out}_ty + 0.5, 1.0) - 0.5;`,
+      `float ${o.out}_px = ${o.out}_tx * ${o.out}_spacing.x + ${o.out}_ty * ${i.offset};`,
+      `float ${o.out}_py = ${o.out}_ty * ${o.out}_spacing.y;`,
+      `float ${o.out}_d = ${o.out}_px * ${o.out}_px + ${o.out}_py * ${o.out}_py - ${i.radius} * ${i.radius};`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  PatternSpiral: {
+    category: 'Pattern',
+    label: 'Spiral',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [0.1, 0.1], min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_width = max(${i.widths}.x + ${i.widths}.y, 0.0001);`,
+      `float ${o.out}_r = length(${i.uv});`,
+      `float ${o.out}_theta = atan(${i.uv}.y, ${i.uv}.x);`,
+      `float ${o.out}_pitch = ${o.out}_width / 6.28318530718;`,
+      `float ${o.out}_k = (${o.out}_r / ${o.out}_pitch - ${o.out}_theta) / 6.28318530718;`,
+      `float ${o.out}_d = abs(${o.out}_r - (${o.out}_pitch * (${o.out}_theta + 6.28318530718 * floor(${o.out}_k + 0.5)))) - 0.5 * ${i.widths}.x;`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  PatternWhirl: {
+    category: 'Pattern',
+    label: 'Whirl',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [30, 30], min: 0.001, max: 180, step: 1 },
+      { id: 'whirl', label: 'Whirl', type: 'float', defaultValue: 80, min: -360, max: 360, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_width = max(${i.widths}.x + ${i.widths}.y, 0.0001);`,
+      `float ${o.out}_r = length(${i.uv});`,
+      `float ${o.out}_theta = 57.2958 * atan(${i.uv}.y, ${i.uv}.x) - ${i.whirl} * ${o.out}_r;`,
+      `float ${o.out}_m = mod(${o.out}_theta + 0.5 * ${o.out}_width, ${o.out}_width);`,
+      `${o.out}_m = mod(${o.out}_m + ${o.out}_width, ${o.out}_width) - 0.5 * ${o.out}_width;`,
+      `float ${o.out}_d = abs(${o.out}_m) - 0.5 * ${i.widths}.x;`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+
   // ─── Halftone ───────────────────────────────────────────────────────────────
   HalftoneMono: {
     category: 'Halftone',
@@ -1458,6 +1583,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Color: 'border-l-pink-500',
   Composite: 'border-l-rose-500',
   Noise: 'border-l-green-500',
+  Pattern: 'border-l-emerald-500',
   Halftone: 'border-l-lime-500',
   UV: 'border-l-indigo-500',
   Effect: 'border-l-cyan-500',
@@ -1543,6 +1669,7 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
   { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift', 'InvertColor', 'Contrast', 'PosterizeColor', 'MultiplyColor', 'BlendAdd', 'BlendScreen', 'BlendOverlay', 'Brightness', 'GammaCorrect', 'LabColorConvert', 'LabComplementary', 'LabSplitScheme', 'LabDualScheme'] },
   { category: 'Composite', nodes: ['CompositeAlpha'] },
   { category: 'Noise', nodes: ['SimpleNoise', 'GradientNoise', 'FBMNoise', 'TruchetTiles', 'Ripple', 'VoronoiCells', 'Checkerboard'] },
+  { category: 'Pattern', nodes: ['PatternZigZag', 'PatternSineWaves', 'PatternRoundWaves', 'PatternDots', 'PatternSpiral', 'PatternWhirl'] },
   { category: 'Halftone', nodes: ['HalftoneMono', 'HalftoneColor'] },
   { category: 'UV', nodes: ['TilingOffset', 'RotateUV', 'TwirlUV', 'PolarCoordinates', 'ZoomUV', 'FlipUV'] },
   {
