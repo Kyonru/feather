@@ -46,8 +46,7 @@ test('doctor --json reports dangerous bundled plugin trust', () => {
   writeGame(dir);
   writeMinimalRuntime(dir);
   writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
-  const result = run(['plugin', 'install', 'console', '--local-src', LOCAL_SRC, '--dir', dir]);
-  assert.equal(result.exitCode, 0, outputOf(result));
+  writeLocalPluginSource(join(dir, 'feather'), 'console', { name: 'Console' });
 
   const parsed = parseDoctorJson(dir);
   const labels = new Map(parsed.checks.map((check) => [check.label, check]));

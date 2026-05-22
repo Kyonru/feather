@@ -386,7 +386,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     }
     for (const dir of pluginDirs) {
       const manifest = readPluginManifest(dir);
-      if (!manifest?.id || !knownPluginIds.has(manifest.id)) continue;
+      if (!manifest?.id) continue;
       const trust = classifyPluginTrust(manifest, pluginCatalogById.get(manifest.id));
       if (dangerousPluginIds.has(manifest.id)) {
         add(
@@ -398,6 +398,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
           `Remove before shipping with \`feather plugin remove ${manifest.id} --dir ${projectDirArg} --install-dir ${installDirArg} --yes\`.`,
         );
       } else {
+        if (!knownPluginIds.has(manifest.id)) continue;
         add(checks, 'Plugins', `Plugin ${manifest.id} trust`, trust === 'bundled-opt-in' ? 'info' : 'pass', pluginTrustLabel(trust));
       }
     }
