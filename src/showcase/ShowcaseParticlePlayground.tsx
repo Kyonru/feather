@@ -16,7 +16,7 @@ export function ShowcaseParticlePlayground() {
   );
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <ParticleSystemPlaygroundPage playgroundOverride={playground} standalone />
       <LoveJsPreview
         floating

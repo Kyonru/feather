@@ -92,9 +92,7 @@ export function CodePreview({
     [textureUniforms, textureUploads],
   );
   const hasMissingTextureUploads = textureUniforms.some((texture) => !textureUploads[texture.nodeId]);
-  const fullSource = glsl.vertex
-    ? `${glsl.pixel}\n\n// ── Vertex ──\n${glsl.vertex}`
-    : glsl.pixel;
+  const fullSource = glsl.vertex ? `${glsl.pixel}\n\n// -- Vertex \n${glsl.vertex}` : glsl.pixel;
 
   function handleCopy() {
     navigator.clipboard.writeText(fullSource).then(() => {
@@ -151,8 +149,16 @@ export function CodePreview({
       baseTexture,
       textures: uploadedUniformTextures,
     });
-  }, [baseTexture, debouncedEdges, debouncedNodes, debouncedPreviewColor, debouncedPreviewShape, previewEnabled, sessionId, uploadedUniformTextures]);
-
+  }, [
+    baseTexture,
+    debouncedEdges,
+    debouncedNodes,
+    debouncedPreviewColor,
+    debouncedPreviewShape,
+    previewEnabled,
+    sessionId,
+    uploadedUniformTextures,
+  ]);
 
   const statusColor = {
     idle: 'bg-muted text-muted-foreground',
@@ -164,13 +170,9 @@ export function CodePreview({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b shrink-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          GLSL Output
-        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">GLSL Output</span>
         <div className="flex items-center gap-2">
-          <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', statusColor)}>
-            {validationStatus}
-          </Badge>
+          <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', statusColor)}>{validationStatus}</Badge>
           <button
             onClick={handleCopy}
             className="flex items-center justify-center size-5 rounded hover:bg-muted text-muted-foreground transition-colors"
@@ -223,12 +225,7 @@ export function CodePreview({
       )}
 
       <div className="border-t px-3 py-2 flex gap-2 shrink-0">
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs flex-1"
-          onClick={() => generateAndStore()}
-        >
+        <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => generateAndStore()}>
           Generate
         </Button>
         <Button
@@ -244,7 +241,11 @@ export function CodePreview({
           size="sm"
           className="h-7 text-xs flex-1"
           disabled={!sessionId || !playgroundTarget || hasMissingTextureUploads}
-          title={hasMissingTextureUploads ? 'Upload all texture inputs in the node inspector before applying this shader' : undefined}
+          title={
+            hasMissingTextureUploads
+              ? 'Upload all texture inputs in the node inspector before applying this shader'
+              : undefined
+          }
           onClick={() => applyToPlayground(uploadedUniformTextures)}
         >
           Apply
@@ -252,11 +253,7 @@ export function CodePreview({
       </div>
 
       <div className="border-t px-3 py-2 flex items-center gap-2 shrink-0">
-        <Select
-          value={previewShape}
-          onValueChange={handlePreviewShapeChange}
-          disabled={!previewAvailable}
-        >
+        <Select value={previewShape} onValueChange={handlePreviewShapeChange} disabled={!previewAvailable}>
           <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
             <SelectValue aria-label={previewShape} />
           </SelectTrigger>
@@ -271,10 +268,7 @@ export function CodePreview({
           title="Preview element color"
         >
           <span className="sr-only">Preview element color</span>
-          <span
-            className="absolute inset-1 rounded-sm"
-            style={{ backgroundColor: previewColor }}
-          />
+          <span className="absolute inset-1 rounded-sm" style={{ backgroundColor: previewColor }} />
           <input
             type="color"
             value={previewColor}
@@ -289,7 +283,11 @@ export function CodePreview({
           className="h-7 text-xs px-2 min-w-24"
           disabled={!previewAvailable}
           onClick={() => void handlePreviewToggle()}
-          title={standalone ? 'Toggle shader preview in the isolated preview frame' : 'Toggle shader preview on a temporary shape in the running game'}
+          title={
+            standalone
+              ? 'Toggle shader preview in the isolated preview frame'
+              : 'Toggle shader preview on a temporary shape in the running game'
+          }
         >
           {previewEnabled ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
           {previewEnabled ? 'Preview Off' : 'Preview On'}
@@ -308,11 +306,24 @@ export function CodePreview({
           </div>
           <div className="flex gap-1">
             {baseTexture && (
-              <Button size="icon" variant="ghost" className="size-7" title="Clear preview texture" onClick={() => setBaseTexture(null)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-7"
+                title="Clear preview texture"
+                onClick={() => setBaseTexture(null)}
+              >
                 <XIcon className="size-3.5" />
               </Button>
             )}
-            <Button size="icon" variant="outline" className="size-7" title="Upload preview texture" disabled={!previewAvailable} onClick={() => void uploadBaseTexture()}>
+            <Button
+              size="icon"
+              variant="outline"
+              className="size-7"
+              title="Upload preview texture"
+              disabled={!previewAvailable}
+              onClick={() => void uploadBaseTexture()}
+            >
               <FolderOpenIcon className="size-3.5" />
             </Button>
           </div>

@@ -1448,6 +1448,20 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     return true
   end
 
+  if action == "reorder-system" then
+    if entry.kind ~= "scratch" then
+      return nil, "Only scratch composites can be reordered"
+    end
+    local fromIdx = math.max(1, safeNumber(params.fromIndex, 0))
+    local toIdx   = math.max(1, safeNumber(params.toIndex,   0))
+    if fromIdx == toIdx or fromIdx < 1 or toIdx < 1 or fromIdx > #entry.systems or toIdx > #entry.systems then
+      return true
+    end
+    local moved = table.remove(entry.systems, fromIdx)
+    table.insert(entry.systems, toIdx, moved)
+    return true
+  end
+
   if action == "set-texture" then
     return self:_applyTexture(name, index, params)
   end

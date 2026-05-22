@@ -193,6 +193,17 @@ export function useLocalParticlePlayground() {
         const systems = current.data.systems.filter((item) => item.index !== systemIndex);
         return { ...current, activeSystem: systems[0]?.index ?? 1, data: { ...current.data, systems } };
       }),
+    reorderSystem: (fromIndex: number, toIndex: number) =>
+      setData((current) => {
+        if (!current.data) return current;
+        const systems = [...current.data.systems];
+        const fromPos = systems.findIndex((s) => s.index === fromIndex);
+        const toPos = systems.findIndex((s) => s.index === toIndex);
+        if (fromPos === -1 || toPos === -1 || fromPos === toPos) return current;
+        const [moved] = systems.splice(fromPos, 1);
+        systems.splice(toPos, 0, moved);
+        return { ...current, data: { ...current.data, systems } };
+      }),
     emit: () => toast.success('Emit sent to the showcase preview'),
     reset: () => toast.success('Preview reset'),
     kickStart: () => toast.success('Kick start sent to the showcase preview'),

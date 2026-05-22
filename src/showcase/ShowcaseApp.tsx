@@ -69,12 +69,25 @@ export function ShowcaseApp() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
+  const onInstallClick = () => {
+    window.open('https://github.com/Kyonru/feather', '_blank');
+  };
+
   return (
     <div className="flex h-screen min-h-0 flex-col bg-background text-foreground">
       <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b px-4">
-        <button className="text-sm font-semibold" onClick={() => navigate('home')}>
-          Feather Showcase
-        </button>
+        <div className="flex flex-row">
+          <button className="text-sm font-semibold" onClick={() => navigate('home')}>
+            Feather Showcase
+          </button>
+          <Button
+            onClick={onInstallClick}
+            variant="outline"
+            className="hidden h-5 px-1.5 ml-2 text-[10px] md:inline-flex"
+          >
+            Install Feather
+          </Button>
+        </div>
         <nav className="flex items-center gap-2">
           <Button
             size="sm"

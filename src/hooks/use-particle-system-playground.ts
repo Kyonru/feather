@@ -283,6 +283,19 @@ export function useParticleSystemPlayground() {
     deleteComposite: () => refreshAfterAction('delete-composite'),
     addSystem: () => refreshAfterAction('add-system'),
     removeSystem: (systemIndex: number) => refreshAfterAction('remove-system', { systemIndex }),
+    reorderSystem: (fromIndex: number, toIndex: number) => {
+      queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => {
+        if (!current?.data) return current;
+        const systems = [...current.data.systems];
+        const fromPos = systems.findIndex((s) => s.index === fromIndex);
+        const toPos = systems.findIndex((s) => s.index === toIndex);
+        if (fromPos === -1 || toPos === -1 || fromPos === toPos) return current;
+        const [moved] = systems.splice(fromPos, 1);
+        systems.splice(toPos, 0, moved);
+        return { ...current, data: { ...current.data, systems } };
+      });
+      refreshAfterAction('reorder-system', { fromIndex, toIndex });
+    },
     emit: (all = false, count = 100) => refreshAfterAction(all ? 'emit-all' : 'emit', { count }),
     reset: (all = false) => refreshAfterAction(all ? 'reset-all' : 'reset'),
     kickStart: () => refreshAfterAction('kick-start'),
