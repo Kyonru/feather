@@ -6,7 +6,7 @@ import { getNodeDef, CATEGORY_COLORS, PORT_TYPE_COLORS } from '../nodeDefs';
 
 const ROW_H = 20;
 
-export function ShaderNode({ data, selected }: NodeProps<Node<ShaderNodeData>>) {
+export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData>>) {
   const def = getNodeDef(data);
   if (!def) return null;
   const colorClass = CATEGORY_COLORS[def.category] ?? 'border-l-gray-500';
@@ -33,6 +33,18 @@ export function ShaderNode({ data, selected }: NodeProps<Node<ShaderNodeData>>) 
               type="target"
               position={Position.Left}
               id={port.id}
+              onClick={(event) => {
+                event.stopPropagation();
+                window.dispatchEvent(new CustomEvent('shader-graph:port-suggest', {
+                  detail: {
+                    nodeId: id,
+                    portId: port.id,
+                    direction: 'input',
+                    x: event.clientX,
+                    y: event.clientY,
+                  },
+                }));
+              }}
               style={{
                 top: i * ROW_H + ROW_H / 2,
                 left: -12,
@@ -55,6 +67,18 @@ export function ShaderNode({ data, selected }: NodeProps<Node<ShaderNodeData>>) 
               type="source"
               position={Position.Right}
               id={port.id}
+              onClick={(event) => {
+                event.stopPropagation();
+                window.dispatchEvent(new CustomEvent('shader-graph:port-suggest', {
+                  detail: {
+                    nodeId: id,
+                    portId: port.id,
+                    direction: 'output',
+                    x: event.clientX,
+                    y: event.clientY,
+                  },
+                }));
+              }}
               style={{
                 top: i * ROW_H + ROW_H / 2,
                 right: -12,

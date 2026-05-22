@@ -36,7 +36,7 @@ export function useShaderGraph() {
   });
 
   const generateAndStore = useCallback(() => {
-    const glsl = codegen(store.nodes, store.edges);
+    const glsl = codegen(store.nodes, store.edges, store.subgraphs);
     store.setLastGlsl(glsl);
     return glsl;
   }, [store]);

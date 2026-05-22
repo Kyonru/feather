@@ -57,6 +57,7 @@ export function CodePreview({
     validationErrors,
     nodes,
     edges,
+    subgraphs,
     textureUploads,
     generateAndStore,
     validateShader,
@@ -79,7 +80,7 @@ export function CodePreview({
   const debouncedPreviewShape = useDebouncedValue(previewShape, 180);
   const debouncedPreviewColor = useDebouncedValue(previewColor, 180);
 
-  const glsl = useMemo(() => lastGeneratedGlsl ?? codegen(nodes, edges), [edges, lastGeneratedGlsl, nodes]);
+  const glsl = useMemo(() => lastGeneratedGlsl ?? codegen(nodes, edges, subgraphs), [edges, lastGeneratedGlsl, nodes, subgraphs]);
   const textureUniforms = useMemo(() => glsl.textures ?? [], [glsl.textures]);
   const uploadedUniformTextures = useMemo(
     () =>
@@ -144,7 +145,7 @@ export function CodePreview({
 
   useEffect(() => {
     if (!sessionId || !previewEnabled) return;
-    const nextGlsl = codegen(debouncedNodes, debouncedEdges);
+    const nextGlsl = codegen(debouncedNodes, debouncedEdges, subgraphs);
     void sendShaderPreviewRef.current(nextGlsl, debouncedPreviewShape, colorFromHex(debouncedPreviewColor), {
       baseTexture,
       textures: uploadedUniformTextures,
@@ -157,6 +158,7 @@ export function CodePreview({
     debouncedPreviewShape,
     previewEnabled,
     sessionId,
+    subgraphs,
     uploadedUniformTextures,
   ]);
 

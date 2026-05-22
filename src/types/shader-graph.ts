@@ -14,6 +14,7 @@ export type PortDef = {
 
 export const NODE_TYPES = [
   'CustomFunction',
+  'SubgraphInstance',
   'TextureColor',
   'TextureInput',
   'TextureUniformColor',
@@ -208,7 +209,22 @@ export type ShaderNodeData = {
   label: string;
   nodeType: NodeType;
   values?: Record<string, number | number[]>;
+  subgraphId?: string;
+  subgraphInputs?: PortDef[];
+  subgraphOutputs?: PortDef[];
   [key: string]: unknown;
+};
+
+export type ShaderSubgraph = {
+  id: string;
+  name: string;
+  functionName: string;
+  nodes: ShaderNodeInstance[];
+  edges: ShaderEdge[];
+  inputs: PortDef[];
+  outputs: PortDef[];
+  inputMappings: Record<string, { nodeId: string; portId: string }>;
+  outputMappings: Record<string, { nodeId: string; portId: string }>;
 };
 
 export type NodeDef = {

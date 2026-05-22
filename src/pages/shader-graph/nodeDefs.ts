@@ -90,6 +90,13 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [],
     emitGlsl: () => '',
   },
+  SubgraphInstance: {
+    category: 'Custom',
+    label: 'Subgraph',
+    inputs: [],
+    outputs: [],
+    emitGlsl: () => '',
+  },
   // ─── Input ──────────────────────────────────────────────────────────────────
   TextureColor: {
     category: 'Input',
@@ -2358,6 +2365,15 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
 export function getNodeDef(data: ShaderNodeData): NodeDef {
   if (data.nodeType === 'CustomFunction') {
     return customFunctionNodeDef(data);
+  }
+  if (data.nodeType === 'SubgraphInstance') {
+    return {
+      category: 'Custom',
+      label: String(data.label || 'Subgraph'),
+      inputs: data.subgraphInputs ?? [],
+      outputs: data.subgraphOutputs ?? [],
+      emitGlsl: () => '',
+    };
   }
   return NODE_DEFS[data.nodeType];
 }

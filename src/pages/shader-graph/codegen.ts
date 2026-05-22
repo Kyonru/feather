@@ -1,4 +1,4 @@
-import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData, PortDef } from '@/types/shader-graph';
+import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData, PortDef, ShaderSubgraph } from '@/types/shader-graph';
 import { getNodeDef, NODE_DEFS } from './nodeDefs';
 import { glslFloat, shaderTextureUniformName } from './glslUtils';
 import { customFunctionSource, validateCustomFunctionSource } from './customNode';
@@ -82,6 +82,15 @@ function outputExpression(nodeMap: Map<string, ShaderNodeInstance>, nodeId: stri
   return varName(nodeId, portId);
 }
 
+function outputExpressionWithOverrides(
+  nodeMap: Map<string, ShaderNodeInstance>,
+  nodeId: string,
+  portId: string,
+  outputOverrides: Map<string, string>,
+): string {
+  return outputOverrides.get(`${nodeId}:${portId}`) ?? outputExpression(nodeMap, nodeId, portId);
+}
+
 function collectTextureUniform(node: ShaderNodeInstance, textureMap: Map<string, { nodeId: string; uniform: string; label: string }>, externSet: Set<string>) {
   if (node.data.nodeType !== 'TextureInput' && node.data.nodeType !== 'TextureUniformColor') return;
   const uniform = shaderTextureUniformName(node.id, node.data.uniformName);
@@ -93,16 +102,40 @@ function collectTextureUniform(node: ShaderNodeInstance, textureMap: Map<string,
   });
 }
 
-function buildNodeBody(node: ShaderNodeInstance, edges: ShaderEdge[], nodeMap: Map<string, ShaderNodeInstance>): string[] {
+function buildNodeBody(
+  node: ShaderNodeInstance,
+  edges: ShaderEdge[],
+  nodeMap: Map<string, ShaderNodeInstance>,
+  subgraphMap: Map<string, ShaderSubgraph>,
+  inputOverrides = new Map<string, string>(),
+  outputOverrides = new Map<string, string>(),
+): string[] {
   const def = getNodeDef(node.data);
   if (!def?.emitGlsl) return [];
+
+  if (node.data.nodeType === 'SubgraphInstance') {
+    const subgraph = node.data.subgraphId ? subgraphMap.get(node.data.subgraphId) : null;
+    if (!subgraph) return [`// Missing subgraph: ${String(node.data.subgraphId ?? 'unknown')}`];
+    const inputArgs = subgraph.inputs.map((port) => {
+      const edge = edges.find((e) => e.target === node.id && e.targetHandle === port.id);
+      return edge?.sourceHandle
+        ? outputExpressionWithOverrides(nodeMap, edge.source, edge.sourceHandle, outputOverrides)
+        : defaultValue(port, node.data);
+    });
+    const outVars: Record<string, string> = {};
+    for (const port of subgraph.outputs) outVars[port.id] = varName(node.id, port.id);
+    const declarations = subgraph.outputs.map((port) => `${port.type} ${outVars[port.id]};`);
+    const outArgs = subgraph.outputs.map((port) => outVars[port.id]);
+    return [...declarations, `${subgraph.functionName}(${[...inputArgs, ...outArgs].join(', ')});`];
+  }
 
   const inVars: Record<string, string> = {};
   for (const port of def.inputs) {
     const edge = edges.find((e) => e.target === node.id && e.targetHandle === port.id);
-    inVars[port.id] = edge?.sourceHandle
-      ? outputExpression(nodeMap, edge.source, edge.sourceHandle)
-      : defaultValue(port, node.data);
+    inVars[port.id] = inputOverrides.get(`${node.id}:${port.id}`) ??
+      (edge?.sourceHandle
+        ? outputExpressionWithOverrides(nodeMap, edge.source, edge.sourceHandle, outputOverrides)
+        : defaultValue(port, node.data));
   }
 
   const outVars: Record<string, string> = {};
@@ -121,7 +154,7 @@ function collectCustomFunction(node: ShaderNodeInstance, customFunctionSet: Set<
   customFunctionSet.add(source);
 }
 
-function collectReachable(startId: string, nodes: ShaderNodeInstance[], edges: ShaderEdge[]): ShaderNodeInstance[] {
+function collectReachable(startId: string, nodes: ShaderNodeInstance[], edges: ShaderEdge[], stopAt = new Set<string>()): ShaderNodeInstance[] {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const visited = new Set<string>();
   const ordered: ShaderNodeInstance[] = [];
@@ -129,8 +162,10 @@ function collectReachable(startId: string, nodes: ShaderNodeInstance[], edges: S
   function dfs(id: string) {
     if (visited.has(id)) return;
     visited.add(id);
-    for (const edge of edges) {
-      if (edge.target === id) dfs(edge.source);
+    if (!stopAt.has(id)) {
+      for (const edge of edges) {
+        if (edge.target === id) dfs(edge.source);
+      }
     }
     const node = nodeMap.get(id);
     if (node) ordered.push(node);
@@ -138,6 +173,61 @@ function collectReachable(startId: string, nodes: ShaderNodeInstance[], edges: S
 
   dfs(startId);
   return ordered;
+}
+
+function collectGraphMetadata(
+  nodes: ShaderNodeInstance[],
+  externSet: Set<string>,
+  helperKeys: Set<string>,
+  customFunctionSet: Set<string>,
+  textureMap: Map<string, { nodeId: string; uniform: string; label: string }>,
+) {
+  for (const node of nodes) {
+    const def = getNodeDef(node.data);
+    def?.externs?.forEach((e) => externSet.add(e));
+    if (def?.helperKey) helperKeys.add(def.helperKey);
+    collectTextureUniform(node, textureMap, externSet);
+    collectCustomFunction(node, customFunctionSet);
+  }
+}
+
+function buildSubgraphFunction(
+  subgraph: ShaderSubgraph,
+  subgraphMap: Map<string, ShaderSubgraph>,
+  stack = new Set<string>(),
+): string {
+  if (stack.has(subgraph.id)) {
+    return `// Subgraph cycle detected: ${subgraph.name}`;
+  }
+  stack.add(subgraph.id);
+  const nodeMap = new Map(subgraph.nodes.map((node) => [node.id, node]));
+  const inputOverrides = new Map(
+    Object.entries(subgraph.inputMappings).map(([inputId, mapping]) => [`${mapping.nodeId}:${mapping.portId}`, `sg_in_${inputId}`]),
+  );
+  const outputOverrides = new Map<string, string>();
+  const reachableIds = new Set<string>();
+  for (const mapping of Object.values(subgraph.outputMappings)) {
+    for (const node of collectReachable(mapping.nodeId, subgraph.nodes, subgraph.edges, new Set())) {
+      reachableIds.add(node.id);
+    }
+  }
+  const bodyLines: string[] = [];
+  for (const node of subgraph.nodes.filter((node) => reachableIds.has(node.id))) {
+    bodyLines.push(...buildNodeBody(node, subgraph.edges, nodeMap, subgraphMap, inputOverrides, outputOverrides));
+  }
+  for (const [outputId, mapping] of Object.entries(subgraph.outputMappings)) {
+    bodyLines.push(`sg_out_${outputId} = ${outputExpressionWithOverrides(nodeMap, mapping.nodeId, mapping.portId, outputOverrides)};`);
+  }
+  const args = [
+    ...subgraph.inputs.map((port) => `${port.type} sg_in_${port.id}`),
+    ...subgraph.outputs.map((port) => `out ${port.type} sg_out_${port.id}`),
+  ];
+  stack.delete(subgraph.id);
+  return [
+    `void ${subgraph.functionName}(${args.join(', ')}) {`,
+    ...bodyLines.map((line) => `  ${line}`),
+    '}',
+  ].join('\n');
 }
 
 function buildEffect(bodyLines: string[], returnExpr: string): string {
@@ -158,9 +248,32 @@ function buildPosition(bodyLines: string[], returnExpr: string): string {
   ].join('\n');
 }
 
-export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): GeneratedGlsl {
+function collectUsedSubgraphs(
+  nodes: ShaderNodeInstance[],
+  subgraphMap: Map<string, ShaderSubgraph>,
+  used = new Set<string>(),
+  visiting = new Set<string>(),
+): Set<string> {
+  for (const node of nodes) {
+    if (node.data.nodeType !== 'SubgraphInstance' || !node.data.subgraphId || used.has(node.data.subgraphId)) continue;
+    const subgraph = subgraphMap.get(node.data.subgraphId);
+    if (!subgraph) continue;
+    if (visiting.has(subgraph.id)) {
+      used.add(subgraph.id);
+      continue;
+    }
+    visiting.add(subgraph.id);
+    collectUsedSubgraphs(subgraph.nodes, subgraphMap, used, visiting);
+    visiting.delete(subgraph.id);
+    used.add(subgraph.id);
+  }
+  return used;
+}
+
+export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[], subgraphs: ShaderSubgraph[] = []): GeneratedGlsl {
   const fragOut = nodes.find((n) => n.data.nodeType === 'FragmentOutput');
   const vertOut = nodes.find((n) => n.data.nodeType === 'VertexOutput');
+  const subgraphMap = new Map(subgraphs.map((subgraph) => [subgraph.id, subgraph]));
 
   if (!nodes.length || !fragOut) {
     return { pixel: PASSTHROUGH_PIXEL, vertex: null, hash: 'passthrough', textures: [] };
@@ -173,30 +286,23 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
   const helperKeys = new Set<string>();
   const customFunctionSet = new Set<string>();
   const textureMap = new Map<string, { nodeId: string; uniform: string; label: string }>();
-  for (const node of reachable) {
-    const def = getNodeDef(node.data);
-    def?.externs?.forEach((e) => externSet.add(e));
-    if (def?.helperKey) helperKeys.add(def.helperKey);
-    collectTextureUniform(node, textureMap, externSet);
-    collectCustomFunction(node, customFunctionSet);
-  }
+  collectGraphMetadata(reachable, externSet, helperKeys, customFunctionSet, textureMap);
 
   let vertReachable: ShaderNodeInstance[] = [];
   if (vertOut) {
     vertReachable = collectReachable(vertOut.id, nodes, edges);
-    for (const node of vertReachable) {
-      const def = getNodeDef(node.data);
-      def?.externs?.forEach((e) => externSet.add(e));
-      if (def?.helperKey) helperKeys.add(def.helperKey);
-      collectTextureUniform(node, textureMap, externSet);
-      collectCustomFunction(node, customFunctionSet);
-    }
+    collectGraphMetadata(vertReachable, externSet, helperKeys, customFunctionSet, textureMap);
+  }
+  const usedSubgraphs = collectUsedSubgraphs([...reachable, ...vertReachable], subgraphMap);
+  for (const subgraphId of usedSubgraphs) {
+    const subgraph = subgraphMap.get(subgraphId);
+    if (subgraph) collectGraphMetadata(subgraph.nodes, externSet, helperKeys, customFunctionSet, textureMap);
   }
 
   const bodyLines: string[] = [];
   for (const node of reachable) {
     if (node.data.nodeType !== 'FragmentOutput') {
-      bodyLines.push(...buildNodeBody(node, edges, nodeMap));
+      bodyLines.push(...buildNodeBody(node, edges, nodeMap, subgraphMap));
     }
   }
 
@@ -210,6 +316,15 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
   if (helperKeys.has('noise')) parts.push(NOISE_HELPER);
   if (helperKeys.has('lab-color')) parts.push(LAB_COLOR_HELPER);
   if (customFunctionSet.size) parts.push([...customFunctionSet].join('\n\n'));
+  if (usedSubgraphs.size) {
+    parts.push(
+      [...usedSubgraphs]
+        .map((id) => subgraphMap.get(id))
+        .filter((subgraph): subgraph is ShaderSubgraph => Boolean(subgraph))
+        .map((subgraph) => buildSubgraphFunction(subgraph, subgraphMap))
+        .join('\n\n'),
+    );
+  }
   parts.push(buildEffect(bodyLines, returnExpr));
 
   const pixel = parts.join('\n\n');
@@ -219,7 +334,7 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Gener
     const vertLines: string[] = [];
     for (const node of vertReachable) {
       if (node.data.nodeType !== 'VertexOutput') {
-        vertLines.push(...buildNodeBody(node, edges, nodeMap));
+        vertLines.push(...buildNodeBody(node, edges, nodeMap, subgraphMap));
       }
     }
     const posEdge = edges.find((e) => e.target === vertOut.id && e.targetHandle === 'pos');
