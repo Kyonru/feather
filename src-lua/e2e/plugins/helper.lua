@@ -195,7 +195,7 @@ function PluginE2EHelper.createPluginRecord(definition, optionOverrides, disable
     definition.plugin,
     manifest.id,
     pluginOptions,
-    disabledOverride ~= nil and disabledOverride or manifest.disabled,
+    disabledOverride == nil and manifest.disabled or disabledOverride,
     manifest.capabilities or {},
     {
       api = manifest.api,
@@ -250,7 +250,7 @@ function PluginE2EHelper.createSmokeSuite(pluginId, options)
         deviceId = options.deviceId or (("plugin-" .. pluginId .. "-e2e"):gsub("[^%w%-]", "-")),
         assetPreview = options.assetPreview,
         plugins = {
-          PluginE2EHelper.createPluginRecord(definition, options.pluginOptions, options.disabled),
+          PluginE2EHelper.createPluginRecord(definition, options.pluginOptions, options.disabled ~= nil and options.disabled or false),
         },
       })
 

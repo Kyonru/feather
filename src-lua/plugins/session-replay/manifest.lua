@@ -20,5 +20,7 @@ return {
     chunkMaxEvents = 1000,
     flushInterval = 0.2,
     flushMaxLines = 128,
+    checkpointInterval = nil,
+    maxCheckpoints = 100,
   },
 }

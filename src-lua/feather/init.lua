@@ -21,7 +21,7 @@ local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
 
-local FEATHER_VERSION_NAME = "1.2.0"
+local FEATHER_VERSION_NAME = "1.3.0"
 local FEATHER_API = 5
 
 local FEATHER_VERSION = {
@@ -91,8 +91,10 @@ local CALLBACK_NAMES = {
 ---@field attachBinary fun(self: Feather, mime: string, bytes: string): table
 ---@field startSessionReplay fun(self: Feather, opts?: table): string|nil
 ---@field stopSessionReplay fun(self: Feather): string|nil
----@field playSessionReplay fun(self: Feather, idOrPath?: string): boolean|nil
+---@field playSessionReplay fun(self: Feather, idOrPath?: string, opts?: table): boolean|nil
+---@field seekSessionReplay fun(self: Feather, timeOrCheckpointId: number|string): boolean|nil
 ---@field replayInitialState fun(self: Feather, name: string, state: table, opts?: table): boolean|nil
+---@field replayCheckpoint fun(self: Feather, nameOrOpts?: string|table, stateOverrides?: table): string|boolean|nil
 ---@field replayState fun(self: Feather, name: string, state: table, opts?: table): boolean|nil
 ---@field replay fun(self: Feather, name: string, state: table, opts?: table): boolean|nil
 ---@field replayRegister fun(self: Feather, name: string, captureFn?: function, restoreFn?: function, opts?: table): boolean|nil
@@ -945,10 +947,22 @@ function Feather:stopSessionReplay()
   return nil
 end
 
-function Feather:playSessionReplay(idOrPath)
+function Feather:playSessionReplay(idOrPath, opts)
   local plugin = self:__sessionReplayPlugin()
   if plugin and plugin.startReplay then
-    local ok, err = plugin:startReplay(idOrPath)
+    local ok, err = plugin:startReplay(idOrPath, opts or {})
+    if plugin.sendStatus then
+      plugin:sendStatus(self)
+    end
+    return ok, err
+  end
+  return nil
+end
+
+function Feather:seekSessionReplay(timeOrCheckpointId)
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.seekReplay then
+    local ok, err = plugin:seekReplay(timeOrCheckpointId)
     if plugin.sendStatus then
       plugin:sendStatus(self)
     end
@@ -961,6 +975,14 @@ function Feather:replayInitialState(name, state, opts)
   local plugin = self:__sessionReplayPlugin()
   if plugin and plugin.recordInitialState then
     return plugin:recordInitialState(name, state, opts or {})
+  end
+  return nil
+end
+
+function Feather:replayCheckpoint(nameOrOpts, stateOverrides)
+  local plugin = self:__sessionReplayPlugin()
+  if plugin and plugin.recordCheckpoint then
+    return plugin:recordCheckpoint(nameOrOpts, stateOverrides)
   end
   return nil
 end

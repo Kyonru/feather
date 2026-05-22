@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -18,9 +18,15 @@ import { readFile, writeFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useSessionReplay, type SessionReplayFile, type SessionReplayRecording } from '@/hooks/use-session-replay';
+import {
+  checkpointsFromRecording,
+  useSessionReplay,
+  type SessionReplayFile,
+  type SessionReplayRecording,
+} from '@/hooks/use-session-replay';
 import { isWeb } from '@/utils/platform';
 
 function formatSeconds(seconds: number) {
@@ -101,16 +107,20 @@ export default function SessionReplayPage() {
     requestRecording,
     requestReplayList,
     playRecording,
+    seekRecording,
     stopReplay,
     importRecording,
     deleteRecording,
   } = useSessionReplay();
   const [loading, setLoading] = useState(false);
   const [expandedReplayId, setExpandedReplayId] = useState<string | null>(null);
+  const [seekTime, setSeekTime] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resolved = isResolved(recording);
   const selectionLocked = status.recording || status.replaying;
   const loadedRecordingId = typeof recording?.manifest?.id === 'string' ? recording.manifest.id : null;
+  const checkpoints = useMemo(() => checkpointsFromRecording(recording), [recording]);
+  const canSeek = checkpoints.length > 0 && Boolean(selectedReplayId || status.replayId);
 
   const handleSelectReplay = (id: string) => {
     if (selectionLocked) return;
@@ -176,6 +186,12 @@ export default function SessionReplayPage() {
     event.target.value = '';
   };
 
+  const handleSeek = (play = false) => {
+    const target = Number(seekTime);
+    if (!Number.isFinite(target) || target < 0) return;
+    seekRecording(target, play);
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <input
@@ -233,7 +249,7 @@ export default function SessionReplayPage() {
         </Button>
       </div>
 
-      <div className="grid shrink-0 gap-3 border-b px-6 py-4 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid shrink-0 gap-3 border-b px-6 py-4 sm:grid-cols-2 lg:grid-cols-7">
         <div>
           <p className="text-xs text-muted-foreground">Status</p>
           <Badge variant={status.replaying ? 'default' : status.recording ? 'destructive' : 'secondary'}>
@@ -255,6 +271,10 @@ export default function SessionReplayPage() {
         <div>
           <p className="text-xs text-muted-foreground">Initial States</p>
           <p className="text-sm font-medium">{status.initialStateCount.toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Checkpoints</p>
+          <p className="text-sm font-medium">{(status.checkpointCount ?? 0).toLocaleString()}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Streams</p>
@@ -284,6 +304,29 @@ export default function SessionReplayPage() {
           <p className="text-xs text-muted-foreground">
             Replay selection is locked while {status.recording ? 'recording' : 'replaying'}.
           </p>
+        )}
+
+        {canSeek && (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-card/20 px-3 py-2">
+            <span className="text-xs font-medium">Seek</span>
+            <Input
+              className="h-8 w-28"
+              type="number"
+              min="0"
+              step="0.1"
+              value={seekTime}
+              onChange={(event) => setSeekTime(event.target.value)}
+              placeholder="seconds"
+              disabled={status.recording}
+            />
+            <Button size="sm" variant="outline" onClick={() => handleSeek(false)} disabled={status.recording || !seekTime}>
+              Seek
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleSeek(true)} disabled={status.recording || !seekTime}>
+              <PlayIcon className="size-3" />
+              Play From
+            </Button>
+          </div>
         )}
 
         {replaySummaries.length === 0 ? (
@@ -326,7 +369,8 @@ export default function SessionReplayPage() {
                         <span className="block text-xs text-muted-foreground">
                           {formatSeconds(replay.duration)} · {replay.inputCount.toLocaleString()} inputs ·{' '}
                           {(replay.initialStateCount ?? 0).toLocaleString()} initial ·{' '}
-                          {replay.stateCount.toLocaleString()} state events
+                          {replay.stateCount.toLocaleString()} state events ·{' '}
+                          {(replay.checkpointCount ?? 0).toLocaleString()} checkpoints
                         </span>
                       </span>
                     </span>
@@ -351,24 +395,56 @@ export default function SessionReplayPage() {
                       </div>
                       <Separator className="mb-3" />
                       {canPreviewFiles ? (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>File</TableHead>
-                              <TableHead className="w-32 text-right">Size</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {recording.files.map((file) => (
-                              <TableRow key={file.path}>
-                                <TableCell className="font-mono text-xs">{file.path}</TableCell>
-                                <TableCell className="text-right text-xs text-muted-foreground">
-                                  {(file.bytes ?? file.content.length).toLocaleString()} bytes
-                                </TableCell>
+                        <div className="space-y-3">
+                          {checkpoints.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium">Checkpoints</p>
+                              <div className="grid gap-1">
+                                {checkpoints.map((checkpoint) => (
+                                  <div
+                                    key={checkpoint.id}
+                                    className="grid grid-cols-[1fr_auto] items-center gap-2 rounded border px-2 py-1.5"
+                                  >
+                                    <div className="min-w-0">
+                                      <p className="truncate text-xs font-medium">{checkpoint.label || checkpoint.id}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatSeconds(checkpoint.time)} · {checkpoint.id} · {checkpoint.source ?? 'manual'} ·{' '}
+                                        {(checkpoint.stateCount ?? 0).toLocaleString()} states
+                                      </p>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => playRecording(replay.id, { seekTo: checkpoint.id })}
+                                      disabled={status.recording}
+                                    >
+                                      <PlayIcon className="size-3" />
+                                      Play From
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>File</TableHead>
+                                <TableHead className="w-32 text-right">Size</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {recording.files.map((file) => (
+                                <TableRow key={file.path}>
+                                  <TableCell className="font-mono text-xs">{file.path}</TableCell>
+                                  <TableCell className="text-right text-xs text-muted-foreground">
+                                    {(file.bytes ?? file.content.length).toLocaleString()} bytes
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
                       ) : (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Loader2Icon className="size-3 animate-spin" />

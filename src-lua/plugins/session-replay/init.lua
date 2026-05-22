@@ -83,6 +83,16 @@ local function nowId()
   return "session_" .. os.date("%Y%m%d_%H%M%S") .. "_" .. tostring(randomPart)
 end
 
+local function sanitizeId(value, fallback)
+  local id = tostring(value or fallback or "checkpoint")
+  id = id:gsub("[^%w%._%-]", "_")
+  id = id:gsub("_+", "_")
+  if id == "" or id == "." or id == ".." then
+    id = fallback or "checkpoint"
+  end
+  return id
+end
+
 local function joinPath(base, child)
   if not base or base == "" then
     return child
@@ -169,6 +179,14 @@ local function clearArray(value)
   end
 end
 
+local function copyEvent(event)
+  local copy = {}
+  for key, value in pairs(event or {}) do
+    copy[key] = value
+  end
+  return copy
+end
+
 local CALLBACK_BUS_EVENTS = {
   keypressed = true,
   keyreleased = true,
@@ -205,11 +223,19 @@ local SessionReplayPlugin = Class({
     self.chunkMaxEvents = self.options.chunkMaxEvents or 1000
     self.flushInterval = tonumber(self.options.flushInterval) or 0.2
     self.flushMaxLines = tonumber(self.options.flushMaxLines) or 128
+    self.checkpointInterval = tonumber(self.options.checkpointInterval)
+    self.maxCheckpoints = tonumber(self.options.maxCheckpoints) or 100
     if self.flushInterval < 0 then
       self.flushInterval = 0
     end
     if self.flushMaxLines < 1 then
       self.flushMaxLines = 1
+    end
+    if self.checkpointInterval ~= nil and self.checkpointInterval <= 0 then
+      self.checkpointInterval = nil
+    end
+    if self.maxCheckpoints < 1 then
+      self.maxCheckpoints = 1
     end
     self.captureKeys = self.options.captureKeys ~= false
     self.captureMouse = self.options.captureMouse ~= false
@@ -225,11 +251,13 @@ local SessionReplayPlugin = Class({
     self.inputEvents = {}
     self.stateEvents = {}
     self.initialStates = {}
+    self.checkpoints = {}
     self._lastState = {}
     self._lastKeyframeAt = {}
     self._pendingInputLines = {}
     self._pendingStateLines = {}
     self._lastFlushAt = 0
+    self._lastCheckpointAt = nil
     self._stateRegistrations = {}
     self._missingRestorers = {}
     self._pollOriginals = {}
@@ -285,6 +313,18 @@ end
 
 function SessionReplayPlugin:_initialPath()
   return joinPath(self.currentReplayDir, "initial.json")
+end
+
+function SessionReplayPlugin:_checkpointIndexPath()
+  return joinPath(self.currentReplayDir, "checkpoints.jsonl")
+end
+
+function SessionReplayPlugin:_checkpointDir()
+  return joinPath(self.currentReplayDir, "checkpoints")
+end
+
+function SessionReplayPlugin:_checkpointPath(id)
+  return joinPath(self:_checkpointDir(), sanitizeId(id, "checkpoint") .. ".json")
 end
 
 function SessionReplayPlugin:_manifestPath()
@@ -575,11 +615,13 @@ function SessionReplayPlugin:startRecording(opts)
   self.inputEvents = {}
   self.stateEvents = {}
   self.initialStates = {}
+  self.checkpoints = {}
   self._lastState = {}
   self._lastKeyframeAt = {}
   self._pendingInputLines = {}
   self._pendingStateLines = {}
   self._lastFlushAt = self.recordStart
+  self._lastCheckpointAt = nil
   self.manifest = {
     version = 1,
     id = self.currentReplayId,
@@ -590,16 +632,22 @@ function SessionReplayPlugin:startRecording(opts)
     stateCount = 0,
     initialStateCount = 0,
     keyframeCount = 0,
+    checkpointCount = 0,
     streams = {},
-    chunks = { "initial.json", "inputs.jsonl", "state-0001.jsonl" },
+    chunks = { "initial.json", "inputs.jsonl", "state-0001.jsonl", "checkpoints.jsonl" },
   }
   writeFile(self:_inputPath(), "")
   writeFile(self:_statePath(), "")
   writeFile(self:_initialPath(), "[]")
+  ensureDirectory(self:_checkpointDir())
+  writeFile(self:_checkpointIndexPath(), "")
   self:_captureInitialStates(opts)
   writeFile(self:_initialPath(), json.encode(self.initialStates))
+  self.checkpoints = { self:_initialCheckpoint() }
+  self.manifest.checkpointCount = #self.checkpoints
   self.recordStart = gettime()
   self._lastFlushAt = self.recordStart
+  self._lastCheckpointAt = 0
   self:_writeManifest("recording")
   self.recording = true
   self:_log("Recording started: " .. self.currentReplayId)
@@ -757,6 +805,165 @@ function SessionReplayPlugin:_captureInitialStates(opts)
   end
 end
 
+function SessionReplayPlugin:_initialCheckpoint()
+  return {
+    id = "0",
+    time = 0,
+    label = "Start",
+    source = "initial",
+    inputIndex = 1,
+    stateIndex = 1,
+    stateCount = #self.initialStates,
+    states = self.initialStates,
+  }
+end
+
+function SessionReplayPlugin:_normalizeCheckpointOptions(nameOrOpts, stateOverrides)
+  local opts = {}
+  local overrides = stateOverrides
+  if type(nameOrOpts) == "table" then
+    for key, value in pairs(nameOrOpts) do
+      opts[key] = value
+    end
+    if opts.label == nil and type(opts.name) == "string" then
+      opts.label = opts.name
+    end
+    overrides = overrides or opts.states or opts.stateOverrides
+  elseif type(nameOrOpts) == "string" and nameOrOpts ~= "" then
+    opts.label = nameOrOpts
+    opts.id = nameOrOpts
+  end
+  return opts, overrides
+end
+
+function SessionReplayPlugin:_stateEventsFromMap(states, elapsed, source)
+  local events = {}
+  if type(states) ~= "table" then
+    return events
+  end
+  local function add(name, value)
+    if type(name) ~= "string" or name == "" then
+      return
+    end
+    local ok, encoded = pcall(stableEncode, value)
+    if not ok then
+      self:_log("Could not encode checkpoint state '" .. tostring(name) .. "': " .. tostring(encoded))
+      return
+    end
+    events[#events + 1] = {
+      name = name,
+      value = value,
+      time = elapsed or 0,
+      keyframe = true,
+      source = source,
+    }
+  end
+  if type(states.name) == "string" and states.value ~= nil then
+    add(states.name, states.value)
+    return events
+  end
+  for name, state in pairs(states) do
+    if type(name) == "string" then
+      add(name, state)
+    elseif type(state) == "table" and type(state.name) == "string" then
+      add(state.name, state.value)
+    end
+  end
+  return events
+end
+
+function SessionReplayPlugin:_captureCheckpointStates(elapsed, overrides, source)
+  local byName = {}
+  for name, registration in pairs(self._stateRegistrations) do
+    if type(registration.capture) == "function" then
+      local ok, state = pcall(registration.capture)
+      if ok then
+        byName[name] = {
+          name = name,
+          value = state,
+          time = elapsed or 0,
+          keyframe = true,
+          source = source,
+        }
+      else
+        self:_log("Checkpoint capture failed for state '" .. tostring(name) .. "': " .. tostring(state))
+      end
+    end
+  end
+  for _, event in ipairs(self:_stateEventsFromMap(overrides, elapsed, source)) do
+    byName[event.name] = event
+  end
+  local events = {}
+  for _, event in pairs(byName) do
+    events[#events + 1] = event
+  end
+  table.sort(events, function(a, b)
+    return tostring(a.name) < tostring(b.name)
+  end)
+  return events
+end
+
+function SessionReplayPlugin:_checkpointId(base)
+  local id = sanitizeId(base, "checkpoint_" .. string.format("%04d", math.max(#self.checkpoints, 1)))
+  local used = {}
+  for _, checkpoint in ipairs(self.checkpoints or {}) do
+    used[checkpoint.id] = true
+  end
+  if not used[id] then
+    return id
+  end
+  local index = 1
+  while used[id .. "_" .. tostring(index)] do
+    index = index + 1
+  end
+  return id .. "_" .. tostring(index)
+end
+
+function SessionReplayPlugin:recordCheckpoint(nameOrOpts, stateOverrides)
+  if not self.recording or not self.currentReplayDir or not self.manifest then
+    return false, "No active session replay recording"
+  end
+  if (#self.checkpoints - 1) >= self.maxCheckpoints then
+    return false, "Session replay checkpoint limit reached"
+  end
+  local opts, overrides = self:_normalizeCheckpointOptions(nameOrOpts, stateOverrides)
+  local elapsed = gettime() - self.recordStart
+  local source = opts.source or "manual"
+  local id = self:_checkpointId(opts.id or opts.label)
+  local label = opts.label or id
+  local states = self:_captureCheckpointStates(elapsed, overrides, source)
+  local checkpoint = {
+    id = id,
+    time = elapsed,
+    label = label,
+    source = source,
+    inputIndex = #self.inputEvents + 1,
+    stateIndex = #self.stateEvents + 1,
+    stateCount = #states,
+  }
+
+  ensureDirectory(self:_checkpointDir())
+  writeFile(self:_checkpointPath(id), json.encode({
+    id = id,
+    label = label,
+    source = source,
+    time = elapsed,
+    inputIndex = checkpoint.inputIndex,
+    stateIndex = checkpoint.stateIndex,
+    states = states,
+  }))
+  appendFile(self:_checkpointIndexPath(), json.encode(checkpoint) .. "\n")
+
+  local loaded = copyEvent(checkpoint)
+  loaded.states = states
+  self.checkpoints[#self.checkpoints + 1] = loaded
+  self._lastCheckpointAt = elapsed
+  self.manifest.checkpointCount = #self.checkpoints
+  self.manifest.duration = math.max(self.manifest.duration or 0, elapsed)
+  self:_writeManifest(self.manifest.status)
+  return id
+end
+
 function SessionReplayPlugin:registerState(name, captureFn, restoreFn, opts)
   if type(name) ~= "string" or name == "" then
     return false, "state name is required"
@@ -822,6 +1029,54 @@ function SessionReplayPlugin:_loadReplay(idOrPath)
     return (a.time or 0) < (b.time or 0)
   end)
 
+  local checkpoints = {
+    {
+      id = "0",
+      time = 0,
+      label = "Start",
+      source = "initial",
+      inputIndex = 1,
+      stateIndex = 1,
+      stateCount = #initialStates,
+      states = initialStates,
+    },
+  }
+  for _, checkpoint in ipairs(readJsonLines(joinPath(dir, "checkpoints.jsonl"))) do
+    if checkpoint.id then
+      checkpoint.id = tostring(checkpoint.id)
+      local checkpointContent = readFile(joinPath(joinPath(dir, "checkpoints"), sanitizeId(checkpoint.id) .. ".json"))
+      local states = {}
+      if checkpointContent and #checkpointContent > 0 then
+        local checkpointOk, decoded = pcall(json.decode, checkpointContent)
+        if checkpointOk and type(decoded) == "table" then
+          if checkpoint.label == nil and type(decoded.label) == "string" then
+            checkpoint.label = decoded.label
+          end
+          if checkpoint.source == nil and type(decoded.source) == "string" then
+            checkpoint.source = decoded.source
+          end
+          if checkpoint.inputIndex == nil and type(decoded.inputIndex) == "number" then
+            checkpoint.inputIndex = decoded.inputIndex
+          end
+          if checkpoint.stateIndex == nil and type(decoded.stateIndex) == "number" then
+            checkpoint.stateIndex = decoded.stateIndex
+          end
+          if type(decoded.states) == "table" then
+            states = decoded.states
+          end
+        end
+      end
+      local loaded = copyEvent(checkpoint)
+      loaded.label = loaded.label or loaded.id
+      loaded.states = states
+      loaded.stateCount = loaded.stateCount or #states
+      checkpoints[#checkpoints + 1] = loaded
+    end
+  end
+  table.sort(checkpoints, function(a, b)
+    return (a.time or 0) < (b.time or 0)
+  end)
+
   return {
     id = manifest.id or replayId,
     dir = dir,
@@ -829,33 +1084,35 @@ function SessionReplayPlugin:_loadReplay(idOrPath)
     initialStates = initialStates,
     inputEvents = inputEvents,
     stateEvents = stateEvents,
+    checkpoints = checkpoints,
   }
 end
 
-function SessionReplayPlugin:startReplay(idOrPath)
+function SessionReplayPlugin:startReplay(idOrPath, opts)
+  opts = opts or {}
   if self.recording then
     self:stopRecording()
   end
-  local replay, err = self:_loadReplay(idOrPath)
+  local replay, err = self:_loadReplayIntoMemory(idOrPath)
   if not replay then
-    self:_log(tostring(err))
     return false, err
   end
 
-  self.currentReplayId = replay.id
-  self.currentReplayDir = replay.dir
-  self.manifest = replay.manifest
-  self.initialStates = replay.initialStates or {}
-  self.inputEvents = replay.inputEvents
-  self.stateEvents = replay.stateEvents
-  self.replayInputIndex = 1
-  self.replayStateIndex = 1
-  self._missingRestorers = {}
   self:_resetVirtualInput()
   self:_installPollingHooks()
-  self:_applyInitialStates()
+  if opts.seekTo ~= nil then
+    local checkpoint, targetTime = self:_checkpointFor(opts.seekTo)
+    local ok, applyErr = self:_applyCheckpoint(checkpoint)
+    if not ok then
+      return false, applyErr
+    end
+    self:_fastForwardTo(targetTime)
+    self.replayStart = gettime() - targetTime
+  else
+    self:_applyInitialStates()
+    self.replayStart = gettime()
+  end
   self.replaying = true
-  self.replayStart = gettime()
   self:_log("Replay started: " .. tostring(replay.id))
   return true
 end
@@ -885,9 +1142,119 @@ function SessionReplayPlugin:_applyInitialStates()
   end
 end
 
+function SessionReplayPlugin:_checkpointFor(target)
+  local checkpoints = self.checkpoints or {}
+  if type(target) == "string" then
+    for _, checkpoint in ipairs(checkpoints) do
+      if checkpoint.id == target or checkpoint.label == target then
+        return checkpoint, checkpoint.time or 0
+      end
+    end
+  end
+
+  local targetTime = tonumber(target) or 0
+  local selected = checkpoints[1]
+  for _, checkpoint in ipairs(checkpoints) do
+    if (checkpoint.time or 0) <= targetTime then
+      selected = checkpoint
+    else
+      break
+    end
+  end
+  return selected, targetTime
+end
+
+function SessionReplayPlugin:_applyCheckpoint(checkpoint)
+  if not checkpoint then
+    return false, "No checkpoint available"
+  end
+  self:_resetVirtualInput()
+  for _, event in ipairs(checkpoint.states or {}) do
+    self:_applyReplayState(event)
+  end
+  self.replayInputIndex = checkpoint.inputIndex or 1
+  self.replayStateIndex = checkpoint.stateIndex or 1
+  return true
+end
+
+function SessionReplayPlugin:_fastForwardTo(targetTime)
+  targetTime = tonumber(targetTime) or 0
+  while self.replayStateIndex <= #self.stateEvents do
+    local event = self.stateEvents[self.replayStateIndex]
+    if (event.time or 0) > targetTime then
+      break
+    end
+    self:_applyReplayState(event)
+    self.replayStateIndex = self.replayStateIndex + 1
+  end
+
+  while self.replayInputIndex <= #self.inputEvents do
+    local event = self.inputEvents[self.replayInputIndex]
+    if (event.time or 0) > targetTime then
+      break
+    end
+    self:_dispatchReplayInput(event)
+    self.replayInputIndex = self.replayInputIndex + 1
+  end
+end
+
+function SessionReplayPlugin:_loadReplayIntoMemory(idOrPath)
+  local replay, err = self:_loadReplay(idOrPath)
+  if not replay then
+    self:_log(tostring(err))
+    return nil, err
+  end
+  self.currentReplayId = replay.id
+  self.currentReplayDir = replay.dir
+  self.manifest = replay.manifest
+  self.initialStates = replay.initialStates or {}
+  self.inputEvents = replay.inputEvents or {}
+  self.stateEvents = replay.stateEvents or {}
+  self.checkpoints = replay.checkpoints or { self:_initialCheckpoint() }
+  self.replayInputIndex = 1
+  self.replayStateIndex = 1
+  self._missingRestorers = {}
+  return replay
+end
+
+function SessionReplayPlugin:seekReplay(target, opts)
+  opts = opts or {}
+  if self.recording then
+    return false, "Cannot seek while recording"
+  end
+  if not self.currentReplayDir then
+    return false, "No session replay selected"
+  end
+  local replay, err = self:_loadReplayIntoMemory(self.currentReplayDir)
+  if not replay then
+    return false, err
+  end
+  local checkpoint, targetTime = self:_checkpointFor(target)
+  if not checkpoint then
+    return false, "No checkpoint available"
+  end
+  self:_installPollingHooks()
+  local ok, applyErr = self:_applyCheckpoint(checkpoint)
+  if not ok then
+    return false, applyErr
+  end
+  self:_fastForwardTo(targetTime)
+  self.replaying = opts.play == true
+  self.replayStart = gettime() - targetTime
+  if not self.replaying then
+    self:_removePollingHooks()
+  end
+  self:_log("Replay seeked to " .. tostring(target) .. " from checkpoint " .. tostring(checkpoint.id))
+  return true
+end
+
 function SessionReplayPlugin:update(_dt, feather)
   if self.recording then
-    self:_captureRegisteredStates(gettime() - self.recordStart)
+    local elapsed = gettime() - self.recordStart
+    self:_captureRegisteredStates(elapsed)
+    if self.checkpointInterval and (elapsed - (self._lastCheckpointAt or 0)) >= self.checkpointInterval then
+      self:recordCheckpoint({ source = "auto", label = "Auto " .. string.format("%.1fs", elapsed) })
+    end
     if (gettime() - self._lastFlushAt) >= self.flushInterval then
       self:_flushReplayWrites()
     end
@@ -948,8 +1315,10 @@ function SessionReplayPlugin:sendRecording(feather, idOrPath)
     self.currentReplayId = replay.id
     self.currentReplayDir = replay.dir
     self.manifest = replay.manifest
+    self.initialStates = replay.initialStates or {}
     self.inputEvents = replay.inputEvents
     self.stateEvents = replay.stateEvents
+    self.checkpoints = replay.checkpoints or {}
   end
   if not self.currentReplayDir then
     return false, "No replay selected"
@@ -962,10 +1331,16 @@ function SessionReplayPlugin:sendRecording(feather, idOrPath)
     self:_filePayload("manifest.json", feather, self.currentReplayDir),
     self:_filePayload("initial.json", feather, self.currentReplayDir),
     self:_filePayload("inputs.jsonl", feather, self.currentReplayDir),
+    self:_filePayload("checkpoints.jsonl", feather, self.currentReplayDir),
   }
   for _, file in ipairs(listFiles(self.currentReplayDir)) do
     if file:match("^state%-%d+%.jsonl$") then
       files[#files + 1] = self:_filePayload(file, feather, self.currentReplayDir)
+    end
+  end
+  for _, file in ipairs(listFiles(joinPath(self.currentReplayDir, "checkpoints"))) do
+    if file:match("%.json$") then
+      files[#files + 1] = self:_filePayload(joinPath("checkpoints", file), feather, self.currentReplayDir)
     end
   end
   feather:__sendWs(json.encode({
@@ -992,6 +1367,7 @@ function SessionReplayPlugin:_replaySummary(id, manifest)
     stateCount = manifest.stateCount or 0,
     initialStateCount = manifest.initialStateCount or 0,
     keyframeCount = manifest.keyframeCount or 0,
+    checkpointCount = manifest.checkpointCount or 0,
     streamCount = countStreams(manifest.streams),
   }
 end
@@ -1048,6 +1424,7 @@ function SessionReplayPlugin:sendStatus(feather)
       inputCount = #self.inputEvents,
       stateCount = #self.stateEvents,
       initialStateCount = #self.initialStates,
+      checkpointCount = #self.checkpoints,
       streamCount = self.manifest and countStreams(self.manifest.streams) or 0,
       missingRestorers = missing,
     },
@@ -1076,8 +1453,15 @@ function SessionReplayPlugin:importReplay(payload)
   local dir = joinPath(self.rootDir, replayId)
   ensureDirectory(self.rootDir)
   ensureDirectory(dir)
+  ensureDirectory(joinPath(dir, "checkpoints"))
   for _, file in ipairs(payload.files) do
-    if type(file.path) == "string" and type(file.content) == "string" and not file.path:find("%.%.", 1, true) then
+    if
+      type(file.path) == "string"
+      and type(file.content) == "string"
+      and not file.path:find("%.%.", 1, true)
+      and not file.path:find("\\", 1, true)
+      and file.path:sub(1, 1) ~= "/"
+    then
       writeFile(joinPath(dir, file.path), file.content)
     end
   end
@@ -1092,6 +1476,12 @@ function SessionReplayPlugin:importReplay(payload)
       self.initialStates = decoded
     end
   end
+  local replay = self:_loadReplay(replayId)
+  if replay then
+    self.inputEvents = replay.inputEvents or {}
+    self.stateEvents = replay.stateEvents or {}
+    self.checkpoints = replay.checkpoints or {}
+  end
   return true
 end
 
@@ -1104,6 +1494,11 @@ function SessionReplayPlugin:deleteReplay(id)
     return false, "love.filesystem.remove is unavailable"
   end
   local dir = id:find("/") and id or joinPath(self.rootDir, id)
+  local checkpointDir = joinPath(dir, "checkpoints")
+  for _, file in ipairs(listFiles(checkpointDir)) do
+    love.filesystem.remove(joinPath(checkpointDir, file))
+  end
+  love.filesystem.remove(checkpointDir)
   for _, file in ipairs(listFiles(dir)) do
     love.filesystem.remove(joinPath(dir, file))
   end
@@ -1115,6 +1510,7 @@ function SessionReplayPlugin:deleteReplay(id)
     self.inputEvents = {}
     self.stateEvents = {}
     self.initialStates = {}
+    self.checkpoints = {}
     self._pendingInputLines = {}
     self._pendingStateLines = {}
   end
@@ -1142,7 +1538,13 @@ function SessionReplayPlugin:handleSessionReplayCommand(msg, feather)
     self:sendStatus(feather)
     return true
   elseif msg.type == "cmd:session_replay:play" then
-    local ok, err = self:startReplay(msg.data and (msg.data.id or msg.data.path) or nil)
+    local data = msg.data or {}
+    local ok, err = self:startReplay(data.id or data.path, data)
+    self:sendStatus(feather)
+    return ok, err
+  elseif msg.type == "cmd:session_replay:seek" then
+    local data = msg.data or {}
+    local ok, err = self:seekReplay(data.target or data.seekTo, { play = data.play == true })
     self:sendStatus(feather)
     return ok, err
   elseif msg.type == "cmd:session_replay:stop_replay" then
@@ -1193,6 +1595,7 @@ function SessionReplayPlugin:handleActionRequest(request, feather)
     self.inputEvents = {}
     self.stateEvents = {}
     self.initialStates = {}
+    self.checkpoints = {}
     self._lastState = {}
     self._pendingInputLines = {}
     self._pendingStateLines = {}
@@ -1217,12 +1620,14 @@ function SessionReplayPlugin:handleRequest(_request, _feather)
       { field = "Inputs", value = tostring(#self.inputEvents) },
       { field = "States", value = tostring(#self.stateEvents) },
       { field = "Initial states", value = tostring(#self.initialStates) },
+      { field = "Checkpoints", value = tostring(#self.checkpoints) },
     },
     _status = status,
     _replayId = self.currentReplayId,
     _inputCount = #self.inputEvents,
     _stateCount = #self.stateEvents,
     _initialStateCount = #self.initialStates,
+    _checkpointCount = #self.checkpoints,
   }
 end
 
