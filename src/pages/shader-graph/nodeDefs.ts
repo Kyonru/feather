@@ -1425,6 +1425,92 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     ].join('\n'),
   },
 
+  // ─── Random ─────────────────────────────────────────────────────────────────
+  RandomIntegerRange: {
+    category: 'Random',
+    label: 'Random Integer Range',
+    inputs: [
+      { id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 },
+      { id: 'min', label: 'Min', type: 'float', defaultValue: 0, step: 1 },
+      { id: 'max', label: 'Max', type: 'float', defaultValue: 10, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Int', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_r = fract(sin(dot(${i.seed}, vec2(127.1, 311.7))) * 43758.5453);`,
+      `float ${o.out}_min = ceil(${i.min});`,
+      `float ${o.out}_max = ceil(${i.max});`,
+      `float ${o.out}_span = max(${o.out}_max - ${o.out}_min, 1.0);`,
+      `float ${o.out} = ${o.out}_min + floor(${o.out}_r * ${o.out}_span);`,
+    ].join('\n'),
+  },
+  RandomCircle: {
+    category: 'Random',
+    label: 'Random Circle',
+    inputs: [
+      { id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 1, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_r = fract(sin(vec2(dot(${i.seed}, vec2(127.1, 311.7)), dot(${i.seed}, vec2(269.5, 183.3)))) * 43758.5453);`,
+      `float ${o.out}_angle = ${o.out}_r.x * 6.28318530718;`,
+      `float ${o.out}_radius = mix(sqrt(${o.out}_r.y), 1.0, step(0.5, ${i.mode}));`,
+      `vec2 ${o.out} = ${o.out}_radius * vec2(cos(${o.out}_angle), sin(${o.out}_angle));`,
+    ].join('\n'),
+  },
+  RandomSphere: {
+    category: 'Random',
+    label: 'Random Sphere',
+    inputs: [
+      { id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 1, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_r = fract(sin(vec3(dot(${i.seed}, vec2(127.1, 311.7)), dot(${i.seed}, vec2(269.5, 183.3)), dot(${i.seed}, vec2(419.2, 371.9)))) * 43758.5453);`,
+      `float ${o.out}_theta = ${o.out}_r.x * 6.28318530718;`,
+      `float ${o.out}_cos_phi = 2.0 * ${o.out}_r.y - 1.0;`,
+      `float ${o.out}_sin_phi = sqrt(max(1.0 - ${o.out}_cos_phi * ${o.out}_cos_phi, 0.0));`,
+      `float ${o.out}_radius = mix(pow(${o.out}_r.z, 0.3333333333), 1.0, step(0.5, ${i.mode}));`,
+      `vec3 ${o.out} = ${o.out}_radius * vec3(cos(${o.out}_theta) * ${o.out}_sin_phi, sin(${o.out}_theta) * ${o.out}_sin_phi, ${o.out}_cos_phi);`,
+    ].join('\n'),
+  },
+  RandomRotation: {
+    category: 'Random',
+    label: 'Random Rotation',
+    inputs: [{ id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 }],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_r = fract(sin(vec3(dot(${i.seed}, vec2(127.1, 311.7)), dot(${i.seed}, vec2(269.5, 183.3)), dot(${i.seed}, vec2(419.2, 371.9)))) * 43758.5453);`,
+      `float ${o.out}_angle_y = ${o.out}_r.y * 6.28318530718;`,
+      `float ${o.out}_angle_z = ${o.out}_r.z * 6.28318530718;`,
+      `vec4 ${o.out} = sqrt(${o.out}_r.x) * vec4(0.0, 0.0, sin(${o.out}_angle_z), cos(${o.out}_angle_z)) + sqrt(max(1.0 - ${o.out}_r.x, 0.0)) * vec4(sin(${o.out}_angle_y), cos(${o.out}_angle_y), 0.0, 0.0);`,
+      `${o.out} = normalize(${o.out});`,
+    ].join('\n'),
+  },
+  RandomColor: {
+    category: 'Random',
+    label: 'Random Color',
+    inputs: [
+      { id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 },
+      { id: 'minHsv', label: 'Min HSV', type: 'vec3', defaultValue: [0, 0.55, 0.75], min: 0, max: 1, step: 0.01 },
+      { id: 'maxHsv', label: 'Max HSV', type: 'vec3', defaultValue: [1, 1, 1], min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [
+      { id: 'rgb', label: 'RGB', type: 'vec3' },
+      { id: 'hsv', label: 'HSV', type: 'vec3' },
+    ],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.rgb}_r = fract(sin(vec3(dot(${i.seed}, vec2(127.1, 311.7)), dot(${i.seed}, vec2(269.5, 183.3)), dot(${i.seed}, vec2(419.2, 371.9)))) * 43758.5453);`,
+      `vec3 ${o.rgb}_range = ${i.maxHsv} - ${i.minHsv};`,
+      `${o.rgb}_range = mix(${o.rgb}_range, fract(${o.rgb}_range), step(${o.rgb}_range, vec3(0.0)));`,
+      `vec3 ${o.hsv} = ${i.minHsv} + ${o.rgb}_range * ${o.rgb}_r;`,
+      `${o.hsv} = vec3(fract(${o.hsv}.x), clamp(${o.hsv}.y, 0.0, 1.0), clamp(${o.hsv}.z, 0.0, 1.0));`,
+      `vec3 ${o.rgb} = clamp(vec3(abs(${o.hsv}.x * 6.0 - 3.0) - 1.0, 2.0 - abs(${o.hsv}.x * 6.0 - 2.0), 2.0 - abs(${o.hsv}.x * 6.0 - 4.0)), 0.0, 1.0);`,
+      `${o.rgb} = ((${o.rgb} - 1.0) * ${o.hsv}.y + 1.0) * ${o.hsv}.z;`,
+    ].join('\n'),
+  },
+
   // ─── Vector (extended) ───────────────────────────────────────────────────────
   CrossVec3: {
     category: 'Vector',
@@ -2089,6 +2175,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Complex: 'border-l-amber-500',
   Quaternion: 'border-l-fuchsia-500',
   Symmetry: 'border-l-violet-500',
+  Random: 'border-l-stone-500',
   Vector: 'border-l-purple-500',
   Color: 'border-l-pink-500',
   Composite: 'border-l-rose-500',
@@ -2155,6 +2242,7 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
   { category: 'Complex', nodes: ['ComplexConjugate', 'ComplexReciprocal', 'ComplexMultiply', 'ComplexDivide', 'ComplexExp', 'ComplexLog', 'ComplexPower'] },
   { category: 'Quaternion', nodes: ['QuaternionInverse', 'QuaternionFromEuler', 'QuaternionFromAngleAxis', 'QuaternionToAngleAxis', 'QuaternionFromToRotation', 'QuaternionMultiply', 'QuaternionRotateVector', 'QuaternionSlerp'] },
   { category: 'Symmetry', nodes: ['ReflectionSymmetry', 'RotationSymmetry', 'TilingSymmetry'] },
+  { category: 'Random', nodes: ['RandomIntegerRange', 'RandomCircle', 'RandomSphere', 'RandomRotation', 'RandomColor'] },
   {
     category: 'Vector',
     nodes: [

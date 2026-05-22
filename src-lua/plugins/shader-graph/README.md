@@ -85,6 +85,16 @@ Symmetry nodes fold or tile UV coordinates before sampling. They are useful for 
 - `Rotation Symmetry`: folds UVs into radial sectors around a position. `Order` controls the number of repeated sectors.
 - `Tiling Symmetry`: maps UVs into local tile coordinates and also outputs cell index and cell position. `Mode` is stepped from `0` to `3`: `0` Square, `1` Hexagon, `2` Triangle, `3` Herringbone.
 
+### Random
+
+Random nodes generate deterministic pseudo-random values from a `vec2` seed. They are useful when combined with tile indices, screen positions, UV cells, or other stable values.
+
+- `Random Integer Range`: deterministic integer-like float between `Min` and `Max`.
+- `Random Circle`: random point inside or on a unit circle. `Mode` is stepped from `0` to `1`: `0` In, `1` On.
+- `Random Sphere`: random point inside or on a unit sphere. `Mode` is stepped from `0` to `1`: `0` In, `1` On.
+- `Random Rotation`: random quaternion rotation.
+- `Random Color`: random HSV color within editable min/max HSV ranges; outputs both RGB and HSV.
+
 ### Vector
 
 Vector nodes convert between packed colors/vectors and scalar channels.
@@ -251,6 +261,7 @@ The Shader Graph page includes complete preset graphs:
 - **Rotating Texture**: time-driven UV rotation.
 - **Quaternion UV Rotate**: rotates centered UVs through a generated Z-axis quaternion.
 - **Symmetry Kaleidoscope**: folds UVs through rotation and reflection symmetry before sampling.
+- **Random Color Tiles**: uses tile cell indices as stable random seeds for deterministic HSV colors.
 - **Checker Flash**: checker mask mixed into a flash color.
 - **Pattern Whirl**: radial procedural whirl mask mixed into the texture.
 - **Voronoi Energy**: cellular energy/shield mask.
