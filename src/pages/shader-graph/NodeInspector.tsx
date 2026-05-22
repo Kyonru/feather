@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { NODE_DEFS } from './nodeDefs';
-import type { NodeType } from '@/types/shader-graph';
+import type { NodeType, PortDef } from '@/types/shader-graph';
 import { Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
@@ -37,6 +37,35 @@ function hexToRgb(value: string) {
   return [((int >> 16) & 255) / 255, ((int >> 8) & 255) / 255, (int & 255) / 255] as const;
 }
 
+function defaultPortValue(port: PortDef): number | number[] {
+  if (port.defaultValue !== undefined) return port.defaultValue;
+  if (port.type === 'vec2') return [0, 0];
+  if (port.type === 'vec3') return [0, 0, 0];
+  if (port.type === 'vec4') return [0, 0, 0, 1];
+  return 0;
+}
+
+function clampValue(value: number, port: PortDef): number {
+  if (!Number.isFinite(value)) return 0;
+  if (port.min !== undefined && value < port.min) return port.min;
+  if (port.max !== undefined && value > port.max) return port.max;
+  return value;
+}
+
+function finiteValue(value: unknown, fallback = 0): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function optionalFiniteValue(value: unknown): number | undefined {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
+}
+
+function portStep(port: PortDef): number {
+  return port.step ?? 0.01;
+}
+
 export function NodeInspector() {
   const {
     nodes,
@@ -59,6 +88,62 @@ export function NodeInspector() {
   function updateSelectedVec4(next: [number, number, number, number]) {
     if (!selected) return;
     updateNodeData(selected.id, { values: { ...selected.data.values, val: next } });
+  }
+
+  function updateSelectedInput(port: PortDef, next: number | number[]) {
+    if (!selected) return;
+    updateNodeData(selected.id, { values: { ...selected.data.values, [port.id]: next } });
+  }
+
+  function renderPortValueEditor(port: PortDef) {
+    if (!selected) return null;
+
+    const rawValue = selected.data.values?.[port.id] ?? defaultPortValue(port);
+    const inputProps = {
+      min: port.min,
+      max: port.max,
+      step: portStep(port),
+    };
+
+    if (port.type === 'float') {
+      return (
+        <Input
+          className="h-7 text-xs"
+          type="number"
+          {...inputProps}
+          value={finiteValue(rawValue)}
+          onChange={(e) => updateSelectedInput(port, clampValue(parseFloat(e.target.value), port))}
+        />
+      );
+    }
+
+    if (port.type === 'vec2' || port.type === 'vec3' || port.type === 'vec4') {
+      const count = port.type === 'vec2' ? 2 : port.type === 'vec3' ? 3 : 4;
+      const fallback = defaultPortValue(port) as number[];
+      const value = Array.isArray(rawValue) ? rawValue : fallback;
+      const gridClass = count === 2 ? 'grid grid-cols-2 gap-1' : count === 3 ? 'grid grid-cols-3 gap-1' : 'grid grid-cols-2 gap-1';
+      return (
+        <div className={gridClass}>
+          {Array.from({ length: count }).map((_, idx) => (
+            <Input
+              key={idx}
+              aria-label={`${port.label} ${idx + 1}`}
+              className="h-7 text-xs"
+              type="number"
+              {...inputProps}
+              value={finiteValue(value[idx], finiteValue(fallback[idx]))}
+              onChange={(e) => {
+                const next = [...value];
+                next[idx] = clampValue(parseFloat(e.target.value), port);
+                updateSelectedInput(port, next);
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return null;
   }
 
   return (
@@ -112,11 +197,22 @@ export function NodeInspector() {
               <Input
                 className="h-7 text-xs"
                 type="number"
-                step={0.01}
-                value={(selected.data.values?.val as number) ?? 0}
+                min={optionalFiniteValue(selected.data.min)}
+                max={optionalFiniteValue(selected.data.max)}
+                step={optionalFiniteValue(selected.data.step) ?? 0.01}
+                value={finiteValue(selected.data.values?.val)}
                 onChange={(e) =>
                   updateNodeData(selected.id, {
-                    values: { ...selected.data.values, val: parseFloat(e.target.value) },
+                    values: {
+                      ...selected.data.values,
+                      val: clampValue(parseFloat(e.target.value), {
+                        id: 'val',
+                        label: 'Value',
+                        type: 'float',
+                        min: optionalFiniteValue(selected.data.min),
+                        max: optionalFiniteValue(selected.data.max),
+                      }),
+                    },
                   })
                 }
               />
@@ -245,14 +341,22 @@ export function NodeInspector() {
           )}
 
           {def.inputs.length > 0 && (
-            <div className="grid gap-0.5">
+            <div className="grid gap-2">
               <div className="text-[10px] text-muted-foreground font-medium mb-0.5">Inputs</div>
-              {def.inputs.map((port) => (
-                <div key={port.id} className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">{port.label}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground/60">{port.type}</span>
-                </div>
-              ))}
+              {def.inputs.map((port) => {
+                const connected = edges.some((edge) => edge.target === selected.id && edge.targetHandle === port.id);
+                return (
+                  <div key={port.id} className="grid gap-1 rounded border border-border/70 p-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-muted-foreground">{port.label}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground/60">
+                        {connected ? 'connected' : port.type}
+                      </span>
+                    </div>
+                    {!connected && renderPortValueEditor(port)}
+                  </div>
+                );
+              })}
             </div>
           )}
           {def.outputs.length > 0 && (

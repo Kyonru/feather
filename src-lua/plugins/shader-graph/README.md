@@ -82,6 +82,7 @@ Color nodes transform an existing `vec4`.
 Noise nodes create procedural variation.
 
 - `Simple Noise`: deterministic hash noise from UV.
+- `Truchet Tiles`: procedural Truchet tiling with square, triangle, and hex layout modes; supports randomized rotation, reflection, and optional time-based scrolling; outputs tile UV, tile index, and a line mask.
 - `Ripple`: UV distortion using sine waves.
 - `Voronoi Cells`: cellular mask for sparks, shields, energy, and organic breakup.
 - `Checkerboard`: alternating square mask.
@@ -170,6 +171,7 @@ The Shader Graph page includes complete preset graphs:
 - **Rotating Texture**: time-driven UV rotation.
 - **Checker Flash**: checker mask mixed into a flash color.
 - **Voronoi Energy**: cellular energy/shield mask.
+- **Truchet Tiles**: animated procedural randomized arc tiles mixed into the texture.
 - **Tiled Offset**: tiled UV sampling.
 - **Texture Strength**: alpha/intensity shaping for marks, cracks, and glows.
 - **Opacity Fade**: straightforward alpha fade control.
@@ -269,6 +271,12 @@ Feed texture color and a glow color into `Hit Flash`.
 
 Feed texture color and a highlight color into `Hit Flash`. This is a quick way to prototype shield, scan, grid, glitch, or energy effects.
 
+### Truchet Tiles
+
+`Texture Coords + tile size + mode + seed + line width + time + scroll speed -> Truchet Tiles mask -> Hit Flash amount`
+
+The Truchet node creates randomized procedural tiles. `Tile Mode` follows the source-style Truchet layout options: `0` square, `1` triangle, `2` hexagon. The default preset stays on `0` because that is the classic quarter-circle Truchet pattern shown in most references. The preset wires `Time` and a `Scroll Speed` vector so the pattern moves over time. It also outputs per-tile UVs and a tile index for more advanced procedural recipes, but the `Mask` output is the fastest path for visible arc patterns.
+
 ### Chromatic Aberration
 
 `Texture Coords + amount + center offset -> Chromatic Aberration -> Fragment Output`
@@ -339,3 +347,4 @@ Clears the active temporary shader preview.
 - Validation discards shader objects immediately; previews keep the shader and temporary shape canvas only for the preview window.
 - When vertex source is provided, validation compiles the combined pixel + vertex source because Feather applies shader graph output as a single LÖVE shader source.
 - Runtime preview is drawn by the Shader Graph plugin itself, so it does not require a Particle System Playground target.
+- Shader graph input definitions may provide `defaultValue`, `min`, `max`, and `step` metadata; the inspector uses those values for disconnected input editors.

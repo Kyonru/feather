@@ -9,6 +9,9 @@ type PresetNode = {
   y: number;
   label?: string;
   values?: Record<string, number | number[]>;
+  min?: number;
+  max?: number;
+  step?: number;
 };
 
 type PresetEdge = {
@@ -84,12 +87,18 @@ const PRESET_LABELS: Record<string, string> = {
   tiling: 'Tile Count',
   'tiling-offset': 'Tile And Offset UVs',
   time: 'Animated Time',
+  'tile-size': 'Tile Size',
+  'tile-width': 'Line Width',
+  'tile-mode': 'Pattern Mode',
+  'scroll-speed': 'Scroll Speed',
   twirl: 'Twirl UVs',
   uv: 'Source UVs',
   'vert-out': 'Final Vertex Position',
   wave: 'Wave Distortion',
   water: 'Water Offset',
   width: 'Rectangle Width',
+  truchet: 'Build Truchet Mask',
+  'line-color': 'Line Color',
 };
 
 const PRESET_LABELS_BY_ID: Record<string, string> = {
@@ -113,7 +122,7 @@ function presetLabel(id: string, type: NodeType) {
   return PRESET_LABELS_BY_KEY[`${type}:${id}`] ?? PRESET_LABELS[id] ?? PRESET_LABELS_BY_ID[id] ?? PRESET_TYPE_LABELS[type] ?? NODE_DEFS[type].label;
 }
 
-function node({ id, type, x, y, label, values }: PresetNode): ShaderNodeInstance {
+function node({ id, type, x, y, label, values, min, max, step }: PresetNode): ShaderNodeInstance {
   return {
     id,
     type: 'shaderNode',
@@ -122,6 +131,9 @@ function node({ id, type, x, y, label, values }: PresetNode): ShaderNodeInstance
       label: label ?? presetLabel(id, type),
       nodeType: type,
       ...(values ? { values } : {}),
+      ...(min !== undefined ? { min } : {}),
+      ...(max !== undefined ? { max } : {}),
+      ...(step !== undefined ? { step } : {}),
     } satisfies ShaderNodeData,
   };
 }
@@ -417,6 +429,39 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
       { from: 'tex', out: 'out', to: 'flash', in: 'color' },
       { from: 'energy-color', out: 'out', to: 'flash', in: 'flashColor' },
       { from: 'invert', out: 'out', to: 'flash', in: 'amount' },
+      { from: 'flash', out: 'out', to: 'out', in: 'color' },
+    ],
+  ),
+  preset(
+    'truchet-tiles',
+    'Truchet Tiles',
+    'Classic square Truchet arc tiles with randomized rotation, reflection, and scrolling motion.',
+    'truchet-tiles',
+    [
+      { id: 'tex', type: 'TextureColor', x: 0, y: 0 },
+      { id: 'uv', type: 'TextureCoords', x: 0, y: 130 },
+      { id: 'tile-size', type: 'FloatConstant', x: 0, y: 260, values: { val: 0.16 } },
+      { id: 'tile-mode', type: 'FloatConstant', x: 0, y: 390, values: { val: 0 }, min: 0, max: 2, step: 1 },
+      { id: 'seed', type: 'FloatConstant', x: 0, y: 520, label: 'Pattern Seed', values: { val: 7 } },
+      { id: 'tile-width', type: 'FloatConstant', x: 0, y: 650, values: { val: 0.08 } },
+      { id: 'time', type: 'Time', x: 0, y: 780 },
+      { id: 'scroll-speed', type: 'Vec2Constant', x: 0, y: 910, values: { val: [0.04, 0.02] } },
+      { id: 'line-color', type: 'Vec4Constant', x: 0, y: 1050, values: { val: [0.15, 0.9, 1, 1] } },
+      { id: 'truchet', type: 'TruchetTiles', x: 340, y: 340 },
+      { id: 'flash', type: 'HitFlash', x: 720, y: 220 },
+      { id: 'out', type: 'FragmentOutput', x: 1040, y: 240 },
+    ],
+    [
+      { from: 'uv', out: 'out', to: 'truchet', in: 'position' },
+      { from: 'tile-size', out: 'out', to: 'truchet', in: 'size' },
+      { from: 'tile-mode', out: 'out', to: 'truchet', in: 'mode' },
+      { from: 'seed', out: 'out', to: 'truchet', in: 'seed' },
+      { from: 'tile-width', out: 'out', to: 'truchet', in: 'width' },
+      { from: 'time', out: 'out', to: 'truchet', in: 'time' },
+      { from: 'scroll-speed', out: 'out', to: 'truchet', in: 'scroll' },
+      { from: 'tex', out: 'out', to: 'flash', in: 'color' },
+      { from: 'line-color', out: 'out', to: 'flash', in: 'flashColor' },
+      { from: 'truchet', out: 'mask', to: 'flash', in: 'amount' },
       { from: 'flash', out: 'out', to: 'out', in: 'color' },
     ],
   ),
