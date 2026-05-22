@@ -21,7 +21,21 @@ Only enable hot reload when all of this is true:
 
 ## Enable It
 
-Configure it from `feather.config.lua`:
+For CLI-managed projects, let Feather write the allowlist config:
+
+```bash
+feather init path/to/my-game --plugins hot-reload --hot-reload-allow game.player,game.enemy --yes
+```
+
+For an already initialized project:
+
+```bash
+feather config hot-reload --allow game.player,game.enemy --dir path/to/my-game
+```
+
+The VS Code extension uses the same CLI path. When you select the `hot-reload` plugin during init or plugin install, it prompts for Lua files and converts project paths like `game/player.lua` into module names like `game.player`.
+
+Or configure it manually from `feather.config.lua`:
 
 ```lua
 return {

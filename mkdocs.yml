@@ -32,6 +32,7 @@ nav:
   - CLI:
       - Overview: cli.md
       - Package Management: packages.md
+  - VS Code Extension: vscode-extension.md
   - Usage: usage.md
   - Configuration: configuration.md
   - Debugger: debugger.md
@@ -41,6 +42,7 @@ nav:
   - Particle System Playground: particle-system-playground.md
   - Shader Graph: shader-graph.md
   - Time Travel: time-travel.md
+  - Session Replay: session-replay.md
   - Recommendations: recommendations.md
   - Plugins:
       - Overview: plugins.md

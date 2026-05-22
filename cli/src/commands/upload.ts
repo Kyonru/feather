@@ -13,8 +13,9 @@ import {
 import { buildTargets, isBuildTarget, isUploadTarget, uploadTargets, type BuildTarget, type UploadTarget } from '../lib/build/config.js';
 import { runBuild } from '../lib/build/build.js';
 import { runUpload } from '../lib/build/upload.js';
+import { inspectUploadArtifact, type UploadSafetyResult } from '../lib/build/upload-safety.js';
 import { chooseUploadWorkflow, type UploadWorkflowResult } from '../ui/upload-workflow.js';
-import type { UploadSafetyResult } from '../lib/build/upload-safety.js';
+import type { BuildResult } from '../lib/build/build.js';
 
 export type UploadCommandOptions = {
   dir?: string;
@@ -61,6 +62,28 @@ function printSafetyWarning(safety: UploadSafetyResult, warning: string): void {
     ['Detected', safety.detectedFiles.length ? safety.detectedFiles.join(', ') : safety.reason ?? 'unknown'],
   ]);
   printDanger('Review this upload before sharing it with players.');
+}
+
+function uploadBuildReleaseMode(target: string): boolean {
+  return target === 'android' || target === 'ios';
+}
+
+function assertUploadBuildArtifactsSafe(result: BuildResult): void {
+  if (!result.ok) return;
+
+  const inspected = result.artifacts
+    .map((artifact) => inspectUploadArtifact(artifact.path))
+    .filter((safety) => safety.status !== 'unknown');
+  const unsafe = inspected.find((safety) => safety.status === 'unsafe');
+  if (unsafe) {
+    throw new Error(
+      `Upload build blocked because Feather runtime/debugging files were detected in ${unsafe.artifact}.\n${unsafe.detectedFiles.join('\n')}`,
+    );
+  }
+
+  if (inspected.length === 0) {
+    throw new Error('Upload build blocked because no generated artifact could be inspected for Feather runtime/debugging files.');
+  }
 }
 
 async function resolveUploadInput(
@@ -125,6 +148,12 @@ export async function uploadCommand(targetValue: string | undefined, buildTarget
     if (!buildTarget || !isBuildTarget(buildTarget)) {
       fail('A build target is required with --build. Example: feather upload itch web --build');
     }
+    if (opts.allowUnsafe) {
+      fail('Upload builds always run production safety checks; remove --allow-unsafe.');
+    }
+    if (opts.allowFeatherRuntime) {
+      fail('Upload builds must be Feather-free; remove --allow-feather-runtime.');
+    }
     const verbose = Boolean(opts.verbose && !opts.json && !opts.dryRun);
     const buildSpinner = opts.json || opts.dryRun || verbose ? null : createSpinner(`Building ${buildTarget}…`).start();
     const buildResult = runBuild({
@@ -134,15 +163,23 @@ export async function uploadCommand(targetValue: string | undefined, buildTarget
       outDir: opts.outDir,
       clean: opts.clean,
       dryRun: false,
-      allowUnsafe: opts.allowUnsafe,
-      release: opts.release,
+      allowUnsafe: false,
+      release: uploadBuildReleaseMode(buildTarget),
       noCache: opts.noCache,
+      debugger: false,
+      skipProductionConfigPreflight: true,
       verbose,
       log: verbose ? printMuted : undefined,
     });
     if (!buildResult.ok) {
       buildSpinner?.fail(buildResult.error);
       fail(buildResult.error, { silent: Boolean(buildSpinner) });
+    }
+    try {
+      assertUploadBuildArtifactsSafe(buildResult);
+    } catch (err) {
+      buildSpinner?.fail((err as Error).message);
+      fail((err as Error).message, { silent: Boolean(buildSpinner) });
     }
     buildSpinner?.succeed(`Built ${buildTarget}`);
   }
@@ -160,6 +197,7 @@ export async function uploadCommand(targetValue: string | undefined, buildTarget
     ifChanged: opts.ifChanged,
     hidden: opts.hidden,
     allowFeatherRuntime: opts.allowFeatherRuntime || resolved.confirmedUnsafe,
+    trustedFeatherFreeBuild: Boolean(opts.build),
   });
 
   if (!result.ok) {

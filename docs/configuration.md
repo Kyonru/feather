@@ -40,6 +40,31 @@
 > [!WARNING]
 > `captureScreenshot` can affect performance because it captures the current frame when errors are handled. Enable it only when you need visual error context.
 
+## Generated CLI Config
+
+`feather init` defaults to CLI-managed mode. In that mode Feather creates `feather.config.lua` without patching game code, and `feather run` injects the runtime when you launch the game.
+
+The generated CLI config includes:
+
+```lua
+return {
+  managed = "cli",
+  debug = true,
+  autoRegisterErrorHandler = true,
+  include = { "particle-system-playground", "shader-graph" },
+  capabilities = { "draw", "filesystem" },
+}
+```
+
+Those default plugins are normal bundled plugins, not special cases. Other plugins are enabled by adding their IDs to `include`, either manually or with the CLI:
+
+```bash
+feather config plugins --include profiler,input-replay
+feather config plugins --exclude shader-graph
+```
+
+Plugins marked `optIn = true` or `disabled = true` in their `manifest.lua` only become active when included. This is how development-only tools such as Console and Hot Reload stay off unless you ask for them.
+
 ## Hot Reload
 
 Hot reload is configured under `debugger.hotReload`, but the command handler only exists when the opt-in `hot-reload` plugin is installed and included:
@@ -60,6 +85,13 @@ return {
     },
   },
 }
+```
+
+The CLI can write the same shape for you:
+
+```bash
+feather init path/to/my-game --plugins hot-reload --hot-reload-allow game.player,game.systems.combat --yes
+feather config hot-reload --allow game.player,game.systems.combat --dir path/to/my-game
 ```
 
 See [Hot Reload](hot-reload.md) for the full workflow.

@@ -14,8 +14,17 @@ feather run path/to/my-game --target ios
 
 The direct Lua API is still available for unusual projects that intentionally vendor Feather themselves.
 
+If you work in VS Code, the [VS Code extension](vscode-extension.md) exposes the same CLI-managed workflow from the Feather activity bar, including init, run/watch, doctor, plugin/package management, release builds, uploads, and project settings.
+
 > [!WARNING]
 > Manual setup can leave Feather code, remote debugging hooks, or powerful plugins such as Console in places you did not intend to ship. Use it only if you understand the security consequences of accidental or unintended use. Prefer the CLI-managed workflow for normal development and releases.
+
+CLI init creates a `feather.config.lua` with `debug = true`, automatic error capture enabled, and the default creative plugins `particle-system-playground` and `shader-graph` included. Add or remove plugins with:
+
+```bash
+feather config plugins --include profiler,input-replay --dir path/to/my-game
+feather config plugins --exclude shader-graph --dir path/to/my-game
+```
 
 ```lua
 local FeatherDebugger = require "feather"
@@ -149,3 +158,33 @@ return {
 Open the **Time Travel** tab, click **Start Recording**, reproduce the bug, then click **Stop & Load** to fetch and scrub through the captured frames.
 
 → [Full Time Travel documentation](time-travel.md)
+
+---
+
+## Session Replay
+
+Session Replay combines input replay with developer-selected state checkpoints so you can reproduce playthroughs.
+
+Enable it from `feather.config.lua`:
+
+```lua
+return {
+  include = { "session-replay" },
+}
+```
+
+Add guarded state capture where it helps reproduction:
+
+```lua
+if DEBUGGER then
+  DEBUGGER:replayState("player", {
+    x = player.x,
+    y = player.y,
+    health = player.health,
+  })
+end
+```
+
+For reliable playback, register a restore handler with `DEBUGGER:replayRegister()`. Feather captures an initial baseline at recording start, then records inputs and the state deltas you provide; it does not magically serialize the whole game.
+
+→ [Full Session Replay documentation](session-replay.md)

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { findLoveBinary, getLoveVersion } from '../../lib/love.js';
 import { loadConfig } from '../../lib/config.js';
@@ -18,6 +18,7 @@ import {
   uploadTargets,
 } from '../../lib/build/config.js';
 import { androidProductId, iosBundleIdentifier, validateBuildConfigForTarget } from '../../lib/build/validation.js';
+import { fastlanePath } from '../../lib/build/release.js';
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntrySourceSummary, lockfileUrlFindings } from '../../lib/package/provenance.js';
@@ -62,6 +63,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   let hotReloadEnabled = false;
   let broadHotReload = false;
   let hotReloadPersistence = false;
+  let sessionReplayIncluded = false;
   let debuggerEnabled = false;
   let writeToDisk = false;
   let weakNetworkAuth = true;
@@ -168,27 +170,42 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     hasProjectDir ? undefined : 'Pass the game directory to `feather doctor <dir>`.',
   );
 
-  if (hasProjectDir && (opts.buildTarget || opts.uploadTarget)) {
+  if (hasProjectDir) {
     try {
       const buildConfig = loadBuildConfig({ projectDir });
       const configExists = existsSync(buildConfig.configPath);
-      add(
-        checks,
-        'Build',
-        'feather.build.json',
-        configExists ? 'pass' : 'warn',
-        configExists ? buildConfig.configPath : 'missing',
-        configExists ? undefined : 'Create feather.build.json to share local and CI build settings.',
-      );
-      const writable = outDirWritableDetail(buildConfig.outDir);
-      add(
-        checks,
-        'Build',
-        'Build output directory',
-        writable.ok ? 'pass' : 'fail',
-        writable.detail,
-        writable.ok ? undefined : 'Choose a writable outDir in feather.build.json or pass --out-dir.',
-      );
+      const discoveredUploadTargets: SupportedUploadDoctorTarget[] = [];
+      if (!opts.uploadTarget && buildConfig.upload.itch) discoveredUploadTargets.push('itch');
+      if (!opts.uploadTarget && !buildConfig.upload.itch && configExists) discoveredUploadTargets.push('itch');
+      const uploadTargetsToCheck: SupportedUploadDoctorTarget[] = opts.uploadTarget === 'itch' ? ['itch'] : discoveredUploadTargets;
+      const shouldCheckBuildConfig = Boolean(opts.buildTarget || opts.uploadTarget || buildConfig.upload.itch);
+      if (shouldCheckBuildConfig) {
+        add(
+          checks,
+          'Build',
+          'feather.build.json',
+          configExists ? 'pass' : 'warn',
+          configExists ? buildConfig.configPath : 'missing',
+          configExists ? undefined : 'Create feather.build.json to share local and CI build settings.',
+        );
+        const writable = outDirWritableDetail(buildConfig.outDir);
+        add(
+          checks,
+          'Build',
+          'Build output directory',
+          writable.ok ? 'pass' : 'fail',
+          writable.detail,
+          writable.ok ? undefined : 'Choose a writable outDir in feather.build.json or pass --out-dir.',
+        );
+      } else if (uploadTargetsToCheck.length > 0) {
+        add(
+          checks,
+          'Build',
+          'feather.build.json',
+          'pass',
+          buildConfig.configPath,
+        );
+      }
 
       if (opts.buildTarget && isDoctorBuildTarget(opts.buildTarget)) {
         const fromAll = opts.buildTarget === 'all';
@@ -200,33 +217,10 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         }
       }
 
-      if (opts.uploadTarget === 'itch') {
-        const itchProject = buildConfig.upload.itch?.project;
-        add(
-          checks,
-          'Upload',
-          'Itch project',
-          itchProject ? 'pass' : 'fail',
-          itchProject ?? 'missing',
-          'Set upload.itch.project in feather.build.json, for example "user/game".',
-        );
-        const butler = commandVersion('butler', ['--version']);
-        add(
-          checks,
-          'Upload',
-          'butler',
-          butler ? 'pass' : 'fail',
-          butler ? butler : 'not found',
-          butler ? undefined : 'Install butler from https://itch.io/docs/butler/ and make sure it is on PATH.',
-        );
-        add(
-          checks,
-          'Upload',
-          'BUTLER_API_KEY',
-          process.env.BUTLER_API_KEY ? 'pass' : 'warn',
-          process.env.BUTLER_API_KEY ? 'configured' : 'missing',
-          process.env.BUTLER_API_KEY ? undefined : 'Set BUTLER_API_KEY in CI or run `butler login` locally.',
-        );
+      for (const uploadTarget of uploadTargetsToCheck) {
+        addUploadTargetChecks(checks, buildConfig, uploadTarget, {
+          required: Boolean(opts.uploadTarget || buildConfig.upload[uploadTarget]),
+        });
       }
     } catch (err) {
       add(checks, 'Build', 'feather.build.json', 'fail', (err as Error).message, 'Fix feather.build.json before building or uploading.');
@@ -342,6 +336,15 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   }
   const projectDirArg = shellArg(projectDir);
   const installDirArg = shellArg(effectiveInstallDir);
+  if (configOnlyMode && activeIncludedPluginIds.some((id) => knownPluginIds.has(id))) {
+    add(
+      checks,
+      'Plugins',
+      'CLI-managed plugins',
+      'pass',
+      `${activeIncludedPluginIds.filter((id) => knownPluginIds.has(id)).length} included from bundled runtime`,
+    );
+  }
   if (hasRuntime) {
     add(
       checks,
@@ -413,6 +416,8 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       );
       continue;
     }
+
+    if (configOnlyMode) continue;
 
     if (!installedPlugins.has(id)) {
       missingIncludedPlugins.push(id);
@@ -524,6 +529,17 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       );
     }
 
+    sessionReplayIncluded = hasConfigArrayValue(activeConfigSource, 'include', 'session-replay')
+      || pluginDirs.some((dir) => readPluginManifest(dir)?.id === 'session-replay');
+    add(
+      checks,
+      'Safety',
+      'Session replay',
+      productionSeverity(sessionReplayIncluded),
+      sessionReplayIncluded ? 'enabled' : 'disabled',
+      sessionReplayIncluded ? 'Remove session-replay from production configs and builds; replay files are development artifacts.' : undefined,
+    );
+
     debuggerEnabled = luaBoolEnabled(activeConfigSource, 'debugger') || /debugger\s*=\s*\{[\s\S]*?enabled\s*=\s*true/.test(activeConfigSource);
     add(
       checks,
@@ -553,6 +569,25 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       'Create feather.config.lua with a strong appId before shipping socket/network builds.',
     );
   }
+
+  const replayDirPath = join(projectDir, 'feather_replays');
+  const replayArchives = existsSync(projectDir)
+    ? readdirSync(projectDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.featherreplay'))
+      .map((entry) => entry.name)
+      .sort()
+    : [];
+  const hasReplayArtifacts = existsSync(replayDirPath) || replayArchives.length > 0;
+  add(
+    checks,
+    'Safety',
+    'Session replay artifacts',
+    productionSeverity(hasReplayArtifacts),
+    hasReplayArtifacts
+      ? [existsSync(replayDirPath) ? 'feather_replays/' : '', ...replayArchives].filter(Boolean).join(', ')
+      : 'not present',
+    hasReplayArtifacts ? 'Remove local replay captures before committing, sharing, building, or uploading production artifacts.' : undefined,
+  );
 
   const lockfilePath = join(projectDir, 'feather.lock.json');
   if (existsSync(lockfilePath)) {
@@ -876,6 +911,28 @@ async function addBuildTargetChecks(
         ? androidReleaseSigningFix(buildConfig)
         : 'Use --release to check signed AAB/APK setup.',
     );
+    if (release && hasFastlaneConfig(buildConfig, 'android')) {
+      addFastlaneChecks(checks, buildConfig, target, label);
+      const fastlane = androidConfig.release?.fastlane ?? {};
+      add(
+        checks,
+        'Build',
+        label('Google Play service account'),
+        fastlane.serviceAccountJsonEnv && process.env[fastlane.serviceAccountJsonEnv] ? 'pass' : 'fail',
+        fastlane.serviceAccountJsonEnv
+          ? process.env[fastlane.serviceAccountJsonEnv] ? fastlane.serviceAccountJsonEnv : `${fastlane.serviceAccountJsonEnv} missing`
+          : 'not configured',
+        'Set targets.android.release.fastlane.serviceAccountJsonEnv and provide the JSON key path in that environment variable.',
+      );
+      add(
+        checks,
+        'Build',
+        label('Android Fastlane signing env'),
+        androidFastlaneSigningReady(buildConfig) ? 'pass' : 'warn',
+        androidFastlaneSigningDetail(buildConfig),
+        'Set targets.android.release.fastlane keystorePath, keyAlias, storePasswordEnv, and keyPasswordEnv for Fastlane-managed signing.',
+      );
+    }
     return;
   }
 
@@ -948,6 +1005,29 @@ async function addBuildTargetChecks(
         iosConfig.release?.exportOptionsPlist ?? iosConfig.release?.exportMethod ?? 'generated development export options',
         'Set targets.ios.release.exportOptionsPlist or exportMethod for App Store/TestFlight exports.',
       );
+      if (hasFastlaneConfig(buildConfig, 'ios')) {
+        addFastlaneChecks(checks, buildConfig, target, label);
+        const fastlane = iosConfig.release?.fastlane ?? {};
+        const apiKeyConfigured = Boolean(
+          (fastlane.appStoreConnectApiKeyPathEnv && process.env[fastlane.appStoreConnectApiKeyPathEnv])
+          || (
+            fastlane.appStoreConnectIssuerIdEnv
+            && process.env[fastlane.appStoreConnectIssuerIdEnv]
+            && fastlane.appStoreConnectKeyIdEnv
+            && process.env[fastlane.appStoreConnectKeyIdEnv]
+            && fastlane.appStoreConnectKeyContentEnv
+            && process.env[fastlane.appStoreConnectKeyContentEnv]
+          ),
+        );
+        add(
+          checks,
+          'Build',
+          label('App Store Connect API key'),
+          apiKeyConfigured ? 'pass' : 'fail',
+          apiKeyConfigured ? 'configured' : 'missing',
+          'Set an App Store Connect API key env path, or issuer/key id/key content env names under targets.ios.release.fastlane.',
+        );
+      }
     }
     return;
   }
@@ -997,11 +1077,112 @@ function androidReleaseSigningSeverity(buildConfig: ReturnType<typeof loadBuildC
   return missingEnv.length === 0 && release.keystorePath && existsSync(keystorePath) && release.keyAlias ? 'pass' : 'fail';
 }
 
+function hasFastlaneConfig(buildConfig: ReturnType<typeof loadBuildConfig>, target: 'android' | 'ios'): boolean {
+  if (buildConfig.release.fastlane) return true;
+  if (existsSync(fastlanePath(buildConfig))) return true;
+  return target === 'android'
+    ? Boolean(buildConfig.targets.android?.release?.fastlane)
+    : Boolean(buildConfig.targets.ios?.release?.fastlane);
+}
+
+function addFastlaneChecks(
+  checks: DoctorCheck[],
+  buildConfig: ReturnType<typeof loadBuildConfig>,
+  target: SupportedBuildTarget,
+  label: (singleTargetLabel: string, allTargetBase?: string) => string,
+): void {
+  const dir = fastlanePath(buildConfig);
+  add(
+    checks,
+    'Build',
+    label('Fastlane directory'),
+    existsSync(dir) ? 'pass' : 'fail',
+    existsSync(dir) ? dir : 'not found',
+    `Run \`feather release init --dir ${buildConfig.projectDir}\`.`,
+  );
+  const fastlane = commandVersion('fastlane', ['--version']);
+  const gemfile = existsSync(join(buildConfig.projectDir, 'Gemfile'));
+  const bundle = gemfile ? commandVersion('bundle', ['--version']) : null;
+  add(
+    checks,
+    'Build',
+    label(target === 'ios' ? 'Fastlane' : 'Fastlane'),
+    fastlane || bundle ? 'pass' : 'fail',
+    fastlane ?? (bundle ? `${bundle}; fastlane via bundle exec` : 'not found'),
+    'Install Fastlane directly or add it to your Gemfile and run bundle install.',
+  );
+}
+
+function androidFastlaneSigningReady(buildConfig: ReturnType<typeof loadBuildConfig>): boolean {
+  const release = buildConfig.targets.android?.release?.fastlane;
+  if (!release) return false;
+  const keystorePath = release.keystorePath ? resolve(buildConfig.projectDir, release.keystorePath) : '';
+  return Boolean(
+    release.keystorePath
+    && existsSync(keystorePath)
+    && release.keyAlias
+    && release.storePasswordEnv
+    && process.env[release.storePasswordEnv]
+    && release.keyPasswordEnv
+    && process.env[release.keyPasswordEnv],
+  );
+}
+
+function androidFastlaneSigningDetail(buildConfig: ReturnType<typeof loadBuildConfig>): string {
+  const release = buildConfig.targets.android?.release?.fastlane;
+  if (!release) return 'not configured';
+  const missing = [
+    release.keystorePath ? '' : 'keystorePath',
+    release.keyAlias ? '' : 'keyAlias',
+    release.storePasswordEnv && process.env[release.storePasswordEnv] ? '' : release.storePasswordEnv ?? 'storePasswordEnv',
+    release.keyPasswordEnv && process.env[release.keyPasswordEnv] ? '' : release.keyPasswordEnv ?? 'keyPasswordEnv',
+  ].filter(Boolean);
+  return missing.length > 0 ? `missing ${missing.join(', ')}` : 'configured';
+}
+
 const desktopBuildTargets = ['windows', 'macos', 'linux', 'steamos'] as const;
 type DoctorDesktopBuildTarget = typeof desktopBuildTargets[number];
+const supportedUploadDoctorTargets = ['itch'] as const;
+type SupportedUploadDoctorTarget = typeof supportedUploadDoctorTargets[number];
 
 function isDoctorDesktopBuildTarget(target: string): target is DoctorDesktopBuildTarget {
   return (desktopBuildTargets as readonly string[]).includes(target);
+}
+
+function addUploadTargetChecks(
+  checks: DoctorCheck[],
+  buildConfig: ReturnType<typeof loadBuildConfig>,
+  target: SupportedUploadDoctorTarget,
+  options: { required?: boolean } = {},
+): void {
+  if (target !== 'itch') return;
+  const required = Boolean(options.required);
+  const itchProject = buildConfig.upload.itch?.project;
+  add(
+    checks,
+    'Upload',
+    'Itch project',
+    itchProject ? 'pass' : required ? 'fail' : 'info',
+    itchProject ?? 'missing',
+    'Set upload.itch.project in feather.build.json, for example "user/game".',
+  );
+  const butler = commandVersion('butler', ['--version']);
+  add(
+    checks,
+    'Upload',
+    'butler',
+    butler ? 'pass' : required ? 'fail' : 'info',
+    butler ? butler : 'not found',
+    butler ? undefined : 'Install butler from https://itch.io/docs/butler/ and make sure it is on PATH.',
+  );
+  add(
+    checks,
+    'Upload',
+    'BUTLER_API_KEY',
+    process.env.BUTLER_API_KEY ? 'pass' : required ? 'warn' : 'info',
+    process.env.BUTLER_API_KEY ? 'configured' : 'missing',
+    process.env.BUTLER_API_KEY ? undefined : 'Set BUTLER_API_KEY in CI or run `butler login` locally.',
+  );
 }
 
 async function addDesktopBuildChecks(

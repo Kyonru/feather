@@ -6,6 +6,7 @@ import { resolveLocalLuaRoot } from "../lib/paths.js";
 import { fail } from "../lib/command.js";
 import { createSpinner, printLine, printMuted, style } from "../lib/output.js";
 import { assertSafeProjectTarget } from "../lib/path-safety.js";
+import { resolveManaged } from "./plugin/shared.js";
 
 export async function updateCommand(
   dir: string,
@@ -13,6 +14,12 @@ export async function updateCommand(
 ): Promise<void> {
   const target = resolve(dir);
   const installDir = normalizeInstallDir(opts.installDir);
+
+  if (resolveManaged(target, installDir) === 'cli') {
+    printMuted('CLI-managed project: the Feather runtime is bundled in the CLI binary. Update the CLI to get the latest runtime.');
+    return;
+  }
+
   let installedInit: string;
   try {
     installedInit = assertSafeProjectTarget(target, join(installDir, "init.lua"), "Core update target");

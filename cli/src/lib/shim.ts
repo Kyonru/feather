@@ -3,15 +3,18 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-
 // Path to the bundled Lua library shipped with this CLI package.
 // In a source checkout `npm run build` does not run the publish-time Lua bundle,
 // so fall back to the repository's src-lua directory for local development.
-const PACKAGED_LUA = resolve(__dirname, '../../lua');
-const SOURCE_LUA = resolve(__dirname, '../../../src-lua');
+const MODULE_DIR = fileURLToPath(new URL('.', import.meta.url));
+const PACKAGED_LUA = resolve(MODULE_DIR, '../../lua');
+const SOURCE_LUA = resolve(MODULE_DIR, '../../../src-lua');
 
 export function bundledLuaRoot(): string {
+  // When running as a compiled binary, lua/ ships next to the executable.
+  const siblingLua = join(dirname(process.execPath), 'lua');
+  if (existsSync(join(siblingLua, 'feather', 'auto.lua'))) return siblingLua;
+  // Fallback for npm/node installs.
   if (existsSync(join(PACKAGED_LUA, 'feather', 'auto.lua'))) return PACKAGED_LUA;
   if (existsSync(join(SOURCE_LUA, 'feather', 'auto.lua'))) return SOURCE_LUA;
   return PACKAGED_LUA;
@@ -55,20 +58,46 @@ function scanPluginIds(pluginsDir: string): string[] {
   }
 }
 
-function serializeLuaConfig(cfg: Record<string, unknown>): string {
-  const lines: string[] = [];
-  for (const [k, v] of Object.entries(cfg)) {
-    if (typeof v === 'string') lines.push(`  ${k} = ${JSON.stringify(v)},`);
-    else if (typeof v === 'number' || typeof v === 'boolean') lines.push(`  ${k} = ${v},`);
-    else if (Array.isArray(v)) {
-      const items = v.map((i) => (typeof i === 'string' ? JSON.stringify(i) : String(i)));
-      lines.push(`  ${k} = { ${items.join(', ')} },`);
-    }
-  }
-  return lines.join('\n');
+function luaKey(key: string): string {
+  return /^[A-Za-z_]\w*$/.test(key) ? key : `[${JSON.stringify(key)}]`;
 }
 
-function buildMainLua(opts: ShimOptions, pluginsDir?: string): string {
+function luaValue(value: unknown): string | null {
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) {
+    const items = value.map(luaValue).filter((item): item is string => item !== null);
+    return `{ ${items.join(', ')} }`;
+  }
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .map(([key, nested]) => {
+        const serialized = luaValue(nested);
+        return serialized === null ? null : `${luaKey(key)} = ${serialized}`;
+      })
+      .filter((entry): entry is string => entry !== null);
+    return `{ ${entries.join(', ')} }`;
+  }
+  return null;
+}
+
+function serializeLuaConfig(cfg: Record<string, unknown>): string {
+  return Object.entries(cfg)
+    .map(([key, value]) => {
+      const serialized = luaValue(value);
+      return serialized === null ? null : `  ${luaKey(key)} = ${serialized},`;
+    })
+    .filter((line): line is string => line !== null)
+    .join('\n');
+}
+
+function luaPackagePath(rootDir: string): string {
+  const normalized = rootDir.replace(/\\/g, '/');
+  return `${normalized}/?.lua;${normalized}/?/init.lua`;
+}
+
+function buildMainLua(opts: ShimOptions, featherDir: string, pluginsDir?: string): string {
   const sessionName = opts.sessionName ?? '';
   const configLines = opts.userConfig ? serializeLuaConfig(opts.userConfig) : '';
 
@@ -76,11 +105,13 @@ function buildMainLua(opts: ShimOptions, pluginsDir?: string): string {
   const pluginListLine = pluginIds.length > 0
     ? `FEATHER_PLUGIN_LIST = { ${pluginIds.map((id) => JSON.stringify(id)).join(', ')} }`
     : '';
-  // Add the plugins parent dir to package.path so require("plugins.X") resolves
-  // via the OS filesystem (no PhysFS / symlink dependency).
-  const packagePathLine = pluginsDir && pluginIds.length > 0
-    ? `package.path = package.path .. ";${dirname(pluginsDir).replace(/\\/g, '/')}/?.lua;${dirname(pluginsDir).replace(/\\/g, '/')}/?/init.lua"`
-    : '';
+  // Add runtime/plugin parent dirs to package.path so require() resolves via the
+  // OS filesystem instead of depending on PhysFS symlink behavior.
+  const packagePaths = new Set([luaPackagePath(dirname(featherDir))]);
+  if (pluginsDir && pluginIds.length > 0) {
+    packagePaths.add(luaPackagePath(dirname(pluginsDir)));
+  }
+  const packagePathLine = `package.path = package.path .. ";${[...packagePaths].join(';')}"`;
 
   return `-- Feather CLI injector — generated, do not edit
 -- Game files are symlinked into this directory so love.filesystem works as normal.
@@ -110,7 +141,8 @@ if gamePath then
 end
 
 -- CLI mode should not require game code to call DEBUGGER:update(dt).
--- Wrap after loading the game so we preserve the user's love.update callback.
+-- Defer wrapping until after love.load completes so games that define
+-- love.update inside love.load() are handled correctly.
 -- If the game already calls DEBUGGER:update(dt), avoid a second update in the same frame.
 if DEBUGGER and type(DEBUGGER.update) == "function" and not DEBUGGER.__cliAutoUpdateInstalled then
   DEBUGGER.__cliAutoUpdateInstalled = true
@@ -120,15 +152,25 @@ if DEBUGGER and type(DEBUGGER.update) == "function" and not DEBUGGER.__cliAutoUp
     return featherUpdate(self, dt)
   end
 
-  local gameUpdate = love.update
-  love.update = function(dt)
-    DEBUGGER.__cliAutoUpdatedThisFrame = false
-    if gameUpdate then
-      gameUpdate(dt)
+  local function installUpdateHook()
+    if DEBUGGER.__cliUpdateHookInstalled then return end
+    DEBUGGER.__cliUpdateHookInstalled = true
+    local gameUpdate = love.update
+    love.update = function(dt)
+      DEBUGGER.__cliAutoUpdatedThisFrame = false
+      if gameUpdate then
+        gameUpdate(dt)
+      end
+      if not DEBUGGER.__cliAutoUpdatedThisFrame then
+        featherUpdate(DEBUGGER, dt)
+      end
     end
-    if not DEBUGGER.__cliAutoUpdatedThisFrame then
-      featherUpdate(DEBUGGER, dt)
-    end
+  end
+
+  local gameLoad = love.load
+  love.load = function(arg)
+    if gameLoad then gameLoad(arg) end
+    installUpdateHook()
   end
 end
 `;
@@ -150,6 +192,7 @@ const SHIM_OWNED = new Set(['main.lua', 'conf.lua', 'feather', 'plugins']);
 export function createShim(opts: ShimOptions): Shim {
   const absGame = resolve(opts.gamePath);
   const dir = mkdtempSync(join(tmpdir(), 'feather-'));
+  const resolvedFeatherDir = featherRoot(opts.featherOverride);
 
   // Resolve plugins directory early so buildMainLua can embed the ID list and
   // package.path addition (bypasses PhysFS symlink dependency in auto.lua).
@@ -160,12 +203,12 @@ export function createShim(opts: ShimOptions): Shim {
       : (() => {
           const p = opts.pluginsOverride
             ? resolve(opts.pluginsOverride)
-            : pluginsRoot(featherRoot(opts.featherOverride), opts.featherOverride);
+            : pluginsRoot(resolvedFeatherDir, opts.featherOverride);
           return existsSync(p) ? p : undefined;
         })();
 
   // 1. Write shim entry points
-  writeFileSync(join(dir, 'main.lua'), buildMainLua(opts, resolvedPluginsDir));
+  writeFileSync(join(dir, 'main.lua'), buildMainLua(opts, resolvedFeatherDir, resolvedPluginsDir));
   writeFileSync(join(dir, 'conf.lua'), buildConfLua());
 
   // 2. Symlink every file/dir from the game into the shim root, except shim-owned names.
@@ -177,7 +220,7 @@ export function createShim(opts: ShimOptions): Shim {
 
   // 3. Add feather library — prefer game-local install (already symlinked above if present)
   if (!existsSync(join(dir, 'feather'))) {
-    symlinkSync(featherRoot(opts.featherOverride), join(dir, 'feather'), 'dir');
+    symlinkSync(resolvedFeatherDir, join(dir, 'feather'), 'dir');
   }
 
   // 4. Add plugins directory symlink — still created for love.filesystem access to

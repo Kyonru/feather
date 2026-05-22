@@ -167,6 +167,52 @@ test('build android --release: does not auto-embed Feather debugger runtime', ()
   assert.equal(entries.has('feather.config.lua'), false);
 });
 
+test('build android --release: ignores dev Feather config when runtime is excluded', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+  include = { "console" },
+  debugger = { hotReload = { enabled = true, allow = { "game.*" } } },
+  writeToDisk = true,
+}
+`,
+  );
+  writeBuildConfig(dir, {
+    name: 'Release Dev Config Android',
+    version: '1.0.0',
+    productId: 'com.example.releasedevconfigandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--release', '--no-debugger', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const entries = readStoredZipEntries(join(dir, 'builds', 'release-dev-config-android-1.0.0.love'));
+  assert.equal(entries.has('.feather-main.lua'), false);
+  assert.equal(entries.has('feather/auto.lua'), false);
+  assert.equal(entries.has('feather.config.lua'), false);
+});
+
+test('build android --release: blocks explicit Feather runtime inclusion', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  writeBuildConfig(dir, {
+    name: 'Release Runtime Android',
+    version: '1.0.0',
+    includeRuntime: true,
+    productId: 'com.example.releaseruntimeandroid',
+    targets: { android: { loveAndroidDir: 'love-android' } },
+  });
+
+  const result = run(['build', 'android', '--dir', dir, '--release', '--no-debugger', '--json']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Feather runtime is included in the build output'));
+});
+
 test('build android: reuses dev native cache between builds', () => {
   const dir = makeTmp();
   writeGame(dir);

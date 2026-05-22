@@ -13,6 +13,12 @@ import type { PerformanceMetrics } from './use-performance';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
 import type { AssetCatalog } from './use-assets';
 import type { HotReloadState } from './use-hot-reload';
+import type {
+  SessionReplayRecording,
+  SessionReplayRecordings,
+  SessionReplayStatus,
+  SessionReplaySummary,
+} from './use-session-replay';
 import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
@@ -33,6 +39,11 @@ export const sessionQueryKey = {
   console: (sessionId: string) => [sessionId, 'console'],
   timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
   timeTravelFrames: (sessionId: string) => [sessionId, 'time-travel-frames'],
+  sessionReplay: (sessionId: string) => [sessionId, 'session-replay'],
+  sessionReplayRecording: (sessionId: string) => [sessionId, 'session-replay-recording'],
+  sessionReplayRecordings: (sessionId: string) => [sessionId, 'session-replay-recordings'],
+  sessionReplayList: (sessionId: string) => [sessionId, 'session-replay-list'],
+  sessionReplaySelected: (sessionId: string) => [sessionId, 'session-replay-selected'],
   hotReload: (sessionId: string) => [sessionId, 'hot-reload'],
 };
 
@@ -62,6 +73,7 @@ type BinaryTarget =
   | { type: 'plugin'; pluginId: string }
   | { type: 'observers' }
   | { type: 'timeTravelFrames' }
+  | { type: 'sessionReplayRecording'; replayId?: string | null }
   | { type: 'debuggerPaused' }
   | { type: 'console' };
 
@@ -94,6 +106,9 @@ export type TimeTravelFrame = {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const sessionReplayRecordingId = (recording: SessionReplayRecording | null | undefined): string | null =>
+  typeof recording?.manifest?.id === 'string' ? recording.manifest.id : null;
 
 const pushBinaryRef = (value: unknown, refs: BinaryRef[]) => {
   if (!isRecord(value) || typeof value.id !== 'string') return;
@@ -228,6 +243,28 @@ export const useWsConnection = () => {
           queryClient.setQueryData<TimeTravelFrame[]>(sessionQueryKey.timeTravelFrames(sessionId), (prev) =>
             replaceBinaryValue(prev, pending.id, replacement) as TimeTravelFrame[],
           );
+          return;
+        }
+
+        if (pending.target.type === 'sessionReplayRecording') {
+          queryClient.setQueryData<SessionReplayRecording | null>(
+            sessionQueryKey.sessionReplayRecording(sessionId),
+            (prev) => replaceBinaryValue(prev, pending.id, replacement) as SessionReplayRecording,
+          );
+          const replayId = pending.target.replayId;
+          if (replayId) {
+            queryClient.setQueryData<SessionReplayRecordings>(
+              sessionQueryKey.sessionReplayRecordings(sessionId),
+              (prev) => {
+                const current = prev?.[replayId];
+                if (!current) return prev ?? {};
+                return {
+                  ...(prev ?? {}),
+                  [replayId]: replaceBinaryValue(current, pending.id, replacement) as SessionReplayRecording,
+                };
+              },
+            );
+          }
           return;
         }
 
@@ -573,6 +610,48 @@ export const useWsConnection = () => {
             const framesMsg = data as { frames: TimeTravelFrame[] };
             queueBinaryRefs(sessionId, { type: 'timeTravelFrames' }, framesMsg, 'text');
             queryClient.setQueryData(sessionQueryKey.timeTravelFrames(sessionId), framesMsg.frames);
+            break;
+          }
+
+          case 'session_replay:status': {
+            queryClient.setQueryData(sessionQueryKey.sessionReplay(sessionId), data as SessionReplayStatus);
+            const payload = data as SessionReplayStatus;
+            if (payload.replayId) {
+              queryClient.setQueryData(sessionQueryKey.sessionReplaySelected(sessionId), payload.replayId);
+            }
+            break;
+          }
+
+          case 'session_replay:recording': {
+            const payload = data as SessionReplayRecording;
+            const replayId = sessionReplayRecordingId(payload);
+            queueBinaryRefs(sessionId, { type: 'sessionReplayRecording', replayId }, payload, 'text');
+            queryClient.setQueryData(sessionQueryKey.sessionReplayRecording(sessionId), payload);
+            if (replayId) {
+              queryClient.setQueryData(sessionQueryKey.sessionReplaySelected(sessionId), replayId);
+              queryClient.setQueryData<SessionReplayRecordings>(
+                sessionQueryKey.sessionReplayRecordings(sessionId),
+                (prev) => ({
+                  ...(prev ?? {}),
+                  [replayId]: payload,
+                }),
+              );
+            }
+            break;
+          }
+
+          case 'session_replay:list': {
+            const payload = data as { replays?: SessionReplaySummary[]; selectedId?: string | null };
+            queryClient.setQueryData(sessionQueryKey.sessionReplayList(sessionId), payload.replays ?? []);
+            if (payload.selectedId !== undefined) {
+              queryClient.setQueryData(sessionQueryKey.sessionReplaySelected(sessionId), payload.selectedId);
+            }
+            break;
+          }
+
+          case 'session_replay:error': {
+            const payload = data as { message?: string };
+            toast.error(`Session replay failed: ${payload?.message || 'Unknown error'}`);
             break;
           }
 

@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.0] - 2026-05-22 - The one with the extension
+
+### Added
+
+- VS Code Extension
+- Session Replay
+- CLI Fastlane draft support
+- Lua plugin unit tests
+- Lua callback bus with priority overrides
+
+### Changed
+
+- CLI managed key to identify flow type
+- Replay plugins now use the plugin handler bus instead of rewriting LÖVE hooks
+- Improved session performance documentation
+- Improved session replay examples and documentation
+- Improved Feather upload process
+- Improved Feather init process
+- Improved Feather testing
+- Improved CLI build flow
+- Improved CLI configuration
+- Improved CLI Linux vendoring
+- Updated roadmap
+- Shim hooks on load
+
+### Fixed
+
+- Fixed regex issues in CLI
+- Fixed optimistic plugin updates
+- Fixed input replay
+- Fixed stack overflow on LÖVE hooks
+
 ## [v1.2.0] - 2026-05-19 - The one with the shader and particles playground
 
 ### Added
@@ -492,6 +524,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v1.3.0]: https://github.com/Kyonru/feather/compare/v1.2.0...v1.3.0
 [v1.2.0]: https://github.com/Kyonru/feather/compare/v1.1.1...v1.2.0
 [v1.1.1]: https://github.com/Kyonru/feather/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/Kyonru/feather/compare/v1.0.1...v1.1.0

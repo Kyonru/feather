@@ -1,0 +1,261 @@
+{
+  "name": "feather-vscode",
+  "displayName": "Feather for LÖVE",
+  "description": "Run, debug, and manage Feather for Love2D games from VS Code.",
+  "version": "1.3.0",
+  "publisher": "kyonru",
+  "license": "EPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kyonru/feather.git",
+    "directory": "vscode-extension"
+  },
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "feather",
+    "love2d",
+    "lua",
+    "debugger"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "feather.run",
+        "title": "Run Project",
+        "category": "Feather",
+        "icon": "$(play)"
+      },
+      {
+        "command": "feather.init",
+        "title": "Initialize Project",
+        "category": "Feather",
+        "icon": "$(add)"
+      },
+      {
+        "command": "feather.doctor",
+        "title": "Run Doctor",
+        "category": "Feather",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "feather.plugins",
+        "title": "Manage Plugins",
+        "category": "Feather",
+        "icon": "$(extensions)"
+      },
+      {
+        "command": "feather.packages",
+        "title": "Manage Packages",
+        "category": "Feather",
+        "icon": "$(package)"
+      },
+      {
+        "command": "feather.upload",
+        "title": "Upload Build",
+        "category": "Feather",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "feather.remove",
+        "title": "Remove Feather",
+        "category": "Feather",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "feather.update",
+        "title": "Update Runtime",
+        "category": "Feather",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "feather.refreshProjectView",
+        "title": "Refresh",
+        "category": "Feather",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "feather.toggleWatch",
+        "title": "Toggle Watch Mode",
+        "category": "Feather",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "feather.configure",
+        "title": "Configure",
+        "category": "Feather",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "feather.vendor",
+        "title": "Manage Vendors",
+        "category": "Feather",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "feather.selectTargets",
+        "title": "Select Run Targets",
+        "category": "Feather",
+        "icon": "$(target)"
+      },
+      {
+        "command": "feather.buildConfig",
+        "title": "Edit Build Config",
+        "category": "Feather",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "feather.buildRelease",
+        "title": "Create Release Build",
+        "category": "Feather",
+        "icon": "$(rocket)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "feather",
+          "title": "Feather",
+          "icon": "resources/feather-clear.svg"
+        }
+      ]
+    },
+    "views": {
+      "feather": [
+        {
+          "id": "feather.projectView",
+          "name": "Project"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "feather.run",
+          "when": "view == feather.projectView",
+          "group": "navigation"
+        },
+        {
+          "command": "feather.doctor",
+          "when": "view == feather.projectView",
+          "group": "navigation"
+        },
+        {
+          "command": "feather.refreshProjectView",
+          "when": "view == feather.projectView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "feather.run",
+          "when": "view == feather.projectView && viewItem == actionRun",
+          "group": "inline"
+        },
+        {
+          "command": "feather.init",
+          "when": "view == feather.projectView && viewItem == actionInit",
+          "group": "inline"
+        },
+        {
+          "command": "feather.doctor",
+          "when": "view == feather.projectView && viewItem == actionDoctor",
+          "group": "inline"
+        },
+        {
+          "command": "feather.toggleWatch",
+          "when": "view == feather.projectView && viewItem == actionToggleWatch",
+          "group": "inline"
+        },
+        {
+          "command": "feather.configure",
+          "when": "view == feather.projectView && viewItem == actionConfigure",
+          "group": "inline"
+        },
+        {
+          "command": "feather.vendor",
+          "when": "view == feather.projectView && viewItem == actionVendor",
+          "group": "inline"
+        },
+        {
+          "command": "feather.selectTargets",
+          "when": "view == feather.projectView && viewItem == actionSelectTargets",
+          "group": "inline"
+        },
+        {
+          "command": "feather.buildConfig",
+          "when": "view == feather.projectView && viewItem == actionBuildConfig",
+          "group": "inline"
+        },
+        {
+          "command": "feather.buildRelease",
+          "when": "view == feather.projectView && viewItem == actionBuildRelease",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Feather",
+      "properties": {
+        "feather.projectDir": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the LÖVE project. Defaults to the first workspace folder."
+        },
+        "feather.loveExecutable": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the LÖVE executable. Leave empty for Feather auto-detection."
+        },
+        "feather.defaultUploadTarget": {
+          "type": "string",
+          "default": "itch",
+          "description": "Default upload target used by Feather: Upload Build."
+        },
+        "feather.defaultUploadChannel": {
+          "type": "string",
+          "default": "",
+          "description": "Default upload channel passed to Feather uploads."
+        },
+        "feather.watchMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled, Feather: Run Project uses watch instead of run (hot-reloads on file changes)."
+        },
+        "feather.runTargets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Run targets selected for Feather: Run Project (e.g. desktop, web, android, ios, steamos)."
+        },
+        "feather.vendorDir": {
+          "type": "string",
+          "default": "",
+          "description": "Directory where build vendor files are installed. Remembered per workspace after the first Feather: Vendor add."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "prepare:bundle": "node scripts/prepare.mjs",
+    "build": "tsc -p .",
+    "test": "node --test test/*.test.mjs",
+    "test:integration": "node test/e2e/run.mjs",
+    "package": "npm run prepare:bundle && npm run build && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.0",
+    "@types/vscode": "1.101.0",
+    "@vscode/test-electron": "2.5.2",
+    "@vscode/vsce": "3.9.1",
+    "typescript": "6.0.3"
+  }
+}

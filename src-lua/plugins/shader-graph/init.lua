@@ -48,4 +48,11 @@ function ShaderGraphPlugin:handleActionRequest(request)
   return { status = "error", pixelError = "Unknown shader graph action: " .. tostring(action) }
 end
 
+function ShaderGraphPlugin:getConfig()
+  return {
+    type = "shader-graph",
+    icon = "blend",
+  }
+end
+
 return ShaderGraphPlugin

@@ -2,14 +2,19 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const MODULE_DIR = fileURLToPath(new URL('.', import.meta.url));
 
 export function bundledLuaRoot(): string {
-  return resolve(__dirname, '../../lua');
+  // When running as a compiled binary, lua/ is shipped next to the executable.
+  const execDir = dirname(process.execPath);
+  const sibling = join(execDir, 'lua');
+  if (existsSync(join(sibling, 'feather', 'init.lua'))) return sibling;
+  // Fallback for npm/node: dist/lib/paths.js → ../../lua
+  return resolve(MODULE_DIR, '../../lua');
 }
 
 export function repoLuaRoot(): string | null {
-  const candidate = resolve(__dirname, '../../../src-lua');
+  const candidate = resolve(MODULE_DIR, '../../../src-lua');
   return existsSync(join(candidate, 'feather', 'init.lua')) ? candidate : null;
 }
 
@@ -18,8 +23,43 @@ export function resolveLocalLuaRoot(opts: { localSrc?: string }): string {
   return repoLuaRoot() ?? bundledLuaRoot();
 }
 
+function hasProjectConfig(dir: string): boolean {
+  return existsSync(join(dir, 'feather.config.lua')) || existsSync(join(dir, '.featherrc.lua'));
+}
+
+function hasPackageLock(dir: string): boolean {
+  return existsSync(join(dir, 'feather.lock.json'));
+}
+
+function hasRuntime(dir: string): boolean {
+  return existsSync(join(dir, 'feather', 'init.lua'));
+}
+
+function hasMain(dir: string): boolean {
+  return existsSync(join(dir, 'main.lua'));
+}
+
+function walkUp(start: string, predicate: (dir: string) => boolean): string | null {
+  let current = resolve(start);
+  while (true) {
+    if (predicate(current)) return current;
+    const parent = dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+export function findConfigDir(cwd = process.cwd()): string {
+  const start = resolve(cwd);
+  return walkUp(start, hasProjectConfig) ?? findProjectDir(start);
+}
+
+export function findPackageDir(cwd = process.cwd()): string {
+  const start = resolve(cwd);
+  return walkUp(start, (dir) => hasPackageLock(dir) || hasProjectConfig(dir)) ?? findProjectDir(start);
+}
+
 export function findProjectDir(cwd = process.cwd()): string {
-  if (existsSync(join(cwd, 'feather', 'init.lua'))) return cwd;
-  if (existsSync(join(cwd, 'main.lua'))) return cwd;
-  return cwd;
+  const start = resolve(cwd);
+  return walkUp(start, (dir) => hasProjectConfig(dir) || hasPackageLock(dir) || hasRuntime(dir) || hasMain(dir)) ?? start;
 }

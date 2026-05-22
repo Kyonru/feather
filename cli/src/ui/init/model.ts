@@ -77,6 +77,9 @@ export const toggleTone = (value: string): Tone | undefined => {
   return undefined;
 };
 
+export const defaultIncludedPluginIds = ["particle-system-playground", "shader-graph"];
+export const defaultIncludedPlugins = new Set(defaultIncludedPluginIds);
+
 export const modes: Option<InitMode>[] = [
   {
     value: "cli",

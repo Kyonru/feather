@@ -27,7 +27,12 @@ if (!love) {
   process.exit(1);
 }
 
+const pluginSelector = process.argv[2];
 const args = [gamePath, '--e2e'];
+
+if (pluginSelector) {
+  args.push(`--plugin-e2e=${pluginSelector}`);
+}
 let command = love;
 let commandArgs = args;
 
@@ -42,6 +47,10 @@ if (process.platform === 'linux' && !process.env.DISPLAY) {
 console.log(`lua-e2e: ${command} ${commandArgs.join(' ')}`);
 const result = spawnSync(command, commandArgs, {
   cwd: root,
+  env: {
+    ...process.env,
+    FEATHER_GAME_PATH: gamePath,
+  },
   encoding: 'utf8',
   timeout: 15000,
 });

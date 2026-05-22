@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { usePlugin, usePluginAction } from '@/hooks/use-plugin';
+import { PluginParamValue, usePlugin, usePluginAction } from '@/hooks/use-plugin';
 import { useConfigStore } from '@/store/config';
 import { DynamicIcon, IconName } from 'lucide-react/dynamic';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 import { Link, useHref } from 'react-router';
 import { PluginContent } from './content';
 import { openUrl } from '@/utils/linking';
@@ -138,7 +138,7 @@ type PluginActionProps = {
   value?: string;
   onClick?: (action: string) => void;
   onFileClick?: (action: string, filters?: { name: string; extensions: string[] }[]) => void;
-  onChange?: (action: string, value: string | boolean) => void;
+  onChange?: (action: string, value: PluginParamValue) => void;
   props?: Record<string, unknown>;
   grouped?: boolean;
 };
@@ -153,8 +153,6 @@ const pickInputProps = (props?: Record<string, unknown>) => {
 };
 
 const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, onChange, props, grouped }: PluginActionProps) => {
-  const [checked, setChecked] = useState(value === 'true');
-
   if (type === 'button') {
     return (
       <Button {...props} variant="outline" onClick={() => onClick && onClick(action)} className={grouped ? 'w-full' : ''}>
@@ -176,6 +174,7 @@ const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, 
 
   if (type === 'checkbox') {
     const disabled = props?.disabled === true;
+    const checked = value === 'true';
 
     return (
       <Button
@@ -186,7 +185,6 @@ const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, 
         disabled={disabled}
         onClick={() => {
           const nextChecked = !checked;
-          setChecked(nextChecked);
           onChange?.(action, nextChecked ? 'true' : 'false');
         }}
         className={cn(
@@ -207,7 +205,7 @@ const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, 
       return (
         <div className="space-y-1.5">
           <Label>{label}</Label>
-          <Select defaultValue={value} onValueChange={(v) => onChange && onChange(action, v)}>
+          <Select value={value} onValueChange={(v) => onChange && onChange(action, v)}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder={label} />
             </SelectTrigger>
@@ -223,7 +221,7 @@ const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, 
       );
     }
     return (
-      <Select defaultValue={value} onValueChange={(v) => onChange && onChange(action, v)}>
+      <Select value={value} onValueChange={(v) => onChange && onChange(action, v)}>
         <SelectTrigger className="w-[140px]">
           <DynamicIcon className="size-4" name={icon} />
           <SelectValue placeholder={label} />
@@ -257,7 +255,7 @@ const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, 
         <Input
           {...pickInputProps(props)}
           placeholder={label}
-          defaultValue={value}
+          value={value ?? ''}
           onChange={(e) => onChange && onChange(action, `${e.target.value}`)}
         />
       </div>
@@ -269,7 +267,7 @@ const PluginAction = ({ label, action, icon, type, value, onClick, onFileClick, 
       <Input
         {...pickInputProps(props)}
         placeholder={label}
-        defaultValue={value}
+        value={value ?? ''}
         onChange={(e) => onChange && onChange(action, `${e.target.value}`)}
       />
     </div>
@@ -281,7 +279,7 @@ export default function PluginPage() {
   const { data } = usePlugin(currentUrl);
   const plugins = useConfigStore((state) => state.config?.plugins);
   const pluginKey = currentUrl.slice('/plugins/'.length);
-  const { onActionChange, onAction: onPluginAction, onFileAction, onCancel, onToggle } = usePluginAction(currentUrl);
+  const { onActionChange, onAction: onPluginAction, onFileAction, onCancel, onToggle, pendingParams } = usePluginAction(currentUrl);
 
   const onParamsChange = (params: Record<string, string>) => {
     for (const [key, value] of Object.entries(params)) {
@@ -333,6 +331,10 @@ export default function PluginPage() {
 
   const actions = Array.isArray(plugin.actions) ? plugin.actions.filter(isPluginAction) : [];
   const docsUrl = typeof plugin.docs === 'string' ? plugin.docs : null;
+  const actionValue = (action: PluginActionDefinition) => {
+    const pending = pendingParams[action.key];
+    return pending === undefined ? action.value : String(pending);
+  };
 
   // Partition actions: toolbar (no group) vs grouped (has group)
   const toolbarActions = actions.filter((a) => !a.group);
@@ -364,7 +366,7 @@ export default function PluginPage() {
                 label={action.label}
                 icon={action.icon}
                 type={action.type}
-                value={action.value}
+                value={actionValue(action)}
                 onClick={onPluginAction}
                 onFileClick={onFileAction}
                 onChange={onActionChange}
@@ -418,12 +420,12 @@ export default function PluginPage() {
                 <CardContent className="px-4 space-y-3">
                   {group.actions.map((action) => (
                     <PluginAction
-                      key={`${action.key}:${action.value ?? ''}`}
+                      key={action.key}
                       action={action.key}
                       label={action.label}
                       icon={action.icon}
                       type={action.type}
-                      value={action.value}
+                      value={actionValue(action)}
                       onClick={onPluginAction}
                       onFileClick={onFileAction}
                       onChange={onActionChange}
@@ -442,7 +444,12 @@ export default function PluginPage() {
           </div>
         )}
         {!plugin.disabled && !plugin.incompatible && (
-          <PluginContent {...data} onAction={onPluginAction} onParamsChange={onParamsChange} />
+          <PluginContent
+            {...data}
+            onAction={onPluginAction}
+            onParamsChange={onParamsChange}
+            pendingParams={pendingParams}
+          />
         )}
       </div>
     </PageLayout>

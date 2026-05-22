@@ -1,11 +1,11 @@
 import { resolve } from 'node:path';
-import { findProjectDir } from '../../lib/paths.js';
+import { findPackageDir } from '../../lib/paths.js';
 import { loadRegistry, type Registry, type RegistryLoadOptions } from '../../lib/package/registry.js';
 import { fail } from '../../lib/command.js';
 import { createSpinner, printMuted, printStatus } from '../../lib/output.js';
 
 export function resolvePackageProjectDir(dir?: string): string {
-  return dir ? resolve(dir) : findProjectDir();
+  return findPackageDir(dir ? resolve(dir) : process.cwd());
 }
 
 export async function loadRegistryOrExit(

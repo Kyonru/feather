@@ -37,9 +37,14 @@ sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" \
 sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" \
   "${ROOT}/cli/package.json"
 
+# vscode-extension/package.json
+sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" \
+  "${ROOT}/vscode-extension/package.json"
+
 echo "Done. Updated:"
 echo "  package.json"
 echo "  src-lua/feather/init.lua"
 echo "  src-tauri/Cargo.toml"
 echo "  src-tauri/tauri.conf.json"
 echo "  cli/package.json"
+echo "  vscode-extension/package.json"

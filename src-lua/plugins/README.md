@@ -116,9 +116,74 @@ return {
 | `optIn`        | `boolean`  | If `true`, the plugin is not registered at all unless its ID appears in `config.include`.                                                 |
 | `disabled`     | `boolean`  | If `true`, the plugin registers and appears in the UI but starts inactive. Users can enable it from the desktop, or via `config.include`. |
 
+### Loading and enabling plugins
+
+`feather.auto` scans the bundled or installed plugin directory and reads each `manifest.lua`.
+
+- Plugins with `optIn = false` and `disabled = false` load automatically unless their ID is in `config.exclude`.
+- Plugins with `optIn = true` are skipped unless their ID is in `config.include`.
+- Plugins with `disabled = true` are registered but inactive unless their ID is in `config.include`.
+
+CLI-managed projects use `feather.config.lua` as the source of truth for plugin selection. Use the CLI helpers to edit that list and keep capabilities in sync:
+
+```bash
+feather config plugins --include profiler,input-replay
+feather config plugins --exclude shader-graph
+```
+
+`feather init` includes `particle-system-playground` and `shader-graph` by default in CLI mode. Development-only plugins such as `console` and `hot-reload` remain explicit opt-ins.
+
 ### Love-event hooks
 
-Instead of patching `love.*` callbacks inside `init()`, override the corresponding `on*` method. `FeatherPluginManager` patches each love callback once and dispatches to all enabled plugins — this prevents conflicts when multiple plugins hook the same callback.
+Instead of patching `love.*` callbacks inside `init()`, use Feather's callback bus or override the corresponding `on*` method. `FeatherPluginManager` patches each love callback once and dispatches through a shared bus — this prevents conflicts when multiple plugins hook the same callback.
+
+### Callback bus
+
+`config.callbacks.register(name, fn, opts)` registers a handler on the shared runtime callback bus.
+
+```lua
+function MyPlugin:init(config)
+  self.disposeOverlay = config.callbacks.register("draw", function()
+    -- Runs after love.draw(); use love.graphics here
+  end)
+
+  config.callbacks.register("draw", function()
+    -- Rare override: run later than default callbacks
+  end, {
+    priority = 1000,
+  })
+end
+```
+
+Supported callback names are:
+
+- `draw`
+- `keypressed`
+- `keyreleased`
+- `mousepressed`
+- `mousereleased`
+- `mousemoved`
+- `touchpressed`
+- `touchreleased`
+- `touchmoved`
+- `joystickpressed`
+- `joystickreleased`
+- `joystickhat`
+- `joystickaxis`
+- `gamepadpressed`
+- `gamepadreleased`
+- `gamepadaxis`
+
+Ordering rules:
+
+- No priority: FIFO, based on registration order.
+- Lower numeric priorities run earlier; higher numeric priorities run later.
+- Undefined priorities preserve FIFO order.
+- Equal priorities preserve FIFO order.
+
+Use priority as a rare escape hatch. Normal plugins should usually omit it.
+
+Legacy `on*` methods still work and are routed through the same callback bus. If your plugin only needs Love callback hooks, overriding `onDraw`, `onKeypressed`, `onMousemoved`, and friends remains valid.
 
 ```lua
 function MyPlugin:onDraw()
@@ -132,16 +197,22 @@ end
 function MyPlugin:onKeyreleased(key, scancode) end
 function MyPlugin:onMousepressed(x, y, button, istouch, presses) end
 function MyPlugin:onMousereleased(x, y, button, istouch, presses) end
+function MyPlugin:onMousemoved(x, y, dx, dy, istouch) end
 function MyPlugin:onTouchpressed(id, x, y, dx, dy, pressure) end
 function MyPlugin:onTouchreleased(id, x, y, dx, dy, pressure) end
+function MyPlugin:onTouchmoved(id, x, y, dx, dy, pressure) end
 function MyPlugin:onJoystickpressed(joystick, button) end
 function MyPlugin:onJoystickreleased(joystick, button) end
+function MyPlugin:onJoystickhat(joystick, hat, direction) end
+function MyPlugin:onJoystickaxis(joystick, axis, value) end
+function MyPlugin:onGamepadpressed(joystick, button) end
+function MyPlugin:onGamepadreleased(joystick, button) end
+function MyPlugin:onGamepadaxis(joystick, axis, value) end
 ```
 
 Only override the methods you need — unused ones default to no-ops in the base class.
 
-> [!NOTE]
-> `input-replay` keeps its own hook system because it simulates love events during replay. Routing those through the central dispatcher would cause recursion.
+Replay plugins should also use the callback bus for recording. They may still temporarily wrap polling APIs such as `love.keyboard.isDown` or `love.mouse.getPosition` during playback, because replaying polled input is simulation rather than callback observation.
 
 ### Capabilities
 
@@ -211,7 +282,7 @@ The FeatherPluginManager handles the lifecycle of each plugin. Each plugin's `up
 
 #### Initialization
 
-- `init(config)`: Called when the plugin is initialized. `config.options` contains the options passed to `createPlugin`, and `config.logger` / `config.observer` are always available.
+- `init(config)`: Called when the plugin is initialized. `config.options` contains the options passed to `createPlugin`, `config.logger` / `config.observer` are always available, and `config.callbacks.register(...)` lets plugins join the shared love-event callback bus.
 - `getConfig()`: Returns the plugin configuration (type, icon, tab name, actions). Sent to the desktop app on connect.
 
 #### Data Push (every cycle)

@@ -6,10 +6,30 @@ local Class = require(FEATHER_PATH .. ".lib.class")
 --- @field disabled boolean
 --- @field errorCount number
 --- @field capabilities string[]
+--- @field callbackDisposers function[]|nil
 
 ---@class FeatherPluginManager
 ---@field plugins FeatherPluginInstance[]
 local FeatherPluginManager = Class({})
+
+local LOVE_CALLBACKS = {
+  { name = "draw", method = "onDraw" },
+  { name = "keypressed", method = "onKeypressed" },
+  { name = "keyreleased", method = "onKeyreleased" },
+  { name = "mousepressed", method = "onMousepressed" },
+  { name = "mousereleased", method = "onMousereleased" },
+  { name = "mousemoved", method = "onMousemoved" },
+  { name = "touchpressed", method = "onTouchpressed" },
+  { name = "touchreleased", method = "onTouchreleased" },
+  { name = "touchmoved", method = "onTouchmoved" },
+  { name = "joystickpressed", method = "onJoystickpressed" },
+  { name = "joystickreleased", method = "onJoystickreleased" },
+  { name = "joystickhat", method = "onJoystickhat" },
+  { name = "joystickaxis", method = "onJoystickaxis" },
+  { name = "gamepadpressed", method = "onGamepadpressed" },
+  { name = "gamepadreleased", method = "onGamepadreleased" },
+  { name = "gamepadaxis", method = "onGamepadaxis" },
+}
 
 local function normalizeApiCompatibility(api)
   if api == nil then
@@ -85,38 +105,17 @@ local function describeApiCompatibility(compatibility, currentApi)
   if compatibility.minApi ~= nil or compatibility.maxApi ~= nil then
     local min = compatibility.minApi ~= nil and tostring(compatibility.minApi) or "any"
     local max = compatibility.maxApi ~= nil and tostring(compatibility.maxApi) or "any"
-    return "Requires Feather plugin API "
-      .. min
-      .. "-"
-      .. max
-      .. "; desktop API is "
-      .. tostring(currentApi)
-      .. "."
+    return "Requires Feather plugin API " .. min .. "-" .. max .. "; desktop API is " .. tostring(currentApi) .. "."
   end
   return "Requires a different Feather plugin API. Desktop API is " .. tostring(currentApi) .. "."
 end
 
-local function callbackReferences(callback, target)
-  if type(callback) ~= "function" or type(target) ~= "function" then
-    return false
+local function isCallable(value)
+  if type(value) == "function" then
+    return true
   end
-  if not debug or not debug.getupvalue then
-    return false
-  end
-
-  local index = 1
-  while true do
-    local name, value = debug.getupvalue(callback, index)
-    if not name then
-      break
-    end
-    if value == target then
-      return true
-    end
-    index = index + 1
-  end
-
-  return false
+  local meta = type(value) == "table" and getmetatable(value) or nil
+  return type(meta) == "table" and type(meta.__call) == "function"
 end
 
 ---@param feather Feather
@@ -127,6 +126,7 @@ function FeatherPluginManager:init(feather, logger, observer)
   self.logger = logger
   self.observer = observer
   self.feather = feather
+  self.callbackBus = feather.callbackBus
   self._hookedCallbacks = nil
 
   if not feather.plugins then
@@ -149,20 +149,36 @@ function FeatherPluginManager:init(feather, logger, observer)
     compatibility.minApi = compatibility.minApi or plugin.minApi
     compatibility.maxApi = compatibility.maxApi or plugin.maxApi
     compatibility.currentApi = feather.version
+    local pluginRecord = {
+      instance = nil,
+      identifier = plugin.identifier,
+      disabled = plugin.disabled or false,
+      incompatible = false,
+      incompatibilityReason = nil,
+      capabilities = plugin.capabilities or {},
+      compatibility = compatibility,
+      name = plugin.name,
+      version = plugin.version,
+      callbackDisposers = {},
+    }
 
-    if not isApiCompatible(compatibility, feather.version) then
-      local message = describeApiCompatibility(compatibility, feather.version)
-      table.insert(self.plugins, {
-        instance = nil,
-        identifier = plugin.identifier,
-        disabled = true,
-        incompatible = true,
-        incompatibilityReason = message,
-        capabilities = plugin.capabilities or {},
-        compatibility = compatibility,
-        name = plugin.name,
-        version = plugin.version,
+    if not isCallable(plugin.plugin) then
+      pluginRecord.disabled = true
+      table.insert(self.plugins, pluginRecord)
+      self.logger:log({
+        type = "warn",
+        str = "Plugin <"
+          .. tostring(plugin.identifier)
+          .. "> is disabled: expected a callable plugin module, got "
+          .. type(plugin.plugin)
+          .. ".",
       })
+    elseif not isApiCompatible(compatibility, feather.version) then
+      local message = describeApiCompatibility(compatibility, feather.version)
+      pluginRecord.disabled = true
+      pluginRecord.incompatible = true
+      pluginRecord.incompatibilityReason = message
+      table.insert(self.plugins, pluginRecord)
       self.logger:log({
         type = "error",
         str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. message,
@@ -175,6 +191,7 @@ function FeatherPluginManager:init(feather, logger, observer)
         feather = feather,
         logger = logger,
         observer = observer,
+        callbacks = self:createCallbackRegistrar(pluginRecord),
         api = compatibility.api,
         minApi = compatibility.minApi,
         maxApi = compatibility.maxApi,
@@ -185,22 +202,26 @@ function FeatherPluginManager:init(feather, logger, observer)
         if pluginInstance and pluginInstance.isSupported then
           supported = pluginInstance:isSupported(feather.version)
         end
-        table.insert(self.plugins, {
-          instance = pluginInstance,
-          identifier = plugin.identifier,
-          disabled = plugin.disabled or not supported or false,
-          incompatible = not supported,
-          incompatibilityReason = (not supported) and describeApiCompatibility(compatibility, feather.version) or nil,
-          capabilities = plugin.capabilities or {},
-          compatibility = compatibility,
-          name = plugin.name,
-          version = plugin.version,
-        })
+        pluginRecord.instance = pluginInstance
+        pluginRecord.disabled = plugin.disabled or not supported or false
+        pluginRecord.incompatible = not supported
+        pluginRecord.incompatibilityReason = not supported and describeApiCompatibility(compatibility, feather.version)
+          or nil
+        table.insert(self.plugins, pluginRecord)
+
+        if supported then
+          self:registerPluginCallbacks(pluginRecord)
+        else
+          self:disposePluginCallbacks(pluginRecord)
+        end
 
         if not supported then
           self.logger:log({
             type = "error",
-            str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. describeApiCompatibility(compatibility, feather.version),
+            str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. describeApiCompatibility(
+              compatibility,
+              feather.version
+            ),
           })
         end
 
@@ -220,11 +241,64 @@ function FeatherPluginManager:init(feather, logger, observer)
           end
         end
       else
+        self:disposePluginCallbacks(pluginRecord)
         -- pluginInstance is the formatted error+traceback string from the xpcall handler
         self.logger:log({ type = "error", str = tostring(pluginInstance) })
       end
     end
   end
+end
+
+function FeatherPluginManager:createCallbackRegistrar(plugin)
+  return {
+    register = function(name, fn, opts)
+      local disposer = self.callbackBus:register(name, function(...)
+        if plugin.disabled then
+          return
+        end
+
+        return fn(...)
+      end, opts)
+
+      plugin.callbackDisposers[#plugin.callbackDisposers + 1] = disposer
+      return disposer
+    end,
+  }
+end
+
+function FeatherPluginManager:registerPluginCallbacks(plugin)
+  if not plugin.instance then
+    return
+  end
+
+  for _, callback in ipairs(LOVE_CALLBACKS) do
+    local disposer = self.callbackBus:register(callback.name, function(...)
+      if plugin.disabled or not plugin.instance then
+        return
+      end
+
+      local method = plugin.instance[callback.method]
+      if type(method) ~= "function" then
+        return
+      end
+
+      pcall(method, plugin.instance, ...)
+    end)
+
+    plugin.callbackDisposers[#plugin.callbackDisposers + 1] = disposer
+  end
+end
+
+function FeatherPluginManager:disposePluginCallbacks(plugin)
+  if not plugin.callbackDisposers then
+    return
+  end
+
+  for _, dispose in ipairs(plugin.callbackDisposers) do
+    dispose()
+  end
+
+  plugin.callbackDisposers = {}
 end
 
 function FeatherPluginManager:update(dt, feather)
@@ -360,41 +434,42 @@ function FeatherPluginManager:hookLoveCallbacks()
 
   local mgr = self
 
-  local function dispatch(method, ...)
-    for _, p in ipairs(mgr.plugins) do
-      if p.instance and not p.disabled then
-        pcall(p.instance[method], p.instance, ...)
-      end
-    end
+  local function dispatch(name, ...)
+    mgr.callbackBus:dispatch(name, ...)
   end
 
   self._loveCallbackOriginals = self._loveCallbackOriginals or {}
   self._loveCallbackWrappers = self._loveCallbackWrappers or {}
 
-  local callbacks = {
-    { name = "draw", method = "onDraw" },
-    { name = "keypressed", method = "onKeypressed" },
-    { name = "keyreleased", method = "onKeyreleased" },
-    { name = "mousepressed", method = "onMousepressed" },
-    { name = "mousereleased", method = "onMousereleased" },
-    { name = "touchpressed", method = "onTouchpressed" },
-    { name = "touchreleased", method = "onTouchreleased" },
-    { name = "joystickpressed", method = "onJoystickpressed" },
-    { name = "joystickreleased", method = "onJoystickreleased" },
-  }
-
-  for _, callback in ipairs(callbacks) do
+  for _, callback in ipairs(LOVE_CALLBACKS) do
     local name = callback.name
     local method = callback.method
     local wrapper = self._loveCallbackWrappers[name]
 
     if not wrapper then
+      self._dispatchingLoveCallbacks = self._dispatchingLoveCallbacks or {}
+
       wrapper = function(...)
-        local original = mgr._loveCallbackOriginals and mgr._loveCallbackOriginals[name]
-        if original and original ~= wrapper then
-          original(...)
+        if mgr._dispatchingLoveCallbacks[name] then
+          return
         end
-        dispatch(method, ...)
+
+        mgr._dispatchingLoveCallbacks[name] = true
+
+        local original = mgr._loveCallbackOriginals and mgr._loveCallbackOriginals[name]
+
+        if original and original ~= wrapper then
+          local ok, err = pcall(original, ...)
+          if not ok and mgr.logger then
+            mgr.logger:log({
+              type = "error",
+              str = "[FeatherPluginManager] love." .. name .. " original callback error: " .. tostring(err),
+            })
+          end
+        end
+
+        dispatch(name, ...)
+
         local overlay = mgr.feather and mgr.feather.debugOverlay
         if overlay then
           if method == "onDraw" and overlay.onDraw then
@@ -405,12 +480,19 @@ function FeatherPluginManager:hookLoveCallbacks()
             overlay:onTouchpressed(...)
           end
         end
+
+        mgr._dispatchingLoveCallbacks[name] = false
       end
       self._loveCallbackWrappers[name] = wrapper
     end
 
     local current = love[name]
-    if current ~= wrapper and not callbackReferences(current, wrapper) then
+    local isFeatherOwnedWrapper = false
+    if name == "draw" and self.feather and self.feather.assets and self.feather.assets.isDrawWrapper then
+      isFeatherOwnedWrapper = self.feather.assets:isDrawWrapper(current)
+    end
+
+    if current ~= wrapper and (not isFeatherOwnedWrapper or self._loveCallbackOriginals[name] == nil) then
       self._loveCallbackOriginals[name] = current
       love[name] = wrapper
     end
@@ -443,6 +525,7 @@ function FeatherPluginManager:finish(feather)
     if plugin.instance then
       pcall(plugin.instance.finish, plugin.instance, feather)
     end
+    self:disposePluginCallbacks(plugin)
   end
 end
 

@@ -262,6 +262,20 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
+    "id": "session-replay",
+    "sourceDir": "session-replay",
+    "name": "Session Replay",
+    "description": "Record input and developer-provided state checkpoints for reproducible playthroughs",
+    "version": "0.1.0",
+    "capabilities": [
+      "input",
+      "filesystem",
+      "binary"
+    ],
+    "optIn": true,
+    "disabled": true
+  },
+  {
     "id": "shader-graph",
     "sourceDir": "shader-graph",
     "name": "Shader Graph",

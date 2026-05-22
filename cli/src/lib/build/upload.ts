@@ -16,6 +16,7 @@ export type UploadOptions = LoadBuildConfigOptions & {
   ifChanged?: boolean;
   hidden?: boolean;
   allowFeatherRuntime?: boolean;
+  trustedFeatherFreeBuild?: boolean;
 };
 
 export type UploadResult = {
@@ -57,8 +58,11 @@ export function runUpload(options: UploadOptions): UploadResult {
     const channel = options.channel ?? itch.channels?.[buildTarget] ?? buildTarget;
     const userVersion = options.userVersion ?? config.version;
     const safety = inspectUploadArtifact(resolveArtifactPath(artifact.path));
-    const warning = uploadSafetyWarning(safety) ?? undefined;
-    if (!options.dryRun && safety.status !== 'safe' && !options.allowFeatherRuntime) {
+    const warning = options.trustedFeatherFreeBuild && safety.status === 'unknown'
+      ? undefined
+      : uploadSafetyWarning(safety) ?? undefined;
+    const blockedBySafety = safety.status === 'unsafe' || (safety.status === 'unknown' && !options.trustedFeatherFreeBuild);
+    if (!options.dryRun && blockedBySafety && !options.allowFeatherRuntime) {
       return {
         ok: false,
         error:

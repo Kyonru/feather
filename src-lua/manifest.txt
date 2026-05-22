@@ -1,4 +1,5 @@
 core:feather/auto.lua
+core:feather/callback_bus.lua
 core:feather/core/assets.lua
 core:feather/core/base.lua
 core:feather/core/debug_overlay.lua
@@ -64,6 +65,9 @@ plugin:runtime-snapshot:init.lua
 plugin:runtime-snapshot:manifest.lua
 plugin:screenshots:init.lua
 plugin:screenshots:manifest.lua
+plugin:session-replay:init.lua
+plugin:session-replay:manifest.lua
+plugin:session-replay:replay_adapter.lua
 plugin:shader-graph:init.lua
 plugin:shader-graph:manifest.lua
 plugin:time-travel:init.lua

@@ -32,6 +32,8 @@ love src-lua --hot-reload
 
 Open Feather's **Debugger** tab, select `example/hot_reload/gameplay.lua`, edit that file, then press **Reload** or enable **Watch**.
 
+The Session Replay examples live under `src-lua/example/session_replay/` and demonstrate different integration styles.
+
 The Lua E2E example is meant for automation. It runs assertions through LÖVE and exits on its own:
 
 ```bash

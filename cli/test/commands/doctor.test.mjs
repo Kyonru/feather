@@ -81,6 +81,30 @@ test('doctor --json remains decoration-free and reports missing plugin directory
   assert.equal(labels.get('Plugin directory').detail, 'not installed');
 });
 
+test('doctor --json treats included plugins as bundled in cli mode', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `-- mode: cli
+-- installDir: feather
+return {
+  appId = "feather-app-test-1234567890",
+  managed = "cli",
+  include = { "console", "shader-graph" },
+}
+`,
+  );
+
+  const parsed = parseDoctorJson(dir);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Embedded Feather runtime').severity, 'info');
+  assert.equal(labels.get('CLI-managed plugins').severity, 'pass');
+  assert.equal(labels.get('CLI-managed plugins').detail, '2 included from bundled runtime');
+  assert.equal(labels.has('Plugin console'), false);
+  assert.equal(labels.has('Plugin shader-graph'), false);
+});
+
 test('doctor --json reports malformed plugin manifests with recovery text', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -115,7 +139,7 @@ test('doctor --production fails unsafe remote-control and production settings', 
     `return {
   __DANGEROUS_INSECURE_CONNECTION__ = true,
   host = "0.0.0.0",
-  include = { "console", "hot-reload" },
+    include = { "console", "hot-reload" },
   apiKey = "dev",
   captureScreenshot = true,
   writeToDisk = true,
@@ -149,6 +173,29 @@ test('doctor --production fails unsafe remote-control and production settings', 
   ]) {
     assert.equal(labels.get(label)?.severity, 'fail', `${label} should fail in production`);
   }
+});
+
+test('doctor --production fails session replay config and local replay artifacts', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  mkdirSync(join(dir, 'feather_replays', 'session_1'), { recursive: true });
+  writeFileSync(join(dir, 'bug.featherreplay'), 'archive');
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    `return {
+  appId = "feather-app-test-1234567890",
+  include = { "session-replay" },
+}
+`,
+  );
+
+  const { result, parsed } = parseDoctorJsonResult(dir, ['--production']);
+  assert.equal(result.exitCode, 1);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Session replay')?.severity, 'fail');
+  assert.equal(labels.get('Session replay artifacts')?.severity, 'fail');
+  assert.ok(labels.get('Session replay artifacts')?.detail.includes('feather_replays/'));
+  assert.ok(labels.get('Session replay artifacts')?.detail.includes('bug.featherreplay'));
 });
 
 test('doctor --json warns for missing Desktop App ID when insecure dev override is enabled', () => {
@@ -268,6 +315,48 @@ test('doctor: build and upload target checks report missing and configured depen
   assert.equal(labels.get('love.js player')?.severity, 'pass');
   assert.equal(labels.get('butler')?.severity, 'pass');
   assert.equal(labels.get('BUTLER_API_KEY')?.severity, 'pass');
+});
+
+test('doctor: discovers upload dependency checks from feather.build.json', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
+  writeBuildConfig(dir, {
+    name: 'Doctor Upload Game',
+    version: '1.0.0',
+    upload: { itch: { project: 'tester/doctor-upload-game' } },
+  });
+  const { binDir } = writeFakeCommand(dir, 'butler', `console.log('butler test'); process.exit(0);`);
+
+  const result = run(['doctor', dir, '--json'], {
+    env: envWithPath(binDir, { BUTLER_API_KEY: 'test-key' }),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('feather.build.json')?.severity, 'pass');
+  assert.equal(labels.get('Itch project')?.severity, 'pass');
+  assert.equal(labels.get('butler')?.severity, 'pass');
+  assert.equal(labels.get('BUTLER_API_KEY')?.severity, 'pass');
+});
+
+test('doctor: reports optional upload readiness when build config has no upload block', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { appId = "feather-app-test-1234567890" }\n');
+  writeBuildConfig(dir, {
+    name: 'Doctor Optional Upload Game',
+    version: '1.0.0',
+  });
+
+  const result = run(['doctor', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const parsed = JSON.parse(result.stdout);
+  const labels = new Map(parsed.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('feather.build.json')?.severity, 'pass');
+  assert.equal(labels.get('Itch project')?.severity, 'info');
+  assert.equal(labels.get('butler')?.severity, labels.get('butler')?.detail === 'not found' ? 'info' : 'pass');
+  assert.equal(labels.get('BUTLER_API_KEY')?.severity, process.env.BUTLER_API_KEY ? 'pass' : 'info');
 });
 
 test('doctor: desktop build targets report runtime vendors and packaging tools', () => {

@@ -152,6 +152,10 @@ function FeatherAssets:update()
   self:_hookDraw()
 end
 
+function FeatherAssets:isDrawWrapper(fn)
+  return fn ~= nil and fn == self._drawWrapper
+end
+
 function FeatherAssets:hasPreview()
   return self._previewReady ~= nil
 end

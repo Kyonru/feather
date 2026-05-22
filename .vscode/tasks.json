@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "npm: extension:build",
+      "type": "npm",
+      "script": "extension:build",
+      "group": "build",
+      "problemMatcher": "$tsc"
+    }
+  ]
+}

@@ -679,6 +679,66 @@ process.exit(0);
   return appImage;
 }
 
+/**
+ * Creates a fake AppImage containing ELF magic (so it triggers ENOEXEC on any
+ * non-native platform) with real SquashFS v4 magic bytes at a known offset.
+ * Used to test the unsquashfs fallback path.
+ */
+function writeFakeNonNativeElfAppImage(dir) {
+  const appImage = join(dir, 'love-foreign.AppImage');
+  const SQFS_OFFSET = 8192; // 8 KB, 4-byte aligned (AppImages use 1024-byte alignment)
+
+  // Minimal AArch64 ELF header — triggers ENOEXEC on x86_64 Linux and all macOS.
+  // 64 bytes for the ELF ident + e_type/e_machine/e_version, rest zeroed.
+  const header = Buffer.alloc(64, 0);
+  header[0] = 0x7f; header[1] = 0x45; header[2] = 0x4c; header[3] = 0x46; // \x7fELF
+  header[4] = 0x02; // EI_CLASS: 64-bit
+  header[5] = 0x01; // EI_DATA: little-endian
+  header[6] = 0x01; // EI_VERSION: 1
+  header.writeUInt16LE(0x00b7, 18); // e_machine: EM_AARCH64 = 183
+
+  const data = Buffer.alloc(SQFS_OFFSET + 8, 0);
+  header.copy(data, 0);
+  // SquashFS v4 magic (little-endian 0x73717368 = 'sqsh')
+  data.writeUInt32LE(0x73717368, SQFS_OFFSET);
+
+  writeFileSync(appImage, data);
+  chmodSync(appImage, 0o755);
+  return { appImage, sqfsOffset: SQFS_OFFSET };
+}
+
+/**
+ * Creates a fake `unsquashfs` binary that parses -offset/-d args and writes
+ * a minimal squashfs-root structure expected by the CLI.
+ * Returns the bin directory to prepend to PATH.
+ */
+function writeFakeUnsquashfs(tmpDir) {
+  const binDir = join(tmpDir, 'fake-unsquashfs-bin');
+  mkdirSync(binDir, { recursive: true });
+  const script = join(binDir, 'unsquashfs');
+  writeFileSync(
+    script,
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+// Parse -d <dest> from args (ignore -offset, -f, etc.)
+let dest = null;
+for (let i = 0; i < args.length - 1; i++) {
+  if (args[i] === '-d') { dest = args[i + 1]; break; }
+}
+if (!dest) { console.error('unsquashfs: missing -d'); process.exit(1); }
+fs.mkdirSync(path.join(dest, 'bin'), { recursive: true });
+fs.writeFileSync(path.join(dest, 'bin', 'love'), '#!/bin/sh\\n');
+fs.chmodSync(path.join(dest, 'bin', 'love'), 0o755);
+fs.writeFileSync(path.join(dest, 'AppRun'), '#!/bin/sh\\nexec "$APPDIR/bin/love" "$@"\\n');
+process.exit(0);
+`,
+  );
+  chmodSync(script, 0o755);
+  return binDir;
+}
+
 function writeFakeAppImageTool(dir) {
   const appImageTool = join(dir, 'appimagetool.AppImage');
   writeFileSync(
@@ -762,6 +822,8 @@ export {
   writeFakeLoveAndroid,
   writeFakeLoveIos,
   writeFakeLoveLinuxAppImage,
+  writeFakeNonNativeElfAppImage,
+  writeFakeUnsquashfs,
   writeFakeLoveMacosZip,
   writeFakeLoveWindowsZip,
   writeFakeLoveJs,

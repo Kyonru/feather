@@ -2,9 +2,13 @@ import { spawnSync } from 'node:child_process';
 import {
   chmodSync,
   cpSync,
+  closeSync,
   existsSync,
   mkdirSync,
+  openSync,
   readFileSync,
+  readSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
@@ -49,6 +53,8 @@ export type BuildVendorResult = {
   repo: string;
   installed: boolean;
   skipped: boolean;
+  /** True when skipped because the vendor directory already exists (not --force, not SteamOS reuse). */
+  alreadyExists: boolean;
   configUpdated: boolean;
   actions: string[];
 };
@@ -59,6 +65,7 @@ export type BuildVendorAddResult = {
   configPath: string;
   loveVersion: string;
   vendors: BuildVendorResult[];
+  skippedTargets: ConcreteBuildVendorTarget[];
 };
 
 export type BuildVendorListEntry = {
@@ -126,6 +133,7 @@ export async function addBuildVendors(targets: BuildVendorTargetInput[], options
     configPath,
     loveVersion,
     vendors: results,
+    skippedTargets: results.filter((r) => r.alreadyExists).map((r) => r.target),
   };
 }
 
@@ -191,8 +199,20 @@ async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendor
     && vendorPathValid(targetPath, 'steamos')
     && !input.force;
 
-  if (existsSync(targetPath) && !input.force && !canReuseSteamosRuntime) {
-    throw new Error(`${input.target} vendor directory already exists: ${targetPath}. Use --force to replace it.`);
+  const alreadyExists = existsSync(targetPath) && !input.force && !canReuseSteamosRuntime;
+  if (alreadyExists) {
+    return {
+      target: input.target,
+      path: targetPath,
+      relativePath,
+      ref: input.ref,
+      repo,
+      installed: false,
+      skipped: false,
+      alreadyExists: true,
+      configUpdated: false,
+      actions: [],
+    };
   }
 
   if (canReuseSteamosRuntime) {
@@ -246,6 +266,7 @@ async function addSingleVendor(input: AddSingleVendorInput): Promise<BuildVendor
     repo,
     installed: !input.dryRun && !canReuseSteamosRuntime,
     skipped: canReuseSteamosRuntime,
+    alreadyExists: false,
     configUpdated: input.updateConfig && !input.dryRun,
     actions,
   };
@@ -375,6 +396,24 @@ function cloneVendor(repo: string, ref: string, targetPath: string, recurseSubmo
   }
 }
 
+/**
+ * Find the byte offset of the embedded SquashFS archive inside an AppImage.
+ * AppImages align the SquashFS to 1-byte boundaries; we scan the first 4 MB
+ * in 4-byte steps for the SquashFS v4 magic (little-endian 0x73717368 = 'sqsh').
+ */
+function findSquashFsOffset(filePath: string): number {
+  const SQFS_MAGIC_LE = 0x73717368;
+  const CHUNK = 4 * 1024 * 1024; // scan first 4 MB
+  const buf = Buffer.alloc(CHUNK);
+  const fd = openSync(filePath, 'r');
+  const bytesRead = readSync(fd, buf, 0, CHUNK, 0);
+  closeSync(fd);
+  for (let i = 0; i < bytesRead - 4; i += 4) {
+    if (buf.readUInt32LE(i) === SQFS_MAGIC_LE) return i;
+  }
+  return -1;
+}
+
 function isDownloadedRuntimeTarget(target: ConcreteBuildVendorTarget): target is 'windows' | 'macos' | 'linux' | 'steamos' {
   return target === 'windows' || target === 'macos' || target === 'linux' || target === 'steamos';
 }
@@ -401,13 +440,36 @@ async function installDesktopRuntime(target: 'windows' | 'macos' | 'linux' | 'st
   await downloadRuntimeFile(APPIMAGETOOL_URL, appImageTool, 'FEATHER_TEST_APPIMAGETOOL');
   chmodSync(loveAppImage, 0o755);
   chmodSync(appImageTool, 0o755);
+
+  const squashfsRoot = join(targetPath, 'squashfs-root');
   const result = spawnSync(loveAppImage, ['--appimage-extract'], { cwd: targetPath, encoding: 'utf8' });
-  if (result.error) {
-    throw new Error(`Failed to extract LÖVE AppImage: ${result.error.message}`);
-  }
-  if (result.status !== 0 || !existsSync(join(targetPath, 'squashfs-root', 'bin', 'love'))) {
+  if (!result.error) {
+    if (result.status === 0 && existsSync(join(squashfsRoot, 'bin', 'love'))) return;
     throw new Error((result.stderr || result.stdout || 'Failed to extract LÖVE AppImage.').trim());
   }
+
+  const code = (result.error as NodeJS.ErrnoException).code;
+  if (code !== 'ENOEXEC' && code !== 'ENOENT' && code !== 'EACCES') {
+    throw new Error(`Failed to extract LÖVE AppImage: ${result.error.message}`);
+  }
+
+  // Not on Linux — try unsquashfs with explicit SquashFS offset (squashfs-tools >= 4.4).
+  // The macOS port doesn't auto-detect the offset, so we scan for the magic bytes ourselves.
+  if (existsSync(squashfsRoot)) rmSync(squashfsRoot, { recursive: true });
+  const offset = findSquashFsOffset(loveAppImage);
+  const unsquashArgs = offset >= 0
+    ? ['-offset', String(offset), '-d', squashfsRoot, loveAppImage]
+    : ['-d', squashfsRoot, loveAppImage];
+  const us = spawnSync('unsquashfs', unsquashArgs, { cwd: targetPath, encoding: 'utf8' });
+  if (!us.error && us.status === 0 && existsSync(join(squashfsRoot, 'bin', 'love'))) return;
+
+  const detail = us.error ? us.error.message : (us.stderr || us.stdout || '').trim();
+  throw new Error(
+    `Cannot extract the Linux AppImage on this platform (${process.platform}).\n` +
+    (detail ? `unsquashfs: ${detail}\n` : '') +
+    `Install squashfs-tools and retry: brew install squashfs\n` +
+    `Or run \`feather build vendor add linux\` on a Linux host.`,
+  );
 }
 
 async function downloadRuntimeArchive(target: 'windows' | 'macos', loveVersion: string): Promise<Buffer> {

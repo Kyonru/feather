@@ -2,10 +2,11 @@
   "name": "feather",
   "description": "Feather is a LÖVE game development toolkit with a desktop inspector, zero-config CLI, plugin system, build/upload helpers, and package management.",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.3.0",
   "type": "module",
   "workspaces": [
-    "cli"
+    "cli",
+    "vscode-extension"
   ],
   "scripts": {
     "cli:build": "npm run build --workspace=cli",
@@ -14,6 +15,12 @@
     "test:lua:e2e": "node scripts/lua-e2e.mjs",
     "test:app:e2e": "playwright test",
     "test:tauri:e2e": "cargo test --manifest-path src-tauri/Cargo.toml ws_server",
+    "extension:prepare": "npm run cli:build && npm run bundle:lua --workspace=cli && node vscode-extension/scripts/prepare.mjs",
+    "extension:build": "npm run extension:prepare && tsc -p vscode-extension/tsconfig.json",
+    "extension:binary": "npm run cli:build && npm run bundle:lua --workspace=cli && npm run build:binary --workspace=cli",
+    "extension:test": "npm run extension:build && npm run test --workspace=vscode-extension",
+    "extension:test:integration": "npm run extension:build && npm run test:integration --workspace=vscode-extension",
+    "extension:package": "npm run extension:binary && npm run extension:build && cd vscode-extension && npx @vscode/vsce package",
     "feather": "node cli/dist/index.js",
     "dev": "vite",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",

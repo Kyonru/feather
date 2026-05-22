@@ -9,7 +9,7 @@ export type PluginManifest = {
 
 export type PluginTrust = 'bundled-core' | 'bundled-opt-in' | 'local' | 'remote' | 'unknown' | 'malformed';
 
-export const dangerousPluginIds = new Set(['console', 'hot-reload']);
+export const dangerousPluginIds = new Set(['console', 'hot-reload', 'session-replay']);
 
 export function parseManagedValue(src: string, key: string): string | null {
   return src.match(new RegExp(`^--\\s*${key}:\\s*(.+)$`, 'm'))?.[1]?.trim() ?? null;

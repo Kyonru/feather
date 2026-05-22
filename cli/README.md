@@ -76,6 +76,8 @@ feather init                                      # configure current directory 
 feather init path/to/my-game                      # configure a specific directory
 feather init --no-plugins                         # feather core only, no plugins
 feather init --plugins screenshots,profiler
+feather init --plugins hot-reload --hot-reload-allow game.player,game.systems.combat
+feather init --session-name "My Game" --app-id feather-app-...
 feather init --remote --branch v0.7.0             # use a specific runtime release
 feather init --local-src ../feather/src-lua       # use a local source tree
 feather init --install-dir lib/feather            # configure like FEATHER_DIR=lib/feather
@@ -88,11 +90,13 @@ feather init --install-dir lib/feather            # configure like FEATHER_DIR=l
 
 By default, `feather init` opens an interactive terminal picker powered by Ink with CLI mode selected:
 
-| Mode     | Behavior                                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `cli`    | Recommended. Creates `feather.config.lua` for `feather run` without changing game code.                                  |
-| `auto`   | Advanced embedded mode. Copies core/plugins and patches `main.lua` with a guarded `require("feather.auto")`.             |
+| Mode     | Behavior                                                                                                                |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `cli`    | Recommended. Creates `feather.config.lua` for `feather run` without changing game code.                                 |
+| `auto`   | Advanced embedded mode. Copies core/plugins and patches `main.lua` with a guarded `require("feather.auto")`.            |
 | `manual` | Advanced embedded mode. Copies core/plugins, creates `feather.debugger.lua`, and loads it from `main.lua` when enabled. |
+
+CLI mode writes a development config with `debug = true`, `autoRegisterErrorHandler = true`, and `managed = "cli"`. Unless you pass `--plugins` or `--no-plugins`, it includes `particle-system-playground` and `shader-graph` so the creative tooling is ready immediately. Opt-in or dangerous plugins, such as Console and Hot Reload, still require an explicit include.
 
 Install source priority:
 
@@ -147,7 +151,7 @@ The interactive flow asks for:
 - Git branch or tag when using GitHub download, matching `FEATHER_BRANCH`
 - whether to install built-in plugins, matching `FEATHER_PLUGINS`
 - optional plugins to force-enable, such as Console, Physics Debug, and Timer Inspector
-- plugins to skip/exclude, matching `FEATHER_SKIP_PLUGINS`; Console, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults
+- plugins to skip/exclude, matching `FEATHER_SKIP_PLUGINS`; Console, Hot Reload, HUMP Signal, and Lua State Machine start preselected like the shell installer defaults
 - advanced connection/runtime options from `feather.config.lua`, including host/port, socket vs disk mode, observers, logging, debugger, asset previews, capabilities, and binary threshold
 - a strong API key when Console is included
 
@@ -190,16 +194,55 @@ return DEBUGGER
 
 **Options:**
 
-| Option                 | Description                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `--remote`             | Download from GitHub instead of copying the local/bundled Lua runtime.         |
-| `--branch <branch>`    | GitHub branch or tag to download from when using `--remote` (default: `main`). |
-| `--local-src <path>`   | Copy from a local `src-lua` style directory.                                   |
-| `--install-dir <path>` | Install directory for auto/manual modes (default: `feather`).                  |
-| `--no-plugins`         | Skip plugin installation.                                                      |
-| `--plugins <ids>`      | Comma-separated list of plugin IDs to install (default: all).                  |
-| `--mode <mode>`        | Setup mode: `cli`, `auto`, or `manual`.                                        |
-| `-y, --yes`            | Skip confirmation prompts.                                                     |
+| Option                       | Description                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `--remote`                   | Download from GitHub instead of copying the local/bundled Lua runtime.                               |
+| `--branch <branch>`          | GitHub branch or tag to download from when using `--remote` (default: `main`).                       |
+| `--local-src <path>`         | Copy from a local `src-lua` style directory.                                                         |
+| `--install-dir <path>`       | Install directory for auto/manual modes (default: `feather`).                                        |
+| `--no-plugins`               | Skip plugin installation and omit the CLI-mode default include list.                                 |
+| `--plugins <ids>`            | Comma-separated plugin IDs. In CLI mode this overrides the default creative plugins.                 |
+| `--hot-reload-allow <names>` | Comma-separated Lua module names allowed for Hot Reload; also includes the `hot-reload` plugin.      |
+| `--session-name <name>`      | Session name shown in the Feather desktop app.                                                       |
+| `--app-id <id>`              | Desktop App ID allowed to send commands to this game.                                                |
+| `--mode <mode>`              | Setup mode: `cli`, `auto`, or `manual`.                                                              |
+| `-y, --yes`                  | Skip confirmation prompts.                                                                           |
+
+---
+
+### `feather replay init`
+
+Create a centralized Session Replay adapter so replay code lives in one project file instead of being scattered through gameplay systems.
+
+```bash
+feather replay init
+feather replay init --dir path/to/my-game
+feather replay init --path dev/replay.lua
+feather replay init --force
+feather replay init --no-config
+```
+
+By default this creates `dev/replay.lua`. If `feather.config.lua` exists, it also enables the `session-replay` plugin.
+
+The generated adapter exposes:
+
+- `register()` to install the `DEBUGGER:replayRegister()` capture/restore hook
+- `start()` to start recording with an explicit initial baseline
+- `stop()` to stop and load the recording
+- `play()` to replay the selected session
+- `capture()` and `restore()` placeholders for your game checkpoint logic
+
+Wire it once from your game:
+
+```lua
+local replay = require("dev.replay")
+
+function love.load()
+  replay.register()
+end
+```
+
+Then edit `dev/replay.lua` to delegate to your save, checkpoint, scene-loading, seed, or debug-state systems. The adapter no-ops when `DEBUGGER` is unavailable, so the game can require it safely while keeping Feather-specific logic contained.
 
 ---
 
@@ -377,7 +420,7 @@ Doctor checks:
 - installed plugin manifests
 - missing, unknown, malformed, or development-only plugins
 - package lockfile integrity, version drift, and source provenance
-- build/upload dependencies when `--build-target` or `--upload-target` is provided
+- build dependencies when `--build-target` is provided, plus upload readiness when an upload target is requested or `feather.build.json` is present
 - `USE_DEBUGGER` guards and `FEATHER-INIT` markers
 - risky settings such as hot reload, screenshot capture, and Console API keys
 - Feather desktop WebSocket reachability
@@ -451,10 +494,44 @@ feather build vendor add desktop
 feather build vendor add all --json
 feather build vendor add android --ref 11.5
 feather build vendor add ios --ref 11.5 --json
+feather build vendor add web --force          # overwrite existing vendor directory
 feather build vendor list
 ```
 
-`build vendor add` installs local build vendors into `vendor/` and updates `feather.build.json` by default. Web fetches `2dengine/love.js` into `vendor/love.js`. Android fetches `love2d/love-android` with submodules. iOS fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode tree. Desktop vendors download official LÖVE runtimes for Windows, macOS, and Linux; SteamOS reuses the Linux runtime unless configured separately. Mobile and desktop versions come from `loveVersion` or `--ref`, falling back to `11.5`; web defaults to the love.js `main` branch unless `--web-ref` or `--ref` is passed.
+## `build vendor add`
+
+Installs local build vendors into `vendor/` and updates `feather.build.json` by default.
+
+If a vendor directory already exists, it is skipped and installation continues for the remaining vendors. In interactive terminals, Feather prompts whether the existing vendor should be overwritten. Use `--force` to overwrite existing vendors without prompting.
+
+### Vendor Sources
+
+- **Web** — Fetches `2dengine/love.js` into `vendor/love.js`
+- **Android** — Fetches `love2d/love-android` with submodules
+- **iOS** — Fetches `love2d/love` and installs the matching `love-<version>-apple-libraries.zip` into the Xcode project tree
+- **Desktop** — Downloads official LÖVE runtimes for:
+  - Windows
+  - macOS
+  - Linux
+- **SteamOS** — Reuses the Linux runtime unless configured separately
+
+### Version Resolution
+
+> [!NOTE]
+> Only 11.5 has been tested, future Love2D releases will be officially supported short after launch.
+
+Mobile and desktop vendors resolve versions using:
+
+1. `loveVersion`
+2. `--ref`
+
+If neither is provided, Feather defaults to `11.5`.
+
+Web vendors behave slightly differently:
+
+- Defaults to the `main` branch of `love.js`
+- Can be pinned using `--web-ref`
+- Falls back to `--ref` if provided
 
 ```json
 {
@@ -466,6 +543,12 @@ feather build vendor list
   "sourceDir": ".",
   "outDir": "builds",
   "exclude": ["screenshots/**", "tmp/**"],
+  "release": {
+    "fastlane": {
+      "path": "fastlane",
+      "bundleExec": "auto"
+    }
+  },
   "targets": {
     "web": {
       "loveJsDir": "vendor/love.js"
@@ -483,7 +566,13 @@ feather build vendor list
         "keystorePath": "signing/release.keystore",
         "keyAlias": "release",
         "storePasswordEnv": "ANDROID_STORE_PASSWORD",
-        "keyPasswordEnv": "ANDROID_KEY_PASSWORD"
+        "keyPasswordEnv": "ANDROID_KEY_PASSWORD",
+        "fastlane": {
+          "packageName": "com.example.mygame",
+          "track": "internal",
+          "releaseStatus": "completed",
+          "serviceAccountJsonEnv": "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"
+        }
       }
     },
     "ios": {
@@ -497,7 +586,13 @@ feather build vendor list
         "exportMethod": "app-store-connect",
         "signingStyle": "manual",
         "provisioningProfileSpecifier": "My Game App Store",
-        "teamId": "ABCDE12345"
+        "teamId": "ABCDE12345",
+        "fastlane": {
+          "bundleIdentifier": "com.example.mygame",
+          "teamId": "ABCDE12345",
+          "exportMethod": "app-store",
+          "appStoreConnectApiKeyPathEnv": "APP_STORE_CONNECT_API_KEY_PATH"
+        }
       }
     },
     "windows": {
@@ -570,7 +665,38 @@ Mobile build notes:
 - Release Android/iOS builds use fresh native workspaces by default for reproducibility.
 - `feather doctor --build-target android --release` validates product id, Gradle wrapper, JDK, Android SDK, and signing env setup.
 - `feather doctor --build-target ios --release` validates bundle id, macOS/Xcode setup, template path, export options, and signing hints.
-- Play Console and App Store upload are not included in this pass.
+
+### `feather release`
+
+`feather release` is an optional Fastlane-backed layer for signed store-ready mobile workflows. It scaffolds editable Fastlane files, runs a clean Feather-free mobile release build for `beta` and `production`, checks generated artifacts for Feather runtime/debug files, and invokes the selected lane with explicit `FEATHER_*` environment variables.
+
+```bash
+feather release init --dir path/to/my-game
+feather release ios beta --dir path/to/my-game
+feather release ios production --dir path/to/my-game
+feather release android beta --dir path/to/my-game
+feather release android production --dir path/to/my-game
+feather release android metadata --dir path/to/my-game --skip-build
+feather release ios screenshots --dir path/to/my-game --skip-build
+```
+
+Fastlane remains optional: `feather build android --release` and `feather build ios --release` still work without it. If a `Gemfile` exists, Feather runs `bundle exec fastlane`; otherwise it runs `fastlane` directly. Secrets stay in environment variables or files referenced by environment variables, never directly in `feather.build.json`.
+
+**Options:**
+
+| Option              | Description                                           |
+| ------------------- | ----------------------------------------------------- |
+| `--dir <path>`      | Project directory (default: current directory).       |
+| `--config <path>`   | Path to `feather.build.json`.                         |
+| `--out-dir <path>`  | Build output directory override.                      |
+| `--name <name>`     | Product name override.                                |
+| `--version <value>` | Product version override.                             |
+| `--dry-run`         | Show the release command without running Fastlane.    |
+| `--json`            | Print machine-readable output only.                   |
+| `--clean`           | Remove build output before the release build.         |
+| `--no-cache`        | Disable native build cache during the release build.  |
+| `--verbose`         | Show native build and Fastlane output.                |
+| `--skip-build`      | Run Fastlane using existing build manifest artifacts. |
 
 ---
 
@@ -580,6 +706,7 @@ Upload a built artifact. V1 supports Itch through `butler`; Steam is registered 
 
 ```bash
 feather upload itch web --dir path/to/my-game
+feather upload itch android --dir path/to/my-game --build
 feather upload itch web --channel html5 --if-changed
 feather upload itch web --dry-run --json
 feather upload steam linux
@@ -593,6 +720,8 @@ butler push <artifact> <user/game>:<channel> --userversion <version>
 
 The Itch project and default channels come from `feather.build.json`. Use `--channel` or `--user-version` to override them in CI.
 
+When `--build` is used, upload always performs a production-safe build first. Android and iOS upload builds force release mode, debugger embedding is disabled, `--allow-unsafe` and `--allow-feather-runtime` are rejected, and generated inspectable artifacts are checked for Feather runtime/debug files before upload. `--allow-feather-runtime` only applies when uploading an existing artifact you built yourself.
+
 **Options:**
 
 | Option                     | Description                                         |
@@ -605,6 +734,8 @@ The Itch project and default channels come from `feather.build.json`. Use `--cha
 | `--dry-run`                | Show the upload command without running it.         |
 | `--if-changed`             | Pass `--if-changed` to supported uploaders.         |
 | `--hidden`                 | Pass `--hidden` to supported uploaders.             |
+| `--build`                  | Build a production-safe artifact before uploading.  |
+| `--allow-feather-runtime`  | Override safety checks only for existing artifacts. |
 | `--json`                   | Print machine-readable output only.                 |
 
 Run `feather doctor --upload-target itch` to check for `butler`, Itch project config, and CI auth hints. Use `BUTLER_API_KEY` in CI or `butler login` locally.
@@ -626,6 +757,9 @@ feather update --local-src ../feather/src-lua
 In an interactive terminal, `feather update` opens an Ink workflow to choose local/bundled files or a GitHub branch/tag. In scripts or with `-y`, it uses the local/bundled CLI copy unless `--remote` is provided.
 
 This updates all `core:` files listed in `manifest.txt`. Plugin files are not touched — use `feather plugin update` for those.
+
+> [!NOTE]
+> CLI-managed projects (initialized with `feather init` in `cli` mode) do not embed the runtime in the project. For those projects `feather update` prints an informational message and exits — update the CLI package itself to get the latest runtime.
 
 ---
 
@@ -674,7 +808,22 @@ feather plugin install console
 feather plugin install time-travel --remote --branch main
 feather plugin install console --local-src ../feather/src-lua
 feather plugin install console --install-dir lib/feather
+feather plugin install console input-replay           # install multiple at once
+feather plugin install console --force                # overwrite if already installed
 ```
+
+If a plugin is already installed, `feather plugin install` skips it and continues installing the others. In an interactive terminal it then offers to overwrite the skipped plugins. Pass `--force` to overwrite without prompting.
+
+**Options:**
+
+| Option                 | Description                                                   |
+| ---------------------- | ------------------------------------------------------------- |
+| `--force`              | Overwrite already-installed plugins without prompting.        |
+| `--remote`             | Download from GitHub instead of the local/bundled runtime.    |
+| `--branch <branch>`    | GitHub branch or tag when using `--remote` (default: `main`). |
+| `--local-src <path>`   | Copy from a local `src-lua` style directory.                  |
+| `--install-dir <path>` | Install directory (default: `feather`).                       |
+| `--dir <path>`         | Project directory (default: current directory).               |
 
 #### `feather plugin remove <id>`
 
@@ -698,6 +847,68 @@ feather plugin update --remote --branch main
 When no plugin ID or source flag is provided in an interactive terminal, `feather plugin update` opens an Ink workflow where you can choose the source and select installed plugins. Use `-y`, `--remote`, or `--local-src` for CI or scripts.
 
 Use `--install-dir <path>` with plugin commands when the project was initialized outside the default `feather/` directory.
+
+Use `--managed <mode>` to override the managed-mode detection read from `feather.config.lua`. Accepted values are `cli`, `auto`, and `manual`. This is rarely needed; the config file is the source of truth.
+
+---
+
+### `feather config`
+
+Update values in `feather.config.lua` without opening the file.
+
+#### `feather config plugins`
+
+Add or remove plugins from the `include`/`exclude` lists and keep the `capabilities` allowlist in sync.
+
+```bash
+feather config plugins --include console,input-replay
+feather config plugins --exclude hump.signal
+feather config plugins --include profiler --exclude runtime-snapshot --dir path/to/my-game
+```
+
+**Options:**
+
+| Option            | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| `--include <ids>` | Comma-separated plugin IDs to add to `include`.         |
+| `--exclude <ids>` | Comma-separated plugin IDs to add to `exclude`.         |
+| `--dir <path>`    | Project directory (default: current directory).         |
+
+#### `feather config hot-reload`
+
+Enable the opt-in `hot-reload` plugin and write a narrow `debugger.hotReload.allow` list.
+
+```bash
+feather config hot-reload --allow game.player,game.systems.combat
+feather config hot-reload --allow game.player --dir path/to/my-game
+```
+
+This also writes `debug = true`, `autoRegisterErrorHandler = true`, `include = { "hot-reload", ... }`, the required `filesystem` capability, and safe defaults such as `deny = { "main", "conf", "feather.*" }` and `persistToDisk = false`.
+
+**Options:**
+
+| Option            | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| `--allow <names>` | Comma-separated Lua module names Hot Reload may update. |
+| `--dir <path>`    | Project directory (default: current directory).         |
+
+#### `feather config managed <mode>`
+
+Change the `managed` field that controls how Feather detects the integration mode. Useful when you want to override what `feather init` wrote without re-initialising the project.
+
+```bash
+feather config managed cli
+feather config managed auto
+feather config managed manual --dir path/to/my-game
+```
+
+Valid modes are `cli`, `auto`, and `manual`. This updates the config field only — it does not patch `main.lua`, install the runtime, or generate `feather.debugger.lua`. Use `feather init --mode <mode>` for a full mode transition.
+
+**Options:**
+
+| Option         | Description                                     |
+| -------------- | ----------------------------------------------- |
+| `--dir <path>` | Project directory (default: current directory). |
 
 ---
 

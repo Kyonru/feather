@@ -16,6 +16,7 @@ The goal is to make the day-to-day loop of writing and testing a LÖVE game fast
 - **Variable inspection** — Watch values update as the game runs.
 - **Error capturing** — Errors are caught and shown with a full stack trace.
 - **Step debugger** — Breakpoints, step over/into/out, call stack, local variable inspection.
+- **Session Replay** — Record inputs plus game-defined state checkpoints so playthroughs can be replayed, exported, and debugged later.
 - **Console / REPL** — Execute Lua in the running game (opt-in, requires an `apiKey`).
 - **Plugin system** — 18+ built-in plugins (collision debug, animation inspector, audio debug, particle editor, and more). Plugins define their UI in Lua; the desktop app renders it automatically.
 - **Multi-session** — Connect multiple games at the same time.
@@ -42,13 +43,13 @@ Install the Feather desktop app and CLI:
 1. Download the desktop app from [Releases](https://github.com/Kyonru/feather/releases).
 2. Install the CLI:
 
-```sh
+```bash
 npm install -g @kyonru/feather
 ```
 
 Initialize your project, open the Feather app, then run the game:
 
-```sh
+```bash
 feather init path/to/my-game
 feather run path/to/my-game
 ```
@@ -57,7 +58,7 @@ Feather is injected by the CLI for dev runs and debug builds, so your game code 
 
 Optional vendor setup for web, mobile, and packaged desktop workflows:
 
-```sh
+```bash
 feather build vendor add web --dir path/to/my-game
 feather run path/to/my-game --target web
 
@@ -70,13 +71,13 @@ feather run path/to/my-game --target ios
 
 For all build vendors, including desktop packaging runtimes:
 
-```sh
+```bash
 feather build vendor add all --dir path/to/my-game
 ```
 
 Build release artifacts from the same CLI flow:
 
-```sh
+```bash
 feather build love --dir path/to/my-game
 feather build android --dir path/to/my-game --release
 feather build ios --dir path/to/my-game --release
@@ -88,12 +89,13 @@ feather build steamos --dir path/to/my-game
 
 For more commands and options:
 
-```sh
+```bash
 feather --help
 feather run --help
 ```
 
 See the [CLI docs](docs/cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload`.
+
 
 ---
 
@@ -118,6 +120,7 @@ Available libraries include anim8, bump, hump, lume, flux, inspect, middleclass,
 - [CLI](docs/cli.md)
 - [Configuration](docs/configuration.md)
 - [Usage](docs/usage.md) — observers, logging, console, step debugger
+- [Session Replay](docs/session-replay.md)
 - [Plugins](docs/plugins.md)
 - [Packages](packages/README.md)
 - [Recommendations](docs/recommendations.md) — security, performance, release builds

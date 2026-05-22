@@ -16,6 +16,7 @@ import {
   GitCompareArrowsIcon,
   ImagesIcon,
   LogsIcon,
+  RepeatIcon,
   SparklesIcon,
   TelescopeIcon,
   TerminalIcon,
@@ -73,6 +74,11 @@ export function NavMain() {
       title: 'Time Travel',
       url: '/time-travel',
       icon: ClockIcon,
+    },
+    {
+      title: 'Session Replay',
+      url: '/session-replay',
+      icon: RepeatIcon,
     },
     {
       title: 'Compare',
