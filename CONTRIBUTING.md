@@ -183,6 +183,17 @@ Focused guidance:
 
 If `love`, `luacheck`, Android SDK, Xcode, Fastlane, or other local tooling is missing, document that in the PR or final handoff. Do not pretend the check passed.
 
+The pre-push hook runs the heavier local test lanes before pushing:
+
+```sh
+npm run test:cli:e2e
+npm run test:lua:e2e
+npm run test:app:e2e
+npm run test:showcase:e2e
+```
+
+When you need to push from a machine that cannot run those tools, use `SKIP_PRE_PUSH_TESTS=1 git push` and call out the skipped checks.
+
 ## Generated Files
 
 Some files are generated and must stay in sync:
