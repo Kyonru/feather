@@ -19,6 +19,28 @@ function binary(op: string): Emit {
   return (i, o) => `float ${o.out} = ${i.a} ${op} ${i.b};`;
 }
 
+function halftoneChannel(base: string, uv: string, offset: string, scale: string, mode: string, out: string, prefix: string): string[] {
+  return [
+    `vec2 ${prefix}_offset = ${offset} / max(${scale}, 0.0001);`,
+    `vec2 ${prefix}_dir = ${prefix}_offset / max(dot(${prefix}_offset, ${prefix}_offset), 0.000001);`,
+    `vec2 ${prefix}_pos = mod(abs(vec2(dot(${uv}, ${prefix}_dir), -${uv}.x * ${prefix}_dir.y + ${uv}.y * ${prefix}_dir.x)) + vec2(0.5), vec2(1.0)) - vec2(0.5);`,
+    `float ${prefix}_base = clamp(${base}, 0.0, 1.0);`,
+    `float ${prefix}_circle_raw = 0.78 * dot(${prefix}_pos, ${prefix}_pos) / max(0.25 * (1.0 - ${prefix}_base), 0.0001);`,
+    `float ${prefix}_circle = 1.0 - clamp((1.0 - ${prefix}_circle_raw) / max(fwidth(${prefix}_circle_raw), 0.0001), 0.0, 1.0);`,
+    `vec2 ${prefix}_pos2 = mod(${prefix}_pos + vec2(1.0), vec2(1.0)) - vec2(0.5);`,
+    `float ${prefix}_p1 = dot(${prefix}_pos, ${prefix}_pos);`,
+    `float ${prefix}_p2 = dot(${prefix}_pos2, ${prefix}_pos2);`,
+    `float ${prefix}_t = ${prefix}_p1 / max(${prefix}_p1 + ${prefix}_p2, 0.0001);`,
+    `float ${prefix}_smooth_raw = (1.0 - ${prefix}_t) * (${prefix}_p1 - 0.25 * (1.0 - ${prefix}_base)) - ${prefix}_t * (${prefix}_p2 - 0.25 * ${prefix}_base);`,
+    `float ${prefix}_smooth = 1.0 - clamp((-${prefix}_smooth_raw) / max(fwidth(${prefix}_smooth_raw), 0.0001), 0.0, 1.0);`,
+    `float ${prefix}_radius = 0.5 * sqrt(max(1.0 - ${prefix}_base, 0.0));`,
+    `float ${prefix}_square_raw = max(abs(${prefix}_pos.x), abs(${prefix}_pos.y)) / max(${prefix}_radius, 0.0001);`,
+    `float ${prefix}_square = 1.0 - clamp((1.0 - ${prefix}_square_raw) / max(fwidth(${prefix}_square_raw), 0.0001), 0.0, 1.0);`,
+    `float ${prefix}_mode = clamp(floor(${mode} + 0.5), 0.0, 2.0);`,
+    `float ${out} = ${prefix}_circle * (1.0 - step(0.5, abs(${prefix}_mode - 0.0))) + ${prefix}_smooth * (1.0 - step(0.5, abs(${prefix}_mode - 1.0))) + ${prefix}_square * (1.0 - step(0.5, abs(${prefix}_mode - 2.0)));`,
+  ];
+}
+
 export const NODE_DEFS: Record<NodeType, NodeDef> = {
   // ─── Input ──────────────────────────────────────────────────────────────────
   TextureColor: {
@@ -1160,6 +1182,41 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     ].join('\n'),
   },
 
+  // ─── Halftone ───────────────────────────────────────────────────────────────
+  HalftoneMono: {
+    category: 'Halftone',
+    label: 'Halftone Mono',
+    inputs: [
+      { id: 'base', label: 'Base', type: 'float', defaultValue: 0.5, min: 0, max: 1, step: 0.01 },
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'offset', label: 'Offset', type: 'vec2', defaultValue: [0.01, 0], step: 0.001 },
+      { id: 'scale', label: 'Scale', type: 'float', defaultValue: 1, min: 0.1, max: 16, step: 0.1 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 2, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => halftoneChannel(i.base, i.uv, i.offset, i.scale, i.mode, o.out, `${o.out}_mono`).join('\n'),
+  },
+  HalftoneColor: {
+    category: 'Halftone',
+    label: 'Halftone Color',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'offsetR', label: 'Offset R', type: 'vec2', defaultValue: [0.01, 0], step: 0.001 },
+      { id: 'offsetG', label: 'Offset G', type: 'vec2', defaultValue: [0.00866, 0.005], step: 0.001 },
+      { id: 'offsetB', label: 'Offset B', type: 'vec2', defaultValue: [0.005, 0.00866], step: 0.001 },
+      { id: 'scale', label: 'Scale', type: 'float', defaultValue: 1, min: 0.001, max: 16, step: 0.05 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 2, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      ...halftoneChannel(`${i.color}.r`, i.uv, i.offsetR, i.scale, i.mode, `${o.out}_r`, `${o.out}_r`),
+      ...halftoneChannel(`${i.color}.g`, i.uv, i.offsetG, i.scale, i.mode, `${o.out}_g`, `${o.out}_g`),
+      ...halftoneChannel(`${i.color}.b`, i.uv, i.offsetB, i.scale, i.mode, `${o.out}_b`, `${o.out}_b`),
+      `vec4 ${o.out} = vec4(${o.out}_r, ${o.out}_g, ${o.out}_b, ${i.color}.a);`,
+    ].join('\n'),
+  },
+
   // ─── UV (extended) ───────────────────────────────────────────────────────────
   ZoomUV: {
     category: 'UV',
@@ -1320,6 +1377,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Color: 'border-l-pink-500',
   Composite: 'border-l-rose-500',
   Noise: 'border-l-green-500',
+  Halftone: 'border-l-lime-500',
   UV: 'border-l-indigo-500',
   Effect: 'border-l-cyan-500',
   Output: 'border-l-red-500',
@@ -1404,6 +1462,7 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
   { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift', 'InvertColor', 'Contrast', 'PosterizeColor', 'MultiplyColor', 'BlendAdd', 'BlendScreen', 'BlendOverlay', 'Brightness', 'GammaCorrect'] },
   { category: 'Composite', nodes: ['CompositeAlpha'] },
   { category: 'Noise', nodes: ['SimpleNoise', 'GradientNoise', 'FBMNoise', 'TruchetTiles', 'Ripple', 'VoronoiCells', 'Checkerboard'] },
+  { category: 'Halftone', nodes: ['HalftoneMono', 'HalftoneColor'] },
   { category: 'UV', nodes: ['TilingOffset', 'RotateUV', 'TwirlUV', 'PolarCoordinates', 'ZoomUV', 'FlipUV'] },
   {
     category: 'Effect',

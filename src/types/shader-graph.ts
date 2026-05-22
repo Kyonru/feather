@@ -119,6 +119,9 @@ export const NODE_TYPES = [
   'GradientNoise',
   'FBMNoise',
   'TruchetTiles',
+  // Halftone
+  'HalftoneMono',
+  'HalftoneColor',
   // UV
   'ZoomUV',
   'FlipUV',
@@ -135,7 +138,7 @@ export const NODE_TYPES = [
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
+export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Halftone' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;

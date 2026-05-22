@@ -93,6 +93,14 @@ Noise nodes create procedural variation.
 - `Voronoi Cells`: cellular mask for sparks, shields, energy, and organic breakup.
 - `Checkerboard`: alternating square mask.
 
+### Halftone
+
+Halftone nodes create print-style dot patterns from grayscale or RGB input.
+
+- `Halftone Mono`: converts a scalar base value into a halftone mask.
+- `Halftone Color`: applies separate red, green, and blue halftone screens. `Mode` is stepped from `0` to `2`: `0` Circle, `1` Smooth, `2` Square.
+  `Scale` controls dot density: higher values make smaller, denser dots; lower values make larger, more separated dots.
+
 ### UV
 
 UV nodes transform texture coordinates before sampling.
@@ -174,6 +182,7 @@ The Shader Graph page includes complete preset graphs:
 - **Chromatic Aberration**: RGB channel split with an editable center offset.
 - **Alpha Composite**: Porter-Duff compositing between overlapping procedural shapes.
 - **Posterize**: toon/retro color bands.
+- **Halftone Dots**: comic-print treatment with posterized color, RGB dot screens, warm paper tint, and vignette.
 - **Twirl Portal**: centered UV swirl.
 - **Rotating Texture**: time-driven UV rotation.
 - **Checker Flash**: checker mask mixed into a flash color.
