@@ -22,6 +22,35 @@ import { getNodeDef, NODE_DEFS } from './nodeDefs';
 import { nodeTypes } from './nodes';
 import { Redo2Icon, Undo2Icon } from 'lucide-react';
 import { DEFAULT_CUSTOM_FUNCTION_CODE } from './customNode';
+import { useTheme } from '@/hooks/use-theme';
+
+// Hex equivalents of the Tailwind *-500 colors used in CATEGORY_COLORS
+const CATEGORY_HEX: Record<string, string> = {
+  Custom: '#71717a',
+  Input: '#3b82f6',
+  Math: '#f97316',
+  Complex: '#f59e0b',
+  Quaternion: '#d946ef',
+  Symmetry: '#8b5cf6',
+  Random: '#78716c',
+  Vector: '#a855f7',
+  Color: '#ec4899',
+  Composite: '#f43f5e',
+  Noise: '#22c55e',
+  Pattern: '#10b981',
+  Halftone: '#84cc16',
+  'Pixel Perfect': '#0ea5e9',
+  UV: '#6366f1',
+  Effect: '#06b6d4',
+  Output: '#ef4444',
+  Vertex: '#eab308',
+  SDF: '#14b8a6',
+};
+
+function miniMapNodeColor(node: Node<ShaderNodeData>): string {
+  const def = getNodeDef(node.data);
+  return CATEGORY_HEX[def?.category ?? ''] ?? '#71717a';
+}
 
 let idCounter = Date.now();
 function nextId() {
@@ -174,6 +203,8 @@ export function ShaderCanvas() {
     event.dataTransfer.dropEffect = 'copy';
   }, []);
 
+  const theme = useTheme();
+
   return (
     <div className="h-full w-full" style={{ height: '100%', width: '100%' }} onDrop={onDrop} onDragOver={onDragOver}>
       <ReactFlow
@@ -189,10 +220,11 @@ export function ShaderCanvas() {
         onInit={(instance) => {
           rfRef.current = instance;
         }}
+        proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
         fitView
         deleteKeyCode={null}
-        className="bg-background"
+        colorMode={theme}
       >
         <div className="absolute left-3 top-3 z-10 flex gap-1 rounded-md border bg-card/95 p-1 shadow-sm">
           <Button
@@ -216,9 +248,15 @@ export function ShaderCanvas() {
             <Redo2Icon className="size-4" />
           </Button>
         </div>
-        <Background gap={20} size={1} className="!text-muted-foreground/20" />
-        <Controls className="[&>button]:bg-card [&>button]:border-border [&>button]:text-foreground" />
-        <MiniMap className="!bg-card !border !border-border" nodeColor="hsl(var(--muted))" />
+        <Background gap={20} size={1} className="text-muted-foreground/20!" />
+        <Controls className="[&>button]:bg-card [&>button]:border-border [&>button]:text-background" />
+        <MiniMap
+          zoomable
+          pannable
+          nodeStrokeWidth={3}
+          className="bg-card! border! border-border!"
+          nodeColor={miniMapNodeColor}
+        />
       </ReactFlow>
     </div>
   );
