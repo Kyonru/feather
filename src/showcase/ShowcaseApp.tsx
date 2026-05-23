@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
 import { ShowcaseShaderGraph } from './ShowcaseShaderGraph';
 import { ShowcaseParticlePlayground } from './ShowcaseParticlePlayground';
+import { ShowcaseGallery } from './ShowcaseGallery';
 
 type ShowcaseRoute = 'home' | 'shader-graph' | 'particle-system-playground';
 
@@ -23,16 +24,19 @@ function Home() {
   return (
     <main className="grid min-h-0 flex-1 place-items-center overflow-auto px-6 py-10">
       <div className="grid w-full max-w-5xl gap-8">
+        <ShowcaseGallery />
         <section className="grid gap-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Feather Showcase</p>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight">
-            Browser-native authoring tools for LÖVE shaders and particles.
+            A complete developer toolkit for LÖVE games.
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Try Feather’s Shader Graph and Particle System Playground without connecting a game. The standalone build
-            keeps authoring local and sends preview payloads to an isolated love.js frame.
+            Feather brings professional-grade tooling to LÖVE — visual shader authoring, particle editing, real-time
+            debugging, performance profiling, log inspection, session replay, asset management, and more. All from an
+            extensible and free development companion app, connected live to your running game.
           </p>
         </section>
+        <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Explore the demos:</h3>
         <section className="grid gap-3 md:grid-cols-2">
           <button
             className="grid gap-3 rounded-md border bg-card p-5 text-left transition-colors hover:bg-muted/40"
@@ -76,16 +80,17 @@ export function ShowcaseApp() {
   return (
     <div className="flex h-screen min-h-0 flex-col bg-background text-foreground">
       <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b px-4">
-        <div className="flex flex-row">
-          <button className="text-sm font-semibold" onClick={() => navigate('home')}>
-            Feather Showcase
+        <div className="flex flex-row items-center gap-2">
+          <button className="flex items-center gap-2 text-sm font-semibold" onClick={() => navigate('home')}>
+            <img src="/feather-clear.svg" alt="Feather" className="size-5" />
+            Feather
           </button>
           <Button
             onClick={onInstallClick}
             variant="outline"
             className="hidden h-5 px-1.5 ml-2 text-[10px] md:inline-flex"
           >
-            Install Feather
+            Install
           </Button>
         </div>
         <nav className="flex items-center gap-2">
