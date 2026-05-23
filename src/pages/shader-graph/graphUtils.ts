@@ -21,6 +21,23 @@ export function defaultNodeData(nodeType: NodeType, label: string): ShaderNodeDa
   return { label, nodeType };
 }
 
+export function cloneShaderNodeData(data: ShaderNodeData): ShaderNodeData {
+  return {
+    ...data,
+    values: data.values
+      ? Object.fromEntries(Object.entries(data.values).map(([key, value]) => [key, Array.isArray(value) ? [...value] : value]))
+      : undefined,
+    subgraphInputs: data.subgraphInputs?.map((port) => ({
+      ...port,
+      defaultValue: Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue,
+    })),
+    subgraphOutputs: data.subgraphOutputs?.map((port) => ({
+      ...port,
+      defaultValue: Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue,
+    })),
+  };
+}
+
 export function addNodeAt(nodeType: NodeType, position: XYPosition): ShaderNodeInstance {
   const def = NODE_DEFS[nodeType];
   const id = nextGraphId();
@@ -53,7 +70,7 @@ export function cloneGraphFragment(
         x: position.x + (node.position.x - minX),
         y: position.y + (node.position.y - minY),
       },
-      data: { ...node.data },
+      data: cloneShaderNodeData(node.data),
     };
   });
 
@@ -155,7 +172,7 @@ export function inferSubgraphFromSelection(
     ...node,
     selected: false,
     position: { x: node.position.x - minX, y: node.position.y - minY },
-    data: { ...node.data },
+    data: cloneShaderNodeData(node.data),
   }));
   const subgraph: ShaderSubgraph = {
     id: subgraphId,

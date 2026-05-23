@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
+import { LinkIcon } from 'lucide-react';
 import { cn } from '@/utils/styles';
 import type { ShaderNodeData } from '@/types/shader-graph';
 import { getNodeDef, CATEGORY_COLORS, PORT_TYPE_COLORS } from '../nodeDefs';
@@ -15,11 +16,28 @@ export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData
   return (
     <div
       className={cn(
-        'min-w-28 rounded border border-l-2 bg-card px-3 py-2 shadow-sm',
+        'relative min-w-28 rounded border border-l-2 bg-card px-3 py-2 shadow-sm',
         colorClass,
         selected && 'ring-2 ring-primary',
       )}
     >
+      {data.linkedSourceNodeId && (
+        <button
+          type="button"
+          aria-label="Unlink linked node"
+          title={`Linked to ${data.linkedSourceLabel ?? 'copied node'}. Click to unlink.`}
+          className="nodrag nopan absolute right-1 top-1 flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.dispatchEvent(new CustomEvent('shader-graph:unlink-node', {
+              detail: { nodeId: id },
+            }));
+          }}
+        >
+          <LinkIcon className="size-3" />
+        </button>
+      )}
       <div className="mb-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
         {def.category}
       </div>

@@ -44,6 +44,7 @@ type ShaderGraphStore = {
   removeNode: (id: string) => void;
   removeEdge: (id: string) => void;
   updateNodeData: (id: string, patch: Partial<ShaderNodeData>) => void;
+  unlinkNode: (id: string) => void;
   selectNode: (id: string | null) => void;
   selectEdge: (id: string | null) => void;
   enterSubgraph: (id: string) => void;
@@ -66,6 +67,12 @@ type ShaderGraphStore = {
 };
 
 const HISTORY_LIMIT = 100;
+let storeIdCounter = Date.now();
+
+function nextStoreGraphId(prefix: string): string {
+  storeIdCounter += 1;
+  return `${prefix}-${storeIdCounter}`;
+}
 
 function graphHash(state: Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs'>): string {
   return JSON.stringify({ nodes: state.nodes, edges: state.edges, subgraphs: state.subgraphs });
@@ -77,6 +84,105 @@ function snapshot(state: Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs'>
 
 function sameGraph(a: GraphSnapshot, b: GraphSnapshot): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function cloneShaderNodeData(data: ShaderNodeData): ShaderNodeData {
+  return {
+    ...data,
+    values: data.values
+      ? Object.fromEntries(Object.entries(data.values).map(([key, value]) => [key, Array.isArray(value) ? [...value] : value]))
+      : undefined,
+    subgraphInputs: data.subgraphInputs?.map((port) => ({ ...port, defaultValue: Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue })),
+    subgraphOutputs: data.subgraphOutputs?.map((port) => ({ ...port, defaultValue: Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue })),
+  };
+}
+
+function safeSubgraphFunctionName(name: string, id: string): string {
+  const base = name.trim().replace(/[^a-zA-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'subgraph';
+  const suffix = id.replace(/[^a-zA-Z0-9_]+/g, '_');
+  return `feather_subgraph_${base}_${suffix}`;
+}
+
+function clonePort(port: ShaderSubgraph['inputs'][number]) {
+  return {
+    ...port,
+    defaultValue: Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue,
+  };
+}
+
+type SubgraphCloneResult = {
+  root: ShaderSubgraph;
+  subgraphs: ShaderSubgraph[];
+};
+
+function cloneSubgraphTree(
+  rootSubgraph: ShaderSubgraph,
+  allSubgraphs: ShaderSubgraph[],
+  name = rootSubgraph.name,
+): SubgraphCloneResult {
+  const subgraphMap = new Map(allSubgraphs.map((subgraph) => [subgraph.id, subgraph]));
+  const clonedBySourceId = new Map<string, ShaderSubgraph>();
+
+  const cloneOne = (source: ShaderSubgraph, nextName = source.name): ShaderSubgraph => {
+    const existing = clonedBySourceId.get(source.id);
+    if (existing) return existing;
+
+    const id = nextStoreGraphId('subgraph');
+    const idMap = new Map(source.nodes.map((node) => [node.id, nextStoreGraphId('node')]));
+    const mapNodeId = (nodeId: string) => idMap.get(nodeId) ?? nodeId;
+    const clone: ShaderSubgraph = {
+      ...source,
+      id,
+      name: nextName,
+      functionName: safeSubgraphFunctionName(nextName, id),
+      nodes: [],
+      edges: [],
+      inputs: source.inputs.map(clonePort),
+      outputs: source.outputs.map(clonePort),
+      inputMappings: Object.fromEntries(
+        Object.entries(source.inputMappings).map(([portId, mapping]) => [portId, { ...mapping, nodeId: mapNodeId(mapping.nodeId) }]),
+      ),
+      outputMappings: Object.fromEntries(
+        Object.entries(source.outputMappings).map(([portId, mapping]) => [portId, { ...mapping, nodeId: mapNodeId(mapping.nodeId) }]),
+      ),
+    };
+    clonedBySourceId.set(source.id, clone);
+
+    clone.nodes = source.nodes.map((node) => {
+      const data = cloneShaderNodeData(node.data);
+      if (data.nodeType === 'SubgraphInstance' && typeof data.subgraphId === 'string') {
+        const nestedSource = subgraphMap.get(data.subgraphId);
+        if (nestedSource) {
+          const nestedClone = cloneOne(nestedSource);
+          data.subgraphId = nestedClone.id;
+          data.subgraphInputs = nestedClone.inputs.map(clonePort);
+          data.subgraphOutputs = nestedClone.outputs.map(clonePort);
+        }
+      }
+      return {
+        ...node,
+        id: mapNodeId(node.id),
+        selected: false,
+        data,
+      };
+    });
+
+    clone.edges = source.edges.map((edge) => {
+      const sourceId = mapNodeId(edge.source);
+      const targetId = mapNodeId(edge.target);
+      return {
+        ...edge,
+        id: `${sourceId}:${edge.sourceHandle ?? 'out'}->${targetId}:${edge.targetHandle ?? 'in'}`,
+        source: sourceId,
+        target: targetId,
+      };
+    });
+
+    return clone;
+  };
+
+  const root = cloneOne(rootSubgraph, name);
+  return { root, subgraphs: [...clonedBySourceId.values()] };
 }
 
 function activeGraph(state: Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs' | 'activeSubgraphId'>) {
@@ -170,7 +276,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
           const graph = activeGraph(s);
           return withHistory(s, {
             ...patchActiveGraph(s, {
-              nodes: [...graph.nodes, ...newNodes],
+              nodes: [...graph.nodes.map((node) => ({ ...node, selected: false })), ...newNodes],
               edges: [...graph.edges, ...newEdges],
             }),
             selectedNodeId,
@@ -211,9 +317,53 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       updateNodeData: (id, patch) =>
         set((s) => {
           const graph = activeGraph(s);
+          const editedNode = graph.nodes.find((n) => n.id === id);
+          const linkedSourceNodeId = typeof editedNode?.data.linkedSourceNodeId === 'string' ? editedNode.data.linkedSourceNodeId : null;
+          const linkedGroupSourceId = linkedSourceNodeId ?? id;
+          const shouldUpdateLinkedGroup =
+            !Object.prototype.hasOwnProperty.call(patch, 'linkedSourceNodeId') &&
+            !Object.prototype.hasOwnProperty.call(patch, 'linkedSourceLabel');
           return withHistory(s, patchActiveGraph(s, {
-            nodes: graph.nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n)),
+            nodes: graph.nodes.map((n) => {
+              const isEditedNode = n.id === id;
+              const isLinkedGroupNode = shouldUpdateLinkedGroup &&
+                (n.id === linkedGroupSourceId || n.data.linkedSourceNodeId === linkedGroupSourceId);
+              if (!isEditedNode && !isLinkedGroupNode) return n;
+              const nextData = { ...n.data, ...patch };
+              if (shouldUpdateLinkedGroup && n.id !== linkedGroupSourceId && typeof patch.label === 'string') {
+                nextData.linkedSourceLabel = patch.label;
+              }
+              return { ...n, data: nextData };
+            }),
           }));
+        }),
+      unlinkNode: (id) =>
+        set((s) => {
+          const graph = activeGraph(s);
+          let forkedSubgraphs: ShaderSubgraph[] = [];
+          const activePatch = patchActiveGraph(s, {
+            nodes: graph.nodes.map((node) => {
+              if (node.id !== id) return node;
+              const nextData = cloneShaderNodeData(node.data);
+              if (nextData.nodeType === 'SubgraphInstance' && typeof nextData.subgraphId === 'string') {
+                const sourceSubgraph = s.subgraphs.find((subgraph) => subgraph.id === nextData.subgraphId);
+                if (sourceSubgraph) {
+                  const fork = cloneSubgraphTree(sourceSubgraph, s.subgraphs, String(nextData.label || sourceSubgraph.name));
+                  forkedSubgraphs = fork.subgraphs;
+                  nextData.subgraphId = fork.root.id;
+                  nextData.subgraphInputs = fork.root.inputs.map(clonePort);
+                  nextData.subgraphOutputs = fork.root.outputs.map(clonePort);
+                }
+              }
+              delete nextData.linkedSourceNodeId;
+              delete nextData.linkedSourceLabel;
+              return { ...node, data: nextData };
+            }),
+          });
+          return withHistory(s, {
+            ...activePatch,
+            subgraphs: forkedSubgraphs.length > 0 ? [...activePatch.subgraphs, ...forkedSubgraphs] : activePatch.subgraphs,
+          });
         }),
       selectNode: (selectedNodeId) => set({ selectedNodeId, selectedEdgeId: null }),
       selectEdge: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null }),

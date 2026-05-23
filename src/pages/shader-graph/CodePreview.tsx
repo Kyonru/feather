@@ -80,7 +80,10 @@ export function CodePreview({
   const debouncedPreviewShape = useDebouncedValue(previewShape, 180);
   const debouncedPreviewColor = useDebouncedValue(previewColor, 180);
 
-  const glsl = useMemo(() => lastGeneratedGlsl ?? codegen(nodes, edges, subgraphs), [edges, lastGeneratedGlsl, nodes, subgraphs]);
+  const glsl = useMemo(
+    () => lastGeneratedGlsl ?? codegen(nodes, edges, subgraphs),
+    [edges, lastGeneratedGlsl, nodes, subgraphs],
+  );
   const textureUniforms = useMemo(() => glsl.textures ?? [], [glsl.textures]);
   const uploadedUniformTextures = useMemo(
     () =>
@@ -188,6 +191,7 @@ export function CodePreview({
       <ScrollArea className="flex-1 min-h-0">
         <SyntaxHighlighter
           language="glsl"
+          breakLines
           style={{
             ...hlTheme,
             hljs: {
@@ -203,9 +207,11 @@ export function CodePreview({
             padding: '12px',
             background: 'transparent',
             margin: 0,
+            width: '100%',
           }}
           showLineNumbers
           wrapLines
+          wrapLongLines
         >
           {fullSource}
         </SyntaxHighlighter>

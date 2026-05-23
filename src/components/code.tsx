@@ -26,6 +26,7 @@ export function LuaBlock({
       <div className={cn('max-h-64', className)}>
         <SyntaxHighlighter
           wrapLines
+          wrapLongLines
           language={language}
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-expect-error
@@ -46,7 +47,6 @@ export function TraceViewer({
   onFileClick?: (file: string, line?: number) => void;
   trace: string;
 }) {
-
   const highlightLine = (line: string, index: number) => {
     // Clickable file:line pattern
     const filePattern = /([\w./\\-]+\.lua):(\d+)/g;

@@ -212,6 +212,8 @@ export type ShaderNodeData = {
   subgraphId?: string;
   subgraphInputs?: PortDef[];
   subgraphOutputs?: PortDef[];
+  linkedSourceNodeId?: string | null;
+  linkedSourceLabel?: string | null;
   [key: string]: unknown;
 };
 

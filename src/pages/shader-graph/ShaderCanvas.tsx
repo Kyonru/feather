@@ -29,6 +29,8 @@ import { toast } from 'sonner';
 import { useTheme } from '@/hooks/use-theme';
 import {
   addNodeAt,
+  cloneGraphFragment,
+  cloneShaderNodeData,
   defaultNodeData,
   inferSubgraphFromSelection,
   linkSuggestions,
@@ -36,6 +38,14 @@ import {
   type LinkSuggestion,
   type PortRef,
 } from './graphUtils';
+
+type ShaderClipboard = {
+  type: 'feather.shader-graph-fragment';
+  nodes: Node<ShaderNodeData>[];
+  edges: Edge[];
+};
+
+let shaderClipboard: ShaderClipboard | null = null;
 
 // Hex equivalents of the Tailwind *-500 colors used in CATEGORY_COLORS
 const CATEGORY_HEX: Record<string, string> = {
@@ -77,6 +87,7 @@ export function ShaderCanvas() {
   const replaceSelectionWithSubgraph = useShaderGraphStore((s) => s.replaceSelectionWithSubgraph);
   const removeNode = useShaderGraphStore((s) => s.removeNode);
   const removeEdge = useShaderGraphStore((s) => s.removeEdge);
+  const unlinkNode = useShaderGraphStore((s) => s.unlinkNode);
   const selectNode = useShaderGraphStore((s) => s.selectNode);
   const selectEdge = useShaderGraphStore((s) => s.selectEdge);
   const selectedNodeId = useShaderGraphStore((s) => s.selectedNodeId);
@@ -92,6 +103,7 @@ export function ShaderCanvas() {
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [subgraphDialogOpen, setSubgraphDialogOpen] = useState(false);
   const [subgraphName, setSubgraphName] = useState('Subgraph');
+  const pasteOffsetRef = useRef(0);
 
   // Captured via onInit — avoids calling useReactFlow() at the same level as <ReactFlow>
   const rfRef = useRef<ReactFlowInstance<Node<ShaderNodeData>> | null>(null);
@@ -274,6 +286,94 @@ export function ShaderCanvas() {
     setSubgraphDialogOpen(false);
   }, [getSelectedIds, graphEdges, graphNodes, replaceSelectionWithSubgraph, subgraphName]);
 
+  const selectedFragment = useCallback((): ShaderClipboard | null => {
+    const selectedIds = getSelectedIds();
+    if (selectedIds.size === 0) return null;
+    const selectedNodes = graphNodes.filter((node) => selectedIds.has(node.id));
+    if (selectedNodes.length === 0) return null;
+    return {
+      type: 'feather.shader-graph-fragment',
+      nodes: selectedNodes.map((node) => ({ ...node, selected: false, data: cloneShaderNodeData(node.data) })),
+      edges: graphEdges
+        .filter((edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target))
+        .map((edge) => ({ ...edge })),
+    };
+  }, [getSelectedIds, graphEdges, graphNodes]);
+
+  const copySelection = useCallback(() => {
+    const fragment = selectedFragment();
+    if (!fragment) return;
+    shaderClipboard = fragment;
+    pasteOffsetRef.current = 0;
+    void navigator.clipboard?.writeText(JSON.stringify(fragment)).catch(() => undefined);
+    toast.success(fragment.nodes.length === 1 ? 'Copied node' : `Copied ${fragment.nodes.length} nodes`);
+  }, [selectedFragment]);
+
+  const pasteFragment = useCallback(
+    (fragment: ShaderClipboard, duplicate = false) => {
+      if (fragment.nodes.length === 0) return;
+      const minX = Math.min(...fragment.nodes.map((node) => node.position.x));
+      const minY = Math.min(...fragment.nodes.map((node) => node.position.y));
+      const offset = duplicate ? 40 : 40 + pasteOffsetRef.current * 28;
+      const rf = rfRef.current;
+      const viewportCenter = rf
+        ? rf.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+        : { x: minX + offset, y: minY + offset };
+      const position = duplicate ? { x: minX + offset, y: minY + offset } : viewportCenter;
+      const cloned = cloneGraphFragment(fragment.nodes, fragment.edges, position);
+      const pastedIds = new Set(cloned.nodes.map((node) => node.id));
+      addNodesAndEdges(
+        cloned.nodes.map((node, index) => {
+          const source = fragment.nodes[index];
+          return {
+            ...node,
+            selected: pastedIds.has(node.id),
+            data: {
+              ...node.data,
+              linkedSourceNodeId: source?.data.linkedSourceNodeId ?? source?.id ?? null,
+              linkedSourceLabel: source?.data.linkedSourceLabel ?? source?.data.label ?? null,
+            },
+          };
+        }),
+        cloned.edges,
+        cloned.firstNodeId,
+      );
+      setSelectedNodeIds(pastedIds);
+      if (!duplicate) pasteOffsetRef.current += 1;
+    },
+    [addNodesAndEdges],
+  );
+
+  const pasteSelection = useCallback(() => {
+    const paste = (fragment: ShaderClipboard | null) => {
+      if (!fragment) {
+        toast.info('Copy a node first.');
+        return;
+      }
+      pasteFragment(fragment);
+    };
+
+    if (shaderClipboard) {
+      paste(shaderClipboard);
+      return;
+    }
+
+    void navigator.clipboard?.readText()
+      .then((text) => {
+        const parsed = JSON.parse(text) as Partial<ShaderClipboard>;
+        paste(parsed.type === 'feather.shader-graph-fragment' && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)
+          ? { type: 'feather.shader-graph-fragment', nodes: parsed.nodes, edges: parsed.edges }
+          : null);
+      })
+      .catch(() => paste(null));
+  }, [pasteFragment]);
+
+  const duplicateSelection = useCallback(() => {
+    const fragment = selectedFragment();
+    if (!fragment) return;
+    pasteFragment(fragment, true);
+  }, [pasteFragment, selectedFragment]);
+
   useEffect(() => {
     const onSuggest = (event: Event) => {
       const detail = (event as CustomEvent<{ nodeId: string; portId: string; direction: 'input' | 'output'; x: number; y: number }>).detail;
@@ -285,6 +385,21 @@ export function ShaderCanvas() {
     window.addEventListener('shader-graph:port-suggest', onSuggest);
     return () => window.removeEventListener('shader-graph:port-suggest', onSuggest);
   }, [graphNodes]);
+
+  useEffect(() => {
+    const onUnlink = (event: Event) => {
+      const detail = (event as CustomEvent<{ nodeId: string }>).detail;
+      if (!detail?.nodeId) return;
+      const node = graphNodes.find((item) => item.id === detail.nodeId);
+      if (!node?.data.linkedSourceNodeId) return;
+      const confirmed = window.confirm('Unlink this node? It will become its own independent node.');
+      if (!confirmed) return;
+      unlinkNode(detail.nodeId);
+      toast.success('Node unlinked');
+    };
+    window.addEventListener('shader-graph:unlink-node', onUnlink);
+    return () => window.removeEventListener('shader-graph:unlink-node', onUnlink);
+  }, [graphNodes, unlinkNode]);
 
   const applySuggestion = useCallback(
     (suggestion: LinkSuggestion) => {
@@ -358,6 +473,21 @@ export function ShaderCanvas() {
         redo();
         return;
       }
+      if (modifier && key === 'c') {
+        e.preventDefault();
+        copySelection();
+        return;
+      }
+      if (modifier && key === 'v') {
+        e.preventDefault();
+        pasteSelection();
+        return;
+      }
+      if (modifier && key === 'd') {
+        e.preventDefault();
+        duplicateSelection();
+        return;
+      }
 
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       if (selectedNodeId) removeNode(selectedNodeId);
@@ -365,7 +495,7 @@ export function ShaderCanvas() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedNodeId, selectedEdgeId, removeNode, removeEdge, redo, undo]);
+  }, [copySelection, duplicateSelection, pasteSelection, selectedNodeId, selectedEdgeId, removeNode, removeEdge, redo, undo]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();

@@ -19,6 +19,19 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float');
   await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float input$/i }).click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 2);
+  await page.keyboard.press('Control+C');
+  await page.keyboard.press('Control+V');
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 3);
+  await expect(page.getByRole('button', { name: /unlink linked node/i })).toHaveCount(1);
+  await page.keyboard.press('Control+D');
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 4);
+  await expect(page.getByRole('button', { name: /unlink linked node/i })).toHaveCount(2);
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toContain('Unlink this node?');
+    await dialog.accept();
+  });
+  await page.getByRole('button', { name: /unlink linked node/i }).first().click();
+  await expect(page.getByRole('button', { name: /unlink linked node/i })).toHaveCount(1);
 
   const nodesBeforePreset = await page.locator('.react-flow__node').count();
   await page.getByText('Insert preset').click();
