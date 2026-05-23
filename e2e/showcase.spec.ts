@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('standalone showcase loads the landing page and tools', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /browser-native authoring tools/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /complete developer toolkit/i })).toBeVisible();
 
   await page.locator('header').getByRole('button', { name: /^shader graph$/i }).click();
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();

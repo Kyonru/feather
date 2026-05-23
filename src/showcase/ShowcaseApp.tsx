@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ShowcaseShaderGraph } from './ShowcaseShaderGraph';
 import { ShowcaseParticlePlayground } from './ShowcaseParticlePlayground';
 import { ShowcaseGallery } from './ShowcaseGallery';
+import { BookOpenIcon } from 'lucide-react';
 
 type ShowcaseRoute = 'home' | 'shader-graph' | 'particle-system-playground';
 
@@ -94,6 +95,15 @@ export function ShowcaseApp() {
           </Button>
         </div>
         <nav className="flex items-center gap-2">
+          <a
+            href="https://kyonru.github.io/feather"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-8 items-center rounded-md px-3 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <BookOpenIcon className="size-3 mr-1" />
+            Docs
+          </a>
           <Button
             size="sm"
             variant={route === 'shader-graph' ? 'default' : 'ghost'}
