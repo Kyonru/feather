@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.1] - 2026-05-23 - The one with extension releases
+
+- Fix extension configuration
+
 ## [v1.3.0] - 2026-05-22 - The one with the extension
 
 ### Added
@@ -554,6 +558,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v1.3.1]: https://github.com/Kyonru/feather/compare/v1.3.0...v1.3.1
 [v1.3.0]: https://github.com/Kyonru/feather/compare/v1.2.0...v1.3.0
 [v1.2.0]: https://github.com/Kyonru/feather/compare/v1.1.1...v1.2.0
 [v1.1.1]: https://github.com/Kyonru/feather/compare/v1.1.0...v1.1.1

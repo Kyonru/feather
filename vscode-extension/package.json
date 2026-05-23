@@ -2,8 +2,12 @@
   "name": "feather-vscode",
   "displayName": "Feather for LÖVE",
   "description": "Run, debug, and manage Feather for Love2D games from VS Code.",
-  "version": "1.3.0",
-  "publisher": "kyonru",
+  "version": "1.3.1",
+  "sponsor": {
+    "url": "https://github.com/sponsors/kyonru"
+  },
+  "icon": "icon.png",
+  "publisher": "SolenodonteLabs",
   "license": "EPL-2.0",
   "repository": {
     "type": "git",
@@ -14,7 +18,7 @@
     "vscode": "^1.101.0"
   },
   "categories": [
-    "Other"
+    "Debuggers"
   ],
   "keywords": [
     "feather",
@@ -245,11 +249,12 @@
     }
   },
   "scripts": {
+    "generate:icon": "node scripts/generate-icon.mjs",
     "prepare:bundle": "node scripts/prepare.mjs",
     "build": "tsc -p .",
     "test": "node --test test/*.test.mjs",
     "test:integration": "node test/e2e/run.mjs",
-    "package": "npm run prepare:bundle && npm run build && vsce package"
+    "package": "npm run generate:icon && npm run prepare:bundle && npm run build && vsce package"
   },
   "devDependencies": {
     "@types/node": "22.15.0",
