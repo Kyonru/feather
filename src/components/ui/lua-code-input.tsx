@@ -81,6 +81,7 @@ export function LuaCodeInput({
             overflow: 'visible',
           }}
           showLineNumbers={false}
+          wrapLines
         >
           {/* Trailing space ensures the backdrop has height even when value is empty */}
           {value + ' '}

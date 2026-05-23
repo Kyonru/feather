@@ -19,12 +19,22 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float');
   await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float input$/i }).click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 2);
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 260, y: 320 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float parameter');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float parameter input$/i }).click();
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 3);
+  await expect(page.getByText(/extern number u_param_/i)).toBeVisible();
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 380, y: 320 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('color parameter');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^color parameter input$/i }).click();
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 4);
+  await expect(page.getByText(/extern vec4 u_param_/i)).toBeVisible();
   await page.keyboard.press('Control+C');
   await page.keyboard.press('Control+V');
-  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 3);
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 5);
   await expect(page.getByRole('button', { name: /unlink linked node/i })).toHaveCount(1);
   await page.keyboard.press('Control+D');
-  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 4);
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 6);
   await expect(page.getByRole('button', { name: /unlink linked node/i })).toHaveCount(2);
   page.once('dialog', async (dialog) => {
     expect(dialog.message()).toContain('Unlink this node?');

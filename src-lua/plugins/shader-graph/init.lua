@@ -233,6 +233,45 @@ local function sendTextureUniforms(shader, uniforms, uploads)
   return retained
 end
 
+local function cloneShaderParameterValue(value, parameterType)
+  if parameterType == "boolean" then
+    return value and tonumber(value) ~= 0 and 1 or 0
+  end
+  if parameterType == "float" then
+    return tonumber(value) or 0
+  end
+  if parameterType == "vec2" then
+    value = type(value) == "table" and value or {}
+    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0 }
+  end
+  if parameterType == "vec3" then
+    value = type(value) == "table" and value or {}
+    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0 }
+  end
+  if parameterType == "vec4" or parameterType == "color" then
+    value = type(value) == "table" and value or {}
+    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0, tonumber(value[4]) or 1 }
+  end
+  return value
+end
+
+local function sendShaderParameters(shader, parameters)
+  if type(parameters) ~= "table" then
+    return true
+  end
+  for _, parameter in ipairs(parameters) do
+    if type(parameter) == "table" then
+      local uniform = tostring(parameter.uniform or "")
+      local parameterType = tostring(parameter.type or "")
+      if uniform ~= "" and parameterType ~= "texture" then
+        local value = cloneShaderParameterValue(parameter.defaultValue, parameterType)
+        pcall(shader.send, shader, uniform, value)
+      end
+    end
+  end
+  return true
+end
+
 local function compileShader(params)
   local pixelSource = params.pixelSource or ""
   local vertexSource = params.vertexSource or ""
@@ -303,6 +342,10 @@ function ShaderGraphPlugin:_previewShader(params)
   local textures, textureErr = sendTextureUniforms(shader, params.textureUniforms, params.textures)
   if not textures then
     return { status = "error", pixelError = textureErr }
+  end
+  local parametersOk, parameterErr = sendShaderParameters(shader, params.parameters)
+  if not parametersOk then
+    return { status = "error", pixelError = parameterErr }
   end
 
   self.preview = {

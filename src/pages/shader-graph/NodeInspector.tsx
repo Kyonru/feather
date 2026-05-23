@@ -3,13 +3,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { GlslCodeInput } from '@/components/ui/glsl-code-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { getNodeDef, PORT_TYPE_COLORS } from './nodeDefs';
-import type { PortDef } from '@/types/shader-graph';
+import type { NodeType, PortDef } from '@/types/shader-graph';
 import { Code2Icon, FolderOpenIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useState } from 'react';
-import { shaderTextureUniformName } from './glslUtils';
+import { shaderParameterUniformName, shaderTextureUniformName } from './glslUtils';
 import { pickShaderTexture } from './textureUpload';
 import { toast } from 'sonner';
 import { customFunctionNodeDef, customFunctionSource, validateCustomFunctionSource } from './customNode';
@@ -71,6 +72,20 @@ function optionalFiniteValue(value: unknown): number | undefined {
 
 function portStep(port: PortDef): number {
   return port.step ?? 0.01;
+}
+
+const PARAMETER_NODE_TYPES = new Set<NodeType>([
+  'FloatParameter',
+  'Vec2Parameter',
+  'Vec3Parameter',
+  'Vec4Parameter',
+  'ColorParameter',
+  'BooleanParameter',
+  'TextureParameter',
+]);
+
+function isParameterNode(nodeType: NodeType): boolean {
+  return PARAMETER_NODE_TYPES.has(nodeType);
 }
 
 function PortBadge({ port }: { port: PortDef }) {
@@ -271,6 +286,18 @@ export function NodeInspector() {
             />
           </div>
 
+          {isParameterNode(selected.data.nodeType) && selected.data.nodeType !== 'TextureParameter' && (
+            <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Uniform Name</Label>
+              <Input
+                className="h-7 text-xs font-mono"
+                value={String(selected.data.uniformName ?? '')}
+                placeholder={shaderParameterUniformName(selected.id)}
+                onChange={(e) => updateNodeData(selected.id, { uniformName: shaderParameterUniformName(selected.id, e.target.value) })}
+              />
+            </div>
+          )}
+
           {selected.data.nodeType === 'CustomFunction' && (
             <div className="grid gap-2 rounded border border-border/70 p-2">
               <div className="flex items-start justify-between gap-2">
@@ -296,9 +323,9 @@ export function NodeInspector() {
             </div>
           )}
 
-          {selected.data.nodeType === 'FloatConstant' && (
+          {(selected.data.nodeType === 'FloatConstant' || selected.data.nodeType === 'FloatParameter') && (
             <div className="grid gap-1">
-              <Label className="text-[10px] text-muted-foreground">Value</Label>
+              <Label className="text-[10px] text-muted-foreground">{selected.data.nodeType === 'FloatParameter' ? 'Default Value' : 'Value'}</Label>
               <Input
                 className="h-7 text-xs"
                 type="number"
@@ -324,9 +351,9 @@ export function NodeInspector() {
             </div>
           )}
 
-          {selected.data.nodeType === 'Vec2Constant' && (
+          {(selected.data.nodeType === 'Vec2Constant' || selected.data.nodeType === 'Vec2Parameter') && (
             <div className="grid gap-1">
-              <Label className="text-[10px] text-muted-foreground">X / Y</Label>
+              <Label className="text-[10px] text-muted-foreground">{selected.data.nodeType === 'Vec2Parameter' ? 'Default X / Y' : 'X / Y'}</Label>
               <div className="flex gap-1">
                 {[0, 1].map((idx) => (
                   <Input
@@ -347,9 +374,9 @@ export function NodeInspector() {
             </div>
           )}
 
-          {selected.data.nodeType === 'Vec3Constant' && (
+          {(selected.data.nodeType === 'Vec3Constant' || selected.data.nodeType === 'Vec3Parameter') && (
             <div className="grid gap-1">
-              <Label className="text-[10px] text-muted-foreground">X / Y / Z</Label>
+              <Label className="text-[10px] text-muted-foreground">{selected.data.nodeType === 'Vec3Parameter' ? 'Default X / Y / Z' : 'X / Y / Z'}</Label>
               <div className="grid grid-cols-3 gap-1">
                 {[0, 1, 2].map((idx) => (
                   <Input
@@ -370,10 +397,10 @@ export function NodeInspector() {
             </div>
           )}
 
-          {selected.data.nodeType === 'Vec4Constant' && (
+          {(selected.data.nodeType === 'Vec4Constant' || selected.data.nodeType === 'Vec4Parameter' || selected.data.nodeType === 'ColorParameter') && (
             <div className="grid gap-1">
               <div className="flex items-center justify-between gap-2">
-                <Label className="text-[10px] text-muted-foreground">Vec4 Value</Label>
+                <Label className="text-[10px] text-muted-foreground">{selected.data.nodeType === 'ColorParameter' ? 'Default Color' : selected.data.nodeType === 'Vec4Parameter' ? 'Default Vec4 Value' : 'Vec4 Value'}</Label>
                 <span
                   className="size-5 rounded border border-input"
                   style={{ backgroundColor: vec4ToHex(selectedVec4), opacity: selectedVec4[3] }}
@@ -445,15 +472,29 @@ export function NodeInspector() {
             </div>
           )}
 
-          {(selected.data.nodeType === 'TextureInput' || selected.data.nodeType === 'TextureUniformColor') && (
+          {selected.data.nodeType === 'BooleanParameter' && (
+            <div className="flex items-center justify-between gap-2 rounded border border-border/70 p-2">
+              <Label className="text-[10px] text-muted-foreground">Default Enabled</Label>
+              <Switch
+                checked={finiteValue(selected.data.values?.val) >= 0.5}
+                onCheckedChange={(checked) => updateNodeData(selected.id, { values: { ...selected.data.values, val: checked ? 1 : 0 } })}
+              />
+            </div>
+          )}
+
+          {(selected.data.nodeType === 'TextureInput' || selected.data.nodeType === 'TextureUniformColor' || selected.data.nodeType === 'TextureParameter') && (
             <div className="grid gap-2 rounded border border-border/70 p-2">
               <div className="grid gap-1">
                 <Label className="text-[10px] text-muted-foreground">Uniform Name</Label>
                 <Input
                   className="h-7 text-xs font-mono"
                   value={String(selected.data.uniformName ?? '')}
-                  placeholder={shaderTextureUniformName(selected.id)}
-                  onChange={(e) => updateNodeData(selected.id, { uniformName: e.target.value })}
+                  placeholder={selected.data.nodeType === 'TextureParameter' ? shaderParameterUniformName(selected.id) : shaderTextureUniformName(selected.id)}
+                  onChange={(e) => updateNodeData(selected.id, {
+                    uniformName: selected.data.nodeType === 'TextureParameter'
+                      ? shaderParameterUniformName(selected.id, e.target.value)
+                      : e.target.value,
+                  })}
                 />
               </div>
               <div className="flex items-center justify-between gap-2">

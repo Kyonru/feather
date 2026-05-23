@@ -7,7 +7,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useShaderGraphStore } from '@/store/shader-graph';
-import type { GeneratedGlsl, PlaygroundTarget, ShaderEdge, ShaderNodeInstance, ShaderSubgraph } from '@/types/shader-graph';
+import type { GeneratedGlsl, PlaygroundTarget, ShaderEdge, ShaderNodeInstance, ShaderParameter, ShaderSubgraph } from '@/types/shader-graph';
 import { NodePalette } from '@/pages/shader-graph/NodePalette';
 import { ShaderCanvas } from '@/pages/shader-graph/ShaderCanvas';
 import { NodeInspector } from '@/pages/shader-graph/NodeInspector';
@@ -81,10 +81,11 @@ export function ShowcaseShaderGraph() {
     shape: string;
     color: string;
     baseTexture: { filename: string; dataBase64: string } | null;
-  }>({ shape: 'circle', color: '#ffffff', baseTexture: null });
+    parameters: ShaderParameter[];
+  }>({ shape: 'circle', color: '#ffffff', baseTexture: null, parameters: [] });
 
   const handlePreviewParamsChange = useCallback(
-    (params: { shape: string; color: string; baseTexture: { filename: string; dataBase64: string } | null }) => {
+    (params: { shape: string; color: string; baseTexture: { filename: string; dataBase64: string } | null; parameters: ShaderParameter[] }) => {
       setPreviewParams(params);
     },
     [],
@@ -283,6 +284,7 @@ export function ShowcaseShaderGraph() {
             previewShape: previewParams.shape,
             previewColor: previewParams.color,
             baseTexture: previewParams.baseTexture,
+            parameters: previewParams.parameters,
           }}
         />
       </div>

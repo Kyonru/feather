@@ -5,7 +5,7 @@ import { useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { sessionQueryKey } from './use-ws-connection';
 import { codegen } from '@/pages/shader-graph/codegen';
-import type { GeneratedGlsl, ShaderTextureUpload } from '@/types/shader-graph';
+import type { GeneratedGlsl, ShaderParameter, ShaderTextureUpload } from '@/types/shader-graph';
 
 const PLUGIN_ID = 'particle-system-playground';
 const SHADER_GRAPH_PLUGIN = 'shader-graph';
@@ -15,6 +15,7 @@ export type ShaderPreviewColor = [number, number, number, number];
 export type ShaderPreviewTextureUpload = ShaderTextureUpload & {
   uniform?: string;
 };
+export type ShaderPreviewParameter = ShaderParameter;
 
 type CompilePayload = { status: 'ok' | 'error'; pixelError?: string; vertexError?: string };
 type CompileResponse = {
@@ -74,6 +75,7 @@ export function useShaderGraph() {
         shaderSource,
         filename: `${store.shaderName}.glsl`,
         textures,
+        parameters: glsl.parameters ?? [],
       },
     });
   }, [generateAndStore, sessionId, store]);
@@ -83,7 +85,7 @@ export function useShaderGraph() {
       glsl: GeneratedGlsl,
       shape: ShaderPreviewShape,
       color: ShaderPreviewColor,
-      options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[] } = {},
+      options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[]; parameters?: ShaderPreviewParameter[] } = {},
     ) => {
       if (!sessionId) return;
       await sendCommand(sessionId, {
@@ -96,6 +98,7 @@ export function useShaderGraph() {
           shape,
           color,
           textureUniforms: glsl.textures ?? [],
+          parameters: options.parameters ?? glsl.parameters ?? [],
           baseTexture: options.baseTexture,
           textures: options.textures ?? [],
         },
@@ -108,7 +111,7 @@ export function useShaderGraph() {
     async (
       shape: ShaderPreviewShape,
       color: ShaderPreviewColor,
-      options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[] } = {},
+      options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[]; parameters?: ShaderPreviewParameter[] } = {},
     ) => {
       if (!sessionId) return;
       const glsl = generateAndStore();

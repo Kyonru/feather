@@ -1,6 +1,6 @@
-import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData, PortDef, ShaderSubgraph } from '@/types/shader-graph';
+import type { ShaderNodeInstance, ShaderEdge, GeneratedGlsl, ShaderNodeData, PortDef, ShaderSubgraph, ShaderParameter } from '@/types/shader-graph';
 import { getNodeDef, NODE_DEFS } from './nodeDefs';
-import { glslFloat, shaderTextureUniformName } from './glslUtils';
+import { glslFloat, shaderParameterUniformName, shaderTextureUniformName } from './glslUtils';
 import { customFunctionSource, validateCustomFunctionSource } from './customNode';
 
 export const PASSTHROUGH_PIXEL = [
@@ -93,6 +93,9 @@ function defaultValue(port: PortDef, nodeData: ShaderNodeData): string {
 
 function outputExpression(nodeMap: Map<string, ShaderNodeInstance>, nodeId: string, portId: string): string {
   const node = nodeMap.get(nodeId);
+  if (node?.data.nodeType === 'TextureParameter' && portId === 'texture') {
+    return shaderParameterUniformName(node.id, node.data.uniformName);
+  }
   if (node?.data.nodeType === 'TextureInput' && portId === 'texture') {
     return shaderTextureUniformName(node.id, node.data.uniformName);
   }
@@ -109,14 +112,71 @@ function outputExpressionWithOverrides(
 }
 
 function collectTextureUniform(node: ShaderNodeInstance, textureMap: Map<string, { nodeId: string; uniform: string; label: string }>, externSet: Set<string>) {
-  if (node.data.nodeType !== 'TextureInput' && node.data.nodeType !== 'TextureUniformColor') return;
-  const uniform = shaderTextureUniformName(node.id, node.data.uniformName);
+  if (node.data.nodeType !== 'TextureInput' && node.data.nodeType !== 'TextureUniformColor' && node.data.nodeType !== 'TextureParameter') return;
+  const uniform = node.data.nodeType === 'TextureParameter'
+    ? shaderParameterUniformName(node.id, node.data.uniformName)
+    : shaderTextureUniformName(node.id, node.data.uniformName);
   externSet.add(`extern Image ${uniform};`);
   textureMap.set(uniform, {
     nodeId: node.id,
     uniform,
     label: String(node.data.label || NODE_DEFS[node.data.nodeType].label),
   });
+}
+
+function parameterType(node: ShaderNodeInstance): ShaderParameter['type'] | null {
+  if (node.data.nodeType === 'FloatParameter') return 'float';
+  if (node.data.nodeType === 'Vec2Parameter') return 'vec2';
+  if (node.data.nodeType === 'Vec3Parameter') return 'vec3';
+  if (node.data.nodeType === 'Vec4Parameter') return 'vec4';
+  if (node.data.nodeType === 'ColorParameter') return 'color';
+  if (node.data.nodeType === 'BooleanParameter') return 'boolean';
+  if (node.data.nodeType === 'TextureParameter') return 'texture';
+  return null;
+}
+
+function parameterGlslType(type: ShaderParameter['type']): 'number' | 'vec2' | 'vec3' | 'vec4' | 'Image' {
+  if (type === 'vec2') return 'vec2';
+  if (type === 'vec3') return 'vec3';
+  if (type === 'vec4' || type === 'color') return 'vec4';
+  if (type === 'texture') return 'Image';
+  return 'number';
+}
+
+function cloneDefaultValue(value: number | number[] | undefined): number | number[] | undefined {
+  return Array.isArray(value) ? [...value] : value;
+}
+
+function collectShaderParameter(
+  node: ShaderNodeInstance,
+  parameterMap: Map<string, ShaderParameter>,
+  externSet: Set<string>,
+) {
+  const type = parameterType(node);
+  if (!type) return;
+  const uniform = type === 'texture'
+    ? shaderParameterUniformName(node.id, node.data.uniformName)
+    : shaderParameterUniformName(node.id, node.data.uniformName);
+  if (type !== 'texture') externSet.add(`extern ${parameterGlslType(type)} ${uniform};`);
+  parameterMap.set(uniform, {
+    nodeId: node.id,
+    uniform,
+    type,
+    label: String(node.data.label || NODE_DEFS[node.data.nodeType].label),
+    defaultValue: cloneDefaultValue(node.data.values?.val),
+  });
+}
+
+function collectRootParameterDeclarations(
+  nodes: ShaderNodeInstance[],
+  externSet: Set<string>,
+  parameterMap: Map<string, ShaderParameter>,
+) {
+  for (const node of nodes) {
+    const type = parameterType(node);
+    if (!type || type === 'texture') continue;
+    collectShaderParameter(node, parameterMap, externSet);
+  }
 }
 
 function buildNodeBody(
@@ -207,12 +267,14 @@ function collectGraphMetadata(
   helperKeys: Set<string>,
   customFunctionSet: Set<string>,
   textureMap: Map<string, { nodeId: string; uniform: string; label: string }>,
+  parameterMap: Map<string, ShaderParameter>,
 ) {
   for (const node of nodes) {
     const def = getNodeDef(node.data);
     def?.externs?.forEach((e) => externSet.add(e));
     if (def?.helperKey) helperKeys.add(def.helperKey);
     collectTextureUniform(node, textureMap, externSet);
+    collectShaderParameter(node, parameterMap, externSet);
     collectCustomFunction(node, customFunctionSet);
   }
 }
@@ -357,7 +419,7 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[], subgra
   const subgraphMap = new Map(subgraphs.map((subgraph) => [subgraph.id, subgraph]));
 
   if (!nodes.length || !fragOut) {
-    return { pixel: PASSTHROUGH_PIXEL, vertex: null, hash: 'passthrough', textures: [] };
+    return { pixel: PASSTHROUGH_PIXEL, vertex: null, hash: 'passthrough', textures: [], parameters: [] };
   }
 
   const reachable = collectReachable(fragOut.id, nodes, edges);
@@ -366,23 +428,25 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[], subgra
   const pixelMeta = createMetadataSets();
   const vertexMeta = createMetadataSets();
   const textureMap = new Map<string, { nodeId: string; uniform: string; label: string }>();
-  collectGraphMetadata(reachable, pixelMeta.externSet, pixelMeta.helperKeys, pixelMeta.customFunctionSet, textureMap);
+  const parameterMap = new Map<string, ShaderParameter>();
+  collectGraphMetadata(reachable, pixelMeta.externSet, pixelMeta.helperKeys, pixelMeta.customFunctionSet, textureMap, parameterMap);
+  collectRootParameterDeclarations(nodes, pixelMeta.externSet, parameterMap);
 
   let vertReachable: ShaderNodeInstance[] = [];
   if (vertOut) {
     vertReachable = collectReachable(vertOut.id, nodes, edges);
-    collectGraphMetadata(vertReachable, vertexMeta.externSet, vertexMeta.helperKeys, vertexMeta.customFunctionSet, textureMap);
+    collectGraphMetadata(vertReachable, vertexMeta.externSet, vertexMeta.helperKeys, vertexMeta.customFunctionSet, textureMap, parameterMap);
   }
 
   const usedPixelSubgraphs = collectUsedSubgraphs(reachable, subgraphMap);
   for (const subgraphId of usedPixelSubgraphs) {
     const subgraph = subgraphMap.get(subgraphId);
-    if (subgraph) collectGraphMetadata(subgraph.nodes, pixelMeta.externSet, pixelMeta.helperKeys, pixelMeta.customFunctionSet, textureMap);
+    if (subgraph) collectGraphMetadata(subgraph.nodes, pixelMeta.externSet, pixelMeta.helperKeys, pixelMeta.customFunctionSet, textureMap, parameterMap);
   }
   const usedVertexSubgraphs = collectUsedSubgraphs(vertReachable, subgraphMap);
   for (const subgraphId of usedVertexSubgraphs) {
     const subgraph = subgraphMap.get(subgraphId);
-    if (subgraph) collectGraphMetadata(subgraph.nodes, vertexMeta.externSet, vertexMeta.helperKeys, vertexMeta.customFunctionSet, textureMap);
+    if (subgraph) collectGraphMetadata(subgraph.nodes, vertexMeta.externSet, vertexMeta.helperKeys, vertexMeta.customFunctionSet, textureMap, parameterMap);
   }
 
   const bodyLines: string[] = [];
@@ -422,5 +486,5 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[], subgra
   }
 
   const hash = btoa(pixel.slice(0, 64)).slice(0, 16);
-  return { pixel, vertex, hash, textures: [...textureMap.values()] };
+  return { pixel, vertex, hash, textures: [...textureMap.values()], parameters: [...parameterMap.values()] };
 }

@@ -13,3 +13,9 @@ export function sanitizeGlslIdentifier(value: unknown, fallback: string): string
 export function shaderTextureUniformName(nodeId: string, configuredName?: unknown): string {
   return sanitizeGlslIdentifier(configuredName, `u_sg_tex_${sanitizeGlslIdentifier(nodeId, 'texture')}`);
 }
+
+export function shaderParameterUniformName(nodeId: string, configuredName?: unknown): string {
+  const fallback = `u_param_${sanitizeGlslIdentifier(nodeId, 'param')}`;
+  const sanitized = sanitizeGlslIdentifier(configuredName, fallback);
+  return sanitized.startsWith('u_') ? sanitized : `u_${sanitized}`;
+}

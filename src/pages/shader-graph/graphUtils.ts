@@ -18,6 +18,11 @@ export function defaultNodeData(nodeType: NodeType, label: string): ShaderNodeDa
       customCode: DEFAULT_CUSTOM_FUNCTION_CODE,
     };
   }
+  if (nodeType === 'Vec2Parameter') return { label, nodeType, values: { val: [0, 0] } };
+  if (nodeType === 'Vec3Parameter') return { label, nodeType, values: { val: [0, 0, 0] } };
+  if (nodeType === 'Vec4Parameter' || nodeType === 'ColorParameter') return { label, nodeType, values: { val: [1, 1, 1, 1] } };
+  if (nodeType === 'BooleanParameter') return { label, nodeType, values: { val: 0 } };
+  if (nodeType === 'FloatParameter') return { label, nodeType, values: { val: 0 } };
   return { label, nodeType };
 }
 

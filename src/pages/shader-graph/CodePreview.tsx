@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { type ShaderPreviewColor, type ShaderPreviewShape, useShaderGraph } from '@/hooks/use-shader-graph';
+import type { ShaderParameter } from '@/types/shader-graph';
 import { useSessionStore } from '@/store/session';
 import { useTheme } from '@/hooks/use-theme';
 import oneLight from '@/assets/theme/light';
@@ -40,6 +41,7 @@ type PreviewParams = {
   shape: ShaderPreviewShape;
   color: string;
   baseTexture: { filename: string; dataBase64: string } | null;
+  parameters: ShaderParameter[];
 };
 
 export function CodePreview({
@@ -143,7 +145,7 @@ export function CodePreview({
 
   useEffect(() => {
     if (!standalone) return;
-    onPreviewParamsChangeRef.current?.({ shape: previewShape, color: previewColor, baseTexture });
+    onPreviewParamsChangeRef.current?.({ shape: previewShape, color: previewColor, baseTexture, parameters: glsl.parameters ?? [] });
   }, [previewShape, previewColor, baseTexture, standalone]);
 
   useEffect(() => {
@@ -211,7 +213,6 @@ export function CodePreview({
           }}
           showLineNumbers
           wrapLines
-          wrapLongLines
         >
           {fullSource}
         </SyntaxHighlighter>

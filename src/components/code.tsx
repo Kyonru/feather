@@ -26,7 +26,6 @@ export function LuaBlock({
       <div className={cn('max-h-64', className)}>
         <SyntaxHighlighter
           wrapLines
-          wrapLongLines
           language={language}
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-expect-error

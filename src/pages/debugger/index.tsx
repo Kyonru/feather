@@ -415,7 +415,6 @@ function SourceView({
 
                   <SyntaxHighlighter
                     wrapLines
-                    wrapLongLines
                     language={language}
                     style={{
                       ...style,

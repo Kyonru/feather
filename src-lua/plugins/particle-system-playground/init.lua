@@ -1375,6 +1375,33 @@ function ParticleSystemPlaygroundPlugin:_applyShader(name, index, params)
     end
   end
 
+  if type(params.parameters) == "table" then
+    for _, parameter in ipairs(params.parameters) do
+      if type(parameter) == "table" then
+        local uniform = safeString(parameter.uniform, "")
+        local parameterType = safeString(parameter.type, "")
+        local value = parameter.defaultValue
+        if uniform ~= "" and parameterType ~= "texture" then
+          if parameterType == "boolean" then
+            value = value and tonumber(value) ~= 0 and 1 or 0
+          elseif parameterType == "float" then
+            value = tonumber(value) or 0
+          elseif parameterType == "vec2" then
+            value = type(value) == "table" and value or {}
+            value = { tonumber(value[1]) or 0, tonumber(value[2]) or 0 }
+          elseif parameterType == "vec3" then
+            value = type(value) == "table" and value or {}
+            value = { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0 }
+          elseif parameterType == "vec4" or parameterType == "color" then
+            value = type(value) == "table" and value or {}
+            value = { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0, tonumber(value[4]) or 1 }
+          end
+          pcall(shader.send, shader, uniform, value)
+        end
+      end
+    end
+  end
+
   sys.shader = shader
   sys.shaderTextures = shaderTextures
   sys.shaderPath = path

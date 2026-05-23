@@ -73,6 +73,7 @@ export function GlslCodeInput({
             overflow: 'visible',
           }}
           showLineNumbers={false}
+          wrapLines
         >
           {value + ' '}
         </SyntaxHighlighter>

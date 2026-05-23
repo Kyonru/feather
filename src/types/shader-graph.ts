@@ -23,6 +23,13 @@ export const NODE_TYPES = [
   'VertexColor',
   'Time',
   'Resolution',
+  'FloatParameter',
+  'Vec2Parameter',
+  'Vec3Parameter',
+  'Vec4Parameter',
+  'ColorParameter',
+  'BooleanParameter',
+  'TextureParameter',
   'FloatConstant',
   'Vec2Constant',
   'Vec4Constant',
@@ -209,6 +216,7 @@ export type ShaderNodeData = {
   label: string;
   nodeType: NodeType;
   values?: Record<string, number | number[]>;
+  uniformName?: string;
   subgraphId?: string;
   subgraphInputs?: PortDef[];
   subgraphOutputs?: PortDef[];
@@ -252,6 +260,14 @@ export type ShaderTextureUpload = {
   dataBase64: string;
 };
 
+export type ShaderParameter = {
+  nodeId: string;
+  label: string;
+  uniform: string;
+  type: 'float' | 'vec2' | 'vec3' | 'vec4' | 'color' | 'boolean' | 'texture';
+  defaultValue?: number | number[];
+};
+
 export type GeneratedGlsl = {
   pixel: string;
   vertex: string | null;
@@ -261,4 +277,5 @@ export type GeneratedGlsl = {
     uniform: string;
     label: string;
   }>;
+  parameters?: ShaderParameter[];
 };

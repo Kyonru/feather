@@ -1,5 +1,5 @@
 import type { GlslType, NodeDef, NodeType, ShaderNodeData } from '@/types/shader-graph';
-import { glslFloat, shaderTextureUniformName } from './glslUtils';
+import { glslFloat, shaderParameterUniformName, shaderTextureUniformName } from './glslUtils';
 import { customFunctionNodeDef } from './customNode';
 
 export const PORT_TYPE_COLORS: Record<GlslType, string> = {
@@ -112,6 +112,13 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [{ id: 'texture', label: 'Image', type: 'image' }],
     emitGlsl: () => '',
   },
+  TextureParameter: {
+    category: 'Input',
+    label: 'Texture Parameter',
+    inputs: [],
+    outputs: [{ id: 'texture', label: 'Image', type: 'image' }],
+    emitGlsl: () => '',
+  },
   TextureUniformColor: {
     category: 'Input',
     label: 'Texture Uniform Color',
@@ -154,6 +161,48 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [],
     outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
     emitGlsl: (_, o) => `vec2 ${o.out} = love_ScreenSize.xy;`,
+  },
+  FloatParameter: {
+    category: 'Input',
+    label: 'Float Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'Value', type: 'float' }],
+    emitGlsl: (_, o, d) => `float ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  Vec2Parameter: {
+    category: 'Input',
+    label: 'Vec2 Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: (_, o, d) => `vec2 ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  Vec3Parameter: {
+    category: 'Input',
+    label: 'Vec3 Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (_, o, d) => `vec3 ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  Vec4Parameter: {
+    category: 'Input',
+    label: 'Vec4 Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (_, o, d) => `vec4 ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  ColorParameter: {
+    category: 'Input',
+    label: 'Color Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (_, o, d) => `vec4 ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  BooleanParameter: {
+    category: 'Input',
+    label: 'Boolean Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (_, o, d) => `float ${o.out} = step(0.5, ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)});`,
   },
   FloatConstant: {
     category: 'Input',
@@ -2407,12 +2456,19 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
     nodes: [
       'TextureColor',
       'TextureInput',
+      'TextureParameter',
       'TextureUniformColor',
       'TextureCoords',
       'ScreenCoords',
       'VertexColor',
       'Time',
       'Resolution',
+      'FloatParameter',
+      'Vec2Parameter',
+      'Vec3Parameter',
+      'Vec4Parameter',
+      'ColorParameter',
+      'BooleanParameter',
       'FloatConstant',
       'Vec2Constant',
       'Vec3Constant',

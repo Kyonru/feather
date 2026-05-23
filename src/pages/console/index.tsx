@@ -46,6 +46,7 @@ function ConsoleOutput({ entry, response }: { entry: ConsoleEntry; response?: Ev
               wordBreak: 'break-all',
             }}
             showLineNumbers={false}
+            wrapLines
           >
             {entry.input}
           </SyntaxHighlighter>

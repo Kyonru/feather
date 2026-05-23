@@ -78,6 +78,7 @@ export function ShaderCodeInput({ value, onChange, placeholder, className }: Pro
             overflow: 'visible',
           }}
           showLineNumbers={false}
+          wrapLines
         >
           {value + ' '}
         </SyntaxHighlighter>
