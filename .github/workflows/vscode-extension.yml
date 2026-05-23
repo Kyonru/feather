@@ -24,6 +24,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Install icon rasterizer
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends librsvg2-bin
+
       - name: Get version from tag
         id: get_version
         run: |
