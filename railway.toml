@@ -1,0 +1,8 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "npm run showcase:build"
+
+[deploy]
+startCommand = "npm run showcase:start"
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"

@@ -5,9 +5,17 @@ import { useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { sessionQueryKey } from './use-ws-connection';
 import { codegen } from '@/pages/shader-graph/codegen';
+import type { GeneratedGlsl, ShaderParameter, ShaderTextureUpload } from '@/types/shader-graph';
 
 const PLUGIN_ID = 'particle-system-playground';
 const SHADER_GRAPH_PLUGIN = 'shader-graph';
+
+export type ShaderPreviewShape = 'circle' | 'line' | 'rectangle';
+export type ShaderPreviewColor = [number, number, number, number];
+export type ShaderPreviewTextureUpload = ShaderTextureUpload & {
+  uniform?: string;
+};
+export type ShaderPreviewParameter = ShaderParameter;
 
 type CompilePayload = { status: 'ok' | 'error'; pixelError?: string; vertexError?: string };
 type CompileResponse = {
@@ -29,7 +37,7 @@ export function useShaderGraph() {
   });
 
   const generateAndStore = useCallback(() => {
-    const glsl = codegen(store.nodes, store.edges);
+    const glsl = codegen(store.nodes, store.edges, store.subgraphs);
     store.setLastGlsl(glsl);
     return glsl;
   }, [store]);
@@ -52,7 +60,7 @@ export function useShaderGraph() {
     }
   }, [generateAndStore, sessionId, store]);
 
-  const applyToPlayground = useCallback(async () => {
+  const applyToPlayground = useCallback(async (textures: ShaderPreviewTextureUpload[] = []) => {
     const target = store.playgroundTarget;
     if (!target || !sessionId) return;
     const glsl = generateAndStore();
@@ -66,9 +74,61 @@ export function useShaderGraph() {
         systemIndex: target.systemIndex,
         shaderSource,
         filename: `${store.shaderName}.glsl`,
+        textures,
+        parameters: glsl.parameters ?? [],
       },
     });
   }, [generateAndStore, sessionId, store]);
+
+  const sendShaderPreview = useCallback(
+    async (
+      glsl: GeneratedGlsl,
+      shape: ShaderPreviewShape,
+      color: ShaderPreviewColor,
+      options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[]; parameters?: ShaderPreviewParameter[] } = {},
+    ) => {
+      if (!sessionId) return;
+      await sendCommand(sessionId, {
+        type: 'cmd:plugin:action',
+        plugin: SHADER_GRAPH_PLUGIN,
+        action: 'preview-shader',
+        params: {
+          pixelSource: glsl.pixel,
+          vertexSource: glsl.vertex ?? '',
+          shape,
+          color,
+          textureUniforms: glsl.textures ?? [],
+          parameters: options.parameters ?? glsl.parameters ?? [],
+          baseTexture: options.baseTexture,
+          textures: options.textures ?? [],
+        },
+      });
+    },
+    [sessionId],
+  );
+
+  const previewShader = useCallback(
+    async (
+      shape: ShaderPreviewShape,
+      color: ShaderPreviewColor,
+      options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[]; parameters?: ShaderPreviewParameter[] } = {},
+    ) => {
+      if (!sessionId) return;
+      const glsl = generateAndStore();
+      await sendShaderPreview(glsl, shape, color, options);
+    },
+    [generateAndStore, sendShaderPreview, sessionId],
+  );
+
+  const clearPreview = useCallback(async () => {
+    if (!sessionId) return;
+    await sendCommand(sessionId, {
+      type: 'cmd:plugin:action',
+      plugin: SHADER_GRAPH_PLUGIN,
+      action: 'clear-preview',
+      params: {},
+    });
+  }, [sessionId]);
 
   const compileResult = compileQuery.data;
 
@@ -95,5 +155,5 @@ export function useShaderGraph() {
     });
   }, [compileResult, store]);
 
-  return { ...store, generateAndStore, validateShader, applyToPlayground };
+  return { ...store, generateAndStore, validateShader, applyToPlayground, previewShader, sendShaderPreview, clearPreview };
 }

@@ -27,9 +27,9 @@ local AudioDebugPlugin = Class({
     self._hooked = false
     self._origNewSource = nil
     self.showStopped = self.options.showStopped ~= false
-    self.masterVolume = love.audio.getVolume()
+    self.masterVolume = love.audio and love.audio.getVolume() or 1
 
-    if self.options.autoHook ~= false then
+    if love.audio and self.options.autoHook ~= false then
       self:hookNewSource()
     end
   end,
@@ -37,7 +37,7 @@ local AudioDebugPlugin = Class({
 
 --- Hook love.audio.newSource to automatically track all created sources.
 function AudioDebugPlugin:hookNewSource()
-  if self._hooked then
+  if self._hooked or not love.audio then
     return
   end
   self._origNewSource = love.audio.newSource
@@ -55,7 +55,7 @@ function AudioDebugPlugin:unhookNewSource()
   if not self._hooked then
     return
   end
-  if self._origNewSource then
+  if self._origNewSource and love.audio then
     love.audio.newSource = self._origNewSource
     self._origNewSource = nil
   end
@@ -147,6 +147,10 @@ function AudioDebugPlugin:handleRequest()
 end
 
 function AudioDebugPlugin:handleActionRequest(request)
+  if not love.audio then
+    return nil, "love.audio is not available"
+  end
+
   local action = request.params and request.params.action
   if action == "stop-all" then
     love.audio.stop()
@@ -160,7 +164,7 @@ end
 
 function AudioDebugPlugin:handleParamsUpdate(request)
   local params = request.params or {}
-  if params.masterVolume ~= nil then
+  if params.masterVolume ~= nil and love.audio then
     local v = tonumber(params.masterVolume)
     if v then
       v = math.max(0, math.min(1, v))
@@ -175,11 +179,15 @@ function AudioDebugPlugin:handleParamsUpdate(request)
 end
 
 function AudioDebugPlugin:getConfig()
-  local activeCount = love.audio.getActiveSourceCount()
-  local lx, ly, lz = love.audio.getPosition()
-  local distModel = love.audio.getDistanceModel()
-  local dopplerScale = love.audio.getDopplerScale()
-  local effectsSupported = love.audio.isEffectsSupported()
+  local audioAvailable = love.audio ~= nil
+  local activeCount = audioAvailable and love.audio.getActiveSourceCount() or 0
+  local lx, ly, lz = 0, 0, 0
+  if audioAvailable then
+    lx, ly, lz = love.audio.getPosition()
+  end
+  local distModel = audioAvailable and love.audio.getDistanceModel() or "unavailable"
+  local dopplerScale = audioAvailable and love.audio.getDopplerScale() or 0
+  local effectsSupported = audioAvailable and love.audio.isEffectsSupported() or false
   local maxSceneEffects = 0
   local maxSourceEffects = 0
   if effectsSupported then
@@ -260,8 +268,8 @@ function AudioDebugPlugin:getConfig()
         key = "masterVolume",
         icon = "volume-2",
         type = "input",
-        value = string.format("%.2f", love.audio.getVolume()),
-        props = { type = "number", min = 0, max = 1, step = 0.05 },
+        value = string.format("%.2f", audioAvailable and love.audio.getVolume() or self.masterVolume),
+        props = { type = "number", min = 0, max = 1, step = 0.05, disabled = not audioAvailable },
         group = "Settings",
       },
 

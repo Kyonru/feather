@@ -445,18 +445,27 @@ async function installDesktopRuntime(target: 'windows' | 'macos' | 'linux' | 'st
   const result = spawnSync(loveAppImage, ['--appimage-extract'], { cwd: targetPath, encoding: 'utf8' });
   if (!result.error) {
     if (result.status === 0 && existsSync(join(squashfsRoot, 'bin', 'love'))) return;
-    throw new Error((result.stderr || result.stdout || 'Failed to extract LÖVE AppImage.').trim());
+    const offset = findSquashFsOffset(loveAppImage);
+    if (offset < 0) {
+      throw new Error((result.stderr || result.stdout || 'Failed to extract LÖVE AppImage.').trim());
+    }
+    tryExtractAppImageWithUnsquashfs(loveAppImage, squashfsRoot, targetPath, offset);
+    return;
   }
 
   const code = (result.error as NodeJS.ErrnoException).code;
-  if (code !== 'ENOEXEC' && code !== 'ENOENT' && code !== 'EACCES') {
+  const offset = findSquashFsOffset(loveAppImage);
+  if (code !== 'ENOEXEC' && code !== 'ENOENT' && code !== 'EACCES' && offset < 0) {
     throw new Error(`Failed to extract LÖVE AppImage: ${result.error.message}`);
   }
 
   // Not on Linux — try unsquashfs with explicit SquashFS offset (squashfs-tools >= 4.4).
   // The macOS port doesn't auto-detect the offset, so we scan for the magic bytes ourselves.
+  tryExtractAppImageWithUnsquashfs(loveAppImage, squashfsRoot, targetPath, offset);
+}
+
+function tryExtractAppImageWithUnsquashfs(loveAppImage: string, squashfsRoot: string, targetPath: string, offset: number): void {
   if (existsSync(squashfsRoot)) rmSync(squashfsRoot, { recursive: true });
-  const offset = findSquashFsOffset(loveAppImage);
   const unsquashArgs = offset >= 0
     ? ['-offset', String(offset), '-d', squashfsRoot, loveAppImage]
     : ['-d', squashfsRoot, loveAppImage];

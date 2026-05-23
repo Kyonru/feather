@@ -1,16 +1,35 @@
 import type { Node, Edge } from '@xyflow/react';
 
-export type GlslType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4';
+export type GlslType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4' | 'image';
 
-export type PortDef = { id: string; label: string; type: GlslType };
+export type PortDef = {
+  id: string;
+  label: string;
+  type: GlslType;
+  defaultValue?: number | number[];
+  min?: number;
+  max?: number;
+  step?: number;
+};
 
 export const NODE_TYPES = [
+  'CustomFunction',
+  'SubgraphInstance',
   'TextureColor',
+  'TextureInput',
+  'TextureUniformColor',
   'TextureCoords',
   'ScreenCoords',
   'VertexColor',
   'Time',
   'Resolution',
+  'FloatParameter',
+  'Vec2Parameter',
+  'Vec3Parameter',
+  'Vec4Parameter',
+  'ColorParameter',
+  'BooleanParameter',
+  'TextureParameter',
   'FloatConstant',
   'Vec2Constant',
   'Vec4Constant',
@@ -70,11 +89,21 @@ export const NODE_TYPES = [
   'WaveDistort',
   'WaterDisplace',
   'MaskedWaterDisplace',
+  'WaterNoiseUV',
+  'WaterDisplaceV2',
   'Dissolve2D',
   'HitFlash',
   'Vignette',
   'Pixelate',
   'ChromaticAberration',
+  'PixelPoint',
+  'PixelPointGrid',
+  'PixelRay',
+  'PixelRays',
+  'PixelLine',
+  'PixelLines',
+  'PixelCircle',
+  'PixelPolygon',
   'FragmentOutput',
   'VertexPosition',
   'VertexWave2D',
@@ -86,17 +115,126 @@ export const NODE_TYPES = [
   'SplitVec3',
   'Combine2',
   'Combine3',
+  // Math
+  'Sqrt',
+  'Ceil',
+  'Round',
+  'Sign',
+  'Tan',
+  'Log',
+  'Exp',
+  'Atan2',
+  // Complex
+  'ComplexConjugate',
+  'ComplexReciprocal',
+  'ComplexMultiply',
+  'ComplexDivide',
+  'ComplexExp',
+  'ComplexLog',
+  'ComplexPower',
+  // Quaternion
+  'QuaternionInverse',
+  'QuaternionFromEuler',
+  'QuaternionFromAngleAxis',
+  'QuaternionToAngleAxis',
+  'QuaternionFromToRotation',
+  'QuaternionMultiply',
+  'QuaternionRotateVector',
+  'QuaternionSlerp',
+  // Symmetry
+  'ReflectionSymmetry',
+  'RotationSymmetry',
+  'TilingSymmetry',
+  // Random
+  'RandomIntegerRange',
+  'RandomCircle',
+  'RandomSphere',
+  'RandomRotation',
+  'RandomColor',
+  // Vector
+  'AddVec2',
+  'AddVec3',
+  'AddVec4',
+  'SubtractVec2',
+  'SubtractVec3',
+  'SubtractVec4',
+  'MultiplyVec2',
+  'MultiplyVec3',
+  'MultiplyVec4',
+  'DivideVec2',
+  'DivideVec3',
+  'DivideVec4',
+  'CrossVec3',
+  'LerpVec4',
+  'ScaleVec2',
+  'ScaleVec3',
+  'ScaleVec4',
+  // Color
+  'BlendAdd',
+  'BlendScreen',
+  'BlendOverlay',
+  'CompositeAlpha',
+  'Brightness',
+  'GammaCorrect',
+  'LabColorConvert',
+  'LabComplementary',
+  'LabSplitScheme',
+  'LabDualScheme',
+  // Noise
+  'GradientNoise',
+  'FBMNoise',
+  'TruchetTiles',
+  // Pattern
+  'PatternZigZag',
+  'PatternSineWaves',
+  'PatternRoundWaves',
+  'PatternDots',
+  'PatternSpiral',
+  'PatternWhirl',
+  // Halftone
+  'HalftoneMono',
+  'HalftoneColor',
+  // UV
+  'ZoomUV',
+  'FlipUV',
+  // SDF
+  'SDFLine',
+  'SDFCircle',
+  'SDFRect',
+  'SDFPolygon',
+  'SDFSample',
+  'SDFSampleStrip',
+  'SDFBoolean',
+  'SDFSoftBoolean',
 ] as const;
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Input' | 'Math' | 'Vector' | 'Color' | 'Noise' | 'UV' | 'Effect' | 'Output' | 'Vertex';
+export type NodeCategory = 'Custom' | 'Input' | 'Math' | 'Complex' | 'Quaternion' | 'Symmetry' | 'Random' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;
   nodeType: NodeType;
   values?: Record<string, number | number[]>;
+  uniformName?: string;
+  subgraphId?: string;
+  subgraphInputs?: PortDef[];
+  subgraphOutputs?: PortDef[];
+  linkedSourceNodeId?: string | null;
+  linkedSourceLabel?: string | null;
   [key: string]: unknown;
+};
+
+export type ShaderSubgraph = {
+  id: string;
+  name: string;
+  functionName: string;
+  nodes: ShaderNodeInstance[];
+  edges: ShaderEdge[];
+  inputs: PortDef[];
+  outputs: PortDef[];
+  inputMappings: Record<string, { nodeId: string; portId: string }>;
+  outputMappings: Record<string, { nodeId: string; portId: string }>;
 };
 
 export type NodeDef = {
@@ -117,8 +255,27 @@ export type PlaygroundTarget = {
   systemIndex: number;
 };
 
+export type ShaderTextureUpload = {
+  filename: string;
+  dataBase64: string;
+};
+
+export type ShaderParameter = {
+  nodeId: string;
+  label: string;
+  uniform: string;
+  type: 'float' | 'vec2' | 'vec3' | 'vec4' | 'color' | 'boolean' | 'texture';
+  defaultValue?: number | number[];
+};
+
 export type GeneratedGlsl = {
   pixel: string;
   vertex: string | null;
   hash: string;
+  textures?: Array<{
+    nodeId: string;
+    uniform: string;
+    label: string;
+  }>;
+  parameters?: ShaderParameter[];
 };

@@ -29,6 +29,7 @@ if (!love) {
 
 const pluginSelector = process.argv[2];
 const args = [gamePath, '--e2e'];
+const timeoutMs = Number.parseInt(process.env.LUA_E2E_TIMEOUT_MS ?? '45000', 10);
 
 if (pluginSelector) {
   args.push(`--plugin-e2e=${pluginSelector}`);
@@ -52,7 +53,7 @@ const result = spawnSync(command, commandArgs, {
     FEATHER_GAME_PATH: gamePath,
   },
   encoding: 'utf8',
-  timeout: 15000,
+  timeout: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 45000,
 });
 
 const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;

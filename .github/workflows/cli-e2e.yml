@@ -51,9 +51,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y love squashfs-tools
 
-      - name: Install squashfs-tools (macOS)
+      - name: Install LÖVE and squashfs-tools (macOS)
         if: runner.os == 'macOS'
-        run: brew install squashfs
+        run: |
+          curl -L https://github.com/love2d/love/releases/download/11.5/love-11.5-macos.zip -o love-macos.zip
+          ditto -x -k love-macos.zip love-macos
+          sudo cp -R love-macos/love.app /Applications/love.app
+          sudo ln -sf /Applications/love.app/Contents/MacOS/love /usr/local/bin/love
+          love --version
+          brew install squashfs
 
       - name: Install dependencies
         run: npm ci

@@ -13,15 +13,16 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useShaderGraphStore } from '@/store/shader-graph';
-import type { GeneratedGlsl, PlaygroundTarget, ShaderEdge, ShaderNodeInstance } from '@/types/shader-graph';
+import type { GeneratedGlsl, PlaygroundTarget, ShaderEdge, ShaderNodeInstance, ShaderSubgraph } from '@/types/shader-graph';
 import { isWeb } from '@/utils/platform';
 import { NodePalette } from './NodePalette';
 import { ShaderCanvas } from './ShaderCanvas';
 import { NodeInspector } from './NodeInspector';
 import { CodePreview } from './CodePreview';
 import { SHADER_GRAPH_PRESETS } from './presets';
+import { cloneGraphFragment } from './graphUtils';
 
-const FILE_VERSION = 1;
+const FILE_VERSION = 2;
 const FILE_EXTENSION = 'feathershgh';
 const FIRST_OPEN_PRESET_ID = 'water-shimmer';
 
@@ -33,6 +34,7 @@ type FeatherShaderGraphFile = {
   playgroundTarget: PlaygroundTarget | null;
   nodes: ShaderNodeInstance[];
   edges: ShaderEdge[];
+  subgraphs: ShaderSubgraph[];
   lastGeneratedGlsl?: GeneratedGlsl | null;
 };
 
@@ -47,7 +49,7 @@ function defaultFilename(shaderName: string) {
 
 function parseShaderGraphFile(raw: string): FeatherShaderGraphFile {
   const parsed = JSON.parse(raw) as Partial<FeatherShaderGraphFile>;
-  if (parsed.type !== 'feather.shader-graph' || parsed.version !== FILE_VERSION) {
+  if (parsed.type !== 'feather.shader-graph' || (parsed.version !== FILE_VERSION && parsed.version !== 1)) {
     throw new Error('Unsupported shader graph file');
   }
   if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
@@ -61,6 +63,7 @@ function parseShaderGraphFile(raw: string): FeatherShaderGraphFile {
     playgroundTarget: parsed.playgroundTarget ?? null,
     nodes: parsed.nodes,
     edges: parsed.edges,
+    subgraphs: Array.isArray(parsed.subgraphs) ? parsed.subgraphs : [],
     lastGeneratedGlsl: parsed.lastGeneratedGlsl ?? null,
   };
 }
@@ -70,11 +73,15 @@ export default function ShaderGraph() {
   const shaderGraphPlugin = usePluginControl('shader-graph');
   const nodes = useShaderGraphStore((state) => state.nodes);
   const edges = useShaderGraphStore((state) => state.edges);
+  const subgraphs = useShaderGraphStore((state) => state.subgraphs);
   const shaderName = useShaderGraphStore((state) => state.shaderName);
   const playgroundTarget = useShaderGraphStore((state) => state.playgroundTarget);
   const lastGeneratedGlsl = useShaderGraphStore((state) => state.lastGeneratedGlsl);
   const hasInitializedExample = useShaderGraphStore((state) => state.hasInitializedExample);
   const loadGraph = useShaderGraphStore((state) => state.loadGraph);
+  const addNodesAndEdges = useShaderGraphStore((state) => state.addNodesAndEdges);
+  const markClean = useShaderGraphStore((state) => state.markClean);
+  const isDirty = useShaderGraphStore((state) => state.isDirty);
   const setHasInitializedExample = useShaderGraphStore((state) => state.setHasInitializedExample);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,6 +112,7 @@ export default function ShaderGraph() {
     loadGraph({
       nodes: parsed.nodes,
       edges: parsed.edges,
+      subgraphs: parsed.subgraphs,
       shaderName: parsed.shaderName,
       playgroundTarget: parsed.playgroundTarget,
     });
@@ -120,6 +128,7 @@ export default function ShaderGraph() {
       playgroundTarget,
       nodes,
       edges,
+      subgraphs,
       lastGeneratedGlsl,
     };
     const json = JSON.stringify(payload, null, 2);
@@ -133,6 +142,7 @@ export default function ShaderGraph() {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+      markClean();
       return;
     }
 
@@ -142,6 +152,7 @@ export default function ShaderGraph() {
     });
     if (!path) return;
     await writeTextFile(path, json);
+    markClean();
     toast.success('Shader graph exported');
   };
 
@@ -167,6 +178,7 @@ export default function ShaderGraph() {
     loadGraph({
       nodes: [],
       edges: [],
+      subgraphs: [],
       shaderName,
       playgroundTarget,
     });
@@ -176,13 +188,24 @@ export default function ShaderGraph() {
   const loadPreset = (presetId: string) => {
     const preset = SHADER_GRAPH_PRESETS.find((item) => item.id === presetId);
     if (!preset) return;
+    if (isDirty() && !window.confirm('Replace the current shader graph with this preset? Unsaved changes will be lost.')) return;
     loadGraph({
       nodes: preset.nodes,
       edges: preset.edges,
+      subgraphs: [],
       shaderName: preset.shaderName,
       playgroundTarget,
     });
     toast.success(`Loaded ${preset.name}`);
+  };
+
+  const insertPreset = (presetId: string) => {
+    const preset = SHADER_GRAPH_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+    const maxX = nodes.length ? Math.max(...nodes.map((node) => node.position.x)) : 0;
+    const cloned = cloneGraphFragment(preset.nodes, preset.edges, { x: maxX + 260, y: 80 });
+    addNodesAndEdges(cloned.nodes, cloned.edges, cloned.firstNodeId);
+    toast.success(`Inserted ${preset.name}`);
   };
 
   return (
@@ -209,7 +232,19 @@ export default function ShaderGraph() {
             <div className="flex flex-wrap justify-end gap-2">
               <Select onValueChange={loadPreset}>
                 <SelectTrigger className="h-8 w-48 text-xs">
-                  <SelectValue placeholder="Load preset flow" />
+                  <SelectValue placeholder="Load preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SHADER_GRAPH_PRESETS.map((preset) => (
+                    <SelectItem key={preset.id} value={preset.id} title={preset.description}>
+                      {preset.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select onValueChange={insertPreset}>
+                <SelectTrigger className="h-8 w-48 text-xs">
+                  <SelectValue placeholder="Insert preset" />
                 </SelectTrigger>
                 <SelectContent>
                   {SHADER_GRAPH_PRESETS.map((preset) => (

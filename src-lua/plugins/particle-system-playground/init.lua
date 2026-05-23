@@ -817,6 +817,7 @@ local function createDefaultSystem(index, template)
     title = "Emitter " .. tostring(index),
     blendMode = "alpha",
     shader = nil,
+    shaderTextures = {},
     shaderPath = "",
     shaderFilename = "",
     shaderSource = "",
@@ -1065,6 +1066,11 @@ function ParticleSystemPlaygroundPlugin:onDraw()
           pcall(love.graphics.setBlendMode, system.blendMode or "alpha")
           if system.shader and system.shader.send and love.timer then
             pcall(system.shader.send, system.shader, "u_time", love.timer.getTime())
+            if type(system.shaderTextures) == "table" then
+              for uniform, image in pairs(system.shaderTextures) do
+                pcall(system.shader.send, system.shader, uniform, image)
+              end
+            end
           end
           love.graphics.setShader(system.shader)
           love.graphics.setColor(1, 1, 1, 1)
@@ -1341,7 +1347,63 @@ function ParticleSystemPlaygroundPlugin:_applyShader(name, index, params)
     return nil, tostring(shader)
   end
 
+  local shaderTextures = {}
+  if type(params.textures) == "table" then
+    for _, texture in ipairs(params.textures) do
+      if type(texture) == "table" then
+        local uniform = safeString(texture.uniform, "")
+        local dataBase64 = safeString(texture.dataBase64, "")
+        if uniform ~= "" and dataBase64 ~= "" then
+          local raw = decodeBase64(dataBase64)
+          if not raw then
+            return nil, "Shader texture data is not valid base64"
+          end
+          local texFilename = sanitizeFilename(texture.filename, uniform .. ".png")
+          local okData, fileData = pcall(love.filesystem.newFileData, raw, texFilename)
+          if not okData or not fileData then
+            return nil, "Could not create shader texture file data"
+          end
+          local okImage, image = pcall(love.graphics.newImage, fileData)
+          if not okImage or not image then
+            return nil, "Could not create shader texture image"
+          end
+          pcall(image.setFilter, image, "nearest", "nearest")
+          shaderTextures[uniform] = image
+          pcall(shader.send, shader, uniform, image)
+        end
+      end
+    end
+  end
+
+  if type(params.parameters) == "table" then
+    for _, parameter in ipairs(params.parameters) do
+      if type(parameter) == "table" then
+        local uniform = safeString(parameter.uniform, "")
+        local parameterType = safeString(parameter.type, "")
+        local value = parameter.defaultValue
+        if uniform ~= "" and parameterType ~= "texture" then
+          if parameterType == "boolean" then
+            value = value and tonumber(value) ~= 0 and 1 or 0
+          elseif parameterType == "float" then
+            value = tonumber(value) or 0
+          elseif parameterType == "vec2" then
+            value = type(value) == "table" and value or {}
+            value = { tonumber(value[1]) or 0, tonumber(value[2]) or 0 }
+          elseif parameterType == "vec3" then
+            value = type(value) == "table" and value or {}
+            value = { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0 }
+          elseif parameterType == "vec4" or parameterType == "color" then
+            value = type(value) == "table" and value or {}
+            value = { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0, tonumber(value[4]) or 1 }
+          end
+          pcall(shader.send, shader, uniform, value)
+        end
+      end
+    end
+  end
+
   sys.shader = shader
+  sys.shaderTextures = shaderTextures
   sys.shaderPath = path
   sys.shaderFilename = filename
   sys.shaderSource = source
@@ -1410,6 +1472,20 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     end
     table.remove(entry.systems, index)
     self.activeSystem = math.min(self.activeSystem, #entry.systems)
+    return true
+  end
+
+  if action == "reorder-system" then
+    if entry.kind ~= "scratch" then
+      return nil, "Only scratch composites can be reordered"
+    end
+    local fromIdx = math.max(1, safeNumber(params.fromIndex, 0))
+    local toIdx   = math.max(1, safeNumber(params.toIndex,   0))
+    if fromIdx == toIdx or fromIdx < 1 or toIdx < 1 or fromIdx > #entry.systems or toIdx > #entry.systems then
+      return true
+    end
+    local moved = table.remove(entry.systems, fromIdx)
+    table.insert(entry.systems, toIdx, moved)
     return true
   end
 

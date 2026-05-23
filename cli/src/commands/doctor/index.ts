@@ -257,7 +257,8 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     add(checks, 'Project', 'feather.config.lua', 'warn', 'missing', 'Run `feather init` to create a shared config.');
   }
 
-  const managedMode = configSource ? parseManagedValue(configSource, 'mode') : null;
+  const configManagedMode = typeof config?.managed === 'string' ? config.managed : null;
+  const managedMode = (configSource ? parseManagedValue(configSource, 'mode') : null) ?? configManagedMode;
   const managedInstallDir = configSource ? parseManagedValue(configSource, 'installDir') : null;
   const effectiveInstallDir = normalizeInstallDir(opts.installDir ?? managedInstallDir ?? installDir);
   const mode = typeof config?.mode === 'string' ? config.mode : 'socket';
@@ -386,7 +387,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
     }
     for (const dir of pluginDirs) {
       const manifest = readPluginManifest(dir);
-      if (!manifest?.id || !knownPluginIds.has(manifest.id)) continue;
+      if (!manifest?.id) continue;
       const trust = classifyPluginTrust(manifest, pluginCatalogById.get(manifest.id));
       if (dangerousPluginIds.has(manifest.id)) {
         add(
@@ -398,6 +399,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
           `Remove before shipping with \`feather plugin remove ${manifest.id} --dir ${projectDirArg} --install-dir ${installDirArg} --yes\`.`,
         );
       } else {
+        if (!knownPluginIds.has(manifest.id)) continue;
         add(checks, 'Plugins', `Plugin ${manifest.id} trust`, trust === 'bundled-opt-in' ? 'info' : 'pass', pluginTrustLabel(trust));
       }
     }

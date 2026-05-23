@@ -46,7 +46,6 @@ export function TraceViewer({
   onFileClick?: (file: string, line?: number) => void;
   trace: string;
 }) {
-
   const highlightLine = (line: string, index: number) => {
     // Clickable file:line pattern
     const filePattern = /([\w./\\-]+\.lua):(\d+)/g;

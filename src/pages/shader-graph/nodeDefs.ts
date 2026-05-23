@@ -1,5 +1,6 @@
 import type { GlslType, NodeDef, NodeType, ShaderNodeData } from '@/types/shader-graph';
-import { glslFloat } from './glslUtils';
+import { glslFloat, shaderParameterUniformName, shaderTextureUniformName } from './glslUtils';
+import { customFunctionNodeDef } from './customNode';
 
 export const PORT_TYPE_COLORS: Record<GlslType, string> = {
   float: '#94a3b8',
@@ -7,6 +8,7 @@ export const PORT_TYPE_COLORS: Record<GlslType, string> = {
   vec3: '#60a5fa',
   vec4: '#c084fc',
   mat4: '#fb923c',
+  image: '#38bdf8',
 };
 
 type Emit = (inVars: Record<string, string>, outVars: Record<string, string>, data: ShaderNodeData) => string;
@@ -19,7 +21,82 @@ function binary(op: string): Emit {
   return (i, o) => `float ${o.out} = ${i.a} ${op} ${i.b};`;
 }
 
+function vectorBinary(type: 'vec2' | 'vec3' | 'vec4', op: string): Emit {
+  return (i, o) => `${type} ${o.out} = ${i.a} ${op} ${i.b};`;
+}
+
+function halftoneChannel(base: string, uv: string, offset: string, scale: string, mode: string, out: string, prefix: string): string[] {
+  return [
+    `vec2 ${prefix}_offset = ${offset} / max(${scale}, 0.0001);`,
+    `vec2 ${prefix}_dir = ${prefix}_offset / max(dot(${prefix}_offset, ${prefix}_offset), 0.000001);`,
+    `vec2 ${prefix}_pos = mod(abs(vec2(dot(${uv}, ${prefix}_dir), -${uv}.x * ${prefix}_dir.y + ${uv}.y * ${prefix}_dir.x)) + vec2(0.5), vec2(1.0)) - vec2(0.5);`,
+    `float ${prefix}_base = clamp(${base}, 0.0, 1.0);`,
+    `float ${prefix}_circle_raw = 0.78 * dot(${prefix}_pos, ${prefix}_pos) / max(0.25 * (1.0 - ${prefix}_base), 0.0001);`,
+    `float ${prefix}_circle = 1.0 - clamp((1.0 - ${prefix}_circle_raw) / max(fwidth(${prefix}_circle_raw), 0.0001), 0.0, 1.0);`,
+    `vec2 ${prefix}_pos2 = mod(${prefix}_pos + vec2(1.0), vec2(1.0)) - vec2(0.5);`,
+    `float ${prefix}_p1 = dot(${prefix}_pos, ${prefix}_pos);`,
+    `float ${prefix}_p2 = dot(${prefix}_pos2, ${prefix}_pos2);`,
+    `float ${prefix}_t = ${prefix}_p1 / max(${prefix}_p1 + ${prefix}_p2, 0.0001);`,
+    `float ${prefix}_smooth_raw = (1.0 - ${prefix}_t) * (${prefix}_p1 - 0.25 * (1.0 - ${prefix}_base)) - ${prefix}_t * (${prefix}_p2 - 0.25 * ${prefix}_base);`,
+    `float ${prefix}_smooth = 1.0 - clamp((-${prefix}_smooth_raw) / max(fwidth(${prefix}_smooth_raw), 0.0001), 0.0, 1.0);`,
+    `float ${prefix}_radius = 0.5 * sqrt(max(1.0 - ${prefix}_base, 0.0));`,
+    `float ${prefix}_square_raw = max(abs(${prefix}_pos.x), abs(${prefix}_pos.y)) / max(${prefix}_radius, 0.0001);`,
+    `float ${prefix}_square = 1.0 - clamp((1.0 - ${prefix}_square_raw) / max(fwidth(${prefix}_square_raw), 0.0001), 0.0, 1.0);`,
+    `float ${prefix}_mode = clamp(floor(${mode} + 0.5), 0.0, 2.0);`,
+    `float ${out} = ${prefix}_circle * (1.0 - step(0.5, abs(${prefix}_mode - 0.0))) + ${prefix}_smooth * (1.0 - step(0.5, abs(${prefix}_mode - 1.0))) + ${prefix}_square * (1.0 - step(0.5, abs(${prefix}_mode - 2.0)));`,
+  ];
+}
+
+function patternStripeMask(coord: string, widths: string, out: string): string[] {
+  return [
+    `float ${out}_width = max(${widths}.x + ${widths}.y, 0.0001);`,
+    `float ${out}_m = mod(${coord}, ${out}_width);`,
+    `${out}_m = mod(${out}_m + ${out}_width, ${out}_width);`,
+    `float ${out}_d = abs(${out}_m - 0.5 * ${out}_width) - 0.5 * ${widths}.y;`,
+    `float ${out} = clamp(${out}_d / max(fwidth(${out}_d), 0.0001), 0.0, 1.0);`,
+  ];
+}
+
+function pixelBasis(uv: string, position: string, out: string): string[] {
+  return [
+    `vec2 ${out}_f = ${uv} - ${position};`,
+    `vec2 ${out}_dx = dFdx(${uv});`,
+    `vec2 ${out}_dy = dFdy(${uv});`,
+    `float ${out}_det = ${out}_dx.x * ${out}_dy.y - ${out}_dx.y * ${out}_dy.x;`,
+    `float ${out}_inv_det = 1.0 / (abs(${out}_det) < 0.000001 ? 0.000001 : ${out}_det);`,
+  ];
+}
+
+function pixelLineCross(uv: string, position: string, direction: string, out: string, derivativeUv = uv): string[] {
+  return [
+    `vec2 ${out}_d = ${direction};`,
+    `vec2 ${out}_f = ${uv} - ${position};`,
+    `vec2 ${out}_dx = dFdx(${derivativeUv});`,
+    `vec2 ${out}_dy = dFdy(${derivativeUv});`,
+    `float ${out}_denom_x = ${out}_dx.y * ${out}_d.x - ${out}_dx.x * ${out}_d.y;`,
+    `float ${out}_denom_y = ${out}_dy.y * ${out}_d.x - ${out}_dy.x * ${out}_d.y;`,
+    `${out}_denom_x = abs(${out}_denom_x) < 0.000001 ? 0.000001 : ${out}_denom_x;`,
+    `${out}_denom_y = abs(${out}_denom_y) < 0.000001 ? 0.000001 : ${out}_denom_y;`,
+    `float ${out}_q1 = (${out}_d.x * ${out}_f.y - ${out}_d.y * ${out}_f.x) / ${out}_denom_x;`,
+    `float ${out}_q2 = (${out}_d.x * ${out}_f.y - ${out}_d.y * ${out}_f.x) / ${out}_denom_y;`,
+  ];
+}
+
 export const NODE_DEFS: Record<NodeType, NodeDef> = {
+  CustomFunction: {
+    category: 'Custom',
+    label: 'Custom Function',
+    inputs: [],
+    outputs: [],
+    emitGlsl: () => '',
+  },
+  SubgraphInstance: {
+    category: 'Custom',
+    label: 'Subgraph',
+    inputs: [],
+    outputs: [],
+    emitGlsl: () => '',
+  },
   // ─── Input ──────────────────────────────────────────────────────────────────
   TextureColor: {
     category: 'Input',
@@ -27,6 +104,27 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
     emitGlsl: (_, o) => `vec4 ${o.out} = Texel(tex, texture_coords);`,
+  },
+  TextureInput: {
+    category: 'Input',
+    label: 'Texture Input',
+    inputs: [],
+    outputs: [{ id: 'texture', label: 'Image', type: 'image' }],
+    emitGlsl: () => '',
+  },
+  TextureParameter: {
+    category: 'Input',
+    label: 'Texture Parameter',
+    inputs: [],
+    outputs: [{ id: 'texture', label: 'Image', type: 'image' }],
+    emitGlsl: () => '',
+  },
+  TextureUniformColor: {
+    category: 'Input',
+    label: 'Texture Uniform Color',
+    inputs: [{ id: 'uv', label: 'UV', type: 'vec2' }],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o, d) => `vec4 ${o.out} = Texel(${shaderTextureUniformName(String(d.__nodeId ?? 'texture'), d.uniformName)}, ${i.uv});`,
   },
   TextureCoords: {
     category: 'Input',
@@ -54,7 +152,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     label: 'Time',
     inputs: [],
     outputs: [{ id: 'out', label: 'T', type: 'float' }],
-    externs: ['extern number u_time;'],
+    externs: ['extern highp number u_time;'],
     emitGlsl: (_, o) => `float ${o.out} = u_time;`,
   },
   Resolution: {
@@ -63,6 +161,48 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [],
     outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
     emitGlsl: (_, o) => `vec2 ${o.out} = love_ScreenSize.xy;`,
+  },
+  FloatParameter: {
+    category: 'Input',
+    label: 'Float Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'Value', type: 'float' }],
+    emitGlsl: (_, o, d) => `float ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  Vec2Parameter: {
+    category: 'Input',
+    label: 'Vec2 Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: (_, o, d) => `vec2 ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  Vec3Parameter: {
+    category: 'Input',
+    label: 'Vec3 Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (_, o, d) => `vec3 ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  Vec4Parameter: {
+    category: 'Input',
+    label: 'Vec4 Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (_, o, d) => `vec4 ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  ColorParameter: {
+    category: 'Input',
+    label: 'Color Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (_, o, d) => `vec4 ${o.out} = ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)};`,
+  },
+  BooleanParameter: {
+    category: 'Input',
+    label: 'Boolean Parameter',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (_, o, d) => `float ${o.out} = step(0.5, ${shaderParameterUniformName(String(d.__nodeId ?? 'param'), d.uniformName)});`,
   },
   FloatConstant: {
     category: 'Input',
@@ -555,9 +695,12 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   SampleTexture: {
     category: 'Effect',
     label: 'Sample Texture',
-    inputs: [{ id: 'uv', label: 'UV', type: 'vec2' }],
+    inputs: [
+      { id: 'texture', label: 'Texture', type: 'image' },
+      { id: 'uv', label: 'UV', type: 'vec2' },
+    ],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
-    emitGlsl: (i, o) => `vec4 ${o.out} = Texel(tex, ${i.uv});`,
+    emitGlsl: (i, o) => `vec4 ${o.out} = Texel(${i.texture}, ${i.uv});`,
   },
   TextureStrength: {
     category: 'Effect',
@@ -605,7 +748,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   },
   Outline2D: {
     category: 'Effect',
-    label: 'Alpha Outline',
+    label: 'Sprite Outline',
     inputs: [
       { id: 'color', label: 'Color', type: 'vec4' },
       { id: 'uv', label: 'UV', type: 'vec2' },
@@ -614,7 +757,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     ],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
     emitGlsl: (i, o) =>
-      `vec2 ${o.out}_px = ${i.thickness} / love_ScreenSize.xy;\nfloat ${o.out}_a = max(max(Texel(tex, ${i.uv} + vec2(${o.out}_px.x, 0.0)).a, Texel(tex, ${i.uv} - vec2(${o.out}_px.x, 0.0)).a), max(Texel(tex, ${i.uv} + vec2(0.0, ${o.out}_px.y)).a, Texel(tex, ${i.uv} - vec2(0.0, ${o.out}_px.y)).a));\nvec4 ${o.out} = mix(vec4(${i.outlineColor}.rgb, ${o.out}_a * ${i.outlineColor}.a), ${i.color}, ${i.color}.a);`,
+      `vec2 ${o.out}_uv_step = max(fwidth(${i.uv}), vec2(0.000001)) * max(${i.thickness}, 0.0);\nfloat ${o.out}_source_alpha = clamp(${i.color}.a, 0.0, 1.0);\nfloat ${o.out}_neighbor_alpha = 0.0;\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + vec2(${o.out}_uv_step.x, 0.0)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} - vec2(${o.out}_uv_step.x, 0.0)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + vec2(0.0, ${o.out}_uv_step.y)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} - vec2(0.0, ${o.out}_uv_step.y)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + ${o.out}_uv_step).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} - ${o.out}_uv_step).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + vec2(${o.out}_uv_step.x, -${o.out}_uv_step.y)).a);\n${o.out}_neighbor_alpha = max(${o.out}_neighbor_alpha, Texel(tex, ${i.uv} + vec2(-${o.out}_uv_step.x, ${o.out}_uv_step.y)).a);\nfloat ${o.out}_outline_alpha = ${i.outlineColor}.a * smoothstep(0.001, 0.5, ${o.out}_neighbor_alpha);\nfloat ${o.out}_alpha = ${o.out}_source_alpha + ${o.out}_outline_alpha * (1.0 - ${o.out}_source_alpha);\nfloat ${o.out}_source_coverage = smoothstep(0.18, 0.92, ${o.out}_source_alpha);\nvec3 ${o.out}_rgb = mix(${i.outlineColor}.rgb, ${i.color}.rgb, ${o.out}_source_coverage);\nvec4 ${o.out} = vec4(${o.out}_rgb, ${o.out}_alpha);`,
   },
   WaveDistort: {
     category: 'Effect',
@@ -661,6 +804,32 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     helperKey: 'noise',
     emitGlsl: (i, o) =>
       `vec2 ${o.out}_p = ${i.uv} * max(${i.scale}, 0.0001) + vec2(${i.time} * ${i.speed}, ${i.time} * ${i.speed} * 0.73);\nvec2 ${o.out}_cell = floor(${o.out}_p);\nvec2 ${o.out}_f = smoothstep(vec2(0.0), vec2(1.0), fract(${o.out}_p));\nfloat ${o.out}_a = mix(mix(feather_hash(${o.out}_cell), feather_hash(${o.out}_cell + vec2(1.0, 0.0)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(0.0, 1.0)), feather_hash(${o.out}_cell + vec2(1.0, 1.0)), ${o.out}_f.x), ${o.out}_f.y);\nfloat ${o.out}_b = mix(mix(feather_hash(${o.out}_cell + vec2(9.2, 3.4)), feather_hash(${o.out}_cell + vec2(10.2, 3.4)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(9.2, 4.4)), feather_hash(${o.out}_cell + vec2(10.2, 4.4)), ${o.out}_f.x), ${o.out}_f.y);\nvec2 ${o.out}_uv = ${i.uv} + (vec2(${o.out}_a, ${o.out}_b) * 2.0 - 1.0) * ${i.amp};\nvec4 ${o.out}_source = Texel(tex, ${o.out}_uv);\nfloat ${o.out}_mask = step(${i.maskThreshold}, min(${i.color}.a, ${o.out}_source.a));\nvec4 ${o.out} = mix(${i.color}, ${o.out}_source, ${o.out}_mask);`,
+  },
+  WaterNoiseUV: {
+    category: 'Effect',
+    label: 'Water Noise UV',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'time', label: 'Time', type: 'float' },
+      { id: 'noiseWidth', label: 'Noise W', type: 'float', defaultValue: 64, min: 1, max: 512, step: 1 },
+      { id: 'spriteWidth', label: 'Sprite W', type: 'float', defaultValue: 65, min: 1, max: 512, step: 1 },
+      { id: 'speed', label: 'Speed', type: 'float', defaultValue: 0.05, min: -1, max: 1, step: 0.001 },
+    ],
+    outputs: [{ id: 'out', label: 'Noise UV', type: 'vec2' }],
+    emitGlsl: (i, o) =>
+      `float ${o.out}_ratio = ${i.spriteWidth} / max(${i.noiseWidth}, 0.0001);\nfloat ${o.out}_speed = ${i.speed} * ${o.out}_ratio;\nvec2 ${o.out} = fract(${i.uv} * ${o.out}_ratio + vec2(${o.out}_speed * ${i.time}, ${o.out}_speed * ${i.time}));`,
+  },
+  WaterDisplaceV2: {
+    category: 'Effect',
+    label: 'Water Displace V2',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'noiseColor', label: 'Noise', type: 'vec4' },
+      { id: 'amp', label: 'Amp', type: 'float', defaultValue: 0.05, min: 0, max: 0.25, step: 0.001 },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    emitGlsl: (i, o) =>
+      `vec4 ${o.out}_noise = ${i.noiseColor};\nfloat ${o.out}_xy = ${o.out}_noise.b * 0.7071;\n${o.out}_noise.r -= ${o.out}_xy;\n${o.out}_noise.g -= ${o.out}_xy;\nvec2 ${o.out} = ${i.uv} + (((${i.amp} * 2.0) * vec2(${o.out}_noise)) - ${i.amp});`,
   },
   Dissolve2D: {
     category: 'Effect',
@@ -713,16 +882,195 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     emitGlsl: (i, o) =>
       `vec2 ${o.out}_cells = max(vec2(1.0), love_ScreenSize.xy / max(${i.amount}, 1.0));\nvec2 ${o.out} = floor(${i.uv} * ${o.out}_cells) / ${o.out}_cells;`,
   },
+
+  // ─── Pixel Perfect ──────────────────────────────────────────────────────────
+  PixelPoint: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Point',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      ...pixelBasis(i.uv, i.position, o.out),
+      `float ${o.out}_tx = (${o.out}_dy.y * ${o.out}_f.x - ${o.out}_dy.x * ${o.out}_f.y) * ${o.out}_inv_det;`,
+      `float ${o.out}_ty = (-${o.out}_dx.y * ${o.out}_f.x + ${o.out}_dx.x * ${o.out}_f.y) * ${o.out}_inv_det;`,
+      `float ${o.out} = (${o.out}_tx > -0.5 && ${o.out}_tx <= 0.5 && ${o.out}_ty > -0.5 && ${o.out}_ty <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelPointGrid: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Point Grid',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.1, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_nearest = ${i.position} + max(${i.width}, 0.0001) * floor((${i.uv} - ${i.position}) / max(${i.width}, 0.0001) + vec2(0.5));`,
+      ...pixelBasis(i.uv, `${o.out}_nearest`, o.out),
+      `float ${o.out}_tx = (${o.out}_dy.y * ${o.out}_f.x - ${o.out}_dy.x * ${o.out}_f.y) * ${o.out}_inv_det;`,
+      `float ${o.out}_ty = (-${o.out}_dx.y * ${o.out}_f.x + ${o.out}_dx.x * ${o.out}_f.y) * ${o.out}_inv_det;`,
+      `float ${o.out} = (${o.out}_tx > -0.5 && ${o.out}_tx <= 0.5 && ${o.out}_ty > -0.5 && ${o.out}_ty <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelRay: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Ray',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'direction', label: 'Direction', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      ...pixelLineCross(i.uv, i.position, i.direction, o.out),
+      `float ${o.out} = (${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelRays: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Rays',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'direction', label: 'Direction', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.1, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_normal = normalize(vec2(-${i.direction}.y, ${i.direction}.x));`,
+      `vec2 ${o.out}_nearest = ${i.uv} - max(${i.width}, 0.0001) * floor(dot(${o.out}_normal, ${i.uv} - ${i.position}) / max(${i.width}, 0.0001) + 0.5) * ${o.out}_normal;`,
+      ...pixelLineCross(`${o.out}_nearest`, i.position, i.direction, o.out, i.uv),
+      `float ${o.out} = (${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelLine: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Line',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [0.2, 0.25], min: 0, max: 1, step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [0.8, 0.75], min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_d = ${i.b} - ${i.a};`,
+      `vec2 ${o.out}_f = ${i.uv} - ${i.a};`,
+      `vec2 ${o.out}_dx = dFdx(${i.uv});`,
+      `vec2 ${o.out}_dy = dFdy(${i.uv});`,
+      `float ${o.out}_denom1 = ${o.out}_dx.y * ${o.out}_d.x - ${o.out}_dx.x * ${o.out}_d.y;`,
+      `float ${o.out}_denom2 = ${o.out}_dy.y * ${o.out}_d.x - ${o.out}_dy.x * ${o.out}_d.y;`,
+      `${o.out}_denom1 = abs(${o.out}_denom1) < 0.000001 ? 0.000001 : ${o.out}_denom1;`,
+      `${o.out}_denom2 = abs(${o.out}_denom2) < 0.000001 ? 0.000001 : ${o.out}_denom2;`,
+      `float ${o.out}_inv1 = 1.0 / ${o.out}_denom1;`,
+      `float ${o.out}_inv2 = 1.0 / ${o.out}_denom2;`,
+      `float ${o.out}_p1 = -(${o.out}_dx.x * ${o.out}_f.y - ${o.out}_dx.y * ${o.out}_f.x) * ${o.out}_inv1;`,
+      `float ${o.out}_q1 = (${o.out}_d.x * ${o.out}_f.y - ${o.out}_d.y * ${o.out}_f.x) * ${o.out}_inv1;`,
+      `float ${o.out}_p2 = -(${o.out}_dy.x * ${o.out}_f.y - ${o.out}_dy.y * ${o.out}_f.x) * ${o.out}_inv2;`,
+      `float ${o.out}_q2 = (${o.out}_d.x * ${o.out}_f.y - ${o.out}_d.y * ${o.out}_f.x) * ${o.out}_inv2;`,
+      `float ${o.out} = (${o.out}_p1 >= 0.0 && ${o.out}_p1 <= 1.0 && ${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_p2 >= 0.0 && ${o.out}_p2 <= 1.0 && ${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelLines: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Lines',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [0.2, 0.25], min: 0, max: 1, step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [0.8, 0.75], min: 0, max: 1, step: 0.01 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.1, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_d0 = ${i.b} - ${i.a};`,
+      `vec2 ${o.out}_normal = normalize(vec2(-${o.out}_d0.y, ${o.out}_d0.x));`,
+      `vec2 ${o.out}_shifted_uv = ${i.uv} - max(${i.width}, 0.0001) * floor(dot(${o.out}_normal, ${i.uv} - ${i.a}) / max(${i.width}, 0.0001) + 0.5) * ${o.out}_normal;`,
+      `vec2 ${o.out}_d = ${o.out}_d0;`,
+      `vec2 ${o.out}_f = ${o.out}_shifted_uv - ${i.a};`,
+      `vec2 ${o.out}_dx = dFdx(${i.uv});`,
+      `vec2 ${o.out}_dy = dFdy(${i.uv});`,
+      `float ${o.out}_denom1 = ${o.out}_dx.y * ${o.out}_d.x - ${o.out}_dx.x * ${o.out}_d.y;`,
+      `float ${o.out}_denom2 = ${o.out}_dy.y * ${o.out}_d.x - ${o.out}_dy.x * ${o.out}_d.y;`,
+      `${o.out}_denom1 = abs(${o.out}_denom1) < 0.000001 ? 0.000001 : ${o.out}_denom1;`,
+      `${o.out}_denom2 = abs(${o.out}_denom2) < 0.000001 ? 0.000001 : ${o.out}_denom2;`,
+      `float ${o.out}_inv1 = 1.0 / ${o.out}_denom1;`,
+      `float ${o.out}_inv2 = 1.0 / ${o.out}_denom2;`,
+      `float ${o.out}_p1 = -(${o.out}_dx.x * ${o.out}_f.y - ${o.out}_dx.y * ${o.out}_f.x) * ${o.out}_inv1;`,
+      `float ${o.out}_q1 = (${o.out}_d.x * ${o.out}_f.y - ${o.out}_d.y * ${o.out}_f.x) * ${o.out}_inv1;`,
+      `float ${o.out}_p2 = -(${o.out}_dy.x * ${o.out}_f.y - ${o.out}_dy.y * ${o.out}_f.x) * ${o.out}_inv2;`,
+      `float ${o.out}_q2 = (${o.out}_d.x * ${o.out}_f.y - ${o.out}_d.y * ${o.out}_f.x) * ${o.out}_inv2;`,
+      `float ${o.out} = (${o.out}_p1 >= 0.0 && ${o.out}_p1 <= 1.0 && ${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_p2 >= 0.0 && ${o.out}_p2 <= 1.0 && ${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelCircle: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Circle',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'center', label: 'Center', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.35, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_f = ${i.uv} - ${i.center};`,
+      `vec2 ${o.out}_dx = dFdx(${i.uv});`,
+      `vec2 ${o.out}_dy = dFdy(${i.uv});`,
+      `float ${o.out}_r2 = ${i.radius} * ${i.radius};`,
+      `vec2 ${o.out}_fx1 = ${o.out}_f - 0.5 * ${o.out}_dx;`,
+      `vec2 ${o.out}_fx2 = ${o.out}_f + 0.5 * ${o.out}_dx;`,
+      `vec2 ${o.out}_fy1 = ${o.out}_f - 0.5 * ${o.out}_dy;`,
+      `vec2 ${o.out}_fy2 = ${o.out}_f + 0.5 * ${o.out}_dy;`,
+      `float ${o.out} = ((dot(${o.out}_fx1, ${o.out}_fx1) - ${o.out}_r2) * (dot(${o.out}_fx2, ${o.out}_fx2) - ${o.out}_r2) <= 0.0 || (dot(${o.out}_fy1, ${o.out}_fy1) - ${o.out}_r2) * (dot(${o.out}_fy2, ${o.out}_fy2) - ${o.out}_r2) <= 0.0) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
+  PixelPolygon: {
+    category: 'Pixel Perfect',
+    label: 'Pixel Polygon',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'center', label: 'Center', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.35, min: 0.001, max: 1, step: 0.01 },
+      { id: 'sides', label: 'Sides', type: 'float', defaultValue: 6, min: 3, max: 12, step: 1 },
+      { id: 'angle', label: 'Angle', type: 'float', defaultValue: 0, min: -360, max: 360, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_f = ${i.uv} - ${i.center};`,
+      `float ${o.out}_angle = radians(${i.angle});`,
+      `float ${o.out}_sa = sin(${o.out}_angle);`,
+      `float ${o.out}_ca = cos(${o.out}_angle);`,
+      `${o.out}_f = vec2(${o.out}_f.y * ${o.out}_sa + ${o.out}_f.x * ${o.out}_ca, ${o.out}_f.y * ${o.out}_ca - ${o.out}_f.x * ${o.out}_sa);`,
+      `float ${o.out}_sector = 6.28318530718 / max(${i.sides}, 3.0);`,
+      `float ${o.out}_theta = atan(${o.out}_f.y, ${o.out}_f.x);`,
+      `float ${o.out}_snap = floor(${o.out}_theta / ${o.out}_sector + 0.5) * ${o.out}_sector;`,
+      `vec2 ${o.out}_d = vec2(sin(${o.out}_snap), -cos(${o.out}_snap));`,
+      `vec2 ${o.out}_normal = vec2(cos(${o.out}_snap), sin(${o.out}_snap));`,
+      `vec2 ${o.out}_edge_f = ${o.out}_f - ${o.out}_normal * ${i.radius};`,
+      `vec2 ${o.out}_dx = dFdx(${i.uv});`,
+      `vec2 ${o.out}_dy = dFdy(${i.uv});`,
+      `float ${o.out}_denom_x = ${o.out}_dx.y * ${o.out}_d.x - ${o.out}_dx.x * ${o.out}_d.y;`,
+      `float ${o.out}_denom_y = ${o.out}_dy.y * ${o.out}_d.x - ${o.out}_dy.x * ${o.out}_d.y;`,
+      `${o.out}_denom_x = abs(${o.out}_denom_x) < 0.000001 ? 0.000001 : ${o.out}_denom_x;`,
+      `${o.out}_denom_y = abs(${o.out}_denom_y) < 0.000001 ? 0.000001 : ${o.out}_denom_y;`,
+      `float ${o.out}_q1 = (${o.out}_d.x * ${o.out}_edge_f.y - ${o.out}_d.y * ${o.out}_edge_f.x) / ${o.out}_denom_x;`,
+      `float ${o.out}_q2 = (${o.out}_d.x * ${o.out}_edge_f.y - ${o.out}_d.y * ${o.out}_edge_f.x) / ${o.out}_denom_y;`,
+      `float ${o.out} = (${o.out}_q1 > -0.5 && ${o.out}_q1 <= 0.5) || (${o.out}_q2 > -0.5 && ${o.out}_q2 <= 0.5) ? 1.0 : 0.0;`,
+    ].join('\n'),
+  },
   ChromaticAberration: {
     category: 'Effect',
     label: 'Chromatic Aberration',
     inputs: [
       { id: 'uv', label: 'UV', type: 'vec2' },
       { id: 'amount', label: 'Amount', type: 'float' },
+      { id: 'offset', label: 'Offset', type: 'vec2' },
     ],
     outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
     emitGlsl: (i, o) =>
-      `vec2 ${o.out}_dir = normalize(${i.uv} - vec2(0.5));\nvec2 ${o.out}_off = ${o.out}_dir * ${i.amount};\nvec4 ${o.out}_base = Texel(tex, ${i.uv});\nvec4 ${o.out} = vec4(Texel(tex, ${i.uv} + ${o.out}_off).r, ${o.out}_base.g, Texel(tex, ${i.uv} - ${o.out}_off).b, ${o.out}_base.a);`,
+      `vec2 ${o.out}_center = vec2(0.5) + ${i.offset};\nvec2 ${o.out}_delta = ${i.uv} - ${o.out}_center;\nvec2 ${o.out}_dir = length(${o.out}_delta) > 0.0001 ? normalize(${o.out}_delta) : vec2(0.0);\nvec2 ${o.out}_off = ${o.out}_dir * ${i.amount};\nvec4 ${o.out}_base = Texel(tex, ${i.uv});\nvec4 ${o.out} = vec4(Texel(tex, ${i.uv} + ${o.out}_off).r, ${o.out}_base.g, Texel(tex, ${i.uv} - ${o.out}_off).b, ${o.out}_base.a);`,
   },
 
   // ─── Output ──────────────────────────────────────────────────────────────────
@@ -823,30 +1171,1304 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [],
     emitGlsl: () => '',
   },
+
+  // ─── Math (extended) ─────────────────────────────────────────────────────────
+  Sqrt: {
+    category: 'Math',
+    label: 'Sqrt',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: unary('sqrt'),
+  },
+  Ceil: {
+    category: 'Math',
+    label: 'Ceil',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: unary('ceil'),
+  },
+  Round: {
+    category: 'Math',
+    label: 'Round',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = floor(${i.in0} + 0.5);`,
+  },
+  Sign: {
+    category: 'Math',
+    label: 'Sign',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: unary('sign'),
+  },
+  Tan: {
+    category: 'Math',
+    label: 'Tan',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: unary('tan'),
+  },
+  Log: {
+    category: 'Math',
+    label: 'Log',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = log(max(${i.in0}, 0.0001));`,
+  },
+  Exp: {
+    category: 'Math',
+    label: 'Exp',
+    inputs: [{ id: 'in0', label: 'X', type: 'float' }],
+    outputs: [{ id: 'out', label: 'Out', type: 'float' }],
+    emitGlsl: unary('exp'),
+  },
+  Atan2: {
+    category: 'Math',
+    label: 'Atan2',
+    inputs: [
+      { id: 'y', label: 'Y', type: 'float' },
+      { id: 'x', label: 'X', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'Angle', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = atan(${i.y}, ${i.x});`,
+  },
+
+  // ─── Complex ────────────────────────────────────────────────────────────────
+  ComplexConjugate: {
+    category: 'Complex',
+    label: 'Complex Conjugate',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2', defaultValue: [0.5, 0.25], step: 0.01 }],
+    outputs: [{ id: 'out', label: 'A*', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(${i.a}.x, -${i.a}.y);`,
+  },
+  ComplexReciprocal: {
+    category: 'Complex',
+    label: 'Complex Reciprocal',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2', defaultValue: [1, 0], step: 0.01 }],
+    outputs: [{ id: 'out', label: '1 / A', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(${i.a}.x, -${i.a}.y) / max(dot(${i.a}, ${i.a}), 0.000001);`,
+  },
+  ComplexMultiply: {
+    category: 'Complex',
+    label: 'Complex Multiply',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [0, 1], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'A x B', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(${i.a}.x * ${i.b}.x - ${i.a}.y * ${i.b}.y, ${i.a}.x * ${i.b}.y + ${i.a}.y * ${i.b}.x);`,
+  },
+  ComplexDivide: {
+    category: 'Complex',
+    label: 'Complex Divide',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [1, 0], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'A / B', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(${i.a}.x * ${i.b}.x + ${i.a}.y * ${i.b}.y, ${i.a}.y * ${i.b}.x - ${i.a}.x * ${i.b}.y) / max(dot(${i.b}, ${i.b}), 0.000001);`,
+  },
+  ComplexExp: {
+    category: 'Complex',
+    label: 'Complex Exp',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2', defaultValue: [0, 1], step: 0.01 }],
+    outputs: [{ id: 'out', label: 'e^A', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = exp(${i.a}.x) * vec2(cos(${i.a}.y), sin(${i.a}.y));`,
+  },
+  ComplexLog: {
+    category: 'Complex',
+    label: 'Complex Log',
+    inputs: [{ id: 'a', label: 'A', type: 'vec2', defaultValue: [1, 0], step: 0.01 }],
+    outputs: [{ id: 'out', label: 'log(A)', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = vec2(0.5 * log(max(dot(${i.a}, ${i.a}), 0.000001)), atan(${i.a}.y, ${i.a}.x));`,
+  },
+  ComplexPower: {
+    category: 'Complex',
+    label: 'Complex Power',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2', defaultValue: [0.5, 0.5], step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec2', defaultValue: [2, 0], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'A^B', type: 'vec2' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_arg = atan(${i.a}.y, ${i.a}.x);`,
+      `float ${o.out}_len2 = max(dot(${i.a}, ${i.a}), 0.000001);`,
+      `float ${o.out}_angle = ${i.b}.x * ${o.out}_arg + 0.5 * ${i.b}.y * log(${o.out}_len2);`,
+      `float ${o.out}_scale = pow(${o.out}_len2, 0.5 * ${i.b}.x) * exp(-${i.b}.y * ${o.out}_arg);`,
+      `vec2 ${o.out} = ${o.out}_scale * vec2(cos(${o.out}_angle), sin(${o.out}_angle));`,
+    ].join('\n'),
+  },
+
+  // ─── Quaternion ─────────────────────────────────────────────────────────────
+  QuaternionInverse: {
+    category: 'Quaternion',
+    label: 'Quaternion Inverse',
+    inputs: [{ id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 }],
+    outputs: [{ id: 'out', label: 'Q^-1', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = vec4(-${i.q}.xyz, ${i.q}.w) / max(dot(${i.q}, ${i.q}), 0.000001);`,
+  },
+  QuaternionFromEuler: {
+    category: 'Quaternion',
+    label: 'Quaternion From Euler',
+    inputs: [{ id: 'angles', label: 'Euler Deg', type: 'vec3', defaultValue: [0, 0, 0], min: -360, max: 360, step: 1 }],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_s = sin(0.5 * radians(${i.angles}));`,
+      `vec3 ${o.out}_c = cos(0.5 * radians(${i.angles}));`,
+      `vec4 ${o.out} = vec4(`,
+      `  ${o.out}_c.y * ${o.out}_s.x * ${o.out}_c.z + ${o.out}_s.y * ${o.out}_c.x * ${o.out}_s.z,`,
+      `  ${o.out}_s.y * ${o.out}_c.x * ${o.out}_c.z - ${o.out}_c.y * ${o.out}_s.x * ${o.out}_s.z,`,
+      `  ${o.out}_c.y * ${o.out}_c.x * ${o.out}_s.z - ${o.out}_s.y * ${o.out}_s.x * ${o.out}_c.z,`,
+      `  ${o.out}_c.y * ${o.out}_c.x * ${o.out}_c.z + ${o.out}_s.y * ${o.out}_s.x * ${o.out}_s.z`,
+      `);`,
+      `${o.out} = normalize(${o.out});`,
+    ].join('\n'),
+  },
+  QuaternionFromAngleAxis: {
+    category: 'Quaternion',
+    label: 'Quaternion From Angle Axis',
+    inputs: [
+      { id: 'angle', label: 'Angle Deg', type: 'float', defaultValue: 45, min: -360, max: 360, step: 1 },
+      { id: 'axis', label: 'Axis', type: 'vec3', defaultValue: [0, 0, 1], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_axis_raw = ${i.axis};`,
+      `vec3 ${o.out}_axis = length(${o.out}_axis_raw) > 0.000001 ? normalize(${o.out}_axis_raw) : vec3(0.0, 0.0, 1.0);`,
+      `float ${o.out}_half = 0.5 * radians(${i.angle});`,
+      `float ${o.out}_s = sin(${o.out}_half);`,
+      `vec4 ${o.out} = normalize(vec4(${o.out}_s * ${o.out}_axis, cos(${o.out}_half)));`,
+    ].join('\n'),
+  },
+  QuaternionToAngleAxis: {
+    category: 'Quaternion',
+    label: 'Quaternion To Angle Axis',
+    inputs: [{ id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 }],
+    outputs: [
+      { id: 'angle', label: 'Angle Deg', type: 'float' },
+      { id: 'axis', label: 'Axis', type: 'vec3' },
+    ],
+    emitGlsl: (i, o) => [
+      `vec4 ${o.axis}_q = normalize(${i.q});`,
+      `float ${o.axis}_len = length(${o.axis}_q.xyz);`,
+      `vec3 ${o.axis} = ${o.axis}_len > 0.000001 ? ${o.axis}_q.xyz / ${o.axis}_len : vec3(1.0, 0.0, 0.0);`,
+      `float ${o.angle} = degrees(2.0 * atan(${o.axis}_len, ${o.axis}_q.w));`,
+    ].join('\n'),
+  },
+  QuaternionFromToRotation: {
+    category: 'Quaternion',
+    label: 'Quaternion From To Rotation',
+    inputs: [
+      { id: 'from', label: 'From', type: 'vec3', defaultValue: [1, 0, 0], step: 0.01 },
+      { id: 'to', label: 'To', type: 'vec3', defaultValue: [0, 1, 0], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_from_raw = ${i.from};`,
+      `vec3 ${o.out}_to_raw = ${i.to};`,
+      `vec3 ${o.out}_from = length(${o.out}_from_raw) > 0.000001 ? normalize(${o.out}_from_raw) : vec3(1.0, 0.0, 0.0);`,
+      `vec3 ${o.out}_to = length(${o.out}_to_raw) > 0.000001 ? normalize(${o.out}_to_raw) : vec3(1.0, 0.0, 0.0);`,
+      `vec3 ${o.out}_axis = cross(${o.out}_from, ${o.out}_to);`,
+      `float ${o.out}_w = sqrt(max(dot(${o.out}_from, ${o.out}_from) * dot(${o.out}_to, ${o.out}_to), 0.0)) + dot(${o.out}_from, ${o.out}_to);`,
+      `vec4 ${o.out} = normalize(vec4(${o.out}_axis, ${o.out}_w));`,
+    ].join('\n'),
+  },
+  QuaternionMultiply: {
+    category: 'Quaternion',
+    label: 'Quaternion Multiply',
+    inputs: [
+      { id: 'p', label: 'P', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+      { id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'P x Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec4 ${o.out} = vec4(${i.p}.w * ${i.q}.xyz + ${i.q}.w * ${i.p}.xyz + cross(${i.p}.xyz, ${i.q}.xyz), ${i.p}.w * ${i.q}.w - dot(${i.p}.xyz, ${i.q}.xyz));`,
+      `${o.out} = dot(${o.out}, ${o.out}) > 0.000001 ? normalize(${o.out}) : vec4(0.0, 0.0, 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  QuaternionRotateVector: {
+    category: 'Quaternion',
+    label: 'Quaternion Rotate Vector',
+    inputs: [
+      { id: 'vec', label: 'Vector', type: 'vec3', defaultValue: [1, 0, 0], step: 0.01 },
+      { id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (i, o) => [
+      `vec4 ${o.out}_q_raw = ${i.q};`,
+      `vec4 ${o.out}_q = dot(${o.out}_q_raw, ${o.out}_q_raw) > 0.000001 ? normalize(${o.out}_q_raw) : vec4(0.0, 0.0, 0.0, 1.0);`,
+      `vec3 ${o.out}_t = 2.0 * cross(${o.out}_q.xyz, ${i.vec});`,
+      `vec3 ${o.out} = ${i.vec} + ${o.out}_q.w * ${o.out}_t + cross(${o.out}_q.xyz, ${o.out}_t);`,
+    ].join('\n'),
+  },
+  QuaternionSlerp: {
+    category: 'Quaternion',
+    label: 'Quaternion Slerp',
+    inputs: [
+      { id: 'p', label: 'P', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+      { id: 'q', label: 'Q', type: 'vec4', defaultValue: [0, 0, 0, 1], step: 0.01 },
+      { id: 't', label: 'T', type: 'float', defaultValue: 0.5, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec4 ${o.out}_p = normalize(${i.p});`,
+      `vec4 ${o.out}_q = normalize(${i.q});`,
+      `float ${o.out}_cos = dot(${o.out}_p, ${o.out}_q);`,
+      `${o.out}_q = ${o.out}_cos < 0.0 ? -${o.out}_q : ${o.out}_q;`,
+      `${o.out}_cos = abs(${o.out}_cos);`,
+      `float ${o.out}_t = clamp(${i.t}, 0.0, 1.0);`,
+      `float ${o.out}_half = acos(clamp(${o.out}_cos, -1.0, 1.0));`,
+      `float ${o.out}_sin = sin(${o.out}_half);`,
+      `vec4 ${o.out} = ${o.out}_sin < 0.0001 ? normalize(mix(${o.out}_p, ${o.out}_q, ${o.out}_t)) : normalize((sin(${o.out}_half * (1.0 - ${o.out}_t)) / ${o.out}_sin) * ${o.out}_p + (sin(${o.out}_half * ${o.out}_t) / ${o.out}_sin) * ${o.out}_q);`,
+    ].join('\n'),
+  },
+
+  // ─── Symmetry ───────────────────────────────────────────────────────────────
+  ReflectionSymmetry: {
+    category: 'Symmetry',
+    label: 'Reflection Symmetry',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'direction', label: 'Direction', type: 'vec2', defaultValue: [0, 1], step: 0.01 },
+      { id: 'glide', label: 'Glide', type: 'float', defaultValue: 0, min: -2, max: 2, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_dir_raw = ${i.direction};`,
+      `vec2 ${o.out}_dir = length(${o.out}_dir_raw) > 0.000001 ? normalize(${o.out}_dir_raw) : vec2(0.0, 1.0);`,
+      `vec2 ${o.out}_p = ${i.uv} - ${i.position};`,
+      `vec2 ${o.out}_normal = vec2(${o.out}_dir.y, -${o.out}_dir.x);`,
+      `float ${o.out}_dist = dot(${o.out}_normal, ${o.out}_p);`,
+      `vec2 ${o.out} = (dot(${o.out}_dir, ${o.out}_p) + (${o.out}_dist < 0.0 ? -${i.glide} : 0.0)) * ${o.out}_dir + abs(${o.out}_dist) * ${o.out}_normal + ${i.position};`,
+    ].join('\n'),
+  },
+  RotationSymmetry: {
+    category: 'Symmetry',
+    label: 'Rotation Symmetry',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'angle', label: 'Angle Rad', type: 'float', defaultValue: 0, min: -6.283, max: 6.283, step: 0.01 },
+      { id: 'order', label: 'Order', type: 'float', defaultValue: 6, min: 1, max: 24, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_p = ${i.uv} - ${i.position};`,
+      `float ${o.out}_order = max(floor(${i.order} + 0.5), 1.0);`,
+      `float ${o.out}_angle = atan(${o.out}_p.y, ${o.out}_p.x) - ${i.angle};`,
+      `float ${o.out}_rotation = -floor(${o.out}_angle * ${o.out}_order * 0.15915494309) / (${o.out}_order * 0.15915494309);`,
+      `float ${o.out}_s = sin(${o.out}_rotation);`,
+      `float ${o.out}_c = cos(${o.out}_rotation);`,
+      `vec2 ${o.out} = vec2(${o.out}_c * ${o.out}_p.x - ${o.out}_s * ${o.out}_p.y, ${o.out}_s * ${o.out}_p.x + ${o.out}_c * ${o.out}_p.y) + ${i.position};`,
+    ].join('\n'),
+  },
+  TilingSymmetry: {
+    category: 'Symmetry',
+    label: 'Tiling Symmetry',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'cellSize', label: 'Cell Size', type: 'float', defaultValue: 0.25, min: 0.01, max: 2, step: 0.01 },
+      { id: 'offset', label: 'Offset', type: 'float', defaultValue: 0, min: -2, max: 2, step: 0.01 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 3, step: 1 },
+    ],
+    outputs: [
+      { id: 'out', label: 'Tile UV', type: 'vec2' },
+      { id: 'cellIndex', label: 'Cell Index', type: 'vec2' },
+      { id: 'cellPosition', label: 'Cell Pos', type: 'vec2' },
+    ],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_size = max(${i.cellSize}, 0.0001);`,
+      `float ${o.out}_mode = clamp(floor(${i.mode} + 0.5), 0.0, 3.0);`,
+      `vec2 ${o.out}_square_uv2 = ${i.uv} / ${o.out}_size;`,
+      `vec2 ${o.out}_square_index = vec2(0.0);`,
+      `${o.out}_square_index.y = floor(${o.out}_square_uv2.y + 0.5);`,
+      `${o.out}_square_uv2.x = ${o.out}_square_uv2.x - ${i.offset} / ${o.out}_size * ${o.out}_square_index.y;`,
+      `${o.out}_square_index.x = floor(${o.out}_square_uv2.x + 0.5);`,
+      `vec2 ${o.out}_square_pos = ${o.out}_square_index * ${o.out}_size + ${i.offset} * vec2(${o.out}_square_index.y, 0.0);`,
+      `vec2 ${o.out}_square_out = ${i.uv} - ${o.out}_square_pos;`,
+      `const float ${o.out}_root3 = 1.73205080757;`,
+      `vec2 ${o.out}_hex_uv2 = ${i.uv} / ${o.out}_size;`,
+      `mat2 ${o.out}_xhex = mat2(1.0, 2.0, -${o.out}_root3, 0.0);`,
+      `mat2 ${o.out}_yhex = mat2(1.0, -1.0, ${o.out}_root3, ${o.out}_root3);`,
+      `mat2 ${o.out}_pos_index = mat2(1.0, 0.0, 0.5, 0.5 * ${o.out}_root3);`,
+      `vec2 ${o.out}_x = floor(${o.out}_xhex * ${o.out}_hex_uv2);`,
+      `vec2 ${o.out}_y = floor(${o.out}_yhex * ${o.out}_hex_uv2);`,
+      `vec2 ${o.out}_hex_index = floor((vec2(${o.out}_x.x + ${o.out}_x.y, ${o.out}_y.x + ${o.out}_y.y) + vec2(2.0)) / 3.0);`,
+      `vec2 ${o.out}_hex_pos = ${o.out}_size * (${o.out}_pos_index * ${o.out}_hex_index);`,
+      `vec2 ${o.out}_hex_out = ${i.uv} - ${o.out}_hex_pos;`,
+      `mat2 ${o.out}_tri = mat2(1.0, 0.0, -0.57735026919, 1.15470053838);`,
+      `vec2 ${o.out}_tri_p = ${o.out}_tri * (${i.uv} / ${o.out}_size);`,
+      `float ${o.out}_tri_z = floor(fract(${o.out}_tri_p.x) + fract(${o.out}_tri_p.y));`,
+      `vec2 ${o.out}_tri_floor = floor(${o.out}_tri_p);`,
+      `vec2 ${o.out}_tri_index = vec2(2.0 * ${o.out}_tri_floor.x + ${o.out}_tri_z, ${o.out}_tri_floor.y);`,
+      `vec2 ${o.out}_tri_pos = ${o.out}_size * (vec2(${o.out}_tri_floor.x + 0.5 * ${o.out}_tri_floor.y, 0.86602540378 * ${o.out}_tri_floor.y) + (2.0 + 2.0 * ${o.out}_tri_z) * vec2(0.25, 0.14433756729));`,
+      `vec2 ${o.out}_tri_out = (2.0 * ${o.out}_tri_z - 1.0) * (${i.uv} - ${o.out}_tri_pos);`,
+      `mat2 ${o.out}_rot_a = mat2(0.7071068, -0.7071068, 0.7071068, 0.7071068);`,
+      `mat2 ${o.out}_rot_b = mat2(0.7071068, 0.7071068, -0.7071068, 0.7071068);`,
+      `float ${o.out}_width = 0.5 * ${o.out}_size;`,
+      `vec2 ${o.out}_h_p = 2.0 * floor(0.5 * (${i.uv}.xx / ${o.out}_width - vec2(0.0, 1.0)) + 0.5) + vec2(0.0, 1.0);`,
+      `vec2 ${o.out}_h_x = ${i.uv}.xx - ${o.out}_width * ${o.out}_h_p;`,
+      `vec2 ${o.out}_h_y = ${i.uv}.yy - 0.5 * ${o.out}_h_p;`,
+      `vec2 ${o.out}_h_q = floor(${o.out}_h_y - ${o.out}_h_x * vec2(1.0, -1.0) + 0.5);`,
+      `${o.out}_h_y = ${o.out}_h_y - ${o.out}_h_q;`,
+      `vec2 ${o.out}_h_a = ${o.out}_rot_a * vec2(${o.out}_h_x.x, ${o.out}_h_y.x);`,
+      `vec2 ${o.out}_h_b = ${o.out}_rot_b * vec2(${o.out}_h_x.y, ${o.out}_h_y.y);`,
+      `float ${o.out}_h_pick = step(${o.out}_width, abs(${o.out}_h_x.x + ${o.out}_h_y.x));`,
+      `vec2 ${o.out}_h_out = mix(${o.out}_h_a, ${o.out}_h_b, ${o.out}_h_pick);`,
+      `vec2 ${o.out}_h_index = mix(vec2(${o.out}_h_p.x, ${o.out}_h_q.x), vec2(${o.out}_h_p.y, ${o.out}_h_q.y), ${o.out}_h_pick);`,
+      `vec2 ${o.out}_h_pos = vec2(${o.out}_h_index.x * ${o.out}_width, 0.5 * ${o.out}_h_index.x + ${o.out}_h_index.y);`,
+      `float ${o.out}_is_hex = 1.0 - step(0.5, abs(${o.out}_mode - 1.0));`,
+      `float ${o.out}_is_tri = 1.0 - step(0.5, abs(${o.out}_mode - 2.0));`,
+      `float ${o.out}_is_h = 1.0 - step(0.5, abs(${o.out}_mode - 3.0));`,
+      `vec2 ${o.out}_tile = ${o.out}_square_out;`,
+      `${o.out}_tile = mix(${o.out}_tile, ${o.out}_hex_out, ${o.out}_is_hex);`,
+      `${o.out}_tile = mix(${o.out}_tile, ${o.out}_tri_out, ${o.out}_is_tri);`,
+      `${o.out}_tile = mix(${o.out}_tile, ${o.out}_h_out, ${o.out}_is_h);`,
+      `vec2 ${o.cellIndex} = ${o.out}_square_index;`,
+      `${o.cellIndex} = mix(${o.cellIndex}, ${o.out}_hex_index, ${o.out}_is_hex);`,
+      `${o.cellIndex} = mix(${o.cellIndex}, ${o.out}_tri_index, ${o.out}_is_tri);`,
+      `${o.cellIndex} = mix(${o.cellIndex}, ${o.out}_h_index, ${o.out}_is_h);`,
+      `vec2 ${o.cellPosition} = ${o.out}_square_pos;`,
+      `${o.cellPosition} = mix(${o.cellPosition}, ${o.out}_hex_pos, ${o.out}_is_hex);`,
+      `${o.cellPosition} = mix(${o.cellPosition}, ${o.out}_tri_pos, ${o.out}_is_tri);`,
+      `${o.cellPosition} = mix(${o.cellPosition}, ${o.out}_h_pos, ${o.out}_is_h);`,
+      `vec2 ${o.out} = ${o.out}_tile + vec2(0.5);`,
+    ].join('\n'),
+  },
+
+  // ─── Random ─────────────────────────────────────────────────────────────────
+  RandomIntegerRange: {
+    category: 'Random',
+    label: 'Random Integer Range',
+    inputs: [
+      { id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 },
+      { id: 'min', label: 'Min', type: 'float', defaultValue: 0, step: 1 },
+      { id: 'max', label: 'Max', type: 'float', defaultValue: 10, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Int', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_r = fract(sin(dot(${i.seed}, vec2(127.1, 311.7))) * 43758.5453);`,
+      `float ${o.out}_min = ceil(${i.min});`,
+      `float ${o.out}_max = ceil(${i.max});`,
+      `float ${o.out}_span = max(${o.out}_max - ${o.out}_min, 1.0);`,
+      `float ${o.out} = ${o.out}_min + floor(${o.out}_r * ${o.out}_span);`,
+    ].join('\n'),
+  },
+  RandomCircle: {
+    category: 'Random',
+    label: 'Random Circle',
+    inputs: [
+      { id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 1, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_r = fract(sin(vec2(dot(${i.seed}, vec2(127.1, 311.7)), dot(${i.seed}, vec2(269.5, 183.3)))) * 43758.5453);`,
+      `float ${o.out}_angle = ${o.out}_r.x * 6.28318530718;`,
+      `float ${o.out}_radius = mix(sqrt(${o.out}_r.y), 1.0, step(0.5, ${i.mode}));`,
+      `vec2 ${o.out} = ${o.out}_radius * vec2(cos(${o.out}_angle), sin(${o.out}_angle));`,
+    ].join('\n'),
+  },
+  RandomSphere: {
+    category: 'Random',
+    label: 'Random Sphere',
+    inputs: [
+      { id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 1, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_r = fract(sin(vec3(dot(${i.seed}, vec2(127.1, 311.7)), dot(${i.seed}, vec2(269.5, 183.3)), dot(${i.seed}, vec2(419.2, 371.9)))) * 43758.5453);`,
+      `float ${o.out}_theta = ${o.out}_r.x * 6.28318530718;`,
+      `float ${o.out}_cos_phi = 2.0 * ${o.out}_r.y - 1.0;`,
+      `float ${o.out}_sin_phi = sqrt(max(1.0 - ${o.out}_cos_phi * ${o.out}_cos_phi, 0.0));`,
+      `float ${o.out}_radius = mix(pow(${o.out}_r.z, 0.3333333333), 1.0, step(0.5, ${i.mode}));`,
+      `vec3 ${o.out} = ${o.out}_radius * vec3(cos(${o.out}_theta) * ${o.out}_sin_phi, sin(${o.out}_theta) * ${o.out}_sin_phi, ${o.out}_cos_phi);`,
+    ].join('\n'),
+  },
+  RandomRotation: {
+    category: 'Random',
+    label: 'Random Rotation',
+    inputs: [{ id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 }],
+    outputs: [{ id: 'out', label: 'Q', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_r = fract(sin(vec3(dot(${i.seed}, vec2(127.1, 311.7)), dot(${i.seed}, vec2(269.5, 183.3)), dot(${i.seed}, vec2(419.2, 371.9)))) * 43758.5453);`,
+      `float ${o.out}_angle_y = ${o.out}_r.y * 6.28318530718;`,
+      `float ${o.out}_angle_z = ${o.out}_r.z * 6.28318530718;`,
+      `vec4 ${o.out} = sqrt(${o.out}_r.x) * vec4(0.0, 0.0, sin(${o.out}_angle_z), cos(${o.out}_angle_z)) + sqrt(max(1.0 - ${o.out}_r.x, 0.0)) * vec4(sin(${o.out}_angle_y), cos(${o.out}_angle_y), 0.0, 0.0);`,
+      `${o.out} = normalize(${o.out});`,
+    ].join('\n'),
+  },
+  RandomColor: {
+    category: 'Random',
+    label: 'Random Color',
+    inputs: [
+      { id: 'seed', label: 'Seed', type: 'vec2', defaultValue: [0, 0], step: 1 },
+      { id: 'minHsv', label: 'Min HSV', type: 'vec3', defaultValue: [0, 0.55, 0.75], min: 0, max: 1, step: 0.01 },
+      { id: 'maxHsv', label: 'Max HSV', type: 'vec3', defaultValue: [1, 1, 1], min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [
+      { id: 'rgb', label: 'RGB', type: 'vec3' },
+      { id: 'hsv', label: 'HSV', type: 'vec3' },
+    ],
+    emitGlsl: (i, o) => [
+      `vec3 ${o.rgb}_r = fract(sin(vec3(dot(${i.seed}, vec2(127.1, 311.7)), dot(${i.seed}, vec2(269.5, 183.3)), dot(${i.seed}, vec2(419.2, 371.9)))) * 43758.5453);`,
+      `vec3 ${o.rgb}_range = ${i.maxHsv} - ${i.minHsv};`,
+      `${o.rgb}_range = mix(${o.rgb}_range, fract(${o.rgb}_range), step(${o.rgb}_range, vec3(0.0)));`,
+      `vec3 ${o.hsv} = ${i.minHsv} + ${o.rgb}_range * ${o.rgb}_r;`,
+      `${o.hsv} = vec3(fract(${o.hsv}.x), clamp(${o.hsv}.y, 0.0, 1.0), clamp(${o.hsv}.z, 0.0, 1.0));`,
+      `vec3 ${o.rgb} = clamp(vec3(abs(${o.hsv}.x * 6.0 - 3.0) - 1.0, 2.0 - abs(${o.hsv}.x * 6.0 - 2.0), 2.0 - abs(${o.hsv}.x * 6.0 - 4.0)), 0.0, 1.0);`,
+      `${o.rgb} = ((${o.rgb} - 1.0) * ${o.hsv}.y + 1.0) * ${o.hsv}.z;`,
+    ].join('\n'),
+  },
+
+  // ─── Vector (extended) ───────────────────────────────────────────────────────
+  AddVec2: {
+    category: 'Vector',
+    label: 'Add Vec2',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2' },
+      { id: 'b', label: 'B', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: vectorBinary('vec2', '+'),
+  },
+  AddVec3: {
+    category: 'Vector',
+    label: 'Add Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: vectorBinary('vec3', '+'),
+  },
+  AddVec4: {
+    category: 'Vector',
+    label: 'Add Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: vectorBinary('vec4', '+'),
+  },
+  SubtractVec2: {
+    category: 'Vector',
+    label: 'Subtract Vec2',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2' },
+      { id: 'b', label: 'B', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: vectorBinary('vec2', '-'),
+  },
+  SubtractVec3: {
+    category: 'Vector',
+    label: 'Subtract Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: vectorBinary('vec3', '-'),
+  },
+  SubtractVec4: {
+    category: 'Vector',
+    label: 'Subtract Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: vectorBinary('vec4', '-'),
+  },
+  MultiplyVec2: {
+    category: 'Vector',
+    label: 'Multiply Vec2',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2' },
+      { id: 'b', label: 'B', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: vectorBinary('vec2', '*'),
+  },
+  MultiplyVec3: {
+    category: 'Vector',
+    label: 'Multiply Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: vectorBinary('vec3', '*'),
+  },
+  MultiplyVec4: {
+    category: 'Vector',
+    label: 'Multiply Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: vectorBinary('vec4', '*'),
+  },
+  DivideVec2: {
+    category: 'Vector',
+    label: 'Divide Vec2',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec2' },
+      { id: 'b', label: 'B', type: 'vec2' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: vectorBinary('vec2', '/'),
+  },
+  DivideVec3: {
+    category: 'Vector',
+    label: 'Divide Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: vectorBinary('vec3', '/'),
+  },
+  DivideVec4: {
+    category: 'Vector',
+    label: 'Divide Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: vectorBinary('vec4', '/'),
+  },
+  CrossVec3: {
+    category: 'Vector',
+    label: 'Cross Vec3',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec3' },
+      { id: 'b', label: 'B', type: 'vec3' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (i, o) => `vec3 ${o.out} = cross(${i.a}, ${i.b});`,
+  },
+  LerpVec4: {
+    category: 'Vector',
+    label: 'Lerp Vec4',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+      { id: 't', label: 'T', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = mix(${i.a}, ${i.b}, clamp(${i.t}, 0.0, 1.0));`,
+  },
+  ScaleVec2: {
+    category: 'Vector',
+    label: 'Scale Vec2',
+    inputs: [
+      { id: 'vec', label: 'XY', type: 'vec2' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'XY', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = ${i.vec} * ${i.scale};`,
+  },
+  ScaleVec3: {
+    category: 'Vector',
+    label: 'Scale Vec3',
+    inputs: [
+      { id: 'vec', label: 'XYZ', type: 'vec3' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'XYZ', type: 'vec3' }],
+    emitGlsl: (i, o) => `vec3 ${o.out} = ${i.vec} * ${i.scale};`,
+  },
+  ScaleVec4: {
+    category: 'Vector',
+    label: 'Scale Vec4',
+    inputs: [
+      { id: 'vec', label: 'RGBA', type: 'vec4' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = ${i.vec} * ${i.scale};`,
+  },
+
+  // ─── Color (extended) ────────────────────────────────────────────────────────
+  BlendAdd: {
+    category: 'Color',
+    label: 'Blend Add',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = vec4(clamp(${i.a}.rgb + ${i.b}.rgb, 0.0, 1.0), clamp(${i.a}.a + ${i.b}.a, 0.0, 1.0));`,
+  },
+  BlendScreen: {
+    category: 'Color',
+    label: 'Blend Screen',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = vec4(1.0 - (1.0 - ${i.a}.rgb) * (1.0 - ${i.b}.rgb), max(${i.a}.a, ${i.b}.a));`,
+  },
+  BlendOverlay: {
+    category: 'Color',
+    label: 'Blend Overlay',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4' },
+      { id: 'b', label: 'B', type: 'vec4' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) =>
+      `vec3 ${o.out}_dark = 2.0 * ${i.a}.rgb * ${i.b}.rgb;\nvec3 ${o.out}_light = 1.0 - 2.0 * (1.0 - ${i.a}.rgb) * (1.0 - ${i.b}.rgb);\nvec4 ${o.out} = vec4(mix(${o.out}_dark, ${o.out}_light, step(vec3(0.5), ${i.a}.rgb)), max(${i.a}.a, ${i.b}.a));`,
+  },
+  CompositeAlpha: {
+    category: 'Composite',
+    label: 'Composite',
+    inputs: [
+      { id: 'a', label: 'A', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'b', label: 'B', type: 'vec4', defaultValue: [0, 0, 0, 0], min: 0, max: 1, step: 0.01 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 4, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => {
+      const safe = (alpha: string) => `max(${alpha}, 0.0001)`;
+      return [
+        `vec4 ${o.out}_a = vec4(${i.a}.rgb, clamp(${i.a}.a, 0.0, 1.0));`,
+        `vec4 ${o.out}_b = vec4(${i.b}.rgb, clamp(${i.b}.a, 0.0, 1.0));`,
+        `float ${o.out}_mode = clamp(floor(${i.mode} + 0.5), 0.0, 4.0);`,
+        `float ${o.out}_over_alpha = ${o.out}_a.a + ${o.out}_b.a * (1.0 - ${o.out}_a.a);`,
+        `vec4 ${o.out}_over = vec4((${o.out}_a.rgb * ${o.out}_a.a + ${o.out}_b.rgb * ${o.out}_b.a * (1.0 - ${o.out}_a.a)) / ${safe(`${o.out}_over_alpha`)}, ${o.out}_over_alpha);`,
+        `float ${o.out}_in_alpha = ${o.out}_a.a * ${o.out}_b.a;`,
+        `vec4 ${o.out}_in = vec4((${o.out}_a.rgb * ${o.out}_a.a * ${o.out}_b.a) / ${safe(`${o.out}_in_alpha`)}, ${o.out}_in_alpha);`,
+        `float ${o.out}_out_alpha = ${o.out}_a.a * (1.0 - ${o.out}_b.a);`,
+        `vec4 ${o.out}_out = vec4((${o.out}_a.rgb * ${o.out}_a.a * (1.0 - ${o.out}_b.a)) / ${safe(`${o.out}_out_alpha`)}, ${o.out}_out_alpha);`,
+        `float ${o.out}_atop_alpha = ${o.out}_b.a;`,
+        `vec4 ${o.out}_atop = vec4((${o.out}_a.rgb * ${o.out}_a.a * ${o.out}_b.a + ${o.out}_b.rgb * ${o.out}_b.a * (1.0 - ${o.out}_a.a)) / ${safe(`${o.out}_atop_alpha`)}, ${o.out}_atop_alpha);`,
+        `float ${o.out}_xor_alpha = ${o.out}_a.a + ${o.out}_b.a - 2.0 * ${o.out}_a.a * ${o.out}_b.a;`,
+        `vec4 ${o.out}_xor = vec4((${o.out}_a.rgb * ${o.out}_a.a * (1.0 - ${o.out}_b.a) + ${o.out}_b.rgb * ${o.out}_b.a * (1.0 - ${o.out}_a.a)) / ${safe(`${o.out}_xor_alpha`)}, ${o.out}_xor_alpha);`,
+        `float ${o.out}_is_over = 1.0 - step(0.5, abs(${o.out}_mode - 0.0));`,
+        `float ${o.out}_is_in = 1.0 - step(0.5, abs(${o.out}_mode - 1.0));`,
+        `float ${o.out}_is_out = 1.0 - step(0.5, abs(${o.out}_mode - 2.0));`,
+        `float ${o.out}_is_atop = 1.0 - step(0.5, abs(${o.out}_mode - 3.0));`,
+        `float ${o.out}_is_xor = 1.0 - step(0.5, abs(${o.out}_mode - 4.0));`,
+        `vec4 ${o.out} = ${o.out}_over * ${o.out}_is_over + ${o.out}_in * ${o.out}_is_in + ${o.out}_out * ${o.out}_is_out + ${o.out}_atop * ${o.out}_is_atop + ${o.out}_xor * ${o.out}_is_xor;`,
+      ].join('\n');
+    },
+  },
+  Brightness: {
+    category: 'Color',
+    label: 'Brightness',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4' },
+      { id: 'amount', label: 'Amount', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = vec4(clamp(${i.color}.rgb * max(${i.amount}, 0.0), 0.0, 1.0), ${i.color}.a);`,
+  },
+  GammaCorrect: {
+    category: 'Color',
+    label: 'Gamma Correct',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4' },
+      { id: 'gamma', label: 'Gamma', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = vec4(pow(clamp(${i.color}.rgb, 0.0001, 1.0), vec3(1.0 / max(${i.gamma}, 0.0001))), ${i.color}.a);`,
+  },
+
+  // ─── Lab/LCH color helpers ──────────────────────────────────────────────────
+  LabColorConvert: {
+    category: 'Color',
+    label: 'Lab Convert',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'from', label: 'From', type: 'float', defaultValue: 0, min: 0, max: 2, step: 1 },
+      { id: 'to', label: 'To', type: 'float', defaultValue: 1, min: 0, max: 2, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Color', type: 'vec4' }],
+    helperKey: 'lab-color',
+    emitGlsl: (i, o) => [
+      `float ${o.out}_from = clamp(floor(${i.from} + 0.5), 0.0, 2.0);`,
+      `float ${o.out}_to = clamp(floor(${i.to} + 0.5), 0.0, 2.0);`,
+      `vec3 ${o.out}_lab = ${i.color}.rgb;`,
+      `if (${o.out}_from < 0.5) { ${o.out}_lab = feather_rgb_to_lab(${i.color}.rgb); }`,
+      `else if (${o.out}_from > 1.5) { ${o.out}_lab = feather_lch_to_lab(${i.color}.rgb); }`,
+      `vec3 ${o.out}_converted = ${o.out}_lab;`,
+      `if (${o.out}_to < 0.5) { ${o.out}_converted = feather_lab_to_rgb(${o.out}_lab); }`,
+      `else if (${o.out}_to > 1.5) { ${o.out}_converted = feather_lab_to_lch(${o.out}_lab); }`,
+      `vec4 ${o.out} = vec4(${o.out}_converted, ${i.color}.a);`,
+    ].join('\n'),
+  },
+  LabComplementary: {
+    category: 'Color',
+    label: 'Lab Complementary',
+    inputs: [{ id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 }],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    helperKey: 'lab-color',
+    emitGlsl: (i, o) => [
+      `vec3 ${o.out}_lab = feather_rgb_to_lab(${i.color}.rgb);`,
+      `${o.out}_lab.yz = -${o.out}_lab.yz;`,
+      `vec4 ${o.out} = vec4(feather_lab_to_rgb(${o.out}_lab), ${i.color}.a);`,
+    ].join('\n'),
+  },
+  LabSplitScheme: {
+    category: 'Color',
+    label: 'Lab Split Scheme',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'angle', label: 'Angle', type: 'float', defaultValue: 120, min: 0, max: 180, step: 1 },
+    ],
+    outputs: [
+      { id: 'plus', label: '+Angle', type: 'vec4' },
+      { id: 'minus', label: '-Angle', type: 'vec4' },
+    ],
+    helperKey: 'lab-color',
+    emitGlsl: (i, o) => [
+      `vec3 ${o.plus}_lch = feather_lab_to_lch(feather_rgb_to_lab(${i.color}.rgb));`,
+      `float ${o.plus}_angle = radians(${i.angle});`,
+      `vec3 ${o.plus}_plus_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z + ${o.plus}_angle));`,
+      `vec3 ${o.plus}_minus_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z - ${o.plus}_angle));`,
+      `vec4 ${o.plus} = vec4(feather_lab_to_rgb(${o.plus}_plus_lab), ${i.color}.a);`,
+      `vec4 ${o.minus} = vec4(feather_lab_to_rgb(${o.plus}_minus_lab), ${i.color}.a);`,
+    ].join('\n'),
+  },
+  LabDualScheme: {
+    category: 'Color',
+    label: 'Lab Dual Scheme',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'angle', label: 'Angle', type: 'float', defaultValue: 90, min: 0, max: 180, step: 1 },
+    ],
+    outputs: [
+      { id: 'plus', label: '+Angle', type: 'vec4' },
+      { id: 'opposite', label: 'Opposite', type: 'vec4' },
+      { id: 'oppositePlus', label: 'Opposite +Angle', type: 'vec4' },
+    ],
+    helperKey: 'lab-color',
+    emitGlsl: (i, o) => [
+      `vec3 ${o.plus}_lch = feather_lab_to_lch(feather_rgb_to_lab(${i.color}.rgb));`,
+      `float ${o.plus}_angle = radians(${i.angle});`,
+      `vec3 ${o.plus}_plus_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z + ${o.plus}_angle));`,
+      `vec3 ${o.plus}_opposite_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z + 3.14159265359));`,
+      `vec3 ${o.plus}_opposite_plus_lab = feather_lch_to_lab(vec3(${o.plus}_lch.x, ${o.plus}_lch.y, ${o.plus}_lch.z + 3.14159265359 + ${o.plus}_angle));`,
+      `vec4 ${o.plus} = vec4(feather_lab_to_rgb(${o.plus}_plus_lab), ${i.color}.a);`,
+      `vec4 ${o.opposite} = vec4(feather_lab_to_rgb(${o.plus}_opposite_lab), ${i.color}.a);`,
+      `vec4 ${o.oppositePlus} = vec4(feather_lab_to_rgb(${o.plus}_opposite_plus_lab), ${i.color}.a);`,
+    ].join('\n'),
+  },
+
+  // ─── Noise (extended) ────────────────────────────────────────────────────────
+  GradientNoise: {
+    category: 'Noise',
+    label: 'Gradient Noise',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'Noise', type: 'float' }],
+    helperKey: 'noise',
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_p = ${i.uv} * max(${i.scale}, 0.0001);\nvec2 ${o.out}_cell = floor(${o.out}_p);\nvec2 ${o.out}_f = smoothstep(vec2(0.0), vec2(1.0), fract(${o.out}_p));\nfloat ${o.out} = mix(mix(feather_hash(${o.out}_cell), feather_hash(${o.out}_cell + vec2(1.0, 0.0)), ${o.out}_f.x), mix(feather_hash(${o.out}_cell + vec2(0.0, 1.0)), feather_hash(${o.out}_cell + vec2(1.0, 1.0)), ${o.out}_f.x), ${o.out}_f.y);`,
+  },
+  FBMNoise: {
+    category: 'Noise',
+    label: 'FBM Noise',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'scale', label: 'Scale', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'Noise', type: 'float' }],
+    helperKey: 'noise',
+    emitGlsl: (i, o) => {
+      const p = `${o.out}_p`;
+      const oct = (n: number, mult: number) =>
+        `vec2 ${o.out}_p${n} = ${p} * ${glslFloat(mult)};\nvec2 ${o.out}_c${n} = floor(${o.out}_p${n});\nvec2 ${o.out}_f${n} = smoothstep(vec2(0.0), vec2(1.0), fract(${o.out}_p${n}));\nfloat ${o.out}_n${n} = mix(mix(feather_hash(${o.out}_c${n}), feather_hash(${o.out}_c${n} + vec2(1.0, 0.0)), ${o.out}_f${n}.x), mix(feather_hash(${o.out}_c${n} + vec2(0.0, 1.0)), feather_hash(${o.out}_c${n} + vec2(1.0, 1.0)), ${o.out}_f${n}.x), ${o.out}_f${n}.y);`;
+      return [
+        `vec2 ${p} = ${i.uv} * max(${i.scale}, 0.0001);`,
+        oct(0, 1), oct(1, 2), oct(2, 4), oct(3, 8),
+        `float ${o.out} = (${o.out}_n0 * 0.5 + ${o.out}_n1 * 0.25 + ${o.out}_n2 * 0.125 + ${o.out}_n3 * 0.0625) / 0.9375;`,
+      ].join('\n');
+    },
+  },
+  TruchetTiles: {
+    category: 'Noise',
+    label: 'Truchet Tiles',
+    inputs: [
+      { id: 'position', label: 'Position', type: 'vec2' },
+      { id: 'size', label: 'Size', type: 'float', defaultValue: 0.18, min: 0.001, max: 1, step: 0.01 },
+      { id: 'number', label: 'Variants', type: 'float', defaultValue: 2, min: 1, max: 16, step: 1 },
+      { id: 'seed', label: 'Seed', type: 'float', defaultValue: 1, step: 1 },
+      { id: 'mode', label: 'Tile Mode', type: 'float', defaultValue: 0, min: 0, max: 2, step: 1 },
+      { id: 'rotate', label: 'Rotate', type: 'float', defaultValue: 1, min: 0, max: 1, step: 1 },
+      { id: 'reflect', label: 'Reflect', type: 'float', defaultValue: 1, min: 0, max: 1, step: 1 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.08, min: 0, max: 0.5, step: 0.005 },
+      { id: 'time', label: 'Time', type: 'float', defaultValue: 0 },
+      { id: 'scroll', label: 'Scroll', type: 'vec2', defaultValue: [0, 0] },
+    ],
+    outputs: [
+      { id: 'uv', label: 'Tile UV', type: 'vec2' },
+      { id: 'index', label: 'Index', type: 'float' },
+      { id: 'mask', label: 'Mask', type: 'float' },
+    ],
+    helperKey: 'noise',
+    emitGlsl: (i, o) => [
+      `float ${o.uv}_mode = clamp(floor(${i.mode} + 0.5), 0.0, 2.0);`,
+      `float ${o.uv}_rotate_enabled = step(0.5, ${i.rotate});`,
+      `float ${o.uv}_reflect_enabled = step(0.5, ${i.reflect});`,
+      `float ${o.uv}_tile_count = max(floor(${i.number}), 1.0);`,
+      `vec2 ${o.uv}_position = ${i.position} + ${i.scroll} * ${i.time};`,
+      `vec2 ${o.uv} = vec2(0.5);`,
+      `float ${o.index} = 0.0;`,
+      `if (${o.uv}_mode < 0.5) {`,
+      `vec2 ${o.uv}_square_grid = ${o.uv}_position / max(${i.size}, 0.0001);`,
+      `vec2 ${o.uv}_square_cell = floor(${o.uv}_square_grid);`,
+      `vec2 ${o.uv}_square_local = ${o.uv}_square_grid - ${o.uv}_square_cell - vec2(0.5);`,
+      `float ${o.uv}_square_rand = feather_hash(${o.uv}_square_cell + vec2(${i.seed}));`,
+      `float ${o.uv}_square_rotation_count = mix(1.0, 4.0, ${o.uv}_rotate_enabled);`,
+      `float ${o.uv}_square_reflection_count = mix(1.0, 2.0, ${o.uv}_reflect_enabled);`,
+      `float ${o.uv}_square_choice = floor(${o.uv}_square_rand * ${o.uv}_tile_count * ${o.uv}_square_rotation_count * ${o.uv}_square_reflection_count);`,
+      `${o.index} = mod(${o.uv}_square_choice, ${o.uv}_tile_count);`,
+      `${o.uv}_square_choice = floor(${o.uv}_square_choice / ${o.uv}_tile_count);`,
+      `float ${o.uv}_square_rot = mod(${o.uv}_square_choice, ${o.uv}_square_rotation_count);`,
+      `${o.uv}_square_choice = floor(${o.uv}_square_choice / ${o.uv}_square_rotation_count);`,
+      `float ${o.uv}_square_refl = mod(${o.uv}_square_choice, ${o.uv}_square_reflection_count);`,
+      `${o.uv}_square_local.x *= 1.0 - 2.0 * ${o.uv}_square_refl;`,
+      `float ${o.uv}_square_angle = ${o.uv}_square_rot * 1.57079632679;`,
+      `float ${o.uv}_square_c = cos(${o.uv}_square_angle);`,
+      `float ${o.uv}_square_s = sin(${o.uv}_square_angle);`,
+      `${o.uv} = vec2(${o.uv}_square_local.x * ${o.uv}_square_c - ${o.uv}_square_local.y * ${o.uv}_square_s, ${o.uv}_square_local.x * ${o.uv}_square_s + ${o.uv}_square_local.y * ${o.uv}_square_c) + vec2(0.5);`,
+      `} else if (${o.uv}_mode < 1.5) {`,
+      `vec2 ${o.uv}_tri_grid = ${o.uv}_position / max(${i.size}, 0.0001);`,
+      `vec2 ${o.uv}_tri_a = vec2(1.0, 0.0);`,
+      `vec2 ${o.uv}_tri_b = vec2(0.5, 0.86602540378);`,
+      `float ${o.uv}_tri_det = ${o.uv}_tri_a.x * ${o.uv}_tri_b.y - ${o.uv}_tri_a.y * ${o.uv}_tri_b.x;`,
+      `float ${o.uv}_tri_ta = (${o.uv}_tri_b.y * ${o.uv}_tri_grid.x - ${o.uv}_tri_b.x * ${o.uv}_tri_grid.y) / ${o.uv}_tri_det;`,
+      `float ${o.uv}_tri_tb = (${o.uv}_tri_a.x * ${o.uv}_tri_grid.y - ${o.uv}_tri_a.y * ${o.uv}_tri_grid.x) / ${o.uv}_tri_det;`,
+      `vec3 ${o.uv}_tri_cell = floor(vec3(${o.uv}_tri_ta, ${o.uv}_tri_tb, fract(${o.uv}_tri_ta) + fract(${o.uv}_tri_tb)));`,
+      `float ${o.uv}_tri_rand = fract(sin(dot(${o.uv}_tri_cell + vec3(${i.seed}), vec3(12.9898, 78.233, 45.652))) * 43758.5453);`,
+      `float ${o.uv}_tri_rotation_count = mix(1.0, 3.0, ${o.uv}_rotate_enabled);`,
+      `float ${o.uv}_tri_reflection_count = mix(1.0, 2.0, ${o.uv}_reflect_enabled);`,
+      `float ${o.uv}_tri_choice = floor(${o.uv}_tri_rand * ${o.uv}_tile_count * ${o.uv}_tri_rotation_count * ${o.uv}_tri_reflection_count);`,
+      `${o.index} = mod(${o.uv}_tri_choice, ${o.uv}_tile_count);`,
+      `${o.uv}_tri_choice = floor(${o.uv}_tri_choice / ${o.uv}_tile_count);`,
+      `float ${o.uv}_tri_rot = ${o.uv}_tri_cell.z + 2.0 * mod(${o.uv}_tri_choice, ${o.uv}_tri_rotation_count);`,
+      `${o.uv}_tri_choice = floor(${o.uv}_tri_choice / ${o.uv}_tri_rotation_count);`,
+      `float ${o.uv}_tri_refl = mod(${o.uv}_tri_choice, ${o.uv}_tri_reflection_count);`,
+      `vec2 ${o.uv}_tri_local = ${o.uv}_tri_grid - ${o.uv}_tri_a * (${o.uv}_tri_cell.x + 0.33333333333 * (1.0 + ${o.uv}_tri_cell.z)) - ${o.uv}_tri_b * (${o.uv}_tri_cell.y + 0.33333333333 * (1.0 + ${o.uv}_tri_cell.z));`,
+      `${o.uv}_tri_local.x *= 1.0 - 2.0 * ${o.uv}_tri_refl;`,
+      `${o.uv}_tri_local *= 1.73205080757;`,
+      `float ${o.uv}_tri_angle = mod(${o.uv}_tri_rot, 3.0) * 1.0471975512;`,
+      `float ${o.uv}_tri_sign = mix(1.0, -1.0, step(3.0, ${o.uv}_tri_rot));`,
+      `float ${o.uv}_tri_c = cos(${o.uv}_tri_angle);`,
+      `float ${o.uv}_tri_s = sin(${o.uv}_tri_angle);`,
+      `${o.uv} = vec2(0.5) + 0.5 * ${o.uv}_tri_sign * vec2(${o.uv}_tri_local.x * ${o.uv}_tri_c - ${o.uv}_tri_local.y * ${o.uv}_tri_s, ${o.uv}_tri_local.x * ${o.uv}_tri_s + ${o.uv}_tri_local.y * ${o.uv}_tri_c);`,
+      `} else {`,
+      `vec2 ${o.uv}_hex_grid = 2.0 * ${o.uv}_position / max(${i.size}, 0.0001);`,
+      `vec2 ${o.uv}_hex_a = vec2(1.0, 0.0);`,
+      `vec2 ${o.uv}_hex_b = vec2(0.5, 0.86602540378);`,
+      `float ${o.uv}_hex_det = ${o.uv}_hex_a.x * ${o.uv}_hex_b.y - ${o.uv}_hex_a.y * ${o.uv}_hex_b.x;`,
+      `float ${o.uv}_hex_ta = (${o.uv}_hex_b.y * ${o.uv}_hex_grid.x - ${o.uv}_hex_b.x * ${o.uv}_hex_grid.y) / ${o.uv}_hex_det;`,
+      `float ${o.uv}_hex_tb = (${o.uv}_hex_a.x * ${o.uv}_hex_grid.y - ${o.uv}_hex_a.y * ${o.uv}_hex_grid.x) / ${o.uv}_hex_det;`,
+      `vec3 ${o.uv}_hex_cell3 = floor(vec3(${o.uv}_hex_ta, ${o.uv}_hex_tb, fract(${o.uv}_hex_ta) + fract(${o.uv}_hex_tb)));`,
+      `float ${o.uv}_hex_mod = ${o.uv}_hex_cell3.x - ${o.uv}_hex_cell3.y;`,
+      `${o.uv}_hex_mod = ${o.uv}_hex_mod - 3.0 * floor(${o.uv}_hex_mod * 0.33333333333);`,
+      `float ${o.uv}_hex_m0 = 1.0 - step(0.5, abs(${o.uv}_hex_mod - 0.0));`,
+      `float ${o.uv}_hex_m1 = 1.0 - step(0.5, abs(${o.uv}_hex_mod - 1.0));`,
+      `float ${o.uv}_hex_m2 = 1.0 - step(0.5, abs(${o.uv}_hex_mod - 2.0));`,
+      `vec2 ${o.uv}_hex_cell = vec2(${o.uv}_hex_cell3.x + ${o.uv}_hex_m0 * ${o.uv}_hex_cell3.z + ${o.uv}_hex_m2, ${o.uv}_hex_cell3.y + ${o.uv}_hex_m0 * ${o.uv}_hex_cell3.z + ${o.uv}_hex_m1);`,
+      `float ${o.uv}_hex_rand = feather_hash(${o.uv}_hex_cell + vec2(${i.seed}));`,
+      `float ${o.uv}_hex_rotation_count = mix(1.0, 6.0, ${o.uv}_rotate_enabled);`,
+      `float ${o.uv}_hex_reflection_count = mix(1.0, 2.0, ${o.uv}_reflect_enabled);`,
+      `float ${o.uv}_hex_choice = floor(${o.uv}_hex_rand * ${o.uv}_tile_count * ${o.uv}_hex_rotation_count * ${o.uv}_hex_reflection_count);`,
+      `${o.index} = mod(${o.uv}_hex_choice, ${o.uv}_tile_count);`,
+      `${o.uv}_hex_choice = floor(${o.uv}_hex_choice / ${o.uv}_tile_count);`,
+      `float ${o.uv}_hex_rot = mod(${o.uv}_hex_choice, ${o.uv}_hex_rotation_count);`,
+      `${o.uv}_hex_choice = floor(${o.uv}_hex_choice / ${o.uv}_hex_rotation_count);`,
+      `float ${o.uv}_hex_refl = mod(${o.uv}_hex_choice, ${o.uv}_hex_reflection_count);`,
+      `vec2 ${o.uv}_hex_local = ${o.uv}_hex_grid - ${o.uv}_hex_a * ${o.uv}_hex_cell.x - ${o.uv}_hex_b * ${o.uv}_hex_cell.y;`,
+      `${o.uv}_hex_local.x *= 1.0 - 2.0 * ${o.uv}_hex_refl;`,
+      `float ${o.uv}_hex_angle = mod(${o.uv}_hex_rot, 3.0) * 1.0471975512;`,
+      `float ${o.uv}_hex_sign = mix(1.0, -1.0, step(3.0, ${o.uv}_hex_rot));`,
+      `float ${o.uv}_hex_c = cos(${o.uv}_hex_angle);`,
+      `float ${o.uv}_hex_s = sin(${o.uv}_hex_angle);`,
+      `${o.uv} = vec2(0.5) + 0.5 * ${o.uv}_hex_sign * vec2(${o.uv}_hex_local.x * ${o.uv}_hex_c - ${o.uv}_hex_local.y * ${o.uv}_hex_s, ${o.uv}_hex_local.x * ${o.uv}_hex_s + ${o.uv}_hex_local.y * ${o.uv}_hex_c);`,
+      `}`,
+      `float ${o.mask}_a = abs(length(${o.uv} - vec2(0.0, 0.0)) - 0.5);`,
+      `float ${o.mask}_b = abs(length(${o.uv} - vec2(1.0, 1.0)) - 0.5);`,
+      `float ${o.mask}_d = min(${o.mask}_a, ${o.mask}_b);`,
+      `float ${o.mask}_aa = max(fwidth(${o.mask}_d), 0.0001);`,
+      `float ${o.mask} = 1.0 - smoothstep(max(${i.width}, 0.0), max(${i.width}, 0.0) + ${o.mask}_aa, ${o.mask}_d);`,
+    ].join('\n'),
+  },
+
+  // ─── Pattern ────────────────────────────────────────────────────────────────
+  PatternZigZag: {
+    category: 'Pattern',
+    label: 'Zig Zag',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [0.1, 0.1], min: 0.001, max: 1, step: 0.01 },
+      { id: 'wavelength', label: 'Wavelength', type: 'float', defaultValue: 0.5, min: 0.001, max: 2, step: 0.01 },
+      { id: 'amplitude', label: 'Amplitude', type: 'float', defaultValue: 0.1, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_wave = ${i.amplitude} * (1.0 - 2.0 * abs(fract(${i.uv}.x / max(${i.wavelength}, 0.0001)) - 0.5));`,
+      ...patternStripeMask(`${i.uv}.y - ${o.out}_wave`, i.widths, o.out),
+    ].join('\n'),
+  },
+  PatternSineWaves: {
+    category: 'Pattern',
+    label: 'Sine Waves',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [0.1, 0.1], min: 0.001, max: 1, step: 0.01 },
+      { id: 'wavelength', label: 'Wavelength', type: 'float', defaultValue: 0.5, min: 0.001, max: 2, step: 0.01 },
+      { id: 'amplitude', label: 'Amplitude', type: 'float', defaultValue: 0.1, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_wave = 0.5 * ${i.amplitude} * sin(6.28318530718 * ${i.uv}.x / max(${i.wavelength}, 0.0001));`,
+      ...patternStripeMask(`${i.uv}.y - ${o.out}_wave`, i.widths, o.out),
+    ].join('\n'),
+  },
+  PatternRoundWaves: {
+    category: 'Pattern',
+    label: 'Round Waves',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [0.1, 0.1], min: 0.001, max: 1, step: 0.01 },
+      { id: 'wavelength', label: 'Wavelength', type: 'float', defaultValue: 0.5, min: 0.001, max: 2, step: 0.01 },
+      { id: 'amplitude', label: 'Amplitude', type: 'float', defaultValue: 0.1, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_wave_len = max(${i.wavelength}, 0.0001);`,
+      `float ${o.out}_x = mod(${i.uv}.x, ${o.out}_wave_len);`,
+      `${o.out}_x = mod(${o.out}_x + ${o.out}_wave_len, ${o.out}_wave_len);`,
+      `float ${o.out}_arc_x = 0.25 * ${o.out}_wave_len;`,
+      `float ${o.out}_arc_y = 0.5 * max(${i.amplitude}, 0.0001);`,
+      `float ${o.out}_offset = (${o.out}_arc_x * ${o.out}_arc_x - ${o.out}_arc_y * ${o.out}_arc_y) / (2.0 * ${o.out}_arc_y);`,
+      `float ${o.out}_radius = ${o.out}_offset + ${o.out}_arc_y;`,
+      `float ${o.out}_x2 = ${o.out}_x < 0.5 * ${o.out}_wave_len ? 0.25 * ${o.out}_wave_len - ${o.out}_x : 0.75 * ${o.out}_wave_len - ${o.out}_x;`,
+      `float ${o.out}_wave = (${o.out}_x < 0.5 * ${o.out}_wave_len ? 1.0 : -1.0) * (sqrt(max(${o.out}_radius * ${o.out}_radius - ${o.out}_x2 * ${o.out}_x2, 0.0)) - ${o.out}_offset);`,
+      ...patternStripeMask(`${i.uv}.y - ${o.out}_wave`, i.widths, o.out),
+    ].join('\n'),
+  },
+  PatternDots: {
+    category: 'Pattern',
+    label: 'Dots',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'spacing', label: 'Spacing', type: 'vec2', defaultValue: [0.2, 0.2], min: 0.001, max: 1, step: 0.01 },
+      { id: 'offset', label: 'Offset', type: 'float', defaultValue: 0.1, min: -1, max: 1, step: 0.01 },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.05, min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_spacing = max(abs(${i.spacing}), vec2(0.0001));`,
+      `float ${o.out}_det = max(${o.out}_spacing.x * ${o.out}_spacing.y, 0.0001);`,
+      `float ${o.out}_tx = (${o.out}_spacing.y * ${i.uv}.x - ${i.offset} * ${i.uv}.y) / ${o.out}_det;`,
+      `float ${o.out}_ty = ${o.out}_spacing.x * ${i.uv}.y / ${o.out}_det;`,
+      `${o.out}_tx = mod(${o.out}_tx + 0.5, 1.0) - 0.5;`,
+      `${o.out}_ty = mod(${o.out}_ty + 0.5, 1.0) - 0.5;`,
+      `float ${o.out}_px = ${o.out}_tx * ${o.out}_spacing.x + ${o.out}_ty * ${i.offset};`,
+      `float ${o.out}_py = ${o.out}_ty * ${o.out}_spacing.y;`,
+      `float ${o.out}_d = ${o.out}_px * ${o.out}_px + ${o.out}_py * ${o.out}_py - ${i.radius} * ${i.radius};`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  PatternSpiral: {
+    category: 'Pattern',
+    label: 'Spiral',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [0.1, 0.1], min: 0.001, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_width = max(${i.widths}.x + ${i.widths}.y, 0.0001);`,
+      `float ${o.out}_r = length(${i.uv});`,
+      `float ${o.out}_theta = atan(${i.uv}.y, ${i.uv}.x);`,
+      `float ${o.out}_pitch = ${o.out}_width / 6.28318530718;`,
+      `float ${o.out}_k = (${o.out}_r / ${o.out}_pitch - ${o.out}_theta) / 6.28318530718;`,
+      `float ${o.out}_d = abs(${o.out}_r - (${o.out}_pitch * (${o.out}_theta + 6.28318530718 * floor(${o.out}_k + 0.5)))) - 0.5 * ${i.widths}.x;`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  PatternWhirl: {
+    category: 'Pattern',
+    label: 'Whirl',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'widths', label: 'Widths', type: 'vec2', defaultValue: [30, 30], min: 0.001, max: 180, step: 1 },
+      { id: 'whirl', label: 'Whirl', type: 'float', defaultValue: 80, min: -360, max: 360, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_width = max(${i.widths}.x + ${i.widths}.y, 0.0001);`,
+      `float ${o.out}_r = length(${i.uv});`,
+      `float ${o.out}_theta = 57.2958 * atan(${i.uv}.y, ${i.uv}.x) - ${i.whirl} * ${o.out}_r;`,
+      `float ${o.out}_m = mod(${o.out}_theta + 0.5 * ${o.out}_width, ${o.out}_width);`,
+      `${o.out}_m = mod(${o.out}_m + ${o.out}_width, ${o.out}_width) - 0.5 * ${o.out}_width;`,
+      `float ${o.out}_d = abs(${o.out}_m) - 0.5 * ${i.widths}.x;`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+
+  // ─── Halftone ───────────────────────────────────────────────────────────────
+  HalftoneMono: {
+    category: 'Halftone',
+    label: 'Halftone Mono',
+    inputs: [
+      { id: 'base', label: 'Base', type: 'float', defaultValue: 0.5, min: 0, max: 1, step: 0.01 },
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'offset', label: 'Offset', type: 'vec2', defaultValue: [0.01, 0], step: 0.001 },
+      { id: 'scale', label: 'Scale', type: 'float', defaultValue: 1, min: 0.1, max: 16, step: 0.1 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 2, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => halftoneChannel(i.base, i.uv, i.offset, i.scale, i.mode, o.out, `${o.out}_mono`).join('\n'),
+  },
+  HalftoneColor: {
+    category: 'Halftone',
+    label: 'Halftone Color',
+    inputs: [
+      { id: 'color', label: 'Color', type: 'vec4', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'offsetR', label: 'Offset R', type: 'vec2', defaultValue: [0.01, 0], step: 0.001 },
+      { id: 'offsetG', label: 'Offset G', type: 'vec2', defaultValue: [0.00866, 0.005], step: 0.001 },
+      { id: 'offsetB', label: 'Offset B', type: 'vec2', defaultValue: [0.005, 0.00866], step: 0.001 },
+      { id: 'scale', label: 'Scale', type: 'float', defaultValue: 1, min: 0.001, max: 16, step: 0.05 },
+      { id: 'mode', label: 'Mode', type: 'float', defaultValue: 0, min: 0, max: 2, step: 1 },
+    ],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => [
+      ...halftoneChannel(`${i.color}.r`, i.uv, i.offsetR, i.scale, i.mode, `${o.out}_r`, `${o.out}_r`),
+      ...halftoneChannel(`${i.color}.g`, i.uv, i.offsetG, i.scale, i.mode, `${o.out}_g`, `${o.out}_g`),
+      ...halftoneChannel(`${i.color}.b`, i.uv, i.offsetB, i.scale, i.mode, `${o.out}_b`, `${o.out}_b`),
+      `vec4 ${o.out} = vec4(${o.out}_r, ${o.out}_g, ${o.out}_b, ${i.color}.a);`,
+    ].join('\n'),
+  },
+
+  // ─── UV (extended) ───────────────────────────────────────────────────────────
+  ZoomUV: {
+    category: 'UV',
+    label: 'Zoom UV',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'zoom', label: 'Zoom', type: 'float' },
+    ],
+    outputs: [{ id: 'out', label: 'UV', type: 'vec2' }],
+    emitGlsl: (i, o) => `vec2 ${o.out} = (${i.uv} - vec2(0.5)) * max(${i.zoom}, 0.0001) + vec2(0.5);`,
+  },
+  FlipUV: {
+    category: 'UV',
+    label: 'Flip UV',
+    inputs: [{ id: 'uv', label: 'UV', type: 'vec2' }],
+    outputs: [
+      { id: 'flipX', label: 'Flip X', type: 'vec2' },
+      { id: 'flipY', label: 'Flip Y', type: 'vec2' },
+      { id: 'flipXY', label: 'Flip XY', type: 'vec2' },
+    ],
+    emitGlsl: (i, o) =>
+      `vec2 ${o.flipX} = vec2(1.0 - ${i.uv}.x, ${i.uv}.y);\nvec2 ${o.flipY} = vec2(${i.uv}.x, 1.0 - ${i.uv}.y);\nvec2 ${o.flipXY} = vec2(1.0 - ${i.uv}.x, 1.0 - ${i.uv}.y);`,
+  },
+
+  // ─── SDF ─────────────────────────────────────────────────────────────────────
+  SDFLine: {
+    category: 'SDF',
+    label: 'SDF Line',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'float', defaultValue: 0.5, min: 0, max: 1, step: 0.01 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.1, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = abs(${i.uv}.x - ${i.position}) - 0.5 * ${i.width};`,
+  },
+  SDFCircle: {
+    category: 'SDF',
+    label: 'SDF Circle',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.25, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
+    emitGlsl: (i, o) => `float ${o.out} = length(${i.uv} - ${i.position}) - ${i.radius};`,
+  },
+  SDFRect: {
+    category: 'SDF',
+    label: 'SDF Rectangle',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'width', label: 'Width', type: 'float', defaultValue: 0.5, min: 0, max: 1, step: 0.01 },
+      { id: 'height', label: 'Height', type: 'float', defaultValue: 0.5, min: 0, max: 1, step: 0.01 },
+      { id: 'corner', label: 'Corner R', type: 'float', defaultValue: 0, min: 0, max: 0.5, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
+    emitGlsl: (i, o) =>
+      `vec2 ${o.out}_d = abs(${i.uv} - ${i.position}) - 0.5 * vec2(${i.width}, ${i.height});\nfloat ${o.out} = min(max(${o.out}_d.x, ${o.out}_d.y), 0.0) + length(max(${o.out}_d, vec2(0.0))) - ${i.corner};`,
+  },
+  SDFPolygon: {
+    category: 'SDF',
+    label: 'SDF Polygon',
+    inputs: [
+      { id: 'uv', label: 'UV', type: 'vec2' },
+      { id: 'position', label: 'Position', type: 'vec2', defaultValue: [0.5, 0.5], min: 0, max: 1, step: 0.01 },
+      { id: 'radius', label: 'Radius', type: 'float', defaultValue: 0.25, min: 0, max: 1, step: 0.01 },
+      { id: 'sides', label: 'Sides', type: 'float', defaultValue: 6, min: 3, max: 12, step: 1 },
+      { id: 'corner', label: 'Corner R', type: 'float', defaultValue: 0, min: 0, max: 0.5, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'SDF', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `vec2 ${o.out}_f = ${i.uv} - ${i.position};`,
+      `float ${o.out}_sides = max(${i.sides}, 3.0);`,
+      `float ${o.out}_angle = atan(${o.out}_f.y, ${o.out}_f.x) + 3.14159265359;`,
+      `float ${o.out}_sector = 6.28318530718 / ${o.out}_sides;`,
+      `float ${o.out}_radial = cos(floor(0.5 + ${o.out}_angle / ${o.out}_sector) * ${o.out}_sector - ${o.out}_angle) * length(${o.out}_f);`,
+      `float ${o.out} = ${o.out}_radial - ${i.radius} - ${i.corner};`,
+    ].join('\n'),
+  },
+  SDFSample: {
+    category: 'SDF',
+    label: 'SDF Sample',
+    inputs: [
+      { id: 'sdf', label: 'SDF', type: 'float' },
+      { id: 'offset', label: 'Offset', type: 'float', defaultValue: 0, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_d = ${i.sdf} - ${i.offset};`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  SDFSampleStrip: {
+    category: 'SDF',
+    label: 'SDF Sample Strip',
+    inputs: [
+      { id: 'sdf', label: 'SDF', type: 'float' },
+      { id: 'offsetMin', label: 'Min', type: 'float', defaultValue: -0.05, step: 0.01 },
+      { id: 'offsetMax', label: 'Max', type: 'float', defaultValue: 0.05, step: 0.01 },
+    ],
+    outputs: [{ id: 'out', label: 'Mask', type: 'float' }],
+    emitGlsl: (i, o) => [
+      `float ${o.out}_d = max(-(${i.sdf} - ${i.offsetMin}), ${i.sdf} - ${i.offsetMax});`,
+      `float ${o.out} = clamp(-${o.out}_d / max(fwidth(${o.out}_d), 0.0001), 0.0, 1.0);`,
+    ].join('\n'),
+  },
+  SDFBoolean: {
+    category: 'SDF',
+    label: 'SDF Boolean',
+    inputs: [
+      { id: 'a', label: 'A', type: 'float' },
+      { id: 'b', label: 'B', type: 'float' },
+    ],
+    outputs: [
+      { id: 'union', label: 'Union', type: 'float' },
+      { id: 'intersect', label: 'Intersect', type: 'float' },
+      { id: 'diff', label: 'Diff A-B', type: 'float' },
+    ],
+    emitGlsl: (i, o) => [
+      `float ${o.union} = min(${i.a}, ${i.b});`,
+      `float ${o.intersect} = max(${i.a}, ${i.b});`,
+      `float ${o.diff} = max(${i.a}, -${i.b});`,
+    ].join('\n'),
+  },
+  SDFSoftBoolean: {
+    category: 'SDF',
+    label: 'SDF Soft Boolean',
+    inputs: [
+      { id: 'a', label: 'A', type: 'float' },
+      { id: 'b', label: 'B', type: 'float' },
+      { id: 'smoothing', label: 'Smooth', type: 'float', defaultValue: 0.1, min: 0, max: 1, step: 0.01 },
+    ],
+    outputs: [
+      { id: 'union', label: 'Union', type: 'float' },
+      { id: 'intersect', label: 'Intersect', type: 'float' },
+      { id: 'diff', label: 'Diff A-B', type: 'float' },
+    ],
+    emitGlsl: (i, o) => {
+      const s = `max(${i.smoothing}, 0.0001)`;
+      return [
+        `float ${o.union}_t = clamp(0.5 * (1.0 + (${i.b} - ${i.a}) / ${s}), 0.0, 1.0);`,
+        `float ${o.union} = mix(${i.b}, ${i.a}, ${o.union}_t) - ${s} * ${o.union}_t * (1.0 - ${o.union}_t);`,
+        `float ${o.intersect}_t = clamp(0.5 * (1.0 + (${i.a} - ${i.b}) / ${s}), 0.0, 1.0);`,
+        `float ${o.intersect} = -(mix(-${i.b}, -${i.a}, ${o.intersect}_t) - ${s} * ${o.intersect}_t * (1.0 - ${o.intersect}_t));`,
+        `float ${o.diff}_t = clamp(0.5 * (1.0 + (${i.a} + ${i.b}) / ${s}), 0.0, 1.0);`,
+        `float ${o.diff} = -(mix(${i.b}, -${i.a}, ${o.diff}_t) - ${s} * ${o.diff}_t * (1.0 - ${o.diff}_t));`,
+      ].join('\n');
+    },
+  },
 };
 
+export function getNodeDef(data: ShaderNodeData): NodeDef {
+  if (data.nodeType === 'CustomFunction') {
+    return customFunctionNodeDef(data);
+  }
+  if (data.nodeType === 'SubgraphInstance') {
+    return {
+      category: 'Custom',
+      label: String(data.label || 'Subgraph'),
+      inputs: data.subgraphInputs ?? [],
+      outputs: data.subgraphOutputs ?? [],
+      emitGlsl: () => '',
+    };
+  }
+  return NODE_DEFS[data.nodeType];
+}
+
 export const CATEGORY_COLORS: Record<string, string> = {
+  Custom: 'border-l-zinc-500',
   Input: 'border-l-blue-500',
   Math: 'border-l-orange-500',
+  Complex: 'border-l-amber-500',
+  Quaternion: 'border-l-fuchsia-500',
+  Symmetry: 'border-l-violet-500',
+  Random: 'border-l-stone-500',
   Vector: 'border-l-purple-500',
   Color: 'border-l-pink-500',
+  Composite: 'border-l-rose-500',
   Noise: 'border-l-green-500',
+  Pattern: 'border-l-emerald-500',
+  Halftone: 'border-l-lime-500',
+  'Pixel Perfect': 'border-l-sky-500',
   UV: 'border-l-indigo-500',
   Effect: 'border-l-cyan-500',
   Output: 'border-l-red-500',
   Vertex: 'border-l-yellow-500',
+  SDF: 'border-l-teal-500',
 };
 
 export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
+  { category: 'Custom', nodes: ['CustomFunction'] },
   {
     category: 'Input',
     nodes: [
       'TextureColor',
+      'TextureInput',
+      'TextureParameter',
+      'TextureUniformColor',
       'TextureCoords',
       'ScreenCoords',
       'VertexColor',
       'Time',
       'Resolution',
+      'FloatParameter',
+      'Vec2Parameter',
+      'Vec3Parameter',
+      'Vec4Parameter',
+      'ColorParameter',
+      'BooleanParameter',
       'FloatConstant',
       'Vec2Constant',
       'Vec3Constant',
@@ -867,17 +2489,29 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
       'Smoothstep',
       'Sin',
       'Cos',
+      'Tan',
       'Abs',
       'Fract',
       'Floor',
+      'Ceil',
+      'Round',
+      'Sign',
       'Min',
       'Max',
       'Modulo',
       'Negate',
       'Saturate',
       'Remap',
+      'Sqrt',
+      'Log',
+      'Exp',
+      'Atan2',
     ],
   },
+  { category: 'Complex', nodes: ['ComplexConjugate', 'ComplexReciprocal', 'ComplexMultiply', 'ComplexDivide', 'ComplexExp', 'ComplexLog', 'ComplexPower'] },
+  { category: 'Quaternion', nodes: ['QuaternionInverse', 'QuaternionFromEuler', 'QuaternionFromAngleAxis', 'QuaternionToAngleAxis', 'QuaternionFromToRotation', 'QuaternionMultiply', 'QuaternionRotateVector', 'QuaternionSlerp'] },
+  { category: 'Symmetry', nodes: ['ReflectionSymmetry', 'RotationSymmetry', 'TilingSymmetry'] },
+  { category: 'Random', nodes: ['RandomIntegerRange', 'RandomCircle', 'RandomSphere', 'RandomRotation', 'RandomColor'] },
   {
     category: 'Vector',
     nodes: [
@@ -897,11 +2531,32 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
       'LengthVec2',
       'NormalizeVec2',
       'DotVec2',
+      'AddVec2',
+      'AddVec3',
+      'AddVec4',
+      'SubtractVec2',
+      'SubtractVec3',
+      'SubtractVec4',
+      'MultiplyVec2',
+      'MultiplyVec3',
+      'MultiplyVec4',
+      'DivideVec2',
+      'DivideVec3',
+      'DivideVec4',
+      'CrossVec3',
+      'LerpVec4',
+      'ScaleVec2',
+      'ScaleVec3',
+      'ScaleVec4',
     ],
   },
-  { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift', 'InvertColor', 'Contrast', 'PosterizeColor', 'MultiplyColor'] },
-  { category: 'Noise', nodes: ['SimpleNoise', 'Ripple', 'VoronoiCells', 'Checkerboard'] },
-  { category: 'UV', nodes: ['TilingOffset', 'RotateUV', 'TwirlUV', 'PolarCoordinates'] },
+  { category: 'Color', nodes: ['Desaturate', 'OneMinus', 'HueShift', 'InvertColor', 'Contrast', 'PosterizeColor', 'MultiplyColor', 'BlendAdd', 'BlendScreen', 'BlendOverlay', 'Brightness', 'GammaCorrect', 'LabColorConvert', 'LabComplementary', 'LabSplitScheme', 'LabDualScheme'] },
+  { category: 'Composite', nodes: ['CompositeAlpha'] },
+  { category: 'Noise', nodes: ['SimpleNoise', 'GradientNoise', 'FBMNoise', 'TruchetTiles', 'Ripple', 'VoronoiCells', 'Checkerboard'] },
+  { category: 'Pattern', nodes: ['PatternZigZag', 'PatternSineWaves', 'PatternRoundWaves', 'PatternDots', 'PatternSpiral', 'PatternWhirl'] },
+  { category: 'Halftone', nodes: ['HalftoneMono', 'HalftoneColor'] },
+  { category: 'Pixel Perfect', nodes: ['PixelPoint', 'PixelPointGrid', 'PixelRay', 'PixelRays', 'PixelLine', 'PixelLines', 'PixelCircle', 'PixelPolygon'] },
+  { category: 'UV', nodes: ['TilingOffset', 'RotateUV', 'TwirlUV', 'PolarCoordinates', 'ZoomUV', 'FlipUV'] },
   {
     category: 'Effect',
     nodes: [
@@ -914,6 +2569,8 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
       'WaveDistort',
       'WaterDisplace',
       'MaskedWaterDisplace',
+      'WaterNoiseUV',
+      'WaterDisplaceV2',
       'Dissolve2D',
       'HitFlash',
       'Vignette',
@@ -923,4 +2580,5 @@ export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
   },
   { category: 'Output', nodes: ['FragmentOutput'] },
   { category: 'Vertex', nodes: ['VertexPosition', 'VertexWave2D', 'TransformMatrix', 'MatVecMul', 'VertexOutput'] },
+  { category: 'SDF', nodes: ['SDFLine', 'SDFCircle', 'SDFRect', 'SDFPolygon', 'SDFSample', 'SDFSampleStrip', 'SDFBoolean', 'SDFSoftBoolean'] },
 ];
