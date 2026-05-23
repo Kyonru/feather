@@ -104,6 +104,7 @@ export function ShaderCanvas() {
   const [subgraphDialogOpen, setSubgraphDialogOpen] = useState(false);
   const [subgraphName, setSubgraphName] = useState('Subgraph');
   const pasteOffsetRef = useRef(0);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Captured via onInit — avoids calling useReactFlow() at the same level as <ReactFlow>
   const rfRef = useRef<ReactFlowInstance<Node<ShaderNodeData>> | null>(null);
@@ -234,18 +235,26 @@ export function ShaderCanvas() {
     [addNode, selectNode],
   );
 
-  const onContextMenu = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const handler = (e: MouseEvent) => {
+      e.preventDefault();
       const rf = rfRef.current;
       const position = rf
-        ? rf.screenToFlowPosition({ x: event.clientX, y: event.clientY })
-        : { x: event.clientX, y: event.clientY };
+        ? rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+        : { x: e.clientX, y: e.clientY };
+      const rect = el.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const x = cx + 256 > rect.width ? Math.max(0, cx - 256) : cx;
+      const y = cy + 340 > rect.height ? Math.max(0, cy - 340) : cy;
       setSuggestionMenu(null);
-      setNodePicker({ x: event.clientX, y: event.clientY, position, search: '' });
-    },
-    [],
-  );
+      setNodePicker({ x, y, position, search: '' });
+    };
+    el.addEventListener('contextmenu', handler);
+    return () => el.removeEventListener('contextmenu', handler);
+  }, []);
 
   const nodePickerItems = useMemo(() => {
     const query = nodePicker?.search.trim().toLowerCase() ?? '';
@@ -379,8 +388,15 @@ export function ShaderCanvas() {
       const detail = (event as CustomEvent<{ nodeId: string; portId: string; direction: 'input' | 'output'; x: number; y: number }>).detail;
       const port = portRefs(graphNodes, detail.direction).find((candidate) => candidate.nodeId === detail.nodeId && candidate.portId === detail.portId);
       if (!port) return;
+      const rect = wrapperRef.current?.getBoundingClientRect();
+      const cx = detail.x - (rect?.left ?? 0);
+      const cy = detail.y - (rect?.top ?? 0);
+      const cw = rect?.width ?? 9999;
+      const ch = rect?.height ?? 9999;
+      const x = cx + 288 > cw ? Math.max(0, cx - 288) : cx;
+      const y = cy + 380 > ch ? Math.max(0, cy - 380) : cy;
       setNodePicker(null);
-      setSuggestionMenu({ x: detail.x, y: detail.y, port, items: linkSuggestions(graphNodes, port) });
+      setSuggestionMenu({ x, y, port, items: linkSuggestions(graphNodes, port) });
     };
     window.addEventListener('shader-graph:port-suggest', onSuggest);
     return () => window.removeEventListener('shader-graph:port-suggest', onSuggest);
@@ -506,12 +522,13 @@ export function ShaderCanvas() {
 
   return (
     <div
+      ref={wrapperRef}
       data-testid="shader-canvas"
       className="relative h-full w-full"
       style={{ height: '100%', width: '100%' }}
       onDrop={onDrop}
       onDragOver={onDragOver}
-      onContextMenu={onContextMenu}
+
       onClick={() => {
         setNodePicker(null);
         setSuggestionMenu(null);
