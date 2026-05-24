@@ -1826,6 +1826,119 @@
       "require": "lib.middleclass",
       "example": "local Class = require('lib.middleclass')"
     },
+    "moonshine": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Postprocessing effect repository for LÖVE",
+      "tags": [
+        "postprocessing",
+        "shader"
+      ],
+      "homepage": "https://github.com/vrld/moonshine",
+      "license": "unknown",
+      "source": {
+        "repo": "vrld/moonshine",
+        "tag": "master",
+        "commitSha": "d39271e0c000e2fedbc2e3ad286b78b5a5146065",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/moonshine/d39271e0c000e2fedbc2e3ad286b78b5a5146065/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "boxblur.lua",
+            "sha256": "3edc7e809e60e4fb4ff64f34332134b2ce40640d08e2ac0453be5cbd22fe84a8",
+            "target": "lib/moonshine/boxblur.lua"
+          },
+          {
+            "name": "chromasep.lua",
+            "sha256": "491a79481f0160fe5e5f5434626142c3f47e40f04023fe02a542ba1353094029",
+            "target": "lib/moonshine/chromasep.lua"
+          },
+          {
+            "name": "colorgradesimple.lua",
+            "sha256": "86ff920255144e62fad1d06628a91657550c0302f6de2a04d3ed4a0d74f92440",
+            "target": "lib/moonshine/colorgradesimple.lua"
+          },
+          {
+            "name": "crt.lua",
+            "sha256": "5c9fe27e18d9b730080846a765d00084b790ba759dd0f84c6413916b85082eae",
+            "target": "lib/moonshine/crt.lua"
+          },
+          {
+            "name": "desaturate.lua",
+            "sha256": "b7d03e70b179c45e042a40a63953fc1452178e0eb27d94b1df683219b6179467",
+            "target": "lib/moonshine/desaturate.lua"
+          },
+          {
+            "name": "dmg.lua",
+            "sha256": "d55d4a3eead09ba3028b419ffaa4c5acb48f6b8c715de70618b4f4f628829010",
+            "target": "lib/moonshine/dmg.lua"
+          },
+          {
+            "name": "fastgaussianblur.lua",
+            "sha256": "0ffdaea01e3ca0bdbfcaa3fcf512d2006c00a079dc183c317baf98611656abde",
+            "target": "lib/moonshine/fastgaussianblur.lua"
+          },
+          {
+            "name": "filmgrain.lua",
+            "sha256": "f3d518f7167a2a93cf6a356515eca6c3f586a11db094435f64eed7d2cc99778a",
+            "target": "lib/moonshine/filmgrain.lua"
+          },
+          {
+            "name": "fog.lua",
+            "sha256": "29ad8a5334f8de58bc647b938c35bc58fffea0595b440de6e6ea03ab592590dc",
+            "target": "lib/moonshine/fog.lua"
+          },
+          {
+            "name": "gaussianblur.lua",
+            "sha256": "7ef57bbc851b79565c06ff26c4d4d3216797e5887a7a9645c6ae150a998b41a2",
+            "target": "lib/moonshine/gaussianblur.lua"
+          },
+          {
+            "name": "glow.lua",
+            "sha256": "e7515319964b472f6d03378cbe6fd1f4a23199e0fbf8752fdbdbb02735ddea49",
+            "target": "lib/moonshine/glow.lua"
+          },
+          {
+            "name": "godsray.lua",
+            "sha256": "b48316cac9e42f67f9b79e6cf2027be62a1c10ef01b32f18a82a3a2403474cfb",
+            "target": "lib/moonshine/godsray.lua"
+          },
+          {
+            "name": "init.lua",
+            "sha256": "ba44f108b89e60363d738949d31cd3978ced99de6f362c40ac215a9ba6fd96d1",
+            "target": "lib/moonshine/init.lua"
+          },
+          {
+            "name": "pixelate.lua",
+            "sha256": "430a7d38d968991c0f196a41fc5130c5a50c39e12da4c3b426a7cda934da92e6",
+            "target": "lib/moonshine/pixelate.lua"
+          },
+          {
+            "name": "posterize.lua",
+            "sha256": "fcf41a7c0fb72e083a0e1889d0e42eccababa1897b9219438fd898de58540490",
+            "target": "lib/moonshine/posterize.lua"
+          },
+          {
+            "name": "scanlines.lua",
+            "sha256": "6b9b0c9c6e9b86ed4144cb776833f9c93b30dad23c22487eb91ea1d9e2ffca8e",
+            "target": "lib/moonshine/scanlines.lua"
+          },
+          {
+            "name": "sketch.lua",
+            "sha256": "b390e70bc2997926209cd4e28d4afd2ab366b79ef9c7d704f74c6ec4c9b69e6d",
+            "target": "lib/moonshine/sketch.lua"
+          },
+          {
+            "name": "vignette.lua",
+            "sha256": "eb4d06b0cc803b1c92ed96a2b87f39a907a8d520a34931f4a1081e8d3603e0ec",
+            "target": "lib/moonshine/vignette.lua"
+          }
+        ]
+      },
+      "require": "lib.moonshine",
+      "example": "local moonshine = require('lib.moonshine')"
+    },
     "push": {
       "type": "love2d-library",
       "trust": "verified",
