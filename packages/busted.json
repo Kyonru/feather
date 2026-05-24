@@ -1,0 +1,277 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "Elegant Lua unit testing.",
+  "tags": [
+    "testing"
+  ],
+  "homepage": "https://github.com/lunarmodules/busted",
+  "license": "MIT",
+  "source": {
+    "repo": "lunarmodules/busted",
+    "tag": "v2.3.0",
+    "commitSha": "56e6d68204d1456afa77f1346bf4e050df65b629",
+    "baseUrl": "https://raw.githubusercontent.com/lunarmodules/busted/56e6d68204d1456afa77f1346bf4e050df65b629/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "busted/block.lua",
+        "sha256": "274f86f42c58dffb747a76c74177b987fffa8e3d81cad28af3d737db93c89c57",
+        "target": "lib/busted/block.lua"
+      },
+      {
+        "name": "busted/compatibility.lua",
+        "sha256": "302631edcb3b8be01059b0026a1aa26349c6677a862bcdb4c53fbc0085ca50cb",
+        "target": "lib/busted/compatibility.lua"
+      },
+      {
+        "name": "busted/context.lua",
+        "sha256": "023cba0c52fe7d81a4ae6bf162f4ba180f4494f6a27f9c8bb788ac80fa7bbdf3",
+        "target": "lib/busted/context.lua"
+      },
+      {
+        "name": "busted/core.lua",
+        "sha256": "a490609b9ada02dd7f123b03d227c2dafb73d264ec2739e66482089b01b822e7",
+        "target": "lib/busted/core.lua"
+      },
+      {
+        "name": "busted/done.lua",
+        "sha256": "a115395dc8ef6419337c3ed9a14acf424d71c839e0391ae6034094b49cb2e204",
+        "target": "lib/busted/done.lua"
+      },
+      {
+        "name": "busted/environment.lua",
+        "sha256": "5604dcd64ae6f1163c15e1bd92097c7bc605c84904f443b192a854a4bbc4d61e",
+        "target": "lib/busted/environment.lua"
+      },
+      {
+        "name": "busted/execute.lua",
+        "sha256": "1638ef7ded47897fd1135550b640c9b241ffc7367698ee5b15a996eb5bb5dff4",
+        "target": "lib/busted/execute.lua"
+      },
+      {
+        "name": "busted/fixtures.lua",
+        "sha256": "edf00aaf9427a445f465d11f9627df3d9892818bd5d7dc247c1e0db5cc403739",
+        "target": "lib/busted/fixtures.lua"
+      },
+      {
+        "name": "busted/init.lua",
+        "sha256": "005eedd05b62a20b8d45df3ca311d5c999727a668c3baf78b776e0057a41292d",
+        "target": "lib/busted/init.lua"
+      },
+      {
+        "name": "busted/languages/ar.lua",
+        "sha256": "6239f493d1e908c1cbdec61b549f682f34a64d7ca0c1bcc09b7084fac0b1c393",
+        "target": "lib/busted/languages/ar.lua"
+      },
+      {
+        "name": "busted/languages/de.lua",
+        "sha256": "2576209fb5d6837d66fbdf25f212e47c72067f06890df5fd4060219818919290",
+        "target": "lib/busted/languages/de.lua"
+      },
+      {
+        "name": "busted/languages/en.lua",
+        "sha256": "fa8b776d502950e9f4e2a5f8254270ab4254fc3287f8f23f46472626e124a5c8",
+        "target": "lib/busted/languages/en.lua"
+      },
+      {
+        "name": "busted/languages/es.lua",
+        "sha256": "b51ebea10265575cd723173f9a90a941e9dba65e6895366a1b9be73a9fceacc6",
+        "target": "lib/busted/languages/es.lua"
+      },
+      {
+        "name": "busted/languages/fr.lua",
+        "sha256": "58286971c252f5372355ec6aa309430b1e8c858c6f046c7332ec194e136221ed",
+        "target": "lib/busted/languages/fr.lua"
+      },
+      {
+        "name": "busted/languages/id.lua",
+        "sha256": "007e41ad80b5b78bbace4df479fafdbe44abaeb3856dc7a1998c2cdd4b5a4a65",
+        "target": "lib/busted/languages/id.lua"
+      },
+      {
+        "name": "busted/languages/is.lua",
+        "sha256": "d3863e00e6235832ca7cd8ea01e1c925a4c81260aa779d4a60a9bba46ffc058e",
+        "target": "lib/busted/languages/is.lua"
+      },
+      {
+        "name": "busted/languages/it.lua",
+        "sha256": "7312a54f473ac719a1bb62e7a88a4e6c9b97ee094eacf5b04f978c0abe48af02",
+        "target": "lib/busted/languages/it.lua"
+      },
+      {
+        "name": "busted/languages/ja.lua",
+        "sha256": "491daedf330f04c48f2bd2fada12213806b0a6f0b629150147750a184057ed85",
+        "target": "lib/busted/languages/ja.lua"
+      },
+      {
+        "name": "busted/languages/ko.lua",
+        "sha256": "919326da66a6b8ffc6e47a030bf63b67c67c488fd4d0d4c6b5023fe3535d04f8",
+        "target": "lib/busted/languages/ko.lua"
+      },
+      {
+        "name": "busted/languages/nl.lua",
+        "sha256": "03ffd1419ef611b46847945a5a8926bccfe4f6099481d30344d4166b3e1ce26e",
+        "target": "lib/busted/languages/nl.lua"
+      },
+      {
+        "name": "busted/languages/pt-BR.lua",
+        "sha256": "0422f97df4db7ff0966a99a9a5f3f9b4d643dcbe98448101135fa645d2e6b8b6",
+        "target": "lib/busted/languages/pt-BR.lua"
+      },
+      {
+        "name": "busted/languages/ro.lua",
+        "sha256": "c767b53f85dce906eb4ae8185b08b0057097c03125c4848369545bac8bcfdcff",
+        "target": "lib/busted/languages/ro.lua"
+      },
+      {
+        "name": "busted/languages/ru.lua",
+        "sha256": "43284015eda3042e787e94e1619b4ce7ef07f4e03a6d981b4e666782cd347d4b",
+        "target": "lib/busted/languages/ru.lua"
+      },
+      {
+        "name": "busted/languages/th.lua",
+        "sha256": "5c9286306b1aa302ca0643af49e490451b90e17afbfa84c12619dda7d389e414",
+        "target": "lib/busted/languages/th.lua"
+      },
+      {
+        "name": "busted/languages/ua.lua",
+        "sha256": "e0ddf8911864426e8ae590fe67efd7617a31f3332e4c5ecf75ac87a296e7117a",
+        "target": "lib/busted/languages/ua.lua"
+      },
+      {
+        "name": "busted/languages/zh.lua",
+        "sha256": "ea5adf162c5971dfc7033e16f6d2614991b109f6d7558472fc8c5625f74e163c",
+        "target": "lib/busted/languages/zh.lua"
+      },
+      {
+        "name": "busted/luajit.lua",
+        "sha256": "fd82ca8b130cb76f748ac7b789f42a1e6699245f2db2ce5f7e68ef5e8077eb94",
+        "target": "lib/busted/luajit.lua"
+      },
+      {
+        "name": "busted/modules/cli.lua",
+        "sha256": "f2e800f76b88d6c37869d071b1d70e4419023e06150fd9627efdcc7b54dd092a",
+        "target": "lib/busted/modules/cli.lua"
+      },
+      {
+        "name": "busted/modules/configuration_loader.lua",
+        "sha256": "fb80bd628444e9051b8dfa262aca740af32a3e3de8f76404bd619703449e9426",
+        "target": "lib/busted/modules/configuration_loader.lua"
+      },
+      {
+        "name": "busted/modules/files/fennel.lua",
+        "sha256": "cdc8a09df1ff78b22fe85d9aec0efb95b3c5144bf174510715466a8f3f9a854a",
+        "target": "lib/busted/modules/files/fennel.lua"
+      },
+      {
+        "name": "busted/modules/files/lua.lua",
+        "sha256": "48e0ee23718c8ec57f654f41f52eae0d1522c55957ab78aa5dbdead74759d7fb",
+        "target": "lib/busted/modules/files/lua.lua"
+      },
+      {
+        "name": "busted/modules/files/moonscript.lua",
+        "sha256": "d3b38677f1914793985b021bd81ae09fa4260348a5d01ae5220e7c883c3c1c3a",
+        "target": "lib/busted/modules/files/moonscript.lua"
+      },
+      {
+        "name": "busted/modules/files/terra.lua",
+        "sha256": "64e9450f3aaf4a226f7cf62dfa71f14b1310e565604dc0c9e5c3798e1e490dfb",
+        "target": "lib/busted/modules/files/terra.lua"
+      },
+      {
+        "name": "busted/modules/filter_loader.lua",
+        "sha256": "a69ed9ca832591e9534b786b9ab50e1e3ee155190da13c13ff107c1b51e52cd5",
+        "target": "lib/busted/modules/filter_loader.lua"
+      },
+      {
+        "name": "busted/modules/helper_loader.lua",
+        "sha256": "a0b71e10e9da192286140a6a92a01e7c29c22d923fd3a42ffd37b0aba381217f",
+        "target": "lib/busted/modules/helper_loader.lua"
+      },
+      {
+        "name": "busted/modules/luacov.lua",
+        "sha256": "f6117310c61764ea56972c251827994bd5c4a02cdda8522421b4d0a2be9bd22a",
+        "target": "lib/busted/modules/luacov.lua"
+      },
+      {
+        "name": "busted/modules/output_handler_loader.lua",
+        "sha256": "ffe99decae2b6a29b0305676e6a54bfa54e0ab3e8a418147f88fdc887cc778ec",
+        "target": "lib/busted/modules/output_handler_loader.lua"
+      },
+      {
+        "name": "busted/modules/standalone_loader.lua",
+        "sha256": "bbc97b57227006663af273de77c8cfabbee45c53b23b4aa03b4d96c3c74ed453",
+        "target": "lib/busted/modules/standalone_loader.lua"
+      },
+      {
+        "name": "busted/modules/test_file_loader.lua",
+        "sha256": "bcf5f8512a12be8b92d7cbf3a13f031dd5fcf8af39ea561793051953487ea22e",
+        "target": "lib/busted/modules/test_file_loader.lua"
+      },
+      {
+        "name": "busted/options.lua",
+        "sha256": "8e2ae4602c536b0851e7de73a748ed2094d7fd54913da20d9558cdd8ceb9efda",
+        "target": "lib/busted/options.lua"
+      },
+      {
+        "name": "busted/outputHandlers/TAP.lua",
+        "sha256": "37608d59cf7a9486ee04963c2e3b4cb4a9e913820df3da8f4c7f63df83781b42",
+        "target": "lib/busted/outputHandlers/TAP.lua"
+      },
+      {
+        "name": "busted/outputHandlers/base.lua",
+        "sha256": "6c2cf12d6a9a48ad773a0c37be4b21800347f3b6daf0784638d96373e259d3fc",
+        "target": "lib/busted/outputHandlers/base.lua"
+      },
+      {
+        "name": "busted/outputHandlers/gtest.lua",
+        "sha256": "17ec49b35c939ac1d8cdb646a7dcd404d62897590016d6a29b5db02fdd099891",
+        "target": "lib/busted/outputHandlers/gtest.lua"
+      },
+      {
+        "name": "busted/outputHandlers/json.lua",
+        "sha256": "052806434e72407aeca745e6dc178abffd65f8de1b27e54af112d802e145d7a5",
+        "target": "lib/busted/outputHandlers/json.lua"
+      },
+      {
+        "name": "busted/outputHandlers/junit.lua",
+        "sha256": "6bc893b5c0428790965737e1c13c926347cb885c9ad11c7643b2a56b5236d809",
+        "target": "lib/busted/outputHandlers/junit.lua"
+      },
+      {
+        "name": "busted/outputHandlers/plainTerminal.lua",
+        "sha256": "36ea0ce596ae7ec20f4010144e812747b37464ebbefd122ae968616650ce9e90",
+        "target": "lib/busted/outputHandlers/plainTerminal.lua"
+      },
+      {
+        "name": "busted/outputHandlers/sound.lua",
+        "sha256": "1b93a9f0a721183cd720c157da3b839dbef4f901a1cd3ed0fd34dbb73d2ebb6d",
+        "target": "lib/busted/outputHandlers/sound.lua"
+      },
+      {
+        "name": "busted/outputHandlers/utfTerminal.lua",
+        "sha256": "32165ca1ab4c678aa5e2a49852d8d371bf97a6699917674197b9c7e1c2fa4bbc",
+        "target": "lib/busted/outputHandlers/utfTerminal.lua"
+      },
+      {
+        "name": "busted/runner.lua",
+        "sha256": "91fa1b20c23c3450b9374987be51b299f1991a41160afe5a7047daedca4661f8",
+        "target": "lib/busted/runner.lua"
+      },
+      {
+        "name": "busted/status.lua",
+        "sha256": "efbf257f2af0ac2d07f7183a2af43b146d9462ba63461b7a8138bb0cea0c560c",
+        "target": "lib/busted/status.lua"
+      },
+      {
+        "name": "busted/utils.lua",
+        "sha256": "f39d7fe8ea9027aaee9ef60274473c135a75b0a5aebd4f0cd1f7823223d428fe",
+        "target": "lib/busted/utils.lua"
+      }
+    ]
+  },
+  "require": "lib.busted",
+  "example": "local busted = require('lib.busted')"
+}
