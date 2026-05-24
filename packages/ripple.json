@@ -1,0 +1,29 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "Sound manager with tag support for LÖVE.",
+  "tags": [
+    "sound",
+    "audio",
+    "manager"
+  ],
+  "homepage": "https://github.com/tesselode/ripple",
+  "license": "MIT",
+  "source": {
+    "repo": "tesselode/ripple",
+    "tag": "master",
+    "commitSha": "e18db79b98546a12f560b817bfbc218d08b0fb13",
+    "baseUrl": "https://raw.githubusercontent.com/tesselode/ripple/e18db79b98546a12f560b817bfbc218d08b0fb13/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "ripple.lua",
+        "sha256": "a12ed1b4fafa0f2e0d84a3bdf63ecfd5f69ce9d3451c8499558ceb8382fb3734",
+        "target": "lib/ripple.lua"
+      }
+    ]
+  },
+  "require": "lib.ripple",
+  "example": "local ripple = require('lib.ripple')"
+}
