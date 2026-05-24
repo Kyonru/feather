@@ -426,9 +426,7 @@ export function createProgram(): Command {
       ),
     );
 
-  const release = program
-    .command('release')
-    .description('Run Fastlane-backed mobile release lanes');
+  const release = program.command('release').description('Run Fastlane-backed mobile release lanes');
 
   release
     .command('init')
@@ -506,7 +504,10 @@ export function createProgram(): Command {
     .option('--clean', 'Remove the output directory before --build')
     .option('--no-cache', 'Disable Android/iOS dev native build cache during --build')
     .option('--verbose', 'Show build command output when used with --build')
-    .option('--allow-feather-runtime', 'Allow uploading existing artifacts that include or may include Feather runtime files')
+    .option(
+      '--allow-feather-runtime',
+      'Allow uploading existing artifacts that include or may include Feather runtime files',
+    )
     .action((target: string, buildTarget: string | undefined, opts) =>
       runCliAction(() =>
         uploadCommand(target, buildTarget, {
@@ -584,7 +585,11 @@ export function createProgram(): Command {
     .action((dir: string | undefined, opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
-        return pluginListCommand(dir ?? (merged.dir as string | undefined), merged.installDir as string, merged.managed as string | undefined);
+        return pluginListCommand(
+          dir ?? (merged.dir as string | undefined),
+          merged.installDir as string,
+          merged.managed as string | undefined,
+        );
       }),
     );
 
@@ -720,7 +725,7 @@ export function createProgram(): Command {
     .description('Install one or more packages')
     .option('--dry-run', 'Show what would be installed without writing files')
     .option('--allow-untrusted', 'Allow installing experimental packages')
-    .option('--allow-others', 'Allow installing non-Lua assets (e.g. shaders, images)')
+    .option('--allow-non-lua-files', 'Allow installing non-Lua files (e.g. shaders, images)')
     .option('--target <dir>', 'Override install target directory')
     .option('--from-url <url>', 'Install a single file from an arbitrary URL (requires --allow-untrusted)')
     .option('--offline', 'Use bundled registry snapshot')
@@ -732,7 +737,7 @@ export function createProgram(): Command {
         packageInstallCommand(names, {
           dryRun: opts.dryRun as boolean | undefined,
           allowUntrusted: opts.allowUntrusted as boolean | undefined,
-          allowOthers: opts.allowOthers as boolean | undefined,
+          allowNonLuaFiles: opts.allowNonLuaFiles as boolean | undefined,
           target: opts.target as string | undefined,
           fromUrl: opts.fromUrl as string | undefined,
           offline: opts.offline as boolean | undefined,

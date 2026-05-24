@@ -148,7 +148,7 @@ if (skipInstall) {
   console.log(`package-e2e: installing ${installable.length} packages...`);
   const installResult = spawnSync(
     process.execPath,
-    [cliPath, 'package', 'install', ...installable, '--dir', gameDir, '--yes', '--offline', '--allow-others'],
+    [cliPath, 'package', 'install', ...installable, '--dir', gameDir, '--yes', '--offline', '--allow-non-lua-files'],
     { encoding: 'utf8', timeout: 5 * 60 * 1000 },
   );
 

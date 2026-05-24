@@ -25,7 +25,7 @@ import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 export type PackageInstallOptions = {
   dryRun?: boolean;
   allowUntrusted?: boolean;
-  allowOthers?: boolean;
+  allowNonLuaFiles?: boolean;
   target?: string;
   fromUrl?: string;
   dir?: string;
@@ -207,11 +207,11 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     if (pkg.versionOverride && !opts.allowUntrusted) {
       fail(`"${pkg.id}@${pkg.versionOverride}" requires --allow-untrusted — this version has not been reviewed by Feather`);
     }
-    if (!opts.allowOthers) {
+    if (!opts.allowNonLuaFiles) {
       const nonLua = pkg.files.filter((f) => !f.name.endsWith('.lua'));
       if (nonLua.length > 0) {
         fail(
-          `"${pkg.id}" includes non-Lua files (${nonLua.map((f) => f.name).join(', ')}). Use --allow-others to permit installing non-Lua assets.`,
+          `"${pkg.id}" includes non-Lua files (${nonLua.map((f) => f.name).join(', ')}). Use --allow-non-lua-files to permit installing them.`,
         );
       }
     }

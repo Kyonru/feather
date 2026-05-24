@@ -1538,8 +1538,12 @@ test('package registry: top-level packages resolve offline in dry-run mode', () 
 
   for (const [pkgId] of topLevel) {
     const pkgDir = makeTmp();
+    const files = registry.packages[pkgId].install.files;
+    const allowNonLuaFiles = files.some((file) => !file.name.endsWith('.lua'));
+    const args = ['package', 'install', pkgId, '--dry-run', '--offline', '--dir', pkgDir];
+    if (allowNonLuaFiles) args.push('--allow-non-lua-files');
 
-    const install = run(['package', 'install', pkgId, '--dry-run', '--offline', '--dir', pkgDir]);
+    const install = run(args);
     assert.equal(install.exitCode, 0, `${pkgId} dry-run failed:\n${outputOf(install)}`);
     assert.ok(install.stdout.includes(pkgId), `${pkgId}: dry-run output should mention package`);
     assert.ok(install.stdout.includes('Dry run'), `${pkgId}: dry-run output should label the plan`);

@@ -94,13 +94,13 @@ feather package install hump.camera   # installs only the camera module
 
 Options:
 
-| Flag                | Description                                                          |
-| ------------------- | -------------------------------------------------------------------- |
-| `--dry-run`         | Show what would be installed without writing files                   |
-| `--target <dir>`    | Override the install directory                                       |
-| `--offline`         | Use the bundled registry snapshot instead of fetching                |
-| `--allow-untrusted` | Required for `experimental` packages and version overrides           |
-| `--allow-others`    | Allow installing packages that include non-Lua assets (e.g. shaders) |
+| Flag                    | Description                                                         |
+| ----------------------- | ------------------------------------------------------------------- |
+| `--dry-run`             | Show what would be installed without writing files                  |
+| `--target <dir>`        | Override the install directory                                      |
+| `--offline`             | Use the bundled registry snapshot instead of fetching               |
+| `--allow-untrusted`     | Required for `experimental` packages and version overrides          |
+| `--allow-non-lua-files` | Allow installing packages that include non-Lua files (e.g. shaders) |
 
 **Example output:**
 
