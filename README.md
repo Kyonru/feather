@@ -1,12 +1,18 @@
 # Feather — CLI Debugging, Inspection, and Builds for LÖVE
 
+[![GitHub Release](https://img.shields.io/github/v/release/Kyonru/feather)](https://github.com/Kyonru/feather/releases)
+[![npm](https://img.shields.io/npm/v/@kyonru/feather)](https://www.npmjs.com/package/@kyonru/feather)
+[![npm downloads](https://img.shields.io/npm/dm/@kyonru/feather)](https://www.npmjs.com/package/@kyonru/feather)
+[![VS Code](https://img.shields.io/visual-studio-marketplace/v/SolenodonteLabs.feather-vscode)](https://marketplace.visualstudio.com/items?itemName=SolenodonteLabs.feather-vscode)
+[![LuaRocks](https://img.shields.io/luarocks/v/kyonru/feather)](https://luarocks.org/modules/kyonru/feather)
+
 Feather is a CLI for debugging, inspecting, and manage packages for [LÖVE](https://love2d.org) games.
 
 It gives you a live window into your running game _(logs, variables, errors, performance)_ without touching your game's release build. Inspired by [LoveBird](https://github.com/rxi/lovebird) and [Flipper](https://github.com/facebook/flipper).
 
 The goal is to make the day-to-day loop of writing and testing a LÖVE game faster: less time adding print statements and restarting, more time actually building.
 
-**[📖 Documentation](https://kyonru.github.io/feather)** · [Releases](https://github.com/Kyonru/feather/releases) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+**[✨ Demo](https://feather-showcase.up.railway.app)** · **[📖 Documentation](https://kyonru.github.io/feather)** · [Releases](https://github.com/Kyonru/feather/releases) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ---
 
@@ -95,7 +101,6 @@ feather run --help
 ```
 
 See the [CLI docs](docs/cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload`.
-
 
 ---
 

@@ -82,16 +82,12 @@ export function ShowcaseApp() {
     <div className="flex h-screen min-h-0 flex-col bg-background text-foreground">
       <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b px-4">
         <div className="flex flex-row items-center gap-2">
-          <button className="flex items-center gap-2 text-sm font-semibold" onClick={() => navigate('home')}>
+          <button className="flex items-center gap-2 text-xl font-bold" onClick={() => navigate('home')}>
             <img src="/feather-clear.svg" alt="Feather" className="size-5" />
             Feather
           </button>
-          <Button
-            onClick={onInstallClick}
-            variant="outline"
-            className="hidden h-5 px-1.5 ml-2 text-[10px] md:inline-flex"
-          >
-            Install
+          <Button onClick={onInstallClick} variant="outline" className="hidden h-5 px-1.5 ml-2 text-xs md:inline-flex">
+            Install for free
           </Button>
         </div>
         <nav className="flex items-center gap-2">
