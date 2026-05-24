@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-17",
+  "updatedAt": "2026-05-24",
   "packages": {
     "anim8": {
       "type": "love2d-library",
@@ -115,6 +115,34 @@
       "require": "lib.beehive.fail",
       "example": "local beehive = require('lib.beehive.fail')"
     },
+    "bitser": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Serializes and deserializes Lua values with LuaJIT",
+      "tags": [
+        "data",
+        "serialization"
+      ],
+      "homepage": "https://github.com/gvx/bitser",
+      "license": "ISC",
+      "source": {
+        "repo": "gvx/bitser",
+        "tag": "v1.2",
+        "commitSha": "454539159112129a92c1970f662249301d61df4e",
+        "baseUrl": "https://raw.githubusercontent.com/gvx/bitser/454539159112129a92c1970f662249301d61df4e/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "bitser.lua",
+            "sha256": "380a27cb1fed09f0f7c136d1ceed3b619f0192b331daae34f9d7e7a733a5eaef",
+            "target": "lib/bitser.lua"
+          }
+        ]
+      },
+      "require": "lib.bitser",
+      "example": "local bitser = require('lib.bitser')"
+    },
     "bump": {
       "type": "love2d-library",
       "trust": "verified",
@@ -142,6 +170,283 @@
       },
       "require": "lib.bump",
       "example": "local bump = require('lib.bump')"
+    },
+    "busted": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Elegant Lua unit testing.",
+      "tags": [
+        "testing"
+      ],
+      "homepage": "https://github.com/lunarmodules/busted",
+      "license": "MIT",
+      "source": {
+        "repo": "lunarmodules/busted",
+        "tag": "v2.3.0",
+        "commitSha": "56e6d68204d1456afa77f1346bf4e050df65b629",
+        "baseUrl": "https://raw.githubusercontent.com/lunarmodules/busted/56e6d68204d1456afa77f1346bf4e050df65b629/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "busted/block.lua",
+            "sha256": "274f86f42c58dffb747a76c74177b987fffa8e3d81cad28af3d737db93c89c57",
+            "target": "lib/busted/block.lua"
+          },
+          {
+            "name": "busted/compatibility.lua",
+            "sha256": "302631edcb3b8be01059b0026a1aa26349c6677a862bcdb4c53fbc0085ca50cb",
+            "target": "lib/busted/compatibility.lua"
+          },
+          {
+            "name": "busted/context.lua",
+            "sha256": "023cba0c52fe7d81a4ae6bf162f4ba180f4494f6a27f9c8bb788ac80fa7bbdf3",
+            "target": "lib/busted/context.lua"
+          },
+          {
+            "name": "busted/core.lua",
+            "sha256": "a490609b9ada02dd7f123b03d227c2dafb73d264ec2739e66482089b01b822e7",
+            "target": "lib/busted/core.lua"
+          },
+          {
+            "name": "busted/done.lua",
+            "sha256": "a115395dc8ef6419337c3ed9a14acf424d71c839e0391ae6034094b49cb2e204",
+            "target": "lib/busted/done.lua"
+          },
+          {
+            "name": "busted/environment.lua",
+            "sha256": "5604dcd64ae6f1163c15e1bd92097c7bc605c84904f443b192a854a4bbc4d61e",
+            "target": "lib/busted/environment.lua"
+          },
+          {
+            "name": "busted/execute.lua",
+            "sha256": "1638ef7ded47897fd1135550b640c9b241ffc7367698ee5b15a996eb5bb5dff4",
+            "target": "lib/busted/execute.lua"
+          },
+          {
+            "name": "busted/fixtures.lua",
+            "sha256": "edf00aaf9427a445f465d11f9627df3d9892818bd5d7dc247c1e0db5cc403739",
+            "target": "lib/busted/fixtures.lua"
+          },
+          {
+            "name": "busted/init.lua",
+            "sha256": "005eedd05b62a20b8d45df3ca311d5c999727a668c3baf78b776e0057a41292d",
+            "target": "lib/busted/init.lua"
+          },
+          {
+            "name": "busted/languages/ar.lua",
+            "sha256": "6239f493d1e908c1cbdec61b549f682f34a64d7ca0c1bcc09b7084fac0b1c393",
+            "target": "lib/busted/languages/ar.lua"
+          },
+          {
+            "name": "busted/languages/de.lua",
+            "sha256": "2576209fb5d6837d66fbdf25f212e47c72067f06890df5fd4060219818919290",
+            "target": "lib/busted/languages/de.lua"
+          },
+          {
+            "name": "busted/languages/en.lua",
+            "sha256": "fa8b776d502950e9f4e2a5f8254270ab4254fc3287f8f23f46472626e124a5c8",
+            "target": "lib/busted/languages/en.lua"
+          },
+          {
+            "name": "busted/languages/es.lua",
+            "sha256": "b51ebea10265575cd723173f9a90a941e9dba65e6895366a1b9be73a9fceacc6",
+            "target": "lib/busted/languages/es.lua"
+          },
+          {
+            "name": "busted/languages/fr.lua",
+            "sha256": "58286971c252f5372355ec6aa309430b1e8c858c6f046c7332ec194e136221ed",
+            "target": "lib/busted/languages/fr.lua"
+          },
+          {
+            "name": "busted/languages/id.lua",
+            "sha256": "007e41ad80b5b78bbace4df479fafdbe44abaeb3856dc7a1998c2cdd4b5a4a65",
+            "target": "lib/busted/languages/id.lua"
+          },
+          {
+            "name": "busted/languages/is.lua",
+            "sha256": "d3863e00e6235832ca7cd8ea01e1c925a4c81260aa779d4a60a9bba46ffc058e",
+            "target": "lib/busted/languages/is.lua"
+          },
+          {
+            "name": "busted/languages/it.lua",
+            "sha256": "7312a54f473ac719a1bb62e7a88a4e6c9b97ee094eacf5b04f978c0abe48af02",
+            "target": "lib/busted/languages/it.lua"
+          },
+          {
+            "name": "busted/languages/ja.lua",
+            "sha256": "491daedf330f04c48f2bd2fada12213806b0a6f0b629150147750a184057ed85",
+            "target": "lib/busted/languages/ja.lua"
+          },
+          {
+            "name": "busted/languages/ko.lua",
+            "sha256": "919326da66a6b8ffc6e47a030bf63b67c67c488fd4d0d4c6b5023fe3535d04f8",
+            "target": "lib/busted/languages/ko.lua"
+          },
+          {
+            "name": "busted/languages/nl.lua",
+            "sha256": "03ffd1419ef611b46847945a5a8926bccfe4f6099481d30344d4166b3e1ce26e",
+            "target": "lib/busted/languages/nl.lua"
+          },
+          {
+            "name": "busted/languages/pt-BR.lua",
+            "sha256": "0422f97df4db7ff0966a99a9a5f3f9b4d643dcbe98448101135fa645d2e6b8b6",
+            "target": "lib/busted/languages/pt-BR.lua"
+          },
+          {
+            "name": "busted/languages/ro.lua",
+            "sha256": "c767b53f85dce906eb4ae8185b08b0057097c03125c4848369545bac8bcfdcff",
+            "target": "lib/busted/languages/ro.lua"
+          },
+          {
+            "name": "busted/languages/ru.lua",
+            "sha256": "43284015eda3042e787e94e1619b4ce7ef07f4e03a6d981b4e666782cd347d4b",
+            "target": "lib/busted/languages/ru.lua"
+          },
+          {
+            "name": "busted/languages/th.lua",
+            "sha256": "5c9286306b1aa302ca0643af49e490451b90e17afbfa84c12619dda7d389e414",
+            "target": "lib/busted/languages/th.lua"
+          },
+          {
+            "name": "busted/languages/ua.lua",
+            "sha256": "e0ddf8911864426e8ae590fe67efd7617a31f3332e4c5ecf75ac87a296e7117a",
+            "target": "lib/busted/languages/ua.lua"
+          },
+          {
+            "name": "busted/languages/zh.lua",
+            "sha256": "ea5adf162c5971dfc7033e16f6d2614991b109f6d7558472fc8c5625f74e163c",
+            "target": "lib/busted/languages/zh.lua"
+          },
+          {
+            "name": "busted/luajit.lua",
+            "sha256": "fd82ca8b130cb76f748ac7b789f42a1e6699245f2db2ce5f7e68ef5e8077eb94",
+            "target": "lib/busted/luajit.lua"
+          },
+          {
+            "name": "busted/modules/cli.lua",
+            "sha256": "f2e800f76b88d6c37869d071b1d70e4419023e06150fd9627efdcc7b54dd092a",
+            "target": "lib/busted/modules/cli.lua"
+          },
+          {
+            "name": "busted/modules/configuration_loader.lua",
+            "sha256": "fb80bd628444e9051b8dfa262aca740af32a3e3de8f76404bd619703449e9426",
+            "target": "lib/busted/modules/configuration_loader.lua"
+          },
+          {
+            "name": "busted/modules/files/fennel.lua",
+            "sha256": "cdc8a09df1ff78b22fe85d9aec0efb95b3c5144bf174510715466a8f3f9a854a",
+            "target": "lib/busted/modules/files/fennel.lua"
+          },
+          {
+            "name": "busted/modules/files/lua.lua",
+            "sha256": "48e0ee23718c8ec57f654f41f52eae0d1522c55957ab78aa5dbdead74759d7fb",
+            "target": "lib/busted/modules/files/lua.lua"
+          },
+          {
+            "name": "busted/modules/files/moonscript.lua",
+            "sha256": "d3b38677f1914793985b021bd81ae09fa4260348a5d01ae5220e7c883c3c1c3a",
+            "target": "lib/busted/modules/files/moonscript.lua"
+          },
+          {
+            "name": "busted/modules/files/terra.lua",
+            "sha256": "64e9450f3aaf4a226f7cf62dfa71f14b1310e565604dc0c9e5c3798e1e490dfb",
+            "target": "lib/busted/modules/files/terra.lua"
+          },
+          {
+            "name": "busted/modules/filter_loader.lua",
+            "sha256": "a69ed9ca832591e9534b786b9ab50e1e3ee155190da13c13ff107c1b51e52cd5",
+            "target": "lib/busted/modules/filter_loader.lua"
+          },
+          {
+            "name": "busted/modules/helper_loader.lua",
+            "sha256": "a0b71e10e9da192286140a6a92a01e7c29c22d923fd3a42ffd37b0aba381217f",
+            "target": "lib/busted/modules/helper_loader.lua"
+          },
+          {
+            "name": "busted/modules/luacov.lua",
+            "sha256": "f6117310c61764ea56972c251827994bd5c4a02cdda8522421b4d0a2be9bd22a",
+            "target": "lib/busted/modules/luacov.lua"
+          },
+          {
+            "name": "busted/modules/output_handler_loader.lua",
+            "sha256": "ffe99decae2b6a29b0305676e6a54bfa54e0ab3e8a418147f88fdc887cc778ec",
+            "target": "lib/busted/modules/output_handler_loader.lua"
+          },
+          {
+            "name": "busted/modules/standalone_loader.lua",
+            "sha256": "bbc97b57227006663af273de77c8cfabbee45c53b23b4aa03b4d96c3c74ed453",
+            "target": "lib/busted/modules/standalone_loader.lua"
+          },
+          {
+            "name": "busted/modules/test_file_loader.lua",
+            "sha256": "bcf5f8512a12be8b92d7cbf3a13f031dd5fcf8af39ea561793051953487ea22e",
+            "target": "lib/busted/modules/test_file_loader.lua"
+          },
+          {
+            "name": "busted/options.lua",
+            "sha256": "8e2ae4602c536b0851e7de73a748ed2094d7fd54913da20d9558cdd8ceb9efda",
+            "target": "lib/busted/options.lua"
+          },
+          {
+            "name": "busted/outputHandlers/TAP.lua",
+            "sha256": "37608d59cf7a9486ee04963c2e3b4cb4a9e913820df3da8f4c7f63df83781b42",
+            "target": "lib/busted/outputHandlers/TAP.lua"
+          },
+          {
+            "name": "busted/outputHandlers/base.lua",
+            "sha256": "6c2cf12d6a9a48ad773a0c37be4b21800347f3b6daf0784638d96373e259d3fc",
+            "target": "lib/busted/outputHandlers/base.lua"
+          },
+          {
+            "name": "busted/outputHandlers/gtest.lua",
+            "sha256": "17ec49b35c939ac1d8cdb646a7dcd404d62897590016d6a29b5db02fdd099891",
+            "target": "lib/busted/outputHandlers/gtest.lua"
+          },
+          {
+            "name": "busted/outputHandlers/json.lua",
+            "sha256": "052806434e72407aeca745e6dc178abffd65f8de1b27e54af112d802e145d7a5",
+            "target": "lib/busted/outputHandlers/json.lua"
+          },
+          {
+            "name": "busted/outputHandlers/junit.lua",
+            "sha256": "6bc893b5c0428790965737e1c13c926347cb885c9ad11c7643b2a56b5236d809",
+            "target": "lib/busted/outputHandlers/junit.lua"
+          },
+          {
+            "name": "busted/outputHandlers/plainTerminal.lua",
+            "sha256": "36ea0ce596ae7ec20f4010144e812747b37464ebbefd122ae968616650ce9e90",
+            "target": "lib/busted/outputHandlers/plainTerminal.lua"
+          },
+          {
+            "name": "busted/outputHandlers/sound.lua",
+            "sha256": "1b93a9f0a721183cd720c157da3b839dbef4f901a1cd3ed0fd34dbb73d2ebb6d",
+            "target": "lib/busted/outputHandlers/sound.lua"
+          },
+          {
+            "name": "busted/outputHandlers/utfTerminal.lua",
+            "sha256": "32165ca1ab4c678aa5e2a49852d8d371bf97a6699917674197b9c7e1c2fa4bbc",
+            "target": "lib/busted/outputHandlers/utfTerminal.lua"
+          },
+          {
+            "name": "busted/runner.lua",
+            "sha256": "91fa1b20c23c3450b9374987be51b299f1991a41160afe5a7047daedca4661f8",
+            "target": "lib/busted/runner.lua"
+          },
+          {
+            "name": "busted/status.lua",
+            "sha256": "efbf257f2af0ac2d07f7183a2af43b146d9462ba63461b7a8138bb0cea0c560c",
+            "target": "lib/busted/status.lua"
+          },
+          {
+            "name": "busted/utils.lua",
+            "sha256": "f39d7fe8ea9027aaee9ef60274473c135a75b0a5aebd4f0cd1f7823223d428fe",
+            "target": "lib/busted/utils.lua"
+          }
+        ]
+      },
+      "require": "lib.busted",
+      "example": "local busted = require('lib.busted')"
     },
     "cargo": {
       "type": "love2d-library",
@@ -172,6 +477,35 @@
       "require": "lib.cargo",
       "example": "local cargo = require('lib.cargo')"
     },
+    "cdata": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Serialize Lua tables to C structs and strings.",
+      "tags": [
+        "serialize",
+        "save",
+        "data"
+      ],
+      "homepage": "https://github.com/excessive/cdata",
+      "license": "NOASSERTION",
+      "source": {
+        "repo": "excessive/cdata",
+        "tag": "master",
+        "commitSha": "a05da803f659c57e9ce80045e358ada1897fddc0",
+        "baseUrl": "https://raw.githubusercontent.com/excessive/cdata/a05da803f659c57e9ce80045e358ada1897fddc0/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "cdata.lua",
+            "sha256": "c3bf87dc4450f9c25d503020e377bd6b658ded950c1096617a4a8e5fc575472c",
+            "target": "lib/cdata.lua"
+          }
+        ]
+      },
+      "require": "lib.cdata",
+      "example": "local cdata = require('lib.cdata')"
+    },
     "classic": {
       "type": "love2d-library",
       "trust": "verified",
@@ -199,6 +533,213 @@
       },
       "require": "lib.classic",
       "example": "local Object = require('lib.classic')"
+    },
+    "flexlove": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A Löve Gui based on Flexbox",
+      "tags": [
+        "ui",
+        "layout",
+        "component",
+        "theme",
+        "animation",
+        "grid"
+      ],
+      "homepage": "https://github.com/mikefreno/FlexLove",
+      "license": "MIT",
+      "source": {
+        "repo": "mikefreno/FlexLove",
+        "tag": "v0.14.0",
+        "commitSha": "56673de14b656a3bb6f6b9a508374829a4ec9110",
+        "baseUrl": "https://raw.githubusercontent.com/mikefreno/FlexLove/56673de14b656a3bb6f6b9a508374829a4ec9110/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "FlexLove.lua",
+            "sha256": "54d72bd3d2c6109780a429f4ffc86723d667f9b7b2f737297ac332d6fe055385",
+            "target": "lib/flexlove/FlexLove.lua"
+          },
+          {
+            "name": "modules/Animation.lua",
+            "sha256": "d8e2641e9d09150e9b3d716e721a49b9b93a858c1cace177d0c82cdece1aa549",
+            "target": "lib/flexlove/modules/Animation.lua"
+          },
+          {
+            "name": "modules/Blur.lua",
+            "sha256": "d930d7cb1ab47cddbae5c56dc3f328c97ed638a02392aa9df6500f1f5b966f09",
+            "target": "lib/flexlove/modules/Blur.lua"
+          },
+          {
+            "name": "modules/Calc.lua",
+            "sha256": "d50584747da70d4aa281863aa0d6c3ea39aac61600b75e808ce93a9c26949432",
+            "target": "lib/flexlove/modules/Calc.lua"
+          },
+          {
+            "name": "modules/Color.lua",
+            "sha256": "38238f61b4a25bae45078e2307f8d55f1da3dbad4b6470111fc1d7b134eb7435",
+            "target": "lib/flexlove/modules/Color.lua"
+          },
+          {
+            "name": "modules/Context.lua",
+            "sha256": "3ec60286e8042eb37407c3690167164fe8b0657e5d44fe806e7a91ecba865bed",
+            "target": "lib/flexlove/modules/Context.lua"
+          },
+          {
+            "name": "modules/Element.lua",
+            "sha256": "a793166bb995c731e71afb4892c4483731af7ce22111a6b86f0692f76821620d",
+            "target": "lib/flexlove/modules/Element.lua"
+          },
+          {
+            "name": "modules/ErrorHandler.lua",
+            "sha256": "2936635eb51faa9bf2d24cc548629baa8d011ac5c9833a8497419b0300b099a7",
+            "target": "lib/flexlove/modules/ErrorHandler.lua"
+          },
+          {
+            "name": "modules/EventHandler.lua",
+            "sha256": "66c3ad10cf2408aff746f23944d1164f7142c31adef8d80ec4db723270fd393d",
+            "target": "lib/flexlove/modules/EventHandler.lua"
+          },
+          {
+            "name": "modules/FocusIndicator.lua",
+            "sha256": "59e80e3665d60924ab4eb07fb706cbb24f4554b0110e1e4d23161b113079a33b",
+            "target": "lib/flexlove/modules/FocusIndicator.lua"
+          },
+          {
+            "name": "modules/GestureRecognizer.lua",
+            "sha256": "8aa67254d2c7780a2590f07ffcb3dd5cdb20914bf5e7924dbb435a665f5b8bfd",
+            "target": "lib/flexlove/modules/GestureRecognizer.lua"
+          },
+          {
+            "name": "modules/Grid.lua",
+            "sha256": "e8189b4246d05cc894304be1b3d442c8fc7d3b221e3ac0c38759352cd4619cb9",
+            "target": "lib/flexlove/modules/Grid.lua"
+          },
+          {
+            "name": "modules/ImageCache.lua",
+            "sha256": "6af3db9afdd08e557cd7fd2ca9aaf2cd75200ece16e2f67f60093211786c5516",
+            "target": "lib/flexlove/modules/ImageCache.lua"
+          },
+          {
+            "name": "modules/ImageRenderer.lua",
+            "sha256": "f2a63bc9c137a60dc75811875fb27a3ff0dee2d31bfde273596a22f9e36761f5",
+            "target": "lib/flexlove/modules/ImageRenderer.lua"
+          },
+          {
+            "name": "modules/ImageScaler.lua",
+            "sha256": "b76712d8c164d0cdbfb4047f937a178538c9de396ac912268a9b269d474c4dcf",
+            "target": "lib/flexlove/modules/ImageScaler.lua"
+          },
+          {
+            "name": "modules/InputEvent.lua",
+            "sha256": "a14c2a9360335355a06d8fe988f18ff8ff4145115377c855937e8094d62d533c",
+            "target": "lib/flexlove/modules/InputEvent.lua"
+          },
+          {
+            "name": "modules/KeyboardNavigation.lua",
+            "sha256": "84694eb9705161c854c192f8b2d90eb6c96663c53d280fcd46892528c3486f90",
+            "target": "lib/flexlove/modules/KeyboardNavigation.lua"
+          },
+          {
+            "name": "modules/LayoutEngine.lua",
+            "sha256": "8a89df2994d18421f9131bdb19bb26b4c3e70f6040a2ed6342a9ce1a767af3e4",
+            "target": "lib/flexlove/modules/LayoutEngine.lua"
+          },
+          {
+            "name": "modules/MemoryScanner.lua",
+            "sha256": "5d8101587c41f280fdaa01389b5aabe66ddbb6abf36e21d7e4a153c2325a4867",
+            "target": "lib/flexlove/modules/MemoryScanner.lua"
+          },
+          {
+            "name": "modules/ModuleLoader.lua",
+            "sha256": "5dd35e569aebfde8f9db912a43020322b1791287b81de073221ad270182a860e",
+            "target": "lib/flexlove/modules/ModuleLoader.lua"
+          },
+          {
+            "name": "modules/NinePatch.lua",
+            "sha256": "b958271acc2dde50d74252f78778528bbe0b0b9956bc01e6e1861e3258af7296",
+            "target": "lib/flexlove/modules/NinePatch.lua"
+          },
+          {
+            "name": "modules/Performance.lua",
+            "sha256": "04a8e96fd68162097fc5ca29166bb95d563acf9ebb239969074dc52a7e8ccefb",
+            "target": "lib/flexlove/modules/Performance.lua"
+          },
+          {
+            "name": "modules/Renderer.lua",
+            "sha256": "c4f6d068e4a66c76e827fe4edc1b2247c7dc0da0fd79acad081994af478da581",
+            "target": "lib/flexlove/modules/Renderer.lua"
+          },
+          {
+            "name": "modules/RoundedRect.lua",
+            "sha256": "517ec06883524e5861cba1df91e2641598c278e952702633b06914a250fd791c",
+            "target": "lib/flexlove/modules/RoundedRect.lua"
+          },
+          {
+            "name": "modules/ScrollManager.lua",
+            "sha256": "5497d819512aa7cb3ab6c0ad687ecd840988c7203179d8fdd0866b9b81ef0c51",
+            "target": "lib/flexlove/modules/ScrollManager.lua"
+          },
+          {
+            "name": "modules/Select.lua",
+            "sha256": "83514652f76c8d7e2b1f1c6842d1aae466b520f8baf211699eaba4f39a0e8607",
+            "target": "lib/flexlove/modules/Select.lua"
+          },
+          {
+            "name": "modules/StateManager.lua",
+            "sha256": "ae16258fd4d614cc0753f45d9ca7f4b44eba83328546a3a0d90668088f891f26",
+            "target": "lib/flexlove/modules/StateManager.lua"
+          },
+          {
+            "name": "modules/TextEditor.lua",
+            "sha256": "8d9d422bed5f9b998ac4b0ee91efb095cb782447ceb406fc809f25f1f0fe89d0",
+            "target": "lib/flexlove/modules/TextEditor.lua"
+          },
+          {
+            "name": "modules/Theme.lua",
+            "sha256": "41b2da05e7ebf645eb2d5b07d797eb44ef15e0b9b5f2323416e39ca66be0dc2b",
+            "target": "lib/flexlove/modules/Theme.lua"
+          },
+          {
+            "name": "modules/UTF8.lua",
+            "sha256": "3502bbfae1d9998b9e9c8264f17c64873fdcf3365ea4d42b8cb4b39fda917bd6",
+            "target": "lib/flexlove/modules/UTF8.lua"
+          },
+          {
+            "name": "modules/Units.lua",
+            "sha256": "8ffb320a56991b0359092a32f6697483830ae2977c977a6b07125c0010d09a83",
+            "target": "lib/flexlove/modules/Units.lua"
+          },
+          {
+            "name": "modules/ZIndex.lua",
+            "sha256": "e08cfc9882d95e5ae067919d0bf9cc3e871d242de469ebddb557e5ea29a1376f",
+            "target": "lib/flexlove/modules/ZIndex.lua"
+          },
+          {
+            "name": "modules/types.lua",
+            "sha256": "57222e7fed82173c40aa967a901d43599c8d8146b4d70a018a86bac3cae3f107",
+            "target": "lib/flexlove/modules/types.lua"
+          },
+          {
+            "name": "modules/utils.lua",
+            "sha256": "e4a7a9d80791df192ac500b3a3cd3219367ea7f9cf2881ec8a3819ed7af56484",
+            "target": "lib/flexlove/modules/utils.lua"
+          },
+          {
+            "name": "themes/metal.lua",
+            "sha256": "dccce32cadc4d0672f23b47e73cd8634a6bcf6c5dcb94ce8d615c070734c56a8",
+            "target": "lib/flexlove/themes/metal.lua"
+          },
+          {
+            "name": "themes/space.lua",
+            "sha256": "5e55e37f994fb0571fb93e9d74128d36c00a58fe7c6afcddab9fa8d348a106d3",
+            "target": "lib/flexlove/themes/space.lua"
+          }
+        ]
+      },
+      "require": "lib.flexlove.FlexLove",
+      "example": "local flexlove = require('lib.flexlove.FlexLove')"
     },
     "flux": {
       "type": "love2d-library",
@@ -280,6 +821,11 @@
             "name": "g3d/vectors.lua",
             "sha256": "4d23c3334fa1e6b43fbf7bf4fe00969480ee6a4c82a7007f87b3e10df42c411e",
             "target": "lib/g3d/vectors.lua"
+          },
+          {
+            "name": "g3d/g3d.vert",
+            "sha256": "7fe1e42594b73c15af3899dc71ace5c9cf5436a83f2f0c6ce4864654394f31bd",
+            "target": "lib/g3d/g3d.vert"
           }
         ]
       },
@@ -816,47 +1362,6 @@
       "require": "lib.knife.event",
       "example": "local event = require('lib.knife.event')"
     },
-    "knife.gun": {
-      "parent": "knife",
-      "type": "love2d-library",
-      "trust": "known",
-      "description": "knife — gun module",
-      "tags": [
-        "class",
-        "oop",
-        "behavior",
-        "ai",
-        "state",
-        "machine",
-        "bind",
-        "chain",
-        "coroutines",
-        "event",
-        "memoize",
-        "entity",
-        "test",
-        "timer"
-      ],
-      "homepage": "https://github.com/airstruck/knife",
-      "license": "MIT",
-      "source": {
-        "repo": "airstruck/knife",
-        "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
-        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
-      },
-      "install": {
-        "files": [
-          {
-            "name": "knife/gun.lua",
-            "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
-            "target": "lib/knife/gun.lua"
-          }
-        ]
-      },
-      "require": "lib.knife.gun",
-      "example": "local gun = require('lib.knife.gun')"
-    },
     "knife.memoize": {
       "parent": "knife",
       "type": "love2d-library",
@@ -1123,11 +1628,6 @@
             "target": "lib/knife/event.lua"
           },
           {
-            "name": "knife/gun.lua",
-            "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
-            "target": "lib/knife/gun.lua"
-          },
-          {
             "name": "knife/memoize.lua",
             "sha256": "45c857737cf3b3c4e7bd3994c882a142761153932ba4695b57aa4eb9198ccfd0",
             "target": "lib/knife/memoize.lua"
@@ -1161,7 +1661,6 @@
         "knife.chain",
         "knife.convoke",
         "knife.event",
-        "knife.gun",
         "knife.memoize",
         "knife.serialize",
         "knife.system",
@@ -1328,6 +1827,35 @@
       "require": "lib.statemachine",
       "example": "local lua_state_machine = require('lib.statemachine')"
     },
+    "lue": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "HSL colors in LÖVE",
+      "tags": [
+        "color",
+        "hsl",
+        "rgb"
+      ],
+      "homepage": "https://github.com/Ulydev/lue",
+      "license": "MIT",
+      "source": {
+        "repo": "Ulydev/lue",
+        "tag": "master",
+        "commitSha": "b54bbb1df7c2a2670fcca024698ac805381ccf33",
+        "baseUrl": "https://raw.githubusercontent.com/Ulydev/lue/b54bbb1df7c2a2670fcca024698ac805381ccf33/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "lue.lua",
+            "sha256": "57fb301fb8a7d559659edbe9bb3f6695188bfae5c957ad7872b1a65d84f71d77",
+            "target": "lib/lue.lua"
+          }
+        ]
+      },
+      "require": "lib.lue",
+      "example": "local lue = require('lib.lue')"
+    },
     "lume": {
       "type": "love2d-library",
       "trust": "verified",
@@ -1384,6 +1912,119 @@
       "require": "lib.middleclass",
       "example": "local Class = require('lib.middleclass')"
     },
+    "moonshine": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Postprocessing effect repository for LÖVE",
+      "tags": [
+        "postprocessing",
+        "shader"
+      ],
+      "homepage": "https://github.com/vrld/moonshine",
+      "license": "unknown",
+      "source": {
+        "repo": "vrld/moonshine",
+        "tag": "master",
+        "commitSha": "d39271e0c000e2fedbc2e3ad286b78b5a5146065",
+        "baseUrl": "https://raw.githubusercontent.com/vrld/moonshine/d39271e0c000e2fedbc2e3ad286b78b5a5146065/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "boxblur.lua",
+            "sha256": "3edc7e809e60e4fb4ff64f34332134b2ce40640d08e2ac0453be5cbd22fe84a8",
+            "target": "lib/moonshine/boxblur.lua"
+          },
+          {
+            "name": "chromasep.lua",
+            "sha256": "491a79481f0160fe5e5f5434626142c3f47e40f04023fe02a542ba1353094029",
+            "target": "lib/moonshine/chromasep.lua"
+          },
+          {
+            "name": "colorgradesimple.lua",
+            "sha256": "86ff920255144e62fad1d06628a91657550c0302f6de2a04d3ed4a0d74f92440",
+            "target": "lib/moonshine/colorgradesimple.lua"
+          },
+          {
+            "name": "crt.lua",
+            "sha256": "5c9fe27e18d9b730080846a765d00084b790ba759dd0f84c6413916b85082eae",
+            "target": "lib/moonshine/crt.lua"
+          },
+          {
+            "name": "desaturate.lua",
+            "sha256": "b7d03e70b179c45e042a40a63953fc1452178e0eb27d94b1df683219b6179467",
+            "target": "lib/moonshine/desaturate.lua"
+          },
+          {
+            "name": "dmg.lua",
+            "sha256": "d55d4a3eead09ba3028b419ffaa4c5acb48f6b8c715de70618b4f4f628829010",
+            "target": "lib/moonshine/dmg.lua"
+          },
+          {
+            "name": "fastgaussianblur.lua",
+            "sha256": "0ffdaea01e3ca0bdbfcaa3fcf512d2006c00a079dc183c317baf98611656abde",
+            "target": "lib/moonshine/fastgaussianblur.lua"
+          },
+          {
+            "name": "filmgrain.lua",
+            "sha256": "f3d518f7167a2a93cf6a356515eca6c3f586a11db094435f64eed7d2cc99778a",
+            "target": "lib/moonshine/filmgrain.lua"
+          },
+          {
+            "name": "fog.lua",
+            "sha256": "29ad8a5334f8de58bc647b938c35bc58fffea0595b440de6e6ea03ab592590dc",
+            "target": "lib/moonshine/fog.lua"
+          },
+          {
+            "name": "gaussianblur.lua",
+            "sha256": "7ef57bbc851b79565c06ff26c4d4d3216797e5887a7a9645c6ae150a998b41a2",
+            "target": "lib/moonshine/gaussianblur.lua"
+          },
+          {
+            "name": "glow.lua",
+            "sha256": "e7515319964b472f6d03378cbe6fd1f4a23199e0fbf8752fdbdbb02735ddea49",
+            "target": "lib/moonshine/glow.lua"
+          },
+          {
+            "name": "godsray.lua",
+            "sha256": "b48316cac9e42f67f9b79e6cf2027be62a1c10ef01b32f18a82a3a2403474cfb",
+            "target": "lib/moonshine/godsray.lua"
+          },
+          {
+            "name": "init.lua",
+            "sha256": "ba44f108b89e60363d738949d31cd3978ced99de6f362c40ac215a9ba6fd96d1",
+            "target": "lib/moonshine/init.lua"
+          },
+          {
+            "name": "pixelate.lua",
+            "sha256": "430a7d38d968991c0f196a41fc5130c5a50c39e12da4c3b426a7cda934da92e6",
+            "target": "lib/moonshine/pixelate.lua"
+          },
+          {
+            "name": "posterize.lua",
+            "sha256": "fcf41a7c0fb72e083a0e1889d0e42eccababa1897b9219438fd898de58540490",
+            "target": "lib/moonshine/posterize.lua"
+          },
+          {
+            "name": "scanlines.lua",
+            "sha256": "6b9b0c9c6e9b86ed4144cb776833f9c93b30dad23c22487eb91ea1d9e2ffca8e",
+            "target": "lib/moonshine/scanlines.lua"
+          },
+          {
+            "name": "sketch.lua",
+            "sha256": "b390e70bc2997926209cd4e28d4afd2ab366b79ef9c7d704f74c6ec4c9b69e6d",
+            "target": "lib/moonshine/sketch.lua"
+          },
+          {
+            "name": "vignette.lua",
+            "sha256": "eb4d06b0cc803b1c92ed96a2b87f39a907a8d520a34931f4a1081e8d3603e0ec",
+            "target": "lib/moonshine/vignette.lua"
+          }
+        ]
+      },
+      "require": "lib.moonshine",
+      "example": "local moonshine = require('lib.moonshine')"
+    },
     "push": {
       "type": "love2d-library",
       "trust": "verified",
@@ -1411,6 +2052,35 @@
       },
       "require": "lib.push",
       "example": "local push = require('lib.push')"
+    },
+    "ripple": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Sound manager with tag support for LÖVE.",
+      "tags": [
+        "sound",
+        "audio",
+        "manager"
+      ],
+      "homepage": "https://github.com/tesselode/ripple",
+      "license": "MIT",
+      "source": {
+        "repo": "tesselode/ripple",
+        "tag": "master",
+        "commitSha": "e18db79b98546a12f560b817bfbc218d08b0fb13",
+        "baseUrl": "https://raw.githubusercontent.com/tesselode/ripple/e18db79b98546a12f560b817bfbc218d08b0fb13/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "ripple.lua",
+            "sha256": "a12ed1b4fafa0f2e0d84a3bdf63ecfd5f69ce9d3451c8499558ceb8382fb3734",
+            "target": "lib/ripple.lua"
+          }
+        ]
+      },
+      "require": "lib.ripple",
+      "example": "local ripple = require('lib.ripple')"
     },
     "shove": {
       "type": "love2d-library",
@@ -1443,7 +2113,7 @@
           {
             "name": "shove-profiler.lua",
             "sha256": "8c2c78a0d4dac5afaa3e487648c1e12fad632bd8971dd21424da765ac0135e88",
-            "target": "lib/shove/profiler.lua"
+            "target": "lib/shove/shove-profiler.lua"
           },
           {
             "name": "shove.lua",
@@ -1454,6 +2124,366 @@
       },
       "require": "lib.shove",
       "example": "local shove = require('lib.shove')"
+    },
+    "smiti18n": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A very complete internationalization library for Lua with LÖVE support 🌕💕",
+      "tags": [
+        "i18n",
+        "l10n",
+        "luajit",
+        "translations"
+      ],
+      "homepage": "https://github.com/Oval-Tutu/smiti18n",
+      "license": "MIT",
+      "source": {
+        "repo": "Oval-Tutu/smiti18n",
+        "tag": "0.9.4",
+        "commitSha": "dee7bde320ef3ccaa82ba98b473aa44f4c8c7802",
+        "baseUrl": "https://raw.githubusercontent.com/Oval-Tutu/smiti18n/dee7bde320ef3ccaa82ba98b473aa44f4c8c7802/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "locales/ar-SA.lua",
+            "sha256": "93263ff6c71c99d523526426c60b8cd9ee2fe794beb321f9973427043d62f560",
+            "target": "lib/smiti18n/locales/ar-SA.lua"
+          },
+          {
+            "name": "locales/bg.lua",
+            "sha256": "4e88b5c67cc054bdc50d78cee1db3eaf64c1c6e17ad9d9f6245966721e683764",
+            "target": "lib/smiti18n/locales/bg.lua"
+          },
+          {
+            "name": "locales/ca-ES.lua",
+            "sha256": "1fa2c7987dc9f5f157a360fed238db0a1abc08aaea13f0c3b0879ed68c110bde",
+            "target": "lib/smiti18n/locales/ca-ES.lua"
+          },
+          {
+            "name": "locales/cs-CZ.lua",
+            "sha256": "9ca5a8c698db873c7d12289fb31c5171c3174cc06e4cf84677db515057fad2bc",
+            "target": "lib/smiti18n/locales/cs-CZ.lua"
+          },
+          {
+            "name": "locales/cs.lua",
+            "sha256": "c8b33a1ca7c9b53d628f1acece49de0f2420ae187d33ca229703fa11507416b2",
+            "target": "lib/smiti18n/locales/cs.lua"
+          },
+          {
+            "name": "locales/da-DK.lua",
+            "sha256": "9749c081781b025c54d7c1eee17620fddebe214858dd6d20185f5ed8e2daffa0",
+            "target": "lib/smiti18n/locales/da-DK.lua"
+          },
+          {
+            "name": "locales/da.lua",
+            "sha256": "4b72752ea4ddc5ba637af73689d07a5e551c3fa543176e12d8b00e9a5e861a58",
+            "target": "lib/smiti18n/locales/da.lua"
+          },
+          {
+            "name": "locales/de-DE.lua",
+            "sha256": "2ad5a81f39ae43cbc36206665515febdd6f7ac1fa67793e3cd2b5ababbee81e5",
+            "target": "lib/smiti18n/locales/de-DE.lua"
+          },
+          {
+            "name": "locales/de.lua",
+            "sha256": "9bb0d469957aec7443328ff968601a2b31ac475f49ddae50565085767a03dcee",
+            "target": "lib/smiti18n/locales/de.lua"
+          },
+          {
+            "name": "locales/el-GR.lua",
+            "sha256": "f61927171c1f689dd2c8fa545d70a5655719da812b25d8d9103a95f424475db7",
+            "target": "lib/smiti18n/locales/el-GR.lua"
+          },
+          {
+            "name": "locales/el.lua",
+            "sha256": "55f25938f653d82914d2c028e20fb844c31b4b5d2398f1b6357d3d947cc10bf0",
+            "target": "lib/smiti18n/locales/el.lua"
+          },
+          {
+            "name": "locales/en-AU.lua",
+            "sha256": "8b3a5abe2d81c1f440551910fb5edda0c893ea1f779095f0e1c23c3eaa2cf3c0",
+            "target": "lib/smiti18n/locales/en-AU.lua"
+          },
+          {
+            "name": "locales/en-CA.lua",
+            "sha256": "b7bdb30c96a55e3683575be70398092b270b366d06781cd9ed4ce82450c5fd55",
+            "target": "lib/smiti18n/locales/en-CA.lua"
+          },
+          {
+            "name": "locales/en-NZ.lua",
+            "sha256": "866c0a3aefc22c35c9ce08814b9350663bc609dfa6d0d3b3e8acd93b8a40403c",
+            "target": "lib/smiti18n/locales/en-NZ.lua"
+          },
+          {
+            "name": "locales/en-UK.lua",
+            "sha256": "876243c2369a7e3da90ea141b8e136201bee890631a7e65da5d0fe308dd9d1b3",
+            "target": "lib/smiti18n/locales/en-UK.lua"
+          },
+          {
+            "name": "locales/en-US.lua",
+            "sha256": "ad028b6027c274980b0b78ae97360d030c494fee2b97fb770cceec3e2c30a0fa",
+            "target": "lib/smiti18n/locales/en-US.lua"
+          },
+          {
+            "name": "locales/en.lua",
+            "sha256": "20385aa9f7f54c66643f1be9ba97da462cfa7353aaf7218472eb2c2b1a921951",
+            "target": "lib/smiti18n/locales/en.lua"
+          },
+          {
+            "name": "locales/eo-EO.lua",
+            "sha256": "5ddf5c0432605035a0ac67573a1c5e2ea90f242e27ead3965e8b6d29bc9ae3bd",
+            "target": "lib/smiti18n/locales/eo-EO.lua"
+          },
+          {
+            "name": "locales/es-ES.lua",
+            "sha256": "f22516beaed1fe2788703fdd4f32e42dea0e8ec623e70f529e061f2ae9d970d6",
+            "target": "lib/smiti18n/locales/es-ES.lua"
+          },
+          {
+            "name": "locales/es.lua",
+            "sha256": "9c50c242f577fead0487229f28042776baa2247e243d7e21df386fa29c44d256",
+            "target": "lib/smiti18n/locales/es.lua"
+          },
+          {
+            "name": "locales/fi-FI.lua",
+            "sha256": "b02a31a4b5ff8ca4f1e9c2a550795ca7dec4365dec902e794e2ab9b66412e6d6",
+            "target": "lib/smiti18n/locales/fi-FI.lua"
+          },
+          {
+            "name": "locales/fi.lua",
+            "sha256": "12a0b510775ec9e72e85078916530efb80e6a6513eca9761014e24bf3960a4e9",
+            "target": "lib/smiti18n/locales/fi.lua"
+          },
+          {
+            "name": "locales/fr-FR.lua",
+            "sha256": "086502d504d3ebf1923052afce02fd317227310c5341fc294681c6dd891d7c32",
+            "target": "lib/smiti18n/locales/fr-FR.lua"
+          },
+          {
+            "name": "locales/fr.lua",
+            "sha256": "a7744dd10e881b9be18842926606b321d080b1addd1c9e5647b765005ea71226",
+            "target": "lib/smiti18n/locales/fr.lua"
+          },
+          {
+            "name": "locales/he-IL.lua",
+            "sha256": "f2c3df659486d2d39270b74cbe83018886c06e489be5f4d2b2e1d7ccf2d242d5",
+            "target": "lib/smiti18n/locales/he-IL.lua"
+          },
+          {
+            "name": "locales/he.lua",
+            "sha256": "afe89beafaa3b703339ed369d825d7ea2676179449c61052046db34cc4ca6d7e",
+            "target": "lib/smiti18n/locales/he.lua"
+          },
+          {
+            "name": "locales/hi-IN.lua",
+            "sha256": "ce6dad2b4a7f99afdf562def88acaa8cdba803b04d8b7f3af3d8f10512df20b8",
+            "target": "lib/smiti18n/locales/hi-IN.lua"
+          },
+          {
+            "name": "locales/hr-HR.lua",
+            "sha256": "ec7e497ab349cc63ecba9908cbe5e5dee689cca95e6826de888d9bfd5e874f97",
+            "target": "lib/smiti18n/locales/hr-HR.lua"
+          },
+          {
+            "name": "locales/hu-HU.lua",
+            "sha256": "57e1e5f8fed863198dd44ece5345f667afbaa4b7f983fdbe52f6cdb180fe060c",
+            "target": "lib/smiti18n/locales/hu-HU.lua"
+          },
+          {
+            "name": "locales/hu.lua",
+            "sha256": "81d6ced2ee3a9cfa05b0ce4af82ddb0abba66eabd308126bb84d4c4ac7ac897f",
+            "target": "lib/smiti18n/locales/hu.lua"
+          },
+          {
+            "name": "locales/id-ID.lua",
+            "sha256": "248ce84cbd0fe369499dc21078807ef02e362a776a376ea1939fea53a1d7f5bf",
+            "target": "lib/smiti18n/locales/id-ID.lua"
+          },
+          {
+            "name": "locales/it-IT.lua",
+            "sha256": "6c7853b583d193c13e5ff227e82dfe32c51e8e1cab5495baf80cfc2bb8ad3949",
+            "target": "lib/smiti18n/locales/it-IT.lua"
+          },
+          {
+            "name": "locales/it.lua",
+            "sha256": "c282d861a1652df1bf92f17fa851e0db9187e8f11bfda68b1b3bdb157e892cb4",
+            "target": "lib/smiti18n/locales/it.lua"
+          },
+          {
+            "name": "locales/ja-JP.lua",
+            "sha256": "8adc8fa196859932e6c2d83c658ac463227eb8d9a0976e4cd1aa8b983315579b",
+            "target": "lib/smiti18n/locales/ja-JP.lua"
+          },
+          {
+            "name": "locales/ja.lua",
+            "sha256": "9bd4ea5b53069176887e2008f4e73ca18214602c09de8f5f5e75768a62a0028c",
+            "target": "lib/smiti18n/locales/ja.lua"
+          },
+          {
+            "name": "locales/ko-KR.lua",
+            "sha256": "53215d8fac0c8706213929f574a99e09b563a9a3b96175c868b4d4d36aa35675",
+            "target": "lib/smiti18n/locales/ko-KR.lua"
+          },
+          {
+            "name": "locales/ko.lua",
+            "sha256": "5fb5192f4360ea467ece80a4784cb7159edf18f91b1c2439abf144aaa5cb6a22",
+            "target": "lib/smiti18n/locales/ko.lua"
+          },
+          {
+            "name": "locales/nl-NL.lua",
+            "sha256": "c602fd0841bdcad84b8c2741173a74546c456aba7e333c6b48de264a0dbc7e89",
+            "target": "lib/smiti18n/locales/nl-NL.lua"
+          },
+          {
+            "name": "locales/nl.lua",
+            "sha256": "e553bffd39be5978da6476ec2ea37bf0168dbb7d7c367b596f580cefe0ec6a9f",
+            "target": "lib/smiti18n/locales/nl.lua"
+          },
+          {
+            "name": "locales/no-NB.lua",
+            "sha256": "67112531fe5d2ead1e7f727bbcab6aee42fd99462fb243e587d872027605d94f",
+            "target": "lib/smiti18n/locales/no-NB.lua"
+          },
+          {
+            "name": "locales/no.lua",
+            "sha256": "3029324f9d075f255669a8776bf0dba723cd3458af8c6763f134dbe6b5ee2835",
+            "target": "lib/smiti18n/locales/no.lua"
+          },
+          {
+            "name": "locales/pl-PL.lua",
+            "sha256": "6c5c183208bbce2a512aba6fbc6744fbd90a2db2fdf2245a1fcad529a316b460",
+            "target": "lib/smiti18n/locales/pl-PL.lua"
+          },
+          {
+            "name": "locales/pl.lua",
+            "sha256": "29b2a836eaccd720916b2202821119233ef8d68eb43db82ee64a66140658256d",
+            "target": "lib/smiti18n/locales/pl.lua"
+          },
+          {
+            "name": "locales/pt-BR.lua",
+            "sha256": "620577822a7d72da76648053bac1d279e071ba048d1ac4fb4cb9dcdc8805557d",
+            "target": "lib/smiti18n/locales/pt-BR.lua"
+          },
+          {
+            "name": "locales/pt-PT.lua",
+            "sha256": "b2b1d992383e88d81c7117a81014b431d8668750a15ab2ab3dc998acc9190265",
+            "target": "lib/smiti18n/locales/pt-PT.lua"
+          },
+          {
+            "name": "locales/ro.lua",
+            "sha256": "d5b59e68d66449631b2142571e60856fb0181b19e011a90e88fc1bc9046b303e",
+            "target": "lib/smiti18n/locales/ro.lua"
+          },
+          {
+            "name": "locales/ru-RU.lua",
+            "sha256": "eb928c15573660dac9da36ee3f519d39d16a51252018eb68c9004f3ca6411416",
+            "target": "lib/smiti18n/locales/ru-RU.lua"
+          },
+          {
+            "name": "locales/ru.lua",
+            "sha256": "74d3c6dd4e2f155bce82ba2b4fc0112a0cb7bae5e6c87d72fcdaa06aeca9838c",
+            "target": "lib/smiti18n/locales/ru.lua"
+          },
+          {
+            "name": "locales/sk-SK.lua",
+            "sha256": "b72eac51311a2c2c9090c3f832ed4826f0854a6d157f8b3c56ecd497337e7243",
+            "target": "lib/smiti18n/locales/sk-SK.lua"
+          },
+          {
+            "name": "locales/sr-SR.lua",
+            "sha256": "23475e2d33e9c5052796d3fe2ed67558ce16b37299e8dca87b5a2e425b7e5179",
+            "target": "lib/smiti18n/locales/sr-SR.lua"
+          },
+          {
+            "name": "locales/sv-SE.lua",
+            "sha256": "c73b9b53b3900fb1f00a957392dbe6a63d0125e3cad099e05932c54b0b6bd95d",
+            "target": "lib/smiti18n/locales/sv-SE.lua"
+          },
+          {
+            "name": "locales/sv.lua",
+            "sha256": "d33c648d77ed58c3e93f3a1ca97e7437a729f2371e39773576aa56a8553e343c",
+            "target": "lib/smiti18n/locales/sv.lua"
+          },
+          {
+            "name": "locales/th.lua",
+            "sha256": "bdfbee0eb5aebb1ac64870a0fd264176e6f5edeecebc3af765fe6b07238c81d1",
+            "target": "lib/smiti18n/locales/th.lua"
+          },
+          {
+            "name": "locales/tr-TR.lua",
+            "sha256": "e3f48cb39107103653744dc1ec57ccfc3b90653096552763aaf27b331f8cc177",
+            "target": "lib/smiti18n/locales/tr-TR.lua"
+          },
+          {
+            "name": "locales/tr.lua",
+            "sha256": "d2dd28d0e678030966c48ca74accacf897a2f8c4d6477e95c76ce1a9e31f878e",
+            "target": "lib/smiti18n/locales/tr.lua"
+          },
+          {
+            "name": "locales/uk-UA.lua",
+            "sha256": "1b4d65c69f5c6b9833dd719201a0e90dba63a86ddc57dd6c80ae9ee829e5e98d",
+            "target": "lib/smiti18n/locales/uk-UA.lua"
+          },
+          {
+            "name": "locales/zh-CN.lua",
+            "sha256": "833ea0ce3e5bb9164220b3ea76c9a4c6b56718aa7a5afa045001a6e1b29367dc",
+            "target": "lib/smiti18n/locales/zh-CN.lua"
+          },
+          {
+            "name": "locales/zh-HK.lua",
+            "sha256": "2be2805b698d50089c1db6c38d02337a5d9f4cc07c30d1bcf02ceb67e30abf22",
+            "target": "lib/smiti18n/locales/zh-HK.lua"
+          },
+          {
+            "name": "locales/zh-MO.lua",
+            "sha256": "880084c17687f43c6ffcf9148aef2d7ef6fdf3cfd405b813d6542eea6e367ae4",
+            "target": "lib/smiti18n/locales/zh-MO.lua"
+          },
+          {
+            "name": "locales/zh-SG.lua",
+            "sha256": "38b125e4ba28a4d8075fe43d13d542d824ddea6da0ba72d262b8407358d19ffb",
+            "target": "lib/smiti18n/locales/zh-SG.lua"
+          },
+          {
+            "name": "locales/zh-TW.lua",
+            "sha256": "33f49162862c5589c4a322a52578de483cd6f77d8a0ff9a5304ed797e3f536bc",
+            "target": "lib/smiti18n/locales/zh-TW.lua"
+          },
+          {
+            "name": "smiti18n/format.lua",
+            "sha256": "f0a6cf874d754a691635475110daf34071030ac847ed647aa6172be4c4074da1",
+            "target": "lib/smiti18n/format.lua"
+          },
+          {
+            "name": "smiti18n/init.lua",
+            "sha256": "9dcfdfb29062e483c05626777692b9c8e2247199c8b599e0bde9875cb699fc6c",
+            "target": "lib/smiti18n/init.lua"
+          },
+          {
+            "name": "smiti18n/interpolate.lua",
+            "sha256": "774a15fc8a39cc9c778b8371ae2b92f87609dc464c0c49b5407d13cb3601aaad",
+            "target": "lib/smiti18n/interpolate.lua"
+          },
+          {
+            "name": "smiti18n/plural.lua",
+            "sha256": "1ee74b4f8c3dfdd32c1417a0ec3042a7454fa21bdde32133a91704fbbad79f3d",
+            "target": "lib/smiti18n/plural.lua"
+          },
+          {
+            "name": "smiti18n/variants.lua",
+            "sha256": "636bfad401687b97ec6c6cd9ddaaa017b137d7ec4436e603f5fb0b8065632ef4",
+            "target": "lib/smiti18n/variants.lua"
+          },
+          {
+            "name": "smiti18n/version.lua",
+            "sha256": "ddce105b16d971515b4e72dfc31ca037bd4a3da7e829ce07c794a4ffde9a5b4f",
+            "target": "lib/smiti18n/version.lua"
+          }
+        ]
+      },
+      "require": "lib.smiti18n",
+      "example": "local smiti18n = require('lib.smiti18n')"
     },
     "sti": {
       "type": "love2d-library",
@@ -1585,6 +2615,37 @@
       },
       "require": "lib.tiny-ecs",
       "example": "local tiny_ecs = require('lib.tiny-ecs')"
+    },
+    "tween": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Tweening/Easing/Interpolating functions for lua. Inspired on jQuery's animate method.",
+      "tags": [
+        "tween",
+        "easing",
+        "interpolation",
+        "animation",
+        "timing"
+      ],
+      "homepage": "https://github.com/kikito/tween.lua",
+      "license": "NOASSERTION",
+      "source": {
+        "repo": "kikito/tween.lua",
+        "tag": "v2.1.1",
+        "commitSha": "65d13504e54d85831a752e4aaa47ceba059a5035",
+        "baseUrl": "https://raw.githubusercontent.com/kikito/tween.lua/65d13504e54d85831a752e4aaa47ceba059a5035/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "tween.lua",
+            "sha256": "d53824850f1a771667bb8a190af506e935aeedbcfc3ecc379138c653b7886e15",
+            "target": "lib/tween.lua"
+          }
+        ]
+      },
+      "require": "lib.tween",
+      "example": "local tween = require('lib.tween')"
     }
   }
 }
