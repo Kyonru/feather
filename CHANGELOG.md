@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.4.0] - 2026-05-23 - The one with create command
+
+### Added
+
+- Added `feather create <project-name>` to bootstrap Love2D projects from the Oval-Tutu template, configure Feather CLI mode, create a Makefile command surface, and optionally set up plugins, packages, and build vendors.
+- Added Agent Skills
+
+### Tests
+
+- Added CLI create command coverage for template ref resolution, project safety checks, Oval-Tutu cleanup, VS Code recommendations, Makefile generation, optional setup hooks, and git identity recovery.
+
 ## [v1.3.1] - 2026-05-23 - The one with extension releases
+
+### Fixed
 
 - Fix extension configuration
 
@@ -558,6 +571,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v1.4.0]: https://github.com/Kyonru/feather/compare/v1.3.1...v1.4.0
 [v1.3.1]: https://github.com/Kyonru/feather/compare/v1.3.0...v1.3.1
 [v1.3.0]: https://github.com/Kyonru/feather/compare/v1.2.0...v1.3.0
 [v1.2.0]: https://github.com/Kyonru/feather/compare/v1.1.1...v1.2.0

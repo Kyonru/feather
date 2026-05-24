@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { pathToFileURL } from 'node:url';
 import packageJson from '../package.json' with { type: 'json' };
 import { runCliAction } from './lib/command.js';
+import { createCommand, DEFAULT_CREATE_TEMPLATE } from './commands/create.js';
 import { runCommand } from './commands/run.js';
 import { initCommand } from './commands/init.js';
 import { removeCommand } from './commands/remove.js';
@@ -60,6 +61,36 @@ export function createProgram(): Command {
     .name('feather')
     .description('Run and debug Love2D games with Feather — zero game-side changes required')
     .version(cliVersion);
+
+  program
+    .command('create <project-name>')
+    .description('Create a new Love2D project configured for Feather')
+    .option('--template <owner/repo>', 'Template repository to use', DEFAULT_CREATE_TEMPLATE)
+    .option('--ref <tag-or-branch>', 'Template ref to clone')
+    .option('--main', 'Use the template main branch instead of the latest release')
+    .option('-y, --yes', 'Skip prompts and use defaults')
+    .option('--plugins <ids>', 'Comma-separated extra plugin IDs to include')
+    .option('--packages <ids>', 'Comma-separated package IDs to install')
+    .option('--vendor-targets <targets>', 'Comma-separated build vendor targets to set up')
+    .option('--skip-plugins', 'Skip extra plugin selection/setup')
+    .option('--skip-packages', 'Skip package selection/setup')
+    .option('--skip-vendors', 'Skip build vendor selection/setup')
+    .action((projectName: string, opts) =>
+      runCliAction(() =>
+        createCommand(projectName, {
+          template: opts.template as string | undefined,
+          ref: opts.ref as string | undefined,
+          main: opts.main as boolean | undefined,
+          yes: opts.yes as boolean | undefined,
+          plugins: parseCommaList(opts.plugins as string | undefined),
+          packages: parseCommaList(opts.packages as string | undefined),
+          vendorTargets: parseCommaList(opts.vendorTargets as string | undefined),
+          skipPlugins: opts.skipPlugins as boolean | undefined,
+          skipPackages: opts.skipPackages as boolean | undefined,
+          skipVendors: opts.skipVendors as boolean | undefined,
+        }),
+      ),
+    );
 
   program
     .command('run [game-path] [game-args...]')

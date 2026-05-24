@@ -1,13 +1,13 @@
 ---
 name: feather-cli-builds
-description: Work on Feather CLI commands, run/init/watch/build/release/upload/doctor flows, build config, native vendor handling, release safety, and CLI verification.
+description: Work on Feather CLI commands, create/run/init/watch/build/release/upload/doctor flows, build config, native vendor handling, release safety, and CLI verification.
 ---
 
 # Feather CLI And Builds
 
 ## When to use
 
-Use this skill when changing or reviewing Feather CLI behavior, command options, build targets, native vendor workflows, release/upload flows, doctor checks, or CLI tests.
+Use this skill when changing or reviewing Feather CLI behavior, command options, project scaffolding (create), build targets, native vendor workflows, release/upload flows, doctor checks, or CLI tests.
 
 ## First pass
 
@@ -31,6 +31,7 @@ Use this skill when changing or reviewing Feather CLI behavior, command options,
 
 - Command registration: `cli/src/index.ts`.
 - CLI command handlers: `cli/src/commands/`.
+- Project scaffolding: `cli/src/commands/create.ts`, `cli/src/ui/create-workflow.js`.
 - Runtime config parsing/writing: `cli/src/lib/config.ts`.
 - Build config and targets: `cli/src/lib/build/config.ts`.
 - Build staging and artifacts: `cli/src/lib/build/build.ts`, `cli/src/lib/build/files.ts`, `cli/src/lib/build/debug-stage.ts`.

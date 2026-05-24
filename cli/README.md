@@ -67,6 +67,49 @@ Your game code runs exactly as normal — it just has Feather already active.
 
 ## Commands
 
+### `feather create <project-name>`
+
+Create a new Love2D project from a supported template and configure it for Feather CLI-managed development.
+
+```bash
+feather create awesome
+feather create awesome --yes
+feather create awesome --main --yes
+feather create awesome --ref 0.1.2 --plugins screenshots,profiler
+feather create awesome --packages anim8,bump --vendor-targets web,android
+```
+
+V1 supports only `Oval-Tutu/bootstrap-love2d-project`. By default, Feather resolves the template's latest GitHub release tag, clones that release, removes the sample game content, initializes a fresh git repo, configures Feather in CLI mode, and prints next steps.
+
+Generated projects use a root `Makefile` as the main command surface:
+
+```bash
+make run
+make doctor
+make plugins
+make packages
+make vendor-list
+```
+
+The generated project keeps the template's build automation, workflows, tools, resources, and docs, while replacing the sample `game/main.lua`, removing `game/eyes`, rewriting `game/product.env`, adding Feather VS Code extension recommendations, and creating `game/feather.config.lua`.
+
+**Options:**
+
+| Option                       | Description                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| `--template <owner/repo>`    | Template repository. V1 supports only `Oval-Tutu/bootstrap-love2d-project`.                      |
+| `--ref <tag-or-branch>`      | Clone a specific template ref.                                                                   |
+| `--main`                     | Clone the template `main` branch instead of resolving the latest release.                        |
+| `-y, --yes`                  | Skip prompts and use defaults.                                                                   |
+| `--plugins <ids>`            | Comma-separated extra Feather plugin IDs to include after initialization.                        |
+| `--packages <ids>`           | Comma-separated Feather catalog packages to install into `game`.                                 |
+| `--vendor-targets <targets>` | Comma-separated build vendor targets for `feather build vendor add`.                             |
+| `--skip-plugins`             | Skip extra plugin selection/setup. Default Feather init plugins still apply.                     |
+| `--skip-packages`            | Skip package selection/setup.                                                                    |
+| `--skip-vendors`             | Skip build vendor selection/setup.                                                              |
+
+If git cannot create commits because user identity is missing, Feather keeps the initialized project and prints the exact `git config`, `git add`, and `git commit` commands needed to recover.
+
 ### `feather init [dir]`
 
 Create Feather project configuration. For normal development, use CLI mode and launch with `feather run`; this keeps Feather out of your game code while still supporting desktop, web, Android, iOS, and Steam Deck dev loops.

@@ -17,7 +17,7 @@ import { defaultIncludedPluginIds } from '../ui/init/model.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
 import { fail } from '../lib/command.js';
-import { createSpinner, icon, printLine, printMuted, printWarning, style } from '../lib/output.js';
+import { createSpinner, icon, printBanner, printLine, printMuted, printWarning, style } from '../lib/output.js';
 import { assertSafeProjectTarget } from '../lib/path-safety.js';
 
 export interface InitOptions {
@@ -124,6 +124,7 @@ function patchMainLuaForManual(mainPath: string): boolean {
 }
 
 export async function initCommand(dir: string, opts: InitOptions): Promise<void> {
+  if (!opts.yes) printBanner();
   const target = resolve(dir);
   const defaultMode: InitMode = 'cli';
 

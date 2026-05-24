@@ -2,6 +2,7 @@
 
 ## Command surface
 
+- `feather create <project-name>` scaffolds a full Love2D project from a template, runs `feather init`, and optionally installs plugins, packages, and vendors in one flow.
 - `feather run` injects Feather into a Love2D game and launches desktop, web, Android, or iOS targets.
 - `feather init` creates project config and defaults to CLI-managed mode.
 - `feather watch` restarts desktop Love2D or pushes rebuilt artifacts to mobile targets on change.
@@ -18,6 +19,7 @@
 ## Source map
 
 - `cli/src/index.ts`: Commander command tree and option parsing.
+- `cli/src/commands/create.ts`: project scaffold pipeline — template clone, identity derivation, git history reset, Feather init, optional plugin/package/vendor setup. Interactive options come from `cli/src/ui/create-workflow.js`.
 - `cli/src/commands/run.ts`: run flow and target dispatch.
 - `cli/src/commands/init.ts`: generated config and embedded integration setup.
 - `cli/src/commands/watch.ts`: watch mode.
@@ -39,6 +41,27 @@
 - Add CLI e2e coverage in `cli/test/commands/*.test.mjs`; include fixture projects for file-writing commands.
 - Update `cli/README.md`, any relevant `docs/` symlink target, and `CHANGELOG.md`.
 - Run `npm run cli:build`, targeted command tests, and smoke checks through `npm run feather -- <command> --help`.
+
+## `feather create` design notes
+
+`feather create <project-name>` runs a pipeline defined in `runCreatePipeline`:
+
+1. Resolve the template ref (latest GitHub release by default; `--main` or `--ref <tag>` override).
+2. Clone the template repo with `git clone --depth=1`.
+3. Clean template artifacts and apply project identity (slug, title, productId, `.env` values).
+4. Reset git history (`rm .git` + `git init`), commit cleaned template.
+5. Call `feather init` in CLI-managed mode with `yes: true` (suppresses interactive prompts and the banner).
+6. Optionally install plugins, packages, and vendors selected interactively or via flags.
+7. Commit Feather configuration.
+
+Key rules for changes to `create`:
+
+- `runCreatePipeline` accepts injected `deps` for all external calls (git, init, installPlugins, installPackages, addVendors, fetchLatestReleaseTag). Use these seams for unit tests — do not add raw external calls outside the deps pattern.
+- All project-relative writes must go through `assertSafeProjectTarget`; never use raw `join(projectDir, userValue)`.
+- `--yes` skips interactive options and the banner. When `create` calls `initCommand` internally it passes `yes: true`, so the banner prints once (from `create`) not twice.
+- The only supported template is `DEFAULT_CREATE_TEMPLATE` (`Oval-Tutu/bootstrap-love2d-project`). New templates require a matching `TemplatePipeline` implementation and a `resolvePipeline` entry.
+- Optional steps (plugin install, package install, vendor add) use `runOptionalStep` so a failure in one step does not abort the project creation.
+- `deriveProjectIdentity` and `resolveCreateTarget` are pure functions and should stay testable without filesystem or network access.
 
 ## Verification commands
 
