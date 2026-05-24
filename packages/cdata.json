@@ -1,0 +1,29 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "Serialize Lua tables to C structs and strings.",
+  "tags": [
+    "serialize",
+    "save",
+    "data"
+  ],
+  "homepage": "https://github.com/excessive/cdata",
+  "license": "NOASSERTION",
+  "source": {
+    "repo": "excessive/cdata",
+    "tag": "master",
+    "commitSha": "a05da803f659c57e9ce80045e358ada1897fddc0",
+    "baseUrl": "https://raw.githubusercontent.com/excessive/cdata/a05da803f659c57e9ce80045e358ada1897fddc0/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "cdata.lua",
+        "sha256": "c3bf87dc4450f9c25d503020e377bd6b658ded950c1096617a4a8e5fc575472c",
+        "target": "lib/cdata.lua"
+      }
+    ]
+  },
+  "require": "lib.cdata",
+  "example": "local cdata = require('lib.cdata')"
+}
