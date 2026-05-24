@@ -10,11 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `feather create <project-name>` to bootstrap Love2D projects from the Oval-Tutu template, configure Feather CLI mode, create a Makefile command surface, and optionally set up plugins, packages, and build vendors.
-- Added Agent Skills
+- Added FEATHER ASCII banner printed at the start of `feather init` and `feather create` (suppressed with `--yes`).
+- Added `--allow-others` flag to `feather package install` — by default only `.lua` files are permitted; this flag opts into installing packages that include non-Lua assets such as shaders or images.
+- Added 9 new catalog packages: flexlove, smiti18n, tween, busted, moonshine, cdata, bitser, ripple, lue.
+- Added missing shader assets (`g3d.vert`, `g3d.frag`) to the g3d catalog entry so `require('lib.g3d')` works without errors.
+- Added `scripts/package-e2e.mjs` — installs every catalog package then runs Love2D to verify each can be required without error or load-time output; available as `npm run test:packages:e2e`.
+- Added `FEATHER_PACKAGE_E2E_GAME_DIR` env var to cache installed packages across e2e runs (skips re-download when all registry files are present).
+- Added Agent Skills and CLAUDE.md for agent-assisted development.
+- Added GitHub Release, npm, npm downloads, VS Code Marketplace, and LuaRocks badges to README, plus demo link.
+
+### Changed
+
+- Registry publish workflow (`registry.yml`) now installs Love2D and runs the package e2e as a guard step before pushing to the packages branch — a broken catalog entry blocks the publish.
+
+### Fixed
+
+- Removed `knife.gun` from the knife catalog — the upstream file calls `os.exit()` unconditionally (joke module titled "Give Up Now"), which terminated Love2D during the e2e run with no catchable Lua error.
 
 ### Tests
 
 - Added CLI create command coverage for template ref resolution, project safety checks, Oval-Tutu cleanup, VS Code recommendations, Makefile generation, optional setup hooks, and git identity recovery.
+- Added package loadability e2e covering all 38 require paths across 22 catalog packages; load-time error output (matching `error`, `failed`, `not found`, `could not`) is treated as a failure.
 
 ## [v1.3.1] - 2026-05-23 - The one with extension releases
 
