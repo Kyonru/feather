@@ -1,0 +1,31 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "Tweening/Easing/Interpolating functions for lua. Inspired on jQuery's animate method.",
+  "tags": [
+    "tween",
+    "easing",
+    "interpolation",
+    "animation",
+    "timing"
+  ],
+  "homepage": "https://github.com/kikito/tween.lua",
+  "license": "NOASSERTION",
+  "source": {
+    "repo": "kikito/tween.lua",
+    "tag": "v2.1.1",
+    "commitSha": "65d13504e54d85831a752e4aaa47ceba059a5035",
+    "baseUrl": "https://raw.githubusercontent.com/kikito/tween.lua/65d13504e54d85831a752e4aaa47ceba059a5035/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "tween.lua",
+        "sha256": "d53824850f1a771667bb8a190af506e935aeedbcfc3ecc379138c653b7886e15",
+        "target": "lib/tween.lua"
+      }
+    ]
+  },
+  "require": "lib.tween",
+  "example": "local tween = require('lib.tween')"
+}
