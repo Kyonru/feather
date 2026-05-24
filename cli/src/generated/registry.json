@@ -1620,6 +1620,366 @@
       "require": "lib.shove",
       "example": "local shove = require('lib.shove')"
     },
+    "smiti18n": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A very complete internationalization library for Lua with LÖVE support 🌕💕",
+      "tags": [
+        "i18n",
+        "l10n",
+        "luajit",
+        "translations"
+      ],
+      "homepage": "https://github.com/Oval-Tutu/smiti18n",
+      "license": "MIT",
+      "source": {
+        "repo": "Oval-Tutu/smiti18n",
+        "tag": "0.9.4",
+        "commitSha": "dee7bde320ef3ccaa82ba98b473aa44f4c8c7802",
+        "baseUrl": "https://raw.githubusercontent.com/Oval-Tutu/smiti18n/dee7bde320ef3ccaa82ba98b473aa44f4c8c7802/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "locales/ar-SA.lua",
+            "sha256": "93263ff6c71c99d523526426c60b8cd9ee2fe794beb321f9973427043d62f560",
+            "target": "lib/smiti18n/locales/ar-SA.lua"
+          },
+          {
+            "name": "locales/bg.lua",
+            "sha256": "4e88b5c67cc054bdc50d78cee1db3eaf64c1c6e17ad9d9f6245966721e683764",
+            "target": "lib/smiti18n/locales/bg.lua"
+          },
+          {
+            "name": "locales/ca-ES.lua",
+            "sha256": "1fa2c7987dc9f5f157a360fed238db0a1abc08aaea13f0c3b0879ed68c110bde",
+            "target": "lib/smiti18n/locales/ca-ES.lua"
+          },
+          {
+            "name": "locales/cs-CZ.lua",
+            "sha256": "9ca5a8c698db873c7d12289fb31c5171c3174cc06e4cf84677db515057fad2bc",
+            "target": "lib/smiti18n/locales/cs-CZ.lua"
+          },
+          {
+            "name": "locales/cs.lua",
+            "sha256": "c8b33a1ca7c9b53d628f1acece49de0f2420ae187d33ca229703fa11507416b2",
+            "target": "lib/smiti18n/locales/cs.lua"
+          },
+          {
+            "name": "locales/da-DK.lua",
+            "sha256": "9749c081781b025c54d7c1eee17620fddebe214858dd6d20185f5ed8e2daffa0",
+            "target": "lib/smiti18n/locales/da-DK.lua"
+          },
+          {
+            "name": "locales/da.lua",
+            "sha256": "4b72752ea4ddc5ba637af73689d07a5e551c3fa543176e12d8b00e9a5e861a58",
+            "target": "lib/smiti18n/locales/da.lua"
+          },
+          {
+            "name": "locales/de-DE.lua",
+            "sha256": "2ad5a81f39ae43cbc36206665515febdd6f7ac1fa67793e3cd2b5ababbee81e5",
+            "target": "lib/smiti18n/locales/de-DE.lua"
+          },
+          {
+            "name": "locales/de.lua",
+            "sha256": "9bb0d469957aec7443328ff968601a2b31ac475f49ddae50565085767a03dcee",
+            "target": "lib/smiti18n/locales/de.lua"
+          },
+          {
+            "name": "locales/el-GR.lua",
+            "sha256": "f61927171c1f689dd2c8fa545d70a5655719da812b25d8d9103a95f424475db7",
+            "target": "lib/smiti18n/locales/el-GR.lua"
+          },
+          {
+            "name": "locales/el.lua",
+            "sha256": "55f25938f653d82914d2c028e20fb844c31b4b5d2398f1b6357d3d947cc10bf0",
+            "target": "lib/smiti18n/locales/el.lua"
+          },
+          {
+            "name": "locales/en-AU.lua",
+            "sha256": "8b3a5abe2d81c1f440551910fb5edda0c893ea1f779095f0e1c23c3eaa2cf3c0",
+            "target": "lib/smiti18n/locales/en-AU.lua"
+          },
+          {
+            "name": "locales/en-CA.lua",
+            "sha256": "b7bdb30c96a55e3683575be70398092b270b366d06781cd9ed4ce82450c5fd55",
+            "target": "lib/smiti18n/locales/en-CA.lua"
+          },
+          {
+            "name": "locales/en-NZ.lua",
+            "sha256": "866c0a3aefc22c35c9ce08814b9350663bc609dfa6d0d3b3e8acd93b8a40403c",
+            "target": "lib/smiti18n/locales/en-NZ.lua"
+          },
+          {
+            "name": "locales/en-UK.lua",
+            "sha256": "876243c2369a7e3da90ea141b8e136201bee890631a7e65da5d0fe308dd9d1b3",
+            "target": "lib/smiti18n/locales/en-UK.lua"
+          },
+          {
+            "name": "locales/en-US.lua",
+            "sha256": "ad028b6027c274980b0b78ae97360d030c494fee2b97fb770cceec3e2c30a0fa",
+            "target": "lib/smiti18n/locales/en-US.lua"
+          },
+          {
+            "name": "locales/en.lua",
+            "sha256": "20385aa9f7f54c66643f1be9ba97da462cfa7353aaf7218472eb2c2b1a921951",
+            "target": "lib/smiti18n/locales/en.lua"
+          },
+          {
+            "name": "locales/eo-EO.lua",
+            "sha256": "5ddf5c0432605035a0ac67573a1c5e2ea90f242e27ead3965e8b6d29bc9ae3bd",
+            "target": "lib/smiti18n/locales/eo-EO.lua"
+          },
+          {
+            "name": "locales/es-ES.lua",
+            "sha256": "f22516beaed1fe2788703fdd4f32e42dea0e8ec623e70f529e061f2ae9d970d6",
+            "target": "lib/smiti18n/locales/es-ES.lua"
+          },
+          {
+            "name": "locales/es.lua",
+            "sha256": "9c50c242f577fead0487229f28042776baa2247e243d7e21df386fa29c44d256",
+            "target": "lib/smiti18n/locales/es.lua"
+          },
+          {
+            "name": "locales/fi-FI.lua",
+            "sha256": "b02a31a4b5ff8ca4f1e9c2a550795ca7dec4365dec902e794e2ab9b66412e6d6",
+            "target": "lib/smiti18n/locales/fi-FI.lua"
+          },
+          {
+            "name": "locales/fi.lua",
+            "sha256": "12a0b510775ec9e72e85078916530efb80e6a6513eca9761014e24bf3960a4e9",
+            "target": "lib/smiti18n/locales/fi.lua"
+          },
+          {
+            "name": "locales/fr-FR.lua",
+            "sha256": "086502d504d3ebf1923052afce02fd317227310c5341fc294681c6dd891d7c32",
+            "target": "lib/smiti18n/locales/fr-FR.lua"
+          },
+          {
+            "name": "locales/fr.lua",
+            "sha256": "a7744dd10e881b9be18842926606b321d080b1addd1c9e5647b765005ea71226",
+            "target": "lib/smiti18n/locales/fr.lua"
+          },
+          {
+            "name": "locales/he-IL.lua",
+            "sha256": "f2c3df659486d2d39270b74cbe83018886c06e489be5f4d2b2e1d7ccf2d242d5",
+            "target": "lib/smiti18n/locales/he-IL.lua"
+          },
+          {
+            "name": "locales/he.lua",
+            "sha256": "afe89beafaa3b703339ed369d825d7ea2676179449c61052046db34cc4ca6d7e",
+            "target": "lib/smiti18n/locales/he.lua"
+          },
+          {
+            "name": "locales/hi-IN.lua",
+            "sha256": "ce6dad2b4a7f99afdf562def88acaa8cdba803b04d8b7f3af3d8f10512df20b8",
+            "target": "lib/smiti18n/locales/hi-IN.lua"
+          },
+          {
+            "name": "locales/hr-HR.lua",
+            "sha256": "ec7e497ab349cc63ecba9908cbe5e5dee689cca95e6826de888d9bfd5e874f97",
+            "target": "lib/smiti18n/locales/hr-HR.lua"
+          },
+          {
+            "name": "locales/hu-HU.lua",
+            "sha256": "57e1e5f8fed863198dd44ece5345f667afbaa4b7f983fdbe52f6cdb180fe060c",
+            "target": "lib/smiti18n/locales/hu-HU.lua"
+          },
+          {
+            "name": "locales/hu.lua",
+            "sha256": "81d6ced2ee3a9cfa05b0ce4af82ddb0abba66eabd308126bb84d4c4ac7ac897f",
+            "target": "lib/smiti18n/locales/hu.lua"
+          },
+          {
+            "name": "locales/id-ID.lua",
+            "sha256": "248ce84cbd0fe369499dc21078807ef02e362a776a376ea1939fea53a1d7f5bf",
+            "target": "lib/smiti18n/locales/id-ID.lua"
+          },
+          {
+            "name": "locales/it-IT.lua",
+            "sha256": "6c7853b583d193c13e5ff227e82dfe32c51e8e1cab5495baf80cfc2bb8ad3949",
+            "target": "lib/smiti18n/locales/it-IT.lua"
+          },
+          {
+            "name": "locales/it.lua",
+            "sha256": "c282d861a1652df1bf92f17fa851e0db9187e8f11bfda68b1b3bdb157e892cb4",
+            "target": "lib/smiti18n/locales/it.lua"
+          },
+          {
+            "name": "locales/ja-JP.lua",
+            "sha256": "8adc8fa196859932e6c2d83c658ac463227eb8d9a0976e4cd1aa8b983315579b",
+            "target": "lib/smiti18n/locales/ja-JP.lua"
+          },
+          {
+            "name": "locales/ja.lua",
+            "sha256": "9bd4ea5b53069176887e2008f4e73ca18214602c09de8f5f5e75768a62a0028c",
+            "target": "lib/smiti18n/locales/ja.lua"
+          },
+          {
+            "name": "locales/ko-KR.lua",
+            "sha256": "53215d8fac0c8706213929f574a99e09b563a9a3b96175c868b4d4d36aa35675",
+            "target": "lib/smiti18n/locales/ko-KR.lua"
+          },
+          {
+            "name": "locales/ko.lua",
+            "sha256": "5fb5192f4360ea467ece80a4784cb7159edf18f91b1c2439abf144aaa5cb6a22",
+            "target": "lib/smiti18n/locales/ko.lua"
+          },
+          {
+            "name": "locales/nl-NL.lua",
+            "sha256": "c602fd0841bdcad84b8c2741173a74546c456aba7e333c6b48de264a0dbc7e89",
+            "target": "lib/smiti18n/locales/nl-NL.lua"
+          },
+          {
+            "name": "locales/nl.lua",
+            "sha256": "e553bffd39be5978da6476ec2ea37bf0168dbb7d7c367b596f580cefe0ec6a9f",
+            "target": "lib/smiti18n/locales/nl.lua"
+          },
+          {
+            "name": "locales/no-NB.lua",
+            "sha256": "67112531fe5d2ead1e7f727bbcab6aee42fd99462fb243e587d872027605d94f",
+            "target": "lib/smiti18n/locales/no-NB.lua"
+          },
+          {
+            "name": "locales/no.lua",
+            "sha256": "3029324f9d075f255669a8776bf0dba723cd3458af8c6763f134dbe6b5ee2835",
+            "target": "lib/smiti18n/locales/no.lua"
+          },
+          {
+            "name": "locales/pl-PL.lua",
+            "sha256": "6c5c183208bbce2a512aba6fbc6744fbd90a2db2fdf2245a1fcad529a316b460",
+            "target": "lib/smiti18n/locales/pl-PL.lua"
+          },
+          {
+            "name": "locales/pl.lua",
+            "sha256": "29b2a836eaccd720916b2202821119233ef8d68eb43db82ee64a66140658256d",
+            "target": "lib/smiti18n/locales/pl.lua"
+          },
+          {
+            "name": "locales/pt-BR.lua",
+            "sha256": "620577822a7d72da76648053bac1d279e071ba048d1ac4fb4cb9dcdc8805557d",
+            "target": "lib/smiti18n/locales/pt-BR.lua"
+          },
+          {
+            "name": "locales/pt-PT.lua",
+            "sha256": "b2b1d992383e88d81c7117a81014b431d8668750a15ab2ab3dc998acc9190265",
+            "target": "lib/smiti18n/locales/pt-PT.lua"
+          },
+          {
+            "name": "locales/ro.lua",
+            "sha256": "d5b59e68d66449631b2142571e60856fb0181b19e011a90e88fc1bc9046b303e",
+            "target": "lib/smiti18n/locales/ro.lua"
+          },
+          {
+            "name": "locales/ru-RU.lua",
+            "sha256": "eb928c15573660dac9da36ee3f519d39d16a51252018eb68c9004f3ca6411416",
+            "target": "lib/smiti18n/locales/ru-RU.lua"
+          },
+          {
+            "name": "locales/ru.lua",
+            "sha256": "74d3c6dd4e2f155bce82ba2b4fc0112a0cb7bae5e6c87d72fcdaa06aeca9838c",
+            "target": "lib/smiti18n/locales/ru.lua"
+          },
+          {
+            "name": "locales/sk-SK.lua",
+            "sha256": "b72eac51311a2c2c9090c3f832ed4826f0854a6d157f8b3c56ecd497337e7243",
+            "target": "lib/smiti18n/locales/sk-SK.lua"
+          },
+          {
+            "name": "locales/sr-SR.lua",
+            "sha256": "23475e2d33e9c5052796d3fe2ed67558ce16b37299e8dca87b5a2e425b7e5179",
+            "target": "lib/smiti18n/locales/sr-SR.lua"
+          },
+          {
+            "name": "locales/sv-SE.lua",
+            "sha256": "c73b9b53b3900fb1f00a957392dbe6a63d0125e3cad099e05932c54b0b6bd95d",
+            "target": "lib/smiti18n/locales/sv-SE.lua"
+          },
+          {
+            "name": "locales/sv.lua",
+            "sha256": "d33c648d77ed58c3e93f3a1ca97e7437a729f2371e39773576aa56a8553e343c",
+            "target": "lib/smiti18n/locales/sv.lua"
+          },
+          {
+            "name": "locales/th.lua",
+            "sha256": "bdfbee0eb5aebb1ac64870a0fd264176e6f5edeecebc3af765fe6b07238c81d1",
+            "target": "lib/smiti18n/locales/th.lua"
+          },
+          {
+            "name": "locales/tr-TR.lua",
+            "sha256": "e3f48cb39107103653744dc1ec57ccfc3b90653096552763aaf27b331f8cc177",
+            "target": "lib/smiti18n/locales/tr-TR.lua"
+          },
+          {
+            "name": "locales/tr.lua",
+            "sha256": "d2dd28d0e678030966c48ca74accacf897a2f8c4d6477e95c76ce1a9e31f878e",
+            "target": "lib/smiti18n/locales/tr.lua"
+          },
+          {
+            "name": "locales/uk-UA.lua",
+            "sha256": "1b4d65c69f5c6b9833dd719201a0e90dba63a86ddc57dd6c80ae9ee829e5e98d",
+            "target": "lib/smiti18n/locales/uk-UA.lua"
+          },
+          {
+            "name": "locales/zh-CN.lua",
+            "sha256": "833ea0ce3e5bb9164220b3ea76c9a4c6b56718aa7a5afa045001a6e1b29367dc",
+            "target": "lib/smiti18n/locales/zh-CN.lua"
+          },
+          {
+            "name": "locales/zh-HK.lua",
+            "sha256": "2be2805b698d50089c1db6c38d02337a5d9f4cc07c30d1bcf02ceb67e30abf22",
+            "target": "lib/smiti18n/locales/zh-HK.lua"
+          },
+          {
+            "name": "locales/zh-MO.lua",
+            "sha256": "880084c17687f43c6ffcf9148aef2d7ef6fdf3cfd405b813d6542eea6e367ae4",
+            "target": "lib/smiti18n/locales/zh-MO.lua"
+          },
+          {
+            "name": "locales/zh-SG.lua",
+            "sha256": "38b125e4ba28a4d8075fe43d13d542d824ddea6da0ba72d262b8407358d19ffb",
+            "target": "lib/smiti18n/locales/zh-SG.lua"
+          },
+          {
+            "name": "locales/zh-TW.lua",
+            "sha256": "33f49162862c5589c4a322a52578de483cd6f77d8a0ff9a5304ed797e3f536bc",
+            "target": "lib/smiti18n/locales/zh-TW.lua"
+          },
+          {
+            "name": "smiti18n/format.lua",
+            "sha256": "f0a6cf874d754a691635475110daf34071030ac847ed647aa6172be4c4074da1",
+            "target": "lib/smiti18n/format.lua"
+          },
+          {
+            "name": "smiti18n/init.lua",
+            "sha256": "9dcfdfb29062e483c05626777692b9c8e2247199c8b599e0bde9875cb699fc6c",
+            "target": "lib/smiti18n/init.lua"
+          },
+          {
+            "name": "smiti18n/interpolate.lua",
+            "sha256": "774a15fc8a39cc9c778b8371ae2b92f87609dc464c0c49b5407d13cb3601aaad",
+            "target": "lib/smiti18n/interpolate.lua"
+          },
+          {
+            "name": "smiti18n/plural.lua",
+            "sha256": "1ee74b4f8c3dfdd32c1417a0ec3042a7454fa21bdde32133a91704fbbad79f3d",
+            "target": "lib/smiti18n/plural.lua"
+          },
+          {
+            "name": "smiti18n/variants.lua",
+            "sha256": "636bfad401687b97ec6c6cd9ddaaa017b137d7ec4436e603f5fb0b8065632ef4",
+            "target": "lib/smiti18n/variants.lua"
+          },
+          {
+            "name": "smiti18n/version.lua",
+            "sha256": "ddce105b16d971515b4e72dfc31ca037bd4a3da7e829ce07c794a4ffde9a5b4f",
+            "target": "lib/smiti18n/version.lua"
+          }
+        ]
+      },
+      "require": "lib.smiti18n",
+      "example": "local smiti18n = require('lib.smiti18n')"
+    },
     "sti": {
       "type": "love2d-library",
       "trust": "verified",
