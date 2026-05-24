@@ -3,7 +3,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/Kyonru/feather)](https://github.com/Kyonru/feather/releases)
 [![npm](https://img.shields.io/npm/v/@kyonru/feather)](https://www.npmjs.com/package/@kyonru/feather)
 [![npm downloads](https://img.shields.io/npm/dm/@kyonru/feather)](https://www.npmjs.com/package/@kyonru/feather)
-[![VS Code](https://img.shields.io/visual-studio-marketplace/v/SolenodonteLabs.feather-vscode)](https://marketplace.visualstudio.com/items?itemName=SolenodonteLabs.feather-vscode)
+[![VS Code](https://img.shields.io/visual-studio-marketplace/v/SolenodonteLabs.feather-cli-vscode)](https://marketplace.visualstudio.com/items?itemName=SolenodonteLabs.feather-cli-vscode)
 [![LuaRocks](https://img.shields.io/luarocks/v/kyonru/feather)](https://luarocks.org/modules/kyonru/feather)
 
 Feather is a CLI for debugging, inspecting, and manage packages for [LÖVE](https://love2d.org) games.

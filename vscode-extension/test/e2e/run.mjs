@@ -7,7 +7,7 @@ import { runTests } from '@vscode/test-electron';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const extensionDevelopmentPath = resolve(__dirname, '../..');
 const extensionTestsPath = resolve(__dirname, 'suite/index.cjs');
-const workspacePath = join(tmpdir(), 'feather-vscode-e2e-workspace');
+const workspacePath = join(tmpdir(), 'feather-cli-vscode-e2e-workspace');
 
 mkdirSync(workspacePath, { recursive: true });
 writeFileSync(join(workspacePath, 'main.lua'), 'function love.draw() end\n');

@@ -24,7 +24,7 @@ import type { PluginSourceOptions } from './plugin/shared.js';
 import { chooseCreateOptions } from '../ui/create-workflow.js';
 
 export const DEFAULT_CREATE_TEMPLATE = 'Oval-Tutu/bootstrap-love2d-project';
-export const FEATHER_VSCODE_EXTENSION_ID = 'SolenodonteLabs.feather-vscode';
+export const FEATHER_VSCODE_EXTENSION_ID = 'SolenodonteLabs.feather-cli-vscode';
 
 export type CreateCommandOptions = {
   template?: string;

@@ -16,7 +16,10 @@ test('command helpers quote paths with spaces', () => {
     '"/tmp/VS Code/node" /tmp/ext/bundled-cli/index.js run "/tmp/My Game"',
   );
   assert.equal(
-    buildEnvCommand({ ELECTRON_RUN_AS_NODE: '1' }, '/tmp/VS Code/helper', '/tmp/ext/bundled-cli/launcher.js', ['run', '/tmp/My Game']),
+    buildEnvCommand({ ELECTRON_RUN_AS_NODE: '1' }, '/tmp/VS Code/helper', '/tmp/ext/bundled-cli/launcher.js', [
+      'run',
+      '/tmp/My Game',
+    ]),
     'ELECTRON_RUN_AS_NODE=1 "/tmp/VS Code/helper" /tmp/ext/bundled-cli/launcher.js run "/tmp/My Game"',
   );
 });
@@ -28,7 +31,7 @@ test('project helpers resolve configured project before workspace root', () => {
 });
 
 test('project status reports config, runtime, plugins, and packages', () => {
-  const root = mkdtempSync(join(tmpdir(), 'feather-vscode-test-'));
+  const root = mkdtempSync(join(tmpdir(), 'feather-cli-vscode-test-'));
   try {
     writeFileSync(join(root, 'main.lua'), '');
     writeFileSync(join(root, 'feather.config.lua'), 'return {}\n');
@@ -51,7 +54,7 @@ test('project status reports config, runtime, plugins, and packages', () => {
 });
 
 test('project status counts CLI-managed included plugins from config', () => {
-  const root = mkdtempSync(join(tmpdir(), 'feather-vscode-test-'));
+  const root = mkdtempSync(join(tmpdir(), 'feather-cli-vscode-test-'));
   try {
     writeFileSync(join(root, 'main.lua'), '');
     writeFileSync(

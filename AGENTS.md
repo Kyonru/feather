@@ -21,14 +21,14 @@ Feather is a CLI debugger, inspector, desktop devtool, VS Code companion, and pa
 
 Before editing a subsystem, read the matching `SKILL.md`. If a skill points to `references/*.md`, read only the reference files that match the task.
 
-| Task area | Read first |
-|---|---|
-| CLI commands, build, release, upload, vendor flows | `skills/feather-cli-builds/SKILL.md` |
-| Lua runtime, injection, WebSocket/disk transport, auth | `skills/feather-lua-runtime/SKILL.md` |
-| Built-in plugins, manifests, capabilities, plugin UI payloads | `skills/feather-plugin-authoring/SKILL.md` |
-| Catalog packages, trust, checksums, lockfile, package CLI | `skills/feather-package-catalog/SKILL.md` |
-| React desktop app, pages, hooks, stores, Playwright | `skills/feather-desktop-app/SKILL.md` |
-| VS Code extension, commands, CLI wrapper, packaging | `skills/feather-vscode-extension/SKILL.md` |
+| Task area                                                     | Read first                                     |
+| ------------------------------------------------------------- | ---------------------------------------------- |
+| CLI commands, build, release, upload, vendor flows            | `skills/feather-cli-builds/SKILL.md`           |
+| Lua runtime, injection, WebSocket/disk transport, auth        | `skills/feather-lua-runtime/SKILL.md`          |
+| Built-in plugins, manifests, capabilities, plugin UI payloads | `skills/feather-plugin-authoring/SKILL.md`     |
+| Catalog packages, trust, checksums, lockfile, package CLI     | `skills/feather-package-catalog/SKILL.md`      |
+| React desktop app, pages, hooks, stores, Playwright           | `skills/feather-desktop-app/SKILL.md`          |
+| VS Code extension, commands, CLI wrapper, packaging           | `skills/feather-cli-vscode-extension/SKILL.md` |
 
 For cross-cutting protocol changes, read both `skills/feather-lua-runtime/SKILL.md` and `skills/feather-desktop-app/SKILL.md`. If Tauri, Rust server events, or native commands are involved, also read `skills/feather-desktop-app/references/tauri-and-protocol.md`.
 
@@ -79,9 +79,9 @@ npm run docs
 
 Do not edit generated files by hand.
 
-| File | Generator/check |
-|---|---|
-| `cli/src/generated/registry.json` | `npm run generate:registry` / `npm run check:registry` |
+| File                                  | Generator/check                                                    |
+| ------------------------------------- | ------------------------------------------------------------------ |
+| `cli/src/generated/registry.json`     | `npm run generate:registry` / `npm run check:registry`             |
 | `cli/src/generated/plugin-catalog.ts` | `npm run generate:plugin-catalog` / `npm run check:plugin-catalog` |
 
 When source catalog or manifest files change, run the generator and include the generated result.

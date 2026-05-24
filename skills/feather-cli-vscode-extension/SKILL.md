@@ -1,5 +1,5 @@
 ---
-name: feather-vscode-extension
+name: feather-cli-vscode-extension
 description: Work on Feather's VS Code extension, command flow, CLI wrapper behavior, bundled binary versus dev launcher, settings, project view, packaging, and extension tests.
 ---
 

@@ -32,16 +32,21 @@ PRODUCT_UUID="3e64d17c-8797-4382-921f-cf488b22073f"
 TARGET_ANDROID="true"
 TARGET_HTML="true"
 `,
-    '.vscode/extensions.json': JSON.stringify({
-      recommendations: [
-        'editorconfig.editorconfig',
-        'JohnnyMorganz.stylua',
-      ],
-    }, null, 2),
-    'Workspace.code-workspace': JSON.stringify({
-      folders: [{ name: 'Game', path: './game' }],
-      settings: { 'cSpell.words': ['Love2D', 'ovaltutu', 'Template'] },
-    }, null, 2),
+    '.vscode/extensions.json': JSON.stringify(
+      {
+        recommendations: ['editorconfig.editorconfig', 'JohnnyMorganz.stylua'],
+      },
+      null,
+      2,
+    ),
+    'Workspace.code-workspace': JSON.stringify(
+      {
+        folders: [{ name: 'Game', path: './game' }],
+        settings: { 'cSpell.words': ['Love2D', 'ovaltutu', 'Template'] },
+      },
+      null,
+      2,
+    ),
     '.github/workflows/build.yml': 'name: build\n',
     'tools/tool.txt': 'tool\n',
     'resources/icon.png': 'fake icon\n',
@@ -60,7 +65,10 @@ function writeTemplateProject(projectDir) {
 function writeFakeCreateGit(dir, options = {}) {
   const recordPath = join(dir, 'git-record.json');
   const files = templateFiles();
-  const { binDir } = writeFakeCommand(dir, 'git', `
+  const { binDir } = writeFakeCommand(
+    dir,
+    'git',
+    `
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
@@ -95,7 +103,8 @@ if (args[0] === 'commit') {
 }
 console.error('unexpected git args ' + args.join(' '));
 process.exit(1);
-`);
+`,
+  );
   chmodSync(join(binDir, 'git'), 0o755);
   return { binDir, recordPath };
 }
@@ -105,11 +114,8 @@ function records(recordPath) {
 }
 
 test('create helpers resolve latest, main, and explicit refs', async () => {
-  const {
-    DEFAULT_CREATE_TEMPLATE,
-    resolveCreateRef,
-    normalizeCreateTemplate,
-  } = await import('../../dist/commands/create.js');
+  const { DEFAULT_CREATE_TEMPLATE, resolveCreateRef, normalizeCreateTemplate } =
+    await import('../../dist/commands/create.js');
 
   const latest = await resolveCreateRef(DEFAULT_CREATE_TEMPLATE, {}, async (repo) => {
     assert.equal(repo, DEFAULT_CREATE_TEMPLATE);
@@ -131,19 +137,17 @@ test('create helpers resolve latest, main, and explicit refs', async () => {
 });
 
 test('create rejects ref conflicts, unsupported templates, path traversal, and non-empty targets', async () => {
-  const {
-    DEFAULT_CREATE_TEMPLATE,
-    normalizeCreateTemplate,
-    resolveCreateRef,
-    resolveCreateTarget,
-  } = await import('../../dist/commands/create.js');
+  const { DEFAULT_CREATE_TEMPLATE, normalizeCreateTemplate, resolveCreateRef, resolveCreateTarget } =
+    await import('../../dist/commands/create.js');
   const dir = makeTmp();
   const existing = join(dir, 'existing');
   mkdirSync(existing, { recursive: true });
   writeFileSync(join(existing, 'file.txt'), 'x');
 
   assert.throws(() => normalizeCreateTemplate('someone/else'));
-  await assert.rejects(() => resolveCreateRef(DEFAULT_CREATE_TEMPLATE, { main: true, ref: '0.1.2' }, async () => '0.1.2'));
+  await assert.rejects(() =>
+    resolveCreateRef(DEFAULT_CREATE_TEMPLATE, { main: true, ref: '0.1.2' }, async () => '0.1.2'),
+  );
   assert.throws(() => resolveCreateTarget('../escape', dir));
   assert.throws(() => resolveCreateTarget('/tmp/escape', dir));
   assert.throws(() => resolveCreateTarget('existing', dir));
@@ -180,7 +184,7 @@ test('create --yes clones latest release, cleans Oval-Tutu template, initializes
 
   const extensions = JSON.parse(readFileSync(join(project, '.vscode', 'extensions.json'), 'utf8'));
   assert.ok(extensions.recommendations.includes('editorconfig.editorconfig'));
-  assert.ok(extensions.recommendations.includes('SolenodonteLabs.feather-vscode'));
+  assert.ok(extensions.recommendations.includes('SolenodonteLabs.feather-cli-vscode'));
 
   const makefile = readFileSync(join(project, 'Makefile'), 'utf8');
   assert.match(makefile, /run:\n\tfeather run game/);
@@ -191,7 +195,13 @@ test('create --yes clones latest release, cleans Oval-Tutu template, initializes
 
   const gitRecords = records(recordPath);
   const clone = gitRecords.find((record) => record.args[0] === 'clone');
-  assert.deepEqual(clone.args.slice(0, 5), ['clone', '--depth=1', '--branch', '0.1.2', 'https://github.com/Oval-Tutu/bootstrap-love2d-project.git']);
+  assert.deepEqual(clone.args.slice(0, 5), [
+    'clone',
+    '--depth=1',
+    '--branch',
+    '0.1.2',
+    'https://github.com/Oval-Tutu/bootstrap-love2d-project.git',
+  ]);
   assert.equal(clone.args.at(-1).endsWith('/awesome'), true);
   assert.ok(gitRecords.some((record) => record.args.join(' ') === 'commit -m feather: init template'));
   assert.ok(gitRecords.some((record) => record.args.join(' ') === 'commit -m feather: configure feather'));
@@ -206,7 +216,9 @@ test('create --main and --ref choose the requested clone branch', () => {
     env: envWithPath(mainGit.binDir),
   });
   assert.equal(mainResult.exitCode, 0, outputOf(mainResult));
-  assert.ok(records(mainGit.recordPath).some((record) => record.args.includes('--branch') && record.args.includes('main')));
+  assert.ok(
+    records(mainGit.recordPath).some((record) => record.args.includes('--branch') && record.args.includes('main')),
+  );
 
   const refGit = writeFakeCreateGit(join(workspace, 'ref-git'));
   mkdirSync(join(workspace, 'ref-run'), { recursive: true });
@@ -215,7 +227,9 @@ test('create --main and --ref choose the requested clone branch', () => {
     env: envWithPath(refGit.binDir),
   });
   assert.equal(refResult.exitCode, 0, outputOf(refResult));
-  assert.ok(records(refGit.recordPath).some((record) => record.args.includes('--branch') && record.args.includes('v-test')));
+  assert.ok(
+    records(refGit.recordPath).some((record) => record.args.includes('--branch') && record.args.includes('v-test')),
+  );
 });
 
 test('create optional flags call plugin, package, and vendor setup paths', async () => {
@@ -226,36 +240,40 @@ test('create optional flags call plugin, package, and vendor setup paths', async
 
   try {
     process.chdir(workspace);
-    await runCreatePipeline('with-flags', {
-      ref: '0.1.2',
-      yes: true,
-      plugins: ['console'],
-      packages: ['anim8'],
-      vendorTargets: ['web'],
-    }, {
-      fetchLatestReleaseTag: async () => {
-        throw new Error('latest should not be fetched');
+    await runCreatePipeline(
+      'with-flags',
+      {
+        ref: '0.1.2',
+        yes: true,
+        plugins: ['console'],
+        packages: ['anim8'],
+        vendorTargets: ['web'],
       },
-      runExternalCommand: async (command, args, options) => {
-        calls.push({ command, args, cwd: options?.cwd });
-        if (args[0] === 'clone') writeTemplateProject(args[args.length - 1]);
-        if (args[0] === 'init') mkdirSync(join(options.cwd, '.git'), { recursive: true });
-        return { stdout: '', stderr: '' };
+      {
+        fetchLatestReleaseTag: async () => {
+          throw new Error('latest should not be fetched');
+        },
+        runExternalCommand: async (command, args, options) => {
+          calls.push({ command, args, cwd: options?.cwd });
+          if (args[0] === 'clone') writeTemplateProject(args[args.length - 1]);
+          if (args[0] === 'init') mkdirSync(join(options.cwd, '.git'), { recursive: true });
+          return { stdout: '', stderr: '' };
+        },
+        init: async (dir, opts) => {
+          calls.push({ command: 'initCommand', dir, opts });
+          writeFileSync(join(dir, 'feather.config.lua'), 'return { managed = "cli" }\n');
+        },
+        installPlugins: async (ids, opts) => {
+          calls.push({ command: 'pluginInstallCommand', ids, opts });
+        },
+        installPackages: async (names, opts) => {
+          calls.push({ command: 'packageInstallCommand', names, opts });
+        },
+        addVendors: async (targets, opts) => {
+          calls.push({ command: 'buildVendorAddCommand', targets, opts });
+        },
       },
-      init: async (dir, opts) => {
-        calls.push({ command: 'initCommand', dir, opts });
-        writeFileSync(join(dir, 'feather.config.lua'), 'return { managed = "cli" }\n');
-      },
-      installPlugins: async (ids, opts) => {
-        calls.push({ command: 'pluginInstallCommand', ids, opts });
-      },
-      installPackages: async (names, opts) => {
-        calls.push({ command: 'packageInstallCommand', names, opts });
-      },
-      addVendors: async (targets, opts) => {
-        calls.push({ command: 'buildVendorAddCommand', targets, opts });
-      },
-    });
+    );
   } finally {
     process.chdir(previousCwd);
     rmSync(workspace, { recursive: true, force: true });

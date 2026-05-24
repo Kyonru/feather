@@ -1,5 +1,5 @@
 {
-  "name": "feather-vscode",
+  "name": "feather-cli-vscode",
   "displayName": "Feather for LÖVE",
   "description": "Run, debug, and manage Feather for Love2D games from VS Code.",
   "version": "1.4.0",
