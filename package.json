@@ -13,6 +13,7 @@
     "cli:dev": "npm run dev --workspace=cli",
     "test:cli:e2e": "npm run cli:build && node --test cli/test/commands/*.test.mjs",
     "test:lua:e2e": "node scripts/lua-e2e.mjs",
+    "test:packages:e2e": "node scripts/package-e2e.mjs",
     "test:app:e2e": "playwright test",
     "test:showcase:e2e": "playwright test -c playwright.showcase.config.ts",
     "test:tauri:e2e": "cargo test --manifest-path src-tauri/Cargo.toml ws_server",

@@ -2,14 +2,7 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "A Löve Gui based on Flexbox",
-  "tags": [
-    "ui",
-    "layout",
-    "component",
-    "theme",
-    "animation",
-    "grid"
-  ],
+  "tags": ["ui", "layout", "component", "theme", "animation", "grid"],
   "homepage": "https://github.com/mikefreno/FlexLove",
   "license": "MIT",
   "source": {
@@ -203,19 +196,5 @@
     ]
   },
   "require": "lib.flexlove",
-  "example": "local flexlove = require('lib.flexlove')",
-  "subpackages": {
-    "flexlove.theme.metal": {
-      "files": [
-        "themes/metal.lua"
-      ],
-      "require": "lib.flexlove.themes.metal"
-    },
-    "flexlove.theme.space": {
-      "files": [
-        "themes/space.lua"
-      ],
-      "require": "lib.flexlove.themes.space"
-    }
-  }
+  "example": "local flexlove = require('lib.flexlove')"
 }
