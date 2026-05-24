@@ -1,0 +1,221 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A Löve Gui based on Flexbox",
+  "tags": [
+    "ui",
+    "layout",
+    "component",
+    "theme",
+    "animation",
+    "grid"
+  ],
+  "homepage": "https://github.com/mikefreno/FlexLove",
+  "license": "MIT",
+  "source": {
+    "repo": "mikefreno/FlexLove",
+    "tag": "v0.14.0",
+    "commitSha": "56673de14b656a3bb6f6b9a508374829a4ec9110",
+    "baseUrl": "https://raw.githubusercontent.com/mikefreno/FlexLove/56673de14b656a3bb6f6b9a508374829a4ec9110/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "FlexLove.lua",
+        "sha256": "54d72bd3d2c6109780a429f4ffc86723d667f9b7b2f737297ac332d6fe055385",
+        "target": "lib/flexlove/init.lua"
+      },
+      {
+        "name": "modules/Animation.lua",
+        "sha256": "d8e2641e9d09150e9b3d716e721a49b9b93a858c1cace177d0c82cdece1aa549",
+        "target": "lib/flexlove/modules/Animation.lua"
+      },
+      {
+        "name": "modules/Blur.lua",
+        "sha256": "d930d7cb1ab47cddbae5c56dc3f328c97ed638a02392aa9df6500f1f5b966f09",
+        "target": "lib/flexlove/modules/Blur.lua"
+      },
+      {
+        "name": "modules/Calc.lua",
+        "sha256": "d50584747da70d4aa281863aa0d6c3ea39aac61600b75e808ce93a9c26949432",
+        "target": "lib/flexlove/modules/Calc.lua"
+      },
+      {
+        "name": "modules/Color.lua",
+        "sha256": "38238f61b4a25bae45078e2307f8d55f1da3dbad4b6470111fc1d7b134eb7435",
+        "target": "lib/flexlove/modules/Color.lua"
+      },
+      {
+        "name": "modules/Context.lua",
+        "sha256": "3ec60286e8042eb37407c3690167164fe8b0657e5d44fe806e7a91ecba865bed",
+        "target": "lib/flexlove/modules/Context.lua"
+      },
+      {
+        "name": "modules/Element.lua",
+        "sha256": "a793166bb995c731e71afb4892c4483731af7ce22111a6b86f0692f76821620d",
+        "target": "lib/flexlove/modules/Element.lua"
+      },
+      {
+        "name": "modules/ErrorHandler.lua",
+        "sha256": "2936635eb51faa9bf2d24cc548629baa8d011ac5c9833a8497419b0300b099a7",
+        "target": "lib/flexlove/modules/ErrorHandler.lua"
+      },
+      {
+        "name": "modules/EventHandler.lua",
+        "sha256": "66c3ad10cf2408aff746f23944d1164f7142c31adef8d80ec4db723270fd393d",
+        "target": "lib/flexlove/modules/EventHandler.lua"
+      },
+      {
+        "name": "modules/FocusIndicator.lua",
+        "sha256": "59e80e3665d60924ab4eb07fb706cbb24f4554b0110e1e4d23161b113079a33b",
+        "target": "lib/flexlove/modules/FocusIndicator.lua"
+      },
+      {
+        "name": "modules/GestureRecognizer.lua",
+        "sha256": "8aa67254d2c7780a2590f07ffcb3dd5cdb20914bf5e7924dbb435a665f5b8bfd",
+        "target": "lib/flexlove/modules/GestureRecognizer.lua"
+      },
+      {
+        "name": "modules/Grid.lua",
+        "sha256": "e8189b4246d05cc894304be1b3d442c8fc7d3b221e3ac0c38759352cd4619cb9",
+        "target": "lib/flexlove/modules/Grid.lua"
+      },
+      {
+        "name": "modules/ImageCache.lua",
+        "sha256": "6af3db9afdd08e557cd7fd2ca9aaf2cd75200ece16e2f67f60093211786c5516",
+        "target": "lib/flexlove/modules/ImageCache.lua"
+      },
+      {
+        "name": "modules/ImageRenderer.lua",
+        "sha256": "f2a63bc9c137a60dc75811875fb27a3ff0dee2d31bfde273596a22f9e36761f5",
+        "target": "lib/flexlove/modules/ImageRenderer.lua"
+      },
+      {
+        "name": "modules/ImageScaler.lua",
+        "sha256": "b76712d8c164d0cdbfb4047f937a178538c9de396ac912268a9b269d474c4dcf",
+        "target": "lib/flexlove/modules/ImageScaler.lua"
+      },
+      {
+        "name": "modules/InputEvent.lua",
+        "sha256": "a14c2a9360335355a06d8fe988f18ff8ff4145115377c855937e8094d62d533c",
+        "target": "lib/flexlove/modules/InputEvent.lua"
+      },
+      {
+        "name": "modules/KeyboardNavigation.lua",
+        "sha256": "84694eb9705161c854c192f8b2d90eb6c96663c53d280fcd46892528c3486f90",
+        "target": "lib/flexlove/modules/KeyboardNavigation.lua"
+      },
+      {
+        "name": "modules/LayoutEngine.lua",
+        "sha256": "8a89df2994d18421f9131bdb19bb26b4c3e70f6040a2ed6342a9ce1a767af3e4",
+        "target": "lib/flexlove/modules/LayoutEngine.lua"
+      },
+      {
+        "name": "modules/MemoryScanner.lua",
+        "sha256": "5d8101587c41f280fdaa01389b5aabe66ddbb6abf36e21d7e4a153c2325a4867",
+        "target": "lib/flexlove/modules/MemoryScanner.lua"
+      },
+      {
+        "name": "modules/ModuleLoader.lua",
+        "sha256": "5dd35e569aebfde8f9db912a43020322b1791287b81de073221ad270182a860e",
+        "target": "lib/flexlove/modules/ModuleLoader.lua"
+      },
+      {
+        "name": "modules/NinePatch.lua",
+        "sha256": "b958271acc2dde50d74252f78778528bbe0b0b9956bc01e6e1861e3258af7296",
+        "target": "lib/flexlove/modules/NinePatch.lua"
+      },
+      {
+        "name": "modules/Performance.lua",
+        "sha256": "04a8e96fd68162097fc5ca29166bb95d563acf9ebb239969074dc52a7e8ccefb",
+        "target": "lib/flexlove/modules/Performance.lua"
+      },
+      {
+        "name": "modules/Renderer.lua",
+        "sha256": "c4f6d068e4a66c76e827fe4edc1b2247c7dc0da0fd79acad081994af478da581",
+        "target": "lib/flexlove/modules/Renderer.lua"
+      },
+      {
+        "name": "modules/RoundedRect.lua",
+        "sha256": "517ec06883524e5861cba1df91e2641598c278e952702633b06914a250fd791c",
+        "target": "lib/flexlove/modules/RoundedRect.lua"
+      },
+      {
+        "name": "modules/ScrollManager.lua",
+        "sha256": "5497d819512aa7cb3ab6c0ad687ecd840988c7203179d8fdd0866b9b81ef0c51",
+        "target": "lib/flexlove/modules/ScrollManager.lua"
+      },
+      {
+        "name": "modules/Select.lua",
+        "sha256": "83514652f76c8d7e2b1f1c6842d1aae466b520f8baf211699eaba4f39a0e8607",
+        "target": "lib/flexlove/modules/Select.lua"
+      },
+      {
+        "name": "modules/StateManager.lua",
+        "sha256": "ae16258fd4d614cc0753f45d9ca7f4b44eba83328546a3a0d90668088f891f26",
+        "target": "lib/flexlove/modules/StateManager.lua"
+      },
+      {
+        "name": "modules/TextEditor.lua",
+        "sha256": "8d9d422bed5f9b998ac4b0ee91efb095cb782447ceb406fc809f25f1f0fe89d0",
+        "target": "lib/flexlove/modules/TextEditor.lua"
+      },
+      {
+        "name": "modules/Theme.lua",
+        "sha256": "41b2da05e7ebf645eb2d5b07d797eb44ef15e0b9b5f2323416e39ca66be0dc2b",
+        "target": "lib/flexlove/modules/Theme.lua"
+      },
+      {
+        "name": "modules/UTF8.lua",
+        "sha256": "3502bbfae1d9998b9e9c8264f17c64873fdcf3365ea4d42b8cb4b39fda917bd6",
+        "target": "lib/flexlove/modules/UTF8.lua"
+      },
+      {
+        "name": "modules/Units.lua",
+        "sha256": "8ffb320a56991b0359092a32f6697483830ae2977c977a6b07125c0010d09a83",
+        "target": "lib/flexlove/modules/Units.lua"
+      },
+      {
+        "name": "modules/ZIndex.lua",
+        "sha256": "e08cfc9882d95e5ae067919d0bf9cc3e871d242de469ebddb557e5ea29a1376f",
+        "target": "lib/flexlove/modules/ZIndex.lua"
+      },
+      {
+        "name": "modules/types.lua",
+        "sha256": "57222e7fed82173c40aa967a901d43599c8d8146b4d70a018a86bac3cae3f107",
+        "target": "lib/flexlove/modules/types.lua"
+      },
+      {
+        "name": "modules/utils.lua",
+        "sha256": "e4a7a9d80791df192ac500b3a3cd3219367ea7f9cf2881ec8a3819ed7af56484",
+        "target": "lib/flexlove/modules/utils.lua"
+      },
+      {
+        "name": "themes/metal.lua",
+        "sha256": "dccce32cadc4d0672f23b47e73cd8634a6bcf6c5dcb94ce8d615c070734c56a8",
+        "target": "lib/flexlove/themes/metal.lua"
+      },
+      {
+        "name": "themes/space.lua",
+        "sha256": "5e55e37f994fb0571fb93e9d74128d36c00a58fe7c6afcddab9fa8d348a106d3",
+        "target": "lib/flexlove/themes/space.lua"
+      }
+    ]
+  },
+  "require": "lib.flexlove",
+  "example": "local flexlove = require('lib.flexlove')",
+  "subpackages": {
+    "flexlove.theme.metal": {
+      "files": [
+        "themes/metal.lua"
+      ],
+      "require": "lib.flexlove.themes.metal"
+    },
+    "flexlove.theme.space": {
+      "files": [
+        "themes/space.lua"
+      ],
+      "require": "lib.flexlove.themes.space"
+    }
+  }
+}
