@@ -8,10 +8,10 @@ The catalog is hand-curated and pinned to exact commit SHAs with verified checks
 
 ### Trust levels
 
-| Level          | Meaning                                                                                                                 |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `verified`     | Feather-reviewed. Pinned release + per-file SHA-256.                                                                    |
-| `known`        | Popular community library. Checksum-pinned but not audited in depth.                                                    |
+| Level          | Meaning                                                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verified`     | Feather-reviewed. Pinned release + per-file SHA-256.                                                                                                                    |
+| `known`        | Popular community library. Checksum-pinned but not audited in depth.                                                                                                    |
 | `experimental` | Installed via `feather package add` or `--from-url`, or a version override (`name@version`). SHA-256 computed live. Requires `--allow-untrusted` for the CLI flag form. |
 
 By default, `verified` and `known` packages install without extra flags. `experimental` requires `--allow-untrusted`.
@@ -94,12 +94,13 @@ feather package install hump.camera   # installs only the camera module
 
 Options:
 
-| Flag                | Description                                                |
-| ------------------- | ---------------------------------------------------------- |
-| `--dry-run`         | Show what would be installed without writing files         |
-| `--target <dir>`    | Override the install directory                             |
-| `--offline`         | Use the bundled registry snapshot instead of fetching      |
-| `--allow-untrusted` | Required for `experimental` packages and version overrides |
+| Flag                | Description                                                          |
+| ------------------- | -------------------------------------------------------------------- |
+| `--dry-run`         | Show what would be installed without writing files                   |
+| `--target <dir>`    | Override the install directory                                       |
+| `--offline`         | Use the bundled registry snapshot instead of fetching                |
+| `--allow-untrusted` | Required for `experimental` packages and version overrides           |
+| `--allow-others`    | Allow installing packages that include non-Lua assets (e.g. shaders) |
 
 **Example output:**
 
@@ -333,9 +334,7 @@ Each file in `packages/` is a standalone JSON manifest:
     "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/c1c12ec.../"
   },
   "install": {
-    "files": [
-      { "name": "anim8.lua", "sha256": "abc123...", "target": "lib/anim8.lua" }
-    ]
+    "files": [{ "name": "anim8.lua", "sha256": "abc123...", "target": "lib/anim8.lua" }]
   },
   "require": "lib.anim8",
   "example": "local anim8 = require('lib.anim8')"

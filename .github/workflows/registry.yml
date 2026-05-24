@@ -29,9 +29,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
+
+      - name: Install Love2D
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y love xvfb
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Generate registry
         run: node scripts/generate-registry.mjs
+
+      - name: Build CLI
+        run: npm run cli:build
+
+      - name: Run package e2e
+        run: node scripts/package-e2e.mjs
 
       - name: Push to packages branch
         run: |

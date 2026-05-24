@@ -200,72 +200,6 @@
       "require": "lib.classic",
       "example": "local Object = require('lib.classic')"
     },
-    "flexlove.theme.metal": {
-      "parent": "flexlove",
-      "type": "love2d-library",
-      "trust": "verified",
-      "description": "flexlove — metal module",
-      "tags": [
-        "ui",
-        "layout",
-        "component",
-        "theme",
-        "animation",
-        "grid"
-      ],
-      "homepage": "https://github.com/mikefreno/FlexLove",
-      "license": "MIT",
-      "source": {
-        "repo": "mikefreno/FlexLove",
-        "tag": "v0.14.0",
-        "commitSha": "56673de14b656a3bb6f6b9a508374829a4ec9110",
-        "baseUrl": "https://raw.githubusercontent.com/mikefreno/FlexLove/56673de14b656a3bb6f6b9a508374829a4ec9110/"
-      },
-      "install": {
-        "files": [
-          {
-            "name": "themes/metal.lua",
-            "sha256": "dccce32cadc4d0672f23b47e73cd8634a6bcf6c5dcb94ce8d615c070734c56a8",
-            "target": "lib/flexlove/themes/metal.lua"
-          }
-        ]
-      },
-      "require": "lib.flexlove.themes.metal",
-      "example": "local metal = require('lib.flexlove.themes.metal')"
-    },
-    "flexlove.theme.space": {
-      "parent": "flexlove",
-      "type": "love2d-library",
-      "trust": "verified",
-      "description": "flexlove — space module",
-      "tags": [
-        "ui",
-        "layout",
-        "component",
-        "theme",
-        "animation",
-        "grid"
-      ],
-      "homepage": "https://github.com/mikefreno/FlexLove",
-      "license": "MIT",
-      "source": {
-        "repo": "mikefreno/FlexLove",
-        "tag": "v0.14.0",
-        "commitSha": "56673de14b656a3bb6f6b9a508374829a4ec9110",
-        "baseUrl": "https://raw.githubusercontent.com/mikefreno/FlexLove/56673de14b656a3bb6f6b9a508374829a4ec9110/"
-      },
-      "install": {
-        "files": [
-          {
-            "name": "themes/space.lua",
-            "sha256": "5e55e37f994fb0571fb93e9d74128d36c00a58fe7c6afcddab9fa8d348a106d3",
-            "target": "lib/flexlove/themes/space.lua"
-          }
-        ]
-      },
-      "require": "lib.flexlove.themes.space",
-      "example": "local space = require('lib.flexlove.themes.space')"
-    },
     "flexlove": {
       "type": "love2d-library",
       "trust": "verified",
@@ -291,7 +225,7 @@
           {
             "name": "FlexLove.lua",
             "sha256": "54d72bd3d2c6109780a429f4ffc86723d667f9b7b2f737297ac332d6fe055385",
-            "target": "lib/flexlove/init.lua"
+            "target": "lib/flexlove/FlexLove.lua"
           },
           {
             "name": "modules/Animation.lua",
@@ -470,12 +404,8 @@
           }
         ]
       },
-      "subpackages": [
-        "flexlove.theme.metal",
-        "flexlove.theme.space"
-      ],
-      "require": "lib.flexlove",
-      "example": "local flexlove = require('lib.flexlove')"
+      "require": "lib.flexlove.FlexLove",
+      "example": "local flexlove = require('lib.flexlove.FlexLove')"
     },
     "flux": {
       "type": "love2d-library",
@@ -557,6 +487,11 @@
             "name": "g3d/vectors.lua",
             "sha256": "4d23c3334fa1e6b43fbf7bf4fe00969480ee6a4c82a7007f87b3e10df42c411e",
             "target": "lib/g3d/vectors.lua"
+          },
+          {
+            "name": "g3d/g3d.vert",
+            "sha256": "7fe1e42594b73c15af3899dc71ace5c9cf5436a83f2f0c6ce4864654394f31bd",
+            "target": "lib/g3d/g3d.vert"
           }
         ]
       },
@@ -1093,47 +1028,6 @@
       "require": "lib.knife.event",
       "example": "local event = require('lib.knife.event')"
     },
-    "knife.gun": {
-      "parent": "knife",
-      "type": "love2d-library",
-      "trust": "known",
-      "description": "knife — gun module",
-      "tags": [
-        "class",
-        "oop",
-        "behavior",
-        "ai",
-        "state",
-        "machine",
-        "bind",
-        "chain",
-        "coroutines",
-        "event",
-        "memoize",
-        "entity",
-        "test",
-        "timer"
-      ],
-      "homepage": "https://github.com/airstruck/knife",
-      "license": "MIT",
-      "source": {
-        "repo": "airstruck/knife",
-        "tag": "master",
-        "baseUrl": "https://raw.githubusercontent.com/airstruck/knife/5ccd9b425f2c5363389534c7e12b9df05b18ad8e/",
-        "commitSha": "5ccd9b425f2c5363389534c7e12b9df05b18ad8e"
-      },
-      "install": {
-        "files": [
-          {
-            "name": "knife/gun.lua",
-            "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
-            "target": "lib/knife/gun.lua"
-          }
-        ]
-      },
-      "require": "lib.knife.gun",
-      "example": "local gun = require('lib.knife.gun')"
-    },
     "knife.memoize": {
       "parent": "knife",
       "type": "love2d-library",
@@ -1400,11 +1294,6 @@
             "target": "lib/knife/event.lua"
           },
           {
-            "name": "knife/gun.lua",
-            "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
-            "target": "lib/knife/gun.lua"
-          },
-          {
             "name": "knife/memoize.lua",
             "sha256": "45c857737cf3b3c4e7bd3994c882a142761153932ba4695b57aa4eb9198ccfd0",
             "target": "lib/knife/memoize.lua"
@@ -1438,7 +1327,6 @@
         "knife.chain",
         "knife.convoke",
         "knife.event",
-        "knife.gun",
         "knife.memoize",
         "knife.serialize",
         "knife.system",
@@ -1720,7 +1608,7 @@
           {
             "name": "shove-profiler.lua",
             "sha256": "8c2c78a0d4dac5afaa3e487648c1e12fad632bd8971dd21424da765ac0135e88",
-            "target": "lib/shove/profiler.lua"
+            "target": "lib/shove/shove-profiler.lua"
           },
           {
             "name": "shove.lua",

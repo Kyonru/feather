@@ -148,7 +148,7 @@ if (skipInstall) {
   console.log(`package-e2e: installing ${installable.length} packages...`);
   const installResult = spawnSync(
     process.execPath,
-    [cliPath, 'package', 'install', ...installable, '--dir', gameDir, '--yes', '--offline'],
+    [cliPath, 'package', 'install', ...installable, '--dir', gameDir, '--yes', '--offline', '--allow-others'],
     { encoding: 'utf8', timeout: 5 * 60 * 1000 },
   );
 
@@ -174,20 +174,61 @@ local packages = {
 ${packageRows}
 }
 
+-- Require a module and fail if it errors OR emits any output during load.
+-- Well-behaved modules are silent on require; any print/io.write indicates
+-- a load-time warning or internal error being swallowed.
+local function tryimport(requirePath)
+  local captured = {}
+
+  local _print = print
+  local _write = io.write
+
+  print = function(...)
+    local t = {}
+    for i = 1, select('#', ...) do t[i] = tostring(select(i, ...)) end
+    captured[#captured + 1] = table.concat(t, "\\t")
+  end
+
+  io.write = function(...)
+    local t = {}
+    for i = 1, select('#', ...) do t[i] = tostring(select(i, ...)) end
+    captured[#captured + 1] = table.concat(t, "")
+  end
+
+  local ok, err = pcall(require, requirePath)
+
+  print = _print
+  io.write = _write
+
+  if not ok then
+    return false, tostring(err)
+  end
+
+  if #captured > 0 then
+    local output = table.concat(captured, "")
+    local lower = output:lower()
+    if lower:find("error") or lower:find("failed") or lower:find("not found") or lower:find("could not") then
+      return false, "load-time error output:\\n" .. output
+    end
+  end
+
+  return true, nil
+end
+
 local function run()
   local passed = 0
   local failed = 0
   local failures = {}
 
   for _, pkg in ipairs(packages) do
-    local ok, err = pcall(require, pkg.requirePath)
+    local ok, err = tryimport(pkg.requirePath)
     if ok then
       passed = passed + 1
-      io.write("[Package E2E] PASS " .. pkg.name .. "\\n")
+      io.write("\\27[32m[Package E2E] PASS\\27[0m " .. pkg.name .. "\\n")
     else
       failed = failed + 1
       failures[#failures + 1] = { name = pkg.name, err = tostring(err) }
-      io.write("[Package E2E] FAIL " .. pkg.name .. ": " .. tostring(err) .. "\\n")
+      io.write("\\27[31m[Package E2E] FAIL\\27[0m " .. pkg.name .. ": " .. tostring(err) .. "\\n")
     end
     io.flush()
   end
@@ -195,13 +236,13 @@ local function run()
   io.write("\\n")
 
   if #failures > 0 then
-    io.write("[Package E2E] SUMMARY: " .. #failures .. " failed, " .. passed .. " passed\\n")
+    io.write("\\27[31m[Package E2E] SUMMARY: " .. #failures .. " failed\\27[0m, " .. passed .. " passed\\n")
     for _, f in ipairs(failures) do
-      io.write("  - " .. f.name .. ": " .. f.err .. "\\n")
+      io.write("  \\27[31m✖\\27[0m " .. f.name .. ": " .. f.err .. "\\n")
     end
     love.event.quit(1)
   else
-    io.write("[Package E2E] PACKAGE_E2E_PASS " .. passed .. " packages loaded successfully\\n")
+    io.write("\\27[32m[Package E2E] PACKAGE_E2E_PASS " .. passed .. " packages loaded successfully\\27[0m\\n")
     love.event.quit(0)
   end
 end

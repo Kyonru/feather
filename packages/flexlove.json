@@ -16,7 +16,7 @@
       {
         "name": "FlexLove.lua",
         "sha256": "54d72bd3d2c6109780a429f4ffc86723d667f9b7b2f737297ac332d6fe055385",
-        "target": "lib/flexlove/init.lua"
+        "target": "lib/flexlove/FlexLove.lua"
       },
       {
         "name": "modules/Animation.lua",
@@ -195,6 +195,6 @@
       }
     ]
   },
-  "require": "lib.flexlove",
-  "example": "local flexlove = require('lib.flexlove')"
+  "require": "lib.flexlove.FlexLove",
+  "example": "local flexlove = require('lib.flexlove.FlexLove')"
 }

@@ -29,7 +29,7 @@
       {
         "name": "shove-profiler.lua",
         "sha256": "8c2c78a0d4dac5afaa3e487648c1e12fad632bd8971dd21424da765ac0135e88",
-        "target": "lib/shove/profiler.lua"
+        "target": "lib/shove/shove-profiler.lua"
       },
       {
         "name": "shove.lua",

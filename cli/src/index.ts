@@ -720,6 +720,7 @@ export function createProgram(): Command {
     .description('Install one or more packages')
     .option('--dry-run', 'Show what would be installed without writing files')
     .option('--allow-untrusted', 'Allow installing experimental packages')
+    .option('--allow-others', 'Allow installing non-Lua assets (e.g. shaders, images)')
     .option('--target <dir>', 'Override install target directory')
     .option('--from-url <url>', 'Install a single file from an arbitrary URL (requires --allow-untrusted)')
     .option('--offline', 'Use bundled registry snapshot')
@@ -731,6 +732,7 @@ export function createProgram(): Command {
         packageInstallCommand(names, {
           dryRun: opts.dryRun as boolean | undefined,
           allowUntrusted: opts.allowUntrusted as boolean | undefined,
+          allowOthers: opts.allowOthers as boolean | undefined,
           target: opts.target as string | undefined,
           fromUrl: opts.fromUrl as string | undefined,
           offline: opts.offline as boolean | undefined,

@@ -59,11 +59,6 @@
         "target": "lib/knife/event.lua"
       },
       {
-        "name": "knife/gun.lua",
-        "sha256": "9f0754e9a11fddb7c376b4e92d9d583a1720dc038e080957a598c43093a4064b",
-        "target": "lib/knife/gun.lua"
-      },
-      {
         "name": "knife/memoize.lua",
         "sha256": "45c857737cf3b3c4e7bd3994c882a142761153932ba4695b57aa4eb9198ccfd0",
         "target": "lib/knife/memoize.lua"
@@ -128,12 +123,6 @@
         "knife/event.lua"
       ],
       "require": "lib.knife.event"
-    },
-    "knife.gun": {
-      "files": [
-        "knife/gun.lua"
-      ],
-      "require": "lib.knife.gun"
     },
     "knife.memoize": {
       "files": [
