@@ -1,0 +1,29 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "HSL colors in LÖVE",
+  "tags": [
+    "color",
+    "hsl",
+    "rgb"
+  ],
+  "homepage": "https://github.com/Ulydev/lue",
+  "license": "MIT",
+  "source": {
+    "repo": "Ulydev/lue",
+    "tag": "master",
+    "commitSha": "b54bbb1df7c2a2670fcca024698ac805381ccf33",
+    "baseUrl": "https://raw.githubusercontent.com/Ulydev/lue/b54bbb1df7c2a2670fcca024698ac805381ccf33/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "lue.lua",
+        "sha256": "57fb301fb8a7d559659edbe9bb3f6695188bfae5c957ad7872b1a65d84f71d77",
+        "target": "lib/lue.lua"
+      }
+    ]
+  },
+  "require": "lib.lue",
+  "example": "local lue = require('lib.lue')"
+}
