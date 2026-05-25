@@ -5,18 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v1.4.2] - 2026-05-25 - The one with fixed cli
 
 ### Added
 
 - Added `--install-dir` and `--save-install-dir` to `feather package install` so catalog packages can be installed under a custom base directory and keep that location for future installs and updates.
 - Renamed package install targeting flags to `--flat-dir` for catalog flattening and `--target-path` for `--from-url`; `--target` remains as a hidden compatibility alias.
-
-### Tests
-
-- Added package CLI coverage for custom install directories, saved install directory lockfile metadata, and install-dir validation.
-
-## [v1.4.2] - 2026-05-25 - The one with fixed cli
 
 ### Fixed
 
@@ -25,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - Added CLI help coverage for symlinked global-bin execution.
+- Added package CLI coverage for custom install directories, saved install directory lockfile metadata, and install-dir validation.
 
 ## [v1.4.1] - 2026-05-24 - The one with the correct extension name
 
