@@ -1,0 +1,34 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "Orchestrate feedback by defining behavior",
+  "tags": [
+    "animation",
+    "tween",
+    "feedback"
+  ],
+  "homepage": "https://github.com/kyonru/feel.lua",
+  "license": "unknown",
+  "source": {
+    "repo": "kyonru/feel.lua",
+    "tag": "main",
+    "commitSha": "20880801a05817f4e85a3788b3c85220b970c958",
+    "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/20880801a05817f4e85a3788b3c85220b970c958/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "feel/init.lua",
+        "sha256": "3510de61dfb4e9b559caafaeb29a2005ffd4f37f9426aa976e101e453a03a4b4",
+        "target": "lib/feel/init.lua"
+      },
+      {
+        "name": "feel/vendor/flux.lua",
+        "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5",
+        "target": "lib/feel/vendor/flux.lua"
+      }
+    ]
+  },
+  "require": "lib.feel",
+  "example": "local feel = require('lib.feel')"
+}
