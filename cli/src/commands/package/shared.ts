@@ -30,7 +30,7 @@ export function ensurePackageAddInteractive(): boolean {
   }
 
   printStatus('error', '`feather package add` requires an interactive terminal.');
-  printMuted('Run it from a real TTY, or use `feather package install --from-url <url> --target <path> --allow-untrusted` for scripts.');
+  printMuted('Run it from a real TTY, or use `feather package install --from-url <url> --target-path <path> --allow-untrusted` for scripts.');
   fail('', { silent: true });
   return false;
 }

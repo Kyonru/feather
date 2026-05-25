@@ -27,7 +27,8 @@ export type PackageInstallOptions = {
   dryRun?: boolean;
   allowUntrusted?: boolean;
   allowNonLuaFiles?: boolean;
-  target?: string;
+  flatDir?: string;
+  targetPath?: string;
   installDir?: string;
   saveInstallDir?: boolean;
   fromUrl?: string;
@@ -40,11 +41,14 @@ export type PackageInstallOptions = {
 export async function packageInstallCommand(names: string[], opts: PackageInstallOptions = {}): Promise<void> {
   const projectDir = resolvePackageProjectDir(opts.dir);
 
-  if (opts.fromUrl && (opts.installDir || opts.saveInstallDir)) {
-    fail('--from-url uses --target <path>; --install-dir is only supported for catalog packages.');
+  if (opts.fromUrl && (opts.installDir || opts.saveInstallDir || opts.flatDir)) {
+    fail('--from-url uses --target-path <path>; --install-dir and --flat-dir are only supported for catalog packages.');
   }
-  if (opts.installDir && opts.target) {
-    fail('--install-dir cannot be used with --target.');
+  if (!opts.fromUrl && opts.targetPath) {
+    fail('--target-path can only be used with --from-url.');
+  }
+  if (opts.installDir && opts.flatDir) {
+    fail('--install-dir cannot be used with --flat-dir.');
   }
   if (opts.saveInstallDir && !opts.installDir) {
     fail('--save-install-dir requires --install-dir <dir>.');
@@ -52,11 +56,14 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   if (opts.installDir && !resolveProjectTarget(projectDir, opts.installDir)) {
     fail('--install-dir must be a relative path inside the project.');
   }
+  if (opts.flatDir && !resolveProjectTarget(projectDir, opts.flatDir)) {
+    fail('--flat-dir must be a relative path inside the project.');
+  }
 
   if (opts.fromUrl) {
-    if (!opts.target) {
+    if (!opts.targetPath) {
       printBlank();
-      printStatus('error', '--target <path> is required with --from-url');
+      printStatus('error', '--target-path <path> is required with --from-url');
       fail('', { silent: true });
     }
 
@@ -65,7 +72,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       printWarning('Installing from untrusted URL');
       printKeyValues([
         ['URL', opts.fromUrl],
-        ['Target', opts.target],
+        ['Target', opts.targetPath],
         ['Trust', 'experimental; not reviewed by the Feather team'],
       ]);
 
@@ -80,7 +87,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
         label: 'Install this unreviewed URL?',
         hint: 'Only continue if you trust the source and target path.',
         danger: true,
-        rows: [`URL: ${opts.fromUrl}`, `Target: ${opts.target}`],
+        rows: [`URL: ${opts.fromUrl}`, `Target: ${opts.targetPath}`],
       });
       if (!confirmed) {
         printMuted('Install cancelled.');
@@ -93,7 +100,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     const result = await installFromUrl(lockfile, {
       projectDir,
       url: opts.fromUrl,
-      target: opts.target,
+      target: opts.targetPath,
       dryRun: opts.dryRun,
     });
 
@@ -243,7 +250,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       const savedInstallDir = lockfile.packages[pkg.id]?.installDir;
       const installDir = opts.installDir ?? savedInstallDir;
       for (const f of pkg.files) {
-        const target = planPackageTarget(f, { targetOverride: opts.target, installDir });
+        const target = planPackageTarget(f, { targetOverride: opts.flatDir, installDir });
         printLine(`    ${style.muted(f.name)}  →  ${target}`);
       }
       printBlank();
@@ -256,7 +263,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     packages: toInstall,
     lockfile,
     projectDir,
-    targetOverride: opts.target,
+    targetOverride: opts.flatDir,
     installDir: opts.installDir,
     saveInstallDir: opts.saveInstallDir,
   });

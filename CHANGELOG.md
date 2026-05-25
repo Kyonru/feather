@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `--install-dir` and `--save-install-dir` to `feather package install` so catalog packages can be installed under a custom base directory and keep that location for future installs and updates.
+- Renamed package install targeting flags to `--flat-dir` for catalog flattening and `--target-path` for `--from-url`; `--target` remains as a hidden compatibility alias.
 
 ### Tests
 
@@ -274,7 +275,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `feather package install <name>` — downloads and verifies files against pinned SHA-256 before writing to disk
   - `feather package install` (no args) — restores all packages recorded in `feather.lock.json`; skips files already verified
   - `feather package install <name>@<version>` — installs a specific version, treated as `experimental` (requires `--allow-untrusted`)
-  - `feather package install --from-url <url> --target <path>` — install any Lua file by URL; SHA-256 computed live and stored
+  - `feather package install --from-url <url> --target-path <path>` — install any Lua file by URL; SHA-256 computed live and stored
   - `feather package update [name]` — updates installed packages to the registry-pinned version
   - `feather package remove <name>` — deletes installed files and removes the lockfile entry
   - `feather package audit` — re-hashes every installed file and compares against `feather.lock.json`; exits 1 if any file is missing or modified

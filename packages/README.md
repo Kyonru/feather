@@ -98,7 +98,8 @@ Options:
 | Flag                    | Description                                                         |
 | ----------------------- | ------------------------------------------------------------------- |
 | `--dry-run`             | Show what would be installed without writing files                  |
-| `--target <dir>`        | Override the install directory                                      |
+| `--flat-dir <dir>`      | Flatten catalog package files into a directory                      |
+| `--target-path <path>`  | Destination path for `--from-url` installs                          |
 | `--install-dir <dir>`   | Install catalog package files under a custom base directory         |
 | `--save-install-dir`    | Save `--install-dir` in `feather.lock.json` for future installs     |
 | `--offline`             | Use the bundled registry snapshot instead of fetching               |
@@ -109,6 +110,8 @@ Options:
 `feather package install feel --install-dir vendor --save-install-dir` writes `vendor/feel/init.lua`
 and `vendor/feel/vendor/flux.lua`, then records `installDir: "vendor"` so future
 `feather package install feel` and `feather package update feel` runs keep using that location.
+Use `--flat-dir` only when you deliberately want all catalog files flattened by basename, such as
+`feel/init.lua` → `vendor/init.lua`.
 
 **Example output:**
 
@@ -195,7 +198,7 @@ feather package add --dir path/to/my-game
 >
 > Repo installs store the selected repo/tag and resolved commit SHA when available. URL installs store the primary URL, all selected URLs, per-file URLs, and per-file SHA-256 values.
 
-### `feather package install --from-url <url> --target <path>`
+### `feather package install --from-url <url> --target-path <path>`
 
 Non-interactive equivalent of `feather package add`. Use this in scripts or CI where stdin is not a TTY. Installs a single Lua file from a URL.
 
@@ -203,7 +206,7 @@ Non-interactive equivalent of `feather package add`. Use this in scripts or CI w
 
 ```sh
 feather package install --from-url https://example.com/mylib.lua \
-  --target lib/mylib.lua \
+  --target-path lib/mylib.lua \
   --allow-untrusted
 ```
 

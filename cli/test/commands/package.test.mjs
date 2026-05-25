@@ -237,12 +237,29 @@ test('install: --install-dir dry-run reinstalls already-installed package', () =
   assert.ok(stdout.includes('vendor/feel/init.lua'));
 });
 
+test('install: --flat-dir dry-run flattens catalog files', () => {
+  const dir = makeTmp();
+  const { stdout, exitCode } = run(['package', 'install', 'feel', '--flat-dir', 'vendor', '--dry-run', '--offline', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('feel/init.lua'));
+  assert.ok(stdout.includes('vendor/init.lua'));
+  assert.ok(stdout.includes('vendor/flux.lua'));
+});
+
+test('install: deprecated --target alias still flattens catalog files', () => {
+  const dir = makeTmp();
+  const { stdout, exitCode } = run(['package', 'install', 'feel', '--target', 'vendor', '--dry-run', '--offline', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('vendor/init.lua'));
+  assert.ok(stdout.includes('vendor/flux.lua'));
+});
+
 test('install: install-dir option validation', () => {
   const dir = makeTmp();
 
-  const withTarget = run(['package', 'install', 'feel', '--install-dir', 'vendor', '--target', 'lib', '--offline', '--dir', dir]);
-  assert.equal(withTarget.exitCode, 1);
-  assert.ok(outputOf(withTarget).includes('--install-dir cannot be used with --target'));
+  const withFlatDir = run(['package', 'install', 'feel', '--install-dir', 'vendor', '--flat-dir', 'lib', '--offline', '--dir', dir]);
+  assert.equal(withFlatDir.exitCode, 1);
+  assert.ok(outputOf(withFlatDir).includes('--install-dir cannot be used with --flat-dir'));
 
   const saveOnly = run(['package', 'install', 'feel', '--save-install-dir', '--offline', '--dir', dir]);
   assert.equal(saveOnly.exitCode, 1);
@@ -256,12 +273,20 @@ test('install: install-dir option validation', () => {
   assert.equal(escaping.exitCode, 1);
   assert.ok(outputOf(escaping).includes('--install-dir must be a relative path'));
 
+  const escapingFlatDir = run(['package', 'install', 'feel', '--flat-dir', '../vendor', '--offline', '--dir', dir]);
+  assert.equal(escapingFlatDir.exitCode, 1);
+  assert.ok(outputOf(escapingFlatDir).includes('--flat-dir must be a relative path'));
+
+  const catalogTargetPath = run(['package', 'install', 'feel', '--target-path', 'lib/feel.lua', '--offline', '--dir', dir]);
+  assert.equal(catalogTargetPath.exitCode, 1);
+  assert.ok(outputOf(catalogTargetPath).includes('--target-path can only be used with --from-url'));
+
   const fromUrl = run([
     'package',
     'install',
     '--from-url',
     'https://example.com/helper.lua',
-    '--target',
+    '--target-path',
     'lib/helper.lua',
     '--install-dir',
     'vendor',
@@ -270,7 +295,7 @@ test('install: install-dir option validation', () => {
     dir,
   ]);
   assert.equal(fromUrl.exitCode, 1);
-  assert.ok(outputOf(fromUrl).includes('--from-url uses --target'));
+  assert.ok(outputOf(fromUrl).includes('--from-url uses --target-path'));
 });
 
 test('install: already-installed package is skipped', () => {
@@ -302,7 +327,7 @@ test('install --from-url: missing --allow-untrusted exits 1 with warning', () =>
     'install',
     '--from-url',
     'https://example.com/helper.lua',
-    '--target',
+    '--target-path',
     'lib/helper.lua',
     '--dir',
     dir,
@@ -326,7 +351,7 @@ test('install --from-url: --yes alone does not bypass untrusted source', () => {
     'install',
     '--from-url',
     'https://example.com/helper.lua',
-    '--target',
+    '--target-path',
     'lib/helper.lua',
     '--yes',
     '--dir',
@@ -336,7 +361,7 @@ test('install --from-url: --yes alone does not bypass untrusted source', () => {
   assert.ok(stdout.includes('allow-untrusted') || stdout.includes('untrusted'));
 });
 
-test('install --from-url: missing --target exits 1', () => {
+test('install --from-url: missing --target-path exits 1', () => {
   const dir = makeTmp();
   const result = run([
     'package',
@@ -348,7 +373,7 @@ test('install --from-url: missing --target exits 1', () => {
     dir,
   ]);
   assert.equal(result.exitCode, 1);
-  assert.ok(outputOf(result).includes('--target'));
+  assert.ok(outputOf(result).includes('--target-path'));
 });
 
 test('audit: no packages installed prints hint', () => {

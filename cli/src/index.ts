@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import packageJson from '../package.json' with { type: 'json' };
@@ -727,10 +727,12 @@ export function createProgram(): Command {
     .option('--dry-run', 'Show what would be installed without writing files')
     .option('--allow-untrusted', 'Allow installing experimental packages')
     .option('--allow-non-lua-files', 'Allow installing non-Lua files (e.g. shaders, images)')
-    .option('--target <dir>', 'Override install target directory')
+    .option('--flat-dir <dir>', 'Flatten catalog package files into a directory')
+    .option('--target-path <path>', 'Destination path for --from-url installs')
     .option('--install-dir <dir>', 'Install catalog package files under a custom base directory')
     .option('--save-install-dir', 'Save --install-dir in feather.lock.json for future installs and updates')
     .option('--from-url <url>', 'Install a single file from an arbitrary URL (requires --allow-untrusted)')
+    .addOption(new Option('--target <path>', 'Deprecated alias for --target-path with --from-url or --flat-dir for catalog installs').hideHelp())
     .option('--offline', 'Use bundled registry snapshot')
     .option('--dir <path>', 'Project directory')
     .option('-y, --yes', 'Skip confirmation prompts')
@@ -741,7 +743,8 @@ export function createProgram(): Command {
           dryRun: opts.dryRun as boolean | undefined,
           allowUntrusted: opts.allowUntrusted as boolean | undefined,
           allowNonLuaFiles: opts.allowNonLuaFiles as boolean | undefined,
-          target: opts.target as string | undefined,
+          flatDir: (opts.flatDir ?? (!opts.fromUrl ? opts.target : undefined)) as string | undefined,
+          targetPath: (opts.targetPath ?? (opts.fromUrl ? opts.target : undefined)) as string | undefined,
           installDir: opts.installDir as string | undefined,
           saveInstallDir: opts.saveInstallDir as boolean | undefined,
           fromUrl: opts.fromUrl as string | undefined,
