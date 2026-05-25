@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { assert, join, makeTmp, outputOf, run, symlinkSync, test } from './helpers.mjs';
@@ -21,15 +22,19 @@ test('help: symlinked global bin executes CLI', () => {
   const bin = join(makeTmp(), 'feather');
   symlinkSync(CLI, bin);
 
-  const result = spawnSync(bin, ['--help'], {
+  const result = spawnSync(process.execPath, [bin, '--help'], {
     encoding: 'utf8',
     env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
   });
 
-  assert.equal(result.status, 0, outputOf({
-    stdout: result.stdout ?? '',
-    stderr: result.stderr ?? '',
-    exitCode: result.status ?? 1,
-  }));
+  assert.equal(
+    result.status,
+    0,
+    outputOf({
+      stdout: result.stdout ?? '',
+      stderr: result.stderr ?? '',
+      exitCode: result.status ?? 1,
+    }),
+  );
   assert.match(result.stdout ?? '', /Usage:/);
 });
