@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import packageJson from '../package.json' with { type: 'json' };
 import { runCliAction } from './lib/command.js';
@@ -861,7 +862,16 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
   return exitCode;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+function isCliEntrypoint(): boolean {
+  if (!process.argv[1]) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+  } catch {
+    return import.meta.url === pathToFileURL(process.argv[1]).href;
+  }
+}
+
+if (isCliEntrypoint()) {
   const exitCode = await runCli();
   process.exitCode = exitCode;
 }
