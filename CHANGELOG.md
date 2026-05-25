@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v1.4.1] - 2026-05-21 - The one with the correct extension name
+## [unreleased]
+
+## [v1.4.2] - 2026-05-25 - The one with fixed cli
+
+### Fixed
+
+- Fixed the global `feather` npm bin so symlinked installs execute the CLI instead of exiting silently.
+
+### Tests
+
+- Added CLI help coverage for symlinked global-bin execution.
+
+## [v1.4.1] - 2026-05-24 - The one with the correct extension name
 
 ### Fixed
 
@@ -593,6 +605,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[unreleased]: https://github.com/Kyonru/feather/compare/v1.4.2...unreleased
+[v1.4.2]: https://github.com/Kyonru/feather/compare/v1.4.1...v1.4.2
+[v1.4.1]: https://github.com/Kyonru/feather/compare/v1.4.0...v1.4.1
 [v1.4.0]: https://github.com/Kyonru/feather/compare/v1.3.1...v1.4.0
 [v1.3.1]: https://github.com/Kyonru/feather/compare/v1.3.0...v1.3.1
 [v1.3.0]: https://github.com/Kyonru/feather/compare/v1.2.0...v1.3.0
