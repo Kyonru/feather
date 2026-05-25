@@ -3,6 +3,7 @@ import { installFromUrl, restorePackage } from '../../lib/package/install.js';
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntryRequiresUntrustedRepair, lockfileEntrySourceSummary } from '../../lib/package/provenance.js';
 import { resolveMany } from '../../lib/package/resolve.js';
+import { planPackageTarget, resolveProjectTarget } from '../../lib/package/target.js';
 import { fail } from '../../lib/command.js';
 import {
   createSpinner,
@@ -27,6 +28,8 @@ export type PackageInstallOptions = {
   allowUntrusted?: boolean;
   allowNonLuaFiles?: boolean;
   target?: string;
+  installDir?: string;
+  saveInstallDir?: boolean;
   fromUrl?: string;
   dir?: string;
   offline?: boolean;
@@ -36,6 +39,19 @@ export type PackageInstallOptions = {
 
 export async function packageInstallCommand(names: string[], opts: PackageInstallOptions = {}): Promise<void> {
   const projectDir = resolvePackageProjectDir(opts.dir);
+
+  if (opts.fromUrl && (opts.installDir || opts.saveInstallDir)) {
+    fail('--from-url uses --target <path>; --install-dir is only supported for catalog packages.');
+  }
+  if (opts.installDir && opts.target) {
+    fail('--install-dir cannot be used with --target.');
+  }
+  if (opts.saveInstallDir && !opts.installDir) {
+    fail('--save-install-dir requires --install-dir <dir>.');
+  }
+  if (opts.installDir && !resolveProjectTarget(projectDir, opts.installDir)) {
+    fail('--install-dir must be a relative path inside the project.');
+  }
 
   if (opts.fromUrl) {
     if (!opts.target) {
@@ -192,6 +208,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     if (pkg.versionOverride) return true;
     const existing = lockfile.packages[pkg.id];
     if (existing && existing.version === pkg.entry.source.tag) {
+      if (opts.installDir) return true;
       printMuted(`  ${pkg.id} is already installed at ${existing.version}`);
       return false;
     }
@@ -223,8 +240,11 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       const displayVersion = pkg.versionOverride ?? pkg.entry.source.tag;
       printLine(`  ${style.heading(pkg.id)}  ${trustBadge(pkg.versionOverride ? 'experimental' : pkg.entry.trust)}`);
       printLine(`  Source:  github.com/${pkg.entry.source.repo}  Version: ${displayVersion}`);
+      const savedInstallDir = lockfile.packages[pkg.id]?.installDir;
+      const installDir = opts.installDir ?? savedInstallDir;
       for (const f of pkg.files) {
-        printLine(`    ${style.muted(f.name)}  →  ${f.target}`);
+        const target = planPackageTarget(f, { targetOverride: opts.target, installDir });
+        printLine(`    ${style.muted(f.name)}  →  ${target}`);
       }
       printBlank();
     }
@@ -232,7 +252,14 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     return;
   }
 
-  const results = await showInstallProgress({ packages: toInstall, lockfile, projectDir, targetOverride: opts.target });
+  const results = await showInstallProgress({
+    packages: toInstall,
+    lockfile,
+    projectDir,
+    targetOverride: opts.target,
+    installDir: opts.installDir,
+    saveInstallDir: opts.saveInstallDir,
+  });
   if (results.every((r) => r.ok)) {
     writeLockfile(projectDir, lockfile);
   } else {

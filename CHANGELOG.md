@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Added
+
+- Added `--install-dir` and `--save-install-dir` to `feather package install` so catalog packages can be installed under a custom base directory and keep that location for future installs and updates.
+
+### Tests
+
+- Added package CLI coverage for custom install directories, saved install directory lockfile metadata, and install-dir validation.
+
 ## [v1.4.2] - 2026-05-25 - The one with fixed cli
 
 ### Fixed

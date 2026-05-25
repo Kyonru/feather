@@ -90,6 +90,7 @@ feather package install anim8
 feather package install bump lume flux
 feather package install hump          # installs all hump modules
 feather package install hump.camera   # installs only the camera module
+feather package install feel --install-dir vendor --save-install-dir
 ```
 
 Options:
@@ -98,9 +99,16 @@ Options:
 | ----------------------- | ------------------------------------------------------------------- |
 | `--dry-run`             | Show what would be installed without writing files                  |
 | `--target <dir>`        | Override the install directory                                      |
+| `--install-dir <dir>`   | Install catalog package files under a custom base directory         |
+| `--save-install-dir`    | Save `--install-dir` in `feather.lock.json` for future installs     |
 | `--offline`             | Use the bundled registry snapshot instead of fetching               |
 | `--allow-untrusted`     | Required for `experimental` packages and version overrides          |
 | `--allow-non-lua-files` | Allow installing packages that include non-Lua files (e.g. shaders) |
+
+`--install-dir` preserves the package's catalog layout below the new base directory. For example,
+`feather package install feel --install-dir vendor --save-install-dir` writes `vendor/feel/init.lua`
+and `vendor/feel/vendor/flux.lua`, then records `installDir: "vendor"` so future
+`feather package install feel` and `feather package update feel` runs keep using that location.
 
 **Example output:**
 

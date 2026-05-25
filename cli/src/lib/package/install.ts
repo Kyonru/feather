@@ -1,15 +1,17 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { sha256Buffer } from "./checksum.js";
 import { addToLockfile, type Lockfile, type LockfileEntry } from "./lockfile.js";
 import { lockfileFileUrl } from "./provenance.js";
-import { resolveProjectTarget } from "./target.js";
+import { planPackageTarget, resolveProjectTarget } from "./target.js";
 import type { ResolvedPackage } from "./resolve.js";
 
 export type InstallOptions = {
   projectDir: string;
   dryRun?: boolean;
   targetOverride?: string;
+  installDir?: string;
+  saveInstallDir?: boolean;
   onFileStart?: (name: string) => void;
   onFileComplete?: (result: InstallFileResult) => void;
 };
@@ -65,9 +67,12 @@ export async function installPackage(
   lockfile: Lockfile,
   opts: InstallOptions
 ): Promise<InstallResult> {
-  const { projectDir, dryRun, targetOverride, onFileStart, onFileComplete } = opts;
+  const { projectDir, dryRun, targetOverride, installDir, saveInstallDir, onFileStart, onFileComplete } = opts;
   const fileResults: InstallFileResult[] = [];
   const lockedFiles: LockfileEntry["files"] = [];
+  const savedInstallDir = lockfile.packages[pkg.id]?.installDir;
+  const effectiveInstallDir = targetOverride ? undefined : (installDir ?? savedInstallDir);
+  const shouldSaveInstallDir = !targetOverride && (installDir ? !!saveInstallDir : !!savedInstallDir);
 
   const src = pkg.entry.source;
   const effectiveTag = pkg.versionOverride ?? src.tag ?? 'url';
@@ -78,9 +83,7 @@ export async function installPackage(
 
   const plannedFiles = pkg.files.map((file) => ({
     file,
-    relTarget: targetOverride
-      ? join(targetOverride, file.name.split("/").pop()!)
-      : file.target,
+    relTarget: planPackageTarget(file, { targetOverride, installDir: effectiveInstallDir }),
   }));
   const resolvedTargets: string[] = [];
 
@@ -151,6 +154,7 @@ export async function installPackage(
         ...(!pkg.versionOverride && src.commitSha ? { resolvedRef: src.commitSha, commitSha: src.commitSha } : {}),
       },
       files: lockedFiles,
+      ...(shouldSaveInstallDir && effectiveInstallDir ? { installDir: effectiveInstallDir } : {}),
     });
   }
 

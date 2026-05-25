@@ -209,6 +209,70 @@ test('install: dry-run shows plan without writing any files', () => {
   assert.ok(!existsSync(join(dir, 'feather.lock.json')), 'must not write lockfile');
 });
 
+test('install: --install-dir dry-run preserves package layout', () => {
+  const dir = makeTmp();
+  const { stdout, exitCode } = run(['package', 'install', 'feel', '--install-dir', 'vendor', '--dry-run', '--offline', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.includes('feel/init.lua'));
+  assert.ok(stdout.includes('vendor/feel/init.lua'));
+  assert.ok(stdout.includes('vendor/feel/vendor/flux.lua'));
+  assert.ok(!existsSync(join(dir, 'vendor', 'feel', 'init.lua')), 'must not write any file');
+  assert.ok(!existsSync(join(dir, 'feather.lock.json')), 'must not write lockfile');
+});
+
+test('install: --install-dir dry-run reinstalls already-installed package', () => {
+  const dir = makeTmp();
+  writeLock(dir, {
+    feel: {
+      version: 'main',
+      trust: 'verified',
+      source: { repo: 'kyonru/feel.lua', tag: 'main' },
+      files: [],
+    },
+  });
+
+  const { stdout, exitCode } = run(['package', 'install', 'feel', '--install-dir', 'vendor', '--dry-run', '--offline', '--dir', dir]);
+  assert.equal(exitCode, 0);
+  assert.ok(!stdout.includes('already installed'));
+  assert.ok(stdout.includes('vendor/feel/init.lua'));
+});
+
+test('install: install-dir option validation', () => {
+  const dir = makeTmp();
+
+  const withTarget = run(['package', 'install', 'feel', '--install-dir', 'vendor', '--target', 'lib', '--offline', '--dir', dir]);
+  assert.equal(withTarget.exitCode, 1);
+  assert.ok(outputOf(withTarget).includes('--install-dir cannot be used with --target'));
+
+  const saveOnly = run(['package', 'install', 'feel', '--save-install-dir', '--offline', '--dir', dir]);
+  assert.equal(saveOnly.exitCode, 1);
+  assert.ok(outputOf(saveOnly).includes('--save-install-dir requires --install-dir'));
+
+  const absolute = run(['package', 'install', 'feel', '--install-dir', '/tmp/vendor', '--offline', '--dir', dir]);
+  assert.equal(absolute.exitCode, 1);
+  assert.ok(outputOf(absolute).includes('--install-dir must be a relative path'));
+
+  const escaping = run(['package', 'install', 'feel', '--install-dir', '../vendor', '--offline', '--dir', dir]);
+  assert.equal(escaping.exitCode, 1);
+  assert.ok(outputOf(escaping).includes('--install-dir must be a relative path'));
+
+  const fromUrl = run([
+    'package',
+    'install',
+    '--from-url',
+    'https://example.com/helper.lua',
+    '--target',
+    'lib/helper.lua',
+    '--install-dir',
+    'vendor',
+    '--allow-untrusted',
+    '--dir',
+    dir,
+  ]);
+  assert.equal(fromUrl.exitCode, 1);
+  assert.ok(outputOf(fromUrl).includes('--from-url uses --target'));
+});
+
 test('install: already-installed package is skipped', () => {
   const dir = makeTmp();
   writeLock(dir, {
@@ -1357,6 +1421,112 @@ test('custom add: invalid repo commit provenance is rejected before fetch or wri
       assert.equal(fetchCalled, false);
       assert.match(result.error, /commitSha/);
       assert.equal(existsSync(join(dir, 'feather.lock.json')), false);
+    },
+  );
+});
+
+test('install package: installDir writes preserved layout and saves lockfile preference', async () => {
+  const dir = makeTmp();
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const content = 'return "feel"';
+  const vendorContent = 'return "flux"';
+  const pkg = {
+    id: 'feel',
+    entry: {
+      trust: 'verified',
+      source: { repo: 'kyonru/feel.lua', tag: 'main', baseUrl: 'https://example.com/' },
+    },
+    files: [
+      { name: 'feel/init.lua', target: 'lib/feel/init.lua', sha256: sha256(content) },
+      { name: 'feel/vendor/flux.lua', target: 'lib/feel/vendor/flux.lua', sha256: sha256(vendorContent) },
+    ],
+  };
+
+  await withFetchMock(
+    async (url) => {
+      const body = String(url).endsWith('/feel/init.lua') ? content : vendorContent;
+      return new Response(body);
+    },
+    async () => {
+      const lockfile = emptyLockfile();
+      const result = await installPackage(pkg, lockfile, {
+        projectDir: dir,
+        installDir: 'vendor',
+        saveInstallDir: true,
+      });
+
+      assert.equal(result.ok, true);
+      assert.equal(readFileSync(join(dir, 'vendor', 'feel', 'init.lua'), 'utf8'), content);
+      assert.equal(readFileSync(join(dir, 'vendor', 'feel', 'vendor', 'flux.lua'), 'utf8'), vendorContent);
+      assert.equal(lockfile.packages.feel.installDir, 'vendor');
+      assert.deepEqual(lockfile.packages.feel.files.map((file) => file.target), [
+        'vendor/feel/init.lua',
+        'vendor/feel/vendor/flux.lua',
+      ]);
+    },
+  );
+});
+
+test('install package: installDir without save only records transformed file targets', async () => {
+  const dir = makeTmp();
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const content = 'return "feel"';
+  const pkg = {
+    id: 'feel',
+    entry: {
+      trust: 'verified',
+      source: { repo: 'kyonru/feel.lua', tag: 'main', baseUrl: 'https://example.com/' },
+    },
+    files: [{ name: 'feel/init.lua', target: 'lib/feel/init.lua', sha256: sha256(content) }],
+  };
+
+  await withFetchMock(
+    async () => new Response(content),
+    async () => {
+      const lockfile = emptyLockfile();
+      const result = await installPackage(pkg, lockfile, {
+        projectDir: dir,
+        installDir: 'vendor',
+      });
+
+      assert.equal(result.ok, true);
+      assert.equal(lockfile.packages.feel.installDir, undefined);
+      assert.equal(lockfile.packages.feel.files[0].target, 'vendor/feel/init.lua');
+    },
+  );
+});
+
+test('install package: saved installDir is reused by later installs', async () => {
+  const dir = makeTmp();
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const content = 'return "feel"';
+  const pkg = {
+    id: 'feel',
+    entry: {
+      trust: 'verified',
+      source: { repo: 'kyonru/feel.lua', tag: 'main', baseUrl: 'https://example.com/' },
+    },
+    files: [{ name: 'feel/init.lua', target: 'lib/feel/init.lua', sha256: sha256(content) }],
+  };
+
+  await withFetchMock(
+    async () => new Response(content),
+    async () => {
+      const lockfile = emptyLockfile();
+      lockfile.packages.feel = {
+        version: 'old',
+        trust: 'verified',
+        source: { repo: 'kyonru/feel.lua', tag: 'old' },
+        installDir: 'vendor',
+        files: [{ name: 'feel/init.lua', target: 'vendor/feel/init.lua', sha256: sha256('old') }],
+        installedAt: new Date(0).toISOString(),
+      };
+      const result = await installPackage(pkg, lockfile, { projectDir: dir });
+
+      assert.equal(result.ok, true);
+      assert.equal(lockfile.packages.feel.installDir, 'vendor');
+      assert.equal(lockfile.packages.feel.files[0].target, 'vendor/feel/init.lua');
+      assert.equal(readFileSync(join(dir, 'vendor', 'feel', 'init.lua'), 'utf8'), content);
     },
   );
 });

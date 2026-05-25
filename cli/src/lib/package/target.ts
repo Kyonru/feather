@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { isAbsolute, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { assertNoSymlinkEscape } from "../path-safety.js";
 
 export function resolveProjectTarget(projectDir: string, target: string): string | null {
@@ -18,4 +18,22 @@ export function resolveProjectTarget(projectDir: string, target: string): string
     }
   }
   return absoluteTarget;
+}
+
+export type PackageTargetPlanOptions = {
+  targetOverride?: string;
+  installDir?: string;
+};
+
+export function planPackageTarget(file: { name: string; target: string }, opts: PackageTargetPlanOptions = {}): string {
+  if (opts.targetOverride) {
+    return join(opts.targetOverride, basename(file.name));
+  }
+
+  if (opts.installDir) {
+    const rest = dirname(file.target).split(/[\\/]/).filter(Boolean).slice(1);
+    return join(opts.installDir, ...rest, basename(file.target));
+  }
+
+  return file.target;
 }

@@ -728,6 +728,8 @@ export function createProgram(): Command {
     .option('--allow-untrusted', 'Allow installing experimental packages')
     .option('--allow-non-lua-files', 'Allow installing non-Lua files (e.g. shaders, images)')
     .option('--target <dir>', 'Override install target directory')
+    .option('--install-dir <dir>', 'Install catalog package files under a custom base directory')
+    .option('--save-install-dir', 'Save --install-dir in feather.lock.json for future installs and updates')
     .option('--from-url <url>', 'Install a single file from an arbitrary URL (requires --allow-untrusted)')
     .option('--offline', 'Use bundled registry snapshot')
     .option('--dir <path>', 'Project directory')
@@ -740,6 +742,8 @@ export function createProgram(): Command {
           allowUntrusted: opts.allowUntrusted as boolean | undefined,
           allowNonLuaFiles: opts.allowNonLuaFiles as boolean | undefined,
           target: opts.target as string | undefined,
+          installDir: opts.installDir as string | undefined,
+          saveInstallDir: opts.saveInstallDir as boolean | undefined,
           fromUrl: opts.fromUrl as string | undefined,
           offline: opts.offline as boolean | undefined,
           dir: opts.dir as string | undefined,
