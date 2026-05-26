@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.4.3] - 2026-05-26 - The one with particles playground fixes
+
+### Changed
+
+- Particle System Playground exports now generate drop-in Lua modules with `init`, `update`, `draw`, `emit`, and `release` lifecycle functions.
+
+### Fixed
+
+- Fixed Particle System Playground exports with shaders so generated modules embed shader source directly in `init.lua` instead of requiring runtime `.glsl` file reads.
+
+### Tests
+
+- Added Lua e2e coverage for the Particle System Playground drop-in export format.
+
 ## [v1.4.2] - 2026-05-25 - The one with fixed cli
 
 ### Added

@@ -92,32 +92,33 @@ Important actions:
 
 ## Export
 
-Exports produce a Lua module shaped like:
+Exports produce a Lua module that can be dropped into a game and driven through a small lifecycle API:
 
 ```lua
-local particles = {
+local particleEffect = require("particles.fire")
+local particles = particleEffect.init()
+
+function love.update(dt)
+  particleEffect.update(dt)
+end
+
+function love.draw()
+  particleEffect.draw()
+end
+
+particleEffect.emit({
   x = 400,
   y = 300,
-  [1] = {
-    system = ps1,
-    blendMode = "alpha",
-    shader = shader1,
-    texturePath = "gfx/fire.png",
-    texturePreset = "",
-    shaderPath = "",
-    shaderFilename = "shader.glsl",
-    x = 0,
-    y = 0,
-    kickStartSteps = 0,
-    kickStartDt = 1 / 60,
-    emitAtStart = 0,
-  },
-}
-
-return particles
+  r = 0,
+  amount = 24,
+})
 ```
 
-ZIP export returns `init.lua` and any available texture/shader assets. Imported texture bytes are preserved for ZIP output. Game-path assets are read through `love.filesystem.read` when possible.
+Generated modules return `{ init, update, draw, emit, release }`. `init()` creates all exported emitters, applies their ParticleSystem settings, runs any kick-start steps, emits configured startup bursts, and returns a `particles` table with composite position and emitter metadata.
+
+`emit(payload)` expects a `ParticlePayload` table with `x`, `y`, `r`, and `amount`. It emits every exported emitter by default; set `payload.systemIndex` to emit only one emitter in a multi-emitter composite.
+
+ZIP export returns `init.lua` and any available texture assets. Shader source is embedded in `init.lua` as Lua strings so generated modules do not need to read `.glsl` files at runtime. Imported texture bytes are preserved for ZIP output. Game-path texture assets are read through `love.filesystem.read` when possible.
 
 ## Shaders
 
