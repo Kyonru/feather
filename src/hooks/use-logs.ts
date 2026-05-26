@@ -143,6 +143,7 @@ export const useLogs = (): {
     setClearTime(lastNow);
     if (sessionId) {
       queryClient.setQueryData(sessionQueryKey.logs(sessionId), []);
+      sendCommand(sessionId, { type: 'cmd:log', action: 'clear' }).catch(() => {});
     }
     // Reset file reader offset so re-read starts fresh if override is active
     if (overrideLogFile) {

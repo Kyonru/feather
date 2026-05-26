@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.5.1] - 2026-05-26 - The one with better traces
+
+### Added
+
+- root path fallback for deeplinking from trace.
+
+### Fixed
+
+- Log repeat counts now render in the actual log table.
+- Log details now show the repeat count for the selected entry.
+- Log details now stay synced as repeat counts update.
+- Clearing logs now resets the runtime repeat counter so the next identical log appears normally.
+- Fixed log row selection so live updates no longer prevent opening a log details panel.
+- Traceback path stripping.
+
 ## [v1.5.0] - 2026-05-26 - The one with particles playground fixes
 
 ### Added

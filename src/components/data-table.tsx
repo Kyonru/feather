@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useRef, useState } from 'react';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -132,6 +132,16 @@ export const columns: ColumnDef<Log>[] = [
   {
     accessorKey: 'str',
     header: () => <div className="w-full text-left">Log</div>,
+    cell: ({ row }) => (
+      <div className="flex min-w-0 items-center gap-2">
+        {row.original.count > 1 && (
+          <span className="shrink-0 rounded-full bg-muted-foreground/20 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+            {row.original.count}
+          </span>
+        )}
+        <span className="truncate">{row.original.str}</span>
+      </div>
+    ),
     enableColumnFilter: true,
     size: 500,
   },
@@ -143,7 +153,7 @@ export const columns: ColumnDef<Log>[] = [
   },
 ];
 
-const TableRowComponent = <TData,>(rows: Row<TData>[]) =>
+const TableRowComponent = <TData,>(rows: Row<TData>[], onRowSelection?: (id: string) => void) =>
   function getTableRow(props: React.HTMLAttributes<HTMLTableRowElement>) {
     // @ts-expect-error data-index is a valid attribute
     const index = props['data-index'];
@@ -154,14 +164,24 @@ const TableRowComponent = <TData,>(rows: Row<TData>[]) =>
     return (
       <TableRow
         key={row.id}
-        onClick={() => row.toggleSelected()}
         data-state={row.getIsSelected() && 'selected'}
         className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
         {...props}
+        onPointerDown={(event) => {
+          props.onPointerDown?.(event);
+          if (event.button !== 0) return;
+          row.toggleSelected(true);
+          onRowSelection?.(row.id);
+        }}
+        onClick={(event) => {
+          props.onClick?.(event);
+          row.toggleSelected(true);
+          onRowSelection?.(row.id);
+        }}
       >
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id}>
-            <p className="truncate max-w-80">{flexRender(cell.column.columnDef.cell, cell.getContext())}</p>
+            <div className="max-w-80 truncate">{flexRender(cell.column.columnDef.cell, cell.getContext())}</div>
           </TableCell>
         ))}
       </TableRow>
@@ -261,13 +281,6 @@ export function DataTable({
     }
   };
 
-  useEffect(() => {
-    if (rowSelection) {
-      const selected = Object.keys(rowSelection);
-      onRowSelection?.(selected[0]);
-    }
-  }, [rowSelection]);
-
   return (
     <Tabs defaultValue="outline" className="flex min-h-0 w-full flex-1 flex-col justify-start gap-6">
       <TabsContent value="outline" className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-4 lg:px-6">
@@ -364,7 +377,7 @@ export function DataTable({
             totalCount={rows.length}
             components={{
               Table: TableComponent,
-              TableRow: TableRowComponent(rows),
+              TableRow: TableRowComponent(rows, onRowSelection),
               TableHead: TableHeader,
             }}
             fixedHeaderContent={() =>

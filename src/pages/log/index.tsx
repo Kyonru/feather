@@ -4,7 +4,7 @@ import { BadgeType, DataTable } from '@/components/data-table';
 import { PageLayout } from '@/components/page-layout';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button, CopyButton } from '@/components/ui/button';
 import { useConfig } from '@/hooks/use-config';
@@ -28,7 +28,19 @@ export const columns: ColumnDef<Log>[] = [
   {
     accessorKey: 'str',
     header: () => 'Log',
-    cell: (info) => info.getValue() as string,
+    cell: (info) => {
+      const row = info.row.original;
+      return (
+        <div className="flex items-center gap-2">
+          <span className="truncate">{row.str}</span>
+          {row.count > 1 && (
+            <span className="shrink-0 rounded-full bg-muted-foreground/20 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+              {row.count}
+            </span>
+          )}
+        </div>
+      );
+    },
     size: 250,
     maxSize: 250,
   },
@@ -60,15 +72,7 @@ function stripBasePath(trace: string, sourceDir: string, rootPath: string): stri
   return trace;
 }
 
-export function TraceBlock({
-  code,
-  basePath,
-  sourceDir,
-}: {
-  code: string;
-  basePath: string;
-  sourceDir?: string;
-}) {
+export function TraceBlock({ code, basePath, sourceDir }: { code: string; basePath: string; sourceDir?: string }) {
   const textEditorPath = useSettingsStore((state) => state.textEditorPath);
   const stripped = stripBasePath(code, sourceDir ?? '', basePath);
 
@@ -200,6 +204,11 @@ export function LogSidePanel({
           <span>{new Date(data.time * 1000).toLocaleString()}</span>
         </div>
 
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Count</span>
+          <span className="tabular-nums">{data.count}</span>
+        </div>
+
         {data.type === 'output' ? (
           <>
             <div>
@@ -227,7 +236,7 @@ export function LogSidePanel({
           <CopyButton value={stripBasePath(trace, sourceDir ?? '', basePath)} />
         </CardFooter>
       ) : null}
-     {screenshot ? <LogImage src={screenshot} /> : null}
+      {screenshot ? <LogImage src={screenshot} /> : null}
     </Card>
   );
 }
@@ -242,10 +251,10 @@ export default function Page() {
   const setActiveSession = useSessionStore((state) => state.setActiveSession);
   const queryClient = useQueryClient();
 
-  const [selectedLog, setSelectedLog] = useState<Log | null>(null);
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
 
   const onClose = () => {
-    setSelectedLog(null);
+    setSelectedLogId(null);
   };
 
   const onClear = () => {
@@ -254,10 +263,29 @@ export default function Page() {
 
   const logs = logsData.logs;
   const screenshotEnabled = logsData.screenshotEnabled;
+  const selectedLog = useMemo(
+    () => logs.find((item) => item.id === selectedLogId) ?? null,
+    [logs, selectedLogId],
+  );
+  const selectLog = useCallback(
+    (id: string) => {
+      setSelectedLogId(id || null);
+    },
+    [],
+  );
 
   return (
     <PageLayout
-      right={selectedLog && <LogSidePanel basePath={data?.root_path || ''} sourceDir={data?.sourceDir} data={selectedLog} onClose={onClose} />}
+      right={
+        selectedLog && (
+          <LogSidePanel
+            basePath={data?.root_path || ''}
+            sourceDir={data?.sourceDir}
+            data={selectedLog}
+            onClose={onClose}
+          />
+        )
+      }
     >
       <DataTable
         screenshotEnabled={screenshotEnabled}
@@ -272,9 +300,7 @@ export default function Page() {
         }}
         onClear={onClear}
         showSearch
-        onRowSelection={(id) => {
-          setSelectedLog(logs.find((item) => item.id === id) || null);
-        }}
+        onRowSelection={selectLog}
         data={logs}
         onUpload={(filename) => {
           if (filename) {

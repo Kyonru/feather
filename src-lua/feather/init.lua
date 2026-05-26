@@ -487,6 +487,8 @@ function Feather:__handleCommand(msg)
 
   if msg.type == "cmd:config" and msg.data then
     self:__setConfig(msg.data)
+  elseif msg.type == "cmd:log" and msg.action == "clear" then
+    self.featherLogger:clear()
   elseif msg.type == "cmd:log" and msg.action == "toggle-screenshots" then
     self:toggleScreenshots(not self.featherLogger.captureScreenshot)
   elseif msg.type == "cmd:plugin:action" and msg.plugin then

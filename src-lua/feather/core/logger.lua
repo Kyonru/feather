@@ -132,9 +132,15 @@ function FeatherLogger:__countOnRepeat(type, ...)
   local str = format(...)
   local last = self.last_log
   if last and str == last.str then
-    -- Update last line if this line is a duplicate of it
     last.time = os.time()
     last.count = last.count + 1
+    if self.feather then
+      self.feather:__sendWs(json.encode({
+        type = "log:update",
+        session = self.feather.sessionId,
+        data = { id = last.id, count = last.count, time = last.time },
+      }))
+    end
   else
     self:log({ type = type, str = str })
   end
@@ -195,6 +201,7 @@ end
 
 function FeatherLogger:clear()
   self.logs = {}
+  self.last_log = nil
 end
 
 function FeatherLogger:logger(...)

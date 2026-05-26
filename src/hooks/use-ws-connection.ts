@@ -398,6 +398,14 @@ export const useWsConnection = () => {
             break;
           }
 
+          case 'log:update': {
+            const { id, count, time } = data as { id: string; count: number; time: number };
+            queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) =>
+              prev?.map((l) => (l.id === id ? { ...l, count, time } : l)) ?? [],
+            );
+            break;
+          }
+
           case 'performance': {
             const metric = data as PerformanceMetrics;
             // Lua sends memory/peakMemory in KB (collectgarbage("count")), normalize to MB
