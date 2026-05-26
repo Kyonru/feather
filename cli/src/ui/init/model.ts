@@ -111,11 +111,14 @@ export const installSources: Option<"local" | "remote">[] = [
   },
 ];
 
-const pluginToOption = (plugin: (typeof pluginCatalog)[number]): Option => ({
-  value: plugin.id,
-  label: plugin.name,
-  description: plugin.description,
-});
+const pluginToOption = (plugin: (typeof pluginCatalog)[number]): Option => {
+  const caps = plugin.capabilities.length ? ` [${plugin.capabilities.join(', ')}]` : '';
+  return {
+    value: plugin.id,
+    label: plugin.name,
+    description: `${plugin.description}${caps}`,
+  };
+};
 
 export const optionalPlugins: Option[] = pluginCatalog.filter((plugin) => plugin.optIn).map(pluginToOption);
 export const skipPluginOptions: Option[] = pluginCatalog.map(pluginToOption);

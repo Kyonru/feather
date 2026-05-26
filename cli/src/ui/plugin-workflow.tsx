@@ -43,10 +43,12 @@ const pluginInfo = new Map(pluginCatalog.map((plugin) => [plugin.id, plugin]));
 
 function pluginOption(id: string): Option {
   const plugin = pluginInfo.get(id);
+  if (!plugin) return { value: id, label: id, description: id };
+  const caps = plugin.capabilities.length ? ` [${plugin.capabilities.join(', ')}]` : '';
   return {
     value: id,
-    label: plugin ? plugin.name : id,
-    description: plugin ? `${id} · ${plugin.description}` : id,
+    label: plugin.name,
+    description: `${id} · ${plugin.description}${caps}`,
   };
 }
 

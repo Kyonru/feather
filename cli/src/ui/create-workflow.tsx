@@ -97,7 +97,10 @@ function CreateWorkflow({
         hint="Space toggles. Defaults are already included by feather init."
         options={pluginCatalog.map((plugin) => plugin.id)}
         labels={pluginCatalog.map((plugin) => plugin.name)}
-        descriptions={pluginCatalog.map((plugin) => `${plugin.id} · ${plugin.description}`)}
+        descriptions={pluginCatalog.map((plugin) => {
+          const caps = plugin.capabilities.length ? ` [${plugin.capabilities.join(', ')}]` : '';
+          return `${plugin.id} · ${plugin.description}${caps}`;
+        })}
         initialSelected={new Set<number>()}
         onSubmit={(selected) => {
           setPlugins(selected);
