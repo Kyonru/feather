@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added portable `.featherparticles` project save/import for Particle System Playground so editable composites can be continued later.
 - Session page now shows sample rate, save directory, project root, the global capability allowlist (or "all"), per-plugin capability badges (colour-coded by type), and the incompatibility reason when a plugin is blocked.
+- Bookmark plugin timeline now shows a full-size screenshot preview in a dialog when clicking a bookmark thumbnail.
 
 ### Changed
 

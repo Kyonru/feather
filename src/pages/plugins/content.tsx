@@ -503,6 +503,8 @@ export function PluginContentTimeline({
   categories: string[];
   loading: boolean;
 }) {
+  const [previewItem, setPreviewItem] = useState<PluginTimelineItem | null>(null);
+
   if (items.length === 0 && !loading) {
     return (
       <div className="rounded-md border p-8 text-center text-muted-foreground">
@@ -517,51 +519,82 @@ export function PluginContentTimeline({
   const sorted = [...items].reverse();
 
   return (
-    <div className="space-y-1">
-      <div className="text-sm text-muted-foreground mb-3">
-        {items.length} bookmark{items.length !== 1 ? 's' : ''}
-      </div>
-      <div className="relative">
-        {/* Timeline line */}
-        <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
-        <div className="space-y-0">
-          {sorted.map((item) => (
-            <div key={item.id} className="relative flex items-start gap-3 py-2 pl-8 pr-2 group">
-              {/* Timeline dot */}
-              <div className="absolute left-[13px] top-[14px] size-[7px] rounded-full bg-foreground/50 ring-2 ring-background group-hover:bg-foreground transition-colors" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-sm truncate">{item.label}</span>
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] px-1.5 py-0 ${categoryColors[item.color ?? ''] ?? ''}`}
-                  >
-                    {item.category}
-                  </Badge>
+    <>
+      <div className="space-y-1">
+        <div className="text-sm text-muted-foreground mb-3">
+          {items.length} bookmark{items.length !== 1 ? 's' : ''}
+        </div>
+        <div className="relative">
+          {/* Timeline line */}
+          <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
+          <div className="space-y-0">
+            {sorted.map((item) => (
+              <div key={item.id} className="relative flex items-start gap-3 py-2 pl-8 pr-2 group">
+                {/* Timeline dot */}
+                <div className="absolute left-3.25 top-3.5 size-1.75 rounded-full bg-foreground/50 ring-2 ring-background group-hover:bg-foreground transition-colors" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm truncate">{item.label}</span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1.5 py-0 ${categoryColors[item.color ?? ''] ?? ''}`}
+                    >
+                      {item.category}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-muted-foreground">{formatRelativeTime(item.time)}</span>
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs text-muted-foreground font-mono">{item.gameTime}s</span>
+                  </div>
+                  {item.screenshot && (
+                    <img
+                      src={item.screenshot}
+                      alt={item.label}
+                      onClick={() => setPreviewItem(item)}
+                      className="mt-2 rounded-md border max-w-60 max-h-33.75 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                    />
+                  )}
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-muted-foreground">{formatRelativeTime(item.time)}</span>
-                  <span className="text-xs text-muted-foreground">·</span>
-                  <span className="text-xs text-muted-foreground font-mono">{item.gameTime}s</span>
-                </div>
-                {item.screenshot && (
-                  <img
-                    src={item.screenshot}
-                    alt={item.label}
-                    className="mt-2 rounded-md border max-w-[240px] max-h-[135px] object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                  />
-                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+        {loading && (
+          <div className="flex justify-center py-4">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
+          </div>
+        )}
       </div>
-      {loading && (
-        <div className="flex justify-center py-4">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
-        </div>
-      )}
-    </div>
+
+      <Dialog open={!!previewItem} onOpenChange={(open) => { if (!open) setPreviewItem(null); }}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              {previewItem?.label}
+              {previewItem && (
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] px-1.5 py-0 ${categoryColors[previewItem.color ?? ''] ?? ''}`}
+                >
+                  {previewItem.category}
+                </Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {previewItem && `${formatRelativeTime(previewItem.time)} · ${previewItem.gameTime}s`}
+            </DialogDescription>
+          </DialogHeader>
+          {previewItem?.screenshot && (
+            <img
+              src={previewItem.screenshot}
+              alt={previewItem.label}
+              className="w-full object-contain max-h-[70vh]"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
