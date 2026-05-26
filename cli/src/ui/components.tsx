@@ -121,6 +121,14 @@ export function TextInputStep({
   );
 }
 
+const WINDOW_SIZE = 10;
+
+function clampWindow(windowStart: number, cursor: number, total: number): number {
+  if (cursor < windowStart) return cursor;
+  if (cursor >= windowStart + WINDOW_SIZE) return cursor - WINDOW_SIZE + 1;
+  return Math.max(0, Math.min(windowStart, total - WINDOW_SIZE));
+}
+
 export function SelectStep({
   stepNum,
   total,
@@ -147,17 +155,25 @@ export function SelectStep({
   title?: string;
 }) {
   const [cursor, setCursor] = useState(initialIndex);
+  const [windowStart, setWindowStart] = useState(() => clampWindow(0, initialIndex, options.length));
+
+  const moveTo = (next: number) => {
+    setCursor(next);
+    setWindowStart((ws) => clampWindow(ws, next, options.length));
+  };
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
-    if (key.upArrow || input === 'k') setCursor((c) => Math.max(0, c - 1));
-    else if (key.downArrow || input === 'j') setCursor((c) => Math.min(options.length - 1, c + 1));
-    else {
-      const n = Number(input);
-      if (n >= 1 && n <= options.length) { setCursor(n - 1); return; }
-    }
+    if (key.upArrow || input === 'k') { moveTo(Math.max(0, cursor - 1)); return; }
+    if (key.downArrow || input === 'j') { moveTo(Math.min(options.length - 1, cursor + 1)); return; }
+    const n = Number(input);
+    if (n >= 1 && n <= options.length) { moveTo(n - 1); return; }
     if (key.return) onSelect(options[cursor]!);
   });
+
+  const visibleEnd = Math.min(windowStart + WINDOW_SIZE, options.length);
+  const hiddenAbove = windowStart;
+  const hiddenBelow = options.length - visibleEnd;
 
   return (
     <Box flexDirection="column">
@@ -168,16 +184,25 @@ export function SelectStep({
       </Text>
       {hint && <Hint>{hint}</Hint>}
       <Box flexDirection="column" marginTop={1}>
-        {options.map((opt, i) => (
-          <Box key={`${i}:${opt}`} flexDirection="column">
-            <Text color={i === cursor ? 'cyan' : undefined}>
-              {'  '}
-              {i === cursor ? '❯ ' : '  '}
-              {labels?.[i] ?? opt}
-            </Text>
-            {descriptions?.[i] && <Text dimColor>{'    '}{descriptions[i]}</Text>}
-          </Box>
-        ))}
+        {hiddenAbove > 0 && (
+          <Text dimColor>{'  '}↑ {hiddenAbove} more</Text>
+        )}
+        {options.slice(windowStart, visibleEnd).map((opt, relIdx) => {
+          const i = windowStart + relIdx;
+          return (
+            <Box key={`${i}:${opt}`} flexDirection="column">
+              <Text color={i === cursor ? 'cyan' : undefined}>
+                {'  '}
+                {i === cursor ? '❯ ' : '  '}
+                {labels?.[i] ?? opt}
+              </Text>
+              {descriptions?.[i] && <Text dimColor>{'    '}{descriptions[i]}</Text>}
+            </Box>
+          );
+        })}
+        {hiddenBelow > 0 && (
+          <Text dimColor>{'  '}↓ {hiddenBelow} more</Text>
+        )}
       </Box>
       <Box marginTop={1}>
         <Text dimColor>{'  ↑↓ or j/k navigate · Enter select'}</Text>
@@ -212,26 +237,37 @@ export function MultiSelectStep({
   title?: string;
 }) {
   const [cursor, setCursor] = useState(0);
+  const [windowStart, setWindowStart] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(initialSelected ?? new Set(options.map((_, i) => i)));
+
+  const moveTo = (next: number) => {
+    setCursor(next);
+    setWindowStart((ws) => clampWindow(ws, next, options.length));
+  };
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
-    if (key.upArrow || input === 'k') setCursor((c) => Math.max(0, c - 1));
-    else if (key.downArrow || input === 'j') setCursor((c) => Math.min(options.length - 1, c + 1));
-    else if (input === 'a') setSelected(new Set(options.map((_, i) => i)));
-    else if (input === ' ') {
+    if (key.upArrow || input === 'k') { moveTo(Math.max(0, cursor - 1)); return; }
+    if (key.downArrow || input === 'j') { moveTo(Math.min(options.length - 1, cursor + 1)); return; }
+    if (input === 'a') { setSelected(new Set(options.map((_, i) => i))); return; }
+    if (input === ' ') {
       setSelected((s) => {
         const next = new Set(s);
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         next.has(cursor) ? next.delete(cursor) : next.add(cursor);
         return next;
       });
+      return;
     }
     if (key.return) {
       const chosen = options.filter((_, i) => selected.has(i));
       if (chosen.length > 0) onSubmit(chosen);
     }
   });
+
+  const visibleEnd = Math.min(windowStart + WINDOW_SIZE, options.length);
+  const hiddenAbove = windowStart;
+  const hiddenBelow = options.length - visibleEnd;
 
   return (
     <Box flexDirection="column">
@@ -242,17 +278,26 @@ export function MultiSelectStep({
       </Text>
       {hint && <Hint>{hint}</Hint>}
       <Box flexDirection="column" marginTop={1}>
-        {options.map((opt, i) => (
-          <Box key={`${i}:${opt}`} flexDirection="column">
-            <Text color={i === cursor ? 'cyan' : undefined}>
-              {'  '}
-              {i === cursor ? '❯ ' : '  '}
-              {selected.has(i) ? '◉ ' : '○ '}
-              {labels?.[i] ?? opt}
-            </Text>
-            {descriptions?.[i] && <Text dimColor>{'    '}{descriptions[i]}</Text>}
-          </Box>
-        ))}
+        {hiddenAbove > 0 && (
+          <Text dimColor>{'  '}↑ {hiddenAbove} more</Text>
+        )}
+        {options.slice(windowStart, visibleEnd).map((opt, relIdx) => {
+          const i = windowStart + relIdx;
+          return (
+            <Box key={`${i}:${opt}`} flexDirection="column">
+              <Text color={i === cursor ? 'cyan' : undefined}>
+                {'  '}
+                {i === cursor ? '❯ ' : '  '}
+                {selected.has(i) ? '◉ ' : '○ '}
+                {labels?.[i] ?? opt}
+              </Text>
+              {descriptions?.[i] && <Text dimColor>{'    '}{descriptions[i]}</Text>}
+            </Box>
+          );
+        })}
+        {hiddenBelow > 0 && (
+          <Text dimColor>{'  '}↓ {hiddenBelow} more</Text>
+        )}
       </Box>
       <Box marginTop={1}>
         <Text dimColor>{'  ↑↓ or j/k navigate · Space toggle · a select all · Enter confirm'}</Text>
