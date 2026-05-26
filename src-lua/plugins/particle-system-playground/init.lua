@@ -1,6 +1,7 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
 local Base = require(FEATHER_PATH .. ".core.base")
 local base64 = require(FEATHER_PATH .. ".lib.base64")
+local json = require(FEATHER_PATH .. ".lib.json")
 
 local ParticleSystemPlaygroundPlugin = Class({ __includes = Base })
 
@@ -8,6 +9,8 @@ local DEFAULT_BUFFER_SIZE = 1000
 local DEFAULT_X = 400
 local DEFAULT_Y = 300
 local TWO_PI = math.pi * 2
+local PROJECT_TYPE = "feather.particle-system-playground"
+local PROJECT_VERSION = 1
 
 local B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 local B64_LOOKUP = {}
@@ -84,6 +87,13 @@ local function isSystemEnabled(sys, meta)
   return safeBoolean(sys and sys.enabled, true)
 end
 
+local function compositePreviewEnabled(entry)
+  if entry and entry.kind == "scratch" then
+    return safeBoolean(entry.previewEnabled, true)
+  end
+  return true
+end
+
 local function sanitizeFilename(name, fallback)
   name = tostring(name or fallback or "asset"):gsub("\\", "/"):match("([^/]+)$") or fallback or "asset"
   name = name:gsub("[^%w%._%-]", "_")
@@ -106,6 +116,10 @@ local function archivePath(path, fallback)
     return sanitizeFilename(fallback, "asset")
   end
   return table.concat(parts, "/")
+end
+
+local function projectFilename(name)
+  return sanitizeFilename(name or "particle-project", "particle-project") .. ".featherparticles"
 end
 
 local function quote(value)
@@ -1015,6 +1029,20 @@ function ParticleSystemPlaygroundPlugin:_newComposite(name, template)
   return final
 end
 
+function ParticleSystemPlaygroundPlugin:_uniqueCompositeName(name)
+  local base = safeString(name, "")
+  if base == "" then
+    base = "Effect " .. tostring(#self.compositeOrder + 1)
+  end
+  local final = base
+  local suffix = 2
+  while self.composites[final] do
+    final = base .. " " .. tostring(suffix)
+    suffix = suffix + 1
+  end
+  return final
+end
+
 function ParticleSystemPlaygroundPlugin:_getCompositeTable(name)
   local entry = self.composites[name or self.activeComposite]
   if not entry then
@@ -1176,7 +1204,7 @@ function ParticleSystemPlaygroundPlugin:handleRequest()
       compositeType = entry.kind,
       x = entry.kind == "scratch" and safeNumber(entry.x, DEFAULT_X) or safeNumber(composite and composite.x, 0),
       y = entry.kind == "scratch" and safeNumber(entry.y, DEFAULT_Y) or safeNumber(composite and composite.y, 0),
-      previewEnabled = entry.kind == "scratch" and safeBoolean(entry.previewEnabled, true) or true,
+      previewEnabled = compositePreviewEnabled(entry),
       movement = entry.kind == "scratch" and entry.movement or { pattern = "none" },
       systems = systems,
     }
@@ -1488,6 +1516,14 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     return true
   end
 
+  if action == "import-project" then
+    local imported, err = self:_importProject(params.project or params.projectRaw)
+    if not imported then
+      return nil, err
+    end
+    return { composite = imported }
+  end
+
   local entry = name and self.composites[name]
   if not entry then
     return nil, "Composite not found"
@@ -1547,6 +1583,22 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
 
   if action == "set-shader" then
     return self:_applyShader(name, index, params)
+  end
+
+  if action == "export-project" then
+    local project, err = self:_projectForComposite(name)
+    if not project then
+      return nil, err
+    end
+    return {
+      filename = projectFilename(project.name),
+      project = project,
+      download = {
+        filename = projectFilename(project.name),
+        extension = "featherparticles",
+        content = json.encode(project),
+      },
+    }
   end
 
   local sys = self:_getSystemEntry(name, index)
@@ -1658,6 +1710,198 @@ function ParticleSystemPlaygroundPlugin:_textureLoadPath(asset)
     return "particles/" .. sanitizeFilename(asset.textureFilename, "texture.png")
   end
   return sanitizeFilename(asset.textureFilename, "texture.png")
+end
+
+function ParticleSystemPlaygroundPlugin:_projectForComposite(name)
+  local entry = self.composites[name]
+  if not entry then
+    return nil, "Composite not found"
+  end
+
+  local composite = self:_getCompositeTable(name)
+  local systems = {}
+  for i = 1, self:_systemCount(name) do
+    local sys = self:_getSystemEntry(name, i) or {}
+    local meta = self:_meta(name, i)
+    local asset = self:_assetInfo(name, i, sys)
+    systems[#systems + 1] = {
+      index = i,
+      title = safeString(meta.title or sys.title, "Emitter " .. tostring(i)),
+      blendMode = safeString(sys.blendMode, "alpha"),
+      enabled = isSystemEnabled(sys, meta),
+      x = safeNumber(sys.x, 0),
+      y = safeNumber(sys.y, 0),
+      kickStartSteps = safeNumber(sys.kickStartSteps, 0),
+      kickStartDt = safeNumber(sys.kickStartDt, 1 / 60),
+      emitAtStart = safeNumber(sys.emitAtStart, 0),
+      texturePath = asset.texturePath,
+      texturePreset = asset.texturePreset,
+      textureFilename = asset.textureFilename,
+      textureAssetBase64 = asset.textureAssetBase64,
+      shaderPath = asset.shaderPath,
+      shaderFilename = asset.shaderSource ~= "" and asset.shaderFilename or "",
+      shaderSource = asset.shaderSource,
+      properties = snapshotPS(sys.system),
+    }
+  end
+
+  return {
+    type = PROJECT_TYPE,
+    version = PROJECT_VERSION,
+    exportedAt = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+    name = name,
+    composite = {
+      x = entry.kind == "scratch" and safeNumber(entry.x, DEFAULT_X) or safeNumber(composite and composite.x, 0),
+      y = entry.kind == "scratch" and safeNumber(entry.y, DEFAULT_Y) or safeNumber(composite and composite.y, 0),
+      previewEnabled = compositePreviewEnabled(entry),
+      movement = entry.kind == "scratch" and entry.movement or { pattern = "none" },
+      systems = systems,
+    },
+  }
+end
+
+function ParticleSystemPlaygroundPlugin:_imageFromProjectSystem(systemData)
+  local textureAssetBase64 = safeString(systemData.textureAssetBase64, "")
+  if textureAssetBase64 ~= "" then
+    local raw = decodeBase64(textureAssetBase64)
+    if raw then
+      local filename = sanitizeFilename(systemData.textureFilename, "texture.png")
+      local okData, fileData = pcall(love.filesystem.newFileData, raw, filename)
+      if okData and fileData then
+        local okImage, image = pcall(love.graphics.newImage, fileData)
+        if okImage and image then
+          pcall(image.setFilter, image, "linear", "linear")
+          return image, textureAssetBase64
+        end
+      end
+    end
+  end
+
+  local texturePath = safeString(systemData.texturePath, "")
+  if texturePath ~= "" then
+    local okImage, image = pcall(love.graphics.newImage, texturePath)
+    if okImage and image then
+      pcall(image.setFilter, image, "linear", "linear")
+      return image, nil
+    end
+  end
+
+  local texturePreset = safeString(systemData.texturePreset, "")
+  if texturePreset ~= "" then
+    local image, png = generatePresetImage(texturePreset)
+    if image then
+      pcall(image.setFilter, image, "linear", "linear")
+      return image, png and base64.encode(png) or nil
+    end
+  end
+
+  local image, png = generatePresetImage("circle")
+  if image then
+    pcall(image.setFilter, image, "linear", "linear")
+    return image, png and base64.encode(png) or nil
+  end
+
+  return nil, nil
+end
+
+function ParticleSystemPlaygroundPlugin:_systemFromProject(index, systemData)
+  if type(systemData) ~= "table" then
+    return nil, "Project emitter is invalid"
+  end
+  local image, recoveredBase64 = self:_imageFromProjectSystem(systemData)
+  if not image then
+    return nil, "Could not create particle texture"
+  end
+
+  local properties = type(systemData.properties) == "table" and systemData.properties or {}
+  local bufferSize = math.max(1, math.floor(safeNumber(properties.bufferSize or properties.count, DEFAULT_BUFFER_SIZE)))
+  local ps = love.graphics.newParticleSystem(image, bufferSize)
+
+  local sys = {
+    system = ps,
+    _ownedImage = image,
+    title = safeString(systemData.title, "Emitter " .. tostring(index)),
+    blendMode = safeString(systemData.blendMode, "alpha"),
+    enabled = safeBoolean(systemData.enabled, true),
+    x = safeNumber(systemData.x, 0),
+    y = safeNumber(systemData.y, 0),
+    kickStartSteps = safeNumber(systemData.kickStartSteps, 0),
+    kickStartDt = safeNumber(systemData.kickStartDt, 1 / 60),
+    emitAtStart = safeNumber(systemData.emitAtStart, 0),
+    texturePath = safeString(systemData.texturePath, ""),
+    texturePreset = safeString(systemData.texturePreset, ""),
+    textureFilename = sanitizeFilename(systemData.textureFilename, "texture.png"),
+    textureAssetBase64 = safeString(systemData.textureAssetBase64, "") ~= "" and safeString(systemData.textureAssetBase64, "") or recoveredBase64,
+    shaderPath = safeString(systemData.shaderPath, ""),
+    shaderFilename = safeString(systemData.shaderFilename, ""),
+    shaderSource = safeString(systemData.shaderSource, ""),
+  }
+
+  for key, value in pairs(properties) do
+    setProp(ps, key, value)
+  end
+
+  if sys.shaderSource ~= "" then
+    local okShader, shader = pcall(love.graphics.newShader, sys.shaderSource)
+    if okShader and shader then
+      sys.shader = shader
+    end
+  end
+
+  ps:start()
+  return sys
+end
+
+function ParticleSystemPlaygroundPlugin:_importProject(project)
+  if type(project) == "string" then
+    local ok, decoded = pcall(json.decode, project)
+    if not ok then
+      return nil, "Particle project JSON is invalid"
+    end
+    project = decoded
+  end
+
+  if type(project) ~= "table" or project.type ~= PROJECT_TYPE or project.version ~= PROJECT_VERSION then
+    return nil, "Unsupported particle project file"
+  end
+  local composite = project.composite
+  if type(composite) ~= "table" or type(composite.systems) ~= "table" or #composite.systems == 0 then
+    return nil, "Particle project is missing emitters"
+  end
+
+  local name = self:_uniqueCompositeName(project.name)
+  local systems = {}
+  for i, systemData in ipairs(composite.systems) do
+    local sys, err = self:_systemFromProject(i, systemData)
+    if not sys then
+      for _, existing in ipairs(systems) do
+        if existing.system and existing.system.release then
+          pcall(existing.system.release, existing.system)
+        end
+      end
+      return nil, err
+    end
+    systems[i] = sys
+  end
+
+  self.composites[name] = {
+    kind = "scratch",
+    name = name,
+    x = safeNumber(composite.x, DEFAULT_X),
+    y = safeNumber(composite.y, DEFAULT_Y),
+    previewEnabled = safeBoolean(composite.previewEnabled, true),
+    movement = type(composite.movement) == "table"
+        and composite.movement
+      or { pattern = "none", radius = 50, radiusX = 80, radiusY = 40, speed = 1, scale = 50 },
+    offsetX = 0,
+    offsetY = 0,
+    systems = systems,
+  }
+  self.compositeOrder[#self.compositeOrder + 1] = name
+  self.activeComposite = name
+  self.activeSystem = 1
+
+  return name
 end
 
 function ParticleSystemPlaygroundPlugin:_generateCode(name)

@@ -1,4 +1,8 @@
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { AlertTriangleIcon, FileWarningIcon, RotateCcwIcon, SparklesIcon, ZapIcon } from 'lucide-react';
+import { useRef } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -15,6 +19,9 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { ShaderEditor } from './components/ShaderEditor';
 import { TextureImporter } from './components/TextureImporter';
 import { ParticleNumberInput } from './components/ParticleNumberInput';
+import { isWeb } from '@/utils/platform';
+
+const PROJECT_FILE_EXTENSION = 'featherparticles';
 
 export type ParticleSystemPlaygroundController = ReturnType<typeof useParticleSystemPlayground>;
 
@@ -42,6 +49,25 @@ export default function ParticleSystemPlaygroundPage({
   const composite = playground.composite;
   const system = playground.activeSystem;
   const isGameComposite = composite?.compositeType === 'game';
+  const projectInputRef = useRef<HTMLInputElement>(null);
+
+  const importProject = async () => {
+    if (isWeb()) {
+      projectInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const path = await openDialog({
+        filters: [{ name: 'Feather Particle Project', extensions: [PROJECT_FILE_EXTENSION] }],
+        multiple: false,
+      });
+      if (!path || typeof path !== 'string') return;
+      playground.importProject(await readTextFile(path));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to import particle project');
+    }
+  };
 
   if (!playground.available) {
     return (
@@ -88,6 +114,23 @@ export default function ParticleSystemPlaygroundPage({
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[18rem_minmax(0,1fr)] overflow-hidden">
+      <input
+        ref={projectInputRef}
+        type="file"
+        accept={`.${PROJECT_FILE_EXTENSION},application/json`}
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (!file) return;
+          file
+            .text()
+            .then(playground.importProject)
+            .catch((error: unknown) => {
+              toast.error(error instanceof Error ? error.message : 'Failed to import particle project');
+            });
+        }}
+      />
       <aside className="flex min-h-0 flex-col border-r bg-muted/20">
         <CompositeSelector
           composites={playground.composites}
@@ -133,7 +176,12 @@ export default function ParticleSystemPlaygroundPage({
               </div>
               {system && (
                 <div className="flex flex-wrap justify-end gap-2">
-                  <ExportPanel onExportCode={playground.exportCode} onExportZip={playground.exportZip} />
+                  <ExportPanel
+                    onExportCode={playground.exportCode}
+                    onExportZip={playground.exportZip}
+                    onSaveProject={playground.saveProject}
+                    onImportProject={() => void importProject()}
+                  />
                   <Button
                     size="sm"
                     variant="outline"
@@ -166,9 +214,14 @@ export default function ParticleSystemPlaygroundPage({
                 <div className="grid justify-items-center gap-3">
                   <SparklesIcon className="size-7" />
                   <p>Create a scratch composite or register one from game code.</p>
-                  <Button size="sm" className="h-8 text-xs" onClick={() => playground.createComposite()}>
-                    New Composite
-                  </Button>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => void importProject()}>
+                      Import Project
+                    </Button>
+                    <Button size="sm" className="h-8 text-xs" onClick={() => playground.createComposite()}>
+                      New Composite
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (

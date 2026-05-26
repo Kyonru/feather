@@ -142,5 +142,120 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       0.1,
       "particle playground snapshots round float precision noise"
     )
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Project Save",
+        template = "explosion",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Project Save",
+        previewEnabled = false,
+        compositeX = 321,
+        compositeY = 432,
+        ["movement.pattern"] = "circle",
+        ["movement.radius"] = 88,
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Project Save",
+        systemIndex = 1,
+        enabled = false,
+        title = "Saved Core",
+        blendMode = "add",
+        emitterOffsetX = -12,
+        particleLifetimeMin = 0.2,
+        particleLifetimeMax = 0.4,
+        spinMin = -0.1,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-texture",
+        composite = "Project Save",
+        systemIndex = 1,
+        preset = "star",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-shader",
+        composite = "Project Save",
+        systemIndex = 1,
+        filename = "saved-particle-shader.glsl",
+        shaderSource = "vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords) { return color; }",
+      },
+    })
+
+    local projectResult = plugin:handleActionRequest({
+      params = {
+        action = "export-project",
+        composite = "Project Save",
+      },
+    })
+    local project = projectResult and projectResult.project
+    assertEqual(project.type, "feather.particle-system-playground", "particle project export includes type")
+    assertEqual(project.version, 1, "particle project export includes version")
+    assertEqual(project.name, "Project Save", "particle project export includes composite name")
+    assertEqual(project.composite.x, 321, "particle project export includes composite x")
+    assertEqual(project.composite.y, 432, "particle project export includes composite y")
+    assertEqual(project.composite.previewEnabled, false, "particle project export includes preview pause")
+    assertEqual(project.composite.movement.pattern, "circle", "particle project export includes movement")
+    assertEqual(#project.composite.systems, 3, "particle project export includes every emitter")
+    assertEqual(project.composite.systems[1].enabled, false, "particle project export includes enabled state")
+    assertEqual(project.composite.systems[1].title, "Saved Core", "particle project export includes title")
+    assertEqual(project.composite.systems[1].blendMode, "add", "particle project export includes blend mode")
+    assertEqual(project.composite.systems[1].x, -12, "particle project export includes emitter offset")
+    assertEqual(project.composite.systems[1].texturePreset, "star", "particle project export includes texture preset")
+    assertTruthy(
+      type(project.composite.systems[1].textureAssetBase64) == "string"
+        and #project.composite.systems[1].textureAssetBase64 > 0,
+      "particle project export embeds generated texture data"
+    )
+    assertEqual(
+      project.composite.systems[1].shaderSource:find("vec4 effect", 1, true) ~= nil,
+      true,
+      "particle project export embeds shader source"
+    )
+    assertEqual(project.composite.systems[1].properties.spinMin, -0.1, "particle project export includes properties")
+    assertTruthy(
+      projectResult.download and contains(projectResult.download.filename, ".featherparticles"),
+      "particle project export includes download metadata"
+    )
+
+    local importedResult = plugin:handleActionRequest({
+      params = {
+        action = "import-project",
+        project = project,
+      },
+    })
+    assertEqual(importedResult.composite, "Project Save 2", "particle project import creates deduped scratch composite")
+    local imported = plugin:handleRequest()
+    assertEqual(imported.activeComposite, "Project Save 2", "particle project import selects imported composite")
+    assertEqual(imported.data.compositeType, "scratch", "particle project import creates scratch composite")
+    assertEqual(imported.data.x, 321, "particle project import restores composite x")
+    assertEqual(imported.data.y, 432, "particle project import restores composite y")
+    assertEqual(imported.data.previewEnabled, false, "particle project import restores preview pause")
+    assertEqual(#imported.data.systems, 3, "particle project import restores emitter count")
+    assertEqual(imported.data.systems[1].enabled, false, "particle project import restores enabled state")
+    assertEqual(imported.data.systems[1].title, "Saved Core", "particle project import restores title")
+    assertEqual(imported.data.systems[1].blendMode, "add", "particle project import restores blend mode")
+    assertEqual(imported.data.systems[1].x, -12, "particle project import restores emitter offset")
+    assertEqual(imported.data.systems[1].texturePreset, "star", "particle project import restores texture preset")
+    assertEqual(imported.data.systems[1].shaderFilename, "saved-particle-shader.glsl", "particle project import restores shader metadata")
+    assertEqual(imported.data.systems[1].properties.spinMin, -0.1, "particle project import restores particle properties")
+
+    local invalid, invalidErr = plugin:handleActionRequest({
+      params = {
+        action = "import-project",
+        project = { type = "nope", version = 1 },
+      },
+    })
+    assertEqual(invalid, nil, "particle project import rejects unsupported project")
+    assertTruthy(contains(invalidErr or "", "Unsupported particle project file"), "particle project import returns clear error")
   end,
 })

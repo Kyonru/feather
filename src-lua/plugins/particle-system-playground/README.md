@@ -91,6 +91,32 @@ Important actions:
 | `kick-start` | Advance the active emitter by configured kick-start steps |
 | `export-code` | Return/copy generated Lua module code |
 | `export-zip` | Return generated `init.lua` plus referenced assets |
+| `export-project` | Save the active composite as an editable `.featherparticles` project |
+| `import-project` | Import a `.featherparticles` project as a new scratch composite |
+
+## Project Files
+
+Particle projects use a portable JSON format with the `.featherparticles` extension:
+
+```json
+{
+  "type": "feather.particle-system-playground",
+  "version": 1,
+  "exportedAt": "2026-05-26T00:00:00Z",
+  "name": "Explosion",
+  "composite": {
+    "x": 400,
+    "y": 300,
+    "previewEnabled": true,
+    "movement": { "pattern": "none" },
+    "systems": []
+  }
+}
+```
+
+Saving a project preserves the editable composite settings, emitter metadata, particle properties, shader source, and any texture bytes Feather can capture. Uploaded and generated preset textures round-trip inside the JSON file. Game-path textures are embedded when `love.filesystem.read` can access them; otherwise the project keeps the path and falls back to a generated/default texture if that path is unavailable on import.
+
+Importing a project always creates a new scratch composite and selects it. Existing composites are left untouched, and duplicate names receive a numeric suffix.
 
 ## Export
 

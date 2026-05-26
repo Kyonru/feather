@@ -89,6 +89,20 @@ export type ParticleSystemPlaygroundData = {
   data: ParticleSystemPlaygroundCompositeData | null;
 };
 
+export type ParticleSystemPlaygroundProjectSystem = ParticleSystemPlaygroundSystem & {
+  textureAssetBase64?: string;
+};
+
+export type ParticleSystemPlaygroundProjectFile = {
+  type: 'feather.particle-system-playground';
+  version: 1;
+  exportedAt: string;
+  name: string;
+  composite: Omit<ParticleSystemPlaygroundCompositeData, 'compositeType' | 'systems'> & {
+    systems: ParticleSystemPlaygroundProjectSystem[];
+  };
+};
+
 export const BLEND_MODES = ['alpha', 'add', 'subtract', 'multiply', 'screen', 'replace', 'lighten', 'darken'] as const;
 export const TEXTURE_PRESETS = ['circle', 'ring', 'light', 'star', 'spiral'] as const;
 export const PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES: Array<{ value: ParticleSystemPlaygroundTemplate; label: string }> = [

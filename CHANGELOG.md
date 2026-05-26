@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v1.4.3] - 2026-05-26 - The one with particles playground fixes
 
+### Added
+
+- Added portable `.featherparticles` project save/import for Particle System Playground so editable composites can be continued later.
+
 ### Changed
 
 - Particle System Playground exports now generate drop-in Lua modules with `init`, `update`, `draw`, `emit`, and `release` lifecycle functions.
@@ -24,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added Lua e2e coverage for the Particle System Playground drop-in export format.
 - Added Lua e2e coverage for Particle System Playground composite-wide emit/reset, disabled emitters, and preview pause behavior.
+- Added Lua e2e coverage for Particle System Playground project export/import.
 
 ## [v1.4.2] - 2026-05-25 - The one with fixed cli
 

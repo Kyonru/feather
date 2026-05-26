@@ -536,6 +536,16 @@ export const useWsConnection = () => {
                 .catch(() => {
                   toast.error('Failed to save ZIP');
                 });
+            } else if (response.download && isWeb()) {
+              const { filename, content } = response.download;
+              const blob = new Blob([String(content ?? '')], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = filename ?? 'download.json';
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success('Download started');
             } else if (response.download && !isWeb()) {
               // Generic file download: plugin returned data to save
               const { filename, content, extension } = response.download;

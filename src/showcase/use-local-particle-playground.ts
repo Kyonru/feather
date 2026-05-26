@@ -3,11 +3,24 @@ import { toast } from 'sonner';
 import type {
   ParticleSystemPlaygroundCompositeData,
   ParticleSystemPlaygroundData,
+  ParticleSystemPlaygroundProjectFile,
   ParticleSystemPlaygroundSystem,
   ParticleSystemPlaygroundTemplate,
 } from '@/types/particle-system-playground';
 
 type ParamValue = string | number | boolean;
+const PROJECT_TYPE = 'feather.particle-system-playground';
+
+function downloadProject(project: ParticleSystemPlaygroundProjectFile) {
+  const json = JSON.stringify(project, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${project.name.replace(/[^a-zA-Z0-9._-]+/g, '-') || 'particle-project'}.featherparticles`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function system(index: number, title: string, template: ParticleSystemPlaygroundTemplate): ParticleSystemPlaygroundSystem {
   const texturePreset = template === 'smoke' ? 'light' : template === 'sparkles' ? 'star' : 'circle';
@@ -252,7 +265,7 @@ export function useLocalParticlePlayground() {
       toast.success(`Texture loaded for preview: ${filename}`);
       return Promise.resolve();
     },
-    setShader: (params: Record<string, ParamValue>) => {
+    setShader: (params: Record<string, unknown>) => {
       if (typeof params.shaderSource === 'string') updateActiveParam('shaderSource', params.shaderSource);
       toast.success('Shader applied to showcase preview');
     },
@@ -261,5 +274,40 @@ export function useLocalParticlePlayground() {
       toast.success('Copied showcase particle data');
     },
     exportZip: () => toast.info('ZIP export is available in the Feather desktop app.'),
+    saveProject: () => {
+      if (!data.data || !data.activeComposite) return;
+      downloadProject({
+        type: PROJECT_TYPE,
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        name: data.activeComposite,
+        composite: data.data,
+      });
+      toast.success('Particle project saved');
+    },
+    importProject: (raw: string) => {
+      let project: ParticleSystemPlaygroundProjectFile;
+      try {
+        project = JSON.parse(raw) as ParticleSystemPlaygroundProjectFile;
+      } catch {
+        toast.error('Particle project JSON is invalid');
+        return;
+      }
+      if (project.type !== PROJECT_TYPE || project.version !== 1 || !project.composite?.systems?.length) {
+        toast.error('Unsupported particle project file');
+        return;
+      }
+      const nextName = project.name && !data.composites.includes(project.name)
+        ? project.name
+        : `${project.name || 'Imported Particles'} ${data.composites.length + 1}`;
+      setData({
+        type: 'particle-system-playground',
+        composites: [...data.composites, nextName],
+        activeComposite: nextName,
+        activeSystem: 1,
+        data: { ...project.composite, compositeType: 'scratch' },
+      });
+      toast.success('Particle project imported');
+    },
   };
 }

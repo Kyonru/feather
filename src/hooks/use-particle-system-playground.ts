@@ -9,6 +9,7 @@ import { debounce } from '@/utils/timers';
 import { sessionQueryKey } from './use-ws-connection';
 import type {
   ParticleSystemPlaygroundData,
+  ParticleSystemPlaygroundProjectFile,
   ParticleSystemPlaygroundSystem,
   ParticleSystemPlaygroundTemplate,
 } from '@/types/particle-system-playground';
@@ -26,6 +27,7 @@ const EMPTY_DATA: ParticleSystemPlaygroundData = {
 type ParamValue = string | number | boolean;
 type ParamBatch = Record<string, ParamValue>;
 type ScopedParamBatches = Record<string, ParamBatch>;
+type ActionParams = Record<string, unknown>;
 
 function targetKey(composite: string, systemIndex: number) {
   return `${composite}\u0000${systemIndex}`;
@@ -273,7 +275,7 @@ export function useParticleSystemPlayground() {
   );
 
   const sendAction = useCallback(
-    (action: string, extra: Record<string, ParamValue> = {}) => {
+    (action: string, extra: ActionParams = {}) => {
       return send({
         type: 'cmd:plugin:action',
         plugin: PLUGIN_ID,
@@ -304,7 +306,7 @@ export function useParticleSystemPlayground() {
   );
 
   const refreshAfterAction = useCallback(
-    (action: string, extra?: Record<string, ParamValue>) => {
+    (action: string, extra?: ActionParams) => {
       sendAction(action, extra).then(() => {
         queryClient.invalidateQueries({ queryKey: sessionQueryKey.plugin(sessionId ?? '', PLUGIN_ID) }).catch(() => {});
       });
@@ -373,8 +375,24 @@ export function useParticleSystemPlayground() {
       refreshAfterAction('set-texture', { texturePath });
     },
     setTextureFromUpload,
-    setShader: (params: Record<string, ParamValue>) => refreshAfterAction('set-shader', params),
+    setShader: (params: ActionParams) => refreshAfterAction('set-shader', params),
     exportCode: () => refreshAfterAction('export-code'),
     exportZip: () => refreshAfterAction('export-zip'),
+    saveProject: () => refreshAfterAction('export-project'),
+    importProject: (raw: string) => {
+      let project: ParticleSystemPlaygroundProjectFile;
+      try {
+        project = JSON.parse(raw) as ParticleSystemPlaygroundProjectFile;
+      } catch {
+        toast.error('Particle project JSON is invalid');
+        return;
+      }
+      if (project.type !== 'feather.particle-system-playground' || project.version !== 1) {
+        toast.error('Unsupported particle project file');
+        return;
+      }
+      refreshAfterAction('import-project', { project });
+      toast.success('Particle project import requested');
+    },
   };
 }
