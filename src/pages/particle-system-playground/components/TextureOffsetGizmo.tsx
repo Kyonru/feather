@@ -1,4 +1,3 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useConfigStore } from '@/store/config';
 import { useSettingsStore } from '@/store/settings';
@@ -6,6 +5,7 @@ import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-pla
 import { isWeb } from '@/utils/platform';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { ParticleNumberInput } from './ParticleNumberInput';
 
 const H = 220;
 const PAD = 26;
@@ -139,13 +139,12 @@ export function TextureOffsetGizmo({ system, onChange }: Props) {
         <Label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Texture Anchor</Label>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">Range ±</span>
-          <Input
+          <ParticleNumberInput
             className="h-6 w-20 text-xs"
-            type="number"
             min={1}
             step={8}
             value={range}
-            onChange={(event) => updateRange(Number(event.target.value))}
+            onValueChange={updateRange}
           />
         </div>
       </div>

@@ -132,6 +132,13 @@ local function fmt(n)
   return s
 end
 
+local function roundSnapshotNumber(value)
+  if type(value) ~= "number" then
+    return value
+  end
+  return tonumber(fmt(value)) or 0
+end
+
 local function getImageDataPng(imageData)
   if not imageData or not imageData.encode then
     return nil
@@ -756,6 +763,9 @@ local function snapshotPS(ps)
   for _, prop in ipairs(PS_PROPERTIES) do
     local ok, value = pcall(prop.get, ps)
     if ok then
+      if prop.type == "number" then
+        value = roundSnapshotNumber(value)
+      end
       snapshot[prop.key] = value
     end
   end

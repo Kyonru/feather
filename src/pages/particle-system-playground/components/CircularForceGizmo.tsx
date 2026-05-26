@@ -1,7 +1,7 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ParticleNumberInput } from './ParticleNumberInput';
 
 const H = 260;
 const EMITTER_R = 22;
@@ -146,13 +146,12 @@ export function CircularForceGizmo({ system, onChange }: Props) {
         </span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">Range ±</span>
-          <Input
+          <ParticleNumberInput
             className="h-6 w-20 text-xs"
-            type="number"
             step={50}
             min={10}
             value={range}
-            onChange={(e) => updateRange(parseFloat(e.target.value))}
+            onValueChange={updateRange}
           />
         </div>
       </div>
@@ -348,12 +347,11 @@ export function CircularForceGizmo({ system, onChange }: Props) {
         ].map(({ label, key, val }) => (
           <div key={key} className="grid gap-1">
             <Label className="text-[10px] text-muted-foreground">{label}</Label>
-            <Input
+            <ParticleNumberInput
               className="h-8 text-xs"
-              type="number"
               step={1}
               value={val}
-              onChange={(e) => onChange(key, Number(e.target.value))}
+              onValueChange={(value) => onChange(key, value)}
             />
           </div>
         ))}

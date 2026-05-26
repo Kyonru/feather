@@ -1,7 +1,7 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { useEffect, useRef, useState } from 'react';
+import { ParticleNumberInput } from './ParticleNumberInput';
 
 const H = 100;
 const PAD = { top: 10, right: 12, bottom: 10, left: 12 };
@@ -159,24 +159,22 @@ export function DampingRangeEditor({ system, onChange }: Props) {
       <div className="grid grid-cols-2 gap-2">
         <div className="grid gap-1">
           <Label className="text-[10px] text-muted-foreground">Damping Min</Label>
-          <Input
+          <ParticleNumberInput
             className="h-8 text-xs"
-            type="number"
             step={0.01}
             min={0}
             value={dampMin}
-            onChange={(e) => onChange('linearDampingMin', Number(e.target.value))}
+            onValueChange={(value) => onChange('linearDampingMin', value)}
           />
         </div>
         <div className="grid gap-1">
           <Label className="text-[10px] text-muted-foreground">Damping Max</Label>
-          <Input
+          <ParticleNumberInput
             className="h-8 text-xs"
-            type="number"
             step={0.01}
             min={0}
             value={dampMax}
-            onChange={(e) => onChange('linearDampingMax', Number(e.target.value))}
+            onValueChange={(value) => onChange('linearDampingMax', value)}
           />
         </div>
       </div>

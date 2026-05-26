@@ -12,6 +12,7 @@ import { AccelerationEditor } from './AccelerationEditor';
 import { ColorGradientEditor } from './ColorGradientEditor';
 import { DirectionSpreadGizmo } from './DirectionSpreadGizmo';
 import { MotionPresets } from './MotionPresets';
+import { ParticleNumberInput } from './ParticleNumberInput';
 import { RangePairField } from './RangePairField';
 import { RotationSpinGizmo } from './RotationSpinGizmo';
 import { SizeCurveEditor } from './SizeCurveEditor';
@@ -113,14 +114,13 @@ function NumberField({
   return (
     <div className="grid gap-1">
       <Label className="text-[10px] text-muted-foreground font-semibold">{field.label}</Label>
-      <Input
+      <ParticleNumberInput
         className="h-8 text-xs"
-        type="number"
         min={field.min}
         max={field.max}
         step={field.step ?? 1}
-        value={String(valueFor(system, field.key))}
-        onChange={(event) => onChange(field.key, Number(event.target.value))}
+        value={Number(valueFor(system, field.key))}
+        onValueChange={(value) => onChange(field.key, value)}
       />
     </div>
   );

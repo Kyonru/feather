@@ -1,7 +1,7 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ParticleNumberInput } from './ParticleNumberInput';
 
 const H = 260;
 const PAD = 24;
@@ -142,13 +142,12 @@ export function RotationSpinGizmo({ system, onChange }: Props) {
         </Label>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">Spin ±</span>
-          <Input
+          <ParticleNumberInput
             className="h-6 w-20 text-xs"
-            type="number"
             min={0.1}
             step={1}
             value={spinRange}
-            onChange={(event) => updateSpinRange(Number(event.target.value))}
+            onValueChange={updateSpinRange}
           />
         </div>
       </div>

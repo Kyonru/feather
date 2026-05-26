@@ -1,6 +1,6 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
+import { ParticleNumberInput } from './ParticleNumberInput';
 
 type Props = {
   label: string;
@@ -24,22 +24,20 @@ export function RangePairField({ label, minKey, maxKey, system, onChange, step =
       <Label className="text-[10px] text-muted-foreground font-semibold">{label}</Label>
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
         <span className="text-[10px] font-medium text-muted-foreground">Min</span>
-        <Input
+        <ParticleNumberInput
           className="h-8 text-xs"
-          type="number"
           step={step}
           placeholder="Min"
-          value={String(minVal)}
-          onChange={(e) => onChange(minKey, Number(e.target.value))}
+          value={minVal}
+          onValueChange={(value) => onChange(minKey, value)}
         />
         <span className="text-[10px] font-medium text-muted-foreground">Max</span>
-        <Input
+        <ParticleNumberInput
           className="h-8 text-xs"
-          type="number"
           step={step}
           placeholder="Max"
-          value={String(maxVal)}
-          onChange={(e) => onChange(maxKey, Number(e.target.value))}
+          value={maxVal}
+          onValueChange={(value) => onChange(maxKey, value)}
         />
       </div>
     </div>

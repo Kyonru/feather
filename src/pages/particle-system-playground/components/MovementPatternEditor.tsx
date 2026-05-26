@@ -1,7 +1,7 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ParticleSystemPlaygroundMovement, MovementPattern } from '@/types/particle-system-playground';
+import { ParticleNumberInput } from './ParticleNumberInput';
 
 type Props = {
   movement: ParticleSystemPlaygroundMovement;
@@ -13,7 +13,7 @@ function NumberField({ label, value, onChange }: { label: string; value?: number
   return (
     <div className="grid gap-1">
       <Label className="text-[10px] text-muted-foreground">{label}</Label>
-      <Input className="h-8 text-xs" type="number" value={value ?? 0} onChange={(event) => onChange(Number(event.target.value))} />
+      <ParticleNumberInput className="h-8 text-xs" value={value ?? 0} onValueChange={onChange} />
     </div>
   );
 }

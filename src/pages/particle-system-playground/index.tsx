@@ -14,6 +14,7 @@ import { MovementPatternEditor } from './components/MovementPatternEditor';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { ShaderEditor } from './components/ShaderEditor';
 import { TextureImporter } from './components/TextureImporter';
+import { ParticleNumberInput } from './components/ParticleNumberInput';
 
 export type ParticleSystemPlaygroundController = ReturnType<typeof useParticleSystemPlayground>;
 
@@ -214,22 +215,20 @@ export default function ParticleSystemPlaygroundPage({
                           <div className="grid grid-cols-2 gap-2">
                             <label className="grid gap-1 text-[10px] text-muted-foreground">
                               X
-                              <input
+                              <ParticleNumberInput
                                 className="h-8 rounded border bg-background px-2 text-xs text-foreground"
-                                type="number"
                                 value={composite.x}
                                 disabled={isGameComposite}
-                                onChange={(event) => playground.updateParam('compositeX', Number(event.target.value))}
+                                onValueChange={(value) => playground.updateParam('compositeX', value)}
                               />
                             </label>
                             <label className="grid gap-1 text-[10px] text-muted-foreground">
                               Y
-                              <input
+                              <ParticleNumberInput
                                 className="h-8 rounded border bg-background px-2 text-xs text-foreground"
-                                type="number"
                                 value={composite.y}
                                 disabled={isGameComposite}
-                                onChange={(event) => playground.updateParam('compositeY', Number(event.target.value))}
+                                onValueChange={(value) => playground.updateParam('compositeY', value)}
                               />
                             </label>
                           </div>

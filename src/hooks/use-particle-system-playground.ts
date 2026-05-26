@@ -226,6 +226,7 @@ export function useParticleSystemPlayground() {
 
   const flushParams = useMemo(
     () =>
+      // Particle property edits can fire quickly from text fields and gizmos; keep runtime updates debounced.
       debounce(() => {
         const batches = pendingParams.current;
         pendingParams.current = {};

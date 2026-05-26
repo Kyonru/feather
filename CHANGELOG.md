@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed Particle System Playground exports with shaders so generated modules embed shader source directly in `init.lua` instead of requiring runtime `.glsl` file reads.
 - Fixed Particle System Playground pending property edits so debounced changes stay scoped to the emitter they were made on when switching emitters.
+- Fixed Particle System Playground numeric fields so negative values can be typed without intermediate `-` or empty states being coerced to `0`.
+- Fixed Particle System Playground numeric snapshots so LÖVE float precision noise like `0.10000000149012` is rounded before returning to the UI.
+- Fixed Shader Graph numeric fields so negative and in-progress decimal values can be typed without being coerced mid-edit.
 
 ### Tests
 

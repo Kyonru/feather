@@ -1,8 +1,8 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ParticleNumberInput } from './ParticleNumberInput';
 
 const H = 280;
 const PAD = 28;
@@ -171,13 +171,12 @@ export function LinearAccelPlane({ system, onChange }: Props) {
         </span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">Range ±</span>
-          <Input
+          <ParticleNumberInput
             className="h-6 w-20 text-xs"
-            type="number"
             step={50}
             min={10}
             value={range}
-            onChange={(e) => updateRange(parseFloat(e.target.value))}
+            onValueChange={updateRange}
           />
         </div>
       </div>
@@ -342,12 +341,11 @@ export function LinearAccelPlane({ system, onChange }: Props) {
           ].map(({ label, key, val }) => (
             <div key={key} className="grid gap-1">
               <Label className="text-[10px] text-muted-foreground font-semibold">{label}</Label>
-              <Input
+              <ParticleNumberInput
                 className="h-8 text-xs"
-                type="number"
                 step={1}
                 value={val}
-                onChange={(e) => onChange(key, Number(e.target.value))}
+                onValueChange={(value) => onChange(key, value)}
               />
             </div>
           ))}
@@ -364,14 +362,12 @@ export function LinearAccelPlane({ system, onChange }: Props) {
           ).map(({ label, key, step, min }) => (
             <div key={key} className="grid gap-1">
               <Label className="text-[10px] text-muted-foreground font-semibold">{label}</Label>
-              <Input
+              <ParticleNumberInput
                 className="h-8 text-xs"
-                type="number"
                 step={step}
                 min={min}
                 value={artist[key]}
-                onChange={(e) => {
-                  const nextValue = Number(e.target.value);
+                onValueChange={(nextValue) => {
                   const updated = {
                     ...artist,
                     [key]: key === 'speedMin' || key === 'speedMax' ? Math.min(nextValue, range) : nextValue,

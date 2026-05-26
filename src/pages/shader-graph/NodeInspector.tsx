@@ -14,6 +14,7 @@ import { shaderParameterUniformName, shaderTextureUniformName } from './glslUtil
 import { pickShaderTexture } from './textureUpload';
 import { toast } from 'sonner';
 import { customFunctionNodeDef, customFunctionSource, validateCustomFunctionSource } from './customNode';
+import { ShaderNumberInput } from './ShaderNumberInput';
 
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
@@ -194,12 +195,11 @@ export function NodeInspector() {
 
     if (port.type === 'float') {
       return (
-        <Input
+        <ShaderNumberInput
           className="h-7 text-xs"
-          type="number"
           {...inputProps}
           value={finiteValue(rawValue)}
-          onChange={(e) => updateSelectedInput(port, clampValue(parseFloat(e.target.value), port))}
+          onValueChange={(value) => updateSelectedInput(port, clampValue(value, port))}
         />
       );
     }
@@ -220,16 +220,15 @@ export function NodeInspector() {
       return (
         <div className={gridClass}>
           {Array.from({ length: count }).map((_, idx) => (
-            <Input
+            <ShaderNumberInput
               key={idx}
               aria-label={`${port.label} ${idx + 1}`}
               className="h-7 text-xs"
-              type="number"
               {...inputProps}
               value={finiteValue(value[idx], finiteValue(fallback[idx]))}
-              onChange={(e) => {
+              onValueChange={(nextValue) => {
                 const next = [...value];
-                next[idx] = clampValue(parseFloat(e.target.value), port);
+                next[idx] = clampValue(nextValue, port);
                 updateSelectedInput(port, next);
               }}
             />
@@ -326,18 +325,17 @@ export function NodeInspector() {
           {(selected.data.nodeType === 'FloatConstant' || selected.data.nodeType === 'FloatParameter') && (
             <div className="grid gap-1">
               <Label className="text-[10px] text-muted-foreground">{selected.data.nodeType === 'FloatParameter' ? 'Default Value' : 'Value'}</Label>
-              <Input
+              <ShaderNumberInput
                 className="h-7 text-xs"
-                type="number"
                 min={optionalFiniteValue(selected.data.min)}
                 max={optionalFiniteValue(selected.data.max)}
                 step={optionalFiniteValue(selected.data.step) ?? 0.01}
                 value={finiteValue(selected.data.values?.val)}
-                onChange={(e) =>
+                onValueChange={(value) =>
                   updateNodeData(selected.id, {
                     values: {
                       ...selected.data.values,
-                      val: clampValue(parseFloat(e.target.value), {
+                      val: clampValue(value, {
                         id: 'val',
                         label: 'Value',
                         type: 'float',
@@ -356,16 +354,15 @@ export function NodeInspector() {
               <Label className="text-[10px] text-muted-foreground">{selected.data.nodeType === 'Vec2Parameter' ? 'Default X / Y' : 'X / Y'}</Label>
               <div className="flex gap-1">
                 {[0, 1].map((idx) => (
-                  <Input
+                  <ShaderNumberInput
                     key={idx}
                     className="h-7 text-xs"
-                    type="number"
                     step={0.01}
                     value={((selected.data.values?.val as number[]) ?? [0, 0])[idx]}
-                    onChange={(e) => {
+                    onValueChange={(value) => {
                       const prev = (selected.data.values?.val as number[]) ?? [0, 0];
                       const next = [...prev] as [number, number];
-                      next[idx] = parseFloat(e.target.value);
+                      next[idx] = value;
                       updateNodeData(selected.id, { values: { ...selected.data.values, val: next } });
                     }}
                   />
@@ -379,16 +376,15 @@ export function NodeInspector() {
               <Label className="text-[10px] text-muted-foreground">{selected.data.nodeType === 'Vec3Parameter' ? 'Default X / Y / Z' : 'X / Y / Z'}</Label>
               <div className="grid grid-cols-3 gap-1">
                 {[0, 1, 2].map((idx) => (
-                  <Input
+                  <ShaderNumberInput
                     key={idx}
                     className="h-7 text-xs"
-                    type="number"
                     step={0.01}
                     value={((selected.data.values?.val as number[]) ?? [0, 0, 0])[idx]}
-                    onChange={(e) => {
+                    onValueChange={(value) => {
                       const prev = (selected.data.values?.val as number[]) ?? [0, 0, 0];
                       const next = [...prev] as [number, number, number];
-                      next[idx] = parseFloat(e.target.value);
+                      next[idx] = value;
                       updateNodeData(selected.id, { values: { ...selected.data.values, val: next } });
                     }}
                   />
@@ -414,18 +410,17 @@ export function NodeInspector() {
                 <TabsContent value="vector" className="mt-1">
                   <div className="grid grid-cols-2 gap-1">
                     {[0, 1, 2, 3].map((idx) => (
-                      <Input
+                      <ShaderNumberInput
                         key={idx}
                         aria-label={['R', 'G', 'B', 'A'][idx]}
                         className="h-7 text-xs"
-                        type="number"
                         step={0.01}
                         min={0}
                         max={1}
                         value={selectedVec4[idx]}
-                        onChange={(e) => {
+                        onValueChange={(value) => {
                           const next = [...selectedVec4] as [number, number, number, number];
-                          next[idx] = clamp01(parseFloat(e.target.value));
+                          next[idx] = clamp01(value);
                           updateSelectedVec4(next);
                         }}
                       />
@@ -454,16 +449,15 @@ export function NodeInspector() {
                         className="absolute inset-0 size-full cursor-pointer opacity-0"
                       />
                     </label>
-                    <Input
+                    <ShaderNumberInput
                       aria-label="Alpha"
                       className="h-8 text-xs"
-                      type="number"
                       step={0.01}
                       min={0}
                       max={1}
                       value={selectedVec4[3]}
-                      onChange={(e) =>
-                        updateSelectedVec4([selectedVec4[0], selectedVec4[1], selectedVec4[2], clamp01(parseFloat(e.target.value))])
+                      onValueChange={(value) =>
+                        updateSelectedVec4([selectedVec4[0], selectedVec4[1], selectedVec4[2], clamp01(value)])
                       }
                     />
                   </div>

@@ -128,5 +128,19 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     local resumedX, resumedY = system1:getPosition()
     assertEqual(resumedX, 123, "particle playground preview resume updates emitter x")
     assertEqual(resumedY, 234, "particle playground preview resume updates emitter y")
+
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Composite Controls",
+        systemIndex = 1,
+        spinMin = 0.1,
+      },
+    })
+    local snapshot = plugin:handleRequest()
+    assertEqual(
+      snapshot.data.systems[1].properties.spinMin,
+      0.1,
+      "particle playground snapshots round float precision noise"
+    )
   end,
 })
