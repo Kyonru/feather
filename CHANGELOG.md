@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v1.4.3] - 2026-05-26 - The one with particles playground fixes
+## [v1.5.0] - 2026-05-26 - The one with particles playground fixes
 
 ### Added
 
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed CLI-managed step debugging so breakpoints and paused stack frames normalize absolute game paths back to project-relative files.
 - Fixed Particle System Playground exports with shaders so generated modules embed shader source directly in `init.lua` instead of requiring runtime `.glsl` file reads.
 - Fixed Particle System Playground pending property edits so debounced changes stay scoped to the emitter they were made on when switching emitters.
 - Fixed Particle System Playground numeric fields so negative values can be typed without intermediate `-` or empty states being coerced to `0`.
@@ -634,7 +635,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
-[unreleased]: https://github.com/Kyonru/feather/compare/v1.4.2...unreleased
+[v1.5.0]: https://github.com/Kyonru/feather/compare/v1.4.2...v1.5.0
 [v1.4.2]: https://github.com/Kyonru/feather/compare/v1.4.1...v1.4.2
 [v1.4.1]: https://github.com/Kyonru/feather/compare/v1.4.0...v1.4.1
 [v1.4.0]: https://github.com/Kyonru/feather/compare/v1.3.1...v1.4.0
