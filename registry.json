@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-25",
+  "updatedAt": "2026-05-26",
   "packages": {
     "anim8": {
       "type": "love2d-library",
@@ -537,26 +537,35 @@
     "feel": {
       "type": "love2d-library",
       "trust": "verified",
-      "description": "Orchestrate feedback by defining behavior",
+      "description": "feedback sequencing library for making actions feel good",
       "tags": [
         "animation",
         "tween",
-        "feedback"
+        "feedback",
+        "sequences",
+        "timing",
+        "shader",
+        "postprocessing"
       ],
       "homepage": "https://github.com/kyonru/feel.lua",
       "license": "unknown",
       "source": {
         "repo": "kyonru/feel.lua",
         "tag": "main",
-        "commitSha": "20880801a05817f4e85a3788b3c85220b970c958",
-        "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/20880801a05817f4e85a3788b3c85220b970c958/"
+        "commitSha": "ad2d4a993a885573a2114a232f57f674cfac4e1e",
+        "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/ad2d4a993a885573a2114a232f57f674cfac4e1e/"
       },
       "install": {
         "files": [
           {
             "name": "feel/init.lua",
-            "sha256": "3510de61dfb4e9b559caafaeb29a2005ffd4f37f9426aa976e101e453a03a4b4",
+            "sha256": "e0eadb8573e7b0e635c7577665fccd7cfb76057a944601a115326f8caf6094c0",
             "target": "lib/feel/init.lua"
+          },
+          {
+            "name": "feel/love.lua",
+            "sha256": "ed3f18c4b19fbb903fca292dd127d711d6cc5de44eb6611fe025cbb8a3581b4e",
+            "target": "lib/feel/love.lua"
           },
           {
             "name": "feel/vendor/flux.lua",
