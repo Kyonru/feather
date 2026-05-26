@@ -362,7 +362,7 @@ end
 function FeatherPluginManager:handleRequest(request, feather)
   local plugin = self:getPluginByUrl(request.path)
 
-  if plugin and plugin.instance then
+  if plugin and plugin.instance and not plugin.disabled then
     local status, data = pcall(plugin.instance.handleRequest, plugin.instance, request, feather)
 
     if not status then
@@ -375,6 +375,11 @@ end
 
 function FeatherPluginManager:handleActionRequest(request, feather)
   local plugin = self:getPluginByUrl(request.path)
+
+  if plugin and plugin.disabled then
+    feather.featherLogger:logger("[FeatherPluginManager] Ignoring action request for disabled plugin: " .. request.path)
+    return nil, "Plugin is disabled: " .. (request.path or "?")
+  end
 
   if plugin and plugin.instance then
     feather.featherLogger:logger("[FeatherPluginManager] Received action request: " .. request.path)
@@ -396,7 +401,7 @@ function FeatherPluginManager:handleParamsUpdate(request, feather)
 
   feather.featherLogger:logger("[FeatherPluginManager] Received params update: " .. request.path)
 
-  if plugin and plugin.instance then
+  if plugin and plugin.instance and not plugin.disabled then
     local status, data = pcall(plugin.instance.handleParamsUpdate, plugin.instance, request, feather)
 
     if not status then
@@ -602,7 +607,7 @@ end
 function FeatherPluginManager:handleActionCancel(request, feather)
   local plugin = self:getPluginByUrl(request.path)
 
-  if plugin and plugin.instance and plugin.instance.handleActionCancel then
+  if plugin and plugin.instance and not plugin.disabled and plugin.instance.handleActionCancel then
     local status, data = pcall(plugin.instance.handleActionCancel, plugin.instance, request, feather)
 
     if not status then

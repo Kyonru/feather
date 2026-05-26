@@ -186,6 +186,7 @@ function Feather:init(config)
   self.binaryTextThreshold = conf.binaryTextThreshold or 4096
   self._nextBinaryId = 1
   self._pendingBinaries = {}
+  self._binaryDrainQueue = {}
   self.lastError = 0
   self.wsConnected = false
   self.__connState = "idle"
@@ -294,6 +295,7 @@ function Feather:__createWsClient()
       selfRef.wsConnected = false
       print("[Feather] Disconnected")
     end
+    selfRef._binaryDrainQueue = {}
     if selfRef.__connState ~= "failed" then
       selfRef.__connState = "idle"
     end
@@ -335,17 +337,14 @@ function Feather:attachBinary(mime, bytes)
 end
 
 function Feather:__sendPendingBinaries()
-  if not self.wsConnected or not self.wsClient or not self.wsClient.sendBinary then
-    self._pendingBinaries = {}
-    return
-  end
-
   local pending = self._pendingBinaries or {}
   self._pendingBinaries = {}
+  if not self.wsConnected or not self.wsClient or not self.wsClient.sendBinary then
+    return
+  end
+  self._binaryDrainQueue = self._binaryDrainQueue or {}
   for _, binary in ipairs(pending) do
-    if binary.bytes then
-      self.wsClient:sendBinary(binary.bytes)
-    end
+    table.insert(self._binaryDrainQueue, binary)
   end
 end
 
@@ -872,6 +871,16 @@ function Feather:update(dt)
       end
     else
       self.wsClient:update()
+      -- Drain queued binary frames: at most 2 per game frame to avoid flooding the socket
+      if self.wsConnected and self._binaryDrainQueue and #self._binaryDrainQueue > 0 then
+        for _ = 1, 2 do
+          local binary = table.remove(self._binaryDrainQueue, 1)
+          if not binary then break end
+          if binary.bytes and self.wsClient.sendBinary then
+            self.wsClient:sendBinary(binary.bytes)
+          end
+        end
+      end
     end
   end
 
