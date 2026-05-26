@@ -61,6 +61,8 @@ debugger:observe("player", player)
 debugger:observe("camera", camera)
 ```
 
+The Observability page tracks first seen, last seen, last changed, value size, change counts, and recent value history for each observer. Use key prefixes like `player.x`, `player.health`, or `physics.contacts` to get automatic group filters, then search, filter, sort, inspect diffs, customize how long changed markers stay visible, and export the visible observer set as JSON.
+
 ---
 
 ## Logging

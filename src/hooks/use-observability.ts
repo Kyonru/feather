@@ -10,6 +10,12 @@ export type ObserverEntry = {
   previous?: string;
   changed: boolean;
   history: string[];
+  group?: string;
+  firstSeen?: number;
+  lastSeen?: number;
+  lastChanged?: number;
+  changeCount?: number;
+  valueLength?: number;
 };
 
 export const useObservability = (search?: string): { data: ObserverEntry[]; all: ObserverEntry[] } => {
@@ -25,7 +31,13 @@ export const useObservability = (search?: string): { data: ObserverEntry[]; all:
     const entries = data ?? [];
     if (!search?.trim()) return entries;
     const q = search.toLowerCase();
-    return entries.filter((e) => e.key.toLowerCase().includes(q) || e.value.toLowerCase().includes(q));
+    return entries.filter(
+      (e) =>
+        e.key.toLowerCase().includes(q) ||
+        e.value.toLowerCase().includes(q) ||
+        e.type.toLowerCase().includes(q) ||
+        (e.group ?? '').toLowerCase().includes(q),
+    );
   }, [data, search]);
 
   return { data: filtered, all: data ?? [] };

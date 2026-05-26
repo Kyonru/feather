@@ -432,15 +432,30 @@ export const useWsConnection = () => {
             const existing: Record<string, any>[] = queryClient.getQueryData(sessionQueryKey.observers(sessionId)) ?? [];
             const existingMap = new Map(existing.map((e) => [e.key, e]));
             const HISTORY_MAX = 50;
+            const now = Date.now();
             const merged = incoming.map((entry) => {
               const prev = existingMap.get(entry.key);
-              const changed = prev !== undefined && prev.value !== entry.value;
+              const changedNow = prev !== undefined && prev.value !== entry.value;
               const history: string[] = prev?.history ?? [];
-              if (changed) {
+              if (changedNow) {
                 history.push(prev.value);
                 if (history.length > HISTORY_MAX) history.shift();
               }
-              return { ...entry, previous: prev?.value, changed, history };
+              const group = typeof entry.key === 'string' ? (entry.key.match(/^([^.:/\s]+)/)?.[1] ?? 'ungrouped') : 'ungrouped';
+              const value = `${entry.value ?? ''}`;
+              const lastChanged = changedNow ? now : prev?.lastChanged;
+              return {
+                ...entry,
+                previous: changedNow ? prev?.value : prev?.previous,
+                changed: changedNow,
+                history,
+                group,
+                firstSeen: prev?.firstSeen ?? now,
+                lastSeen: now,
+                lastChanged,
+                changeCount: (prev?.changeCount ?? 0) + (changedNow ? 1 : 0),
+                valueLength: value.length,
+              };
             });
             queryClient.setQueryData(sessionQueryKey.observers(sessionId), merged);
             break;

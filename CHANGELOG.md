@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a Session page toggle for enabling callback crash recovery on the current run.
 - Added Health and Profiler tabs to the Performance page with expanded metric charts, spike triage, profiler controls, and JSON export.
 - Added Profiler scoped samples, before/after snapshots, group metadata, and diff-friendly capture data for focused profiling workflows.
+- Added richer Observability triage with observer groups, change counts, first/last seen metadata, sorting, group filters, customizable changed-marker duration, and JSON export.
 
 ### Changed
 

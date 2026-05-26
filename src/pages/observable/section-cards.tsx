@@ -32,12 +32,18 @@ export function SectionCards({
                 {item.changed && (
                   <span className="inline-block h-2 w-2 rounded-full bg-yellow-400 shrink-0" title="Value changed" />
                 )}
+                {item.changeCount ? (
+                  <Badge variant="outline" className="shrink-0 px-1.5 py-0 font-mono text-[10px]" title="Change count">
+                    Δ{item.changeCount}
+                  </Badge>
+                ) : null}
                 <Badge variant="secondary" className="ml-auto shrink-0 px-1.5 py-0 font-mono text-[10px]">
                   {item.type}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="px-3">
+              {item.group && <p className="mb-1 truncate font-mono text-[10px] text-muted-foreground/80">{item.group}</p>}
               <p className="line-clamp-3 break-all font-mono text-xs text-muted-foreground">{value}</p>
             </CardContent>
           </Card>
