@@ -398,6 +398,7 @@ function Feather:__getConfig()
     sysInfo = self.performance.sysInfo,
     deviceId = self.deviceId,
     sessionName = self.sessionName,
+    capabilities = self.capabilities,
     security = {
       appIdRequired = type(self.appId) == "string" and self.appId ~= "",
       __DANGEROUS_INSECURE_CONNECTION__ = self.__DANGEROUS_INSECURE_CONNECTION__ == true,

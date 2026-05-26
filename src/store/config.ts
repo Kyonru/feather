@@ -35,6 +35,7 @@ export interface Config {
   sysInfo?: SysInfo;
   deviceId?: string;
   sessionName?: string;
+  capabilities?: string[] | 'all';
   security?: {
     appIdRequired?: boolean;
   };
@@ -53,6 +54,7 @@ export interface PluginConfig {
   currentApi?: number;
   version?: string;
   docs?: string;
+  capabilities?: string[];
   actions?: Array<Record<string, unknown>>;
   [key: string]: unknown;
 }

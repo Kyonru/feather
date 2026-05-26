@@ -10,14 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added portable `.featherparticles` project save/import for Particle System Playground so editable composites can be continued later.
+- Session page now shows sample rate, save directory, project root, the global capability allowlist (or "all"), per-plugin capability badges (colour-coded by type), and the incompatibility reason when a plugin is blocked.
 
 ### Changed
 
 - Particle System Playground exports now generate drop-in Lua modules with `init`, `update`, `draw`, `emit`, and `release` lifecycle functions.
 - Particle System Playground Emit and Reset now replay the whole enabled composite, with per-emitter enabled toggles and a scratch preview pause.
+- CLI plugin selection (in `feather init`, `feather create`, and `feather plugin`) now shows each plugin's capability requirements (e.g. `[filesystem]`, `[draw, filesystem]`) alongside the description so users know what they are opting into.
+- CLI interactive selection lists (`feather init`, `feather plugin`, `feather create`, etc.) now use a scrolling 10-item viewport with `↑ N more` / `↓ N more` indicators so large lists (plugins, packages, vendors) no longer overflow the terminal.
 
 ### Fixed
 
+- Fixed Screenshots plugin GIF recording disconnecting the WebSocket client by draining binary frame payloads gradually (2 per game frame) instead of flushing all frames in a single push, which overflowed the non-blocking socket buffer.
+- Fixed disabled plugins receiving and executing action, params-update, and cancel requests; all plugin dispatch paths now bail early when `plugin.disabled` is true.
 - Fixed CLI-managed step debugging so breakpoints and paused stack frames normalize absolute game paths back to project-relative files.
 - Fixed Particle System Playground exports with shaders so generated modules embed shader source directly in `init.lua` instead of requiring runtime `.glsl` file reads.
 - Fixed Particle System Playground pending property edits so debounced changes stay scoped to the emitter they were made on when switching emitters.

@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/utils/styles';
 import { isWeb } from '@/utils/platform';
-import { BoxIcon, MonitorIcon, PuzzleIcon, ServerIcon, ShieldOffIcon } from 'lucide-react';
+import { BoxIcon, MonitorIcon, PuzzleIcon, ServerIcon, ShieldCheckIcon, ShieldOffIcon } from 'lucide-react';
 
 type LockfileEntry = {
   version: string;
@@ -68,6 +68,26 @@ function Section({
   );
 }
 
+function CapabilityBadge({ cap }: { cap: string }) {
+  const colors: Record<string, string> = {
+    filesystem: 'border-yellow-500/40 text-yellow-600 dark:text-yellow-400',
+    network:    'border-blue-500/40 text-blue-600 dark:text-blue-400',
+    input:      'border-purple-500/40 text-purple-600 dark:text-purple-400',
+    draw:       'border-pink-500/40 text-pink-600 dark:text-pink-400',
+    audio:      'border-green-500/40 text-green-600 dark:text-green-400',
+    physics:    'border-orange-500/40 text-orange-600 dark:text-orange-400',
+    binary:     'border-muted-foreground/30 text-muted-foreground',
+  };
+  return (
+    <Badge
+      variant="outline"
+      className={cn('h-4 px-1 text-[9px] font-normal', colors[cap] ?? 'border-muted-foreground/30 text-muted-foreground')}
+    >
+      {cap}
+    </Badge>
+  );
+}
+
 export default function SessionPage() {
   const config = useConfigStore((state) => state.config);
   const sessionId = useSessionStore((state) => state.sessionId);
@@ -86,6 +106,10 @@ export default function SessionPage() {
   const pluginEntries = Object.entries(config.plugins ?? {});
   const packageEntries = lockfile ? Object.entries(lockfile.packages) : [];
 
+  const capabilities = config.capabilities;
+  const capAll = capabilities === 'all' || capabilities == null;
+  const capList = !capAll && Array.isArray(capabilities) ? capabilities : [];
+
   return (
     <ScrollArea className="min-h-0 flex-1">
       <div className="flex flex-col gap-4 px-4 py-4 md:py-6">
@@ -94,6 +118,9 @@ export default function SessionPage() {
             <InfoRow label="Name" value={config.sessionName || session.name} />
             <InfoRow label="Device ID" value={session.deviceId} />
             <InfoRow label="Session ID" value={sessionId} />
+            <InfoRow label="Sample rate" value={config.sampleRate ? `${config.sampleRate}s` : undefined} />
+            <InfoRow label="Save directory" value={config.location} />
+            {config.root_path && <InfoRow label="Project root" value={config.root_path} />}
             {session.insecure && (
               <div className="mt-2 flex items-center gap-2 rounded-md border border-orange-300 bg-orange-50 px-2 py-1.5 dark:border-orange-800 dark:bg-orange-950">
                 <ShieldOffIcon className="size-3.5 text-orange-500" />
@@ -111,6 +138,23 @@ export default function SessionPage() {
             <InfoRow label="LÖVE version" value={config.sysInfo?.loveVersion} />
             <InfoRow label="Feather runtime" value={config.version ? `v${config.version}` : undefined} />
             <InfoRow label="API version" value={config.API || undefined} />
+            <InfoRow
+              label="Capabilities"
+              value={
+                capAll ? (
+                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                    <ShieldCheckIcon className="size-3" />
+                    all
+                  </span>
+                ) : capList.length > 0 ? (
+                  <span className="flex flex-wrap justify-end gap-1">
+                    {capList.map((c) => <CapabilityBadge key={c} cap={c} />)}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">none</span>
+                )
+              }
+            />
           </Section>
         </div>
 
@@ -121,25 +165,36 @@ export default function SessionPage() {
             <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {pluginEntries.map(([id, plugin]) => {
                 const status = plugin.incompatible ? 'incompatible' : plugin.disabled ? 'disabled' : 'enabled';
+                const caps = plugin.capabilities ?? [];
                 return (
                   <div
                     key={id}
-                    className="flex items-center justify-between rounded-md border bg-muted/30 px-2.5 py-1.5"
+                    className="flex flex-col gap-1 rounded-md border bg-muted/30 px-2.5 py-1.5"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-mono text-xs">{plugin.tabName || id}</p>
-                      {plugin.version && <p className="text-[10px] text-muted-foreground">v{plugin.version}</p>}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-mono text-xs">{plugin.tabName || id}</p>
+                        {plugin.version && <p className="text-[10px] text-muted-foreground">v{plugin.version}</p>}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn('ml-auto h-5 shrink-0 text-[10px]', {
+                          'border-green-500/40 text-green-600 dark:text-green-400': status === 'enabled',
+                          'border-muted-foreground/30 text-muted-foreground': status === 'disabled',
+                          'border-destructive/30 text-destructive': status === 'incompatible',
+                        })}
+                      >
+                        {status}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={cn('ml-2 h-5 shrink-0 text-[10px]', {
-                        'border-green-500/40 text-green-600 dark:text-green-400': status === 'enabled',
-                        'border-muted-foreground/30 text-muted-foreground': status === 'disabled',
-                        'border-destructive/30 text-destructive': status === 'incompatible',
-                      })}
-                    >
-                      {status}
-                    </Badge>
+                    {caps.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {caps.map((c) => <CapabilityBadge key={c} cap={c} />)}
+                      </div>
+                    )}
+                    {plugin.incompatibilityReason && (
+                      <p className="text-[10px] text-destructive">{plugin.incompatibilityReason}</p>
+                    )}
                   </div>
                 );
               })}

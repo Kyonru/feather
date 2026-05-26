@@ -580,6 +580,7 @@ function FeatherPluginManager:getConfig()
     config.maxApi = plugin.compatibility and plugin.compatibility.maxApi or nil
     config.currentApi = plugin.compatibility and plugin.compatibility.currentApi or nil
     config.version = plugin.version or config.version
+    config.capabilities = plugin.capabilities or {}
     pluginsConfig[plugin.identifier] = config
   end
 

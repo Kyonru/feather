@@ -171,16 +171,23 @@ export function PluginContentTypeImage({ name, metadata, downloadable }: PluginC
     if (metadata.type === 'gif') {
       // GIF frames: array of data/blob URLs or file paths.
       if (Array.isArray(metadata.src) && metadata.src.length > 0 && metadata.src.every(isDirectImageSrc)) {
-        // Data/blob URLs from WS — use directly.
+        // All frames are direct (blob:/data:) — use as-is.
         setSrc(metadata.src);
+      } else if (
+        // Only attempt file-path resolution when no frame is in the binary-protocol
+        // lifecycle (blob: = resolved ref, feather-binary: = pending ref). A mix of
+        // resolved and pending refs is an intermediate state; show nothing until all
+        // arrive, otherwise mangled paths get wrapped as invalid base64 data URLs.
+        !isWeb() &&
+        Array.isArray(metadata.src) &&
+        metadata.src.length > 0 &&
+        !metadata.src.some((f) => typeof f === 'string' && (f.startsWith('blob:') || f.startsWith('feather-binary:'))) &&
+        metadata.src.every((frame) => canResolveAssetPath(frame, sourceDir))
+      ) {
+        const urls = metadata.src.map((frame) => convertFileSrc(resolveAssetPath(frame, sourceDir)));
+        setSrc(urls);
       } else {
-        // File paths — resolve to Tauri asset URLs when running locally.
-        if (isWeb() || !metadata.src.every((frame) => canResolveAssetPath(frame, sourceDir))) {
-          setSrc(null);
-        } else {
-          const urls = metadata.src.map((frame) => convertFileSrc(resolveAssetPath(frame, sourceDir)));
-          setSrc(urls);
-        }
+        setSrc(null);
       }
       return;
     }

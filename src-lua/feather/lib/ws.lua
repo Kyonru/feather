@@ -51,6 +51,10 @@ function _M.new(host, port, path)
     _buf = "",
     _connectAttempts = 0,
     socket = socket.tcp(),
+    -- Outbound send queue: list of fully-framed binary strings waiting to be flushed.
+    -- Using a queue avoids corrupted frames from partial socket:send() calls.
+    _outQueue = {},
+    _outQueuePos = 1,
   }
   m.socket:settimeout(0)
   m.socket:connect(host, port)
@@ -58,7 +62,7 @@ function _M.new(host, port, path)
   return m
 end
 
--- Build and send a complete WS frame in one sock:send() call
+-- Build and enqueue a complete WS frame. Actual sending happens in _flush().
 local mask_key = { 1, 14, 5, 14 }
 local mask_str = string.char(1, 14, 5, 14)
 
@@ -97,7 +101,34 @@ function _M:_sendFrame(message, opcode)
     return string.char(bxor(c:byte(), mask_key[(i - 1) % 4 + 1]))
   end)
 
-  self.socket:send(header .. mask_str .. masked)
+  table.insert(self._outQueue, header .. mask_str .. masked)
+end
+
+-- Drain the outbound queue, sending as many bytes as the OS buffer accepts.
+-- Preserves partial-send position so no frame data is lost between calls.
+-- NOTE: LuaSocket send(data, i, j) returns the last byte INDEX sent (not a count),
+-- so partial must be used as an absolute position, not added to pos.
+function _M:_flush()
+  local queue = self._outQueue
+  if not queue or #queue == 0 then
+    return
+  end
+  local pos = self._outQueuePos
+  while #queue > 0 do
+    local frame = queue[1]
+    local n, _, partial = self.socket:send(frame, pos, #frame)
+    if n then
+      -- Frame fully sent (n = last byte index = #frame)
+      table.remove(queue, 1)
+      pos = 1
+    else
+      -- Partial send: partial is the absolute last-byte-index sent within the frame.
+      -- Set pos to the next unsent byte. If partial is nil (0 bytes sent), don't advance.
+      pos = (partial or pos - 1) + 1
+      break
+    end
+  end
+  self._outQueuePos = pos
 end
 
 function _M:send(message)
@@ -123,8 +154,12 @@ function _M:close(code, message)
     i = i + 1
     return string.char(bxor(c:byte(), mask_key[(i - 1) % 4 + 1]))
   end)
+  -- Close frames are small and sent immediately; flush any queued data first
+  self:_flush()
   self.socket:send(header .. mask_str .. masked)
   self.status = STATUS.CLOSING
+  self._outQueue = {}
+  self._outQueuePos = 1
 end
 
 -- Try to parse one frame from self._buf. Returns payload, opcode or nil.
@@ -212,10 +247,15 @@ function _M:update()
   end
 
   if self.status == STATUS.OPEN or self.status == STATUS.CLOSING then
+    -- Flush any queued outbound frames before reading
+    self:_flush()
+
     -- Read available data (non-blocking)
     local chunk, err, partial = sock:receive(4096)
     if err == "closed" then
       self.status = STATUS.CLOSED
+      self._outQueue = {}
+      self._outQueuePos = 1
       self:onclose(1006, "connection closed")
       return
     end
@@ -240,6 +280,8 @@ function _M:update()
           reason = payload:sub(3)
         end
         self.status = STATUS.CLOSED
+        self._outQueue = {}
+        self._outQueuePos = 1
         self:onclose(code, reason)
         return
       elseif opcode == 0x9 then -- Ping → Pong
