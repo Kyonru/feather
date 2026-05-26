@@ -464,7 +464,9 @@ function FeatherPluginManager:hookLoveCallbacks()
         local original = mgr._loveCallbackOriginals and mgr._loveCallbackOriginals[name]
 
         if original and original ~= wrapper then
-          local ok, err = pcall(original, ...)
+          local ok, err = xpcall(original, function(e)
+            return debug.traceback(tostring(e), 2)
+          end, ...)
           if not ok and mgr.logger then
             mgr.logger:log({
               type = "error",

@@ -38,13 +38,44 @@ export const columns: ColumnDef<Log>[] = [
   },
 ];
 
-export function TraceBlock({ code, basePath }: { code: string; basePath: string }) {
+function stripPrefix(trace: string, dir: string): string {
+  const prefix = dir.replace(/[/\\]+$/, '') + '/';
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const result = trace.replace(new RegExp(escaped, 'g'), '');
+  if (result !== trace) return result;
+  // Handle macOS /Users ↔ /private/Users symlink mismatch
+  const alt = prefix.startsWith('/private/') ? prefix.slice('/private'.length) : '/private' + prefix;
+  return trace.replace(new RegExp(alt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
+}
+
+function stripBasePath(trace: string, sourceDir: string, rootPath: string): string {
+  if (sourceDir) {
+    const r = stripPrefix(trace, sourceDir);
+    if (r !== trace) return r;
+  }
+  if (rootPath && rootPath !== sourceDir) {
+    const r = stripPrefix(trace, rootPath);
+    if (r !== trace) return r;
+  }
+  return trace;
+}
+
+export function TraceBlock({
+  code,
+  basePath,
+  sourceDir,
+}: {
+  code: string;
+  basePath: string;
+  sourceDir?: string;
+}) {
   const textEditorPath = useSettingsStore((state) => state.textEditorPath);
+  const stripped = stripBasePath(code, sourceDir ?? '', basePath);
 
   return (
     <ScrollArea className="mt-2 h-52 rounded border bg-muted p-2 font-mono text-xs">
       <TraceViewer
-        trace={code}
+        trace={stripped}
         onFileClick={async (file, line) => {
           try {
             if (isWeb()) {
@@ -52,12 +83,22 @@ export function TraceBlock({ code, basePath }: { code: string; basePath: string 
               return;
             }
 
-            await invoke('open_source_location', {
-              editorPath: textEditorPath,
-              projectRoot: basePath,
-              relativeFile: file,
-              line,
-            });
+            const roots = [basePath, sourceDir].filter(Boolean) as string[];
+            let lastError: string | null = null;
+            for (const root of roots) {
+              try {
+                await invoke('open_source_location', {
+                  editorPath: textEditorPath,
+                  projectRoot: root,
+                  relativeFile: file,
+                  line,
+                });
+                return;
+              } catch (e) {
+                lastError = e instanceof Error ? e.message : String(e);
+              }
+            }
+            if (lastError) toast.error(lastError, { position: 'bottom-center' });
           } catch (e) {
             toast.error(e instanceof Error ? e.message : String(e), { position: 'bottom-center' });
           }
@@ -122,10 +163,12 @@ export function LogImage({ src }: { src?: string }) {
 export function LogSidePanel({
   data,
   basePath,
+  sourceDir,
   onClose,
 }: {
   onClose: (o: boolean) => void;
   basePath: string;
+  sourceDir?: string;
   data: Log;
 }) {
   const trace = data.type === 'error' ? data.str : data.trace;
@@ -175,13 +218,13 @@ export function LogSidePanel({
         {!isFeatherEvent && trace ? (
           <div>
             <span className="text-sm font-medium">Trace</span>
-            <TraceBlock basePath={basePath} code={trace} />
+            <TraceBlock basePath={basePath} sourceDir={sourceDir} code={trace} />
           </div>
         ) : null}
       </CardContent>
       {!isFeatherEvent && trace ? (
         <CardFooter className="justify-end">
-          <CopyButton value={trace} />
+          <CopyButton value={stripBasePath(trace, sourceDir ?? '', basePath)} />
         </CardFooter>
       ) : null}
      {screenshot ? <LogImage src={screenshot} /> : null}
@@ -214,7 +257,7 @@ export default function Page() {
 
   return (
     <PageLayout
-      right={selectedLog && <LogSidePanel basePath={data?.root_path || ''} data={selectedLog} onClose={onClose} />}
+      right={selectedLog && <LogSidePanel basePath={data?.root_path || ''} sourceDir={data?.sourceDir} data={selectedLog} onClose={onClose} />}
     >
       <DataTable
         screenshotEnabled={screenshotEnabled}

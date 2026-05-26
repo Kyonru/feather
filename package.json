@@ -23,7 +23,7 @@
     "extension:test": "npm run extension:build && npm run test --workspace=vscode-extension",
     "extension:test:integration": "npm run extension:build && npm run test:integration --workspace=vscode-extension",
     "extension:package": "npm run extension:binary && npm run extension:build && npm run generate:icon --workspace=vscode-extension && cd vscode-extension && npx @vscode/vsce package",
-    "feather": "node cli/dist/index.js",
+    "feather": "npm run bundle:lua --workspace=cli && npm run cli:build && node cli/dist/index.js",
     "dev": "vite",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
     "docs": "docker run --rm -it -p 8000:8000 -v \"$(pwd):/docs\" -w /docs --entrypoint sh squidfunk/mkdocs-material -c \"pip install -r requirements-docs.txt && mkdocs serve --dev-addr=0.0.0.0:8000\"",
