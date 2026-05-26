@@ -22,7 +22,7 @@ import type {
 import { unionBy } from '@/utils/arrays';
 import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
-import { useDebuggerStore, type PausedState } from '@/store/debugger';
+import { useDebuggerStore, type BreakpointIssue, type DebuggerStatus, type PausedState } from '@/store/debugger';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { sendCommand } from '@/lib/send-command';
 import { base64ToUint8Array } from '@/utils/arrays';
@@ -367,10 +367,19 @@ export const useWsConnection = () => {
             }
             const debuggerState = useDebuggerStore.getState();
             const shouldEnable = config.debugger?.enabled || debuggerState.defaultEnabled;
+            if (config.debugger?.pauseOnError !== undefined) {
+              debuggerState.setPauseOnError(sessionId, config.debugger.pauseOnError);
+            }
             console.log('Debugger enabled for session', sessionId);
             if (shouldEnable) {
               setDebuggerEnabled(sessionId, true);
               sendCommand(sessionId, { type: 'cmd:debugger:enable' }).catch(() => {});
+              if (config.debugger?.pauseOnError !== undefined) {
+                sendCommand(sessionId, {
+                  type: 'cmd:debugger:set_options',
+                  data: { pauseOnError: config.debugger.pauseOnError },
+                }).catch(() => {});
+              }
               const stored = debuggerState.breakpoints.filter((b) => b.enabled);
               if (stored.length > 0) {
                 sendCommand(sessionId, {
@@ -626,6 +635,30 @@ export const useWsConnection = () => {
           case 'debugger:paused': {
             queueBinaryRefs(sessionId, { type: 'debuggerPaused' }, data, 'text');
             setPausedState(sessionId, data as PausedState);
+            break;
+          }
+
+          case 'debugger:status': {
+            useDebuggerStore.getState().setStatus(sessionId, data as DebuggerStatus);
+            break;
+          }
+
+          case 'debugger:breakpoint_error': {
+            useDebuggerStore.getState().addBreakpointError(sessionId, data as BreakpointIssue);
+            break;
+          }
+
+          case 'debugger:frame': {
+            queueBinaryRefs(sessionId, { type: 'debuggerPaused' }, data, 'text');
+            useDebuggerStore.getState().setFrameVariables(
+              sessionId,
+              data as {
+                pauseId?: number;
+                index?: number;
+                locals?: Record<string, string>;
+                upvalues?: Record<string, string>;
+              },
+            );
             break;
           }
 

@@ -4,6 +4,7 @@ local FeatherPluginBase = require("feather.core.base")
 local FeatherPluginManager = require("feather.plugin_manager")
 local HotReloadPlugin = require("plugins.hot-reload")
 local PluginE2ESuite = require("e2e.plugins")
+local json = require("feather.lib.json")
 
 local E2EPlugin = Class({
   __includes = FeatherPluginBase,
@@ -191,6 +192,77 @@ local function run()
     "lib/player.lua",
     "debugger normalizes CLI absolute module paths to relative paths"
   )
+  feather.featherDebugger.shimRoot = "/tmp/feather-shim"
+  assertEqual(
+    feather.featherDebugger:_normalizeFile("@/tmp/feather-shim/lib/player.lua"),
+    "lib/player.lua",
+    "debugger normalizes CLI shim module paths to relative paths"
+  )
+  local longSourceRoot = "/tmp/feather-long-source-root-with-enough-segments-to-force-lua-short-src-truncation/example/test_cli"
+  local didPauseOnLongSource = false
+  local originalDoPause = feather.featherDebugger._doPause
+  feather.featherDebugger.sourceRoot = longSourceRoot
+  feather.featherDebugger:setBreakpoints({
+    { file = longSourceRoot .. "/main.lua", line = 2 },
+  })
+  feather.featherDebugger._doPause = function(_, info, line)
+    didPauseOnLongSource = true
+    assertEqual(line, 2, "debugger hook sees the expected long-source line")
+    assertEqual(
+      feather.featherDebugger:_normalizeFile(info.source or info.short_src or ""),
+      "main.lua",
+      "debugger hook uses untruncated source paths for long CLI roots"
+    )
+  end
+  feather.featherDebugger:enable()
+  local longChunk = assert(load("local value = 1\nvalue = value + 1\n", "@" .. longSourceRoot .. "/main.lua"))
+  longChunk()
+  feather.featherDebugger:disable()
+  feather.featherDebugger._doPause = originalDoPause
+  assertTruthy(didPauseOnLongSource, "debugger breakpoints match long untruncated source paths")
+  feather.featherDebugger.sourceRoot = "/tmp/feather-game"
+  feather.featherDebugger:setBreakpoints({
+    { file = "@/tmp/feather-game/main.lua", line = 12.8 },
+    { file = "", line = 0 },
+  })
+  local debuggerStatus = feather.featherDebugger:statusBody()
+  assertEqual(debuggerStatus.breakpointCount, 1, "debugger status includes normalized breakpoint count")
+  assertEqual(debuggerStatus.breakpoints[1].file, "main.lua", "debugger status includes normalized breakpoint file")
+  assertEqual(debuggerStatus.breakpoints[1].line, 12, "debugger status includes normalized breakpoint line")
+  assertEqual(#debuggerStatus.rejectedBreakpoints, 1, "debugger status includes rejected breakpoints")
+  feather.featherDebugger:_sendBreakpointError("main.lua", 12, "bad +", "condition failed")
+  debuggerStatus = feather.featherDebugger:statusBody()
+  assertEqual(#debuggerStatus.breakpointErrors, 1, "debugger status includes condition errors")
+
+  local sentDebuggerFrame
+  local originalWsConnected = feather.wsConnected
+  local originalWsClient = feather.wsClient
+  feather.wsConnected = true
+  feather.wsClient = {
+    send = function(_, payload)
+      local decoded = json.decode(payload)
+      if decoded.type == "debugger:frame" then
+        sentDebuggerFrame = decoded.data
+      end
+    end,
+  }
+  feather.featherDebugger.pauseId = 42
+  feather.featherDebugger._pausedFrames = {
+    {
+      index = 0,
+      file = "main.lua",
+      line = 12,
+      locals = { player = "table {2}" },
+      upvalues = { config = "true" },
+      binary = {},
+    },
+  }
+  feather.featherDebugger:inspectFrame(0)
+  assertTruthy(sentDebuggerFrame, "debugger frame inspection sends frame payload")
+  assertEqual(sentDebuggerFrame.locals.player, "table {2}", "debugger frame inspection includes locals")
+  assertEqual(sentDebuggerFrame.upvalues.config, "true", "debugger frame inspection includes upvalues")
+  feather.wsConnected = originalWsConnected
+  feather.wsClient = originalWsClient
   assertEqual(helloConfig.debugger.hotReload.enabled, true, "hello config includes hot reload state")
   assertEqual(helloConfig.plugins["api-compatible"].incompatible, false, "compatible plugin remains available")
   assertEqual(helloConfig.plugins["api-compatible"].disabled, false, "compatible plugin remains enabled")
@@ -345,6 +417,36 @@ return M
   love.draw = crashOriginalDraw
 
   love.draw = function()
+    error("pause-on-error draw crash")
+  end
+
+  local pauseCrashFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Callback Crash Pause E2E",
+    deviceId = "callback-crash-pause-e2e",
+    assetPreview = false,
+    debugger = {
+      enabled = true,
+      pauseOnError = true,
+    },
+  })
+  local pauseUpdateCount = 0
+  pauseCrashFeather.wsClient = {
+    update = function()
+      pauseUpdateCount = pauseUpdateCount + 1
+      pauseCrashFeather.featherDebugger:resume(nil)
+    end,
+  }
+  local pausedCrash, pausedCrashErr = pcall(love.draw)
+  assertEqual(pausedCrash, false, "pauseOnError preserves default callback crash behavior")
+  assertTruthy(tostring(pausedCrashErr):match("pause%-on%-error draw crash"), "pauseOnError preserves crash message")
+  assertTruthy(pauseUpdateCount > 0, "pauseOnError pauses until debugger resumes")
+  pauseCrashFeather.featherDebugger:disable()
+  pauseCrashFeather:finish()
+  love.draw = crashOriginalDraw
+
+  love.draw = function()
     error("recoverable draw crash")
   end
 
@@ -368,6 +470,36 @@ return M
     "crash toast explains Feather kept the game running"
   )
   continuingCrashFeather:finish()
+  love.draw = crashOriginalDraw
+
+  love.draw = function()
+    error("recoverable paused draw crash")
+  end
+
+  local pausedContinueFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Callback Crash Pause Continue E2E",
+    deviceId = "callback-crash-pause-continue-e2e",
+    assetPreview = false,
+    continueOnGameError = true,
+    debugger = {
+      enabled = true,
+      pauseOnError = true,
+    },
+  })
+  local pausedContinueCount = 0
+  pausedContinueFeather.wsClient = {
+    update = function()
+      pausedContinueCount = pausedContinueCount + 1
+      pausedContinueFeather.featherDebugger:resume(nil)
+    end,
+  }
+  local pausedContinued = pcall(love.draw)
+  assertEqual(pausedContinued, true, "pauseOnError preserves continueOnGameError recovery")
+  assertTruthy(pausedContinueCount > 0, "pauseOnError recovery pauses until debugger resumes")
+  pausedContinueFeather.featherDebugger:disable()
+  pausedContinueFeather:finish()
   love.draw = crashOriginalDraw
 
   local pluginCount = 1000

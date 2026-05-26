@@ -81,9 +81,11 @@ test('run: fake love receives shim, args, env, and exit code is propagated', () 
   assert.equal(result.exitCode, 7);
   const record = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.equal(record.env.FEATHER_GAME_PATH, resolve(gameDir));
+  assert.ok(record.env.FEATHER_SHIM_PATH, 'shim path should be exposed for debugger source normalization');
   assert.equal(record.env.FEATHER_SESSION_NAME, 'Command Test');
   assert.equal(record.shimMainExists, true);
   assert.equal(record.featherAutoExists, true);
+  assert.ok(record.shimMain.includes('debugger = true'), 'CLI-managed run should enable step debugger by default');
   assert.equal(existsSync(record.argv[0]), false, 'shim should be cleaned after love exits');
   assert.deepEqual(record.argv.slice(1), ['--level', '2']);
 });
@@ -126,6 +128,25 @@ test('run: accepts configPath aliases and recovers npm-stripped config path argu
   const strippedRecord = JSON.parse(readFileSync(stripped.recordPath, 'utf8'));
   assert.equal(strippedRecord.env.FEATHER_SESSION_NAME, 'From Config Alias');
   assert.deepEqual(strippedRecord.argv.slice(1), []);
+});
+
+test('run: accepts --config after the game path and still enables CLI debugger defaults', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  const configPath = join(gameDir, 'feather.config.lua');
+  writeFileSync(configPath, 'return { sessionName = "From Config Option" }\n');
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', gameDir, '--verbose', '--config', configPath, '--love', fakePath]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.equal(record.env.FEATHER_GAME_PATH, resolve(gameDir));
+  assert.ok(record.env.FEATHER_SHIM_PATH, 'shim path should be exposed for debugger source normalization');
+  assert.equal(record.env.FEATHER_SESSION_NAME, 'From Config Option');
+  assert.ok(record.shimMain.includes('debugger = true'), 'CLI debugger default should survive --config parsing');
+  assert.deepEqual(record.argv.slice(1), []);
 });
 
 test('run: shim preloads config before requiring feather.auto', () => {
@@ -255,6 +276,7 @@ test('run --no-debugger: launches game directly without Feather shim', () => {
   assert.equal(record.argv[0], resolve(gameDir));
   assert.deepEqual(record.argv.slice(1), ['--plain']);
   assert.equal(record.featherAutoExists, false);
+  assert.equal(record.shimMain.includes('debugger = true'), false);
   assert.equal(record.shimMain, readFileSync(join(gameDir, 'main.lua'), 'utf8'));
 });
 

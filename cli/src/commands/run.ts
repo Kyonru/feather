@@ -238,6 +238,7 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
     featherOverride: opts.featherPath,
     pluginsOverride: opts.pluginsDir,
     userConfig: userConfig as Record<string, unknown> | undefined,
+    debuggerEnabled,
   });
 
   printInfo("Feather run");
@@ -247,7 +248,7 @@ export async function runCommand(gamePath: string | undefined, opts: RunOptions)
     ["Args", opts.gameArgs?.join(" ")],
   ]);
 
-  const env = shimEnv(absGame, sessionName);
+  const env = shimEnv(absGame, sessionName, shim.dir);
 
   try {
     return await runLove(loveBin, [shim.dir, ...(opts.gameArgs ?? [])], env);

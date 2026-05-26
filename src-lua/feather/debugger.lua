@@ -3,12 +3,13 @@ local json = require(FEATHER_PATH .. ".lib.json")
 
 -- Capture this file's source path at load time so we can strip Feather-internal
 -- frames from stack walks regardless of level arithmetic.
-local _SELF_SRC = debug.getinfo(1, "S").short_src
+local _SELF_SRC = debug.getinfo(1, "S").source
 
 ---@class FeatherDebugger
 ---@field enabled boolean
 ---@field paused boolean
 ---@field breakpoints table  { [normalizedFile] = { [line] = { condition? } } }
+---@field pauseOnError boolean
 ---@field _stepMode string|nil  "over" | "into" | "out" | nil
 ---@field _stepDepth number
 ---@field _pauseDepth number
@@ -19,7 +20,14 @@ function FeatherDebugger:init(feather)
   self.enabled = false
   self.paused = false
   self.breakpoints = {}
+  self.normalizedBreakpoints = {}
+  self.rejectedBreakpoints = {}
+  self.breakpointErrors = {}
+  self.pauseOnError = false
+  self.pauseId = 0
+  self._pausedFrames = {}
   self.sourceRoot = os.getenv("FEATHER_GAME_PATH")
+  self.shimRoot = os.getenv("FEATHER_SHIM_PATH")
   self._stepMode = nil
   self._stepDepth = 0
   self._pauseDepth = 0
@@ -28,30 +36,80 @@ end
 function FeatherDebugger:enable()
   self.enabled = true
   self:_installHook()
+  self:sendStatus()
 end
 
 function FeatherDebugger:disable()
   self.enabled = false
   self.paused = false
   debug.sethook()
+  self:sendStatus()
 end
 
 --- Replace all breakpoints from a list sent by the desktop.
 ---@param bps table  array of { file, line, condition? }
 function FeatherDebugger:setBreakpoints(bps)
   self.breakpoints = {}
+  self.normalizedBreakpoints = {}
+  self.rejectedBreakpoints = {}
   print("[Feather:debugger] setBreakpoints: " .. #bps .. " breakpoint(s)")
   for _, bp in ipairs(bps) do
     local file = self:_normalizeFile(bp.file)
     -- JSON numbers arrive as floats in Lua 5.4; coerce to integer so table
     -- key matches the integer line number returned by debug.getinfo.
-    local line = math.floor(bp.line)
-    if not self.breakpoints[file] then
-      self.breakpoints[file] = {}
+    local line = tonumber(bp.line) and math.floor(bp.line) or nil
+    if not file or file == "" or not line or line < 1 then
+      self.rejectedBreakpoints[#self.rejectedBreakpoints + 1] = {
+        file = bp.file,
+        line = bp.line,
+        reason = "invalid breakpoint",
+      }
+    else
+      if not self.breakpoints[file] then
+        self.breakpoints[file] = {}
+      end
+      self.breakpoints[file][line] = { condition = bp.condition }
+      self.normalizedBreakpoints[#self.normalizedBreakpoints + 1] = {
+        file = file,
+        line = line,
+        condition = bp.condition,
+      }
+      print("[Feather:debugger]   " .. file .. ":" .. line)
     end
-    self.breakpoints[file][line] = { condition = bp.condition }
-    print("[Feather:debugger]   " .. file .. ":" .. line)
   end
+  self:sendStatus()
+end
+
+function FeatherDebugger:setOptions(options)
+  options = options or {}
+  if options.pauseOnError ~= nil then
+    self.pauseOnError = options.pauseOnError == true
+  end
+  self:sendStatus()
+end
+
+function FeatherDebugger:statusBody()
+  return {
+    enabled = self.enabled,
+    paused = self.paused,
+    pauseOnError = self.pauseOnError,
+    sourceRoot = self.sourceRoot,
+    breakpointCount = #self.normalizedBreakpoints,
+    breakpoints = self.normalizedBreakpoints,
+    rejectedBreakpoints = self.rejectedBreakpoints,
+    breakpointErrors = self.breakpointErrors,
+  }
+end
+
+function FeatherDebugger:sendStatus()
+  if not self.feather or not self.feather.__sendWs then
+    return
+  end
+  self.feather:__sendWs(json.encode({
+    type = "debugger:status",
+    session = self.feather.sessionId,
+    data = self:statusBody(),
+  }))
 end
 
 --- Resume execution after a pause.
@@ -78,6 +136,8 @@ function FeatherDebugger:resume(mode)
   }))
 
   self.paused = false
+  self._pausedFrames = {}
+  self:sendStatus()
 end
 
 function FeatherDebugger:_normalizeFile(path)
@@ -92,6 +152,14 @@ function FeatherDebugger:_normalizeFile(path)
   -- LÖVE often prepends "./" to source paths; strip it for consistent matching
   if path:sub(1, 2) == "./" then
     path = path:sub(3)
+  end
+  local shimRoot = self.shimRoot
+  if type(shimRoot) == "string" and shimRoot ~= "" then
+    shimRoot = shimRoot:gsub("\\", "/"):gsub("/+$", "")
+    local prefix = shimRoot .. "/"
+    if path:sub(1, #prefix) == prefix then
+      path = path:sub(#prefix + 1)
+    end
   end
   local sourceRoot = self.sourceRoot
   if type(sourceRoot) == "string" and sourceRoot ~= "" then
@@ -198,7 +266,7 @@ function FeatherDebugger:_serializeValue(v, depth, seen)
   elseif t == "function" then
     local info = debug.getinfo(v, "S")
     if info then
-      return string.format("fn @ %s:%d", info.short_src or "?", info.linedefined or 0)
+      return string.format("fn @ %s:%d", info.source or info.short_src or "?", info.linedefined or 0)
     end
     return "function"
   elseif t == "userdata" or t == "thread" then
@@ -227,6 +295,88 @@ function FeatherDebugger:_attachTextValues(values)
   return attached, binaries
 end
 
+function FeatherDebugger:_sendBreakpointError(file, line, condition, err)
+  local payload = {
+    file = file,
+    line = line,
+    condition = condition,
+    error = tostring(err),
+  }
+  self.breakpointErrors[#self.breakpointErrors + 1] = payload
+  while #self.breakpointErrors > 20 do
+    table.remove(self.breakpointErrors, 1)
+  end
+  self.feather:__sendWs(json.encode({
+    type = "debugger:breakpoint_error",
+    session = self.feather.sessionId,
+    data = payload,
+  }))
+  self:sendStatus()
+end
+
+function FeatherDebugger:_captureFrames(startLevel)
+  local frames = {}
+  for i = startLevel, startLevel + 24 do
+    local info = debug.getinfo(i, "Slnf")
+    if not info then
+      break
+    end
+    if info.what ~= "C" and info.source ~= _SELF_SRC then
+      local locals = self:_getLocals(i)
+      local upvalues = {}
+      if info.func then
+        upvalues = self:_getUpvalues(info.func)
+      end
+      local localBinaries
+      local upvalueBinaries
+      locals, localBinaries = self:_attachTextValues(locals)
+      upvalues, upvalueBinaries = self:_attachTextValues(upvalues)
+      frames[#frames + 1] = {
+        index = #frames,
+        file = self:_normalizeFile(info.source or info.short_src or "?"),
+        line = info.currentline or 0,
+        name = info.name or info.what or "?",
+        what = info.what,
+        locals = locals,
+        upvalues = upvalues,
+        binary = { localBinaries = localBinaries, upvalueBinaries = upvalueBinaries },
+      }
+    end
+  end
+  return frames
+end
+
+function FeatherDebugger:inspectFrame(index)
+  index = tonumber(index) or 0
+  local frame = self._pausedFrames[index + 1]
+  if not frame then
+    return
+  end
+  local binaries = {}
+  if frame.binary then
+    for _, binary in ipairs(frame.binary.localBinaries or {}) do
+      binaries[#binaries + 1] = binary
+    end
+    for _, binary in ipairs(frame.binary.upvalueBinaries or {}) do
+      binaries[#binaries + 1] = binary
+    end
+  end
+  self.feather:__sendWs(json.encode({
+    type = "debugger:frame",
+    session = self.feather.sessionId,
+    data = {
+      pauseId = self.pauseId,
+      index = frame.index,
+      file = frame.file,
+      line = frame.line,
+      locals = frame.locals,
+      upvalues = frame.upvalues,
+      binary = #binaries > 0 and binaries or nil,
+    },
+  }))
+  self.feather:__sendPendingBinaries()
+end
+
 function FeatherDebugger:_getStack()
   local stack = {}
   -- Call chain: _getStack(1) → _doPause(2) → hook closure(3) → game code(4)
@@ -237,9 +387,10 @@ function FeatherDebugger:_getStack()
     if not info then
       break
     end
-    if info.what ~= "C" and info.short_src ~= _SELF_SRC then
+    if info.what ~= "C" and info.source ~= _SELF_SRC then
       table.insert(stack, {
-        file = self:_normalizeFile(info.short_src or "?"),
+        index = #stack,
+        file = self:_normalizeFile(info.source or info.short_src or "?"),
         line = info.currentline or 0,
         name = info.name or info.what or "?",
         what = info.what,
@@ -265,7 +416,7 @@ function FeatherDebugger:_installHook()
       return
     end
 
-    local src = selfRef:_normalizeFile(info.short_src or "")
+    local src = selfRef:_normalizeFile(info.source or info.short_src or "")
 
     if not _seenFiles[src] then
       _seenFiles[src] = true
@@ -304,10 +455,16 @@ function FeatherDebugger:_installHook()
             ui = ui + 1
           end
         end
-        local fn = load("return " .. bp.condition, "=[condition]", "t", env)
+        local fn, loadErr = load("return " .. bp.condition, "=[condition]", "t", env)
         if fn then
           local ok, result = pcall(fn)
-          shouldPause = ok and result
+          if ok then
+            shouldPause = result
+          else
+            selfRef:_sendBreakpointError(src, line, bp.condition, result)
+          end
+        else
+          selfRef:_sendBreakpointError(src, line, bp.condition, loadErr)
         end
       else
         shouldPause = true
@@ -335,7 +492,7 @@ function FeatherDebugger:_installHook()
   end, "l")
 end
 
-function FeatherDebugger:_doPause(info, line, reason)
+function FeatherDebugger:_doPause(info, line, reason, errorInfo)
   -- Push time-travel frames to the desktop so the user can scrub the history
   -- leading up to this breakpoint without having to manually request them.
   local ttPlugin = self.feather.pluginManager:getPlugin("time-travel")
@@ -347,26 +504,29 @@ function FeatherDebugger:_doPause(info, line, reason)
   -- Call chain here: _countDepth(1) → _doPause(2) → hook(3) → game code(4)
   self._pauseDepth = self:_countDepth(4)
 
-  -- From _doPause: level 1=_doPause, 2=hook closure, 3=interrupted game function.
-  -- _getLocals adds one more frame, so the game function is at level 4 from inside it.
-  local locals = self:_getLocals(4)
-  local upvalues = {}
-  local funcInfo = debug.getinfo(3, "f")
-  if funcInfo and funcInfo.func then
-    upvalues = self:_getUpvalues(funcInfo.func)
-  end
-  local localBinaries
-  local upvalueBinaries
-  locals, localBinaries = self:_attachTextValues(locals)
-  upvalues, upvalueBinaries = self:_attachTextValues(upvalues)
-
-  local stack = self:_getStack()
+  self.pauseId = self.pauseId + 1
+  self._pausedFrames = self:_captureFrames(3)
+  local firstFrame = self._pausedFrames[1] or { locals = {}, upvalues = {}, binary = {} }
+  local locals = firstFrame.locals or {}
+  local upvalues = firstFrame.upvalues or {}
+  local stack = {}
   local binaries = {}
-  for _, binary in ipairs(localBinaries) do
-    binaries[#binaries + 1] = binary
+  for _, frame in ipairs(self._pausedFrames) do
+    stack[#stack + 1] = {
+      index = frame.index,
+      file = frame.file,
+      line = frame.line,
+      name = frame.name,
+      what = frame.what,
+    }
   end
-  for _, binary in ipairs(upvalueBinaries) do
-    binaries[#binaries + 1] = binary
+  if firstFrame.binary then
+    for _, binary in ipairs(firstFrame.binary.localBinaries or {}) do
+      binaries[#binaries + 1] = binary
+    end
+    for _, binary in ipairs(firstFrame.binary.upvalueBinaries or {}) do
+      binaries[#binaries + 1] = binary
+    end
   end
 
   self.paused = true
@@ -374,15 +534,18 @@ function FeatherDebugger:_doPause(info, line, reason)
     type = "debugger:paused",
     session = self.feather.sessionId,
     data = {
-      file = self:_normalizeFile(info.short_src or ""),
+      file = self:_normalizeFile(info.source or info.short_src or ""),
       line = line,
       reason = reason,
+      pauseId = self.pauseId,
+      error = errorInfo,
       stack = stack,
       locals = locals,
       upvalues = upvalues,
       binary = #binaries > 0 and binaries or nil,
     },
   }))
+  self:sendStatus()
   self.feather:__sendPendingBinaries()
 
   -- Block the game loop — keep pumping WS so commands can arrive
@@ -395,6 +558,20 @@ function FeatherDebugger:_doPause(info, line, reason)
     end
     socket.sleep(0.005)
   end
+end
+
+function FeatherDebugger:pauseOnCallbackError(callbackName, err)
+  if not self.enabled or not self.pauseOnError then
+    return
+  end
+  if not self.feather.wsClient then
+    return
+  end
+  local info = debug.getinfo(3, "Sl") or { source = "?", short_src = "?", currentline = 0 }
+  self:_doPause(info, info.currentline or 0, "exception", {
+    callback = callbackName,
+    message = tostring(err),
+  })
 end
 
 return FeatherDebugger

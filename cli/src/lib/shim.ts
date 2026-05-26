@@ -24,6 +24,7 @@ export interface ShimOptions {
   gamePath: string;
   sessionName?: string;
   noPlugins?: boolean;
+  debuggerEnabled?: boolean;
   featherOverride?: string;
   pluginsOverride?: string;
   userConfig?: Record<string, unknown>;
@@ -92,6 +93,27 @@ function serializeLuaConfig(cfg: Record<string, unknown>): string {
     .join('\n');
 }
 
+function withCliDebuggerDefaults(opts: ShimOptions): Record<string, unknown> | undefined {
+  const cfg = { ...(opts.userConfig ?? {}) };
+  if (opts.debuggerEnabled === false) return cfg;
+
+  if (cfg.debugger === false) {
+    return cfg;
+  }
+
+  if (cfg.debugger && typeof cfg.debugger === 'object' && !Array.isArray(cfg.debugger)) {
+    const debuggerConfig = cfg.debugger as Record<string, unknown>;
+    cfg.debugger = {
+      enabled: debuggerConfig.enabled === false ? false : true,
+      ...debuggerConfig,
+    };
+  } else {
+    cfg.debugger = true;
+  }
+
+  return cfg;
+}
+
 function luaPackagePath(rootDir: string): string {
   const normalized = rootDir.replace(/\\/g, '/');
   return `${normalized}/?.lua;${normalized}/?/init.lua`;
@@ -99,7 +121,8 @@ function luaPackagePath(rootDir: string): string {
 
 function buildMainLua(opts: ShimOptions, featherDir: string, pluginsDir?: string): string {
   const sessionName = opts.sessionName ?? '';
-  const configLines = opts.userConfig ? serializeLuaConfig(opts.userConfig) : '';
+  const config = withCliDebuggerDefaults(opts);
+  const configLines = config ? serializeLuaConfig(config) : '';
 
   const pluginIds = !opts.noPlugins && pluginsDir ? scanPluginIds(pluginsDir) : [];
   const pluginListLine = pluginIds.length > 0
@@ -241,10 +264,11 @@ export function createShim(opts: ShimOptions): Shim {
   };
 }
 
-export function shimEnv(gamePath: string, sessionName?: string): NodeJS.ProcessEnv {
+export function shimEnv(gamePath: string, sessionName?: string, shimPath?: string): NodeJS.ProcessEnv {
   return {
     ...process.env,
     FEATHER_GAME_PATH: resolve(gamePath),
+    ...(shimPath ? { FEATHER_SHIM_PATH: resolve(shimPath) } : {}),
     ...(sessionName ? { FEATHER_SESSION_NAME: sessionName } : {}),
   };
 }

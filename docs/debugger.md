@@ -58,6 +58,8 @@ Breakpoints are shown as red dots in the gutter. They persist across desktop res
 > [!NOTE]
 > Debugger expects the folder structure to be the same where the main.lua is located. Feather is capable of automatically detecting the directory, but if it doesn't, just open the project folder where your main.lua is located.
 
+The toolbar shows how many enabled breakpoints the game accepted after path normalization. If a breakpoint path or line cannot be synced, Feather keeps the local breakpoint but reports it in the debugger status instead of failing silently.
+
 ### Conditional breakpoints
 
 Right-click a breakpoint (or use the condition field) to add a Lua expression. The game only pauses when the expression evaluates to truthy:
@@ -75,6 +77,23 @@ i == 10
 
 The condition runs in the game's Lua context, so you can reference any global or local variable visible at that line.
 
+If the condition cannot compile or errors while evaluating, Feather reports the condition error in the toolbar and marks the breakpoint line so you can fix the expression.
+
+### Pause on error
+
+Enable **Pause on Error** in the Debugger toolbar, or set:
+
+```lua
+return {
+  debugger = {
+    enabled = true,
+    pauseOnError = true,
+  },
+}
+```
+
+When a wrapped `love.*` callback crashes, Feather pauses before applying the configured crash behavior. By default the game still rethrows after you resume. If `continueOnGameError = true`, the game resumes after the pause and Feather keeps reporting the callback failure.
+
 ---
 
 ## While paused
@@ -83,7 +102,7 @@ When execution stops at a breakpoint, the desktop shows:
 
 ### Call stack
 
-The full stack trace — file, line, and function name for each frame. Click a frame to navigate to it in the source view. The highlighted frame is where execution is suspended.
+The full stack trace — file, line, and function name for each frame. Click a frame to navigate to it in the source view and load that frame's locals/upvalues. The highlighted frame is where execution is suspended.
 
 ```bash
 main.lua:42     love.update

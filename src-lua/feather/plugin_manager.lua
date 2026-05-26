@@ -486,6 +486,9 @@ function FeatherPluginManager:hookLoveCallbacks()
         if original and original ~= wrapper then
           local ok, err = xpcall(original, callbackTraceback, ...)
           if not ok then
+            if mgr.feather and mgr.feather.featherDebugger then
+              mgr.feather.featherDebugger:pauseOnCallbackError(name, err)
+            end
             if mgr.feather and mgr.feather.continueOnGameError then
               mgr:_handleOriginalCallbackError(name, err)
             else

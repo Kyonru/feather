@@ -23,6 +23,7 @@ export interface Config {
   assets?: { enabled?: boolean };
   debugger?: {
     enabled?: boolean;
+    pauseOnError?: boolean;
     hotReload?: {
       enabled?: boolean;
       active?: boolean;

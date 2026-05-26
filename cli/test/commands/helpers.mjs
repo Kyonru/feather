@@ -160,6 +160,7 @@ fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
   argv: process.argv.slice(2),
   env: {
     FEATHER_GAME_PATH: process.env.FEATHER_GAME_PATH,
+    FEATHER_SHIM_PATH: process.env.FEATHER_SHIM_PATH,
     FEATHER_SESSION_NAME: process.env.FEATHER_SESSION_NAME,
   },
   shimMainExists: shimDir ? fs.existsSync(path.join(shimDir, 'main.lua')) : false,

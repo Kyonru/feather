@@ -40,6 +40,7 @@ import {
   ChevronUpIcon,
   RefreshCwIcon,
   RotateCcwIcon,
+  AlertTriangleIcon,
 } from 'lucide-react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useLanguage } from '@/hooks/use-config';
@@ -190,6 +191,7 @@ function SourceView({
   scrollToLine,
   breakpointLines,
   conditionalLines,
+  conditionErrorLines,
   onToggleBreakpoint,
   onRightClickBreakpoint,
 }: {
@@ -198,6 +200,7 @@ function SourceView({
   scrollToLine: number | null;
   breakpointLines: Set<number>;
   conditionalLines: Set<number>;
+  conditionErrorLines: Set<number>;
   onToggleBreakpoint: (line: number) => void;
   onRightClickBreakpoint: (line: number, e: React.MouseEvent) => void;
 }) {
@@ -361,6 +364,7 @@ function SourceView({
             const isMatch = searchOpen && search.trim() !== '' && matchLines.includes(lineNum);
             const isCurrentMatch = isMatch && lineNum === currentMatchLine;
             const hasBp = breakpointLines.has(lineNum);
+            const hasConditionError = conditionErrorLines.has(lineNum);
 
             let lineRef: React.Ref<HTMLDivElement> | undefined;
             if (lineNum === activeScrollLine) lineRef = scrollTargetRef;
@@ -394,7 +398,10 @@ function SourceView({
                 >
                   {hasBp ? (
                     <CircleDotIcon
-                      className={cn('size-2.5', conditionalLines.has(lineNum) ? 'text-orange-400' : 'text-red-500')}
+                      className={cn(
+                        'size-2.5',
+                        hasConditionError ? 'text-destructive' : conditionalLines.has(lineNum) ? 'text-orange-400' : 'text-red-500',
+                      )}
                     />
                   ) : (
                     <div className="size-2 rounded-full opacity-0 group-hover:bg-red-400 group-hover:opacity-60" />
@@ -412,6 +419,7 @@ function SourceView({
                 {/* Code */}
                 <pre className={cn('flex-1 py-px pr-4 whitespace-pre', isCurrent && 'font-semibold')}>
                   {isCurrent && <span className="mr-1 text-yellow-400">→</span>}
+                  {hasConditionError && <span className="mr-1 text-destructive">!</span>}
 
                   <SyntaxHighlighter
                     wrapLines
@@ -758,6 +766,9 @@ export default function DebuggerPage() {
   const conditionalLines = new Set(
     dbg.breakpoints.filter((b) => b.file === selectedFile && b.enabled && !!b.condition).map((b) => b.line),
   );
+  const conditionErrorLines = new Set(
+    dbg.breakpointErrors.filter((error) => error.file === selectedFile && error.line).map((error) => error.line as number),
+  );
   const currentLine = dbg.currentPaused?.file === selectedFile ? dbg.currentPaused.line : null;
   const canHotReload =
     !isWeb() && hotReloadPlugin.enabled && hotReloadState.enabled && !!selectedModule && !!selectedAbsPath;
@@ -771,6 +782,12 @@ export default function DebuggerPage() {
           <Switch id="debugger-enabled" checked={dbg.isEnabled} onCheckedChange={dbg.toggleEnabled} />
           <Label htmlFor="debugger-enabled" className="text-sm">
             Debugger
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch id="debugger-pause-on-error" checked={dbg.pauseOnError} onCheckedChange={dbg.setPauseOnError} />
+          <Label htmlFor="debugger-pause-on-error" className="text-sm">
+            Pause on Error
           </Label>
         </div>
 
@@ -824,9 +841,25 @@ export default function DebuggerPage() {
             <Separator orientation="vertical" className="h-5" />
             <Badge variant="destructive" className="gap-1 font-mono text-xs">
               <PauseIcon className="size-3" />
+              {dbg.currentPaused.reason === 'exception' ? 'error ' : ''}
               {dbg.currentPaused.file.split('/').pop()}:{dbg.currentPaused.line}
             </Badge>
           </>
+        )}
+
+        <Badge variant="outline" className="gap-1 font-mono text-xs">
+          {dbg.status.breakpointCount ?? dbg.breakpoints.filter((b) => b.enabled).length} synced
+        </Badge>
+        {dbg.status.sourceRoot && (
+          <Badge variant="secondary" className="max-w-48 gap-1 truncate font-mono text-xs" title={dbg.status.sourceRoot}>
+            {dbg.status.sourceRoot.split('/').pop()}
+          </Badge>
+        )}
+        {dbg.breakpointErrors.length > 0 && (
+          <Badge variant="destructive" className="gap-1 text-xs" title={dbg.breakpointErrors.at(-1)?.error}>
+            <AlertTriangleIcon className="size-3" />
+            {dbg.breakpointErrors.length} condition error{dbg.breakpointErrors.length === 1 ? '' : 's'}
+          </Badge>
         )}
 
         {dbg.breakpoints.length > 0 && (
@@ -988,6 +1021,12 @@ export default function DebuggerPage() {
 
         {/* Col 2 — Source view */}
         <ResizablePanel defaultSize={'55%'} minSize={'30%'} className="flex min-w-0 flex-col">
+          {dbg.currentPaused?.reason === 'exception' && (
+            <div className="border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Paused on {dbg.currentPaused.error?.callback ? `love.${dbg.currentPaused.error.callback}` : 'error'}:{' '}
+              {dbg.currentPaused.error?.message ?? 'callback error'}
+            </div>
+          )}
           {selectedFile ? (
             <>
               <div className="flex items-center gap-2 border-b px-3 py-1.5">
@@ -1004,6 +1043,7 @@ export default function DebuggerPage() {
                 scrollToLine={scrollToLine}
                 breakpointLines={breakpointLines}
                 conditionalLines={conditionalLines}
+                conditionErrorLines={conditionErrorLines}
                 onToggleBreakpoint={(line) => {
                   if (breakpointLines.has(line)) {
                     dbg.removeBreakpoint(selectedFile, line);
@@ -1047,6 +1087,7 @@ export default function DebuggerPage() {
                           setSelectedFile(frame.file);
                           setScrollToLine(frame.line);
                           setSelectedFrameIndex(i);
+                          dbg.inspectFrame(frame.index ?? i);
                         }}
                       >
                         <span className="text-muted-foreground w-3 shrink-0 text-right">{i}</span>

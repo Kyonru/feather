@@ -162,6 +162,7 @@ function Feather:init(config)
   self.mode = conf.mode or "socket"
   local debuggerConfig = type(conf.debugger) == "table" and conf.debugger or {}
   self.debuggerEnabled = conf.debugger == true or debuggerConfig.enabled == true
+  self.debuggerPauseOnError = debuggerConfig.pauseOnError == true
   self.hotReloadConfig = debuggerConfig.hotReload or conf.hotReload or {}
   self.writeToDisk = conf.writeToDisk ~= false
   self.retryInterval = conf.retryInterval or 2
@@ -262,6 +263,7 @@ function Feather:init(config)
 
   ---@type FeatherDebugger
   self.featherDebugger = FeatherDebugger(self)
+  self.featherDebugger:setOptions({ pauseOnError = self.debuggerPauseOnError })
   if self.debuggerEnabled then
     self.featherDebugger:enable()
   end
@@ -416,6 +418,7 @@ function Feather:__getConfig()
     assets = { enabled = self.assetPreviewEnabled },
     debugger = {
       enabled = self.debuggerEnabled,
+      pauseOnError = self.debuggerPauseOnError,
       hotReload = self.hotReloader and self.hotReloader:getState() or nil,
     },
   }
@@ -647,8 +650,15 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:debugger:disable" then
     self.debuggerEnabled = false
     self.featherDebugger:disable()
+  elseif msg.type == "cmd:debugger:set_options" and msg.data then
+    if msg.data.pauseOnError ~= nil then
+      self.debuggerPauseOnError = msg.data.pauseOnError == true
+    end
+    self.featherDebugger:setOptions(msg.data)
   elseif msg.type == "cmd:debugger:set_breakpoints" and msg.data then
     self.featherDebugger:setBreakpoints(msg.data.breakpoints or {})
+  elseif msg.type == "cmd:debugger:inspect_frame" and msg.data then
+    self.featherDebugger:inspectFrame(msg.data.index or 0)
   elseif msg.type == "cmd:debugger:continue" then
     self.featherDebugger:resume(nil)
   elseif msg.type == "cmd:debugger:step_over" then

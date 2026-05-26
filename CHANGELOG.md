@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v1.5.1] - 2026-05-26 - The one with better traces
+## [v2.0.0] - 2026-05-26 - The one with better traces
 
 ### Added
 
@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Health and Profiler tabs to the Performance page with expanded metric charts, spike triage, profiler controls, and JSON export.
 - Added Profiler scoped samples, before/after snapshots, group metadata, and diff-friendly capture data for focused profiling workflows.
 - Added richer Observability triage with observer groups, change counts, first/last seen metadata, sorting, group filters, customizable changed-marker duration, and JSON export.
+- Added debugger reliability status, opt-in pause-on-error, condition error reporting, and stack-frame variable inspection.
 
 ### Changed
 
@@ -25,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Wrapped game callback errors now rethrow by default after Feather can capture them, so game crashes are no longer silently swallowed.
+- Fixed CLI-managed debugger breakpoint matching for long source paths and modules loaded through the temporary run shim by matching against untruncated source paths and normalizing shim paths back to project-relative source files.
+- Fixed `feather run` so CLI-managed desktop launches enable the step debugger by default unless `--no-debugger` is used.
 - Log repeat counts now render in the actual log table.
 - Log details now show the repeat count for the selected entry.
 - Log details now stay synced as repeat counts update.

@@ -17,22 +17,32 @@ export const useDebugger = () => {
   const breakpoints = useDebuggerStore((state) => state.breakpoints);
   const pausedState = useDebuggerStore((state) => state.pausedState);
   const enabledMap = useDebuggerStore((state) => state.enabled);
+  const pauseOnErrorMap = useDebuggerStore((state) => state.pauseOnError);
+  const statusMap = useDebuggerStore((state) => state.status);
+  const breakpointErrorsMap = useDebuggerStore((state) => state.breakpointErrors);
   const addBreakpoint = useDebuggerStore((state) => state.addBreakpoint);
   const removeBreakpoint = useDebuggerStore((state) => state.removeBreakpoint);
   const toggleBreakpointStore = useDebuggerStore((state) => state.toggleBreakpoint);
   const setConditionStore = useDebuggerStore((state) => state.setCondition);
   const clearBreakpoints = useDebuggerStore((state) => state.clearBreakpoints);
   const setEnabled = useDebuggerStore((state) => state.setEnabled);
+  const setPauseOnErrorStore = useDebuggerStore((state) => state.setPauseOnError);
 
   const currentPaused = sessionId ? (pausedState[sessionId] ?? null) : null;
   const isEnabled = sessionId ? (enabledMap[sessionId] ?? false) : false;
+  const pauseOnError = sessionId ? (pauseOnErrorMap[sessionId] ?? false) : false;
+  const status = sessionId ? (statusMap[sessionId] ?? {}) : {};
+  const breakpointErrors = sessionId ? (breakpointErrorsMap[sessionId] ?? []) : [];
 
   const toggleEnabled = () => {
     if (!sessionId) return;
     const next = !isEnabled;
     setEnabled(sessionId, next);
     sendCmd(sessionId, next ? 'cmd:debugger:enable' : 'cmd:debugger:disable');
-    if (next) syncBreakpoints(sessionId, breakpoints);
+    if (next) {
+      sendCmd(sessionId, 'cmd:debugger:set_options', { pauseOnError });
+      syncBreakpoints(sessionId, breakpoints);
+    }
   };
 
   const addBp = (file: string, line: number, condition?: string) => {
@@ -74,10 +84,24 @@ export const useDebugger = () => {
     if (sessionId && isEnabled) syncBreakpoints(sessionId, []);
   };
 
+  const setPauseOnError = (enabled: boolean) => {
+    if (!sessionId) return;
+    setPauseOnErrorStore(sessionId, enabled);
+    sendCmd(sessionId, 'cmd:debugger:set_options', { pauseOnError: enabled });
+  };
+
+  const inspectFrame = (index: number) => {
+    if (!sessionId || !currentPaused) return;
+    sendCmd(sessionId, 'cmd:debugger:inspect_frame', { index });
+  };
+
   return {
     breakpoints,
     currentPaused,
     isEnabled,
+    pauseOnError,
+    status,
+    breakpointErrors,
     isPaused: currentPaused !== null,
     toggleEnabled,
     addBreakpoint: addBp,
@@ -85,6 +109,8 @@ export const useDebugger = () => {
     toggleBreakpoint: toggleBp,
     clearBreakpoints: clearBps,
     setCondition,
+    setPauseOnError,
+    inspectFrame,
     continue: () => sessionId && sendCmd(sessionId, 'cmd:debugger:continue'),
     stepOver: () => sessionId && sendCmd(sessionId, 'cmd:debugger:step_over'),
     stepInto: () => sessionId && sendCmd(sessionId, 'cmd:debugger:step_into'),

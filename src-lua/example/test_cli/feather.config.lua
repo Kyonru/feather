@@ -11,6 +11,7 @@ return {
   assetPreview = true,
   autoRegisterErrorHandler = true,
   apiKey = "testing_i_guess",
+  debugger = true,
   -- Security: set ONE of the two options below.
   --
   -- Option A (recommended): bind to your specific Feather desktop instance.
