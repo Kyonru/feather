@@ -22,7 +22,9 @@ export const schema = z.object({
   id: z.string(),
   count: z.number(),
   time: z.number(),
-  type: z.enum(Object.values(LogType)),
+  firstTime: z.number().optional(),
+  lastTime: z.number().optional(),
+  type: z.string(),
   str: z.string(),
   trace: z.string(),
   screenshot: z.string().optional(),
@@ -43,7 +45,7 @@ function parseLogLine(line: string): Log | null {
 export const useLogs = (): {
   data: { logs: Log[]; screenshotEnabled: boolean };
   isPending: boolean;
-  clear: () => void;
+  clear: (visibleIds?: string[]) => void;
   onScreenshotChange: () => void;
 } => {
   const queryClient = useQueryClient();
@@ -53,11 +55,16 @@ export const useLogs = (): {
   const pausedLogs = useSettingsStore((state) => state.pausedLogs);
   const [screenshotEnabled, setScreenshotEnabled] = useState(false);
   const [clearTime, setClearTime] = useState(0);
+  const [pausedSnapshot, setPausedSnapshot] = useState<Log[] | null>(null);
   const lineOffsetRef = useRef<number>(0);
 
   useEffect(() => {
     setClearTime(0);
   }, [sessionId]);
+
+  useEffect(() => {
+    lineOffsetRef.current = 0;
+  }, [overrideLogFile]);
 
   // --- Live session path: reactive subscription to query cache ---
   const queryKey = sessionId ? sessionQueryKey.logs(sessionId) : ['noop-logs'];
@@ -89,7 +96,6 @@ export const useLogs = (): {
       if (!sessionId) return null;
 
       const existing = queryClient.getQueryData<Log[]>(queryKey) ?? [];
-      if (existing.length === 0) lineOffsetRef.current = 0;
 
       const newLines: Log[] = [];
       const lines = await readTextFileLines(overrideLogFile);
@@ -121,7 +127,15 @@ export const useLogs = (): {
   });
   /* eslint-enable @tanstack/query/exhaustive-deps */
 
-  const logs = filteredLiveLogs;
+  useEffect(() => {
+    if (pausedLogs) {
+      setPausedSnapshot((current) => current ?? filteredLiveLogs);
+    } else {
+      setPausedSnapshot(null);
+    }
+  }, [filteredLiveLogs, pausedLogs]);
+
+  const logs = pausedSnapshot ?? filteredLiveLogs;
 
   const toggleScreenshotsMutation = useMutation({
     mutationFn: async () => {
@@ -138,17 +152,19 @@ export const useLogs = (): {
     },
   });
 
-  const clear = () => {
+  const clear = (visibleIds?: string[]) => {
+    const visibleSet = visibleIds ? new Set(visibleIds) : null;
     const lastNow = logs[logs.length - 1]?.time ?? 0;
-    setClearTime(lastNow);
+    if (!visibleSet) setClearTime(lastNow);
     if (sessionId) {
-      queryClient.setQueryData(sessionQueryKey.logs(sessionId), []);
+      queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (current) =>
+        visibleSet ? (current ?? []).filter((log) => !visibleSet.has(log.id)) : [],
+      );
       sendCommand(sessionId, { type: 'cmd:log', action: 'clear' }).catch(() => {});
     }
-    // Reset file reader offset so re-read starts fresh if override is active
-    if (overrideLogFile) {
-      lineOffsetRef.current = 0;
-    }
+    setPausedSnapshot((current) =>
+      current && visibleSet ? current.filter((log) => !visibleSet.has(log.id)) : visibleSet ? current : [],
+    );
   };
 
   return {

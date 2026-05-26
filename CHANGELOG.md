@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - root path fallback for deeplinking from trace.
 
+### Changed
+
+- Reworked the Logs view with a dedicated live log table, search and type filters, follow-tail control, stable row selection, and richer synced details.
+
 ### Fixed
 
 - Log repeat counts now render in the actual log table.

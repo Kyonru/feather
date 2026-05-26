@@ -1,6 +1,4 @@
-import { ColumnDef } from '@tanstack/react-table';
 import { readFile } from '@tauri-apps/plugin-fs';
-import { BadgeType, DataTable } from '@/components/data-table';
 import { PageLayout } from '@/components/page-layout';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,36 +17,7 @@ import { useSessionStore } from '@/store/session';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import { toast } from 'sonner';
-
-export const columns: ColumnDef<Log>[] = [
-  {
-    accessorKey: 'type',
-    header: 'Type',
-  },
-  {
-    accessorKey: 'str',
-    header: () => 'Log',
-    cell: (info) => {
-      const row = info.row.original;
-      return (
-        <div className="flex items-center gap-2">
-          <span className="truncate">{row.str}</span>
-          {row.count > 1 && (
-            <span className="shrink-0 rounded-full bg-muted-foreground/20 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-              {row.count}
-            </span>
-          )}
-        </div>
-      );
-    },
-    size: 250,
-    maxSize: 250,
-  },
-  {
-    accessorKey: 'time',
-    header: 'Timestamp',
-  },
-];
+import { LogTable, LogTypeBadge } from './LogTable';
 
 function stripPrefix(trace: string, dir: string): string {
   const prefix = dir.replace(/[/\\]+$/, '') + '/';
@@ -196,12 +165,31 @@ export function LogSidePanel({
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Type</span>
-          <BadgeType type={data.type} />
+          <LogTypeBadge type={data.type} />
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Time</span>
-          <span>{new Date(data.time * 1000).toLocaleString()}</span>
+          <span className="text-sm font-medium">Last Seen</span>
+          <span>{new Date((data.lastTime ?? data.time) * 1000).toLocaleString()}</span>
+        </div>
+
+        {data.firstTime !== undefined && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">First Seen</span>
+            <span>{new Date(data.firstTime * 1000).toLocaleString()}</span>
+          </div>
+        )}
+
+        {data.lastTime !== undefined && data.lastTime !== data.time && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Updated</span>
+            <span>{new Date(data.time * 1000).toLocaleString()}</span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">ID</span>
+          <span className="font-mono text-xs">{data.id}</span>
         </div>
 
         <div className="flex items-center justify-between">
@@ -236,6 +224,9 @@ export function LogSidePanel({
           <CopyButton value={stripBasePath(trace, sourceDir ?? '', basePath)} />
         </CardFooter>
       ) : null}
+      <CardFooter className="justify-end">
+        <CopyButton value={JSON.stringify(data, null, 2)} />
+      </CardFooter>
       {screenshot ? <LogImage src={screenshot} /> : null}
     </Card>
   );
@@ -257,8 +248,8 @@ export default function Page() {
     setSelectedLogId(null);
   };
 
-  const onClear = () => {
-    clear();
+  const onClear = (visibleIds?: string[]) => {
+    clear(visibleIds);
   };
 
   const logs = logsData.logs;
@@ -287,7 +278,7 @@ export default function Page() {
         )
       }
     >
-      <DataTable
+      <LogTable
         screenshotEnabled={screenshotEnabled}
         onScreenshotChange={onScreenshotChange}
         isPaused={pausedLogs}
@@ -299,9 +290,9 @@ export default function Page() {
           setPausedLogs(!pausedLogs);
         }}
         onClear={onClear}
-        showSearch
-        onRowSelection={selectLog}
-        data={logs}
+        selectedId={selectedLogId}
+        onSelect={selectLog}
+        logs={logs}
         onUpload={(filename) => {
           if (filename) {
             // Create a file-based session using the filename

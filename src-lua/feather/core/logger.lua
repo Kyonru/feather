@@ -133,12 +133,13 @@ function FeatherLogger:__countOnRepeat(type, ...)
   local last = self.last_log
   if last and str == last.str then
     last.time = os.time()
+    last.lastTime = last.time
     last.count = last.count + 1
     if self.feather then
       self.feather:__sendWs(json.encode({
         type = "log:update",
         session = self.feather.sessionId,
-        data = { id = last.id, count = last.count, time = last.time },
+        data = { id = last.id, count = last.count, time = last.time, lastTime = last.lastTime },
       }))
     end
   else
@@ -152,6 +153,8 @@ end
 ---@field str? string
 ---@field id? string
 ---@field time? number
+---@field firstTime? number
+---@field lastTime? number
 ---@field count? number
 ---@field trace? string
 ---@field screenshot? string|love.ByteData
@@ -177,6 +180,8 @@ function FeatherLogger:log(line, screenshot)
   self.lastId = self.lastId + 1
   line.id = tostring(self.lastId)
   line.time = os.time()
+  line.firstTime = line.time
+  line.lastTime = line.time
   line.count = 1
 
   -- Only capture traceback for errors (expensive)

@@ -399,9 +399,9 @@ export const useWsConnection = () => {
           }
 
           case 'log:update': {
-            const { id, count, time } = data as { id: string; count: number; time: number };
+            const { id, count, time, lastTime } = data as { id: string; count: number; time: number; lastTime?: number };
             queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) =>
-              prev?.map((l) => (l.id === id ? { ...l, count, time } : l)) ?? [],
+              prev?.map((l) => (l.id === id ? { ...l, count, time, lastTime: lastTime ?? time } : l)) ?? [],
             );
             break;
           }
