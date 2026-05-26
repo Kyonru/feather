@@ -19,6 +19,7 @@ function FeatherDebugger:init(feather)
   self.enabled = false
   self.paused = false
   self.breakpoints = {}
+  self.sourceRoot = os.getenv("FEATHER_GAME_PATH")
   self._stepMode = nil
   self._stepDepth = 0
   self._pauseDepth = 0
@@ -87,9 +88,21 @@ function FeatherDebugger:_normalizeFile(path)
   if path:sub(1, 1) == "@" then
     path = path:sub(2)
   end
+  path = path:gsub("\\", "/")
   -- LÖVE often prepends "./" to source paths; strip it for consistent matching
   if path:sub(1, 2) == "./" then
     path = path:sub(3)
+  end
+  local sourceRoot = self.sourceRoot
+  if type(sourceRoot) == "string" and sourceRoot ~= "" then
+    sourceRoot = sourceRoot:gsub("\\", "/"):gsub("/+$", "")
+    if path == sourceRoot then
+      return "."
+    end
+    local prefix = sourceRoot .. "/"
+    if path:sub(1, #prefix) == prefix then
+      path = path:sub(#prefix + 1)
+    end
   end
   -- Feather renames main.lua to .feather-main.lua during injection; remap so
   -- breakpoints set on main.lua match the executing file.

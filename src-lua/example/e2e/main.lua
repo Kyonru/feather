@@ -180,6 +180,17 @@ local function run()
     assertEqual(helloConfig.root_path, envGamePath, "CLI run config root_path uses real game path")
     assertEqual(helloConfig.sourceDir, envGamePath, "CLI run config sourceDir uses real game path")
   end
+  feather.featherDebugger.sourceRoot = "/tmp/feather-game"
+  assertEqual(
+    feather.featherDebugger:_normalizeFile("@/tmp/feather-game/main.lua"),
+    "main.lua",
+    "debugger normalizes CLI absolute main.lua to relative path"
+  )
+  assertEqual(
+    feather.featherDebugger:_normalizeFile("@/tmp/feather-game/lib/player.lua"),
+    "lib/player.lua",
+    "debugger normalizes CLI absolute module paths to relative paths"
+  )
   assertEqual(helloConfig.debugger.hotReload.enabled, true, "hello config includes hot reload state")
   assertEqual(helloConfig.plugins["api-compatible"].incompatible, false, "compatible plugin remains available")
   assertEqual(helloConfig.plugins["api-compatible"].disabled, false, "compatible plugin remains enabled")
