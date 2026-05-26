@@ -90,6 +90,20 @@ debugger:error("Something went wrong")
 
 ---
 
+## Performance And Profiler
+
+The **Performance** page has a **Health** tab for live FPS, frame-time, memory, disk, draw-call, canvas-switch, shader-switch, and texture-memory charts. Use pause/follow when a hitch happens, inspect recent spikes, then export the visible JSON window if you need to compare runs.
+
+Enable the `profiler` plugin to use the **Performance → Profiler** tab for instrumented hot paths:
+
+```bash
+feather config plugins --include profiler --dir path/to/my-game
+```
+
+The profiler still uses explicit instrumentation via `profiler:wrap(name, fn)`, then the desktop can start/stop captures, filter rows, sort by percent/total/average/max/calls, and export JSON.
+
+---
+
 ## Console / REPL
 
 The Console is an **opt-in plugin** for evaluating Lua code directly inside the running game. It is not included by default.

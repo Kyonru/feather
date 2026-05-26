@@ -86,6 +86,10 @@ export interface PluginContentTableProps {
   columns: PluginTableColumn[];
   data: PluginTableRow[];
   loading: boolean;
+  recording?: boolean;
+  captureStartedAt?: number;
+  captureElapsed?: number;
+  totalCapturedTime?: number;
 }
 
 export interface PluginTreeNodeProperty {

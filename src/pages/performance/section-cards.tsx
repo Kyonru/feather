@@ -5,6 +5,7 @@ import { cn } from '@/utils/styles';
 import { formatMemory } from '@/lib/utils';
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react';
 import { useMemo } from 'react';
+import type { ChartMetricKey } from './chart-area-interactive';
 
 const TrendingBadge = ({ value }: { value?: number }) => {
   const formatted = value ? value : 0;
@@ -27,8 +28,8 @@ export function SectionCards({
   diskUsageEnabled,
 }: {
   data: PerformanceMetrics[];
-  selected: string;
-  onSelect: (key: 'fps' | 'memory' | 'diskUsage') => void;
+  selected: ChartMetricKey;
+  onSelect: (key: ChartMetricKey) => void;
   diskUsageEnabled: boolean;
 }) {
   const metric = useMemo(() => {
@@ -99,7 +100,7 @@ export function SectionCards({
           'justify-between': true,
           'hover:bg-sky-500': true,
           'active:bg-sky-900': true,
-          'bg-sky-700': selected === 'memory',
+          'bg-sky-700': selected === 'memory' || selected === 'peakMemory',
           'dark:active:border-sky-900': true,
           'dark:hover:border-sky-500': true,
           'dark:border-sky-700': selected === 'memory',
@@ -146,7 +147,12 @@ export function SectionCards({
           <div className="text-muted-foreground">{diskUsageEnabled ? 'Updated every 5s' : 'Disabled'}</div>
         </CardFooter>
       </Card>
-      <Card className="@container/card justify-between">
+      <Card
+        className={cn('@container/card justify-between hover:bg-sky-500 active:bg-sky-900', {
+          'bg-sky-700 dark:border-sky-700': selected === 'frameTime' || selected === 'frameTimeMax',
+        })}
+        onClick={() => onSelect('frameTimeMax')}
+      >
         <CardHeader>
           <CardDescription>Frame Time</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -164,7 +170,12 @@ export function SectionCards({
           </CardFooter>
         </div>
       </Card>
-      <Card className="@container/card justify-between">
+      <Card
+        className={cn('@container/card justify-between hover:bg-sky-500 active:bg-sky-900', {
+          'bg-sky-700 dark:border-sky-700': selected === 'drawcalls' || selected === 'drawcallsbatched',
+        })}
+        onClick={() => onSelect('drawcalls')}
+      >
         <CardHeader>
           <CardDescription>Draw Calls</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -182,7 +193,12 @@ export function SectionCards({
           </CardFooter>
         </div>
       </Card>
-      <Card className="@container/card justify-between">
+      <Card
+        className={cn('@container/card justify-between hover:bg-sky-500 active:bg-sky-900', {
+          'bg-sky-700 dark:border-sky-700': selected === 'textureMemory',
+        })}
+        onClick={() => onSelect('textureMemory')}
+      >
         <CardHeader>
           <CardDescription>Assets</CardDescription>
         </CardHeader>

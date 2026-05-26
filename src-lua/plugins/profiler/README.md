@@ -1,6 +1,6 @@
 # ProfilerPlugin
 
-The `ProfilerPlugin` is a plugin for the [Feather Debugger](https://github.com/Kyonru/feather) that lets you **measure and compare the performance** of individual functions in your LÖVE project. Wrap any function to track call count, total time, average time, min, and max — all displayed in a sortable table inside the Feather desktop app.
+The `ProfilerPlugin` is a plugin for the [Feather Debugger](https://github.com/Kyonru/feather) that lets you **measure and compare the performance** of individual functions in your LÖVE project. Wrap any function to track call count, total time, average time, min, max, percent of captured time, and calls per second.
 
 ## 📦 Installation
 
@@ -47,6 +47,8 @@ Each wrapped function tracks:
 | **Avg**   | Average time per call       |
 | **Min**   | Fastest recorded call       |
 | **Max**   | Slowest recorded call       |
+| **% Total** | Share of captured profiler time |
+| **Calls/s** | Calls per second in the capture window |
 
 ### Recursion Handling
 
@@ -70,7 +72,11 @@ The plugin automatically selects the best available timer:
 
 The plugin adds an interactive action to the Feather UI:
 
+- **Start** → resumes profiling new calls.
+- **Stop** → pauses profiling while preserving captured rows.
 - **Reset** → clears all collected profiling data (call counts and timings are zeroed out).
+
+Recording is enabled by default for backwards compatibility. The dedicated **Performance → Profiler** view adds search, sorting, filters, and JSON export while `/plugins/profiler` remains available as a generic plugin table.
 
 ### Sorting
 

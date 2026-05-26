@@ -29,6 +29,9 @@ end
 ---@field wrappers table<string, function> Wrapped functions keyed by name
 ---@field sortBy string Column to sort by
 ---@field sortDesc boolean Sort descending
+---@field recording boolean Whether profiler samples are currently recorded
+---@field captureStartedAt number Capture start timestamp
+---@field captureElapsed number Accumulated capture duration before the current active window
 local ProfilerPlugin = Class({
   __includes = Base,
   init = function(self, config)
@@ -40,6 +43,9 @@ local ProfilerPlugin = Class({
     self.wrappers = {}
     self.sortBy = "totalTime"
     self.sortDesc = true
+    self.recording = true
+    self.captureStartedAt = gettime()
+    self.captureElapsed = 0
   end,
 })
 
@@ -83,13 +89,15 @@ function ProfilerPlugin:wrap(name, fn)
     if entry.depth == 0 and entry.activeStart then
       local elapsed = gettime() - entry.activeStart
       entry.activeStart = nil
-      entry.calls = entry.calls + 1
-      entry.totalTime = entry.totalTime + elapsed
-      if elapsed < entry.minTime then
-        entry.minTime = elapsed
-      end
-      if elapsed > entry.maxTime then
-        entry.maxTime = elapsed
+      if self.recording then
+        entry.calls = entry.calls + 1
+        entry.totalTime = entry.totalTime + elapsed
+        if elapsed < entry.minTime then
+          entry.minTime = elapsed
+        end
+        if elapsed > entry.maxTime then
+          entry.maxTime = elapsed
+        end
       end
     end
 
@@ -108,6 +116,30 @@ function ProfilerPlugin:reset()
     entry.minTime = math.huge
     entry.maxTime = 0
   end
+  self.captureElapsed = 0
+  self.captureStartedAt = gettime()
+end
+
+function ProfilerPlugin:start()
+  if not self.recording then
+    self.recording = true
+    self.captureStartedAt = gettime()
+  end
+end
+
+function ProfilerPlugin:stop()
+  if self.recording then
+    self.captureElapsed = self:captureDuration()
+    self.recording = false
+  end
+end
+
+function ProfilerPlugin:captureDuration()
+  local elapsed = self.captureElapsed or 0
+  if self.recording then
+    elapsed = elapsed + math.max(0, gettime() - (self.captureStartedAt or gettime()))
+  end
+  return elapsed
 end
 
 --- Format a time value for display.
@@ -130,16 +162,29 @@ end
 ---@return table[] rows
 function ProfilerPlugin:_buildRows()
   local rows = {}
+  local totalCapturedTime = 0
+  local captureDuration = self:captureDuration()
+
   for _, name in ipairs(self.order) do
     local e = self.entries[name]
     if e and e.calls > 0 then
+      totalCapturedTime = totalCapturedTime + e.totalTime
+    end
+  end
+
+  for _, name in ipairs(self.order) do
+    local e = self.entries[name]
+    if e and e.calls > 0 then
+      local avgTime = e.totalTime / e.calls
       rows[#rows + 1] = {
         name = e.name,
         calls = e.calls,
         totalTime = e.totalTime,
-        avgTime = e.totalTime / e.calls,
+        avgTime = avgTime,
         minTime = e.minTime,
         maxTime = e.maxTime,
+        percent = totalCapturedTime > 0 and (e.totalTime / totalCapturedTime) * 100 or 0,
+        callsPerSecond = captureDuration > 0 and e.calls / captureDuration or 0,
       }
     end
   end
@@ -161,22 +206,37 @@ end
 --- Called by plugin_manager:pushAll() via handleRequest().
 function ProfilerPlugin:handleRequest(_request, _feather)
   local rows = self:_buildRows()
+  local captureDuration = self:captureDuration()
+  local totalCapturedTime = 0
+  for _, row in ipairs(rows) do
+    totalCapturedTime = totalCapturedTime + row.totalTime
+  end
 
   local tableRows = {}
   for i, row in ipairs(rows) do
     tableRows[i] = {
       name = row.name,
-      calls = tostring(row.calls),
+      calls = row.calls,
       totalTime = formatTime(row.totalTime),
       avgTime = formatTime(row.avgTime),
       minTime = formatTime(row.minTime),
       maxTime = formatTime(row.maxTime),
+      totalTimeRaw = row.totalTime,
+      avgTimeRaw = row.avgTime,
+      minTimeRaw = row.minTime,
+      maxTimeRaw = row.maxTime,
+      percent = row.percent,
+      callsPerSecond = row.callsPerSecond,
     }
   end
 
   return {
     type = "table",
     loading = false,
+    recording = self.recording,
+    captureStartedAt = self.captureStartedAt,
+    captureElapsed = captureDuration,
+    totalCapturedTime = totalCapturedTime,
     columns = {
       { key = "name", label = "Function" },
       { key = "calls", label = "Calls" },
@@ -193,6 +253,12 @@ function ProfilerPlugin:handleActionRequest(request, _feather)
   local action = request.params and request.params.action
   if action == "reset" then
     self:reset()
+    return true
+  elseif action == "start" then
+    self:start()
+    return true
+  elseif action == "stop" then
+    self:stop()
     return true
   end
 end
@@ -214,6 +280,8 @@ function ProfilerPlugin:getConfig()
     tabName = "Profiler",
     docs = "https://github.com/Kyonru/feather/tree/main/src-lua/plugins/profiler",
     actions = {
+      { label = "Start", key = "start", icon = "play", type = "button" },
+      { label = "Stop", key = "stop", icon = "pause", type = "button" },
       { label = "Reset", key = "reset", icon = "rotate-ccw", type = "button" },
     },
   }
