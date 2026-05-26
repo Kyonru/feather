@@ -34,6 +34,8 @@ function DebugOverlay:init(feather, config)
   self._lastTouchTime = 0
   self._doubleTapWindow = config.doubleTapWindow or 0.35
   self._touchSize = config.touchSize or 96
+  self.toast = nil
+  self.toastDuration = config.toastDuration or 3
 end
 
 function DebugOverlay:toggle()
@@ -101,8 +103,62 @@ function DebugOverlay:_status()
   return "disconnected", { 1.0, 0.38, 0.38, 1 }
 end
 
+local function currentTime()
+  if love and love.timer and love.timer.getTime then
+    return love.timer.getTime()
+  end
+  return os.clock()
+end
+
+function DebugOverlay:showToast(kind, message, duration)
+  if not self.enabled then
+    return
+  end
+
+  self.toast = {
+    kind = kind or "info",
+    message = tostring(message or ""),
+    expiresAt = currentTime() + (duration or self.toastDuration),
+  }
+end
+
+function DebugOverlay:_drawToast(g, yOffset)
+  local toast = self.toast
+  if not toast then
+    return
+  end
+  if currentTime() >= toast.expiresAt then
+    self.toast = nil
+    return
+  end
+
+  local width = g.getWidth and g.getWidth() or 800
+  local font = g.getFont and g.getFont() or nil
+  local message = toast.message
+  local textWidth = math.min(width - 48, 440)
+  local wrapped = { message }
+  if font and font.getWrap then
+    local _, lines = font:getWrap(message, textWidth - 24)
+    wrapped = lines or wrapped
+  end
+
+  local lineHeight = font and font:getHeight() or 14
+  local boxHeight = math.max(44, (#wrapped * lineHeight) + 22)
+  local boxWidth = textWidth
+  local x = math.max(12, width - boxWidth - 18)
+  local y = 18 + (yOffset or 0)
+  local bg = toast.kind == "error" and { 0.35, 0.07, 0.08 } or { 0.12, 0.13, 0.18 }
+
+  g.setColor(0, 0, 0, 0.35)
+  g.rectangle("fill", x + 3, y + 4, boxWidth, boxHeight, 6, 6)
+  g.setColor(bg[1], bg[2], bg[3], 0.92)
+  g.rectangle("fill", x, y, boxWidth, boxHeight, 6, 6)
+  g.setColor(1, 1, 1, 0.95)
+  g.printf(message, x + 12, y + 11, boxWidth - 24, "left")
+end
+
 function DebugOverlay:onDraw()
-  if not self.enabled or not self.visible then
+  if not self.enabled then
     return
   end
   if not love or not love.graphics then
@@ -126,14 +182,17 @@ function DebugOverlay:onDraw()
     if g.push then
       g.push("all")
     end
-    g.setColor(0.04, 0.05, 0.07, 0.82)
-    g.rectangle("fill", x, y, width, height, 5, 5)
-    g.setColor(accent)
-    g.rectangle("fill", x, y, 4, height, 5, 5)
-    if self.text then
-      g.setColor(1, 1, 1, 0.92)
-      g.print(label, x + paddingX, y + paddingY)
+    if self.visible then
+      g.setColor(0.04, 0.05, 0.07, 0.82)
+      g.rectangle("fill", x, y, width, height, 5, 5)
+      g.setColor(accent)
+      g.rectangle("fill", x, y, 4, height, 5, 5)
+      if self.text then
+        g.setColor(1, 1, 1, 0.92)
+        g.print(label, x + paddingX, y + paddingY)
+      end
     end
+    self:_drawToast(g, self.visible and height + 8 or 0)
     if g.pop then
       g.pop()
     end

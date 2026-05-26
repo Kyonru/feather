@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - root path fallback for deeplinking from trace.
+- Added `continueOnGameError` for opt-in callback crash recovery with an in-game toast while keeping normal crash behavior as the default.
+- Added a Session page toggle for enabling callback crash recovery on the current run.
 
 ### Changed
 
@@ -17,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Wrapped game callback errors now rethrow by default after Feather can capture them, so game crashes are no longer silently swallowed.
 - Log repeat counts now render in the actual log table.
 - Log details now show the repeat count for the selected entry.
 - Log details now stay synced as repeat counts update.

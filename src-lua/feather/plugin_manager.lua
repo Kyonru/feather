@@ -118,6 +118,10 @@ local function isCallable(value)
   return type(meta) == "table" and type(meta.__call) == "function"
 end
 
+local function callbackTraceback(err)
+  return debug.traceback(tostring(err), 2)
+end
+
 ---@param feather Feather
 ---@param logger FeatherLogger
 ---@param observer FeatherObserver
@@ -246,6 +250,22 @@ function FeatherPluginManager:init(feather, logger, observer)
         self.logger:log({ type = "error", str = tostring(pluginInstance) })
       end
     end
+  end
+end
+
+function FeatherPluginManager:_handleOriginalCallbackError(name, err)
+  local message = "[FeatherPluginManager] love." .. name .. " original callback error: " .. tostring(err)
+
+  if self.logger then
+    self.logger:log({
+      type = "error",
+      str = message,
+    })
+  end
+
+  local feather = self.feather
+  if feather and feather.continueOnGameError and feather.gameErrorToast and feather.debugOverlay then
+    feather.debugOverlay:showToast("error", "love." .. name .. " crashed; Feather kept the game running.")
   end
 end
 
@@ -464,14 +484,17 @@ function FeatherPluginManager:hookLoveCallbacks()
         local original = mgr._loveCallbackOriginals and mgr._loveCallbackOriginals[name]
 
         if original and original ~= wrapper then
-          local ok, err = xpcall(original, function(e)
-            return debug.traceback(tostring(e), 2)
-          end, ...)
-          if not ok and mgr.logger then
-            mgr.logger:log({
-              type = "error",
-              str = "[FeatherPluginManager] love." .. name .. " original callback error: " .. tostring(err),
-            })
+          local ok, err = xpcall(original, callbackTraceback, ...)
+          if not ok then
+            if mgr.feather and mgr.feather.continueOnGameError then
+              mgr:_handleOriginalCallbackError(name, err)
+            else
+              if not mgr.feather or not mgr.feather.autoRegisterErrorHandler then
+                mgr:_handleOriginalCallbackError(name, err)
+              end
+              mgr._dispatchingLoveCallbacks[name] = false
+              error(err, 0)
+            end
           end
         end
 

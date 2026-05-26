@@ -322,6 +322,54 @@ return M
 
   assertDrawOrder(equalPriorityFeather, { "A", "B", "C" }, "equal priorities preserve FIFO order")
 
+  local crashOriginalDraw = love.draw
+  love.draw = function()
+    error("default draw crash")
+  end
+
+  local defaultCrashFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Callback Crash Default E2E",
+    deviceId = "callback-crash-default-e2e",
+    assetPreview = false,
+    debugger = {
+      enabled = false,
+    },
+  })
+
+  local crashed, crashErr = pcall(love.draw)
+  assertEqual(crashed, false, "game callback errors rethrow by default")
+  assertTruthy(tostring(crashErr):match("default draw crash"), "rethrown game callback error preserves message")
+  defaultCrashFeather:finish()
+  love.draw = crashOriginalDraw
+
+  love.draw = function()
+    error("recoverable draw crash")
+  end
+
+  local continuingCrashFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Callback Crash Continue E2E",
+    deviceId = "callback-crash-continue-e2e",
+    assetPreview = false,
+    continueOnGameError = true,
+    debugger = {
+      enabled = false,
+    },
+  })
+
+  local continued = pcall(love.draw)
+  assertEqual(continued, true, "continueOnGameError keeps game callback errors running")
+  assertTruthy(continuingCrashFeather.debugOverlay.toast, "continueOnGameError shows crash toast")
+  assertTruthy(
+    continuingCrashFeather.debugOverlay.toast.message:match("kept the game running"),
+    "crash toast explains Feather kept the game running"
+  )
+  continuingCrashFeather:finish()
+  love.draw = crashOriginalDraw
+
   local pluginCount = 1000
   local expectedHookSum = (pluginCount * (pluginCount + 1)) / 2
   local stressPlugins = {}

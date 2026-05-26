@@ -8,8 +8,10 @@ export function useConfig(): {
   data: Config | undefined;
   updateSampleRate: (value: number) => void;
   updateDiskUsage: (enabled: boolean) => void;
+  updateContinueOnGameError: (enabled: boolean) => void;
 } {
   const config = useConfigStore((state) => state.config);
+  const setContinueOnGameError = useConfigStore((state) => state.setContinueOnGameError);
   const sessionId = useSessionStore((state) => state.sessionId);
 
   const updateSampleRate = useMemo(() => {
@@ -33,10 +35,22 @@ export function useConfig(): {
     };
   }, [sessionId]);
 
+  const updateContinueOnGameError = useMemo(() => {
+    return (enabled: boolean) => {
+      if (!sessionId) return;
+      setContinueOnGameError(enabled);
+      sendCommand(sessionId, {
+        type: 'cmd:config',
+        data: { continueOnGameError: enabled },
+      }).catch(console.error);
+    };
+  }, [sessionId, setContinueOnGameError]);
+
   return {
     data: config ?? undefined,
     updateSampleRate,
     updateDiskUsage,
+    updateContinueOnGameError,
   };
 }
 

@@ -123,6 +123,8 @@ local customErrorHandler = errorhandler
 ---@field errorWait? number
 ---@field autoRegisterErrorHandler? boolean
 ---@field errorHandler? function
+---@field continueOnGameError? boolean  If true, original love.* callback errors are logged and swallowed so the game loop can continue (default false).
+---@field gameErrorToast? boolean  Show an in-game toast when continueOnGameError catches a game callback error (default true).
 ---@field plugins? table
 ---@field capabilities? string[]|string  Allowed plugin capabilities — array of tokens or "all" (default: "all")
 ---@field mode? string
@@ -153,6 +155,8 @@ function Feather:init(config)
   self.apiKey = conf.apiKey or ""
   self.errorWait = conf.errorWait or 3
   self.autoRegisterErrorHandler = conf.autoRegisterErrorHandler or false
+  self.continueOnGameError = conf.continueOnGameError == true
+  self.gameErrorToast = conf.gameErrorToast ~= false
   self.plugins = conf.plugins or {}
   self.capabilities = conf.capabilities or "all"
   self.mode = conf.mode or "socket"
@@ -250,7 +254,11 @@ function Feather:init(config)
   self.callbackBus = FeatherCallbackBus(CALLBACK_NAMES)
   self.pluginManager = FeatherPluginManager(self, self.featherLogger, self.featherObserver)
   self.pluginManager:hookLoveCallbacks()
-  self.debugOverlay = FeatherDebugOverlay(self, conf.debugOverlay)
+  local debugOverlayConfig = conf.debugOverlay
+  if debugOverlayConfig == false and self.continueOnGameError and self.gameErrorToast then
+    debugOverlayConfig = { enabled = true, visible = false }
+  end
+  self.debugOverlay = FeatherDebugOverlay(self, debugOverlayConfig)
 
   ---@type FeatherDebugger
   self.featherDebugger = FeatherDebugger(self)
@@ -389,6 +397,8 @@ function Feather:__getConfig()
     version = FEATHER_VERSION.name,
     API = FEATHER_VERSION.api,
     sampleRate = self.sampleRate,
+    continueOnGameError = self.continueOnGameError,
+    gameErrorToast = self.gameErrorToast,
     language = "lua",
     outfile = self.featherLogger.outfile,
     captureScreenshot = self.featherLogger.captureScreenshot,
@@ -415,6 +425,16 @@ function Feather:__setConfig(params)
   self.sampleRate = params.sampleRate or self.sampleRate
   self.updateInterval = params.updateInterval or self.updateInterval
   self.maxTempLogs = params.maxTempLogs or self.maxTempLogs
+  if params.continueOnGameError ~= nil then
+    self.continueOnGameError = params.continueOnGameError == true
+  end
+  if params.gameErrorToast ~= nil then
+    self.gameErrorToast = params.gameErrorToast ~= false
+  end
+  if self.continueOnGameError and self.gameErrorToast and self.debugOverlay and not self.debugOverlay.enabled then
+    self.debugOverlay.enabled = true
+    self.debugOverlay.visible = false
+  end
   if params.diskUsage ~= nil then
     self.performance._diskUsageEnabled = params.diskUsage
   end

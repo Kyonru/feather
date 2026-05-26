@@ -13,6 +13,8 @@ export interface Config {
   version: string;
   API: number;
   sampleRate: number;
+  continueOnGameError?: boolean;
+  gameErrorToast?: boolean;
   outfile: string;
   language: 'lua';
   captureScreenshot: boolean;
@@ -69,6 +71,7 @@ interface ConfigAction {
   setConfig: (config: Config | null) => void;
   setDisconnected: (disconnected: boolean) => void;
   setSampleRate: (sampleRate: number) => void;
+  setContinueOnGameError: (continueOnGameError: boolean) => void;
   setLogOverride: (filePath?: string) => void;
 }
 
@@ -81,6 +84,8 @@ export const useConfigStore = create<ConfigStore>((set) => ({
   setConfig: (config: Config | null) => set({ config }),
   setSampleRate: (sampleRate: number) =>
     set((state) => ({ ...state, config: state.config ? { ...state.config, sampleRate } : null })),
+  setContinueOnGameError: (continueOnGameError: boolean) =>
+    set((state) => ({ ...state, config: state.config ? { ...state.config, continueOnGameError } : null })),
   setLogOverride: (filePath?: string) =>
     set((state) => ({
       ...state,

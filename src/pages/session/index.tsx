@@ -3,8 +3,11 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { useConfig } from '@/hooks/use-config';
 import { cn } from '@/utils/styles';
 import { isWeb } from '@/utils/platform';
 import { BoxIcon, MonitorIcon, PuzzleIcon, ServerIcon, ShieldCheckIcon, ShieldOffIcon } from 'lucide-react';
@@ -90,6 +93,7 @@ function CapabilityBadge({ cap }: { cap: string }) {
 
 export default function SessionPage() {
   const config = useConfigStore((state) => state.config);
+  const { updateContinueOnGameError } = useConfig();
   const sessionId = useSessionStore((state) => state.sessionId);
   const sessions = useSessionStore((state) => state.sessions);
   const session = sessionId ? sessions[sessionId] : null;
@@ -121,6 +125,22 @@ export default function SessionPage() {
             <InfoRow label="Sample rate" value={config.sampleRate ? `${config.sampleRate}s` : undefined} />
             <InfoRow label="Save directory" value={config.location} />
             {config.root_path && <InfoRow label="Project root" value={config.root_path} />}
+            <div className="mt-2 flex items-center justify-between gap-4 rounded-md border px-2 py-2">
+              <div>
+                <Label htmlFor="continue-on-game-error" className="text-xs font-medium">
+                  Keep Running After Callback Crashes
+                </Label>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  Log game lifecycle errors to Feather instead of letting them stop the loop.
+                </p>
+              </div>
+              <Switch
+                id="continue-on-game-error"
+                checked={config.continueOnGameError === true}
+                disabled={isFileSession}
+                onCheckedChange={updateContinueOnGameError}
+              />
+            </div>
             {session.insecure && (
               <div className="mt-2 flex items-center gap-2 rounded-md border border-orange-300 bg-orange-50 px-2 py-1.5 dark:border-orange-800 dark:bg-orange-950">
                 <ShieldOffIcon className="size-3.5 text-orange-500" />

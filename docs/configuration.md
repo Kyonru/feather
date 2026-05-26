@@ -19,6 +19,8 @@
 | `errorWait`                         | `number`              | `3`                 | Seconds to wait for error delivery before showing LÖVE's handler.                                                                                                                       |
 | `autoRegisterErrorHandler`          | `boolean`             | `false`             | Replace LÖVE's `errorhandler` to capture errors.                                                                                                                                        |
 | `errorHandler`                      | `function`            | `love.errorhandler` | Custom error handler to use.                                                                                                                                                            |
+| `continueOnGameError`               | `boolean`             | `false`             | When `false`, errors from wrapped game callbacks are delivered to Feather and then rethrown so the game crashes normally. Set `true` to log the error and keep the game loop running.    |
+| `gameErrorToast`                    | `boolean`             | `true`              | Show an in-game crash toast when `continueOnGameError = true`.                                                                                                                          |
 | `plugins`                           | `table`               | `{}`                | List of plugin modules to load.                                                                                                                                                         |
 | `captureScreenshot`                 | `boolean`             | `false`             | Capture screenshots on error.                                                                                                                                                           |
 | `sessionName`                       | `string`              | `""`                | Custom display name shown in desktop session tabs (e.g. `"My RPG"`).                                                                                                                    |
@@ -39,6 +41,10 @@
 
 > [!WARNING]
 > `captureScreenshot` can affect performance because it captures the current frame when errors are handled. Enable it only when you need visual error context.
+
+> [!TIP]
+> `continueOnGameError = true` is useful for exploratory debugging because Feather keeps reporting repeated callback crashes and shows an in-game toast. Leave it off when you want normal LÖVE crash behavior.
+> You can also toggle this for the current run from **Session → Keep Running After Callback Crashes**.
 
 ## Generated CLI Config
 
