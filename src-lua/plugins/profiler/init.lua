@@ -16,6 +16,7 @@ end
 --- Profiler entry for a single tracked function.
 ---@class ProfilerEntry
 ---@field name string Display name
+---@field group string Prefix group for filtering and summaries
 ---@field calls number Total invocation count
 ---@field totalTime number Cumulative wall time (seconds)
 ---@field minTime number Fastest call (seconds)
@@ -27,6 +28,7 @@ end
 ---@field entries table<string, ProfilerEntry>
 ---@field order string[] Insertion-order list of names
 ---@field wrappers table<string, function> Wrapped functions keyed by name
+---@field snapshots table[] Named capture snapshots for before/after comparisons
 ---@field sortBy string Column to sort by
 ---@field sortDesc boolean Sort descending
 ---@field recording boolean Whether profiler samples are currently recorded
@@ -41,6 +43,7 @@ local ProfilerPlugin = Class({
     self.entries = {}
     self.order = {}
     self.wrappers = {}
+    self.snapshots = {}
     self.sortBy = "totalTime"
     self.sortDesc = true
     self.recording = true
@@ -48,6 +51,52 @@ local ProfilerPlugin = Class({
     self.captureElapsed = 0
   end,
 })
+
+local function packResults(...)
+  return { n = select("#", ...), ... }
+end
+
+local function unpackResults(results)
+  return unpack(results, 1, results.n)
+end
+
+local function groupForName(name)
+  local group = tostring(name):match("^([^%.:%s]+)[%.:]")
+  return group or "ungrouped"
+end
+
+function ProfilerPlugin:_ensureEntry(name)
+  if not self.entries[name] then
+    self.entries[name] = {
+      name = name,
+      group = groupForName(name),
+      calls = 0,
+      totalTime = 0,
+      minTime = math.huge,
+      maxTime = 0,
+      depth = 0,
+      activeStart = nil,
+    }
+    self.order[#self.order + 1] = name
+  end
+
+  return self.entries[name]
+end
+
+function ProfilerPlugin:_recordEntry(entry, elapsed)
+  if not self.recording then
+    return
+  end
+
+  entry.calls = entry.calls + 1
+  entry.totalTime = entry.totalTime + elapsed
+  if elapsed < entry.minTime then
+    entry.minTime = elapsed
+  end
+  if elapsed > entry.maxTime then
+    entry.maxTime = elapsed
+  end
+end
 
 --- Wrap a function for profiling.
 --- Returns the wrapped function; the original is called transparently.
@@ -59,20 +108,7 @@ function ProfilerPlugin:wrap(name, fn)
     return self.wrappers[name]
   end
 
-  if not self.entries[name] then
-    self.entries[name] = {
-      name = name,
-      calls = 0,
-      totalTime = 0,
-      minTime = math.huge,
-      maxTime = 0,
-      depth = 0,
-      activeStart = nil,
-    }
-    self.order[#self.order + 1] = name
-  end
-
-  local entry = self.entries[name]
+  local entry = self:_ensureEntry(name)
 
   local wrapped = function(...)
     entry.depth = entry.depth + 1
@@ -82,30 +118,56 @@ function ProfilerPlugin:wrap(name, fn)
       entry.activeStart = gettime()
     end
 
-    local results = { fn(...) }
+    local args = packResults(...)
+    local ok, results = xpcall(function()
+      return packResults(fn(unpackResults(args)))
+    end, debug.traceback)
 
     entry.depth = entry.depth - 1
 
     if entry.depth == 0 and entry.activeStart then
       local elapsed = gettime() - entry.activeStart
       entry.activeStart = nil
-      if self.recording then
-        entry.calls = entry.calls + 1
-        entry.totalTime = entry.totalTime + elapsed
-        if elapsed < entry.minTime then
-          entry.minTime = elapsed
-        end
-        if elapsed > entry.maxTime then
-          entry.maxTime = elapsed
-        end
-      end
+      self:_recordEntry(entry, elapsed)
     end
 
-    return unpack(results)
+    if not ok then
+      error(results, 0)
+    end
+
+    return unpackResults(results)
   end
 
   self.wrappers[name] = wrapped
   return wrapped
+end
+
+--- Start a scoped profiling sample.
+---@param name string Scope name
+function ProfilerPlugin:begin(name)
+  local entry = self:_ensureEntry(name)
+  entry.depth = entry.depth + 1
+  if entry.depth == 1 then
+    entry.activeStart = gettime()
+  end
+end
+
+--- Finish a scoped profiling sample.
+---@param name string Scope name
+function ProfilerPlugin:finish(name)
+  local entry = self.entries[name]
+  if not entry or entry.depth <= 0 then
+    return false
+  end
+
+  entry.depth = entry.depth - 1
+  if entry.depth == 0 and entry.activeStart then
+    local elapsed = gettime() - entry.activeStart
+    entry.activeStart = nil
+    self:_recordEntry(entry, elapsed)
+  end
+
+  return true
 end
 
 --- Reset all profiling data.
@@ -140,6 +202,49 @@ function ProfilerPlugin:captureDuration()
     elapsed = elapsed + math.max(0, gettime() - (self.captureStartedAt or gettime()))
   end
   return elapsed
+end
+
+function ProfilerPlugin:snapshot(label)
+  local rows = self:_buildRows()
+  local totalCapturedTime = 0
+  local rowsByName = {}
+
+  for _, row in ipairs(rows) do
+    totalCapturedTime = totalCapturedTime + row.totalTime
+    rowsByName[row.name] = {
+      name = row.name,
+      group = row.group,
+      calls = row.calls,
+      totalTimeRaw = row.totalTime,
+      avgTimeRaw = row.avgTime,
+      minTimeRaw = row.minTime,
+      maxTimeRaw = row.maxTime,
+      percent = row.percent,
+      callsPerSecond = row.callsPerSecond,
+    }
+  end
+
+  local snapshot = {
+    label = label or "Last capture",
+    capturedAt = gettime(),
+    captureElapsed = self:captureDuration(),
+    totalCapturedTime = totalCapturedTime,
+    rows = rowsByName,
+  }
+
+  for i, existing in ipairs(self.snapshots) do
+    if existing.label == snapshot.label then
+      self.snapshots[i] = snapshot
+      return snapshot
+    end
+  end
+
+  self.snapshots[#self.snapshots + 1] = snapshot
+  while #self.snapshots > 8 do
+    table.remove(self.snapshots, 1)
+  end
+
+  return snapshot
 end
 
 --- Format a time value for display.
@@ -178,6 +283,7 @@ function ProfilerPlugin:_buildRows()
       local avgTime = e.totalTime / e.calls
       rows[#rows + 1] = {
         name = e.name,
+        group = e.group or groupForName(e.name),
         calls = e.calls,
         totalTime = e.totalTime,
         avgTime = avgTime,
@@ -216,6 +322,7 @@ function ProfilerPlugin:handleRequest(_request, _feather)
   for i, row in ipairs(rows) do
     tableRows[i] = {
       name = row.name,
+      group = row.group,
       calls = row.calls,
       totalTime = formatTime(row.totalTime),
       avgTime = formatTime(row.avgTime),
@@ -237,8 +344,10 @@ function ProfilerPlugin:handleRequest(_request, _feather)
     captureStartedAt = self.captureStartedAt,
     captureElapsed = captureDuration,
     totalCapturedTime = totalCapturedTime,
+    snapshots = self.snapshots,
     columns = {
       { key = "name", label = "Function" },
+      { key = "group", label = "Group" },
       { key = "calls", label = "Calls" },
       { key = "totalTime", label = "Total" },
       { key = "avgTime", label = "Avg" },
@@ -260,6 +369,9 @@ function ProfilerPlugin:handleActionRequest(request, _feather)
   elseif action == "stop" then
     self:stop()
     return true
+  elseif action == "snapshot" then
+    local label = request.params and request.params.label
+    return self:snapshot(label)
   end
 end
 
@@ -282,6 +394,7 @@ function ProfilerPlugin:getConfig()
     actions = {
       { label = "Start", key = "start", icon = "play", type = "button" },
       { label = "Stop", key = "stop", icon = "pause", type = "button" },
+      { label = "Snapshot", key = "snapshot", icon = "camera", type = "button" },
       { label = "Reset", key = "reset", icon = "rotate-ccw", type = "button" },
     },
   }

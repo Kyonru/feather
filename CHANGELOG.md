@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `continueOnGameError` for opt-in callback crash recovery with an in-game toast while keeping normal crash behavior as the default.
 - Added a Session page toggle for enabling callback crash recovery on the current run.
 - Added Health and Profiler tabs to the Performance page with expanded metric charts, spike triage, profiler controls, and JSON export.
+- Added Profiler scoped samples, before/after snapshots, group metadata, and diff-friendly capture data for focused profiling workflows.
 
 ### Changed
 
 - Reworked the Logs view with a dedicated live log table, search and type filters, follow-tail control, stable row selection, and richer synced details.
 - Profiler plugin captures now include start/stop recording, raw timing values, percent of captured time, calls per second, and capture metadata.
+- Profiler wrapped functions now preserve tracebacks with error-safe wrappers while still recording failed calls.
 
 ### Fixed
 

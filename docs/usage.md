@@ -100,7 +100,7 @@ Enable the `profiler` plugin to use the **Performance → Profiler** tab for ins
 feather config plugins --include profiler --dir path/to/my-game
 ```
 
-The profiler still uses explicit instrumentation via `profiler:wrap(name, fn)`, then the desktop can start/stop captures, filter rows, sort by percent/total/average/max/calls, and export JSON.
+The profiler still uses explicit instrumentation via `profiler:wrap(name, fn)`, or scoped samples with `profiler:begin(name)` and `profiler:finish(name)`. The desktop can start/stop captures, group rows by name prefix, hide one-call entries, filter rows, sort by percent/total/average/max/calls, save before/after snapshots, compare diffs, and export JSON.
 
 ---
 

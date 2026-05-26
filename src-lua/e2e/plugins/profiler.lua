@@ -21,6 +21,7 @@ return PluginE2EHelper.createSmokeSuite("profiler", {
     local row = response.data[1]
     assertTruthy(row, "profiler returns collected row")
     assertEqual(row.name, "test.work", "profiler row includes function name")
+    assertEqual(row.group, "test", "profiler row includes prefix group")
     assertEqual(row.calls, 1, "profiler row includes numeric calls")
     assertTruthy(type(row.totalTimeRaw) == "number", "profiler row includes raw total time")
     assertTruthy(type(row.avgTimeRaw) == "number", "profiler row includes raw average time")
@@ -43,6 +44,35 @@ return PluginE2EHelper.createSmokeSuite("profiler", {
     wrapped(30)
     response = profiler:handleRequest({}, context.feather)
     assertEqual(response.data[1].calls, 2, "profiler start action records new samples")
+
+    profiler:begin("physics.step")
+    local sum = 0
+    for i = 1, 10 do
+      sum = sum + i
+    end
+    assertEqual(profiler:finish("physics.step"), true, "profiler scoped finish succeeds")
+    response = profiler:handleRequest({}, context.feather)
+    local scopedRow
+    for _, item in ipairs(response.data) do
+      if item.name == "physics.step" then
+        scopedRow = item
+      end
+    end
+    assertTruthy(scopedRow, "profiler begin/finish records scoped samples")
+    assertEqual(scopedRow.group, "physics", "profiler scoped samples include prefix group")
+
+    local before = profiler:handleActionRequest({ params = { action = "snapshot", label = "Before" } }, context.feather)
+    assertEqual(before.label, "Before", "profiler snapshot action stores named snapshot")
+    response = profiler:handleRequest({}, context.feather)
+    assertTruthy(#response.snapshots >= 1, "profiler response includes snapshot history")
+    assertTruthy(response.snapshots[1].rows["test.work"] ~= nil, "profiler snapshot stores rows by name")
+
+    local unsafe = profiler:wrap("test.crash", function()
+      error("profiled failure")
+    end)
+    local ok, err = pcall(unsafe)
+    assertEqual(ok, false, "profiler wrapped function propagates errors")
+    assertTruthy(tostring(err):find("profiled failure", 1, true) ~= nil, "profiler wrapped function preserves error message")
 
     profiler:handleActionRequest({ params = { action = "reset" } }, context.feather)
     response = profiler:handleRequest({}, context.feather)

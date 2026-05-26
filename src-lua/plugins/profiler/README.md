@@ -24,7 +24,7 @@ No additional options are required.
 
 ### Wrapping Functions
 
-Call `profiler:wrap(name, fn)` to create an instrumented version of any function. The wrapper is transparent — it calls the original function and returns all of its results while recording timing data.
+Call `profiler:wrap(name, fn)` to create an instrumented version of any function. The wrapper is transparent — it calls the original function and returns all of its results while recording timing data. Wrapped functions are error-safe: failures are re-raised with traceback details after the profiler records the elapsed time.
 
 ```lua
 local profiler = debugger:getPlugin("profiler")
@@ -49,6 +49,19 @@ Each wrapped function tracks:
 | **Max**   | Slowest recorded call       |
 | **% Total** | Share of captured profiler time |
 | **Calls/s** | Calls per second in the capture window |
+| **Group** | Prefix before `.` or `:` in the sample name |
+
+### Scoped Samples
+
+For work that is easier to bracket than wrap, use `begin` and `finish` with the same name:
+
+```lua
+profiler:begin("physics.step")
+world:step(dt)
+profiler:finish("physics.step")
+```
+
+Scoped samples feed the same profiler table as wrapped functions, including groups, totals, averages, percent, and calls per second.
 
 ### Recursion Handling
 
@@ -74,9 +87,10 @@ The plugin adds an interactive action to the Feather UI:
 
 - **Start** → resumes profiling new calls.
 - **Stop** → pauses profiling while preserving captured rows.
+- **Snapshot** → saves a named capture snapshot for before/after comparisons.
 - **Reset** → clears all collected profiling data (call counts and timings are zeroed out).
 
-Recording is enabled by default for backwards compatibility. The dedicated **Performance → Profiler** view adds search, sorting, filters, and JSON export while `/plugins/profiler` remains available as a generic plugin table.
+Recording is enabled by default for backwards compatibility. The dedicated **Performance → Profiler** view adds search, sorting, group filters, one-call hiding, before/after snapshots, diff columns, and JSON export while `/plugins/profiler` remains available as a generic plugin table.
 
 ### Sorting
 

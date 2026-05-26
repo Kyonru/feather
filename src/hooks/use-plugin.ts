@@ -90,6 +90,13 @@ export interface PluginContentTableProps {
   captureStartedAt?: number;
   captureElapsed?: number;
   totalCapturedTime?: number;
+  snapshots?: Array<{
+    label?: string;
+    capturedAt?: number;
+    captureElapsed?: number;
+    totalCapturedTime?: number;
+    rows?: Record<string, PluginTableRow>;
+  }>;
 }
 
 export interface PluginTreeNodeProperty {
@@ -225,8 +232,8 @@ export const usePluginAction = (pluginId: string) => {
     });
   };
 
-  const onAction = (action: string) => {
-    sendCommand({ type: 'cmd:plugin:action', plugin: normalized, action, params: paramsRef.current });
+  const onAction = (action: string, actionParams?: Record<string, PluginParamValue>) => {
+    sendCommand({ type: 'cmd:plugin:action', plugin: normalized, action, params: { ...paramsRef.current, ...actionParams } });
   };
 
   const onFileAction = async (action: string, filters?: { name: string; extensions: string[] }[]) => {
