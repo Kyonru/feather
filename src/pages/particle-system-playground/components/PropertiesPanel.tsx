@@ -130,7 +130,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
   return (
     <div className="grid gap-5">
       <div className="grid gap-3">
-        <div className="grid grid-cols-[1fr_10rem_9rem] gap-2">
+        <div className="grid grid-cols-[1fr_10rem_7rem_9rem] gap-2">
           <div className="grid gap-1">
             <Label className="text-[10px] text-muted-foreground font-semibold">Title</Label>
             <Input
@@ -156,11 +156,21 @@ export function PropertiesPanel({ system, onChange }: Props) {
           </div>
           <div className="flex items-end gap-2 pb-2">
             <Checkbox
-              id="relative-rotation"
+              id={`emitter-enabled-${system.index}`}
+              checked={system.enabled}
+              onCheckedChange={(checked) => onChange('enabled', checked === true)}
+            />
+            <Label htmlFor={`emitter-enabled-${system.index}`} className="text-xs">
+              Enabled
+            </Label>
+          </div>
+          <div className="flex items-end gap-2 pb-2">
+            <Checkbox
+              id={`relative-rotation-${system.index}`}
               checked={!!system.properties.relativeRotation}
               onCheckedChange={(checked) => onChange('relativeRotation', checked === true)}
             />
-            <Label htmlFor="relative-rotation" className="text-xs">
+            <Label htmlFor={`relative-rotation-${system.index}`} className="text-xs">
               Relative rotation
             </Label>
           </div>

@@ -55,6 +55,7 @@ export type ParticleSystemPlaygroundSystem = {
   index: number;
   title: string;
   blendMode: string;
+  enabled: boolean;
   x: number;
   y: number;
   kickStartSteps: number;
@@ -74,6 +75,7 @@ export type ParticleSystemPlaygroundCompositeData = {
   compositeType: CompositeType;
   x: number;
   y: number;
+  previewEnabled: boolean;
   movement: ParticleSystemPlaygroundMovement;
   systems: ParticleSystemPlaygroundSystem[];
 };

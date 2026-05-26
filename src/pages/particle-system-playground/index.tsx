@@ -1,5 +1,7 @@
 import { AlertTriangleIcon, FileWarningIcon, RotateCcwIcon, SparklesIcon, ZapIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -197,6 +199,18 @@ export default function ParticleSystemPlaygroundPage({
                     <div className="grid gap-3 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
                       <div className="grid content-start gap-3">
                         <Section title="Composite Preview">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="particle-preview-enabled"
+                              checked={composite.previewEnabled}
+                              disabled={isGameComposite}
+                              onCheckedChange={(checked) => playground.updateParam('previewEnabled', checked === true)}
+                            />
+                            <Label htmlFor="particle-preview-enabled" className="text-xs">
+                              Preview enabled
+                            </Label>
+                          </div>
+                          <Separator />
                           <div className="grid grid-cols-2 gap-2">
                             <label className="grid gap-1 text-[10px] text-muted-foreground">
                               X

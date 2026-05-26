@@ -10,14 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Particle System Playground exports now generate drop-in Lua modules with `init`, `update`, `draw`, `emit`, and `release` lifecycle functions.
+- Particle System Playground Emit and Reset now replay the whole enabled composite, with per-emitter enabled toggles and a scratch preview pause.
 
 ### Fixed
 
 - Fixed Particle System Playground exports with shaders so generated modules embed shader source directly in `init.lua` instead of requiring runtime `.glsl` file reads.
+- Fixed Particle System Playground pending property edits so debounced changes stay scoped to the emitter they were made on when switching emitters.
 
 ### Tests
 
 - Added Lua e2e coverage for the Particle System Playground drop-in export format.
+- Added Lua e2e coverage for Particle System Playground composite-wide emit/reset, disabled emitters, and preview pause behavior.
 
 ## [v1.4.2] - 2026-05-25 - The one with fixed cli
 

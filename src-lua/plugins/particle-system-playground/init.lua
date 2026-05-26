@@ -64,6 +64,26 @@ local function safeString(value, fallback)
   return tostring(value)
 end
 
+local function safeBoolean(value, fallback)
+  if value == nil then
+    return fallback == true
+  end
+  if value == true or value == "true" or value == "1" or value == 1 then
+    return true
+  end
+  if value == false or value == "false" or value == "0" or value == 0 then
+    return false
+  end
+  return fallback == true
+end
+
+local function isSystemEnabled(sys, meta)
+  if meta and meta.enabled ~= nil then
+    return safeBoolean(meta.enabled, true)
+  end
+  return safeBoolean(sys and sys.enabled, true)
+end
+
 local function sanitizeFilename(name, fallback)
   name = tostring(name or fallback or "asset"):gsub("\\", "/"):match("([^/]+)$") or fallback or "asset"
   name = name:gsub("[^%w%._%-]", "_")
@@ -831,6 +851,7 @@ local function createDefaultSystem(index, template)
     shaderPath = "",
     shaderFilename = "",
     shaderSource = "",
+    enabled = true,
     texturePath = "",
     texturePreset = texturePreset,
     textureFilename = texturePreset .. ".png",
@@ -972,6 +993,7 @@ function ParticleSystemPlaygroundPlugin:_newComposite(name, template)
     name = final,
     x = DEFAULT_X,
     y = DEFAULT_Y,
+    previewEnabled = true,
     movement = { pattern = "none", radius = 50, radiusX = 80, radiusY = 40, speed = 1, scale = 50 },
     offsetX = 0,
     offsetY = 0,
@@ -1044,13 +1066,13 @@ end
 function ParticleSystemPlaygroundPlugin:update(dt)
   for _, name in ipairs(self.compositeOrder) do
     local entry = self.composites[name]
-    if entry and entry.kind == "scratch" then
+    if entry and entry.kind == "scratch" and safeBoolean(entry.previewEnabled, true) then
       local offsetX, offsetY = computeMovementOffset(entry.movement, dt)
       entry.offsetX, entry.offsetY = offsetX, offsetY
       local x = (entry.x or DEFAULT_X) + offsetX
       local y = (entry.y or DEFAULT_Y) + offsetY
-      for _, system in ipairs(entry.systems or {}) do
-        if system.system then
+      for index, system in ipairs(entry.systems or {}) do
+        if system.system and isSystemEnabled(system, self:_meta(name, index)) then
           pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
           pcall(system.system.update, system.system, dt)
         end
@@ -1070,9 +1092,9 @@ function ParticleSystemPlaygroundPlugin:onDraw()
 
   for _, name in ipairs(self.compositeOrder) do
     local entry = self.composites[name]
-    if entry and entry.kind == "scratch" then
-      for _, system in ipairs(entry.systems or {}) do
-        if system.system then
+    if entry and entry.kind == "scratch" and safeBoolean(entry.previewEnabled, true) then
+      for index, system in ipairs(entry.systems or {}) do
+        if system.system and isSystemEnabled(system, self:_meta(name, index)) then
           pcall(love.graphics.setBlendMode, system.blendMode or "alpha")
           if system.shader and system.shader.send and love.timer then
             pcall(system.shader.send, system.shader, "u_time", love.timer.getTime())
@@ -1115,6 +1137,7 @@ function ParticleSystemPlaygroundPlugin:handleRequest()
         index = i,
         title = safeString(meta.title or sys.title, "Emitter " .. tostring(i)),
         blendMode = safeString(sys.blendMode, "alpha"),
+        enabled = isSystemEnabled(sys, meta),
         x = safeNumber(sys.x, 0),
         y = safeNumber(sys.y, 0),
         kickStartSteps = safeNumber(sys.kickStartSteps, 0),
@@ -1143,6 +1166,7 @@ function ParticleSystemPlaygroundPlugin:handleRequest()
       compositeType = entry.kind,
       x = entry.kind == "scratch" and safeNumber(entry.x, DEFAULT_X) or safeNumber(composite and composite.x, 0),
       y = entry.kind == "scratch" and safeNumber(entry.y, DEFAULT_Y) or safeNumber(composite and composite.y, 0),
+      previewEnabled = entry.kind == "scratch" and safeBoolean(entry.previewEnabled, true) or true,
       movement = entry.kind == "scratch" and entry.movement or { pattern = "none" },
       systems = systems,
     }
@@ -1180,6 +1204,9 @@ function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
     if params.compositeY ~= nil then
       entry.y = safeNumber(params.compositeY, entry.y)
     end
+    if params.previewEnabled ~= nil then
+      entry.previewEnabled = safeBoolean(params.previewEnabled, true)
+    end
     entry.movement = entry.movement or { pattern = "none" }
     if params["movement.pattern"] ~= nil then
       entry.movement.pattern = tostring(params["movement.pattern"])
@@ -1205,6 +1232,11 @@ function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
   end
   if params.blendMode ~= nil then
     sys.blendMode = tostring(params.blendMode)
+  end
+  if params.enabled ~= nil then
+    local enabled = safeBoolean(params.enabled, true)
+    meta.enabled = enabled
+    sys.enabled = enabled
   end
   if params.emitterOffsetX ~= nil then
     sys.x = safeNumber(params.emitterOffsetX, sys.x)
@@ -1512,31 +1544,29 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     return nil, "System not found"
   end
 
-  if action == "emit" then
-    sys.system:emit(math.max(1, safeNumber(params.count, 100)))
-    return true
-  end
-
-  if action == "emit-all" then
+  if action == "emit" or action == "emit-all" then
+    local count = math.max(1, safeNumber(params.count, 100))
+    local composite = self:_getCompositeTable(name)
+    local baseX = entry.kind == "scratch" and safeNumber(entry.x, DEFAULT_X) or safeNumber(composite and composite.x, 0)
+    local baseY = entry.kind == "scratch" and safeNumber(entry.y, DEFAULT_Y) or safeNumber(composite and composite.y, 0)
+    local offsetX = entry.kind == "scratch" and safeNumber(entry.offsetX, 0) or 0
+    local offsetY = entry.kind == "scratch" and safeNumber(entry.offsetY, 0) or 0
     for i = 1, self:_systemCount(name) do
       local item = self:_getSystemEntry(name, i)
-      if item and item.system then
-        item.system:emit(math.max(1, safeNumber(params.count, 100)))
+      if item and item.system and isSystemEnabled(item, self:_meta(name, i)) then
+        item.system:reset()
+        item.system:start()
+        pcall(item.system.setPosition, item.system, baseX + offsetX + safeNumber(item.x, 0), baseY + offsetY + safeNumber(item.y, 0))
+        item.system:emit(count)
       end
     end
     return true
   end
 
-  if action == "reset" then
-    sys.system:reset()
-    sys.system:start()
-    return true
-  end
-
-  if action == "reset-all" then
+  if action == "reset" or action == "reset-all" then
     for i = 1, self:_systemCount(name) do
       local item = self:_getSystemEntry(name, i)
-      if item and item.system then
+      if item and item.system and isSystemEnabled(item, self:_meta(name, i)) then
         item.system:reset()
         item.system:start()
       end
@@ -1545,10 +1575,12 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
   end
 
   if action == "kick-start" then
-    local steps = math.max(0, safeNumber(sys.kickStartSteps, 0))
-    local dt = safeNumber(sys.kickStartDt, 1 / 60)
-    for _ = 1, steps do
-      sys.system:update(dt)
+    if isSystemEnabled(sys, self:_meta(name, index)) then
+      local steps = math.max(0, safeNumber(sys.kickStartSteps, 0))
+      local dt = safeNumber(sys.kickStartDt, 1 / 60)
+      for _ = 1, steps do
+        sys.system:update(dt)
+      end
     end
     return true
   end
@@ -1778,10 +1810,13 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
 
       local shaderKey = asset.shaderSource
       local shaderValue = shaderVars[shaderKey] or "nil"
+      local enabledValue = isSystemEnabled(sys, self:_meta(name, i))
       lines[#lines + 1] = "  systems["
         .. tostring(i)
         .. "] = { system = "
         .. psVar
+        .. ", enabled = "
+        .. tostring(enabledValue)
         .. ", kickStartSteps = "
         .. tostring(math.floor(safeNumber(sys.kickStartSteps, 0)))
         .. ", kickStartDt = "
@@ -1805,10 +1840,10 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
         .. ", y = "
         .. fmt(sys.y or 0)
         .. " }"
-      lines[#lines + 1] = "  for _ = 1, systems[" .. tostring(i) .. "].kickStartSteps do"
+      lines[#lines + 1] = "  for _ = 1, systems[" .. tostring(i) .. "].enabled and systems[" .. tostring(i) .. "].kickStartSteps or 0 do"
       lines[#lines + 1] = "    " .. psVar .. ":update(systems[" .. tostring(i) .. "].kickStartDt)"
       lines[#lines + 1] = "  end"
-      lines[#lines + 1] = "  if systems[" .. tostring(i) .. "].emitAtStart > 0 then"
+      lines[#lines + 1] = "  if systems[" .. tostring(i) .. "].enabled and systems[" .. tostring(i) .. "].emitAtStart > 0 then"
       lines[#lines + 1] = "    " .. psVar .. ":emit(systems[" .. tostring(i) .. "].emitAtStart)"
       lines[#lines + 1] = "  end"
     end
@@ -1820,7 +1855,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function update(dt)"
   lines[#lines + 1] = "  for _, emitter in ipairs(systems) do"
-  lines[#lines + 1] = "    if emitter.system then"
+  lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
   lines[#lines + 1] = "      emitter.system:update(dt)"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
@@ -1832,7 +1867,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  local r, g, b, a = LG.getColor()"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "  for _, emitter in ipairs(systems) do"
-  lines[#lines + 1] = "    if emitter.system then"
+  lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
   lines[#lines + 1] = "      LG.setBlendMode(emitter.blendMode or \"alpha\")"
   lines[#lines + 1] = "      if emitter.shader and emitter.shader.send and love.timer then"
   lines[#lines + 1] = "        pcall(emitter.shader.send, emitter.shader, \"u_time\", love.timer.getTime())"
@@ -1862,7 +1897,9 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  local index = tonumber(payload.systemIndex)"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "  for i, emitter in ipairs(systems) do"
-  lines[#lines + 1] = "    if emitter.system and (not index or index == i) then"
+  lines[#lines + 1] = "    if emitter.enabled and emitter.system and (not index or index == i) then"
+  lines[#lines + 1] = "      emitter.system:reset()"
+  lines[#lines + 1] = "      emitter.system:start()"
   lines[#lines + 1] = "      emitter.system:setPosition(x + (emitter.x or 0), y + (emitter.y or 0))"
   lines[#lines + 1] = "      emitter.system:setDirection(r)"
   lines[#lines + 1] = "      emitter.system:emit(amount)"

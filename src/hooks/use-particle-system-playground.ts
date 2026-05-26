@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -23,6 +24,12 @@ const EMPTY_DATA: ParticleSystemPlaygroundData = {
 };
 
 type ParamValue = string | number | boolean;
+type ParamBatch = Record<string, ParamValue>;
+type ScopedParamBatches = Record<string, ParamBatch>;
+
+function targetKey(composite: string, systemIndex: number) {
+  return `${composite}\u0000${systemIndex}`;
+}
 
 function updateSystemDraft(
   system: ParticleSystemPlaygroundSystem,
@@ -31,6 +38,7 @@ function updateSystemDraft(
 ): ParticleSystemPlaygroundSystem {
   if (key === 'title') return { ...system, title: String(value) };
   if (key === 'blendMode') return { ...system, blendMode: String(value) };
+  if (key === 'enabled') return { ...system, enabled: value === true || value === 'true' || value === 1 };
   if (key === 'emitterOffsetX') return { ...system, x: Number(value) };
   if (key === 'emitterOffsetY') return { ...system, y: Number(value) };
   if (key === 'kickStartSteps') return { ...system, kickStartSteps: Number(value) };
@@ -41,15 +49,12 @@ function updateSystemDraft(
 
 function updateDraft(
   data: ParticleSystemPlaygroundData | undefined,
-  params: Record<string, ParamValue>,
+  batches: ScopedParamBatches,
 ): ParticleSystemPlaygroundData | undefined {
   if (!data?.data) return data;
-  const targetComposite = String(params.composite ?? data.activeComposite ?? '');
-  if (targetComposite && targetComposite !== data.activeComposite) return data;
 
   const next: ParticleSystemPlaygroundData = {
     ...data,
-    activeSystem: Number(params.systemIndex ?? data.activeSystem),
     data: {
       ...data.data,
       movement: { ...data.data.movement },
@@ -59,34 +64,41 @@ function updateDraft(
   const nextData = next.data;
   if (!nextData) return next;
 
-  if (params.compositeX !== undefined) nextData.x = Number(params.compositeX);
-  if (params.compositeY !== undefined) nextData.y = Number(params.compositeY);
+  for (const params of Object.values(batches)) {
+    const targetComposite = String(params.composite ?? data.activeComposite ?? '');
+    if (targetComposite && targetComposite !== data.activeComposite) continue;
 
-  for (const [key, value] of Object.entries(params)) {
-    if (key.startsWith('movement.')) {
-      const movementKey = key.slice('movement.'.length);
-      nextData.movement = { ...nextData.movement, [movementKey]: value };
-    }
-  }
+    if (params.compositeX !== undefined) nextData.x = Number(params.compositeX);
+    if (params.compositeY !== undefined) nextData.y = Number(params.compositeY);
+    if (params.previewEnabled !== undefined) nextData.previewEnabled = params.previewEnabled === true;
 
-  const systemIndex = Number(params.systemIndex ?? data.activeSystem);
-  nextData.systems = nextData.systems.map((system) => {
-    if (system.index !== systemIndex) return system;
-    let draft = system;
     for (const [key, value] of Object.entries(params)) {
-      if (
-        key === 'composite' ||
-        key === 'systemIndex' ||
-        key === 'compositeX' ||
-        key === 'compositeY' ||
-        key.startsWith('movement.')
-      ) {
-        continue;
+      if (key.startsWith('movement.')) {
+        const movementKey = key.slice('movement.'.length);
+        nextData.movement = { ...nextData.movement, [movementKey]: value };
       }
-      draft = updateSystemDraft(draft, key, value);
     }
-    return draft;
-  });
+
+    const systemIndex = Number(params.systemIndex ?? data.activeSystem);
+    nextData.systems = nextData.systems.map((system) => {
+      if (system.index !== systemIndex) return system;
+      let draft = system;
+      for (const [key, value] of Object.entries(params)) {
+        if (
+          key === 'composite' ||
+          key === 'systemIndex' ||
+          key === 'compositeX' ||
+          key === 'compositeY' ||
+          key === 'previewEnabled' ||
+          key.startsWith('movement.')
+        ) {
+          continue;
+        }
+        draft = updateSystemDraft(draft, key, value);
+      }
+      return draft;
+    });
+  }
 
   return next;
 }
@@ -125,6 +137,7 @@ function valueForParam(
   if (key === 'systemIndex') return data.activeSystem;
   if (key === 'compositeX') return data.data.x;
   if (key === 'compositeY') return data.data.y;
+  if (key === 'previewEnabled') return data.data.previewEnabled;
   if (key.startsWith('movement.')) {
     const movementKey = key.slice('movement.'.length) as keyof typeof data.data.movement;
     return data.data.movement[movementKey] as ParamValue | undefined;
@@ -135,6 +148,7 @@ function valueForParam(
   if (!system) return undefined;
   if (key === 'title') return system.title;
   if (key === 'blendMode') return system.blendMode;
+  if (key === 'enabled') return system.enabled;
   if (key === 'emitterOffsetX') return system.x;
   if (key === 'emitterOffsetY') return system.y;
   if (key === 'kickStartSteps') return system.kickStartSteps;
@@ -147,8 +161,8 @@ export function useParticleSystemPlayground() {
   const sessionId = useSessionStore((state) => state.sessionId);
   const plugin = useConfigStore((state) => state.config?.plugins?.[PLUGIN_ID]);
   const queryClient = useQueryClient();
-  const pendingParams = useRef<Record<string, ParamValue>>({});
-  const [optimisticParams, setOptimisticParams] = useState<Record<string, ParamValue>>({});
+  const pendingParams = useRef<ScopedParamBatches>({});
+  const [optimisticParams, setOptimisticParams] = useState<ScopedParamBatches>({});
 
   const { data: serverData } = useQuery<ParticleSystemPlaygroundData>({
     queryKey: sessionQueryKey.plugin(sessionId ?? '', PLUGIN_ID),
@@ -176,35 +190,65 @@ export function useParticleSystemPlayground() {
   );
 
   const pluginQueryKey = sessionQueryKey.plugin(sessionId ?? '', PLUGIN_ID);
-  const setOptimisticData = useCallback((params: Record<string, ParamValue>) => {
-    setOptimisticParams((current) => ({ ...current, ...params }));
+  const setOptimisticData = useCallback((composite: string, systemIndex: number, params: ParamBatch) => {
+    const key = targetKey(composite, systemIndex);
+    setOptimisticParams((current) => ({
+      ...current,
+      [key]: {
+        ...(current[key] ?? {}),
+        composite,
+        systemIndex,
+        ...params,
+      },
+    }));
   }, []);
 
   useEffect(() => {
     setOptimisticParams((current) => {
-      const entries = Object.entries(current).filter(([key, value]) => {
-        const serverValue = valueForParam(serverData, current, key);
-        return serverValue === undefined || !valuesEqual(serverValue, value);
-      });
-      return entries.length === Object.keys(current).length ? current : Object.fromEntries(entries);
+      const next: ScopedParamBatches = {};
+      for (const [batchKey, params] of Object.entries(current)) {
+        const entries = Object.entries(params).filter(([key, value]) => {
+          if (key === 'composite' || key === 'systemIndex') return false;
+          const serverValue = valueForParam(serverData, params, key);
+          return serverValue === undefined || !valuesEqual(serverValue, value);
+        });
+        if (entries.length > 0) {
+          next[batchKey] = {
+            composite: params.composite ?? '',
+            systemIndex: params.systemIndex ?? 1,
+            ...(Object.fromEntries(entries) as ParamBatch),
+          };
+        }
+      }
+      return Object.keys(next).length === 0 && Object.keys(current).length === 0 ? current : next;
     });
   }, [serverData]);
 
   const flushParams = useMemo(
     () =>
       debounce(() => {
-        const params = pendingParams.current;
+        const batches = pendingParams.current;
         pendingParams.current = {};
-        if (Object.keys(params).length === 0) return;
-        send({ type: 'cmd:plugin:params', plugin: PLUGIN_ID, params });
+        for (const params of Object.values(batches)) {
+          if (Object.keys(params).length === 0) continue;
+          send({ type: 'cmd:plugin:params', plugin: PLUGIN_ID, params });
+        }
       }, 150),
     [send],
   );
 
   const updateParam = useCallback(
     (key: string, value: ParamValue) => {
-      setOptimisticData({ composite: data.activeComposite ?? '', systemIndex: data.activeSystem, [key]: value });
-      pendingParams.current[key] = value;
+      const composite = data.activeComposite ?? '';
+      const systemIndex = data.activeSystem;
+      const batchKey = targetKey(composite, systemIndex);
+      setOptimisticData(composite, systemIndex, { [key]: value });
+      pendingParams.current[batchKey] = {
+        ...(pendingParams.current[batchKey] ?? {}),
+        composite,
+        systemIndex,
+        [key]: value,
+      };
       flushParams();
     },
     [data.activeComposite, data.activeSystem, flushParams, setOptimisticData],
@@ -212,10 +256,16 @@ export function useParticleSystemPlayground() {
 
   const updateActiveParam = useCallback(
     (key: string, value: ParamValue) => {
-      pendingParams.current.composite = data.activeComposite ?? '';
-      pendingParams.current.systemIndex = data.activeSystem;
-      setOptimisticData({ composite: data.activeComposite ?? '', systemIndex: data.activeSystem, [key]: value });
-      pendingParams.current[key] = value;
+      const composite = data.activeComposite ?? '';
+      const systemIndex = data.activeSystem;
+      const batchKey = targetKey(composite, systemIndex);
+      setOptimisticData(composite, systemIndex, { [key]: value });
+      pendingParams.current[batchKey] = {
+        ...(pendingParams.current[batchKey] ?? {}),
+        composite,
+        systemIndex,
+        [key]: value,
+      };
       flushParams();
     },
     [data.activeComposite, data.activeSystem, flushParams, setOptimisticData],
@@ -296,8 +346,8 @@ export function useParticleSystemPlayground() {
       });
       refreshAfterAction('reorder-system', { fromIndex, toIndex });
     },
-    emit: (all = false, count = 100) => refreshAfterAction(all ? 'emit-all' : 'emit', { count }),
-    reset: (all = false) => refreshAfterAction(all ? 'reset-all' : 'reset'),
+    emit: (_all = true, count = 100) => refreshAfterAction('emit', { count }),
+    reset: (_all = true) => refreshAfterAction('reset'),
     kickStart: () => refreshAfterAction('kick-start'),
     setTexturePreset: (preset: string) => {
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>

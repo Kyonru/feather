@@ -63,6 +63,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
       {systems.map((system) => {
         const active = system.index === activeIndex;
         const isDragTarget = overIndex === system.index;
+        const disabled = system.enabled === false;
         return (
           <div
             key={system.index}
@@ -78,6 +79,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               isDragTarget && 'ring-2 ring-primary ring-offset-1',
+              disabled && !active && 'opacity-55',
             )}
           >
             {!isGameComposite && (
@@ -106,7 +108,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
                     active ? 'text-primary-foreground/70' : 'text-muted-foreground',
                   )}
                 >
-                  {system.properties.count ?? 0} / {system.properties.bufferSize ?? 0}
+                  {disabled ? 'Disabled' : `${system.properties.count ?? 0} / ${system.properties.bufferSize ?? 0}`}
                 </span>
               </span>
               <Badge

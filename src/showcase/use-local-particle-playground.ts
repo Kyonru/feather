@@ -15,6 +15,7 @@ function system(index: number, title: string, template: ParticleSystemPlayground
     index,
     title,
     blendMode: template === 'sparkles' ? 'add' : 'alpha',
+    enabled: true,
     x: 0,
     y: 0,
     kickStartSteps: 0,
@@ -83,6 +84,7 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
     compositeType: 'scratch',
     x: 400,
     y: 300,
+    previewEnabled: true,
     movement: { pattern: 'none', radius: 80, radiusX: 120, radiusY: 60, speed: 1, scale: 1 },
     systems,
   };
@@ -91,6 +93,7 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
 function updateSystemDraft(systemDraft: ParticleSystemPlaygroundSystem, key: string, value: ParamValue): ParticleSystemPlaygroundSystem {
   if (key === 'title') return { ...systemDraft, title: String(value) };
   if (key === 'blendMode') return { ...systemDraft, blendMode: String(value) };
+  if (key === 'enabled') return { ...systemDraft, enabled: value === true };
   if (key === 'emitterOffsetX') return { ...systemDraft, x: Number(value) };
   if (key === 'emitterOffsetY') return { ...systemDraft, y: Number(value) };
   if (key === 'kickStartSteps') return { ...systemDraft, kickStartSteps: Number(value) };
@@ -134,6 +137,7 @@ export function useLocalParticlePlayground() {
       if (!current.data) return current;
       if (key === 'compositeX') return { ...current, data: { ...current.data, x: Number(value) } };
       if (key === 'compositeY') return { ...current, data: { ...current.data, y: Number(value) } };
+      if (key === 'previewEnabled') return { ...current, data: { ...current.data, previewEnabled: value === true } };
       if (key.startsWith('movement.')) {
         return {
           ...current,

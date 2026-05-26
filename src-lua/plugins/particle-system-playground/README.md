@@ -55,6 +55,8 @@ Scratch composites are created from the desktop playground. The plugin owns thei
 
 Composite preview `x`/`y` and preview movement patterns change emitter positions via `ParticleSystem:setPosition(...)`. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.
 
+Scratch composites can pause the plugin-owned preview without changing emitter settings or exported code. Individual emitters can also be disabled; disabled emitters remain in the composite metadata but are skipped by preview update/draw, composite emit/reset actions, and generated runtime modules.
+
 Supported preview movement patterns:
 
 - `none`
@@ -84,8 +86,8 @@ Important actions:
 | `select-system` | Select the active emitter |
 | `set-texture` | Apply a texture preset, game path, or uploaded base64 texture |
 | `set-shader` | Apply inline shader source or a shader path |
-| `emit` / `emit-all` | Burst particles |
-| `reset` / `reset-all` | Reset particle systems |
+| `emit` / `emit-all` | Reset/restart enabled emitters in the active composite, then burst particles |
+| `reset` / `reset-all` | Reset enabled emitters in the active composite |
 | `kick-start` | Advance the active emitter by configured kick-start steps |
 | `export-code` | Return/copy generated Lua module code |
 | `export-zip` | Return generated `init.lua` plus referenced assets |
@@ -116,7 +118,7 @@ particleEffect.emit({
 
 Generated modules return `{ init, update, draw, emit, release }`. `init()` creates all exported emitters, applies their ParticleSystem settings, runs any kick-start steps, emits configured startup bursts, and returns a `particles` table with composite position and emitter metadata.
 
-`emit(payload)` expects a `ParticlePayload` table with `x`, `y`, `r`, and `amount`. It emits every exported emitter by default; set `payload.systemIndex` to emit only one emitter in a multi-emitter composite.
+`emit(payload)` expects a `ParticlePayload` table with `x`, `y`, `r`, and `amount`. It resets/restarts and emits every enabled exported emitter by default; set `payload.systemIndex` to emit only one emitter in a multi-emitter composite. Disabled emitters stay in the exported metadata and are skipped by `update`, `draw`, and `emit`.
 
 ZIP export returns `init.lua` and any available texture assets. Shader source is embedded in `init.lua` as Lua strings so generated modules do not need to read `.glsl` files at runtime. Imported texture bytes are preserved for ZIP output. Game-path texture assets are read through `love.filesystem.read` when possible.
 
