@@ -82,6 +82,8 @@ export const DEFAULT_METRIC: PerformanceMetrics = {
   sysInfo: { arch: '', cpuCount: 0, os: '' },
 };
 
+const EMPTY_PERFORMANCE_DATA: PerformanceMetrics[] = [];
+
 export const usePerformance = (): { data: PerformanceMetrics[] } => {
   const sessionId = useSessionStore((state) => state.sessionId);
 
@@ -91,5 +93,5 @@ export const usePerformance = (): { data: PerformanceMetrics[] } => {
     enabled: false, // data is pushed via WS, not fetched
   });
 
-  return { data: data ?? [] };
+  return { data: data ?? EMPTY_PERFORMANCE_DATA };
 };

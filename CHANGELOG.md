@@ -22,12 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reworked the Logs view with a dedicated live log table, search and type filters, follow-tail control, stable row selection, and richer synced details.
 - Profiler plugin captures now include start/stop recording, raw timing values, percent of captured time, calls per second, and capture metadata.
 - Profiler wrapped functions now preserve tracebacks with error-safe wrappers while still recording failed calls.
+- Improved the Debugger page with a single-row header, colored controls, file-title flow controls, safer gutter-only breakpoint toggling, and clearer source/variable empty states.
 
 ### Fixed
 
 - Wrapped game callback errors now rethrow by default after Feather can capture them, so game crashes are no longer silently swallowed.
 - Fixed CLI-managed debugger breakpoint matching for long source paths and modules loaded through the temporary run shim by matching against untruncated source paths and normalizing shim paths back to project-relative source files.
 - Fixed `feather run` so CLI-managed desktop launches enable the step debugger by default unless `--no-debugger` is used.
+- Fixed the Performance page empty-data state so the health chart no longer loops when no metrics have arrived yet.
 - Log repeat counts now render in the actual log table.
 - Log details now show the repeat count for the selected entry.
 - Log details now stay synced as repeat counts update.

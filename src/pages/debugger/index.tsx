@@ -191,7 +191,7 @@ function SourceView({
   scrollToLine,
   breakpointLines,
   conditionalLines,
-  conditionErrorLines,
+  conditionErrors,
   onToggleBreakpoint,
   onRightClickBreakpoint,
 }: {
@@ -200,7 +200,7 @@ function SourceView({
   scrollToLine: number | null;
   breakpointLines: Set<number>;
   conditionalLines: Set<number>;
-  conditionErrorLines: Set<number>;
+  conditionErrors: Map<number, string>;
   onToggleBreakpoint: (line: number) => void;
   onRightClickBreakpoint: (line: number, e: React.MouseEvent) => void;
 }) {
@@ -276,8 +276,8 @@ function SourceView({
 
   if (!content) {
     return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
-        Select a .lua file from the tree
+      <div className="text-muted-foreground flex flex-1 items-center justify-center px-4 text-center text-xs">
+        File content is unavailable. Open the project folder or select a readable .lua file.
       </div>
     );
   }
@@ -364,7 +364,8 @@ function SourceView({
             const isMatch = searchOpen && search.trim() !== '' && matchLines.includes(lineNum);
             const isCurrentMatch = isMatch && lineNum === currentMatchLine;
             const hasBp = breakpointLines.has(lineNum);
-            const hasConditionError = conditionErrorLines.has(lineNum);
+            const conditionError = conditionErrors.get(lineNum);
+            const hasConditionError = !!conditionError;
 
             let lineRef: React.Ref<HTMLDivElement> | undefined;
             if (lineNum === activeScrollLine) lineRef = scrollTargetRef;
@@ -375,18 +376,16 @@ function SourceView({
                 key={lineNum}
                 ref={lineRef}
                 className={cn(
-                  'group flex cursor-pointer items-start hover:bg-accent/50',
+                  'group flex items-start hover:bg-accent/50',
                   isCurrent && 'bg-yellow-500/15 hover:bg-yellow-500/20',
                   isScrollTarget && !isCurrent && 'bg-blue-500/10 hover:bg-blue-500/15',
                   isCurrentMatch && !isCurrent && !isScrollTarget && 'bg-orange-500/20 hover:bg-orange-500/25',
                   isMatch && !isCurrentMatch && !isCurrent && !isScrollTarget && 'bg-orange-500/8',
                 )}
-                onClick={() => onToggleBreakpoint(lineNum)}
-                title={hasBp ? 'Remove breakpoint' : 'Add breakpoint'}
               >
                 {/* Breakpoint gutter */}
                 <div
-                  className="flex w-6 shrink-0 items-center justify-center self-center"
+                  className="flex w-6 shrink-0 items-center justify-center self-stretch"
                   onContextMenu={
                     hasBp
                       ? (e) => {
@@ -396,16 +395,36 @@ function SourceView({
                       : undefined
                   }
                 >
-                  {hasBp ? (
-                    <CircleDotIcon
-                      className={cn(
-                        'size-2.5',
-                        hasConditionError ? 'text-destructive' : conditionalLines.has(lineNum) ? 'text-orange-400' : 'text-red-500',
-                      )}
-                    />
-                  ) : (
-                    <div className="size-2 rounded-full opacity-0 group-hover:bg-red-400 group-hover:opacity-60" />
-                  )}
+                  <button
+                    className="flex size-5 items-center justify-center rounded-sm hover:bg-accent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleBreakpoint(lineNum);
+                    }}
+                    title={
+                      conditionError
+                        ? `Condition error: ${conditionError}`
+                        : hasBp
+                          ? 'Remove breakpoint. Right-click to edit condition.'
+                          : 'Add breakpoint'
+                    }
+                    aria-label={`${hasBp ? 'Remove' : 'Add'} breakpoint on line ${lineNum}`}
+                  >
+                    {hasBp ? (
+                      <CircleDotIcon
+                        className={cn(
+                          'size-2.5',
+                          hasConditionError
+                            ? 'text-destructive'
+                            : conditionalLines.has(lineNum)
+                              ? 'text-orange-400'
+                              : 'text-red-500',
+                        )}
+                      />
+                    ) : (
+                      <span className="size-2 rounded-full opacity-0 group-hover:bg-red-400 group-hover:opacity-60" />
+                    )}
+                  </button>
                 </div>
                 {/* Line number */}
                 <span
@@ -606,8 +625,6 @@ function VarsSection({ title, vars, filter }: { title: string; vars: Record<stri
     ? allEntries.filter(([name]) => name.toLowerCase().includes(filter.toLowerCase()))
     : allEntries;
 
-  if (allEntries.length === 0) return null;
-
   return (
     <div>
       <button
@@ -621,7 +638,9 @@ function VarsSection({ title, vars, filter }: { title: string; vars: Record<stri
         <span className="ml-auto font-mono text-xs text-muted-foreground">{allEntries.length}</span>
       </button>
       {open &&
-        (entries.length === 0 ? (
+        (allEntries.length === 0 ? (
+          <p className="px-3 py-1 text-xs text-muted-foreground italic">No {title.toLowerCase()}</p>
+        ) : entries.length === 0 ? (
           <p className="px-3 py-1 text-xs text-muted-foreground italic">No matches</p>
         ) : (
           entries.map(([name, value]) => <VarNode key={name} name={name} value={value} />)
@@ -766,377 +785,419 @@ export default function DebuggerPage() {
   const conditionalLines = new Set(
     dbg.breakpoints.filter((b) => b.file === selectedFile && b.enabled && !!b.condition).map((b) => b.line),
   );
-  const conditionErrorLines = new Set(
-    dbg.breakpointErrors.filter((error) => error.file === selectedFile && error.line).map((error) => error.line as number),
-  );
+  const conditionErrors = useMemo(() => {
+    const errors = new Map<number, string>();
+    for (const error of dbg.breakpointErrors) {
+      if (error.file === selectedFile && error.line) {
+        errors.set(error.line, error.error ?? error.reason ?? 'Condition failed');
+      }
+    }
+    return errors;
+  }, [dbg.breakpointErrors, selectedFile]);
   const currentLine = dbg.currentPaused?.file === selectedFile ? dbg.currentPaused.line : null;
   const canHotReload =
     !isWeb() && hotReloadPlugin.enabled && hotReloadState.enabled && !!selectedModule && !!selectedAbsPath;
   const latestHotReload = hotReloadState.history.at(-1);
+  const latestConditionError = dbg.breakpointErrors.at(-1);
+  const selectedConditionErrors = [...conditionErrors.entries()];
+  const syncedBreakpointCount = dbg.status.breakpointCount ?? dbg.breakpoints.filter((b) => b.enabled).length;
+  const rejectedBreakpointCount = dbg.status.rejectedBreakpoints?.length ?? 0;
+  const debuggerState =
+    dbg.currentPaused?.reason === 'exception' ? 'Error' : dbg.isPaused ? 'Paused' : dbg.isEnabled ? 'Listening' : 'Off';
+  const debuggerStateVariant =
+    debuggerState === 'Error' ? 'destructive' : debuggerState === 'Off' ? 'secondary' : 'outline';
+  const flowButtonClass = 'h-7 gap-1 px-2 text-xs disabled:opacity-40';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 border-b px-4 py-2">
-        <div className="flex items-center gap-2">
-          <Switch id="debugger-enabled" checked={dbg.isEnabled} onCheckedChange={dbg.toggleEnabled} />
-          <Label htmlFor="debugger-enabled" className="text-sm">
-            Debugger
-          </Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <Switch id="debugger-pause-on-error" checked={dbg.pauseOnError} onCheckedChange={dbg.setPauseOnError} />
-          <Label htmlFor="debugger-pause-on-error" className="text-sm">
-            Pause on Error
-          </Label>
-        </div>
-
-        <Separator orientation="vertical" className="h-5" />
-
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 gap-1 px-2 text-xs"
-            disabled={!dbg.isPaused}
-            onClick={dbg.continue}
-            title="Continue (F8)"
-          >
-            <PlayIcon className="size-3" /> Continue
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 gap-1 px-2 text-xs"
-            disabled={!dbg.isPaused}
-            onClick={dbg.stepOver}
-            title="Step Over (F10)"
-          >
-            <SkipForwardIcon className="size-3" /> Step Over
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 gap-1 px-2 text-xs"
-            disabled={!dbg.isPaused}
-            onClick={dbg.stepInto}
-            title="Step Into (F11)"
-          >
-            <ArrowDownIcon className="size-3" /> Step Into
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 gap-1 px-2 text-xs"
-            disabled={!dbg.isPaused}
-            onClick={dbg.stepOut}
-            title="Step Out (⇧F11)"
-          >
-            <ArrowUpIcon className="size-3" /> Step Out
-          </Button>
-        </div>
-
-        {dbg.isPaused && dbg.currentPaused && (
-          <>
-            <Separator orientation="vertical" className="h-5" />
-            <Badge variant="destructive" className="gap-1 font-mono text-xs">
-              <PauseIcon className="size-3" />
-              {dbg.currentPaused.reason === 'exception' ? 'error ' : ''}
-              {dbg.currentPaused.file.split('/').pop()}:{dbg.currentPaused.line}
+      <div className="shrink-0 border-b bg-background" data-testid="debugger-header">
+        <div className="flex h-11 min-w-0 items-center gap-2 overflow-x-auto px-4">
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Switch id="debugger-enabled" checked={dbg.isEnabled} onCheckedChange={dbg.toggleEnabled} />
+              <Label htmlFor="debugger-enabled" className="text-sm">
+                Debugger
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="debugger-pause-on-error" checked={dbg.pauseOnError} onCheckedChange={dbg.setPauseOnError} />
+              <Label htmlFor="debugger-pause-on-error" className="text-sm">
+                Pause on Error
+              </Label>
+            </div>
+          </div>
+          <Separator orientation="vertical" className="h-5 shrink-0" />
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Badge variant={debuggerStateVariant} className="h-6 shrink-0 gap-1 font-mono text-xs">
+              {dbg.isPaused && <PauseIcon className="size-3" />}
+              {debuggerState}
             </Badge>
-          </>
-        )}
-
-        <Badge variant="outline" className="gap-1 font-mono text-xs">
-          {dbg.status.breakpointCount ?? dbg.breakpoints.filter((b) => b.enabled).length} synced
-        </Badge>
-        {dbg.status.sourceRoot && (
-          <Badge variant="secondary" className="max-w-48 gap-1 truncate font-mono text-xs" title={dbg.status.sourceRoot}>
-            {dbg.status.sourceRoot.split('/').pop()}
-          </Badge>
-        )}
-        {dbg.breakpointErrors.length > 0 && (
-          <Badge variant="destructive" className="gap-1 text-xs" title={dbg.breakpointErrors.at(-1)?.error}>
-            <AlertTriangleIcon className="size-3" />
-            {dbg.breakpointErrors.length} condition error{dbg.breakpointErrors.length === 1 ? '' : 's'}
-          </Badge>
-        )}
-
-        {dbg.breakpoints.length > 0 && (
-          <>
-            <Separator orientation="vertical" className="h-5" />
+            {dbg.currentPaused && (
+              <Badge
+                variant={dbg.currentPaused.reason === 'exception' ? 'destructive' : 'outline'}
+                className="h-6 max-w-56 shrink truncate font-mono text-xs"
+                title={`${dbg.currentPaused.file}:${dbg.currentPaused.line}`}
+              >
+                {dbg.currentPaused.file.split('/').pop()}:{dbg.currentPaused.line}
+              </Badge>
+            )}
+            <Badge
+              variant="outline"
+              className="h-6 shrink-0 gap-1 font-mono text-xs"
+              title="Breakpoints accepted by the runtime"
+            >
+              {syncedBreakpointCount} synced
+            </Badge>
+          </div>
+          <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end gap-2">
+            {latestConditionError && (
+              <Badge
+                variant="destructive"
+                className="h-6 min-w-0 max-w-80 shrink gap-1 truncate text-xs"
+                title={latestConditionError.error}
+              >
+                <AlertTriangleIcon className="size-3 shrink-0" />
+                {dbg.breakpointErrors.length} condition error{dbg.breakpointErrors.length === 1 ? '' : 's'}
+              </Badge>
+            )}
+            {!latestConditionError && rejectedBreakpointCount > 0 && (
+              <Badge variant="destructive" className="h-6 shrink-0 gap-1 text-xs">
+                <AlertTriangleIcon className="size-3" />
+                {rejectedBreakpointCount} rejected
+              </Badge>
+            )}
+            <Separator orientation="vertical" className="h-5 shrink-0" />
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive"
+              className="h-7 gap-1 px-2 text-xs text-red-500 hover:bg-red-500/10 hover:text-red-600"
+              disabled={dbg.breakpoints.length === 0}
               onClick={dbg.clearBreakpoints}
               title="Clear all breakpoints"
             >
-              <CircleDotIcon className="size-3" /> Clear breakpoints
+              <CircleDotIcon className="size-3" /> Clear
             </Button>
-          </>
-        )}
-
-        {dbg.isPaused && frames.length > 0 && (
-          <>
-            <Separator orientation="vertical" className="h-5" />
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+              className="h-7 gap-1 px-2 text-xs text-amber-500 hover:bg-amber-500/10 hover:text-amber-600"
+              disabled={!dbg.isPaused || frames.length === 0}
               onClick={() => navigate('/time-travel')}
               title="View frame history leading up to this breakpoint"
             >
-              <ClockIcon className="size-3" /> Time Travel ({frames.length} frames)
+              <ClockIcon className="size-3" /> Time Travel ({frames.length})
             </Button>
-          </>
-        )}
-
-        <Separator orientation="vertical" className="h-5" />
-
-        <div className="flex items-center gap-1">
-          <div className="flex items-center gap-1 px-1">
-            <Switch
-              id="hot-reload-enabled"
-              checked={hotReloadPlugin.enabled}
-              disabled={!sessionId || !hotReloadPlugin.available || hotReloadPlugin.plugin?.incompatible}
-              onCheckedChange={hotReloadPlugin.setEnabled}
-            />
-            <Label htmlFor="hot-reload-enabled" className="text-xs text-muted-foreground">
-              Hot Reload
-            </Label>
-          </div>
-          {hotReloadState.active && (
-            <Badge variant="outline" className="gap-1 font-mono text-xs text-orange-500">
-              Hot Reload
-            </Badge>
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 gap-1 px-2 text-xs"
-            disabled={!canHotReload}
-            onClick={reloadSelectedModule}
-            title={
-              hotReloadState.enabled
-                ? !hotReloadPlugin.enabled
-                  ? 'Hot reload plugin is disabled. Enable it with the switch first.'
-                  : selectedModule
-                    ? `Development only: send Lua source for ${selectedModule} into the running game`
-                    : 'Select an allowlisted Lua module. Hot reload is development-only remote code execution.'
-                : 'Hot reload is disabled. Include the hot-reload plugin and configure debugger.hotReload only for trusted development sessions.'
-            }
-          >
-            <RefreshCwIcon className="size-3" /> Reload
-          </Button>
-          <div className="flex items-center gap-1 px-1">
-            <Switch
-              id="hot-reload-watch"
-              checked={watchHotReload}
-              disabled={!canHotReload}
-              onCheckedChange={setWatchHotReload}
-            />
-            <Label htmlFor="hot-reload-watch" className="text-xs text-muted-foreground">
-              Watch
-            </Label>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-            disabled={!hotReloadState.active}
-            onClick={restoreOriginals}
-            title="Restore modules that were replaced by Feather hot reload"
-          >
-            <RotateCcwIcon className="size-3" /> Restore
-          </Button>
-        </div>
-
-        {latestHotReload && (
-          <span
-            className={cn(
-              'min-w-0 truncate text-xs',
-              latestHotReload.ok ? 'text-muted-foreground' : 'text-destructive',
+            <Separator orientation="vertical" className="h-5 shrink-0" />
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">Hot Reload</span>
+            <div className="flex shrink-0 items-center gap-1 px-1">
+              <Switch
+                id="hot-reload-enabled"
+                checked={hotReloadPlugin.enabled}
+                disabled={!sessionId || !hotReloadPlugin.available || hotReloadPlugin.plugin?.incompatible}
+                onCheckedChange={hotReloadPlugin.setEnabled}
+              />
+              <Label htmlFor="hot-reload-enabled" className="text-xs text-muted-foreground">
+                On
+              </Label>
+            </div>
+            {hotReloadState.active && (
+              <Badge variant="outline" className="h-6 gap-1 font-mono text-xs text-orange-500">
+                Active
+              </Badge>
             )}
-            title={latestHotReload.error || latestHotReload.module}
-          >
-            {latestHotReload.ok
-              ? latestHotReload.restored
-                ? 'Runtime restored'
-                : `Reloaded ${latestHotReload.module}`
-              : `Failed ${latestHotReload.module}`}
-          </span>
-        )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 px-2 text-xs text-cyan-500 hover:bg-cyan-500/10 hover:text-cyan-600"
+              disabled={!canHotReload}
+              onClick={reloadSelectedModule}
+              title={
+                hotReloadState.enabled
+                  ? !hotReloadPlugin.enabled
+                    ? 'Hot reload plugin is disabled. Enable it with the switch first.'
+                    : selectedModule
+                      ? `Development only: send Lua source for ${selectedModule} into the running game`
+                      : 'Select an allowlisted Lua module. Hot reload is development-only remote code execution.'
+                  : 'Hot reload is disabled. Include the hot-reload plugin and configure debugger.hotReload only for trusted development sessions.'
+              }
+            >
+              <RefreshCwIcon className="size-3" /> Reload
+            </Button>
+            <div className="flex shrink-0 items-center gap-1 px-1">
+              <Switch
+                id="hot-reload-watch"
+                checked={watchHotReload}
+                disabled={!canHotReload}
+                onCheckedChange={setWatchHotReload}
+              />
+              <Label htmlFor="hot-reload-watch" className="text-xs text-muted-foreground">
+                Watch
+              </Label>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 px-2 text-xs text-orange-500 hover:bg-orange-500/10 hover:text-orange-600"
+              disabled={!hotReloadState.active}
+              onClick={restoreOriginals}
+              title="Restore modules that were replaced by Feather hot reload"
+            >
+              <RotateCcwIcon className="size-3" /> Restore
+            </Button>
+
+            {latestHotReload && (
+              <span
+                className={cn(
+                  'min-w-32 max-w-72 shrink-0 truncate text-xs',
+                  latestHotReload.ok ? 'text-muted-foreground' : 'text-destructive',
+                )}
+                title={latestHotReload.error || latestHotReload.module}
+              >
+                {latestHotReload.ok
+                  ? latestHotReload.restored
+                    ? 'Runtime restored'
+                    : `Reloaded ${latestHotReload.module}`
+                  : `Failed ${latestHotReload.module}`}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 3-column body */}
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
         {/* Col 1 — File tree */}
         <ResizablePanel defaultSize={'20%'} minSize={'10%'} maxSize={'30%'} className="flex flex-col">
-          <div className="border-b px-3 py-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold">Files</span>
-              {!isWeb() && (
-                <div className="flex items-center gap-1">
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={pickFolder}>
-                    Open folder
-                  </Button>
+          <div className="flex h-full flex-col" data-testid="debugger-files-panel">
+            <div className="border-b px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Files</span>
+                {!isWeb() && (
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={pickFolder}>
+                      Open folder
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {rootPath && (
+                <div className="text-muted-foreground mt-0.5 truncate text-xs" title={rootPath}>
+                  {rootPath.split('/').pop()}
+                  {manualRootPath && sessionId && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={() => clearRootPath(sessionId)}
+                      title="Remove manual folder"
+                    >
+                      ×
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
-            {rootPath && (
-              <div className="text-muted-foreground mt-0.5 truncate text-xs" title={rootPath}>
-                {rootPath.split('/').pop()}
-                {manualRootPath && sessionId && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
-                    onClick={() => clearRootPath(sessionId)}
-                    title="Remove manual folder"
-                  >
-                    ×
-                  </Button>
-                )}
-              </div>
-            )}
+            <ScrollArea className="h-0 flex-1">
+              {!isWeb() && rootPath ? (
+                <FileTree
+                  rootPath={rootPath}
+                  selectedFile={selectedFile}
+                  breakpointFiles={breakpointFiles}
+                  onSelectFile={setSelectedFile}
+                />
+              ) : (
+                <div className="text-muted-foreground px-3 py-3 text-xs">
+                  {isWeb() ? 'Requires desktop app' : 'No game connected — open a folder to browse files'}
+                </div>
+              )}
+            </ScrollArea>
           </div>
-          <ScrollArea className="h-0 flex-1">
-            {!isWeb() && rootPath ? (
-              <FileTree
-                rootPath={rootPath}
-                selectedFile={selectedFile}
-                breakpointFiles={breakpointFiles}
-                onSelectFile={setSelectedFile}
-              />
-            ) : (
-              <div className="text-muted-foreground px-3 py-3 text-xs">
-                {isWeb() ? 'Requires desktop app' : 'No game connected — open a folder to browse files'}
-              </div>
-            )}
-          </ScrollArea>
         </ResizablePanel>
 
         <ResizableHandle withHandle />
 
         {/* Col 2 — Source view */}
         <ResizablePanel defaultSize={'55%'} minSize={'30%'} className="flex min-w-0 flex-col">
-          {dbg.currentPaused?.reason === 'exception' && (
-            <div className="border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              Paused on {dbg.currentPaused.error?.callback ? `love.${dbg.currentPaused.error.callback}` : 'error'}:{' '}
-              {dbg.currentPaused.error?.message ?? 'callback error'}
-            </div>
-          )}
-          {selectedFile ? (
-            <>
-              <div className="flex items-center gap-2 border-b px-3 py-1.5">
-                <span className="font-mono text-xs">{selectedFile}</span>
-                {currentLine !== null && (
-                  <Badge variant="outline" className="ml-auto font-mono text-xs">
-                    :{currentLine}
-                  </Badge>
-                )}
+          <div className="flex h-full min-w-0 flex-col" data-testid="debugger-source-panel">
+            {dbg.currentPaused?.reason === 'exception' && (
+              <div className="border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                Paused on {dbg.currentPaused.error?.callback ? `love.${dbg.currentPaused.error.callback}` : 'error'}:{' '}
+                {dbg.currentPaused.error?.message ?? 'callback error'}
               </div>
-              <SourceView
-                content={fileContent}
-                currentLine={currentLine}
-                scrollToLine={scrollToLine}
-                breakpointLines={breakpointLines}
-                conditionalLines={conditionalLines}
-                conditionErrorLines={conditionErrorLines}
-                onToggleBreakpoint={(line) => {
-                  if (breakpointLines.has(line)) {
-                    dbg.removeBreakpoint(selectedFile, line);
-                  } else {
-                    dbg.addBreakpoint(selectedFile, line);
-                  }
-                }}
-                onRightClickBreakpoint={(line) => {
-                  const bp = dbg.breakpoints.find((b) => b.file === selectedFile && b.line === line);
-                  setConditionDialog({ file: selectedFile, line, value: bp?.condition ?? '' });
-                }}
-              />
-            </>
-          ) : (
-            <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
-              Select a file from the tree
-            </div>
-          )}
+            )}
+            {selectedFile ? (
+              <>
+                <div className="flex min-h-10 items-center gap-2 border-b px-3 py-1.5">
+                  <span className="min-w-0 truncate font-mono text-xs" title={selectedFile}>
+                    {selectedFile}
+                  </span>
+                  <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                    {breakpointLines.size > 0 && (
+                      <Badge variant="secondary" className="font-mono text-xs">
+                        {breakpointLines.size} bp
+                      </Badge>
+                    )}
+                    {selectedConditionErrors.length > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="gap-1 text-xs"
+                        title={selectedConditionErrors.map(([line, error]) => `${line}: ${error}`).join('\n')}
+                      >
+                        <AlertTriangleIcon className="size-3" />
+                        {selectedConditionErrors.length}
+                      </Badge>
+                    )}
+                    {currentLine !== null && (
+                      <Badge variant="outline" className="font-mono text-xs">
+                        :{currentLine}
+                      </Badge>
+                    )}
+                    <Separator orientation="vertical" className="mx-1 h-5" />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={cn(flowButtonClass, 'text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600')}
+                      disabled={!dbg.isPaused}
+                      onClick={dbg.continue}
+                      title="Continue (F8)"
+                    >
+                      <PlayIcon className="size-3" /> Continue
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={cn(flowButtonClass, 'text-sky-500 hover:bg-sky-500/10 hover:text-sky-600')}
+                      disabled={!dbg.isPaused}
+                      onClick={dbg.stepOver}
+                      title="Step Over (F10)"
+                    >
+                      <SkipForwardIcon className="size-3" /> Over
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={cn(flowButtonClass, 'text-indigo-500 hover:bg-indigo-500/10 hover:text-indigo-600')}
+                      disabled={!dbg.isPaused}
+                      onClick={dbg.stepInto}
+                      title="Step Into (F11)"
+                    >
+                      <ArrowDownIcon className="size-3" /> Into
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={cn(flowButtonClass, 'text-violet-500 hover:bg-violet-500/10 hover:text-violet-600')}
+                      disabled={!dbg.isPaused}
+                      onClick={dbg.stepOut}
+                      title="Step Out (Shift+F11)"
+                    >
+                      <ArrowUpIcon className="size-3" /> Out
+                    </Button>
+                  </div>
+                </div>
+                <SourceView
+                  content={fileContent}
+                  currentLine={currentLine}
+                  scrollToLine={scrollToLine}
+                  breakpointLines={breakpointLines}
+                  conditionalLines={conditionalLines}
+                  conditionErrors={conditionErrors}
+                  onToggleBreakpoint={(line) => {
+                    if (breakpointLines.has(line)) {
+                      dbg.removeBreakpoint(selectedFile, line);
+                    } else {
+                      dbg.addBreakpoint(selectedFile, line);
+                    }
+                  }}
+                  onRightClickBreakpoint={(line) => {
+                    const bp = dbg.breakpoints.find((b) => b.file === selectedFile && b.line === line);
+                    setConditionDialog({ file: selectedFile, line, value: bp?.condition ?? '' });
+                  }}
+                />
+              </>
+            ) : (
+              <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
+                Select a Lua file from the tree, or pause on a breakpoint to open the current frame.
+              </div>
+            )}
+          </div>
         </ResizablePanel>
 
         <ResizableHandle withHandle />
 
         {/* Col 3 — Call stack + variables */}
         <ResizablePanel defaultSize={'25%'} minSize={'15%'} maxSize={'40%'} className="flex flex-col">
-          <ResizablePanelGroup orientation="vertical">
-            <ResizablePanel defaultSize={'40%'} minSize={'20%'} className="flex flex-col">
-              <div className="border-b px-3 py-2">
-                <span className="text-sm font-semibold">Call Stack</span>
-              </div>
-              <ScrollArea className="h-0 flex-1">
-                {dbg.currentPaused ? (
-                  <div className="flex flex-col py-1">
-                    {dbg.currentPaused.stack.map((frame, i) => (
-                      <button
-                        key={i}
-                        className={cn(
-                          'flex items-start gap-2 px-3 py-1 text-left font-mono text-xs hover:bg-accent',
-                          i === selectedFrameIndex && 'bg-accent',
-                        )}
-                        onClick={() => {
-                          setSelectedFile(frame.file);
-                          setScrollToLine(frame.line);
-                          setSelectedFrameIndex(i);
-                          dbg.inspectFrame(frame.index ?? i);
-                        }}
-                      >
-                        <span className="text-muted-foreground w-3 shrink-0 text-right">{i}</span>
-                        <div className="flex min-w-0 flex-col">
-                          <span className={cn('truncate', i === selectedFrameIndex && 'font-semibold')}>
-                            {frame.name}
-                          </span>
-                          <span className="text-muted-foreground truncate">
-                            {frame.file.split('/').pop()}:{frame.line}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground px-3 py-4 text-xs">
-                    {dbg.isEnabled ? 'Running…' : 'Debugger disabled'}
-                  </div>
-                )}
-              </ScrollArea>
-            </ResizablePanel>
-
-            <ResizableHandle withHandle />
-
-            <ResizablePanel defaultSize={'60%'} minSize={'20%'} className="flex flex-col">
-              <div className="flex shrink-0 items-center gap-2 border-b px-3 py-1.5">
-                <span className="text-sm font-semibold">Variables</span>
-                <div className="relative ml-auto">
-                  <SearchIcon className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                  <input
-                    value={varFilter}
-                    onChange={(e) => setVarFilter(e.target.value)}
-                    placeholder="filter…"
-                    className="h-6 w-28 rounded border bg-background pl-6 pr-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-                  />
+          <div className="h-full" data-testid="debugger-inspector-panel">
+            <ResizablePanelGroup orientation="vertical">
+              <ResizablePanel defaultSize={'40%'} minSize={'20%'} className="flex flex-col">
+                <div className="border-b px-3 py-2">
+                  <span className="text-sm font-semibold">Call Stack</span>
                 </div>
-              </div>
-              <ScrollArea className="h-0 flex-1">
-                {dbg.currentPaused ? (
-                  <div className="flex flex-col py-1">
-                    <VarsSection title="Locals" vars={dbg.currentPaused.locals} filter={varFilter} />
-                    <VarsSection title="Upvalues" vars={dbg.currentPaused.upvalues} filter={varFilter} />
+                <ScrollArea className="h-0 flex-1">
+                  {dbg.currentPaused ? (
+                    <div className="flex flex-col py-1">
+                      {dbg.currentPaused.stack.map((frame, i) => (
+                        <button
+                          key={i}
+                          className={cn(
+                            'flex items-start gap-2 px-3 py-1 text-left font-mono text-xs hover:bg-accent',
+                            i === selectedFrameIndex && 'bg-accent',
+                          )}
+                          onClick={() => {
+                            setSelectedFile(frame.file);
+                            setScrollToLine(frame.line);
+                            setSelectedFrameIndex(i);
+                            dbg.inspectFrame(frame.index ?? i);
+                          }}
+                        >
+                          <span className="text-muted-foreground w-3 shrink-0 text-right">{i}</span>
+                          <div className="flex min-w-0 flex-col">
+                            <span className={cn('truncate', i === selectedFrameIndex && 'font-semibold')}>
+                              {frame.name}
+                            </span>
+                            <span className="text-muted-foreground truncate">
+                              {frame.file.split('/').pop()}:{frame.line}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground px-3 py-4 text-xs">
+                      {dbg.isEnabled ? 'Running…' : 'Debugger disabled'}
+                    </div>
+                  )}
+                </ScrollArea>
+              </ResizablePanel>
+
+              <ResizableHandle withHandle />
+
+              <ResizablePanel defaultSize={'60%'} minSize={'20%'} className="flex flex-col">
+                <div className="flex shrink-0 items-center gap-2 border-b px-3 py-1.5">
+                  <span className="text-sm font-semibold">Variables</span>
+                  <div className="relative ml-auto">
+                    <SearchIcon className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    <input
+                      value={varFilter}
+                      onChange={(e) => setVarFilter(e.target.value)}
+                      placeholder="filter…"
+                      className="h-6 w-28 rounded border bg-background pl-6 pr-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
                   </div>
-                ) : (
-                  <div className="text-muted-foreground px-3 py-3 text-xs">No active frame</div>
-                )}
-              </ScrollArea>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+                </div>
+                <ScrollArea className="h-0 flex-1">
+                  {dbg.currentPaused ? (
+                    <div className="flex flex-col py-1">
+                      <VarsSection title="Locals" vars={dbg.currentPaused.locals} filter={varFilter} />
+                      <VarsSection title="Upvalues" vars={dbg.currentPaused.upvalues} filter={varFilter} />
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground px-3 py-3 text-xs">No active frame</div>
+                  )}
+                </ScrollArea>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
 
