@@ -1,21 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
-import { readFile } from '@tauri-apps/plugin-fs';
+import { readFile, stat } from '@tauri-apps/plugin-fs';
 import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  ClipboardIcon,
+  CopyIcon,
   FolderIcon,
   ImageIcon,
   Maximize2Icon,
   MinusIcon,
   MusicIcon,
+  PlayIcon,
   PlusIcon,
   SearchIcon,
   TextIcon,
   XIcon,
 } from 'lucide-react';
-import { PageLayout } from '@/components/page-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,8 +29,11 @@ import { useAssets, type AssetKind, type AudioAsset, type FontAsset, type Textur
 import { useConfigStore } from '@/store/config';
 import { useDebuggerStore } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
+import { openFolder } from '@/utils/linking';
 import { isWeb } from '@/utils/platform';
+import { copyToClipboardWithMeta } from '@/utils/strings';
 import { cn } from '@/utils/styles';
+import { toast } from 'sonner';
 
 function resolveAssetPath(src: string, rootPath: string, manualRootPath: string): string {
   if (src.startsWith('data:')) {
@@ -41,6 +50,55 @@ function resolveAssetPath(src: string, rootPath: string, manualRootPath: string)
   }
 
   return rootPath.replace(/[/\\]+$/, '') + '/' + src;
+}
+
+type AssetRow = TextureAsset | FontAsset | AudioAsset;
+type AssetFilter = 'all' | 'file' | 'runtime' | 'repeated' | 'missing';
+type SortKey = 'name' | 'details' | 'source' | 'loadCount' | 'lastSeen';
+type SortDirection = 'asc' | 'desc';
+
+function copyText(value: string | undefined, label: string) {
+  if (!value) return;
+  copyToClipboardWithMeta(value);
+  toast.success(`Copied ${label}`);
+}
+
+function formatBytes(value?: number) {
+  if (!value || value <= 0) return '-';
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatClock(value?: number) {
+  if (!value) return '-';
+  return new Date(value * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function detailsForAsset(kind: AssetKind, asset: AssetRow) {
+  if (kind === 'texture') {
+    const texture = asset as TextureAsset;
+    return `${texture.width}x${texture.height} ${texture.format}`;
+  }
+  if (kind === 'font') {
+    const font = asset as FontAsset;
+    return `${font.height}px ascent ${font.ascent}`;
+  }
+  const audio = asset as AudioAsset;
+  const duration = audio.duration ? `${audio.duration.toFixed(2)}s` : 'unknown duration';
+  return `${audio.srcType} ${audio.channels}ch ${duration}`;
+}
+
+function constructorSnippet(kind: AssetKind, asset: AssetRow) {
+  const path = asset.path || asset.name;
+  const quoted = JSON.stringify(path);
+  if (kind === 'texture') return `love.graphics.newImage(${quoted})`;
+  if (kind === 'font') return asset.path ? `love.graphics.newFont(${quoted})` : `love.graphics.newFont(${(asset as FontAsset).height})`;
+  return `love.audio.newSource(${quoted}, ${JSON.stringify((asset as AudioAsset).srcType || 'static')})`;
+}
+
+function isMissing(missingPaths: Set<string>, path?: string) {
+  return !!path && missingPaths.has(path);
 }
 
 function useGameRootPath() {
@@ -70,6 +128,46 @@ function useGameRootPath() {
     pickRootPath,
     clearManualRootPath,
   };
+}
+
+function useMissingAssetPaths(rows: AssetRow[]) {
+  const { rootPath, manualRootPath } = useGameRootPath();
+  const [missingPaths, setMissingPaths] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    const paths = Array.from(new Set(rows.map((asset) => asset.path).filter((path): path is string => !!path))).slice(0, 250);
+
+    if (paths.length === 0) {
+      setMissingPaths(new Set());
+      return;
+    }
+
+    if (isWeb()) {
+      setMissingPaths(new Set(paths));
+      return;
+    }
+
+    Promise.all(
+      paths.map(async (path) => {
+        try {
+          await stat(resolveAssetPath(path, rootPath, manualRootPath));
+          return null;
+        } catch {
+          return path;
+        }
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      setMissingPaths(new Set(results.filter((path): path is string => !!path)));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [manualRootPath, rootPath, rows]);
+
+  return missingPaths;
 }
 
 function usePreviewSrc(src?: string): string | null {
@@ -257,37 +355,74 @@ function AssetTable({
   kind,
   rows,
   selectedId,
+  missingPaths,
+  sortKey,
+  sortDirection,
+  onSort,
   onSelect,
   onPreview,
 }: {
   kind: AssetKind;
-  rows: Array<TextureAsset | FontAsset | AudioAsset>;
+  rows: AssetRow[];
   selectedId: number | null;
+  missingPaths: Set<string>;
+  sortKey: SortKey;
+  sortDirection: SortDirection;
+  onSort: (key: SortKey) => void;
   onSelect: (kind: AssetKind, id: number) => void;
   onPreview: (kind: Exclude<AssetKind, 'audio'>, id: number) => void;
 }) {
   if (rows.length === 0) return <EmptyState />;
+
+  const SortButton = ({ label, keyName }: { label: string; keyName: SortKey }) => (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 px-1.5 text-xs font-medium"
+      onClick={() => onSort(keyName)}
+      title={`Sort by ${label}`}
+    >
+      {label}
+      {sortKey === keyName ? (
+        sortDirection === 'asc' ? (
+          <ArrowUpIcon className="size-3" />
+        ) : (
+          <ArrowDownIcon className="size-3" />
+        )
+      ) : (
+        <ArrowUpDownIcon className="size-3 text-muted-foreground" />
+      )}
+    </Button>
+  );
 
   return (
     <div className="overflow-hidden rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Details</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead className="w-24 text-right">Preview</TableHead>
+            <TableHead>
+              <SortButton label="Name" keyName="name" />
+            </TableHead>
+            <TableHead>
+              <SortButton label="Details" keyName="details" />
+            </TableHead>
+            <TableHead>
+              <SortButton label="Source" keyName="source" />
+            </TableHead>
+            <TableHead className="w-24">
+              <SortButton label="Loads" keyName="loadCount" />
+            </TableHead>
+            <TableHead className="w-28">
+              <SortButton label="Seen" keyName="lastSeen" />
+            </TableHead>
+            <TableHead className="w-24 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((asset) => {
             const isSelected = selectedId === asset.id;
-            const details =
-              kind === 'texture'
-                ? `${(asset as TextureAsset).width}x${(asset as TextureAsset).height} ${(asset as TextureAsset).format}`
-                : kind === 'font'
-                  ? `${(asset as FontAsset).height}px ascent ${(asset as FontAsset).ascent}`
-                  : `${(asset as AudioAsset).srcType} ${(asset as AudioAsset).channels}ch`;
+            const details = detailsForAsset(kind, asset);
+            const missing = isMissing(missingPaths, asset.path);
 
             return (
               <TableRow
@@ -295,27 +430,60 @@ function AssetTable({
                 className={cn('cursor-pointer', isSelected && 'bg-muted')}
                 onClick={() => onSelect(kind, asset.id)}
               >
-                <TableCell className="font-medium">{asset.displayName}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate" title={asset.name}>
+                      {asset.displayName}
+                    </span>
+                    {(asset.loadCount ?? 1) > 1 && (
+                      <Badge variant="secondary" className="h-5 font-mono text-[11px]">
+                        x{asset.loadCount}
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">{details}</TableCell>
                 <TableCell className="max-w-80 truncate font-mono text-xs text-muted-foreground">
-                  {asset.path || 'runtime'}
+                  <span className={cn(missing && 'text-destructive')} title={asset.path || 'Runtime-created asset'}>
+                    {asset.path || 'runtime'}
+                  </span>
                 </TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{asset.loadCount ?? 1}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{formatClock(asset.lastSeen)}</TableCell>
                 <TableCell className="text-right">
-                  {kind === 'audio' ? (
-                    <span className="text-xs text-muted-foreground">-</span>
-                  ) : (
+                  <div className="flex justify-end gap-1">
                     <Button
-                      size="sm"
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      title="Copy LÖVE constructor snippet"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        copyText(constructorSnippet(kind, asset), 'constructor');
+                      }}
+                    >
+                      <ClipboardIcon className="size-3.5" />
+                    </Button>
+                    {kind === 'audio' ? (
+                      <Button size="icon" variant="ghost" className="size-7" disabled title="Audio preview is metadata-only">
+                        <PlayIcon className="size-3.5" />
+                      </Button>
+                    ) : (
+                    <Button
+                      size="icon"
                       variant="secondary"
+                      className="size-7"
+                      title="Preview asset"
                       onClick={(event) => {
                         event.stopPropagation();
                         onSelect(kind, asset.id);
                         onPreview(kind, asset.id);
                       }}
                     >
-                      View
+                      <ImageIcon className="size-3.5" />
                     </Button>
-                  )}
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             );
@@ -327,10 +495,22 @@ function AssetTable({
 }
 
 function PreviewPanel({
+  kind,
+  selectedAsset,
   preview,
+  resolvedPath,
+  missing,
+  loading,
+  onPreview,
 }: {
   previewSrc?: string | null;
+  kind: AssetKind;
+  selectedAsset: AssetRow | null;
   preview: Exclude<ReturnType<typeof useAssets>['data']['preview'], false>;
+  resolvedPath?: string;
+  missing?: boolean;
+  loading?: boolean;
+  onPreview: () => void;
 }) {
   const src = usePreviewSrc(preview?.src);
   const [zoom, setZoom] = useState(1);
@@ -349,15 +529,33 @@ function PreviewPanel({
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
+  const canPreview = !!selectedAsset && kind !== 'audio';
+  const texture = kind === 'texture' && selectedAsset ? (selectedAsset as TextureAsset) : null;
+  const assetTitle = selectedAsset?.displayName || 'Select an asset';
+  const sourcePath = selectedAsset?.path;
 
   return (
-    <aside className="hidden w-[360px] shrink-0 border-l bg-background p-4 lg:flex lg:flex-col">
+    <aside className="flex min-h-0 w-full shrink-0 flex-col border-t bg-background p-4 lg:w-[380px] lg:border-l lg:border-t-0">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-sm font-medium">Preview</h2>
-          <p className="truncate text-xs text-muted-foreground">{preview?.name || 'Select a texture or font'}</p>
+          <h2 className="truncate text-sm font-medium" title={assetTitle}>
+            {assetTitle}
+          </h2>
+          <p className="truncate text-xs text-muted-foreground">
+            {selectedAsset ? detailsForAsset(kind, selectedAsset) : 'Select a row to inspect asset metadata'}
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            onClick={() => copyText(sourcePath, 'asset path')}
+            disabled={!sourcePath}
+            title={sourcePath ? 'Copy asset path' : 'Runtime asset has no source path'}
+          >
+            <CopyIcon className="size-4" />
+          </Button>
           <Button
             size="icon"
             variant="ghost"
@@ -383,7 +581,16 @@ function PreviewPanel({
           </Button>
         </div>
       </div>
-      <div className="flex h-0 min-h-0 flex-1 items-center justify-center overflow-auto rounded-md border bg-muted/30 p-3 max-h-[75vh]">
+      <div
+        className="flex h-72 min-h-0 flex-1 items-center justify-center overflow-auto rounded-md border p-3 lg:h-0"
+        style={{
+          backgroundColor: 'hsl(var(--muted) / 0.3)',
+          backgroundImage:
+            'linear-gradient(45deg, hsl(var(--muted)) 25%, transparent 25%), linear-gradient(-45deg, hsl(var(--muted)) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, hsl(var(--muted)) 75%), linear-gradient(-45deg, transparent 75%, hsl(var(--muted)) 75%)',
+          backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
+          backgroundSize: '16px 16px',
+        }}
+      >
         {src && preview ? (
           <CanvasPreview
             alt={preview.name || 'Asset preview'}
@@ -395,23 +602,92 @@ function PreviewPanel({
             onPanChange={setPan}
           />
         ) : (
-          <p className="text-center text-sm text-muted-foreground">
-            {preview ? 'Asset file is not available on this machine.' : 'No preview loaded.'}
-          </p>
+          <div className="grid justify-items-center gap-2 text-center text-sm text-muted-foreground">
+            {loading && <div className="h-7 w-7 animate-spin rounded-full border-2 border-muted border-t-transparent" />}
+            <p>
+              {!selectedAsset
+                ? 'No asset selected.'
+                : kind === 'audio'
+                  ? 'Audio assets are metadata-only in this view.'
+                  : missing
+                    ? 'Asset file is not available on this machine.'
+                    : loading
+                      ? 'Loading preview...'
+                      : 'Click preview to inspect this asset.'}
+            </p>
+            {canPreview && (
+              <Button size="sm" variant="secondary" onClick={onPreview} disabled={loading}>
+                <ImageIcon className="size-4" />
+                Preview
+              </Button>
+            )}
+          </div>
         )}
       </div>
-      {preview && (
+      {selectedAsset && (
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-          <span>Width</span>
-          <span className="text-right font-mono">{preview.width}</span>
-          <span>Height</span>
-          <span className="text-right font-mono">{preview.height}</span>
+          <span>Kind</span>
+          <span className="text-right font-mono">{kind}</span>
+          <span>Loads</span>
+          <span className="text-right font-mono">{selectedAsset.loadCount ?? 1}</span>
+          <span>First seen</span>
+          <span className="text-right font-mono">{formatClock(selectedAsset.firstSeen)}</span>
+          <span>Last seen</span>
+          <span className="text-right font-mono">{formatClock(selectedAsset.lastSeen)}</span>
+          {texture && (
+            <>
+              <span>Texture memory</span>
+              <span className="text-right font-mono">{formatBytes(texture.memoryBytes)}</span>
+              <span>Mipmaps</span>
+              <span className="text-right font-mono">{texture.mipmaps}</span>
+              <span>Filter</span>
+              <span className="text-right font-mono">
+                {texture.filter ? `${texture.filter.min}/${texture.filter.mag}` : '-'}
+              </span>
+              <span>Wrap</span>
+              <span className="text-right font-mono">{texture.wrap ? `${texture.wrap.x}/${texture.wrap.y}` : '-'}</span>
+            </>
+          )}
           <span>Zoom</span>
           <span className="text-right font-mono">{Math.round(zoom * 100)}%</span>
           <span>Pan</span>
           <span className="text-right font-mono">
             {Math.round(pan.x)}, {Math.round(pan.y)}
           </span>
+          <span>Path</span>
+          <span className="truncate text-right font-mono" title={sourcePath || 'runtime'}>
+            {sourcePath || 'runtime'}
+          </span>
+          {resolvedPath && (
+            <>
+              <span>Resolved</span>
+              <span className={cn('truncate text-right font-mono', missing && 'text-destructive')} title={resolvedPath}>
+                {resolvedPath}
+              </span>
+            </>
+          )}
+        </div>
+      )}
+      {selectedAsset && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => copyText(constructorSnippet(kind, selectedAsset), 'constructor')}>
+            <ClipboardIcon className="size-4" />
+            Constructor
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => copyText(resolvedPath, 'resolved path')} disabled={!resolvedPath}>
+            <CopyIcon className="size-4" />
+            Local Path
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => resolvedPath && openFolder(resolvedPath)}
+            disabled={!resolvedPath || isWeb()}
+            title={isWeb() ? 'Reveal is available in the desktop app' : 'Reveal this path'}
+          >
+            <FolderIcon className="size-4" />
+            Reveal
+          </Button>
         </div>
       )}
     </aside>
@@ -424,124 +700,260 @@ export default function AssetsPage() {
   const assetPreviewEnabled = useConfigStore((state) => state.config?.assets?.enabled !== false);
   const [tab, setTab] = useState<AssetKind>('texture');
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<AssetFilter>('all');
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [selected, setSelected] = useState<{ kind: AssetKind; id: number } | null>(null);
+  const [previewRequest, setPreviewRequest] = useState<{ kind: AssetKind; id: number } | null>(null);
+  const allRows = useMemo<AssetRow[]>(() => [...data.textures, ...data.fonts, ...data.audio], [data.audio, data.fonts, data.textures]);
+  const missingPaths = useMissingAssetPaths(allRows);
+  const selectedAsset = useMemo(() => {
+    if (!selected) return null;
+    const list = selected.kind === 'texture' ? data.textures : selected.kind === 'font' ? data.fonts : data.audio;
+    return list.find((asset) => asset.id === selected.id) ?? null;
+  }, [data.audio, data.fonts, data.textures, selected]);
+  const selectedResolvedPath =
+    selectedAsset?.path && !isWeb() ? resolveAssetPath(selectedAsset.path, rootPath, manualRootPath) : undefined;
 
   const rows = useMemo(() => {
-    const list = tab === 'texture' ? data.textures : tab === 'font' ? data.fonts : data.audio;
-    if (!search.trim()) return list;
+    const list: AssetRow[] = tab === 'texture' ? data.textures : tab === 'font' ? data.fonts : data.audio;
     const q = search.toLowerCase();
-    return list.filter((asset) => asset.name.toLowerCase().includes(q) || asset.displayName.toLowerCase().includes(q));
-  }, [data.audio, data.fonts, data.textures, search, tab]);
+    const filtered = list.filter((asset) => {
+      const matchesSearch =
+        !q ||
+        asset.name.toLowerCase().includes(q) ||
+        asset.displayName.toLowerCase().includes(q) ||
+        (asset.path ?? '').toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+      if (filter === 'file') return !!asset.path;
+      if (filter === 'runtime') return !asset.path;
+      if (filter === 'repeated') return (asset.loadCount ?? 1) > 1;
+      if (filter === 'missing') return isMissing(missingPaths, asset.path);
+      return true;
+    });
+
+    return filtered.sort((a, b) => {
+      const direction = sortDirection === 'asc' ? 1 : -1;
+      const aValue =
+        sortKey === 'name'
+          ? a.displayName
+          : sortKey === 'details'
+            ? detailsForAsset(tab, a)
+            : sortKey === 'source'
+              ? (a.path ?? 'runtime')
+              : sortKey === 'loadCount'
+                ? (a.loadCount ?? 1)
+                : (a.lastSeen ?? 0);
+      const bValue =
+        sortKey === 'name'
+          ? b.displayName
+          : sortKey === 'details'
+            ? detailsForAsset(tab, b)
+            : sortKey === 'source'
+              ? (b.path ?? 'runtime')
+              : sortKey === 'loadCount'
+                ? (b.loadCount ?? 1)
+                : (b.lastSeen ?? 0);
+      if (typeof aValue === 'number' && typeof bValue === 'number') return (aValue - bValue) * direction;
+      return String(aValue).localeCompare(String(bValue)) * direction;
+    });
+  }, [data.audio, data.fonts, data.textures, filter, missingPaths, search, sortDirection, sortKey, tab]);
 
   const counts = {
     texture: data.textures.length,
     font: data.fonts.length,
     audio: data.audio.length,
   };
+  const repeatedCount = allRows.filter((asset) => (asset.loadCount ?? 1) > 1).length;
+
+  useEffect(() => {
+    if (!selectedAsset && selected) setSelected(null);
+  }, [selected, selectedAsset]);
+
+  useEffect(() => {
+    if (previewRequest && data.preview && data.preview.id === previewRequest.id) {
+      setPreviewRequest(null);
+    }
+  }, [data.preview, previewRequest]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortKey(key);
+    setSortDirection(key === 'loadCount' || key === 'lastSeen' ? 'desc' : 'asc');
+  };
+
+  const handlePreview = (kind: Exclude<AssetKind, 'audio'>, id: number) => {
+    setPreviewRequest({ kind, id });
+    previewAsset(kind, id);
+  };
 
   return (
-    <PageLayout right={<PreviewPanel preview={data.preview === false ? null : data.preview} />}>
-      <div className="flex flex-col gap-3 px-4 lg:px-6">
-        {!assetPreviewEnabled && (
-          <div className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-            Asset preview is disabled for this session.
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <FolderIcon className="size-4 text-muted-foreground" />
-              Game Root
-            </div>
-            <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground" title={rootPath || undefined}>
-              {rootPath || 'No game root selected'}
-            </div>
-          </div>
-          {!isWeb() && (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 pr-2">
-                <Switch
-                  id="asset-preview-enabled"
-                  checked={assetPreviewEnabled}
-                  onCheckedChange={setAssetPreviewEnabled}
-                />
-                <Label htmlFor="asset-preview-enabled" className="text-sm">
-                  Asset Preview
-                </Label>
-              </div>
-              {manualRootPath && (
-                <Button size="sm" variant="ghost" onClick={clearManualRootPath}>
-                  <XIcon className="size-4" />
-                  Auto
-                </Button>
-              )}
-              <Button size="sm" variant="secondary" onClick={pickRootPath}>
-                <FolderIcon className="size-4" />
-                Select Folder
-              </Button>
+    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="min-h-0 overflow-auto py-4 md:py-6">
+        <div className="flex flex-col gap-3 px-4 lg:px-6">
+          {!assetPreviewEnabled && (
+            <div className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+              Asset preview is disabled for this session.
             </div>
           )}
-        </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Tabs value={tab} onValueChange={(value) => setTab(value as AssetKind)}>
-            <TabsList>
-              <TabsTrigger value="texture">
-                <ImageIcon className="size-4" />
-                Textures {counts.texture}
-              </TabsTrigger>
-              <TabsTrigger value="font">
-                <TextIcon className="size-4" />
-                Fonts {counts.font}
-              </TabsTrigger>
-              <TabsTrigger value="audio">
-                <MusicIcon className="size-4" />
-                Audio {counts.audio}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="relative w-full sm:w-72">
-            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Filter assets"
-              className="pl-9"
-            />
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <FolderIcon className="size-4 text-muted-foreground" />
+                Game Root
+              </div>
+              <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground" title={rootPath || undefined}>
+                {rootPath || 'No game root selected'}
+              </div>
+            </div>
+            {!isWeb() && (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 pr-2">
+                  <Switch
+                    id="asset-preview-enabled"
+                    checked={assetPreviewEnabled}
+                    onCheckedChange={setAssetPreviewEnabled}
+                  />
+                  <Label htmlFor="asset-preview-enabled" className="text-sm">
+                    Asset Preview
+                  </Label>
+                </div>
+                {manualRootPath && (
+                  <Button size="sm" variant="ghost" onClick={clearManualRootPath}>
+                    <XIcon className="size-4" />
+                    Auto
+                  </Button>
+                )}
+                <Button size="sm" variant="secondary" onClick={pickRootPath}>
+                  <FolderIcon className="size-4" />
+                  Select Folder
+                </Button>
+              </div>
+            )}
           </div>
-        </div>
 
-        <Tabs value={tab} onValueChange={(value) => setTab(value as AssetKind)} className="min-h-0">
-          <TabsContent value="texture">
-            <AssetTable
-              kind="texture"
-              rows={rows}
-              selectedId={selected?.kind === 'texture' ? selected.id : null}
-              onSelect={(kind, id) => setSelected({ kind, id })}
-              onPreview={previewAsset}
-            />
-          </TabsContent>
-          <TabsContent value="font">
-            <AssetTable
-              kind="font"
-              rows={rows}
-              selectedId={selected?.kind === 'font' ? selected.id : null}
-              onSelect={(kind, id) => setSelected({ kind, id })}
-              onPreview={previewAsset}
-            />
-          </TabsContent>
-          <TabsContent value="audio">
-            <AssetTable
-              kind="audio"
-              rows={rows}
-              selectedId={selected?.kind === 'audio' ? selected.id : null}
-              onSelect={(kind, id) => setSelected({ kind, id })}
-              onPreview={previewAsset}
-            />
-          </TabsContent>
-        </Tabs>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="h-6 font-mono text-xs">
+                Visible {rows.length}
+              </Badge>
+              <Badge variant="outline" className="h-6 font-mono text-xs">
+                Repeated {repeatedCount}
+              </Badge>
+              <Badge
+                variant={assetPreviewEnabled ? 'outline' : 'secondary'}
+                className={cn('h-6 font-mono text-xs', assetPreviewEnabled && 'border-emerald-500/40 text-emerald-600')}
+              >
+                Preview {assetPreviewEnabled ? 'on' : 'off'}
+              </Badge>
+            </div>
+            <Tabs value={tab} onValueChange={(value) => setTab(value as AssetKind)}>
+              <TabsList>
+                <TabsTrigger value="texture">
+                  <ImageIcon className="size-4" />
+                  Textures {counts.texture}
+                </TabsTrigger>
+                <TabsTrigger value="font">
+                  <TextIcon className="size-4" />
+                  Fonts {counts.font}
+                </TabsTrigger>
+                <TabsTrigger value="audio">
+                  <MusicIcon className="size-4" />
+                  Audio {counts.audio}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="relative w-full sm:w-72">
+              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Filter assets"
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              ['all', 'All'],
+              ['file', 'File-backed'],
+              ['runtime', 'Runtime'],
+              ['repeated', 'Repeated'],
+              ['missing', 'Missing local file'],
+            ].map(([value, label]) => (
+              <Button
+                key={value}
+                size="sm"
+                variant={filter === value ? 'secondary' : 'outline'}
+                onClick={() => setFilter(value as AssetFilter)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+
+          <Tabs value={tab} onValueChange={(value) => setTab(value as AssetKind)} className="min-h-0">
+            <TabsContent value="texture">
+              <AssetTable
+                kind="texture"
+                rows={rows}
+                selectedId={selected?.kind === 'texture' ? selected.id : null}
+                missingPaths={missingPaths}
+                sortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                onSelect={(kind, id) => setSelected({ kind, id })}
+                onPreview={handlePreview}
+              />
+            </TabsContent>
+            <TabsContent value="font">
+              <AssetTable
+                kind="font"
+                rows={rows}
+                selectedId={selected?.kind === 'font' ? selected.id : null}
+                missingPaths={missingPaths}
+                sortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                onSelect={(kind, id) => setSelected({ kind, id })}
+                onPreview={handlePreview}
+              />
+            </TabsContent>
+            <TabsContent value="audio">
+              <AssetTable
+                kind="audio"
+                rows={rows}
+                selectedId={selected?.kind === 'audio' ? selected.id : null}
+                missingPaths={missingPaths}
+                sortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                onSelect={(kind, id) => setSelected({ kind, id })}
+                onPreview={handlePreview}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-    </PageLayout>
+      {
+        <PreviewPanel
+          kind={selected?.kind ?? tab}
+          selectedAsset={selectedAsset}
+          preview={data.preview === false ? null : data.preview}
+          resolvedPath={selectedResolvedPath}
+          missing={isMissing(missingPaths, selectedAsset?.path)}
+          loading={!!previewRequest && previewRequest.id === selected?.id && previewRequest.kind === selected?.kind}
+          onPreview={() => {
+            if (!selected || selected.kind === 'audio') return;
+            handlePreview(selected.kind, selected.id);
+          }}
+        />
+      }
+    </div>
   );
 }

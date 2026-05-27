@@ -27,9 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved the Console page with status chips, transcript actions, collapsible long output, rerun/use-as-input controls, and session-scoped snippets.
 - Added manual `_G` refresh for Console autocomplete so runtime globals can be suggested without changing eval sandbox behavior.
 - Improved Console autocomplete with scoped Lua/LÖVE suggestions for member access such as `_G.print` and `love.graphics.getStats`.
+- Improved the Assets page with denser filtering, sorting, repeated-load badges, richer preview details, and copy/reveal actions.
 
 ### Fixed
 
+- Asset tracking now deduplicates repeated file-backed loads while keeping runtime-created assets distinct, and reports the real preview enabled state.
 - Wrapped game callback errors now rethrow by default after Feather can capture them, so game crashes are no longer silently swallowed.
 - Fixed CLI-managed debugger breakpoint matching for long source paths and modules loaded through the temporary run shim by matching against untruncated source paths and normalizing shim paths back to project-relative source files.
 - Fixed `feather run` so CLI-managed desktop launches enable the step debugger by default unless `--no-debugger` is used.

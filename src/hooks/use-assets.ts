@@ -15,6 +15,12 @@ export type TextureAsset = {
   height: number;
   format: string;
   mipmaps: number;
+  loadCount?: number;
+  firstSeen?: number;
+  lastSeen?: number;
+  filter?: { min: string; mag: string; anisotropy?: number };
+  wrap?: { x: string; y: string };
+  memoryBytes?: number;
 };
 
 export type FontAsset = {
@@ -25,6 +31,9 @@ export type FontAsset = {
   height: number;
   ascent: number;
   descent: number;
+  loadCount?: number;
+  firstSeen?: number;
+  lastSeen?: number;
 };
 
 export type AudioAsset = {
@@ -35,6 +44,9 @@ export type AudioAsset = {
   srcType: string;
   channels: number;
   duration: number;
+  loadCount?: number;
+  firstSeen?: number;
+  lastSeen?: number;
 };
 
 export type AssetPreview = {

@@ -10,6 +10,8 @@ Feather tracks calls to:
 
 Assets appear in the desktop app after they are loaded by the game.
 
+Repeated file-backed loads are grouped into one row. Feather keeps a `loadCount`, first seen time, and last seen time so duplicate loading is visible without spamming the catalog. Runtime/procedural assets remain separate rows because each created object can represent different generated content.
+
 ---
 
 ## Setup
@@ -52,7 +54,9 @@ The Assets tab has three views:
 | Fonts | `love.graphics.newFont` | font height, ascent, descent, source path when available |
 | Audio | `love.audio.newSource` | source type, channel count, duration, source path |
 
-Use the filter input to search by filename or source path.
+Use the filter input to search by filename or source path. Quick filters narrow the catalog to file-backed assets, runtime-created assets, repeated loads, or file-backed assets whose local path cannot be resolved.
+
+Texture rows also include lightweight runtime metadata when LÖVE exposes it, including filter, wrap mode, and an estimated texture memory footprint.
 
 > [!NOTE]
 > Feather only sees assets loaded after Feather has initialized. If an asset is loaded before Feather starts, reload the game with Feather enabled earlier in startup.
@@ -62,6 +66,8 @@ Use the filter input to search by filename or source path.
 ## Previewing Textures And Fonts
 
 Click **View** on a texture or font row to load a preview.
+
+The preview/details panel shows dimensions, load counts, first/last seen times, resolved local paths, and copy actions. Use **Constructor** to copy a `love.graphics.newImage`, `love.graphics.newFont`, or `love.audio.newSource` snippet for the selected asset. File-backed assets can also copy or reveal their resolved local path in the desktop app.
 
 ### File-backed textures
 
@@ -130,6 +136,8 @@ the desktop reads:
 
 > [!TIP]
 > For absolute paths reported by the game, a manually selected Game Root still wins. Feather strips the absolute prefix and resolves the path inside the selected folder so remote/mobile paths can map to a local project copy.
+
+When the desktop cannot resolve a file-backed asset, the row appears in the **Missing local file** filter. Select the correct **Game Root** or copy the resolved path from the detail panel to inspect what Feather tried to read.
 
 ---
 

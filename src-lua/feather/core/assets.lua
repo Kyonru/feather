@@ -11,6 +11,7 @@ function FeatherAssets:init(logger)
   self.textures = {}
   self.fonts = {}
   self.audio = {}
+  self._fileAssets = {}
   self._nextId = 1
   self._nextBinaryId = 1
   self._hooks = {}
@@ -38,6 +39,49 @@ local function basename(path)
   return path:match("[^/\\]+$") or path
 end
 
+local function now()
+  return os.time()
+end
+
+local function assetKey(kind, path)
+  return kind .. ":" .. tostring(path)
+end
+
+local function touchAsset(asset)
+  asset.loadCount = (asset.loadCount or 1) + 1
+  asset.lastSeen = now()
+end
+
+local function memoryEstimate(width, height, mipmaps)
+  return math.max(0, tonumber(width) or 0) * math.max(0, tonumber(height) or 0) * 4 * math.max(1, tonumber(mipmaps) or 1)
+end
+
+function FeatherAssets:_trackFileAsset(kind, path, create)
+  local key = assetKey(kind, path)
+  local existing = self._fileAssets[key]
+  if existing then
+    touchAsset(existing)
+    return existing
+  end
+
+  local asset = create()
+  asset.id = self:_nextAssetId()
+  asset.loadCount = 1
+  asset.firstSeen = now()
+  asset.lastSeen = asset.firstSeen
+  self._fileAssets[key] = asset
+  return asset
+end
+
+function FeatherAssets:_trackRuntimeAsset(list, asset)
+  asset.id = self:_nextAssetId()
+  asset.loadCount = 1
+  asset.firstSeen = now()
+  asset.lastSeen = asset.firstSeen
+  list[#list + 1] = asset
+  return asset
+end
+
 function FeatherAssets:_hookLove()
   local assets = self
 
@@ -50,16 +94,41 @@ function FeatherAssets:_hookLove()
       if img then
         local isFile = type(source) == "string"
         local w, h = img:getDimensions()
-        assets.textures[#assets.textures + 1] = {
-          id = assets:_nextAssetId(),
-          name = isFile and source or tostring(source),
-          path = isFile and source or nil,
-          obj = img,
-          width = w,
-          height = h,
-          format = img:getFormat() or "rgba8",
-          mipmaps = img:getMipmapCount() or 1,
-        }
+        local mipmaps = img:getMipmapCount() or 1
+        local minFilter, magFilter, anisotropy = img:getFilter()
+        local wrapX, wrapY = img:getWrap()
+        local assetData = function()
+          return {
+            name = isFile and source or tostring(source),
+            path = isFile and source or nil,
+            obj = img,
+            width = w,
+            height = h,
+            format = img:getFormat() or "rgba8",
+            mipmaps = mipmaps,
+            filter = { min = tostring(minFilter), mag = tostring(magFilter), anisotropy = anisotropy },
+            wrap = { x = tostring(wrapX), y = tostring(wrapY) },
+            memoryBytes = memoryEstimate(w, h, mipmaps),
+          }
+        end
+        if isFile then
+          local asset = assets:_trackFileAsset("texture", source, assetData)
+          asset.obj = img
+          if assets.textures[#assets.textures] ~= asset then
+            local found = false
+            for _, existing in ipairs(assets.textures) do
+              if existing == asset then
+                found = true
+                break
+              end
+            end
+            if not found then
+              assets.textures[#assets.textures + 1] = asset
+            end
+          end
+        else
+          assets:_trackRuntimeAsset(assets.textures, assetData())
+        end
       end
       return img
     end
@@ -73,15 +142,32 @@ function FeatherAssets:_hookLove()
       if font then
         local first = (...)
         local isFile = type(first) == "string"
-        assets.fonts[#assets.fonts + 1] = {
-          id = assets:_nextAssetId(),
-          name = isFile and first or ("font@" .. font:getHeight() .. "px"),
-          path = isFile and first or nil,
-          obj = font,
-          height = font:getHeight(),
-          ascent = font:getAscent(),
-          descent = font:getDescent(),
-        }
+        local assetData = function()
+          return {
+            name = isFile and first or ("font@" .. font:getHeight() .. "px"),
+            path = isFile and first or nil,
+            obj = font,
+            height = font:getHeight(),
+            ascent = font:getAscent(),
+            descent = font:getDescent(),
+          }
+        end
+        if isFile then
+          local asset = assets:_trackFileAsset("font", first, assetData)
+          asset.obj = font
+          local found = false
+          for _, existing in ipairs(assets.fonts) do
+            if existing == asset then
+              found = true
+              break
+            end
+          end
+          if not found then
+            assets.fonts[#assets.fonts + 1] = asset
+          end
+        else
+          assets:_trackRuntimeAsset(assets.fonts, assetData())
+        end
       end
       return font
     end
@@ -93,14 +179,31 @@ function FeatherAssets:_hookLove()
     love.audio.newSource = function(source, ...)
       local src = origNewSource(source, ...)
       if src then
-        assets.audio[#assets.audio + 1] = {
-          id = assets:_nextAssetId(),
-          name = type(source) == "string" and source or tostring(source),
-          path = type(source) == "string" and source or nil,
-          srcType = tostring(src:getType() or "static"),
-          channels = src:getChannelCount() or 1,
-          duration = src:getDuration() or 0,
-        }
+        local isFile = type(source) == "string"
+        local assetData = function()
+          return {
+            name = isFile and source or tostring(source),
+            path = isFile and source or nil,
+            srcType = tostring(src:getType() or "static"),
+            channels = src:getChannelCount() or 1,
+            duration = src:getDuration() or 0,
+          }
+        end
+        if isFile then
+          local asset = assets:_trackFileAsset("audio", source, assetData)
+          local found = false
+          for _, existing in ipairs(assets.audio) do
+            if existing == asset then
+              found = true
+              break
+            end
+          end
+          if not found then
+            assets.audio[#assets.audio + 1] = asset
+          end
+        else
+          assets:_trackRuntimeAsset(assets.audio, assetData())
+        end
       end
       return src
     end
@@ -305,7 +408,7 @@ function FeatherAssets:getResponseBody()
   self._previewReady = nil
 
   return {
-    enabled = false,
+    enabled = true,
     textures = textures,
     fonts = fonts,
     audio = audio,

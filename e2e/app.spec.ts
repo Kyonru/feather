@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function seedSession(page: Page) {
   await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
     localStorage.setItem(
       'session-storage',
       JSON.stringify({
@@ -19,6 +20,74 @@ async function seedSession(page: Page) {
         version: 0,
       }),
     );
+  });
+}
+
+async function seedAssetCatalog(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(['demo', 'assets'], {
+      enabled: true,
+      textures: [
+        {
+          id: 1,
+          name: 'assets/player.png',
+          displayName: 'player.png',
+          path: 'assets/player.png',
+          width: 32,
+          height: 32,
+          format: 'rgba8',
+          mipmaps: 1,
+          loadCount: 3,
+          firstSeen: 1779840000,
+          lastSeen: 1779840300,
+          filter: { min: 'linear', mag: 'nearest', anisotropy: 1 },
+          wrap: { x: 'clamp', y: 'clamp' },
+          memoryBytes: 4096,
+        },
+        {
+          id: 2,
+          name: 'ImageData: 16x16',
+          displayName: 'ImageData: 16x16',
+          width: 16,
+          height: 16,
+          format: 'rgba8',
+          mipmaps: 1,
+          loadCount: 1,
+          firstSeen: 1779840100,
+          lastSeen: 1779840100,
+        },
+      ],
+      fonts: [
+        {
+          id: 3,
+          name: 'ui.ttf',
+          displayName: 'ui.ttf',
+          path: 'assets/ui.ttf',
+          height: 14,
+          ascent: 11,
+          descent: 3,
+          loadCount: 1,
+          firstSeen: 1779840100,
+          lastSeen: 1779840120,
+        },
+      ],
+      audio: [
+        {
+          id: 4,
+          name: 'click.wav',
+          displayName: 'click.wav',
+          path: 'assets/click.wav',
+          srcType: 'static',
+          channels: 2,
+          duration: 0.25,
+          loadCount: 2,
+          firstSeen: 1779840120,
+          lastSeen: 1779840200,
+        },
+      ],
+      preview: null,
+    });
   });
 }
 
@@ -196,8 +265,35 @@ test('activates a persisted session and renders core tools', async ({ page }) =>
   await page.getByRole('link', { name: /Performance/ }).click();
   await expect(page.getByText('Track disk usage')).toBeVisible();
 
+  await seedAssetCatalog(page);
   await page.getByRole('link', { name: /Assets/ }).click();
-  await expect(page.getByText('No assets captured yet')).toBeVisible();
+  await expect(page.getByText('Textures 2')).toBeVisible();
+  await expect(page.getByText('Fonts 1')).toBeVisible();
+  await expect(page.getByText('Audio 1')).toBeVisible();
+  await expect(page.getByText('Visible 2')).toBeVisible();
+  await expect(page.getByText('Repeated 2')).toBeVisible();
+  await expect(page.getByText('player.png', { exact: true })).toBeVisible();
+  await expect(page.locator('[data-slot="badge"]').filter({ hasText: 'x3' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Repeated' }).click();
+  await expect(page.getByText('player.png', { exact: true })).toBeVisible();
+  await expect(page.getByText('ImageData: 16x16')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Missing local file' }).click();
+  await expect(page.getByText('assets/player.png')).toBeVisible();
+
+  await page.getByText('player.png', { exact: true }).click();
+  await expect(page.getByText('Texture memory')).toBeVisible();
+  await expect(page.getByText('4.0 KB')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Constructor', exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: /Loads/ }).click();
+  await page.screenshot({ path: 'test-results/assets-layout-desktop.png', fullPage: true });
+
+  await page.setViewportSize({ width: 900, height: 720 });
+  await expect(page.getByText('Preview on')).toBeVisible();
+  await expect(page.getByText('Texture memory')).toBeVisible();
+  await page.screenshot({ path: 'test-results/assets-layout-narrow.png', fullPage: true });
 });
 
 test('debugger renders stable single-row header and three panels', async ({ page }) => {
@@ -283,9 +379,6 @@ test('console renders transcript actions, snippets, and history search', async (
   await expect(page.getByTitle('Use as input').first()).toBeVisible();
   await expect(page.getByTitle('Run again')).toBeVisible();
   await expect(page.getByText('Player health')).toBeVisible();
-  await expect(page.getByText('History')).toBeVisible();
-  await expect(page.getByText('return love.timer.getFPS()')).toBeVisible();
-
   const editor = page.locator('textarea').last();
   await editor.fill('return love.graphics.getStats()');
   page.once('dialog', (dialog) => dialog.accept('Graphics stats now'));

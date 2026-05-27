@@ -16,6 +16,22 @@ const queryClient = new QueryClient({
   },
 });
 
+declare global {
+  interface Window {
+    __FEATHER_QUERY_CLIENT__?: QueryClient;
+  }
+}
+
+if (import.meta.env.DEV) {
+  try {
+    if (localStorage.getItem('feather-e2e-query-client') === '1') {
+      window.__FEATHER_QUERY_CLIENT__ = queryClient;
+    }
+  } catch {
+    // ignored
+  }
+}
+
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
