@@ -300,6 +300,21 @@ test('console renders transcript actions, snippets, and history search', async (
   await page.keyboard.press('Enter');
   await expect(editor).toHaveValue('return love.timer.getFPS()');
 
+  await editor.fill('pri');
+  await expect(page.getByText('print').first()).toBeVisible();
+  await editor.press('Tab');
+  await expect(editor).toHaveValue('print');
+
+  await editor.fill('love.graphics.getS');
+  await expect(page.getByText('getStats').first()).toBeVisible();
+  await editor.press('Tab');
+  await expect(editor).toHaveValue('love.graphics.getStats');
+
+  await editor.fill('_G.pr');
+  await expect(page.getByText('print').first()).toBeVisible();
+  await editor.press('Tab');
+  await expect(editor).toHaveValue('_G.print');
+
   await page.setViewportSize({ width: 900, height: 720 });
   await expect(header).toBeVisible();
   await expect(page.locator('aside').getByText('Snippets')).toBeVisible();

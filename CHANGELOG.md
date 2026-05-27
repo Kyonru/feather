@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved the Debugger page with a single-row header, colored controls, file-title flow controls, safer gutter-only breakpoint toggling, and clearer source/variable empty states.
 - Improved Debugger Hot Reload controls with selected-module status, disabled reasons, and compact safety chips for allowlist, remote-block, persistence, modified, and failed states.
 - Improved the Console page with status chips, transcript actions, collapsible long output, rerun/use-as-input controls, and session-scoped snippets.
+- Added manual `_G` refresh for Console autocomplete so runtime globals can be suggested without changing eval sandbox behavior.
+- Improved Console autocomplete with scoped Lua/LÖVE suggestions for member access such as `_G.print` and `love.graphics.getStats`.
 
 ### Fixed
 

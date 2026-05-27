@@ -72,10 +72,16 @@ Each transcript entry includes a status badge, timestamp, and compact actions:
 
 The **Snippets** panel stores reusable Lua commands per Feather session. You can save the current editor input, insert a snippet without running it, run a snippet directly, rename saved snippets, or delete them. When no snippets have been saved yet, Feather shows built-in snippets for common checks like graphics stats, memory usage, frame timing, and window size.
 
+Press **Refresh `_G`** to fetch a shallow list of runtime global names for editor autocomplete. This is manual, not automatic, so Feather only snapshots globals when you ask. The snapshot includes names and Lua types, not inspected values.
+
 ### What gets captured
 
 - **Return values** — serialized with `inspect()` for readable table output.
 - **`print()` calls** — captured and shown inline below the command, even in sandbox mode.
+
+### `_G` access
+
+In the default sandbox, Console code can read through `_G`, so globals like `love`, `player`, or `world` are available if the game exposes them. Bare assignments such as `foo = 1` stay inside the temporary sandbox table. To intentionally mutate a game global, write `_G.foo = 1` or configure `sandbox = false` for trusted development sessions.
 
 ---
 

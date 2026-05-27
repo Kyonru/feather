@@ -37,6 +37,7 @@ export const sessionQueryKey = {
   plugin: (sessionId: string, pluginId: string) => [sessionId, 'plugin', pluginId],
   pluginAction: (sessionId: string, pluginId: string, action: string) => [sessionId, 'plugin-action', pluginId, action],
   console: (sessionId: string) => [sessionId, 'console'],
+  consoleGlobals: (sessionId: string) => [sessionId, 'console-globals'],
   timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
   timeTravelFrames: (sessionId: string) => [sessionId, 'time-travel-frames'],
   sessionReplay: (sessionId: string) => [sessionId, 'session-replay'],
@@ -87,6 +88,12 @@ export type EvalResponse = {
   status: 'success' | 'error';
   result: string | null;
   prints: string[];
+};
+
+export type ConsoleGlobalsResponse = {
+  ok: boolean;
+  globals?: Array<{ name: string; type: string }>;
+  error?: string;
 };
 
 export type TimeTravelStatus = {
@@ -629,6 +636,11 @@ export const useWsConnection = () => {
             } else {
               toast.error(payload.error || 'Console could not be enabled');
             }
+            break;
+          }
+
+          case 'console:globals': {
+            queryClient.setQueryData(sessionQueryKey.consoleGlobals(sessionId), data as ConsoleGlobalsResponse);
             break;
           }
 

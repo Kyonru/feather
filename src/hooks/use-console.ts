@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { sendCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
 import { useEffectiveApiKey } from './use-session-api-key';
-import { sessionQueryKey, type EvalResponse } from './use-ws-connection';
+import { sessionQueryKey, type ConsoleGlobalsResponse, type EvalResponse } from './use-ws-connection';
 import { toast } from 'sonner';
 
 export type ConsoleEntry = {
@@ -20,10 +20,17 @@ export const useConsole = () => {
   const counterRef = useRef(0);
 
   const queryKey = sessionId ? sessionQueryKey.console(sessionId) : ['noop-console'];
+  const globalsQueryKey = sessionId ? sessionQueryKey.consoleGlobals(sessionId) : ['noop-console-globals'];
 
   const { data: responses } = useQuery<EvalResponse[]>({
     queryKey,
     queryFn: () => [],
+    enabled: false,
+  });
+
+  const { data: globals } = useQuery<ConsoleGlobalsResponse>({
+    queryKey: globalsQueryKey,
+    queryFn: () => ({ ok: false, error: 'Globals not loaded' }),
     enabled: false,
   });
 
@@ -63,9 +70,26 @@ export const useConsole = () => {
     }
   }, [sessionId, queryClient]);
 
+  const refreshGlobals = useCallback(() => {
+    if (!sessionId) {
+      queryClient.setQueryData(globalsQueryKey, { ok: false, error: 'No active session' });
+      return;
+    }
+    queryClient.setQueryData(globalsQueryKey, { ok: false, error: 'Loading globals...' });
+    sendCommand(sessionId, { type: 'req:console:globals' }).catch((e: unknown) => {
+      queryClient.setQueryData<ConsoleGlobalsResponse>(globalsQueryKey, {
+        ok: false,
+        error: e instanceof Error ? e.message : 'Failed to request globals',
+      });
+      toast.error(e instanceof Error ? e.message : 'Failed to request globals');
+    });
+  }, [globalsQueryKey, queryClient, sessionId]);
+
   return {
     responses: responses ?? [],
+    globals,
     execute,
     clear,
+    refreshGlobals,
   };
 };

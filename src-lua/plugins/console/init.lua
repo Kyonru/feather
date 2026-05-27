@@ -84,6 +84,39 @@ local function pack(...)
   return { n = select("#", ...), ... }
 end
 
+local function sortedGlobalKeys(limit)
+  limit = limit or 500
+  local names = {}
+  for key, _ in pairs(_G) do
+    if type(key) == "string" then
+      names[#names + 1] = key
+    end
+  end
+  table.sort(names)
+
+  local globals = {}
+  for i = 1, math.min(#names, limit) do
+    local name = names[i]
+    globals[#globals + 1] = {
+      name = name,
+      type = type(_G[name]),
+    }
+  end
+
+  return globals
+end
+
+function ConsolePlugin:sendGlobals(feather)
+  feather:__sendWs(json.encode({
+    type = "console:globals",
+    session = feather.sessionId,
+    data = {
+      ok = true,
+      globals = sortedGlobalKeys(self.options.globalLimit or 500),
+    },
+  }))
+end
+
 --- Handle a cmd:eval message from the desktop console.
 --- Called by init.lua when the console plugin is registered.
 ---@param msg table { code: string, id: string, apiKey?: string }

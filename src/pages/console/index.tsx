@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { LuaCodeInput } from '@/components/ui/lua-code-input';
+import { LuaCodeInput, type LuaCompletionItem } from '@/components/ui/lua-code-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { useConsole, type ConsoleEntry } from '@/hooks/use-console';
@@ -21,6 +21,7 @@ import {
   SaveIcon,
   SearchIcon,
   SendIcon,
+  SparklesIcon,
   TerminalIcon,
   Trash2Icon,
 } from 'lucide-react';
@@ -56,6 +57,76 @@ const BUILT_IN_SNIPPETS: Array<Pick<ConsoleSnippet, 'id' | 'name' | 'code'>> = [
 ];
 
 const LONG_OUTPUT_LIMIT = 900;
+
+const BUILT_IN_COMPLETIONS: LuaCompletionItem[] = [
+  { label: '_G', detail: 'table' },
+  { label: 'love', detail: 'table' },
+  { label: 'print', detail: 'function' },
+  { label: 'pairs', detail: 'function' },
+  { label: 'ipairs', detail: 'function' },
+  { label: 'require', detail: 'function' },
+  { label: 'collectgarbage', detail: 'function' },
+  { label: 'table', detail: 'table' },
+  { label: 'string', detail: 'table' },
+  { label: 'math', detail: 'table' },
+  { label: 'coroutine', detail: 'table' },
+  { label: 'debug', detail: 'table' },
+  { label: 'return', detail: 'keyword' },
+  { label: 'local', detail: 'keyword' },
+  { label: 'function', detail: 'keyword' },
+  { label: 'graphics', detail: 'module', scope: 'love' },
+  { label: 'timer', detail: 'module', scope: 'love' },
+  { label: 'window', detail: 'module', scope: 'love' },
+  { label: 'filesystem', detail: 'module', scope: 'love' },
+  { label: 'audio', detail: 'module', scope: 'love' },
+  { label: 'keyboard', detail: 'module', scope: 'love' },
+  { label: 'mouse', detail: 'module', scope: 'love' },
+  { label: 'event', detail: 'module', scope: 'love' },
+  { label: 'getStats', detail: 'function', scope: 'love.graphics' },
+  { label: 'getWidth', detail: 'function', scope: 'love.graphics' },
+  { label: 'getHeight', detail: 'function', scope: 'love.graphics' },
+  { label: 'getDimensions', detail: 'function', scope: 'love.graphics' },
+  { label: 'setColor', detail: 'function', scope: 'love.graphics' },
+  { label: 'setBlendMode', detail: 'function', scope: 'love.graphics' },
+  { label: 'draw', detail: 'function', scope: 'love.graphics' },
+  { label: 'print', detail: 'function', scope: 'love.graphics' },
+  { label: 'rectangle', detail: 'function', scope: 'love.graphics' },
+  { label: 'circle', detail: 'function', scope: 'love.graphics' },
+  { label: 'line', detail: 'function', scope: 'love.graphics' },
+  { label: 'push', detail: 'function', scope: 'love.graphics' },
+  { label: 'pop', detail: 'function', scope: 'love.graphics' },
+  { label: 'getFPS', detail: 'function', scope: 'love.timer' },
+  { label: 'getDelta', detail: 'function', scope: 'love.timer' },
+  { label: 'getTime', detail: 'function', scope: 'love.timer' },
+  { label: 'getWidth', detail: 'function', scope: 'love.window' },
+  { label: 'getHeight', detail: 'function', scope: 'love.window' },
+  { label: 'getMode', detail: 'function', scope: 'love.window' },
+  { label: 'setMode', detail: 'function', scope: 'love.window' },
+  { label: 'isDown', detail: 'function', scope: 'love.keyboard' },
+  { label: 'isDown', detail: 'function', scope: 'love.mouse' },
+  { label: 'getPosition', detail: 'function', scope: 'love.mouse' },
+  { label: 'getX', detail: 'function', scope: 'love.mouse' },
+  { label: 'getY', detail: 'function', scope: 'love.mouse' },
+  { label: 'abs', detail: 'function', scope: 'math' },
+  { label: 'floor', detail: 'function', scope: 'math' },
+  { label: 'ceil', detail: 'function', scope: 'math' },
+  { label: 'min', detail: 'function', scope: 'math' },
+  { label: 'max', detail: 'function', scope: 'math' },
+  { label: 'random', detail: 'function', scope: 'math' },
+  { label: 'sin', detail: 'function', scope: 'math' },
+  { label: 'cos', detail: 'function', scope: 'math' },
+  { label: 'sqrt', detail: 'function', scope: 'math' },
+  { label: 'insert', detail: 'function', scope: 'table' },
+  { label: 'remove', detail: 'function', scope: 'table' },
+  { label: 'sort', detail: 'function', scope: 'table' },
+  { label: 'concat', detail: 'function', scope: 'table' },
+  { label: 'format', detail: 'function', scope: 'string' },
+  { label: 'find', detail: 'function', scope: 'string' },
+  { label: 'match', detail: 'function', scope: 'string' },
+  { label: 'gsub', detail: 'function', scope: 'string' },
+  { label: 'lower', detail: 'function', scope: 'string' },
+  { label: 'upper', detail: 'function', scope: 'string' },
+];
 
 function formatTime(value?: number) {
   if (!value) return '';
@@ -223,7 +294,7 @@ function ConsoleOutput({
 }
 
 export default function ConsolePage() {
-  const { responses, execute, clear } = useConsole();
+  const { responses, globals, execute, clear, refreshGlobals } = useConsole();
   const sessionId = useSessionStore((state) => state.sessionId);
   const apiKey = useEffectiveApiKey();
   const consolePlugin = usePluginControl('console');
@@ -259,6 +330,28 @@ export default function ConsolePage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchListRef = useRef<HTMLDivElement>(null);
   const snippets = savedSnippets.length > 0 ? savedSnippets : BUILT_IN_SNIPPETS;
+  const completionItems = useMemo(() => {
+    const runtimeItems: LuaCompletionItem[] =
+      globals?.ok && globals.globals
+        ? globals.globals.map((item) => ({
+            label: item.name,
+            detail: `${item.type} runtime`,
+          }))
+        : [];
+    const byLabel = new Map<string, LuaCompletionItem>();
+    for (const item of [...runtimeItems, ...BUILT_IN_COMPLETIONS]) {
+      const key = `${item.scope ?? 'global'}:${item.label}`;
+      if (!byLabel.has(key)) byLabel.set(key, item);
+    }
+    return [...byLabel.values()].sort((a, b) => a.label.localeCompare(b.label));
+  }, [globals]);
+  const globalsLabel = globals?.ok
+    ? `Globals: ${globals.globals?.length ?? 0}`
+    : globals?.error === 'Loading globals...'
+      ? 'Globals: loading'
+      : globals?.error
+        ? 'Globals failed'
+        : 'Globals: not loaded';
 
   // storedHistory is most-recent-last; reverse for most-recent-first display/nav
   const historyNewestFirst = useMemo(() => [...storedHistory].reverse(), [storedHistory]);
@@ -486,6 +579,27 @@ export default function ConsolePage() {
             {sandboxLabel}
           </Badge>
         )}
+        <Badge
+          variant={globals?.ok ? 'outline' : 'secondary'}
+          className={cn('h-6 shrink-0 font-mono text-xs', globals?.ok && 'border-cyan-500/40 text-cyan-600')}
+          title={globals?.error || 'Manual runtime _G autocomplete snapshot'}
+        >
+          {globalsLabel}
+        </Badge>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={refreshGlobals}
+          disabled={!sessionId || !consolePlugin.available || !consolePlugin.enabled}
+          title={
+            consolePlugin.enabled
+              ? 'Refresh runtime _G names for autocomplete'
+              : consoleUnavailableReason || 'Enable Console to refresh _G names'
+          }
+        >
+          <SparklesIcon className="size-3.5" />
+          Refresh _G
+        </Button>
         <div className="min-w-4 flex-1" />
         <div
           className="flex shrink-0 items-center gap-2"
@@ -556,7 +670,7 @@ export default function ConsolePage() {
           </ScrollArea>
 
           <div className="relative shrink-0 border-t px-4 py-3">
-            <div className="relative flex items-end gap-2">
+            <div className="relative flex items-center gap-2">
               {isSearching && (
                 <div className="absolute bottom-full left-0 right-10 mb-1 z-50 rounded-md border bg-popover shadow-lg overflow-hidden">
                   <div className="flex items-center gap-2 border-b px-3 py-2">
@@ -600,6 +714,7 @@ export default function ConsolePage() {
                 value={input}
                 onChange={setInput}
                 onKeyDown={handleKeyDown}
+                completions={completionItems}
                 placeholder={
                   consoleReady
                     ? 'return 1 + 1  (Ctrl+R to search history)'

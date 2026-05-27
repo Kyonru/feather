@@ -716,6 +716,21 @@ function Feather:__handleCommand(msg)
         data = { message = "Session Replay plugin is not enabled. Include session-replay in feather.config.lua." },
       }))
     end
+  elseif msg.type == "req:console:globals" then
+    local consolePlugin = self.pluginManager:getPlugin("console")
+    if consolePlugin and consolePlugin.instance and not consolePlugin.disabled then
+      consolePlugin.instance:sendGlobals(self)
+    else
+      self:__sendWs(json.encode({
+        type = "console:globals",
+        session = self.sessionId,
+        data = {
+          ok = false,
+          error = consolePlugin and "Console plugin is disabled. Enable it to refresh globals."
+            or "Console plugin not registered. Add it to your plugins list.",
+        },
+      }))
+    end
   elseif msg.type == "cmd:eval" and msg.code then
     local consolePlugin = self.pluginManager:getPlugin("console")
     if consolePlugin and consolePlugin.instance and not consolePlugin.disabled then
