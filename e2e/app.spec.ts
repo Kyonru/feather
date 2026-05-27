@@ -282,7 +282,7 @@ async function seedHealthySessionConfig(page: Page) {
       },
       root_path: '/tmp/demo',
       sourceDir: '/tmp/demo',
-      version: '1.5.0',
+      version: '2.0.0',
       API: 5,
       sampleRate: 1,
       outfile: '',

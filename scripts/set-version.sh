@@ -41,6 +41,23 @@ sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" \
 sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" \
   "${ROOT}/vscode-extension/package.json"
 
+# e2e/app.spec.ts healthy runtime fixture
+node - "${ROOT}/e2e/app.spec.ts" "${VERSION}" <<'NODE'
+const fs = require('fs');
+
+const file = process.argv[2];
+const version = process.argv[3];
+const source = fs.readFileSync(file, 'utf8');
+const pattern = /(async function seedHealthySessionConfig\(page: Page\) \{[\s\S]*?\n\s*version: ')[^']*(',)/;
+
+if (!pattern.test(source)) {
+  throw new Error('Could not find seedHealthySessionConfig version in e2e/app.spec.ts');
+}
+
+const next = source.replace(pattern, `$1${version}$2`);
+fs.writeFileSync(file, next);
+NODE
+
 echo "Done. Updated:"
 echo "  package.json"
 echo "  src-lua/feather/init.lua"
@@ -48,3 +65,4 @@ echo "  src-tauri/Cargo.toml"
 echo "  src-tauri/tauri.conf.json"
 echo "  cli/package.json"
 echo "  vscode-extension/package.json"
+echo "  e2e/app.spec.ts"
