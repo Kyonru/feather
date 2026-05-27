@@ -4,11 +4,11 @@ import { sendCommand } from '@/lib/send-command';
  * Use this for manual reconnect / refresh buttons only.
  */
 export const requestAllData = (sessionId: string) => {
+  sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
+
   sendCommand(sessionId, { type: 'req:performance' }).catch(() => {});
 
   sendCommand(sessionId, { type: 'req:observers' }).catch(() => {});
 
   sendCommand(sessionId, { type: 'req:plugins' }).catch(() => {});
-
-  sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
 };

@@ -171,6 +171,11 @@ export function SessionTabs() {
 
   const sessionList = Object.values(sessions);
 
+  const refreshLiveSession = (session: SessionInfo) => {
+    if (!session.connected || session.kind) return;
+    requestAllData(session.id);
+  };
+
   const handleSessionClick = (session: SessionInfo) => {
     setActiveSession(session.id);
     setDisconnected(session.kind ? false : !session.connected);
@@ -179,6 +184,7 @@ export function SessionTabs() {
     if (cachedConfig) {
       setConfig(cachedConfig);
     }
+    refreshLiveSession(session);
   };
 
   const addFileSession = (session: SessionInfo, config: Config) => {
@@ -299,7 +305,7 @@ export function SessionTabs() {
             session={session}
             isActive={session.id === activeSessionId}
             onClick={() => handleSessionClick(session)}
-            onReload={() => requestAllData(session.id)}
+            onReload={() => refreshLiveSession(session)}
             onRemove={() => {
               queryClient.removeQueries({ queryKey: [session.id] });
               removeSession(session.id);

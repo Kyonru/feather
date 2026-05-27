@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved the Assets page with denser filtering, sorting, repeated-load badges, richer preview details, and copy/reveal actions.
 - Compare now appears below Session in the sidebar only when at least two sessions are connected.
 - Improved Compare with auto-selected sessions, observer diff filters/search/sorting, summary counts, performance deltas, and row copy actions.
+- Live session selection now re-requests the config handshake and current runtime data to refresh stale desktop state.
 
 ### Fixed
 
