@@ -340,16 +340,20 @@ test('persists settings changes across reloads', async ({ page }) => {
 
   await page.getByRole('tab', { name: 'General' }).click();
   await page.getByLabel('Asset Source Directory').fill('/tmp/feather-assets');
+  await page.getByLabel('Assets', { exact: true }).uncheck();
 
   await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Close' }).first().click();
 
   await page.reload();
+  await expect(page.getByRole('button', { name: 'Assets' })).toHaveCount(0);
+
   await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
   await expect(page.getByLabel('WebSocket Port')).toHaveValue('4111');
   await expect(page.getByLabel('Connection Timeout (seconds)')).toHaveValue('22');
 
   await page.getByRole('tab', { name: 'General' }).click();
   await expect(page.getByLabel('Asset Source Directory')).toHaveValue('/tmp/feather-assets');
+  await expect(page.getByLabel('Assets', { exact: true })).not.toBeChecked();
 });
 
 test('keeps tool routes gated until a session is selected', async ({ page }) => {

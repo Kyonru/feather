@@ -74,17 +74,20 @@ function Section({
 function CapabilityBadge({ cap }: { cap: string }) {
   const colors: Record<string, string> = {
     filesystem: 'border-yellow-500/40 text-yellow-600 dark:text-yellow-400',
-    network:    'border-blue-500/40 text-blue-600 dark:text-blue-400',
-    input:      'border-purple-500/40 text-purple-600 dark:text-purple-400',
-    draw:       'border-pink-500/40 text-pink-600 dark:text-pink-400',
-    audio:      'border-green-500/40 text-green-600 dark:text-green-400',
-    physics:    'border-orange-500/40 text-orange-600 dark:text-orange-400',
-    binary:     'border-muted-foreground/30 text-muted-foreground',
+    network: 'border-blue-500/40 text-blue-600 dark:text-blue-400',
+    input: 'border-purple-500/40 text-purple-600 dark:text-purple-400',
+    draw: 'border-pink-500/40 text-pink-600 dark:text-pink-400',
+    audio: 'border-green-500/40 text-green-600 dark:text-green-400',
+    physics: 'border-orange-500/40 text-orange-600 dark:text-orange-400',
+    binary: 'border-muted-foreground/30 text-muted-foreground',
   };
   return (
     <Badge
       variant="outline"
-      className={cn('h-4 px-1 text-[9px] font-normal', colors[cap] ?? 'border-muted-foreground/30 text-muted-foreground')}
+      className={cn(
+        'h-4 px-1 text-[9px] font-normal',
+        colors[cap] ?? 'border-muted-foreground/30 text-muted-foreground',
+      )}
     >
       {cap}
     </Badge>
@@ -125,7 +128,7 @@ export default function SessionPage() {
             <InfoRow label="Sample rate" value={config.sampleRate ? `${config.sampleRate}s` : undefined} />
             <InfoRow label="Save directory" value={config.location} />
             {config.root_path && <InfoRow label="Project root" value={config.root_path} />}
-            <div className="mt-2 flex items-center justify-between gap-4 rounded-md border px-2 py-2">
+            <div className="mt-2 flex items-center justify-between gap-4 rounded-md border px-2 py-2 bg-rose-900/10">
               <div>
                 <Label htmlFor="continue-on-game-error" className="text-xs font-medium">
                   Keep Running After Callback Crashes
@@ -168,7 +171,9 @@ export default function SessionPage() {
                   </span>
                 ) : capList.length > 0 ? (
                   <span className="flex flex-wrap justify-end gap-1">
-                    {capList.map((c) => <CapabilityBadge key={c} cap={c} />)}
+                    {capList.map((c) => (
+                      <CapabilityBadge key={c} cap={c} />
+                    ))}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">none</span>
@@ -187,10 +192,7 @@ export default function SessionPage() {
                 const status = plugin.incompatible ? 'incompatible' : plugin.disabled ? 'disabled' : 'enabled';
                 const caps = plugin.capabilities ?? [];
                 return (
-                  <div
-                    key={id}
-                    className="flex flex-col gap-1 rounded-md border bg-muted/30 px-2.5 py-1.5"
-                  >
+                  <div key={id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-2.5 py-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate font-mono text-xs">{plugin.tabName || id}</p>
@@ -209,7 +211,9 @@ export default function SessionPage() {
                     </div>
                     {caps.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {caps.map((c) => <CapabilityBadge key={c} cap={c} />)}
+                        {caps.map((c) => (
+                          <CapabilityBadge key={c} cap={c} />
+                        ))}
                       </div>
                     )}
                     {plugin.incompatibilityReason && (

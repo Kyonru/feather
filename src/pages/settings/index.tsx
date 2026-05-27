@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { Button, CopyButton } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogClose,
@@ -18,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettingsStore } from '@/store/settings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { MAIN_FEATURES, type MainFeatureId } from '@/constants/main-features';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -152,6 +154,58 @@ function ThemeToggle() {
         <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
         <ToggleGroupItem value="system">System</ToggleGroupItem>
       </ToggleGroup>
+    </div>
+  );
+}
+
+const optionalFeatureDefaults: MainFeatureId[] = [
+  'console',
+  'particle-system-playground',
+  'shader-graph',
+  'time-travel',
+  'session-replay',
+  'compare',
+];
+
+function SidebarFeaturesInput() {
+  const hiddenMainFeatures = useSettingsStore((state) => state.hiddenMainFeatures);
+  const toggleHiddenMainFeature = useSettingsStore((state) => state.toggleHiddenMainFeature);
+  const setHiddenMainFeatures = useSettingsStore((state) => state.setHiddenMainFeatures);
+
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="grid gap-1">
+          <Label>Sidebar Features</Label>
+          <FieldDescription>Hide tools you do not use often. Hidden tools can still be opened by direct route.</FieldDescription>
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setHiddenMainFeatures([])}>
+            Show all
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => setHiddenMainFeatures(optionalFeatureDefaults)}>
+            Hide extras
+          </Button>
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {MAIN_FEATURES.map((feature) => {
+          const checked = !hiddenMainFeatures.includes(feature.id);
+          return (
+            <div key={feature.id} className="flex items-center gap-2 rounded border px-3 py-2">
+              <Checkbox
+                id={`feature-visible-${feature.id}`}
+                checked={checked}
+                onCheckedChange={() => toggleHiddenMainFeature(feature.id)}
+              />
+              <Label htmlFor={`feature-visible-${feature.id}`} className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2">
+                <span className="truncate">{feature.title}</span>
+                {feature.id === 'compare' && <span className="text-[10px] text-muted-foreground">2 sessions</span>}
+              </Label>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -658,6 +712,7 @@ export function SettingsModal() {
             <SettingsTabContent value="general">
               <Section icon={MonitorIcon} title="Appearance">
                 <ThemeToggle />
+                <SidebarFeaturesInput />
               </Section>
               <Section icon={CodeIcon} title="Editor">
                 <TextEditorInput />

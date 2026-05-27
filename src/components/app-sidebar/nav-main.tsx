@@ -5,6 +5,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import type { ElementType } from 'react';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';
 import {
@@ -22,79 +23,56 @@ import {
   TerminalIcon,
 } from 'lucide-react';
 import { useDebuggerStore } from '@/store/debugger';
+import { MAIN_FEATURES, type MainFeatureId } from '@/constants/main-features';
+import { useSettingsStore } from '@/store/settings';
 import { useSessionStore } from '@/store/session';
+
+const featureIcons: Record<MainFeatureId | 'session', ElementType> = {
+  logs: LogsIcon,
+  performance: GaugeIcon,
+  observability: TelescopeIcon,
+  debugger: BugIcon,
+  console: TerminalIcon,
+  'particle-system-playground': SparklesIcon,
+  'shader-graph': BlendIcon,
+  assets: ImagesIcon,
+  'time-travel': ClockIcon,
+  'session-replay': RepeatIcon,
+  compare: GitCompareArrowsIcon,
+  session: CableIcon,
+};
 
 export function NavMain() {
   const sessionId = useSessionStore((state) => state.sessionId);
   const connectedSessionCount = useSessionStore(
     (state) => Object.values(state.sessions).filter((session) => session.connected).length,
   );
+  const hiddenMainFeatures = useSettingsStore((state) => state.hiddenMainFeatures);
   const hasSession = !!sessionId;
   const canCompare = connectedSessionCount >= 2;
   const isPaused = useDebuggerStore((state) => (sessionId ? !!state.pausedState[sessionId] : false));
 
+  const visibleFeatures = MAIN_FEATURES.filter(
+    (feature) => feature.id !== 'compare' && !hiddenMainFeatures.includes(feature.id),
+  ).map((feature) => ({
+    ...feature,
+    icon: featureIcons[feature.id],
+  }));
+  const compareFeature = MAIN_FEATURES.find((feature) => feature.id === 'compare');
+
   const items = [
+    ...visibleFeatures,
     {
-      title: 'Logs',
-      url: '/',
-      icon: LogsIcon,
-    },
-    {
-      title: 'Performance',
-      url: '/performance',
-      icon: GaugeIcon,
-    },
-    {
-      title: 'Observability',
-      url: '/observability',
-      icon: TelescopeIcon,
-    },
-    {
-      title: 'Debugger',
-      url: '/debugger',
-      icon: BugIcon,
-    },
-    {
-      title: 'Console',
-      url: '/console',
-      icon: TerminalIcon,
-    },
-    {
-      title: 'Particles Playground',
-      url: '/particle-system-playground',
-      icon: SparklesIcon,
-    },
-    {
-      title: 'Shader Graph',
-      url: '/shader-graph',
-      icon: BlendIcon,
-    },
-    {
-      title: 'Assets',
-      url: '/assets',
-      icon: ImagesIcon,
-    },
-    {
-      title: 'Time Travel',
-      url: '/time-travel',
-      icon: ClockIcon,
-    },
-    {
-      title: 'Session Replay',
-      url: '/session-replay',
-      icon: RepeatIcon,
-    },
-    {
+      id: 'session',
       title: 'Session',
       url: '/session',
-      icon: CableIcon,
+      icon: featureIcons.session,
     },
-    ...(canCompare
+    ...(canCompare && compareFeature && !hiddenMainFeatures.includes('compare')
       ? [
           {
-            title: 'Compare',
-            url: '/compare',
-            icon: GitCompareArrowsIcon,
+            ...compareFeature,
+            icon: featureIcons.compare,
           },
         ]
       : []),

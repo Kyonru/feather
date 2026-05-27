@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { MainFeatureId } from '@/constants/main-features';
 
 type SettingsStoreState = {
   open: boolean;
@@ -17,6 +18,7 @@ type SettingsStoreState = {
   // Seconds without a message before considering a session disconnected (default 15)
   connectionTimeout: number;
   hiddenPlugins: string[];
+  hiddenMainFeatures: MainFeatureId[];
   assetSourceDir: string;
 };
 
@@ -35,6 +37,8 @@ type SettingsStoreActions = {
   setSessionApiKey: (sessionId: string, apiKey: string) => void;
   setConnectionTimeout: (timeout: number) => void;
   toggleHiddenPlugin: (pluginId: string) => void;
+  toggleHiddenMainFeature: (featureId: MainFeatureId) => void;
+  setHiddenMainFeatures: (featureIds: MainFeatureId[]) => void;
   setAssetSourceDir: (dir: string) => void;
   reset: () => void;
 };
@@ -62,6 +66,7 @@ const defaultSettings: SettingsStoreState = {
   pausedLogs: false,
   connectionTimeout: 15,
   hiddenPlugins: [],
+  hiddenMainFeatures: [],
   assetSourceDir: '',
 };
 
@@ -93,6 +98,13 @@ export const useSettingsStore = create<SettingsStore>()(
         }),
       setConnectionTimeout: (connectionTimeout: number) => set({ connectionTimeout }),
       setAssetSourceDir: (assetSourceDir: string) => set({ assetSourceDir }),
+      setHiddenMainFeatures: (hiddenMainFeatures: MainFeatureId[]) => set({ hiddenMainFeatures }),
+      toggleHiddenMainFeature: (featureId: MainFeatureId) =>
+        set((state) => ({
+          hiddenMainFeatures: state.hiddenMainFeatures.includes(featureId)
+            ? state.hiddenMainFeatures.filter((id) => id !== featureId)
+            : [...state.hiddenMainFeatures, featureId],
+        })),
       toggleHiddenPlugin: (pluginId: string) =>
         set((state) => ({
           hiddenPlugins: state.hiddenPlugins.includes(pluginId)
