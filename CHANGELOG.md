@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Compare with auto-selected sessions, observer diff filters/search/sorting, summary counts, performance deltas, and row copy actions.
 - Live session selection now re-requests the config handshake and current runtime data to refresh stale desktop state.
 - Added persisted Settings controls for hiding unused main sidebar features.
+- Reworked Session into an onboarding and health hub with connection, security, debugger, plugin, package, and recommended-action summaries.
 - Added actionable Performance Health verdicts for frame hitches, low FPS, draw-call pressure, state switching, memory growth, and texture pressure.
 - Performance Health warnings now render as a compact collapsible strip so diagnostics do not crowd the chart.
 - Hidden sidebar features and hidden disabled plugins are now hidden from Command Center by default, with a Settings opt-in for sidebar features.

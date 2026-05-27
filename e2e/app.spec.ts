@@ -194,6 +194,216 @@ async function seedCommandCenterConfig(page: Page) {
   });
 }
 
+async function seedHealthySessionConfig(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'config'], {
+      plugins: {
+        profiler: {
+          tabName: 'Profiler',
+          icon: 'gauge',
+          capabilities: [],
+        },
+      },
+      root_path: '/tmp/demo',
+      sourceDir: '/tmp/demo',
+      version: '1.5.0',
+      API: 5,
+      sampleRate: 1,
+      outfile: '',
+      language: 'lua',
+      captureScreenshot: false,
+      location: '/tmp/demo',
+      sessionName: 'Demo Session',
+      capabilities: [],
+      security: { appIdRequired: true },
+      sysInfo: { os: 'Web', arch: 'arm64', cpuCount: 8, loveVersion: '11.5' },
+      debugger: {
+        enabled: false,
+        hotReload: {
+          enabled: false,
+          active: false,
+          persistToDisk: false,
+          modifiedModules: [],
+          persistedModules: [],
+          failedModules: [],
+        },
+      },
+    });
+  });
+}
+
+async function seedSessionHubState(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+    localStorage.setItem(
+      'session-storage',
+      JSON.stringify({
+        state: {
+          sessions: {
+            demo: {
+              id: 'demo',
+              name: 'Demo Session',
+              os: 'Web',
+              connected: true,
+              connectedAt: Date.now(),
+              insecure: true,
+            },
+          },
+        },
+        version: 0,
+      }),
+    );
+    localStorage.setItem(
+      'feather-debugger',
+      JSON.stringify({
+        state: {
+          breakpoints: [{ file: 'main.lua', line: 12, enabled: true }],
+          defaultEnabled: true,
+          rootPaths: {},
+          pausedState: {
+            demo: {
+              pauseId: 42,
+              file: 'main.lua',
+              line: 12,
+              reason: 'breakpoint',
+              stack: [{ index: 0, file: 'main.lua', line: 12, name: 'love.update', what: 'Lua' }],
+              locals: {},
+              upvalues: {},
+            },
+          },
+          enabled: { demo: true },
+          pauseOnError: { demo: true },
+          status: {
+            demo: {
+              enabled: true,
+              paused: true,
+              pauseOnError: true,
+              sourceRoot: '/tmp/demo',
+              breakpointCount: 1,
+              rejectedBreakpoints: [],
+              breakpointErrors: [
+                {
+                  file: 'main.lua',
+                  line: 12,
+                  condition: 'player.health <',
+                  error: 'unexpected symbol near end of expression',
+                },
+              ],
+            },
+          },
+          breakpointErrors: {
+            demo: [
+              {
+                file: 'main.lua',
+                line: 12,
+                condition: 'player.health <',
+                error: 'unexpected symbol near end of expression',
+              },
+            ],
+          },
+        },
+        version: 0,
+      }),
+    );
+  });
+}
+
+async function seedNoisySessionHubConfig(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'config'], {
+      plugins: {
+        console: {
+          tabName: 'Console',
+          icon: 'terminal',
+          capabilities: ['filesystem'],
+        },
+        'hot-reload': {
+          tabName: 'Hot Reload',
+          icon: 'refresh-cw',
+          capabilities: ['filesystem'],
+        },
+        profiler: {
+          tabName: 'Profiler',
+          icon: 'gauge',
+          disabled: true,
+          capabilities: [],
+        },
+        'old-plugin': {
+          tabName: 'Old Plugin',
+          icon: 'plug-zap',
+          incompatible: true,
+          incompatibilityReason: 'Requires Feather plugin API 6-any; desktop API is 5.',
+          capabilities: ['draw'],
+        },
+      },
+      root_path: '/tmp/demo',
+      sourceDir: '/tmp/demo',
+      version: '1.0.0',
+      API: 4,
+      sampleRate: 1,
+      outfile: '',
+      language: 'lua',
+      captureScreenshot: false,
+      location: '/tmp/demo',
+      sessionName: 'Demo Session',
+      capabilities: 'all',
+      security: { appIdRequired: false },
+      sysInfo: { os: 'Web', arch: 'arm64', cpuCount: 8, loveVersion: '11.5' },
+      debugger: {
+        enabled: true,
+        hotReload: {
+          enabled: true,
+          active: true,
+          persistToDisk: true,
+          modifiedModules: ['game.player'],
+          persistedModules: [],
+          failedModules: ['game.enemy'],
+        },
+      },
+    });
+    client?.setQueryData(['demo', 'performance'], [
+      {
+        time: 1,
+        gameTime: 1,
+        vsyncEnabled: true,
+        supported: {
+          multicanvasformats: true,
+          clampzero: true,
+          lighten: true,
+          fullnpot: true,
+          pixelshaderhighp: true,
+          shaderderivatives: true,
+          glsl3: true,
+          instancing: true,
+        },
+        fps: 24,
+        frameTime: 0.04,
+        frameTimeMin: 0.01,
+        frameTimeMax: 0.05,
+        frameTimeAvg: 0.035,
+        memory: 300,
+        peakMemory: 310,
+        diskUsage: 0,
+        sysInfo: { arch: 'arm64', cpuCount: 8, os: 'Web' },
+        stats: {
+          drawcallsbatched: 10,
+          canvasswitches: 2,
+          shaderswitches: 4,
+          canvases: 2,
+          images: 12,
+          fonts: 2,
+          texturememory: 160,
+          drawcalls: 1400,
+        },
+      },
+    ]);
+  });
+}
+
 async function seedCompareData(page: Page) {
   await page.evaluate(() => {
     const basePerf = {
@@ -581,6 +791,62 @@ test('keeps tool routes gated until a session is selected', async ({ page }) => 
   await expect(page.getByText('No session connected')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Assets' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Compare' })).toHaveCount(0);
+});
+
+test('session health hub summarizes a healthy active session', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/');
+  await seedHealthySessionConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByRole('link', { name: 'Session', exact: true }).click();
+
+  const hub = page.getByTestId('session-health-hub');
+  await expect(hub).toBeVisible();
+  await expect(hub.getByText('Healthy')).toBeVisible();
+  await expect(hub.getByText('Connection', { exact: true })).toBeVisible();
+  await expect(hub.getByText('Live', { exact: true }).first()).toBeVisible();
+  await expect(hub.getByText('Plugins', { exact: true })).toBeVisible();
+  await expect(hub.getByText('1 on')).toBeVisible();
+  await expect(page.getByText('No urgent session issues detected.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Keep debugging')).toBeVisible();
+  await expect(page.getByTestId('session-plugin-profiler')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('NaN');
+  await expect(page.locator('body')).not.toContainText('undefined');
+});
+
+test('session health hub surfaces security, debugger, plugin, hot reload, and performance actions', async ({ page }) => {
+  await seedSessionHubState(page);
+  await page.setViewportSize({ width: 1180, height: 780 });
+  await page.goto('/');
+  await seedNoisySessionHubConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByRole('link', { name: 'Session', exact: true }).click();
+
+  const hub = page.getByTestId('session-health-hub');
+  await expect(hub).toBeVisible();
+  await expect(hub.getByText('Review security')).toBeVisible();
+  await expect(page.getByText('Recommended Next Actions')).toBeVisible();
+  await expect(page.getByText('Review security settings')).toBeVisible();
+  await expect(page.getByText('Version or plugin mismatch')).toBeVisible();
+  await expect(page.getByText('Debugger attention')).toBeVisible();
+  await expect(page.getByText('Hot Reload needs review')).toBeVisible();
+  await expect(page.getByText('Performance signal')).toBeVisible();
+  await expect(page.getByText('Console needs an API key')).toBeVisible();
+  await expect(page.getByText('Incompatible 1')).toBeVisible();
+  await expect(page.getByText('Risky 2')).toBeVisible();
+  await page.getByRole('button', { name: /Risky 2/ }).click();
+  await expect(page.getByTestId('session-plugin-console')).toBeVisible();
+  await expect(page.getByTestId('session-plugin-hot-reload')).toBeVisible();
+  await expect(page.getByTestId('session-plugin-old-plugin')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('NaN');
+  await expect(page.locator('body')).not.toContainText('undefined');
+
+  await page.setViewportSize({ width: 900, height: 720 });
+  await expect(hub).toBeVisible();
+  await expect(page.getByText('Recommended Next Actions')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Packages' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/session-health-hub-narrow.png', fullPage: true });
 });
 
 test('shows compare only when two connected sessions are available', async ({ page }) => {

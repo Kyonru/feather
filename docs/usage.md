@@ -62,6 +62,14 @@ Actions that need a live session or enabled plugin stay visible but disabled wit
 
 ---
 
+## Session Health
+
+Open **Session** first when you want to know what Feather thinks is happening. The page summarizes connection state, runtime/API version, project roots, capabilities, enabled or incompatible plugins, Console/API-key status, Hot Reload state, debugger state, package lockfile status, and recent performance signals.
+
+The **Recommended Next Actions** panel points to the next useful place to go, such as Settings for security/API-key issues, Debugger for paused breakpoints or Hot Reload failures, Performance for frame hitches, or package guidance when no lockfile is available.
+
+---
+
 ## Observers
 
 Watch variable values in real-time from the Observability tab:
