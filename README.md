@@ -1,5 +1,8 @@
 # Feather — CLI Debugging, Inspection, and Builds for LÖVE
 
+> [!IMPORTANT]
+> This is the dev version of Feather, for stable releases go to the [release page](https://github.com/Kyonru/feather/releases).
+
 [![GitHub Release](https://img.shields.io/github/v/release/Kyonru/feather)](https://github.com/Kyonru/feather/releases)
 [![npm](https://img.shields.io/npm/v/@kyonru/feather)](https://www.npmjs.com/package/@kyonru/feather)
 [![npm downloads](https://img.shields.io/npm/dm/@kyonru/feather)](https://www.npmjs.com/package/@kyonru/feather)
