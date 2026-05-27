@@ -1935,6 +1935,18 @@
 <td>Custom error handler to use.</td>
 </tr>
 <tr>
+<td><code>continueOnGameError</code></td>
+<td><code>boolean</code></td>
+<td><code>false</code></td>
+<td>When <code>false</code>, errors from wrapped game callbacks are delivered to Feather and then rethrown so the game crashes normally. Set <code>true</code> to log the error and keep the game loop running.</td>
+</tr>
+<tr>
+<td><code>gameErrorToast</code></td>
+<td><code>boolean</code></td>
+<td><code>true</code></td>
+<td>Show an in-game crash toast when <code>continueOnGameError = true</code>.</td>
+</tr>
+<tr>
 <td><code>plugins</code></td>
 <td><code>table</code></td>
 <td><code>{}</code></td>
@@ -2004,7 +2016,7 @@
 <td><code>debugger</code></td>
 <td><code>boolean</code> or <code>table</code></td>
 <td><code>false</code></td>
-<td>Enable the step debugger, or pass debugger options such as <code>debugger.hotReload</code>.</td>
+<td>Enable the step debugger, or pass debugger options such as <code>debugger.pauseOnError</code> and <code>debugger.hotReload</code>.</td>
 </tr>
 <tr>
 <td><code>debugOverlay</code></td>
@@ -2030,6 +2042,11 @@
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p><code>captureScreenshot</code> can affect performance because it captures the current frame when errors are handled. Enable it only when you need visual error context.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><code>continueOnGameError = true</code> is useful for exploratory debugging because Feather keeps reporting repeated callback crashes and shows an in-game toast. Leave it off when you want normal LÖVE crash behavior.
+You can also toggle this for the current run from <strong>Session → Keep Running After Callback Crashes</strong>.</p>
 </div>
 <h2 id="generated-cli-config">Generated CLI Config<a class="headerlink" href="#generated-cli-config" title="Permanent link">&para;</a></h2>
 <p><code>feather init</code> defaults to CLI-managed mode. In that mode Feather creates <code>feather.config.lua</code> without patching game code, and <code>feather run</code> injects the runtime when you launch the game.</p>

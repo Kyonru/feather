@@ -1898,6 +1898,7 @@
 <li><code>love.audio.newSource</code></li>
 </ul>
 <p>Assets appear in the desktop app after they are loaded by the game.</p>
+<p>Repeated file-backed loads are grouped into one row. Feather keeps a <code>loadCount</code>, first seen time, and last seen time so duplicate loading is visible without spamming the catalog. Runtime/procedural assets remain separate rows because each created object can represent different generated content.</p>
 <hr />
 <h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
 <p>No extra setup is required beyond running the game through the Feather CLI:</p>
@@ -1945,7 +1946,8 @@
 </tr>
 </tbody>
 </table>
-<p>Use the filter input to search by filename or source path.</p>
+<p>Use the filter input to search by filename or source path. Quick filters narrow the catalog to file-backed assets, runtime-created assets, repeated loads, or file-backed assets whose local path cannot be resolved.</p>
+<p>Texture rows also include lightweight runtime metadata when LÖVE exposes it, including filter, wrap mode, and an estimated texture memory footprint.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Feather only sees assets loaded after Feather has initialized. If an asset is loaded before Feather starts, reload the game with Feather enabled earlier in startup.</p>
@@ -1953,6 +1955,7 @@
 <hr />
 <h2 id="previewing-textures-and-fonts">Previewing Textures And Fonts<a class="headerlink" href="#previewing-textures-and-fonts" title="Permanent link">&para;</a></h2>
 <p>Click <strong>View</strong> on a texture or font row to load a preview.</p>
+<p>The preview/details panel shows dimensions, load counts, first/last seen times, resolved local paths, and copy actions. Use <strong>Constructor</strong> to copy a <code>love.graphics.newImage</code>, <code>love.graphics.newFont</code>, or <code>love.audio.newSource</code> snippet for the selected asset. File-backed assets can also copy or reveal their resolved local path in the desktop app.</p>
 <h3 id="file-backed-textures">File-backed textures<a class="headerlink" href="#file-backed-textures" title="Permanent link">&para;</a></h3>
 <p>When an image was loaded from a file path:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">player</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">love</span><span class="p">.</span><span class="py">graphics</span><span class="p">.</span><span class="nf">newImage</span><span class="p">(</span><span class="s2">&quot;assets/player.png&quot;</span><span class="p">)</span>
@@ -1995,6 +1998,7 @@
 <p class="admonition-title">Tip</p>
 <p>For absolute paths reported by the game, a manually selected Game Root still wins. Feather strips the absolute prefix and resolves the path inside the selected folder so remote/mobile paths can map to a local project copy.</p>
 </div>
+<p>When the desktop cannot resolve a file-backed asset, the row appears in the <strong>Missing local file</strong> filter. Select the correct <strong>Game Root</strong> or copy the resolved path from the detail panel to inspect what Feather tried to read.</p>
 <hr />
 <h2 id="preview-controls">Preview Controls<a class="headerlink" href="#preview-controls" title="Permanent link">&para;</a></h2>
 <p>The preview panel supports:</p>

@@ -1435,6 +1435,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#scoped-samples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoped Samples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#recursion-handling" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1683,6 +1694,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#scoped-samples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoped Samples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#recursion-handling" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1780,7 +1802,7 @@
 
 
 <h1 id="profilerplugin">ProfilerPlugin<a class="headerlink" href="#profilerplugin" title="Permanent link">&para;</a></h1>
-<p>The <code>ProfilerPlugin</code> is a plugin for the <a href="https://github.com/Kyonru/feather">Feather Debugger</a> that lets you <strong>measure and compare the performance</strong> of individual functions in your LÖVE project. Wrap any function to track call count, total time, average time, min, and max — all displayed in a sortable table inside the Feather desktop app.</p>
+<p>The <code>ProfilerPlugin</code> is a plugin for the <a href="https://github.com/Kyonru/feather">Feather Debugger</a> that lets you <strong>measure and compare the performance</strong> of individual functions in your LÖVE project. Wrap any function to track call count, total time, average time, min, max, percent of captured time, and calls per second.</p>
 <h2 id="installation">📦 Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
 <p>The plugin lives in <code>feather/plugins/profiler/</code>. Require it from your project:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">ProfilerPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.plugins.profiler&quot;</span><span class="p">)</span>
@@ -1792,7 +1814,7 @@
 <p>No additional options are required.</p>
 <h2 id="how-it-works">🔍 How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <h3 id="wrapping-functions">Wrapping Functions<a class="headerlink" href="#wrapping-functions" title="Permanent link">&para;</a></h3>
-<p>Call <code>profiler:wrap(name, fn)</code> to create an instrumented version of any function. The wrapper is transparent — it calls the original function and returns all of its results while recording timing data.</p>
+<p>Call <code>profiler:wrap(name, fn)</code> to create an instrumented version of any function. The wrapper is transparent — it calls the original function and returns all of its results while recording timing data. Wrapped functions are error-safe: failures are re-raised with traceback details after the profiler records the elapsed time.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">profiler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;profiler&quot;</span><span class="p">)</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">-- Wrap a function</span>
@@ -1832,8 +1854,27 @@
 <td><strong>Max</strong></td>
 <td>Slowest recorded call</td>
 </tr>
+<tr>
+<td><strong>% Total</strong></td>
+<td>Share of captured profiler time</td>
+</tr>
+<tr>
+<td><strong>Calls/s</strong></td>
+<td>Calls per second in the capture window</td>
+</tr>
+<tr>
+<td><strong>Group</strong></td>
+<td>Prefix before <code>.</code> or <code>:</code> in the sample name</td>
+</tr>
 </tbody>
 </table>
+<h3 id="scoped-samples">Scoped Samples<a class="headerlink" href="#scoped-samples" title="Permanent link">&para;</a></h3>
+<p>For work that is easier to bracket than wrap, use <code>begin</code> and <code>finish</code> with the same name:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">profiler</span><span class="p">:</span><span class="nf">begin</span><span class="p">(</span><span class="s2">&quot;physics.step&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">world</span><span class="p">:</span><span class="nf">step</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">profiler</span><span class="p">:</span><span class="nf">finish</span><span class="p">(</span><span class="s2">&quot;physics.step&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>Scoped samples feed the same profiler table as wrapped functions, including groups, totals, averages, percent, and calls per second.</p>
 <h3 id="recursion-handling">Recursion Handling<a class="headerlink" href="#recursion-handling" title="Permanent link">&para;</a></h3>
 <p>If a wrapped function calls itself recursively, only the outermost invocation is timed. This avoids double-counting nested calls.</p>
 <h3 id="timer-resolution">Timer Resolution<a class="headerlink" href="#timer-resolution" title="Permanent link">&para;</a></h3>
@@ -1852,8 +1893,12 @@
 <h2 id="actions">🎮 Actions<a class="headerlink" href="#actions" title="Permanent link">&para;</a></h2>
 <p>The plugin adds an interactive action to the Feather UI:</p>
 <ul>
+<li><strong>Start</strong> → resumes profiling new calls.</li>
+<li><strong>Stop</strong> → pauses profiling while preserving captured rows.</li>
+<li><strong>Snapshot</strong> → saves a named capture snapshot for before/after comparisons.</li>
 <li><strong>Reset</strong> → clears all collected profiling data (call counts and timings are zeroed out).</li>
 </ul>
+<p>Recording is enabled by default for backwards compatibility. The dedicated <strong>Performance → Profiler</strong> view adds search, sorting, group filters, one-call hiding, before/after snapshots, diff columns, and JSON export while <code>/plugins/profiler</code> remains available as a generic plugin table.</p>
 <h3 id="sorting">Sorting<a class="headerlink" href="#sorting" title="Permanent link">&para;</a></h3>
 <p>The desktop app can update sorting via plugin params:</p>
 <ul>
@@ -1861,31 +1906,31 @@
 <li><code>sortDesc</code> — sort direction (default: <code>true</code>)</li>
 </ul>
 <h2 id="example">📊 Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">ProfilerPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.plugins.profiler&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nv">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">ProfilerPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;profiler&quot;</span><span class="p">),</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">})</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="kd">local</span><span class="w"> </span><span class="nv">profiler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;profiler&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1">-- Wrap expensive functions</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="kd">local</span><span class="w"> </span><span class="nv">updatePhysics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">profiler</span><span class="p">:</span><span class="nf">wrap</span><span class="p">(</span><span class="s2">&quot;updatePhysics&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">updatePhysics</span><span class="p">)</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="kd">local</span><span class="w"> </span><span class="nv">renderScene</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nv">profiler</span><span class="p">:</span><span class="nf">wrap</span><span class="p">(</span><span class="s2">&quot;renderScene&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">renderScene</span><span class="p">)</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="kd">local</span><span class="w"> </span><span class="nv">runAI</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="nv">profiler</span><span class="p">:</span><span class="nf">wrap</span><span class="p">(</span><span class="s2">&quot;runAI&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">runAI</span><span class="p">)</span>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">  </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">  </span><span class="nf">updatePhysics</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">  </span><span class="nf">runAI</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="kr">end</span>
-<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>
-<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">draw</span><span class="p">()</span>
-<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">  </span><span class="nf">renderScene</span><span class="p">()</span>
-<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="kr">end</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">ProfilerPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.plugins.profiler&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nv">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">ProfilerPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;profiler&quot;</span><span class="p">),</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">})</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="kd">local</span><span class="w"> </span><span class="nv">profiler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;profiler&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="c1">-- Wrap expensive functions</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="kd">local</span><span class="w"> </span><span class="nv">updatePhysics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">profiler</span><span class="p">:</span><span class="nf">wrap</span><span class="p">(</span><span class="s2">&quot;updatePhysics&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">updatePhysics</span><span class="p">)</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="kd">local</span><span class="w"> </span><span class="nv">renderScene</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nv">profiler</span><span class="p">:</span><span class="nf">wrap</span><span class="p">(</span><span class="s2">&quot;renderScene&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">renderScene</span><span class="p">)</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="kd">local</span><span class="w"> </span><span class="nv">runAI</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="nv">profiler</span><span class="p">:</span><span class="nf">wrap</span><span class="p">(</span><span class="s2">&quot;runAI&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">runAI</span><span class="p">)</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">  </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">  </span><span class="nf">updatePhysics</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">  </span><span class="nf">runAI</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="kr">end</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">draw</span><span class="p">()</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">  </span><span class="nf">renderScene</span><span class="p">()</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="kr">end</span>
 </code></pre></div>
 
 

@@ -1861,6 +1861,15 @@
 <li>Select a <code>.lua</code> file from the file tree.</li>
 <li>Press <strong>Reload</strong>.</li>
 </ol>
+<p>The Debugger header shows the selected module next to <strong>Reload</strong>. If the file cannot be safely reloaded, the button stays disabled and its tooltip explains why, for example: hot reload is disabled, the plugin is missing, the selected file is not a Lua module, the module is protected, the module is not in <code>hotReload.allow</code>, or the session is blocked by <code>requireLocalNetwork</code>.</p>
+<p>Compact status chips keep the current safety state visible:</p>
+<ul>
+<li><code>Disabled</code> means the plugin or <code>debugger.hotReload.enabled</code> is off.</li>
+<li><code>Not allowlisted</code> means the selected module does not match <code>hotReload.allow</code>.</li>
+<li><code>Remote blocked</code> means <code>requireLocalNetwork</code> rejected the configured Feather host.</li>
+<li><code>Persisting</code> means <code>persistToDisk</code> is enabled and patches are written to the LÖVE save directory.</li>
+<li><code>Modified N</code> and <code>Failed N</code> summarize modules replaced by Hot Reload or modules whose latest reload failed.</li>
+</ul>
 <p>The <strong>Watch</strong> toggle polls the selected file and reloads it when the source changes. It intentionally watches only the selected module so changes are explicit and easy to reason about.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>

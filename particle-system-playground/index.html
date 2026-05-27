@@ -708,6 +708,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#project-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#export" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1613,6 +1624,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#project-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#export" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1705,6 +1727,7 @@
 <h2 id="scratch-composites">Scratch Composites<a class="headerlink" href="#scratch-composites" title="Permanent link">&para;</a></h2>
 <p>Scratch composites are created from the desktop playground. The plugin owns their <code>love.ParticleSystem</code> instances, updates them, and draws them in the running game.</p>
 <p>Composite preview <code>x</code>/<code>y</code> and preview movement patterns change emitter positions via <code>ParticleSystem:setPosition(...)</code>. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.</p>
+<p>Scratch composites can pause the plugin-owned preview without changing emitter settings or exported code. Individual emitters can also be disabled; disabled emitters remain in the composite metadata but are skipped by preview update/draw, composite emit/reset actions, and generated runtime modules.</p>
 <p>Supported preview movement patterns:</p>
 <ul>
 <li><code>none</code></li>
@@ -1763,11 +1786,11 @@
 </tr>
 <tr>
 <td><code>emit</code> / <code>emit-all</code></td>
-<td>Burst particles</td>
+<td>Reset/restart enabled emitters in the active composite, then burst particles</td>
 </tr>
 <tr>
 <td><code>reset</code> / <code>reset-all</code></td>
-<td>Reset particle systems</td>
+<td>Reset enabled emitters in the active composite</td>
 </tr>
 <tr>
 <td><code>kick-start</code></td>
@@ -1781,36 +1804,61 @@
 <td><code>export-zip</code></td>
 <td>Return generated <code>init.lua</code> plus referenced assets</td>
 </tr>
+<tr>
+<td><code>export-project</code></td>
+<td>Save the active composite as an editable <code>.featherparticles</code> project</td>
+</tr>
+<tr>
+<td><code>import-project</code></td>
+<td>Import a <code>.featherparticles</code> project as a new scratch composite</td>
+</tr>
 </tbody>
 </table>
-<h2 id="export">Export<a class="headerlink" href="#export" title="Permanent link">&para;</a></h2>
-<p>Exports produce a Lua module shaped like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">particles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nv">system</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">ps1</span><span class="p">,</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nv">blendMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nv">shader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">shader1</span><span class="p">,</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nv">texturePath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gfx/fire.png&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="nv">texturePreset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="nv">shaderPath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="nv">shaderFilename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;shader.glsl&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">    </span><span class="nv">kickStartSteps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="nv">kickStartDt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">    </span><span class="nv">emitAtStart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="p">}</span>
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>
-<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="kr">return</span><span class="w"> </span><span class="nv">particles</span>
+<h2 id="project-files">Project Files<a class="headerlink" href="#project-files" title="Permanent link">&para;</a></h2>
+<p>Particle projects use a portable JSON format with the <code>.featherparticles</code> extension:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feather.particle-system-playground&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;exportedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-26T00:00:00Z&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Explosion&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;composite&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="nt">&quot;previewEnabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="nt">&quot;movement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;pattern&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="nt">&quot;systems&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="p">}</span>
 </code></pre></div>
-<p>ZIP export returns <code>init.lua</code> and any available texture/shader assets. Imported texture bytes are preserved for ZIP output. Game-path assets are read through <code>love.filesystem.read</code> when possible.</p>
+<p>Saving a project preserves the editable composite settings, emitter metadata, particle properties, shader source, and any texture bytes Feather can capture. Uploaded and generated preset textures round-trip inside the JSON file. Game-path textures are embedded when <code>love.filesystem.read</code> can access them; otherwise the project keeps the path and falls back to a generated/default texture if that path is unavailable on import.</p>
+<p>Importing a project always creates a new scratch composite and selects it. Existing composites are left untouched, and duplicate names receive a numeric suffix.</p>
+<h2 id="export">Export<a class="headerlink" href="#export" title="Permanent link">&para;</a></h2>
+<p>Exports produce a Lua module that can be dropped into a game and driven through a small lifecycle API:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">particleEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;particles.fire&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">particles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">particleEffect</span><span class="p">.</span><span class="nf">init</span><span class="p">()</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nv">particleEffect</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="kr">end</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">draw</span><span class="p">()</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="nv">particleEffect</span><span class="p">.</span><span class="nf">draw</span><span class="p">()</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="kr">end</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nv">particleEffect</span><span class="p">.</span><span class="nf">emit</span><span class="p">({</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">  </span><span class="nv">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">  </span><span class="nv">amount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">24</span><span class="p">,</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="p">})</span>
+</code></pre></div>
+<p>Generated modules return <code>{ init, update, draw, emit, release }</code>. <code>init()</code> creates all exported emitters, applies their ParticleSystem settings, runs any kick-start steps, emits configured startup bursts, and returns a <code>particles</code> table with composite position and emitter metadata.</p>
+<p><code>emit(payload)</code> expects a <code>ParticlePayload</code> table with <code>x</code>, <code>y</code>, <code>r</code>, and <code>amount</code>. It resets/restarts and emits every enabled exported emitter by default; set <code>payload.systemIndex</code> to emit only one emitter in a multi-emitter composite. Disabled emitters stay in the exported metadata and are skipped by <code>update</code>, <code>draw</code>, and <code>emit</code>.</p>
+<p>ZIP export returns <code>init.lua</code> and any available texture assets. Shader source is embedded in <code>init.lua</code> as Lua strings so generated modules do not need to read <code>.glsl</code> files at runtime. Imported texture bytes are preserved for ZIP output. Game-path texture assets are read through <code>love.filesystem.read</code> when possible.</p>
 <h2 id="shaders">Shaders<a class="headerlink" href="#shaders" title="Permanent link">&para;</a></h2>
 <p>The desktop editor includes built-in particle shader presets such as glow, smoke, sparkle, dissolve, ring, and energy effects. Presets are plain LÖVE pixel shader source and can be edited before applying.</p>
 <p>Animated presets may declare:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">extern</span><span class="w"> </span><span class="n">number</span><span class="w"> </span><span class="n">u_time</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kr">extern</span><span class="w"> </span><span class="n">number</span><span class="w"> </span><span class="n">u_time</span><span class="p">;</span>
 </code></pre></div>
 <p>When a scratch composite is drawn, the plugin sends <code>u_time</code> with <code>love.timer.getTime()</code> if the active shader accepts it. Shaders that do not declare <code>u_time</code> are unaffected.</p>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>

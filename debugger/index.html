@@ -628,6 +628,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pause-on-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pause on error
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1753,6 +1764,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pause-on-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pause on error
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1933,6 +1955,7 @@
 <p class="admonition-title">Note</p>
 <p>Debugger expects the folder structure to be the same where the main.lua is located. Feather is capable of automatically detecting the directory, but if it doesn't, just open the project folder where your main.lua is located.</p>
 </div>
+<p>The toolbar shows how many enabled breakpoints the game accepted after path normalization. If a breakpoint path or line cannot be synced, Feather keeps the local breakpoint but reports it in the debugger status instead of failing silently.</p>
 <h3 id="conditional-breakpoints">Conditional breakpoints<a class="headerlink" href="#conditional-breakpoints" title="Permanent link">&para;</a></h3>
 <p>Right-click a breakpoint (or use the condition field) to add a Lua expression. The game only pauses when the expression evaluates to truthy:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- Only pause when the player takes damage</span>
@@ -1945,21 +1968,32 @@
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nv">i</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">10</span>
 </code></pre></div>
 <p>The condition runs in the game's Lua context, so you can reference any global or local variable visible at that line.</p>
+<p>If the condition cannot compile or errors while evaluating, Feather reports the condition error in the toolbar and marks the breakpoint line so you can fix the expression.</p>
+<h3 id="pause-on-error">Pause on error<a class="headerlink" href="#pause-on-error" title="Permanent link">&para;</a></h3>
+<p>Enable <strong>Pause on Error</strong> in the Debugger toolbar, or set:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nv">pauseOnError</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>When a wrapped <code>love.*</code> callback crashes, Feather pauses before applying the configured crash behavior. By default the game still rethrows after you resume. If <code>continueOnGameError = true</code>, the game resumes after the pause and Feather keeps reporting the callback failure.</p>
 <hr />
 <h2 id="while-paused">While paused<a class="headerlink" href="#while-paused" title="Permanent link">&para;</a></h2>
 <p>When execution stops at a breakpoint, the desktop shows:</p>
 <h3 id="call-stack">Call stack<a class="headerlink" href="#call-stack" title="Permanent link">&para;</a></h3>
-<p>The full stack trace — file, line, and function name for each frame. Click a frame to navigate to it in the source view. The highlighted frame is where execution is suspended.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>main.lua:42<span class="w">     </span>love.update
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>player.lua:18<span class="w">   </span>Player:update
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>player.lua:55<span class="w">   </span>Player:applyGravity<span class="w">   </span>←<span class="w"> </span>paused<span class="w"> </span>here
+<p>The full stack trace — file, line, and function name for each frame. Click a frame to navigate to it in the source view and load that frame's locals/upvalues. The highlighted frame is where execution is suspended.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>main.lua:42<span class="w">     </span>love.update
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>player.lua:18<span class="w">   </span>Player:update
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>player.lua:55<span class="w">   </span>Player:applyGravity<span class="w">   </span>←<span class="w"> </span>paused<span class="w"> </span>here
 </code></pre></div>
 <h3 id="variables">Variables<a class="headerlink" href="#variables" title="Permanent link">&para;</a></h3>
 <p>Locals and upvalues of the currently selected frame, expanded one level deep for tables:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">dt</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mf">0.016</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">self</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">142</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">320</span><span class="p">,</span><span class="w"> </span><span class="nv">health</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">75</span><span class="p">,</span><span class="w"> </span><span class="nv">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;jumping&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">…</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nv">velocity</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.5</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mf">8.1</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nv">onGround</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">dt</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mf">0.016</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">self</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">142</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">320</span><span class="p">,</span><span class="w"> </span><span class="nv">health</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">75</span><span class="p">,</span><span class="w"> </span><span class="nv">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;jumping&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">…</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nv">velocity</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.5</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mf">8.1</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nv">onGround</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 </code></pre></div>
 <h3 id="controls">Controls<a class="headerlink" href="#controls" title="Permanent link">&para;</a></h3>
 <table>
@@ -2004,14 +2038,14 @@
 <li><strong>Continue</strong> — resume and wait for the next pause.</li>
 </ol>
 <h3 id="example-tracking-down-a-wrong-jump-height">Example: tracking down a wrong jump height<a class="headerlink" href="#example-tracking-down-a-wrong-jump-height" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">-- player.lua, line 55</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kr">function</span><span class="w"> </span><span class="nc">Player</span><span class="p">:</span><span class="nf">applyGravity</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">onGround</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">jumpForce</span><span class="w">   </span><span class="c1">-- ← breakpoint here</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="kr">end</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">GRAVITY</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nv">dt</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="nv">self</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nv">dt</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="kr">end</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">-- player.lua, line 55</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kr">function</span><span class="w"> </span><span class="nc">Player</span><span class="p">:</span><span class="nf">applyGravity</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">onGround</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">jumpForce</span><span class="w">   </span><span class="c1">-- ← breakpoint here</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="kr">end</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">GRAVITY</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nv">dt</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nv">self</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nv">dt</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="kr">end</span>
 </code></pre></div>
 <p>With a breakpoint on line 55, pause and check:</p>
 <ul>

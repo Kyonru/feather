@@ -581,10 +581,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#feather-package-install-from-url-url-target-path" class="md-nav__link">
+  <a href="#feather-package-install-from-url-url-target-path-path" class="md-nav__link">
     <span class="md-ellipsis">
       
-        feather package install --from-url &lt;url&gt; --target &lt;path&gt;
+        feather package install --from-url &lt;url&gt; --target-path &lt;path&gt;
       
     </span>
   </a>
@@ -1893,10 +1893,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#feather-package-install-from-url-url-target-path" class="md-nav__link">
+  <a href="#feather-package-install-from-url-url-target-path-path" class="md-nav__link">
     <span class="md-ellipsis">
       
-        feather package install --from-url &lt;url&gt; --target &lt;path&gt;
+        feather package install --from-url &lt;url&gt; --target-path &lt;path&gt;
       
     </span>
   </a>
@@ -2102,6 +2102,7 @@
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>bump<span class="w"> </span>lume<span class="w"> </span>flux
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>hump<span class="w">          </span><span class="c1"># installs all hump modules</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>hump.camera<span class="w">   </span><span class="c1"># installs only the camera module</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>feel<span class="w"> </span>--install-dir<span class="w"> </span>vendor<span class="w"> </span>--save-install-dir
 </code></pre></div>
 <p>Options:</p>
 <table>
@@ -2117,8 +2118,20 @@
 <td>Show what would be installed without writing files</td>
 </tr>
 <tr>
-<td><code>--target &lt;dir&gt;</code></td>
-<td>Override the install directory</td>
+<td><code>--flat-dir &lt;dir&gt;</code></td>
+<td>Flatten catalog package files into a directory</td>
+</tr>
+<tr>
+<td><code>--target-path &lt;path&gt;</code></td>
+<td>Destination path for <code>--from-url</code> installs</td>
+</tr>
+<tr>
+<td><code>--install-dir &lt;dir&gt;</code></td>
+<td>Install catalog package files under a custom base directory</td>
+</tr>
+<tr>
+<td><code>--save-install-dir</code></td>
+<td>Save <code>--install-dir</code> in <code>feather.lock.json</code> for future installs</td>
 </tr>
 <tr>
 <td><code>--offline</code></td>
@@ -2128,8 +2141,18 @@
 <td><code>--allow-untrusted</code></td>
 <td>Required for <code>experimental</code> packages and version overrides</td>
 </tr>
+<tr>
+<td><code>--allow-non-lua-files</code></td>
+<td>Allow installing packages that include non-Lua files (e.g. shaders)</td>
+</tr>
 </tbody>
 </table>
+<p><code>--install-dir</code> preserves the package's catalog layout below the new base directory. For example,
+<code>feather package install feel --install-dir vendor --save-install-dir</code> writes <code>vendor/feel/init.lua</code>
+and <code>vendor/feel/vendor/flux.lua</code>, then records <code>installDir: "vendor"</code> so future
+<code>feather package install feel</code> and <code>feather package update feel</code> runs keep using that location.
+Use <code>--flat-dir</code> only when you deliberately want all catalog files flattened by basename, such as
+<code>feel/init.lua</code> → <code>vendor/init.lua</code>.</p>
 <p><strong>Example output:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>  anim8
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  Source:  github.com/kikito/anim8
@@ -2200,11 +2223,11 @@
 <p>Packages installed this way have <code>trust: experimental</code> — they have not been reviewed by the Feather team. Only install files from sources you trust. The SHA-256 of each file is recorded in the lockfile so future <code>feather package audit</code> runs will detect any tampering.</p>
 <p>Repo installs store the selected repo/tag and resolved commit SHA when available. URL installs store the primary URL, all selected URLs, per-file URLs, and per-file SHA-256 values.</p>
 </div>
-<h3 id="feather-package-install-from-url-url-target-path"><code>feather package install --from-url &lt;url&gt; --target &lt;path&gt;</code><a class="headerlink" href="#feather-package-install-from-url-url-target-path" title="Permanent link">&para;</a></h3>
+<h3 id="feather-package-install-from-url-url-target-path-path"><code>feather package install --from-url &lt;url&gt; --target-path &lt;path&gt;</code><a class="headerlink" href="#feather-package-install-from-url-url-target-path-path" title="Permanent link">&para;</a></h3>
 <p>Non-interactive equivalent of <code>feather package add</code>. Use this in scripts or CI where stdin is not a TTY. Installs a single Lua file from a URL.</p>
 <p><strong>Requires <code>--allow-untrusted</code></strong> — the flag name makes the risk explicit.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>feather<span class="w"> </span>package<span class="w"> </span>install<span class="w"> </span>--from-url<span class="w"> </span>https://example.com/mylib.lua<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>--target<span class="w"> </span>lib/mylib.lua<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>--target-path<span class="w"> </span>lib/mylib.lua<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>--allow-untrusted
 </code></pre></div>
 <p><code>--yes</code> alone never confirms an untrusted URL. In scripts and CI, pass <code>--allow-untrusted</code> only after reviewing the source and target path.</p>
@@ -2383,13 +2406,11 @@
 <a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="w">    </span><span class="nt">&quot;baseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://raw.githubusercontent.com/kikito/anim8/c1c12ec.../&quot;</span>
 <a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="w">  </span><span class="p">},</span>
 <a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="w">  </span><span class="nt">&quot;install&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;anim8.lua&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;sha256&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc123...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lib/anim8.lua&quot;</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="w">    </span><span class="p">]</span>
-<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a><span class="w">  </span><span class="nt">&quot;require&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lib.anim8&quot;</span><span class="p">,</span>
-<a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a><span class="w">  </span><span class="nt">&quot;example&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local anim8 = require(&#39;lib.anim8&#39;)&quot;</span>
-<a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a><span class="p">}</span>
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;anim8.lua&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;sha256&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc123...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lib/anim8.lua&quot;</span><span class="w"> </span><span class="p">}]</span>
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="w">  </span><span class="nt">&quot;require&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lib.anim8&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a><span class="w">  </span><span class="nt">&quot;example&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local anim8 = require(&#39;lib.anim8&#39;)&quot;</span>
+<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a><span class="p">}</span>
 </code></pre></div>
 <p>The <code>commitSha</code> field pins downloads to the exact commit SHA of the selected tag or branch at curation time. <code>baseUrl</code> uses this SHA so fetches are immutable even if the tag is later moved. <code>scripts/generate-registry.mjs</code> assembles all package files into <code>cli/src/generated/registry.json</code>, which is bundled into the published CLI.</p>
 
