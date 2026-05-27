@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Console autocomplete with scoped Lua/LÖVE suggestions for member access such as `_G.print` and `love.graphics.getStats`.
 - Improved the Assets page with denser filtering, sorting, repeated-load badges, richer preview details, and copy/reveal actions.
 - Compare now appears below Session in the sidebar only when at least two sessions are connected.
+- Improved Compare with auto-selected sessions, observer diff filters/search/sorting, summary counts, performance deltas, and row copy actions.
 
 ### Fixed
 
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed CLI-managed debugger breakpoint matching for long source paths and modules loaded through the temporary run shim by matching against untruncated source paths and normalizing shim paths back to project-relative source files.
 - Fixed `feather run` so CLI-managed desktop launches enable the step debugger by default unless `--no-debugger` is used.
 - Fixed the Performance page empty-data state so the health chart no longer loops when no metrics have arrived yet.
+- Fixed Compare memory and texture metrics so missing live performance fields render as unavailable instead of `NaN undefined`.
 - Log repeat counts now render in the actual log table.
 - Log details now show the repeat count for the selected entry.
 - Log details now stay synced as repeat counts update.

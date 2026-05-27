@@ -25,6 +25,7 @@ async function seedSession(page: Page) {
 
 async function seedTwoConnectedSessions(page: Page) {
   await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
     localStorage.setItem(
       'session-storage',
       JSON.stringify({
@@ -49,6 +50,82 @@ async function seedTwoConnectedSessions(page: Page) {
         version: 0,
       }),
     );
+  });
+}
+
+async function seedCompareData(page: Page) {
+  await page.evaluate(() => {
+    const basePerf = {
+      time: 1,
+      gameTime: 1,
+      vsyncEnabled: true,
+      supported: {
+        multicanvasformats: true,
+        clampzero: true,
+        lighten: true,
+        fullnpot: true,
+        pixelshaderhighp: true,
+        shaderderivatives: true,
+        glsl3: true,
+        instancing: true,
+      },
+      frameTimeMin: 0.01,
+      frameTimeMax: 0.02,
+      frameTimeAvg: 0.016,
+      peakMemory: 75,
+      diskUsage: 0,
+      sysInfo: { arch: 'arm64', cpuCount: 8, os: 'Web' },
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'observers'], [
+      { key: 'player.health', value: '100', type: 'number' },
+      { key: 'player.state', value: 'idle', type: 'string' },
+      { key: 'enemy.count', value: '3', type: 'number' },
+      { key: 'only.demo', value: 'left', type: 'string' },
+    ]);
+    client?.setQueryData(['other', 'observers'], [
+      { key: 'player.health', value: '85', type: 'number' },
+      { key: 'player.state', value: 'idle', type: 'string' },
+      { key: 'enemy.count', value: '3', type: 'number' },
+      { key: 'only.other', value: 'right', type: 'string' },
+    ]);
+    client?.setQueryData(['demo', 'performance'], [
+      {
+        ...basePerf,
+        fps: 60,
+        frameTime: 0.016,
+        memory: 50,
+        stats: {
+          drawcallsbatched: 10,
+          canvasswitches: 1,
+          shaderswitches: 2,
+          canvases: 1,
+          images: 4,
+          fonts: 1,
+          texturememory: 20,
+          drawcalls: 100,
+        },
+      },
+    ]);
+    client?.setQueryData(['other', 'performance'], [
+      {
+        ...basePerf,
+        fps: 45,
+        frameTime: 0.024,
+        memory: 45,
+        stats: {
+          drawcallsbatched: 12,
+          canvasswitches: 3,
+          shaderswitches: 5,
+          canvases: 2,
+          images: 5,
+          fonts: 1,
+          texturememory: 18,
+          drawcalls: 140,
+        },
+      },
+    ]);
   });
 }
 
@@ -296,6 +373,7 @@ test('shows compare only when two connected sessions are available', async ({ pa
   await seedTwoConnectedSessions(page);
   await page.reload();
   await page.getByRole('button', { name: /Demo Session/ }).click();
+  await seedCompareData(page);
 
   const sessionButton = page.getByRole('button', { name: 'Session', exact: true });
   const compareButton = page.getByRole('button', { name: 'Compare', exact: true });
@@ -307,10 +385,46 @@ test('shows compare only when two connected sessions are available', async ({ pa
   expect(compareBox!.y).toBeGreaterThan(sessionBox!.y);
 
   await page.getByRole('link', { name: /Compare/ }).click();
-  await expect(page.getByText('Select two sessions to compare their observer values.')).toBeVisible();
+  await expect(page.getByText('Demo Session').first()).toBeVisible();
+  await expect(page.getByText('Second Session').first()).toBeVisible();
+  await expect(page.getByText('Total 5')).toBeVisible();
+  await expect(page.getByText('Changed 1')).toBeVisible();
+  await expect(page.getByText('Only A 1')).toBeVisible();
+  await expect(page.getByText('Only B 1')).toBeVisible();
+  await expect(page.getByText('Equal 2')).toBeVisible();
+  await expect(page.getByText('FPS -15')).toBeVisible();
+  await expect(page.getByText('Frame +8.0 ms')).toBeVisible();
+  await expect(page.getByText('Mem -5.00 MB')).toBeVisible();
+  await expect(page.getByText('Texture -2.00 MB')).toBeVisible();
+  await expect(page.getByText('player.health')).toBeVisible();
+  await expect(page.getByText('85')).toBeVisible();
+
   await page.getByRole('combobox').first().click();
   await expect(page.getByRole('option', { name: /Demo Session/ })).toBeVisible();
   await expect(page.getByRole('option', { name: /Second Session/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /Second Session/ })).toBeDisabled();
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Only A' }).click();
+  await expect(page.getByText('only.demo')).toBeVisible();
+  await expect(page.getByText('player.health')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Only B' }).click();
+  await expect(page.getByText('only.other')).toBeVisible();
+  await expect(page.getByText('only.demo')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Equal' }).click();
+  await expect(page.getByText('player.state')).toBeVisible();
+
+  await page.getByRole('button', { name: 'All' }).click();
+  await page.getByPlaceholder('Search key or value').fill('health');
+  await expect(page.getByText('player.health')).toBeVisible();
+  await expect(page.getByText('enemy.count')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/compare-layout-desktop.png', fullPage: true });
+
+  await page.setViewportSize({ width: 900, height: 720 });
+  await expect(page.getByText('Showing 1')).toBeVisible();
+  await page.screenshot({ path: 'test-results/compare-layout-narrow.png', fullPage: true });
 });
 
 test('activates a persisted session and renders core tools', async ({ page }) => {
