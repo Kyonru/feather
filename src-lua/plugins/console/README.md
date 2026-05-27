@@ -61,6 +61,17 @@ Open the **Console** tab in the Feather desktop app. Type any Lua expression or 
 | `↑` / `↓`     | Recall previous commands         |
 | `Ctrl+R`      | Search command history           |
 
+The Console header shows the current execution gates: session connection, plugin enabled/disabled, API key presence, and sandbox state when the plugin reports it. Disabled controls include tooltips that explain what is missing before eval can run.
+
+Each transcript entry includes a status badge, timestamp, and compact actions:
+
+- Copy the command or result.
+- Put the command back into the editor.
+- Run the command again.
+- Expand long print/result output while keeping full-copy behavior intact.
+
+The **Snippets** panel stores reusable Lua commands per Feather session. You can save the current editor input, insert a snippet without running it, run a snippet directly, rename saved snippets, or delete them. When no snippets have been saved yet, Feather shows built-in snippets for common checks like graphics stats, memory usage, frame timing, and window size.
+
 ### What gets captured
 
 - **Return values** — serialized with `inspect()` for readable table output.

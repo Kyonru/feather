@@ -102,6 +102,48 @@ async function seedDebuggerSession(page: Page) {
   });
 }
 
+async function seedConsoleSession(page: Page) {
+  await seedSession(page);
+  await page.addInitScript(() => {
+    const now = Date.now();
+    localStorage.setItem(
+      'feather-console-history-v2',
+      JSON.stringify({
+        state: {
+          historyBySession: {
+            demo: ['return player.health', 'return love.timer.getFPS()'],
+          },
+          outputBySession: {
+            demo: [
+              {
+                id: 'stored-console-1',
+                input: 'return player.health',
+                timestamp: now - 2000,
+                completedAt: now - 1500,
+                status: 'success',
+                result: '100',
+                prints: ['health check'],
+              },
+            ],
+          },
+          snippetsBySession: {
+            demo: [
+              {
+                id: 'snippet-demo-health',
+                name: 'Player health',
+                code: 'return player.health',
+                createdAt: now - 1000,
+                updatedAt: now - 1000,
+              },
+            ],
+          },
+        },
+        version: 0,
+      }),
+    );
+  });
+}
+
 test('shows no-session empty state and opens settings', async ({ page }) => {
   await page.goto('/');
 
@@ -220,4 +262,46 @@ test('debugger renders stable single-row header and three panels', async ({ page
   expect(narrowSourceBox!.height).toBeGreaterThan(250);
 
   await page.screenshot({ path: 'test-results/debugger-layout-narrow.png', fullPage: true });
+});
+
+test('console renders transcript actions, snippets, and history search', async ({ page }) => {
+  await seedConsoleSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/console');
+
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  const header = page.getByTestId('console-header');
+  await expect(header.getByText('Connected')).toBeVisible();
+  await expect(header.getByText('Plugin disabled')).toBeVisible();
+  await expect(header.getByText('API key missing')).toBeVisible();
+  await expect(page.getByText('return player.health').first()).toBeVisible();
+  await expect(page.getByText('health check')).toBeVisible();
+  await expect(page.getByText('100')).toBeVisible();
+  await expect(page.getByTitle('Copy command')).toBeVisible();
+  await expect(page.getByTitle('Copy result')).toBeVisible();
+  await expect(page.getByTitle('Use as input').first()).toBeVisible();
+  await expect(page.getByTitle('Run again')).toBeVisible();
+  await expect(page.getByText('Player health')).toBeVisible();
+  await expect(page.getByText('History')).toBeVisible();
+  await expect(page.getByText('return love.timer.getFPS()')).toBeVisible();
+
+  const editor = page.locator('textarea').last();
+  await editor.fill('return love.graphics.getStats()');
+  page.once('dialog', (dialog) => dialog.accept('Graphics stats now'));
+  await page.getByTitle('Save current input as a snippet').click();
+  await expect(page.getByText('Graphics stats now')).toBeVisible();
+
+  await page.getByTitle('Insert snippet').first().click();
+  await expect(editor).toHaveValue(/return /);
+
+  await page.getByTitle('Search command history').click();
+  await page.getByPlaceholder('filter history...').fill('fps');
+  await page.keyboard.press('Enter');
+  await expect(editor).toHaveValue('return love.timer.getFPS()');
+
+  await page.setViewportSize({ width: 900, height: 720 });
+  await expect(header).toBeVisible();
+  await expect(page.locator('aside').getByText('Snippets')).toBeVisible();
+  await expect(editor).toBeVisible();
 });
