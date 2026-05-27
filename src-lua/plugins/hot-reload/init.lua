@@ -94,6 +94,12 @@ function HotReloadPlugin:handleHotReloadCommand(msg, feather)
     return
   end
 
+  if msg.type == "req:hot_reload:validate" and type(msg.data) == "table" then
+    self.reloader:validateSelectedModule(msg.data.module)
+    self:sendState(feather)
+    return
+  end
+
   if msg.type == "req:hot_reload:state" then
     self:sendState(feather)
   end

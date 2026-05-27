@@ -33,6 +33,12 @@ export interface Config {
       persistedModules?: string[];
       failedModules?: string[];
       history?: unknown[];
+      selectedModuleStatus?: {
+        module?: string;
+        reloadable?: boolean;
+        code?: string;
+        reason?: string;
+      };
     };
   };
   sysInfo?: SysInfo;

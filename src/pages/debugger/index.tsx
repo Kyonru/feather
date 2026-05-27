@@ -651,7 +651,7 @@ function VarsSection({ title, vars, filter }: { title: string; vars: Record<stri
 
 export default function DebuggerPage() {
   const dbg = useDebugger();
-  const { state: hotReloadState, sendModule, restoreOriginals } = useHotReload();
+  const { state: hotReloadState, sendModule, restoreOriginals, validateModule } = useHotReload();
   const hotReloadPlugin = usePluginControl('hot-reload');
   const navigate = useNavigate();
   const { frames } = useTimeTravel();
@@ -699,6 +699,15 @@ export default function DebuggerPage() {
 
   const selectedModule = useMemo(() => (selectedFile ? pathToLuaModule(selectedFile) : null), [selectedFile]);
   const selectedAbsPath = selectedFile && rootPath ? `${rootPath.replace(/\/$/, '')}/${selectedFile}` : null;
+  const selectedModuleStatus =
+    hotReloadState.selectedModuleStatus?.module === (selectedModule ?? '')
+      ? hotReloadState.selectedModuleStatus
+      : undefined;
+
+  useEffect(() => {
+    if (!hotReloadPlugin.available || !hotReloadPlugin.enabled) return;
+    validateModule(selectedModule);
+  }, [hotReloadPlugin.available, hotReloadPlugin.enabled, selectedModule, validateModule]);
 
   const reloadSelectedModule = useCallback(() => {
     if (!selectedAbsPath || !selectedModule || !hotReloadState.enabled || isWeb()) return;
@@ -795,8 +804,37 @@ export default function DebuggerPage() {
     return errors;
   }, [dbg.breakpointErrors, selectedFile]);
   const currentLine = dbg.currentPaused?.file === selectedFile ? dbg.currentPaused.line : null;
-  const canHotReload =
-    !isWeb() && hotReloadPlugin.enabled && hotReloadState.enabled && !!selectedModule && !!selectedAbsPath;
+  const hotReloadUnavailableReason = useMemo(() => {
+    if (isWeb()) return 'Hot reload requires the desktop app so Feather can read the selected file.';
+    if (!sessionId) return 'Connect a Feather session before using hot reload.';
+    if (!hotReloadPlugin.available) return 'Add the hot-reload plugin to this session before reloading modules.';
+    if (hotReloadPlugin.plugin?.incompatible) {
+      return hotReloadPlugin.plugin.incompatibilityReason || 'The hot-reload plugin is incompatible with this session.';
+    }
+    if (!hotReloadPlugin.enabled) return 'Enable the Hot Reload plugin with the switch first.';
+    if (!hotReloadState.enabled) {
+      return 'Hot reload is disabled. Configure debugger.hotReload.enabled for trusted development sessions.';
+    }
+    if (!selectedFile) return 'Select a Lua file to hot reload.';
+    if (!selectedModule) return 'The selected file is not reloadable as a Lua module.';
+    if (!selectedAbsPath) return 'Open a project source folder so Feather can read the selected file.';
+    if (!selectedModuleStatus) return 'Checking whether the selected module is reloadable.';
+    if (!selectedModuleStatus.reloadable)
+      return selectedModuleStatus.reason || 'The selected module is not reloadable.';
+    return null;
+  }, [
+    hotReloadPlugin.available,
+    hotReloadPlugin.enabled,
+    hotReloadPlugin.plugin?.incompatibilityReason,
+    hotReloadPlugin.plugin?.incompatible,
+    hotReloadState.enabled,
+    selectedAbsPath,
+    selectedFile,
+    selectedModule,
+    selectedModuleStatus,
+    sessionId,
+  ]);
+  const canHotReload = !hotReloadUnavailableReason;
   const latestHotReload = hotReloadState.history.at(-1);
   const latestConditionError = dbg.breakpointErrors.at(-1);
   const selectedConditionErrors = [...conditionErrors.entries()];
@@ -807,6 +845,71 @@ export default function DebuggerPage() {
   const debuggerStateVariant =
     debuggerState === 'Error' ? 'destructive' : debuggerState === 'Off' ? 'secondary' : 'outline';
   const flowButtonClass = 'h-7 gap-1 px-2 text-xs disabled:opacity-40';
+  const hotReloadModuleLabel = selectedModule ?? 'No module selected';
+  const modifiedModuleCount = hotReloadState.modifiedModules.length;
+  const failedModuleCount = hotReloadState.failedModules.length;
+  const hotReloadStatusChips: Array<{
+    key: string;
+    label: string;
+    title: string;
+    className: string;
+    variant?: 'outline' | 'secondary' | 'destructive';
+  }> = [];
+
+  if (!hotReloadPlugin.enabled || !hotReloadState.enabled) {
+    hotReloadStatusChips.push({
+      key: 'disabled',
+      label: 'Disabled',
+      title: hotReloadUnavailableReason || 'Hot reload is disabled.',
+      className: 'text-muted-foreground',
+      variant: 'secondary',
+    });
+  }
+  if (selectedModuleStatus?.code === 'not-allowlisted') {
+    hotReloadStatusChips.push({
+      key: 'allowlist',
+      label: 'Not allowlisted',
+      title: selectedModuleStatus.reason || 'The selected module is not allowlisted.',
+      className: 'border-destructive/40 text-destructive',
+      variant: 'outline',
+    });
+  }
+  if (selectedModuleStatus?.code === 'remote-blocked') {
+    hotReloadStatusChips.push({
+      key: 'remote',
+      label: 'Remote blocked',
+      title: selectedModuleStatus.reason || 'Hot reload is blocked for non-local hosts.',
+      className: 'border-destructive/40 text-destructive',
+      variant: 'outline',
+    });
+  }
+  if (hotReloadState.persistToDisk) {
+    hotReloadStatusChips.push({
+      key: 'persisting',
+      label: 'Persisting',
+      title: 'Persist-to-disk is enabled. Patches are written into the LÖVE save directory.',
+      className: 'border-amber-500/40 text-amber-600',
+      variant: 'outline',
+    });
+  }
+  if (modifiedModuleCount > 0) {
+    hotReloadStatusChips.push({
+      key: 'modified',
+      label: `Modified ${modifiedModuleCount}`,
+      title: `${modifiedModuleCount} module${modifiedModuleCount === 1 ? '' : 's'} replaced by hot reload.`,
+      className: 'border-orange-500/40 text-orange-600',
+      variant: 'outline',
+    });
+  }
+  if (failedModuleCount > 0) {
+    hotReloadStatusChips.push({
+      key: 'failed',
+      label: `Failed ${failedModuleCount}`,
+      title: `${failedModuleCount} module${failedModuleCount === 1 ? '' : 's'} failed to reload.`,
+      className: 'border-destructive/40 text-destructive',
+      variant: 'outline',
+    });
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -828,26 +931,15 @@ export default function DebuggerPage() {
           </div>
           <Separator orientation="vertical" className="h-5 shrink-0" />
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <Badge variant={debuggerStateVariant} className="h-6 shrink-0 gap-1 font-mono text-xs">
-              {dbg.isPaused && <PauseIcon className="size-3" />}
-              {debuggerState}
-            </Badge>
             {dbg.currentPaused && (
               <Badge
                 variant={dbg.currentPaused.reason === 'exception' ? 'destructive' : 'outline'}
-                className="h-6 max-w-56 shrink truncate font-mono text-xs"
+                className="h-6 min-w-0 max-w-32 shrink truncate font-mono text-xs sm:max-w-56"
                 title={`${dbg.currentPaused.file}:${dbg.currentPaused.line}`}
               >
                 {dbg.currentPaused.file.split('/').pop()}:{dbg.currentPaused.line}
               </Badge>
             )}
-            <Badge
-              variant="outline"
-              className="h-6 shrink-0 gap-1 font-mono text-xs"
-              title="Breakpoints accepted by the runtime"
-            >
-              {syncedBreakpointCount} synced
-            </Badge>
           </div>
           <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end gap-2">
             {latestConditionError && (
@@ -895,16 +987,45 @@ export default function DebuggerPage() {
                 checked={hotReloadPlugin.enabled}
                 disabled={!sessionId || !hotReloadPlugin.available || hotReloadPlugin.plugin?.incompatible}
                 onCheckedChange={hotReloadPlugin.setEnabled}
+                title={
+                  !sessionId
+                    ? 'Connect a Feather session before enabling Hot Reload.'
+                    : !hotReloadPlugin.available
+                      ? 'Add the hot-reload plugin to this session.'
+                      : hotReloadPlugin.plugin?.incompatible
+                        ? hotReloadPlugin.plugin.incompatibilityReason ||
+                          'Hot Reload is incompatible with this session.'
+                        : 'Enable or disable the Hot Reload plugin for this session.'
+                }
               />
               <Label htmlFor="hot-reload-enabled" className="text-xs text-muted-foreground">
                 On
               </Label>
             </div>
-            {hotReloadState.active && (
-              <Badge variant="outline" className="h-6 gap-1 font-mono text-xs text-orange-500">
-                Active
+            <Badge
+              variant={selectedModuleStatus?.reloadable ? 'outline' : 'secondary'}
+              className={cn(
+                'h-6 max-w-44 shrink-0 truncate font-mono text-xs',
+                selectedModuleStatus?.reloadable && 'border-cyan-500/40 text-cyan-600',
+              )}
+              title={
+                selectedModule
+                  ? selectedModuleStatus?.reason || `Selected module: ${selectedModule}`
+                  : 'No reloadable Lua module is selected.'
+              }
+            >
+              {hotReloadModuleLabel}
+            </Badge>
+            {hotReloadStatusChips.map((chip) => (
+              <Badge
+                key={chip.key}
+                variant={chip.variant ?? 'outline'}
+                className={cn('h-6 shrink-0 gap-1 font-mono text-xs', chip.className)}
+                title={chip.title}
+              >
+                {chip.label}
               </Badge>
-            )}
+            ))}
             <Button
               size="sm"
               variant="ghost"
@@ -912,18 +1033,18 @@ export default function DebuggerPage() {
               disabled={!canHotReload}
               onClick={reloadSelectedModule}
               title={
-                hotReloadState.enabled
-                  ? !hotReloadPlugin.enabled
-                    ? 'Hot reload plugin is disabled. Enable it with the switch first.'
-                    : selectedModule
-                      ? `Development only: send Lua source for ${selectedModule} into the running game`
-                      : 'Select an allowlisted Lua module. Hot reload is development-only remote code execution.'
-                  : 'Hot reload is disabled. Include the hot-reload plugin and configure debugger.hotReload only for trusted development sessions.'
+                hotReloadUnavailableReason ||
+                `Development only: send Lua source for ${selectedModule} into the running game.`
               }
             >
               <RefreshCwIcon className="size-3" /> Reload
             </Button>
-            <div className="flex shrink-0 items-center gap-1 px-1">
+            <div
+              className="flex shrink-0 items-center gap-1 px-1"
+              title={
+                hotReloadUnavailableReason || `Watch ${selectedModule} and reload it when the selected file changes.`
+              }
+            >
               <Switch
                 id="hot-reload-watch"
                 checked={watchHotReload}
@@ -940,7 +1061,11 @@ export default function DebuggerPage() {
               className="h-7 gap-1 px-2 text-xs text-orange-500 hover:bg-orange-500/10 hover:text-orange-600"
               disabled={!hotReloadState.active}
               onClick={restoreOriginals}
-              title="Restore modules that were replaced by Feather hot reload"
+              title={
+                hotReloadState.active
+                  ? 'Restore original modules, clear persisted patches, and reset hot reload state.'
+                  : 'Nothing to restore yet. Reload a module first.'
+              }
             >
               <RotateCcwIcon className="size-3" /> Restore
             </Button>
@@ -955,7 +1080,7 @@ export default function DebuggerPage() {
               >
                 {latestHotReload.ok
                   ? latestHotReload.restored
-                    ? 'Runtime restored'
+                    ? 'Restored originals'
                     : `Reloaded ${latestHotReload.module}`
                   : `Failed ${latestHotReload.module}`}
               </span>
@@ -1032,6 +1157,17 @@ export default function DebuggerPage() {
                     {selectedFile}
                   </span>
                   <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                    <Badge variant={debuggerStateVariant} className="h-6 shrink-0 gap-1 font-mono text-xs">
+                      {dbg.isPaused && <PauseIcon className="size-3" />}
+                      {debuggerState}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="h-6 shrink-0 gap-1 font-mono text-xs"
+                      title="Breakpoints accepted by the runtime"
+                    >
+                      {syncedBreakpointCount} synced
+                    </Badge>
                     {breakpointLines.size > 0 && (
                       <Badge variant="secondary" className="font-mono text-xs">
                         {breakpointLines.size} bp

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profiler plugin captures now include start/stop recording, raw timing values, percent of captured time, calls per second, and capture metadata.
 - Profiler wrapped functions now preserve tracebacks with error-safe wrappers while still recording failed calls.
 - Improved the Debugger page with a single-row header, colored controls, file-title flow controls, safer gutter-only breakpoint toggling, and clearer source/variable empty states.
+- Improved Debugger Hot Reload controls with selected-module status, disabled reasons, and compact safety chips for allowlist, remote-block, persistence, modified, and failed states.
 
 ### Fixed
 

@@ -122,6 +122,16 @@ DEBUGGER = FeatherDebugger({
 4. Select a `.lua` file from the file tree.
 5. Press **Reload**.
 
+The Debugger header shows the selected module next to **Reload**. If the file cannot be safely reloaded, the button stays disabled and its tooltip explains why, for example: hot reload is disabled, the plugin is missing, the selected file is not a Lua module, the module is protected, the module is not in `hotReload.allow`, or the session is blocked by `requireLocalNetwork`.
+
+Compact status chips keep the current safety state visible:
+
+- `Disabled` means the plugin or `debugger.hotReload.enabled` is off.
+- `Not allowlisted` means the selected module does not match `hotReload.allow`.
+- `Remote blocked` means `requireLocalNetwork` rejected the configured Feather host.
+- `Persisting` means `persistToDisk` is enabled and patches are written to the LÖVE save directory.
+- `Modified N` and `Failed N` summarize modules replaced by Hot Reload or modules whose latest reload failed.
+
 The **Watch** toggle polls the selected file and reloads it when the source changes. It intentionally watches only the selected module so changes are explicit and easy to reason about.
 
 > [!TIP]

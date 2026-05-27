@@ -628,7 +628,11 @@ function Feather:__handleCommand(msg)
         data = { message = tostring(err) },
       }))
     end
-  elseif msg.type == "cmd:hot_reload:module" or msg.type == "cmd:hot_reload:restore" or msg.type == "req:hot_reload:state" then
+  elseif msg.type == "cmd:hot_reload:module"
+    or msg.type == "cmd:hot_reload:restore"
+    or msg.type == "req:hot_reload:state"
+    or msg.type == "req:hot_reload:validate"
+  then
     local hotReloadPlugin = self.pluginManager:getPlugin("hot-reload")
     if hotReloadPlugin and hotReloadPlugin.instance and not hotReloadPlugin.disabled then
       hotReloadPlugin.instance:handleHotReloadCommand(msg, self)

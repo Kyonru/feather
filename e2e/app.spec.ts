@@ -54,11 +54,11 @@ async function seedDebuggerSession(page: Page) {
           pausedState: {
             demo: {
               pauseId: 1,
-              file: 'main.lua',
+              file: 'game/player.lua',
               line: 12,
               reason: 'breakpoint',
               stack: [
-                { index: 0, file: 'main.lua', line: 12, name: 'love.update', what: 'Lua' },
+                { index: 0, file: 'game/player.lua', line: 12, name: 'love.update', what: 'Lua' },
                 { index: 1, file: 'systems/player.lua', line: 44, name: 'player.step', what: 'Lua' },
               ],
               locals: {},
@@ -178,6 +178,12 @@ test('debugger renders stable single-row header and three panels', async ({ page
   await expect(page.getByText('2 synced')).toBeVisible();
   await expect(page.getByText('condition error')).toBeVisible();
   await expect(header.getByText('Hot Reload')).toBeVisible();
+  await expect(header.getByText('game.player')).toBeVisible();
+  await expect(header.getByText('Disabled')).toBeVisible();
+  await expect(header.getByRole('button', { name: 'Reload' })).toHaveAttribute(
+    'title',
+    'Hot reload requires the desktop app so Feather can read the selected file.',
+  );
   await expect(header.getByText('Clear')).toBeVisible();
   await expect(sourcePanel.getByText('Continue')).toBeVisible();
   await expect(sourcePanel.getByText('Over')).toBeVisible();

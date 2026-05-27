@@ -14,6 +14,13 @@ export type HotReloadHistoryEntry = {
   time?: number;
 };
 
+export type HotReloadModuleStatus = {
+  module: string;
+  reloadable: boolean;
+  code?: string;
+  reason?: string;
+};
+
 export type HotReloadState = {
   enabled: boolean;
   active: boolean;
@@ -23,6 +30,7 @@ export type HotReloadState = {
   persistedModules: string[];
   failedModules: string[];
   history: HotReloadHistoryEntry[];
+  selectedModuleStatus?: HotReloadModuleStatus;
 };
 
 const DEFAULT_STATE: HotReloadState = {
@@ -36,6 +44,17 @@ const DEFAULT_STATE: HotReloadState = {
   history: [],
 };
 
+function normalizeModuleStatus(value: unknown): HotReloadModuleStatus | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const input = value as Partial<HotReloadModuleStatus>;
+  return {
+    module: typeof input.module === 'string' ? input.module : '',
+    reloadable: input.reloadable === true,
+    code: typeof input.code === 'string' ? input.code : undefined,
+    reason: typeof input.reason === 'string' ? input.reason : undefined,
+  };
+}
+
 function normalizeHotReloadState(value: unknown): HotReloadState {
   const input = value && typeof value === 'object' ? (value as Partial<HotReloadState>) : {};
   return {
@@ -47,6 +66,7 @@ function normalizeHotReloadState(value: unknown): HotReloadState {
     persistedModules: Array.isArray(input.persistedModules) ? input.persistedModules : DEFAULT_STATE.persistedModules,
     failedModules: Array.isArray(input.failedModules) ? input.failedModules : DEFAULT_STATE.failedModules,
     history: Array.isArray(input.history) ? input.history : DEFAULT_STATE.history,
+    selectedModuleStatus: normalizeModuleStatus(input.selectedModuleStatus),
   };
 }
 
@@ -92,9 +112,20 @@ export const useHotReload = () => {
     };
   }, [sessionId]);
 
+  const validateModule = useMemo(() => {
+    return (moduleName: string | null) => {
+      if (!sessionId) return;
+      sendCommand(sessionId, {
+        type: 'req:hot_reload:validate',
+        data: { module: moduleName ?? '' },
+      }).catch(() => {});
+    };
+  }, [sessionId]);
+
   return {
     state: normalizeHotReloadState(data),
     sendModule,
     restoreOriginals,
+    validateModule,
   };
 };

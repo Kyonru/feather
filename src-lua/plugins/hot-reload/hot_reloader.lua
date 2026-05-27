@@ -251,6 +251,7 @@ function FeatherHotReloader:init(feather, config)
   self.persistedModules = {}
   self.failedModules = {}
   self.history = {}
+  self.selectedModuleStatus = nil
 
   installPatchLoader()
   _G.__FEATHER_HOT_RELOAD_CONFIG = {
@@ -298,6 +299,52 @@ function FeatherHotReloader:validate(moduleName)
   return true
 end
 
+function FeatherHotReloader:validationCode(reason)
+  if reason == nil then
+    return "reloadable"
+  end
+  if reason == "Hot reload is disabled for this session" then
+    return "disabled"
+  end
+  if reason == "Hot reload requires a local network host" then
+    return "remote-blocked"
+  end
+  if reason == "Invalid Lua module name" then
+    return "invalid"
+  end
+  if reason == "This module is protected" then
+    return "protected"
+  end
+  if reason == "Module is denied by hotReload.deny" then
+    return "denied"
+  end
+  if reason == "Module is not allowlisted by hotReload.allow" then
+    return "not-allowlisted"
+  end
+  return "unknown"
+end
+
+function FeatherHotReloader:validateSelectedModule(moduleName)
+  if type(moduleName) ~= "string" or moduleName == "" then
+    self.selectedModuleStatus = {
+      module = "",
+      reloadable = false,
+      code = "no-module",
+      reason = "No module selected",
+    }
+    return self.selectedModuleStatus
+  end
+
+  local ok, reason = self:validate(moduleName)
+  self.selectedModuleStatus = {
+    module = moduleName,
+    reloadable = ok == true,
+    code = self:validationCode(reason),
+    reason = reason,
+  }
+  return self.selectedModuleStatus
+end
+
 function FeatherHotReloader:addHistory(entry)
   entry.time = os.time()
   table.insert(self.history, entry)
@@ -307,15 +354,16 @@ function FeatherHotReloader:addHistory(entry)
 end
 
 function FeatherHotReloader:reload(moduleName, source)
-  local ok, err = self:validate(moduleName)
-  if not ok then
+  local status = self:validateSelectedModule(moduleName)
+  if not status.reloadable then
+    local err = status.reason
     self:addHistory({ ok = false, module = moduleName or "", error = err })
     addUnique(self.failedModules, moduleName or "")
     return false, err
   end
 
   if type(source) ~= "string" or source == "" then
-    err = "Missing Lua source"
+    local err = "Missing Lua source"
     self:addHistory({ ok = false, module = moduleName, error = err })
     addUnique(self.failedModules, moduleName)
     return false, err
@@ -406,6 +454,7 @@ function FeatherHotReloader:getState()
     persistedModules = self.persistedModules,
     failedModules = self.failedModules,
     history = self.history,
+    selectedModuleStatus = self.selectedModuleStatus,
   }
 end
 
