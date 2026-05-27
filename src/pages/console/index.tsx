@@ -752,7 +752,7 @@ export default function ConsolePage() {
           </div>
         </section>
 
-        <aside className="flex max-h-72 min-h-0 shrink-0 flex-col border-t bg-muted/20 lg:h-auto lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
+        <aside className="hidden min-h-0 shrink-0 flex-col border-l bg-muted/20 lg:flex lg:w-80" data-testid="console-snippets">
           <div className="flex h-10 items-center gap-2 border-b px-3">
             <TerminalIcon className="size-3.5 text-muted-foreground" />
             <span className="text-sm font-semibold">Snippets</span>

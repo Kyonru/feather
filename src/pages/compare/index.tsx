@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import { type PerformanceMetrics } from '@/hooks/use-performance';
-import { formatMemory } from '@/lib/utils';
+import { finiteNumber, formatOptionalFixed, formatOptionalMemory, formatSignedMemory } from '@/utils/performance-metrics';
 import { useSessionStore, type SessionInfo } from '@/store/session';
 import { cn } from '@/utils/styles';
 import { copyToClipboardWithMeta } from '@/utils/strings';
@@ -82,24 +82,6 @@ function statusClass(status: CompareStatus) {
   if (status === 'onlyA') return 'border-blue-500/40 text-blue-700 dark:text-blue-300';
   if (status === 'onlyB') return 'border-cyan-500/40 text-cyan-700 dark:text-cyan-300';
   return 'border-muted-foreground/30 text-muted-foreground';
-}
-
-function finiteNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
-}
-
-function formatOptionalMemory(value: unknown) {
-  const number = finiteNumber(value);
-  return number == null ? '—' : formatMemory(number);
-}
-
-function formatMemoryDelta(value: number) {
-  return `${value < 0 ? '-' : ''}${formatMemory(Math.abs(value))}`;
-}
-
-function formatOptionalFixed(value: unknown, decimals = 0) {
-  const number = finiteNumber(value);
-  return number == null ? '—' : number.toFixed(decimals);
 }
 
 function buildRows(left: ObserverEntry[], right: ObserverEntry[]): CompareRow[] {
@@ -269,8 +251,8 @@ function PerformanceDeltas({ left, right }: { left: PerformanceMetrics | null; r
       <span className="text-xs font-medium text-muted-foreground">B - A</span>
       <DeltaBadge label="FPS" left={left?.fps} right={right?.fps} />
       <DeltaBadge label="Frame" left={left?.frameTime} right={right?.frameTime} formatter={(value) => `${(value * 1000).toFixed(1)} ms`} />
-      <DeltaBadge label="Mem" left={left?.memory} right={right?.memory} formatter={formatMemoryDelta} />
-      <DeltaBadge label="Texture" left={left?.stats?.texturememory} right={right?.stats?.texturememory} formatter={formatMemoryDelta} />
+      <DeltaBadge label="Mem" left={left?.memory} right={right?.memory} formatter={formatSignedMemory} />
+      <DeltaBadge label="Texture" left={left?.stats?.texturememory} right={right?.stats?.texturememory} formatter={formatSignedMemory} />
       <DeltaBadge label="Draw" left={left?.stats?.drawcalls} right={right?.stats?.drawcalls} />
       <DeltaBadge label="Batched" left={left?.stats?.drawcallsbatched} right={right?.stats?.drawcallsbatched} />
       <DeltaBadge label="Canvas" left={left?.stats?.canvasswitches} right={right?.stats?.canvasswitches} />

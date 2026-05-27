@@ -2,24 +2,49 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DEFAULT_METRIC, PerformanceMetrics } from '@/hooks/use-performance';
 import { cn } from '@/utils/styles';
-import { formatMemory } from '@/lib/utils';
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ChartMetricKey } from './chart-area-interactive';
+import {
+  formatOptionalFixed,
+  formatOptionalMemory,
+  formatPercent,
+  metricNumber,
+  metricStatsNumber,
+} from '@/utils/performance-metrics';
 
 const TrendingBadge = ({ value }: { value?: number }) => {
-  const formatted = value ? value : 0;
-  let trend = formatted < 0 ? <TrendingDownIcon /> : null;
-  if (formatted > 0) {
-    trend = <TrendingUpIcon />;
+  const formatted = metricNumber(value);
+  let trend = formatted < -0.001 ? <TrendingDownIcon className="size-3" /> : null;
+  if (formatted > 0.001) {
+    trend = <TrendingUpIcon className="size-3" />;
   }
   return (
-    <Badge variant="outline">
+    <Badge variant="outline" className="h-5 px-1.5 font-mono text-[10px]">
       {trend}
-      {(formatted * 100).toFixed(2)}%
+      {formatPercent(formatted)}
     </Badge>
   );
 };
+
+const cardClass = (active: boolean, tone: 'sky' | 'emerald' | 'amber' | 'violet' | 'cyan' | 'rose', disabled = false) =>
+  cn(
+    '@container/card justify-between transition-colors',
+    disabled ? 'cursor-not-allowed opacity-55' : 'cursor-pointer hover:bg-muted/70',
+    active && {
+      'border-sky-500/60 bg-sky-500/10 text-sky-950 dark:text-sky-100': tone === 'sky',
+      'border-emerald-500/60 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100': tone === 'emerald',
+      'border-amber-500/60 bg-amber-500/10 text-amber-950 dark:text-amber-100': tone === 'amber',
+      'border-violet-500/60 bg-violet-500/10 text-violet-950 dark:text-violet-100': tone === 'violet',
+      'border-cyan-500/60 bg-cyan-500/10 text-cyan-950 dark:text-cyan-100': tone === 'cyan',
+      'border-rose-500/60 bg-rose-500/10 text-rose-950 dark:text-rose-100': tone === 'rose',
+    },
+  );
+
+function average(data: PerformanceMetrics[], getValue: (metric: PerformanceMetrics) => number) {
+  if (!data.length) return 0;
+  return data.reduce((acc, item) => acc + getValue(item), 0) / data.length;
+}
 
 export function SectionCards({
   onSelect,
@@ -32,184 +57,140 @@ export function SectionCards({
   onSelect: (key: ChartMetricKey) => void;
   diskUsageEnabled: boolean;
 }) {
-  const metric = useMemo(() => {
-    const defaultMetric = DEFAULT_METRIC;
-    return data[data.length - 1] || defaultMetric;
-  }, [data]);
+  const metric = useMemo(() => data[data.length - 1] || DEFAULT_METRIC, [data]);
 
-  const FPSAverage = useMemo(() => {
-    const sum = data.reduce((acc, item) => {
-      return acc + item.fps;
-    }, 0);
-
-    return sum / data.length;
-  }, [data]);
+  const FPSAverage = useMemo(() => average(data, (item) => metricNumber(item.fps)), [data]);
 
   const FPSIncrease = useMemo(() => {
     if (!FPSAverage) return 0;
-    const last = data[data.length - 1] || DEFAULT_METRIC;
-    return (last.fps - FPSAverage) / FPSAverage;
-  }, [data, FPSAverage]);
+    return (metricNumber(metric.fps) - FPSAverage) / FPSAverage;
+  }, [FPSAverage, metric.fps]);
 
-  const MemoryAverage = useMemo(() => {
-    if (!data.length) return 0;
-    return data.reduce((acc, item) => acc + item.memory, 0) / data.length;
-  }, [data]);
+  const MemoryAverage = useMemo(() => average(data, (item) => metricNumber(item.memory)), [data]);
 
   const MemoryIncrease = useMemo(() => {
     if (!MemoryAverage) return 0;
-    const last = data[data.length - 1] || DEFAULT_METRIC;
-    return (last.memory - MemoryAverage) / MemoryAverage;
-  }, [data, MemoryAverage]);
+    return (metricNumber(metric.memory) - MemoryAverage) / MemoryAverage;
+  }, [MemoryAverage, metric.memory]);
 
-  const ftMinMs = ((metric.frameTimeMin ?? 0) * 1000).toFixed(2);
-  const ftMaxMs = ((metric.frameTimeMax ?? 0) * 1000).toFixed(2);
+  const ftMinMs = formatOptionalFixed(metricNumber(metric.frameTimeMin) * 1000, 2);
+  const ftMaxMs = formatOptionalFixed(metricNumber(metric.frameTimeMax) * 1000, 2);
 
   return (
-    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-3 @5xl/main:grid-cols-3 @7xl/main:grid-cols-6">
-      <Card
-        className={cn({
-          '@container/card': true,
-          'justify-between': true,
-          'hover:bg-sky-500': true,
-          'active:bg-sky-900': true,
-          'bg-sky-700': selected === 'fps',
-          'dark:active:border-sky-900': true,
-          'dark:hover:border-sky-500': true,
-          'dark:border-sky-700': selected === 'fps',
-        })}
-        onClick={() => onSelect('fps')}
-      >
-        <CardHeader>
-          <CardDescription>FPS</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {metric.fps.toFixed(2)}
+    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-2 *:data-[slot=card]:gap-2 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:py-3 *:data-[slot=card]:shadow-xs @xl/main:grid-cols-3 @5xl/main:grid-cols-3 @7xl/main:grid-cols-6">
+      <Card className={cardClass(selected === 'fps', 'sky')} onClick={() => onSelect('fps')} title="Chart FPS">
+        <CardHeader className="gap-1 px-3">
+          <CardDescription className="text-xs">FPS</CardDescription>
+          <CardTitle className="text-xl font-semibold tabular-nums">
+            {formatOptionalFixed(metric.fps, 2)}
           </CardTitle>
           <CardAction>
             <TrendingBadge value={FPSIncrease} />
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
           <div className="line-clamp-1 flex gap-2 font-medium">Frame Time</div>
-          <div className="text-muted-foreground">{(metric.frameTime * 1000).toFixed(2)} ms</div>
+          <div className="text-muted-foreground">{formatOptionalFixed(metricNumber(metric.frameTime) * 1000, 2)} ms</div>
         </CardFooter>
       </Card>
+
       <Card
-        className={cn({
-          '@container/card': true,
-          'justify-between': true,
-          'hover:bg-sky-500': true,
-          'active:bg-sky-900': true,
-          'bg-sky-700': selected === 'memory' || selected === 'peakMemory',
-          'dark:active:border-sky-900': true,
-          'dark:hover:border-sky-500': true,
-          'dark:border-sky-700': selected === 'memory',
-        })}
+        className={cardClass(selected === 'memory' || selected === 'peakMemory', 'emerald')}
         onClick={() => onSelect('memory')}
+        title="Chart Lua memory"
       >
-        <CardHeader>
-          <CardDescription>Memory</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {formatMemory(metric.memory)}
+        <CardHeader className="gap-1 px-3">
+          <CardDescription className="text-xs">Memory</CardDescription>
+          <CardTitle className="text-xl font-semibold tabular-nums">
+            {formatOptionalMemory(metric.memory)}
           </CardTitle>
           <CardAction>
             <TrendingBadge value={MemoryIncrease} />
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
           <div className="line-clamp-1 flex gap-2 font-medium">Peak / Texture</div>
           <div className="text-muted-foreground">
-            {formatMemory(metric.peakMemory ?? 0)} / {formatMemory(metric.stats.texturememory)}
+            {formatOptionalMemory(metric.peakMemory)} / {formatOptionalMemory(metricStatsNumber(metric, 'texturememory'))}
           </div>
         </CardFooter>
       </Card>
+
       <Card
-        className={cn({
-          '@container/card': true,
-          'justify-between': true,
-          'hover:bg-sky-500': true,
-          'active:bg-sky-900': true,
-          'bg-sky-700': selected === 'diskUsage',
-          'dark:active:border-sky-900': true,
-          'dark:hover:border-sky-500': true,
-          'dark:border-sky-700': selected === 'diskUsage',
-        })}
+        className={cardClass(selected === 'diskUsage' && diskUsageEnabled, 'amber', !diskUsageEnabled)}
         onClick={() => diskUsageEnabled && onSelect('diskUsage')}
+        title={diskUsageEnabled ? 'Chart save directory disk usage' : 'Enable disk usage tracking first'}
       >
-        <CardHeader>
-          <CardDescription>Disk Usage</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {diskUsageEnabled ? formatMemory(metric.diskUsage ?? 0) : '—'}
+        <CardHeader className="gap-1 px-3">
+          <CardDescription className="text-xs">Disk Usage</CardDescription>
+          <CardTitle className="text-xl font-semibold tabular-nums">
+            {diskUsageEnabled ? formatOptionalMemory(metric.diskUsage) : '—'}
           </CardTitle>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
           <div className="line-clamp-1 flex gap-2 font-medium">Save directory</div>
           <div className="text-muted-foreground">{diskUsageEnabled ? 'Updated every 5s' : 'Disabled'}</div>
         </CardFooter>
       </Card>
+
       <Card
-        className={cn('@container/card justify-between hover:bg-sky-500 active:bg-sky-900', {
-          'bg-sky-700 dark:border-sky-700': selected === 'frameTime' || selected === 'frameTimeMax',
-        })}
+        className={cardClass(selected === 'frameTime' || selected === 'frameTimeMax', 'rose')}
         onClick={() => onSelect('frameTimeMax')}
+        title="Chart maximum frame time"
       >
-        <CardHeader>
-          <CardDescription>Frame Time</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {((metric.frameTimeAvg ?? 0) * 1000).toFixed(2)} ms
+        <CardHeader className="gap-1 px-3">
+          <CardDescription className="text-xs">Frame Time</CardDescription>
+          <CardTitle className="text-xl font-semibold tabular-nums">
+            {formatOptionalFixed(metricNumber(metric.frameTimeAvg) * 1000, 2)} ms
           </CardTitle>
         </CardHeader>
-        <div className="grid grid-cols-2 gap-4">
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
             <div className="line-clamp-1 flex gap-2 font-medium">Min</div>
             <div className="text-muted-foreground">{ftMinMs} ms</div>
           </CardFooter>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
             <div className="line-clamp-1 flex gap-2 font-medium">Max</div>
             <div className="text-muted-foreground">{ftMaxMs} ms</div>
           </CardFooter>
         </div>
       </Card>
+
       <Card
-        className={cn('@container/card justify-between hover:bg-sky-500 active:bg-sky-900', {
-          'bg-sky-700 dark:border-sky-700': selected === 'drawcalls' || selected === 'drawcallsbatched',
-        })}
+        className={cardClass(selected === 'drawcalls' || selected === 'drawcallsbatched', 'violet')}
         onClick={() => onSelect('drawcalls')}
+        title="Chart draw calls"
       >
-        <CardHeader>
-          <CardDescription>Draw Calls</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {metric.stats.drawcalls}
+        <CardHeader className="gap-1 px-3">
+          <CardDescription className="text-xs">Draw Calls</CardDescription>
+          <CardTitle className="text-xl font-semibold tabular-nums">
+            {metricStatsNumber(metric, 'drawcalls').toLocaleString()}
           </CardTitle>
         </CardHeader>
-        <div className="grid grid-cols-2 gap-4">
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
             <div className="line-clamp-1 flex gap-2 font-medium">Batched</div>
-            <div className="text-muted-foreground">{metric.stats.drawcallsbatched}</div>
+            <div className="text-muted-foreground">{metricStatsNumber(metric, 'drawcallsbatched').toLocaleString()}</div>
           </CardFooter>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
             <div className="line-clamp-1 flex gap-2 font-medium">Canvases</div>
-            <div className="text-muted-foreground">{metric.stats.canvases}</div>
+            <div className="text-muted-foreground">{metricStatsNumber(metric, 'canvases').toLocaleString()}</div>
           </CardFooter>
         </div>
       </Card>
-      <Card
-        className={cn('@container/card justify-between hover:bg-sky-500 active:bg-sky-900', {
-          'bg-sky-700 dark:border-sky-700': selected === 'textureMemory',
-        })}
-        onClick={() => onSelect('textureMemory')}
-      >
-        <CardHeader>
-          <CardDescription>Assets</CardDescription>
+
+      <Card className={cardClass(selected === 'textureMemory', 'cyan')} onClick={() => onSelect('textureMemory')} title="Chart texture memory">
+        <CardHeader className="gap-1 px-3">
+          <CardDescription className="text-xs">Assets</CardDescription>
         </CardHeader>
-        <div className="grid grid-cols-2 gap-4">
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
             <div className="line-clamp-1 flex gap-2 font-medium">Fonts</div>
-            <div className="text-muted-foreground">{metric.stats.fonts}</div>
+            <div className="text-muted-foreground">{metricStatsNumber(metric, 'fonts').toLocaleString()}</div>
           </CardFooter>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <CardFooter className="flex-col items-start gap-0.5 px-3 text-xs">
             <div className="line-clamp-1 flex gap-2 font-medium">Images</div>
-            <div className="text-muted-foreground">{metric.stats.images}</div>
+            <div className="text-muted-foreground">{metricStatsNumber(metric, 'images').toLocaleString()}</div>
           </CardFooter>
         </div>
       </Card>

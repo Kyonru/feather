@@ -13,9 +13,9 @@ import {
   ComboboxList,
 } from '@/components/ui/combobox';
 import { PerformanceMetrics } from '@/hooks/use-performance';
-import { formatMemory } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DownloadIcon } from 'lucide-react';
+import { formatOptionalMemory, metricNumber, metricStatsNumber } from '@/utils/performance-metrics';
 
 export const description = 'An interactive area chart';
 
@@ -41,17 +41,17 @@ export type ChartMetricDefinition = {
 };
 
 export const chartMetrics: ChartMetricDefinition[] = [
-  { key: 'fps', label: 'FPS', color: 'var(--chart-2)', kind: 'fps', getValue: (metric) => metric.fps },
-  { key: 'frameTime', label: 'Frame Time', color: 'var(--chart-4)', kind: 'milliseconds', getValue: (metric) => metric.frameTime * 1000 },
-  { key: 'frameTimeMax', label: 'Frame Max', color: 'var(--chart-5)', kind: 'milliseconds', getValue: (metric) => metric.frameTimeMax * 1000 },
-  { key: 'memory', label: 'Memory', color: 'var(--chart-1)', kind: 'memory', getValue: (metric) => metric.memory },
-  { key: 'peakMemory', label: 'Peak Memory', color: 'var(--chart-3)', kind: 'memory', getValue: (metric) => metric.peakMemory },
-  { key: 'textureMemory', label: 'Texture Memory', color: 'var(--chart-2)', kind: 'memory', getValue: (metric) => metric.stats.texturememory },
-  { key: 'drawcalls', label: 'Draw Calls', color: 'var(--chart-1)', kind: 'count', getValue: (metric) => metric.stats.drawcalls },
-  { key: 'drawcallsbatched', label: 'Batched Draw Calls', color: 'var(--chart-3)', kind: 'count', getValue: (metric) => metric.stats.drawcallsbatched },
-  { key: 'canvasswitches', label: 'Canvas Switches', color: 'var(--chart-4)', kind: 'count', getValue: (metric) => metric.stats.canvasswitches },
-  { key: 'shaderswitches', label: 'Shader Switches', color: 'var(--chart-5)', kind: 'count', getValue: (metric) => metric.stats.shaderswitches },
-  { key: 'diskUsage', label: 'Disk Usage', color: 'var(--chart-3)', kind: 'memory', getValue: (metric) => metric.diskUsage },
+  { key: 'fps', label: 'FPS', color: 'var(--chart-2)', kind: 'fps', getValue: (metric) => metricNumber(metric.fps) },
+  { key: 'frameTime', label: 'Frame Time', color: 'var(--chart-4)', kind: 'milliseconds', getValue: (metric) => metricNumber(metric.frameTime) * 1000 },
+  { key: 'frameTimeMax', label: 'Frame Max', color: 'var(--chart-5)', kind: 'milliseconds', getValue: (metric) => metricNumber(metric.frameTimeMax) * 1000 },
+  { key: 'memory', label: 'Memory', color: 'var(--chart-1)', kind: 'memory', getValue: (metric) => metricNumber(metric.memory) },
+  { key: 'peakMemory', label: 'Peak Memory', color: 'var(--chart-3)', kind: 'memory', getValue: (metric) => metricNumber(metric.peakMemory) },
+  { key: 'textureMemory', label: 'Texture Memory', color: 'var(--chart-2)', kind: 'memory', getValue: (metric) => metricStatsNumber(metric, 'texturememory') },
+  { key: 'drawcalls', label: 'Draw Calls', color: 'var(--chart-1)', kind: 'count', getValue: (metric) => metricStatsNumber(metric, 'drawcalls') },
+  { key: 'drawcallsbatched', label: 'Batched Draw Calls', color: 'var(--chart-3)', kind: 'count', getValue: (metric) => metricStatsNumber(metric, 'drawcallsbatched') },
+  { key: 'canvasswitches', label: 'Canvas Switches', color: 'var(--chart-4)', kind: 'count', getValue: (metric) => metricStatsNumber(metric, 'canvasswitches') },
+  { key: 'shaderswitches', label: 'Shader Switches', color: 'var(--chart-5)', kind: 'count', getValue: (metric) => metricStatsNumber(metric, 'shaderswitches') },
+  { key: 'diskUsage', label: 'Disk Usage', color: 'var(--chart-3)', kind: 'memory', getValue: (metric) => metricNumber(metric.diskUsage) },
 ];
 
 export const chartMetricMap = Object.fromEntries(chartMetrics.map((metric) => [metric.key, metric])) as Record<
@@ -132,7 +132,7 @@ export function ChartAreaInteractive({
   const formatValue = (value: number) => {
     if (metric.kind === 'fps') return `${value.toFixed(0)} FPS`;
     if (metric.kind === 'milliseconds') return `${value.toFixed(1)} ms`;
-    if (metric.kind === 'memory') return formatMemory(value, 1);
+    if (metric.kind === 'memory') return formatOptionalMemory(value, 1);
     return value.toLocaleString();
   };
 

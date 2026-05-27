@@ -1,20 +1,36 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChartAreaInteractive, chartMetrics, type ChartMetricKey } from "@/pages/performance/chart-area-interactive";
-import { PageLayout } from "@/components/page-layout";
-import { PerformanceMetrics, usePerformance } from "@/hooks/use-performance";
-import { SectionCards } from "./section-cards";
-import { useConfig } from "@/hooks/use-config";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DownloadIcon, PauseIcon, PlayIcon, RadioIcon } from "lucide-react";
-import { formatMemory } from "@/lib/utils";
-import { downloadFile } from "@/utils/file";
-import { ProfilerPanel } from "./profiler-panel";
+import { useEffect, useMemo, useState } from 'react';
+import { ChartAreaInteractive, chartMetrics, type ChartMetricKey } from '@/pages/performance/chart-area-interactive';
+import { PageLayout } from '@/components/page-layout';
+import { PerformanceMetrics, usePerformance } from '@/hooks/use-performance';
+import { SectionCards } from './section-cards';
+import { useConfig } from '@/hooks/use-config';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  CheckCircleIcon,
+  ChevronDownIcon,
+  DownloadIcon,
+  PauseIcon,
+  PlayIcon,
+  RadioIcon,
+  TriangleAlertIcon,
+} from 'lucide-react';
+import { downloadFile } from '@/utils/file';
+import { ProfilerPanel } from './profiler-panel';
+import {
+  analyzePerformanceHealth,
+  formatOptionalFixed,
+  formatOptionalMemory,
+  metricNumber,
+  metricStatsNumber,
+  type PerformanceVerdict,
+} from '@/utils/performance-metrics';
 
 function exportPerformance(samples: PerformanceMetrics[], metric: ChartMetricKey) {
   const payload = {
@@ -29,7 +45,11 @@ function exportPerformance(samples: PerformanceMetrics[], metric: ChartMetricKey
 function SpikesList({ data }: { data: PerformanceMetrics[] }) {
   const spikes = useMemo(() => {
     return [...data]
-      .sort((a, b) => (b.frameTimeMax ?? b.frameTime) - (a.frameTimeMax ?? a.frameTime))
+      .sort(
+        (a, b) =>
+          Math.max(metricNumber(b.frameTimeMax), metricNumber(b.frameTime)) -
+          Math.max(metricNumber(a.frameTimeMax), metricNumber(a.frameTime)),
+      )
       .slice(0, 8);
   }, [data]);
 
@@ -61,13 +81,27 @@ function SpikesList({ data }: { data: PerformanceMetrics[] }) {
             ) : (
               spikes.map((sample) => (
                 <TableRow key={`${sample.time}-${sample.gameTime}`}>
-                  <TableCell className="text-xs tabular-nums">{new Date(sample.time * 1000).toLocaleTimeString()}</TableCell>
-                  <TableCell className="text-right tabular-nums">{((sample.frameTimeMax ?? sample.frameTime) * 1000).toFixed(2)} ms</TableCell>
-                  <TableCell className="text-right tabular-nums">{sample.fps.toFixed(0)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{sample.stats.drawcalls}</TableCell>
-                  <TableCell className="text-right tabular-nums">{sample.stats.shaderswitches}</TableCell>
-                  <TableCell className="text-right tabular-nums">{sample.stats.canvasswitches}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatMemory(sample.memory)}</TableCell>
+                  <TableCell className="text-xs tabular-nums">
+                    {new Date(sample.time * 1000).toLocaleTimeString()}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatOptionalFixed(
+                      Math.max(metricNumber(sample.frameTimeMax), metricNumber(sample.frameTime)) * 1000,
+                      2,
+                    )}{' '}
+                    ms
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{formatOptionalFixed(sample.fps)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {metricStatsNumber(sample, 'drawcalls').toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {metricStatsNumber(sample, 'shaderswitches').toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {metricStatsNumber(sample, 'canvasswitches').toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{formatOptionalMemory(sample.memory)}</TableCell>
                 </TableRow>
               ))
             )}
@@ -75,6 +109,97 @@ function SpikesList({ data }: { data: PerformanceMetrics[] }) {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+function verdictClass(verdict: PerformanceVerdict) {
+  return verdict.severity === 'critical'
+    ? 'border-red-500/50 bg-red-500/10 text-red-950 dark:text-red-100'
+    : 'border-amber-500/50 bg-amber-500/10 text-amber-950 dark:text-amber-100';
+}
+
+function HealthVerdicts({ data, latest }: { data: PerformanceMetrics[]; latest: PerformanceMetrics | null }) {
+  const verdicts = useMemo(() => analyzePerformanceHealth(data, latest), [data, latest]);
+  const [open, setOpen] = useState(false);
+
+  if (!data.length || !latest) {
+    return (
+      <Card data-testid="performance-verdicts">
+        <CardContent className="flex items-center gap-2 py-0 text-sm text-muted-foreground">
+          <RadioIcon className="size-4" />
+          Waiting for samples
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (verdicts.length === 0) {
+    return (
+      <Card data-testid="performance-verdicts" className="border-emerald-500/30 bg-emerald-500/5">
+        <CardContent className="flex items-center gap-2 py-0 text-sm text-emerald-700 dark:text-emerald-300">
+          <CheckCircleIcon className="size-4" />
+          Healthy
+          <span className="text-muted-foreground">No actionable performance warnings in the visible window.</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} data-testid="performance-verdicts">
+      <Card className="border-amber-500/40 bg-amber-500/5">
+        <CardContent className="grid gap-2 py-0">
+          <div className="grid min-w-0 grid-cols-[auto_auto_auto_minmax(0,1fr)_auto] items-center gap-2 py-0">
+            <TriangleAlertIcon className="size-4 shrink-0 text-amber-600" />
+            <span className="shrink-0 text-sm font-semibold">Health Warnings</span>
+            <span className="rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase text-muted-foreground">
+              {verdicts.length}
+            </span>
+            <div className="grid min-w-0 grid-cols-1 gap-1 overflow-hidden sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+              {verdicts.slice(0, 4).map((verdict) => (
+                <span
+                  key={verdict.id}
+                  className={`min-w-0 truncate rounded border px-1.5 py-0.5 text-xs ${verdictClass(verdict)}`}
+                  title={`${verdict.title}: ${verdict.evidence}`}
+                >
+                  {verdict.title} · {verdict.evidence}
+                </span>
+              ))}
+              {verdicts.length > 4 && (
+                <span className="truncate rounded border px-1.5 py-0.5 text-xs text-muted-foreground">
+                  +{verdicts.length - 4}
+                </span>
+              )}
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2">
+                Details
+                <ChevronDownIcon className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent>
+            <div className="grid gap-1 pt-1">
+              {verdicts.map((verdict) => (
+                <div key={verdict.id} className={`grid gap-1 rounded border px-2 py-1.5 ${verdictClass(verdict)}`}>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate text-xs font-semibold">{verdict.title}</span>
+                    <span className="font-mono text-xs">{verdict.evidence}</span>
+                    <span className="rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase">
+                      {verdict.severity}
+                    </span>
+                  </div>
+                  <div className="grid gap-1 text-xs text-muted-foreground md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                    <span>{verdict.cause}</span>
+                    <span className="font-medium text-foreground">{verdict.action}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </CardContent>
+      </Card>
+    </Collapsible>
   );
 }
 
@@ -106,6 +231,8 @@ export default function Page() {
   };
 
   const visibleData = snapshot ?? data;
+  const cardData = visibleWindow.length ? visibleWindow : visibleData;
+  const latestMetric = cardData.at(-1) ?? null;
 
   return (
     <PageLayout>
@@ -117,11 +244,7 @@ export default function Page() {
           </TabsList>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2 pr-2">
-              <Switch
-                id="disk-usage-toggle"
-                checked={diskUsageEnabled}
-                onCheckedChange={handleDiskUsageToggle}
-              />
+              <Switch id="disk-usage-toggle" checked={diskUsageEnabled} onCheckedChange={handleDiskUsageToggle} />
               <Label htmlFor="disk-usage-toggle" className="text-muted-foreground text-sm">
                 Track disk usage
               </Label>
@@ -130,7 +253,11 @@ export default function Page() {
               {paused ? <PlayIcon className="size-4" /> : <PauseIcon className="size-4" />}
               {paused ? 'Resume' : 'Pause'}
             </Button>
-            <Button variant={followTail ? 'default' : 'secondary'} size="sm" onClick={() => setFollowTail((value) => !value)}>
+            <Button
+              variant={followTail ? 'default' : 'secondary'}
+              size="sm"
+              onClick={() => setFollowTail((value) => !value)}
+            >
               <RadioIcon className="size-4" />
               Follow
             </Button>
@@ -159,6 +286,7 @@ export default function Page() {
               </SelectContent>
             </Select>
           </div>
+          <HealthVerdicts data={cardData} latest={latestMetric} />
           <ChartAreaInteractive
             dataKey={selected}
             data={visibleData}
@@ -166,12 +294,12 @@ export default function Page() {
             onExport={(samples) => exportPerformance(samples, selected)}
           />
           <SectionCards
-            data={visibleData}
+            data={cardData}
             selected={selected}
             onSelect={setSelected}
             diskUsageEnabled={diskUsageEnabled}
           />
-          <SpikesList data={visibleData} />
+          <SpikesList data={cardData} />
         </TabsContent>
 
         <TabsContent value="profiler">

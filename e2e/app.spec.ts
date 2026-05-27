@@ -129,6 +129,66 @@ async function seedCompareData(page: Page) {
   });
 }
 
+async function seedPerformanceData(page: Page) {
+  await page.evaluate(() => {
+    const base = {
+      gameTime: 1,
+      vsyncEnabled: true,
+      supported: {
+        multicanvasformats: true,
+        clampzero: true,
+        lighten: true,
+        fullnpot: true,
+        pixelshaderhighp: true,
+        shaderderivatives: true,
+        glsl3: true,
+        instancing: true,
+      },
+      diskUsage: 0,
+      peakMemory: 80,
+      sysInfo: { arch: 'arm64', cpuCount: 8, os: 'Web' },
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'performance'], [
+      {
+        ...base,
+        time: 1,
+        fps: 60,
+        frameTime: 0.016,
+        frameTimeMin: 0.014,
+        frameTimeMax: 0.017,
+        frameTimeAvg: 0.016,
+        memory: 40,
+        stats: { drawcallsbatched: 20, canvasswitches: 0, shaderswitches: 0, canvases: 1, images: 4, fonts: 1, texturememory: 60, drawcalls: 220 },
+      },
+      {
+        ...base,
+        time: 2,
+        fps: 52,
+        frameTime: 0.019,
+        frameTimeMin: 0.014,
+        frameTimeMax: 0.021,
+        frameTimeAvg: 0.018,
+        memory: 50,
+        stats: { drawcallsbatched: 25, canvasswitches: 2, shaderswitches: 1, canvases: 2, images: 5, fonts: 1, texturememory: 90, drawcalls: 500 },
+      },
+      {
+        ...base,
+        time: 3,
+        fps: 28,
+        frameTime: 0.04,
+        frameTimeMin: 0.014,
+        frameTimeMax: 0.045,
+        frameTimeAvg: 0.032,
+        memory: 75,
+        peakMemory: 90,
+        stats: { drawcallsbatched: 80, canvasswitches: 10, shaderswitches: 6, canvases: 4, images: 10, fonts: 2, texturememory: 180, drawcalls: 1600 },
+      },
+    ]);
+  });
+}
+
 async function seedAssetCatalog(page: Page) {
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -431,6 +491,35 @@ test('shows compare only when two connected sessions are available', async ({ pa
   await page.screenshot({ path: 'test-results/compare-layout-narrow.png', fullPage: true });
 });
 
+test('performance health surfaces actionable verdicts and safe metrics', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/performance');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await seedPerformanceData(page);
+
+  await expect(page.getByTestId('performance-verdicts')).toBeVisible();
+  await expect(page.getByText('Frame hitch')).toBeVisible();
+  await expect(page.getByText('Low FPS')).toBeVisible();
+  await expect(page.getByText('Draw-call pressure')).toBeVisible();
+  await expect(page.getByText('Shader/canvas switching')).toBeVisible();
+  await page.getByRole('button', { name: /Details/ }).click();
+  await expect(page.getByText('Memory climbing')).toBeVisible();
+  await expect(page.getByText('Texture-heavy')).toBeVisible();
+  await expect(page.getByText('max 45.0 ms', { exact: true })).toBeVisible();
+  await expect(page.getByText('1,600 draw calls', { exact: true })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('NaN');
+  await expect(page.locator('body')).not.toContainText('undefined');
+
+  await page.getByTitle('Chart draw calls').click();
+  await expect(page.getByText('Draw Calls').first()).toBeVisible();
+
+  await page.setViewportSize({ width: 900, height: 720 });
+  await expect(page.getByTestId('performance-verdicts')).toBeVisible();
+  await expect(page.getByText('Recent Spikes', { exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/performance-health-narrow.png', fullPage: true });
+});
+
 test('activates a persisted session and renders core tools', async ({ page }) => {
   await seedSession(page);
   await page.goto('/');
@@ -588,6 +677,6 @@ test('console renders transcript actions, snippets, and history search', async (
 
   await page.setViewportSize({ width: 900, height: 720 });
   await expect(header).toBeVisible();
-  await expect(page.locator('aside').getByText('Snippets')).toBeVisible();
+  await expect(page.getByTestId('console-snippets')).toBeHidden();
   await expect(editor).toBeVisible();
 });

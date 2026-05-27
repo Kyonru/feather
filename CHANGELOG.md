@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Compare with auto-selected sessions, observer diff filters/search/sorting, summary counts, performance deltas, and row copy actions.
 - Live session selection now re-requests the config handshake and current runtime data to refresh stale desktop state.
 - Added persisted Settings controls for hiding unused main sidebar features.
+- Added actionable Performance Health verdicts for frame hitches, low FPS, draw-call pressure, state switching, memory growth, and texture pressure.
+- Performance Health warnings now render as a compact collapsible strip so diagnostics do not crowd the chart.
 
 ### Fixed
 
@@ -40,7 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed CLI-managed debugger breakpoint matching for long source paths and modules loaded through the temporary run shim by matching against untruncated source paths and normalizing shim paths back to project-relative source files.
 - Fixed `feather run` so CLI-managed desktop launches enable the step debugger by default unless `--no-debugger` is used.
 - Fixed the Performance page empty-data state so the health chart no longer loops when no metrics have arrived yet.
+- Fixed Performance metric formatting and runtime normalization so partial samples render safe fallback values instead of `NaN` or broken units.
 - Fixed Compare memory and texture metrics so missing live performance fields render as unavailable instead of `NaN undefined`.
+- Fixed the Console snippets rail so it hides on narrow screens instead of squeezing the chat workspace.
 - Log repeat counts now render in the actual log table.
 - Log details now show the repeat count for the selected entry.
 - Log details now stay synced as repeat counts update.
