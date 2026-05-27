@@ -945,6 +945,57 @@ test('performance health surfaces actionable verdicts and safe metrics', async (
   await page.screenshot({ path: 'test-results/performance-health-narrow.png', fullPage: true });
 });
 
+test('observability triage controls filter and open observer details', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/observability');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(['demo', 'observers'], [
+      {
+        key: 'player.health',
+        value: '100',
+        previous: '85',
+        type: 'number',
+        group: 'player',
+        changed: true,
+        changeCount: 2,
+        firstSeen: Date.now() - 10_000,
+        lastSeen: Date.now(),
+        lastChanged: Date.now(),
+        history: ['85'],
+        valueLength: 3,
+      },
+      {
+        key: 'enemy.count',
+        value: '3',
+        type: 'number',
+        group: 'enemy',
+        changed: false,
+        changeCount: 0,
+        firstSeen: Date.now() - 10_000,
+        lastSeen: Date.now(),
+        history: [],
+        valueLength: 1,
+      },
+    ]);
+  });
+
+  await expect(page.getByText('Observers 2')).toBeVisible();
+  await expect(page.getByText('Changed 1')).toBeVisible();
+  await page.getByPlaceholder('Search keys or values...').fill('health');
+  await expect(page.getByText('player.health')).toBeVisible();
+  await expect(page.getByText('enemy.count')).toHaveCount(0);
+  await page.getByText('player.health').click();
+  await expect(page.getByText('Changes from previous value')).toBeVisible();
+  await page.getByRole('tab', { name: 'Current' }).click();
+  await expect(page.getByText('Observer JSON')).toBeVisible();
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await page.getByPlaceholder('Search keys or values...').fill('missing');
+  await expect(page.getByText('No observers match the current filters.')).toBeVisible();
+});
+
 test('activates a persisted session and renders core tools', async ({ page }) => {
   await seedSession(page);
   await page.goto('/');

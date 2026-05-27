@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added actionable Performance Health verdicts for frame hitches, low FPS, draw-call pressure, state switching, memory growth, and texture pressure.
 - Performance Health warnings now render as a compact collapsible strip so diagnostics do not crowd the chart.
 - Hidden sidebar features and hidden disabled plugins are now hidden from Command Center by default, with a Settings opt-in for sidebar features.
+- Shared triage UI primitives now keep search, filters, summary chips, empty states, copy actions, and details panels more consistent across live debugging pages.
 
 ### Fixed
 

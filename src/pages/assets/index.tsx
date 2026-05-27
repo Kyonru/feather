@@ -14,17 +14,22 @@ import {
   MusicIcon,
   PlayIcon,
   PlusIcon,
-  SearchIcon,
   TextIcon,
   XIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  TriageEmptyState,
+  TriageFilterBar,
+  TriageSearch,
+  TriageSummaryChip,
+  TriageToolbar,
+} from '@/components/triage';
 import { useAssets, type AssetKind, type AudioAsset, type FontAsset, type TextureAsset } from '@/hooks/use-assets';
 import { useConfigStore } from '@/store/config';
 import { useDebuggerStore } from '@/store/debugger';
@@ -224,9 +229,10 @@ function usePreviewSrc(src?: string): string | null {
 
 function EmptyState() {
   return (
-    <div className="flex min-h-52 items-center justify-center rounded-md border border-dashed px-4 text-center text-sm text-muted-foreground">
-      No assets captured yet. Assets loaded after Feather starts will appear here.
-    </div>
+    <TriageEmptyState
+      title="No assets captured yet"
+      description="Assets loaded after Feather starts will appear here."
+    />
   );
 }
 
@@ -836,22 +842,17 @@ export default function AssetsPage() {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="h-6 font-mono text-xs">
-                Visible {rows.length}
-              </Badge>
-              <Badge variant="outline" className="h-6 font-mono text-xs">
-                Repeated {repeatedCount}
-              </Badge>
-              <Badge
-                variant={assetPreviewEnabled ? 'outline' : 'secondary'}
-                className={cn('h-6 font-mono text-xs', assetPreviewEnabled && 'border-emerald-500/40 text-emerald-600')}
-              >
-                Preview {assetPreviewEnabled ? 'on' : 'off'}
-              </Badge>
-            </div>
-            <Tabs value={tab} onValueChange={(value) => setTab(value as AssetKind)}>
+          <TriageToolbar
+            className="rounded-md border px-3"
+            summary={
+              <>
+                <TriageSummaryChip label="Visible" value={rows.length} />
+                <TriageSummaryChip label="Repeated" value={repeatedCount} tone={repeatedCount > 0 ? 'warning' : 'muted'} />
+                <TriageSummaryChip label="Preview" value={assetPreviewEnabled ? 'on' : 'off'} tone={assetPreviewEnabled ? 'good' : 'muted'} />
+              </>
+            }
+            filters={
+              <Tabs value={tab} onValueChange={(value) => setTab(value as AssetKind)}>
               <TabsList>
                 <TabsTrigger value="texture">
                   <ImageIcon className="size-4" />
@@ -867,34 +868,22 @@ export default function AssetsPage() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="relative w-full sm:w-72">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Filter assets"
-                className="pl-9"
-              />
-            </div>
-          </div>
+            }
+            search={<TriageSearch value={search} onChange={setSearch} placeholder="Filter assets" />}
+          />
 
           <div className="flex flex-wrap items-center gap-2">
-            {[
-              ['all', 'All'],
-              ['file', 'File-backed'],
-              ['runtime', 'Runtime'],
-              ['repeated', 'Repeated'],
-              ['missing', 'Missing local file'],
-            ].map(([value, label]) => (
-              <Button
-                key={value}
-                size="sm"
-                variant={filter === value ? 'secondary' : 'outline'}
-                onClick={() => setFilter(value as AssetFilter)}
-              >
-                {label}
-              </Button>
-            ))}
+            <TriageFilterBar
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'file', label: 'File-backed' },
+                { value: 'runtime', label: 'Runtime' },
+                { value: 'repeated', label: 'Repeated' },
+                { value: 'missing', label: 'Missing local file' },
+              ]}
+            />
           </div>
 
           <Tabs value={tab} onValueChange={(value) => setTab(value as AssetKind)} className="min-h-0">

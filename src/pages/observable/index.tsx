@@ -2,20 +2,26 @@ import { useEffect, useMemo, useState } from 'react';
 import { PageLayout } from '@/components/page-layout';
 import { SectionCards } from './section-cards';
 import { useObservability, ObserverEntry } from '@/hooks/use-observability';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button, CopyButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { LuaBlock } from '@/components/code';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Input } from '@/components/ui/input';
 import { useConfig } from '@/hooks/use-config';
 import { lineDiff, hasDiff } from '@/utils/diff';
 import { cn } from '@/utils/styles';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ActivityIcon, DownloadIcon, EyeIcon, SearchIcon } from 'lucide-react';
+import { ActivityIcon, DownloadIcon } from 'lucide-react';
 import { downloadFile } from '@/utils/file';
+import {
+  TriageCopyButton,
+  TriageDetailsPanel,
+  TriageEmptyState,
+  TriageSearch,
+  TriageSummaryChip,
+  TriageToolbar,
+} from '@/components/triage';
 
 type ObserverSortKey = 'changed' | 'key' | 'group' | 'type' | 'changes' | 'lastChanged' | 'lastSeen' | 'size';
 type ChangeWindowKey = '5000' | '10000' | '30000' | '60000' | 'sticky';
@@ -114,46 +120,30 @@ function HistoryEntry({ value, index, total }: { value: string; index: number; t
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-md border bg-muted/25 px-3 py-2">
-      <p className="text-[11px] uppercase text-muted-foreground">{label}</p>
-      <p className="font-mono text-lg font-semibold">{value}</p>
-    </div>
-  );
-}
-
 export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => void; data: ObserverEntry }) {
   const diffLines = data.previous !== undefined ? lineDiff(data.previous, data.value) : [];
   const showDiff = hasDiff(diffLines);
   const defaultTab = showDiff ? 'diff' : 'current';
 
   return (
-    <Card className="w-[min(640px,45vw)] min-w-[420px] rounded-none rounded-br-xl flex flex-col">
-      <CardHeader className="flex items-center justify-between shrink-0">
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <CardTitle className="truncate font-mono text-base">{data.key}</CardTitle>
-            {data.changed && <span className="inline-block h-2 w-2 rounded-full bg-yellow-400" title="Value changed" />}
-          </div>
-          <div className="mt-1 flex items-center gap-2">
-            <Badge variant="secondary" className="font-mono text-[10px]">
-              {data.type}
+    <TriageDetailsPanel
+      title={data.key}
+      onClose={() => onClose(false)}
+      subtitle={<span>{data.value.length.toLocaleString()} chars</span>}
+      badges={
+        <>
+          {data.changed && <span className="inline-block size-2 rounded-full bg-yellow-400" title="Value changed" />}
+          <Badge variant="secondary" className="font-mono text-[10px]">
+            {data.type}
+          </Badge>
+          {data.group && (
+            <Badge variant="outline" className="font-mono text-[10px]">
+              {data.group}
             </Badge>
-            {data.group && (
-              <Badge variant="outline" className="font-mono text-[10px]">
-                {data.group}
-              </Badge>
-            )}
-            <span className="text-xs text-muted-foreground">{data.value.length.toLocaleString()} chars</span>
-          </div>
-        </div>
-        <Button onClick={() => onClose(false)} variant="secondary">
-          Dismiss
-        </Button>
-      </CardHeader>
-
-      <CardContent className="flex-1 overflow-hidden">
+          )}
+        </>
+      }
+    >
         <Tabs defaultValue={defaultTab} className="h-full flex flex-col">
           <TabsList className="shrink-0">
             <TabsTrigger value="current">Current</TabsTrigger>
@@ -167,16 +157,16 @@ export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => v
           </TabsList>
 
           <TabsContent value="current" className="flex-1 overflow-auto space-y-4 mt-3">
-            <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
-              <Stat label="Changes" value={data.changeCount ?? 0} />
-              <Stat label="First Seen" value={formatObservedTime(data.firstSeen)} />
-              <Stat label="Last Seen" value={formatObservedTime(data.lastSeen)} />
-              <Stat label="Last Changed" value={formatObservedTime(data.lastChanged)} />
+            <div className="flex flex-wrap gap-2 text-xs">
+              <TriageSummaryChip label="Changes" value={data.changeCount ?? 0} />
+              <TriageSummaryChip label="First Seen" value={formatObservedTime(data.firstSeen)} />
+              <TriageSummaryChip label="Last Seen" value={formatObservedTime(data.lastSeen)} />
+              <TriageSummaryChip label="Last Changed" value={formatObservedTime(data.lastChanged)} />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium">Value</span>
-                <CopyButton value={data.value} />
+                <TriageCopyButton value={data.value} label="value" />
               </div>
               <LuaBlock className="max-h-[100%]" code={data.value} showLineNumbers={false} />
             </div>
@@ -184,7 +174,7 @@ export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => v
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium">Observer JSON</span>
-                <CopyButton value={JSON.stringify(data, null, 2)} />
+                <TriageCopyButton value={JSON.stringify(data, null, 2)} label="observer JSON" />
               </div>
               <LuaBlock className="mt-1" code={JSON.stringify(data, null, 2)} showLineNumbers={false} />
             </div>
@@ -207,8 +197,7 @@ export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => v
             </ScrollArea>
           </TabsContent>
         </Tabs>
-      </CardContent>
-    </Card>
+    </TriageDetailsPanel>
   );
 }
 
@@ -275,14 +264,17 @@ export default function Page() {
   if (all.length === 0 && !search) {
     return (
       <PageLayout>
-        <div className="flex flex-col items-center justify-center h-full gap-6 px-4 py-16 text-center">
-          <div className="grid gap-1">
-            <p className="text-lg font-semibold">No observers yet</p>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              Call <code className="font-mono">DEBUGGER:observe()</code> anywhere in your game loop to watch values in
-              real time.
-            </p>
-          </div>
+        <div className="flex h-full flex-col items-center justify-center gap-6 px-4 py-16 text-center">
+          <TriageEmptyState
+            title="No observers yet"
+            description={
+              <>
+                Call <code className="font-mono">DEBUGGER:observe()</code> anywhere in your game loop to watch values in
+                real time.
+              </>
+            }
+            className="min-h-0 border-0"
+          />
           <LuaBlock
             className="w-full max-w-lg text-left"
             showLineNumbers={false}
@@ -302,23 +294,18 @@ end`}
   return (
     <PageLayout right={selected && selectedEntry && <ObserveSidePanel data={selectedEntry} onClose={onClose} />}>
       <div className="space-y-3 px-4 pb-1 lg:px-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <Stat label="Observers" value={all.length} />
-          <Stat label="Changed" value={changedCount} />
-          <Stat label="Types" value={typeOptions.length} />
-          <Stat label="Changes" value={totalChanges} />
+        <div className="flex flex-wrap gap-2">
+          <TriageSummaryChip label="Observers" value={all.length} />
+          <TriageSummaryChip label="Changed" value={changedCount} tone={changedCount > 0 ? 'warning' : 'default'} />
+          <TriageSummaryChip label="Types" value={typeOptions.length} />
+          <TriageSummaryChip label="Changes" value={totalChanges} tone={totalChanges > 0 ? 'good' : 'muted'} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-64 flex-1 max-w-xl">
-            <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search keys or values..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-7"
-            />
-          </div>
+        <TriageToolbar
+          className="rounded-md border px-3"
+          search={<TriageSearch placeholder="Search keys or values..." value={search} onChange={setSearch} />}
+          filters={
+            <>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="h-9 w-[180px]">
               <SelectValue placeholder="All types" />
@@ -381,23 +368,27 @@ end`}
             <ActivityIcon className="size-4" />
             Changed
           </Button>
+            </>
+          }
+          actions={
+            <>
           <Button variant="outline" size="default" onClick={() => exportObservers(data)}>
             <DownloadIcon className="size-4" />
             Export JSON
           </Button>
           {data.length > 0 && (
-            <Badge variant="secondary" className="h-9 gap-1.5 px-3 text-sm">
-              <EyeIcon className="size-4" />
-              {data.length.toLocaleString()} of {all.length.toLocaleString()} shown
-              {historyCount > 0 ? `, ${historyCount.toLocaleString()} history` : ''}
-            </Badge>
+            <TriageSummaryChip
+              label="Shown"
+              value={`${data.length.toLocaleString()} / ${all.length.toLocaleString()}${historyCount > 0 ? `, ${historyCount.toLocaleString()} history` : ''}`}
+              tone="muted"
+            />
           )}
-        </div>
+            </>
+          }
+        />
       </div>
       {data.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
-          No observers match the current filters.
-        </div>
+        <TriageEmptyState className="mx-4 flex-1" title="No observers match the current filters." />
       ) : (
         <SectionCards data={data} selected={selected} onSelect={onSelect} />
       )}

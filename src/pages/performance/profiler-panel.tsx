@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { CameraIcon, DownloadIcon, PauseIcon, PlayIcon, RotateCcwIcon, SearchIcon } from 'lucide-react';
+import { CameraIcon, DownloadIcon, PauseIcon, PlayIcon, RotateCcwIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TriageEmptyState, TriageSearch, TriageSummaryChip, TriageToolbar } from '@/components/triage';
 import { PluginTableRow, usePlugin, usePluginAction } from '@/hooks/use-plugin';
 import { useConfigStore } from '@/store/config';
 import { downloadFile } from '@/utils/file';
@@ -136,8 +137,10 @@ export function ProfilerPanel() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <TriageToolbar
+        className="rounded-md border"
+        actions={
+          <>
           <Button size="sm" variant={recording ? 'secondary' : 'default'} onClick={() => onAction('start')}>
             <PlayIcon className="size-4" />
             Start
@@ -176,20 +179,20 @@ export function ProfilerPanel() {
             <DownloadIcon className="size-4" />
             Export JSON
           </Button>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          </>
+        }
+        summary={
+          <>
           <span className={cn('size-2 rounded-full', recording ? 'bg-green-500' : 'bg-muted-foreground')} />
-          {recording ? 'Recording' : 'Stopped'}
-          <span>Capture {captureElapsed.toFixed(1)}s</span>
-          <span>Total {formatSeconds(totalCapturedTime)}</span>
-        </div>
-      </div>
+            <TriageSummaryChip label={recording ? 'Recording' : 'Stopped'} tone={recording ? 'good' : 'muted'} />
+            <TriageSummaryChip label="Capture" value={`${captureElapsed.toFixed(1)}s`} />
+            <TriageSummaryChip label="Total" value={formatSeconds(totalCapturedTime)} />
+          </>
+        }
+      />
 
       <div className="grid gap-2 rounded-md border p-3 lg:grid-cols-[minmax(16rem,1fr)_11rem_11rem_11rem_10rem_10rem]">
-        <div className="relative">
-          <SearchIcon className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
-          <Input className="pl-8" placeholder="Search functions..." value={search} onChange={(event) => setSearch(event.target.value)} />
-        </div>
+        <TriageSearch value={search} onChange={setSearch} placeholder="Search functions..." />
         <Select value={groupFilter} onValueChange={setGroupFilter}>
           <SelectTrigger>
             <SelectValue />
@@ -266,8 +269,8 @@ export function ProfilerPanel() {
           <TableBody>
             {filteredRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={selectedSnapshot ? 11 : 9} className="py-8 text-center text-muted-foreground">
-                  No profiler samples collected yet
+                <TableCell colSpan={selectedSnapshot ? 11 : 9} className="p-4">
+                  <TriageEmptyState title="No profiler samples collected yet" className="min-h-32" />
                 </TableCell>
               </TableRow>
             ) : (

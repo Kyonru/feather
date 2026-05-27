@@ -1,19 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ClipboardIcon, SearchIcon } from 'lucide-react';
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  TriageCopyButton,
+  TriageEmptyState,
+  TriageFilterBar,
+  TriageSearch,
+  TriageSummaryChip,
+  TriageToolbar,
+} from '@/components/triage';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import { type PerformanceMetrics } from '@/hooks/use-performance';
 import { finiteNumber, formatOptionalFixed, formatOptionalMemory, formatSignedMemory } from '@/utils/performance-metrics';
 import { useSessionStore, type SessionInfo } from '@/store/session';
 import { cn } from '@/utils/styles';
-import { copyToClipboardWithMeta } from '@/utils/strings';
-import { toast } from 'sonner';
 
 type ObserverEntry = {
   key?: unknown;
@@ -64,11 +69,6 @@ function sessionLabel(session?: SessionInfo | null) {
 
 function groupForKey(key: string) {
   return key.match(/^([^.:/\s]+)/)?.[1] ?? 'ungrouped';
-}
-
-function copyText(value: string, label: string) {
-  copyToClipboardWithMeta(value);
-  toast.success(`Copied ${label}`);
 }
 
 function statusLabel(status: CompareStatus) {
@@ -198,21 +198,11 @@ function SummaryStrip({ rows }: { rows: CompareRow[] }) {
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
-      <Badge variant="outline" className="h-6 font-mono text-xs">
-        Total {rows.length}
-      </Badge>
-      <Badge variant="outline" className={cn('h-6 font-mono text-xs', statusClass('changed'))}>
-        Changed {counts.changed}
-      </Badge>
-      <Badge variant="outline" className={cn('h-6 font-mono text-xs', statusClass('onlyA'))}>
-        Only A {counts.onlyA}
-      </Badge>
-      <Badge variant="outline" className={cn('h-6 font-mono text-xs', statusClass('onlyB'))}>
-        Only B {counts.onlyB}
-      </Badge>
-      <Badge variant="outline" className={cn('h-6 font-mono text-xs', statusClass('equal'))}>
-        Equal {counts.equal}
-      </Badge>
+      <TriageSummaryChip label="Total" value={rows.length} />
+      <TriageSummaryChip label="Changed" value={counts.changed} tone={counts.changed > 0 ? 'warning' : 'default'} />
+      <TriageSummaryChip label="Only A" value={counts.onlyA} tone={counts.onlyA > 0 ? 'default' : 'muted'} />
+      <TriageSummaryChip label="Only B" value={counts.onlyB} tone={counts.onlyB > 0 ? 'default' : 'muted'} />
+      <TriageSummaryChip label="Equal" value={counts.equal} tone="muted" />
       {rows.length === 0 && <span className="text-xs text-muted-foreground">No observer values have arrived yet.</span>}
     </div>
   );
@@ -391,9 +381,11 @@ export default function ComparePage() {
       </div>
 
       {!canCompare ? (
-        <div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
-          Compare needs at least two connected sessions. Connect another session to compare runtime data.
-        </div>
+        <TriageEmptyState
+          className="m-4 flex-1"
+          title="Compare needs at least two connected sessions"
+          description="Connect another session to compare runtime data."
+        />
       ) : (
         <>
           <div className="grid shrink-0 grid-cols-1 gap-2 border-b p-3 lg:grid-cols-2">
@@ -403,40 +395,48 @@ export default function ComparePage() {
           <SummaryStrip rows={rows} />
           <PerformanceDeltas left={leftPerf} right={rightPerf} />
 
-          <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
-            {(['all', 'changed', 'onlyA', 'onlyB', 'equal'] as CompareFilter[]).map((value) => (
-              <Button key={value} size="sm" variant={filter === value ? 'secondary' : 'outline'} onClick={() => setFilter(value)}>
-                {value === 'all' ? 'All' : statusLabel(value)}
-              </Button>
-            ))}
-            <Select value={group} onValueChange={setGroup}>
-              <SelectTrigger className="h-8 w-40 text-xs">
-                <SelectValue placeholder="Group" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All groups</SelectItem>
-                {groups.map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="relative min-w-52 flex-1 sm:max-w-80">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search key or value" className="h-8 pl-9" />
-            </div>
-            <Badge variant="outline" className="h-6 font-mono text-xs">
-              Showing {filteredRows.length}
-            </Badge>
-          </div>
+          <TriageToolbar
+            filters={
+              <>
+                <TriageFilterBar
+                  value={filter}
+                  onChange={setFilter}
+                  options={(['all', 'changed', 'onlyA', 'onlyB', 'equal'] as CompareFilter[]).map((value) => ({
+                    value,
+                    label: value === 'all' ? 'All' : statusLabel(value),
+                  }))}
+                />
+                <Select value={group} onValueChange={setGroup}>
+                  <SelectTrigger className="h-8 w-40 text-xs">
+                    <SelectValue placeholder="Group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All groups</SelectItem>
+                    {groups.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            }
+            search={<TriageSearch value={search} onChange={setSearch} placeholder="Search key or value" />}
+            summary={<TriageSummaryChip label="Showing" value={filteredRows.length} />}
+          />
 
           {rows.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              No observer data yet. Call <code className="mx-1 font-mono text-xs">DEBUGGER:observe()</code> in your game.
-            </div>
+            <TriageEmptyState
+              className="m-4 flex-1"
+              title="No observer data yet"
+              description={
+                <>
+                  Call <code className="font-mono">DEBUGGER:observe()</code> in your game.
+                </>
+              }
+            />
           ) : filteredRows.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">No compare rows match the current filters.</div>
+            <TriageEmptyState className="m-4 flex-1" title="No compare rows match the current filters." />
           ) : (
             <div className="h-0 flex-1 overflow-auto">
               <Table>
@@ -498,38 +498,16 @@ export default function ComparePage() {
                       <TableCell className="py-1.5 font-mono text-xs text-muted-foreground">{row.valueLength}</TableCell>
                       <TableCell className="py-1.5 text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" className="size-7" title="Copy key" onClick={() => copyText(row.key, 'key')}>
-                            <ClipboardIcon className="size-3.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="size-7"
-                            title="Copy A value"
-                            disabled={row.left == null}
-                            onClick={() => row.left != null && copyText(row.left, 'A value')}
-                          >
+                          <TriageCopyButton value={row.key} label="key" />
+                          <TriageCopyButton value={row.left} label="A value">
                             A
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="size-7"
-                            title="Copy B value"
-                            disabled={row.right == null}
-                            onClick={() => row.right != null && copyText(row.right, 'B value')}
-                          >
+                          </TriageCopyButton>
+                          <TriageCopyButton value={row.right} label="B value">
                             B
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="size-7"
-                            title="Copy row JSON"
-                            onClick={() => copyText(JSON.stringify(row, null, 2), 'row JSON')}
-                          >
+                          </TriageCopyButton>
+                          <TriageCopyButton value={JSON.stringify(row, null, 2)} label="row JSON">
                             {'{}'}
-                          </Button>
+                          </TriageCopyButton>
                         </div>
                       </TableCell>
                     </TableRow>

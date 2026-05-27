@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TriageEmptyState, TriageToolbar } from '@/components/triage';
 import {
   CheckCircleIcon,
   ChevronDownIcon,
@@ -74,8 +75,8 @@ function SpikesList({ data }: { data: PerformanceMetrics[] }) {
           <TableBody>
             {spikes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                  No performance samples yet
+                <TableCell colSpan={7} className="p-4">
+                  <TriageEmptyState title="No performance samples yet" className="min-h-32" />
                 </TableCell>
               </TableRow>
             ) : (
@@ -242,7 +243,10 @@ export default function Page() {
             <TabsTrigger value="health">Health</TabsTrigger>
             <TabsTrigger value="profiler">Profiler</TabsTrigger>
           </TabsList>
-          <div className="flex flex-wrap items-center gap-2">
+          <TriageToolbar
+            className="border-0 px-0"
+            actions={
+              <>
             <div className="flex items-center gap-2 pr-2">
               <Switch id="disk-usage-toggle" checked={diskUsageEnabled} onCheckedChange={handleDiskUsageToggle} />
               <Label htmlFor="disk-usage-toggle" className="text-muted-foreground text-sm">
@@ -265,7 +269,9 @@ export default function Page() {
               <DownloadIcon className="size-4" />
               Export JSON
             </Button>
-          </div>
+              </>
+            }
+          />
         </div>
 
         <TabsContent value="health" className="grid gap-4">
