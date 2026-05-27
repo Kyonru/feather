@@ -53,6 +53,147 @@ async function seedTwoConnectedSessions(page: Page) {
   });
 }
 
+async function seedCommandCenterState(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+    localStorage.setItem(
+      'session-storage',
+      JSON.stringify({
+        state: {
+          sessions: {
+            demo: {
+              id: 'demo',
+              name: 'Demo Session',
+              os: 'Web',
+              connected: true,
+              connectedAt: Date.now(),
+            },
+            second: {
+              id: 'second',
+              name: 'Second Session',
+              os: 'Web',
+              connected: true,
+              connectedAt: Date.now() - 1000,
+            },
+          },
+        },
+        version: 0,
+      }),
+    );
+    localStorage.setItem(
+      'settings-storage',
+      JSON.stringify({
+        state: {
+          hiddenMainFeatures: ['assets'],
+          hiddenPlugins: ['disabled-tool'],
+          showHiddenMainFeaturesInCommandCenter: true,
+        },
+        version: 0,
+      }),
+    );
+    localStorage.setItem(
+      'feather-console-history-v2',
+      JSON.stringify({
+        state: {
+          historyBySession: {},
+          outputBySession: {},
+          snippetsBySession: {
+            demo: [
+              {
+                id: 'snippet-player-health',
+                name: 'Player health',
+                code: 'return player.health',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              },
+            ],
+          },
+        },
+        version: 0,
+      }),
+    );
+  });
+}
+
+async function seedCommandCenterHiddenDefault(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+    localStorage.setItem(
+      'session-storage',
+      JSON.stringify({
+        state: {
+          sessions: {
+            demo: {
+              id: 'demo',
+              name: 'Demo Session',
+              os: 'Web',
+              connected: true,
+              connectedAt: Date.now(),
+            },
+          },
+        },
+        version: 0,
+      }),
+    );
+    localStorage.setItem(
+      'settings-storage',
+      JSON.stringify({
+        state: {
+          hiddenMainFeatures: ['assets'],
+        },
+        version: 0,
+      }),
+    );
+  });
+}
+
+async function pressCommandCenterShortcut(page: Page) {
+  await page.getByTestId('command-center-trigger').focus();
+  await page.keyboard.press('Control+K');
+}
+
+async function seedCommandCenterConfig(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'config'], {
+      plugins: {
+        profiler: {
+          tabName: 'Profiler',
+          icon: 'gauge',
+        },
+        'disabled-tool': {
+          tabName: 'Disabled Tool',
+          icon: 'plug',
+          disabled: true,
+        },
+      },
+      root_path: '/tmp/demo',
+      version: '2.0.0',
+      API: 0,
+      sampleRate: 1,
+      outfile: '',
+      language: 'lua',
+      captureScreenshot: false,
+      location: '/tmp/demo',
+      sourceDir: '/tmp/demo',
+      sessionName: 'Demo Session',
+      debugger: {
+        hotReload: {
+          enabled: false,
+          active: false,
+          persistToDisk: false,
+          requireLocalNetwork: true,
+          modifiedModules: [],
+          persistedModules: [],
+          failedModules: [],
+          history: [],
+        },
+      },
+    });
+  });
+}
+
 async function seedCompareData(page: Page) {
   await page.evaluate(() => {
     const basePerf = {
@@ -401,6 +542,8 @@ test('persists settings changes across reloads', async ({ page }) => {
   await page.getByRole('tab', { name: 'General' }).click();
   await page.getByLabel('Asset Source Directory').fill('/tmp/feather-assets');
   await page.getByLabel('Assets', { exact: true }).uncheck();
+  await expect(page.getByLabel('Show hidden sidebar features in Command Center')).not.toBeChecked();
+  await page.getByLabel('Show hidden sidebar features in Command Center').check();
 
   await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Close' }).first().click();
 
@@ -414,6 +557,7 @@ test('persists settings changes across reloads', async ({ page }) => {
   await page.getByRole('tab', { name: 'General' }).click();
   await expect(page.getByLabel('Asset Source Directory')).toHaveValue('/tmp/feather-assets');
   await expect(page.getByLabel('Assets', { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel('Show hidden sidebar features in Command Center')).toBeChecked();
 });
 
 test('keeps tool routes gated until a session is selected', async ({ page }) => {
@@ -679,4 +823,72 @@ test('console renders transcript actions, snippets, and history search', async (
   await expect(header).toBeVisible();
   await expect(page.getByTestId('console-snippets')).toBeHidden();
   await expect(editor).toBeVisible();
+});
+
+test('command center discovers hidden features, plugins, snippets, and safe actions', async ({ page }) => {
+  await seedCommandCenterState(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await seedCommandCenterConfig(page);
+
+  await pressCommandCenterShortcut(page);
+  await expect(page.getByTestId('command-center')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('command-center')).toBeHidden();
+
+  await pressCommandCenterShortcut(page);
+  await page.getByLabel('Command Center search').fill('assets');
+  const assetsRow = page.getByTestId('command-center-row').filter({ hasText: '/assets' }).first();
+  await expect(assetsRow).toBeVisible();
+  await expect(assetsRow.getByText('Hidden')).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/assets$/);
+
+  await pressCommandCenterShortcut(page);
+  await page.getByLabel('Command Center search').fill('profiler');
+  await expect(page.getByTestId('command-center-row').filter({ hasText: '/plugins/profiler' }).first()).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/plugins\/profiler$/);
+
+  await pressCommandCenterShortcut(page);
+  await page.getByLabel('Command Center search').fill('player health');
+  await expect(page.getByTestId('command-center').getByText('Insert snippet: Player health')).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/console$/);
+  await expect(page.locator('textarea').last()).toHaveValue('return player.health');
+
+  await pressCommandCenterShortcut(page);
+  await page.getByLabel('Command Center search').fill('continue');
+  const continueRow = page.getByTestId('command-center-row').filter({ hasText: 'Continue' }).first();
+  await expect(continueRow).toHaveAttribute('aria-disabled', 'true');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('command-center')).toBeVisible();
+
+  await page.getByLabel('Command Center search').fill('disabled tool');
+  await expect(page.getByTestId('command-center-row').filter({ hasText: 'Disabled Tool' })).toHaveCount(0);
+
+  await page.getByLabel('Command Center search').fill('second session');
+  const secondSessionRow = page.getByTestId('command-center-row').filter({ hasText: 'Switch to Second Session' }).first();
+  await expect(secondSessionRow).toHaveAttribute('data-selected', 'true');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('command-center')).toBeHidden();
+  await expect(page.getByText('Second Session').first()).toBeVisible();
+
+  await page.setViewportSize({ width: 430, height: 720 });
+  await pressCommandCenterShortcut(page);
+  await expect(page.getByTestId('command-center')).toBeVisible();
+  await expect(page.getByLabel('Command Center search')).toBeVisible();
+});
+
+test('command center hides hidden sidebar features by default', async ({ page }) => {
+  await seedCommandCenterHiddenDefault(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await pressCommandCenterShortcut(page);
+  await page.getByLabel('Command Center search').fill('assets');
+
+  await expect(page.getByRole('button', { name: /^Assets \/assets/ })).toHaveCount(0);
+  await expect(page.getByTestId('command-center').getByText('Assets docs')).toBeVisible();
 });

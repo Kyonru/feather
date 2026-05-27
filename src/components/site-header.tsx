@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { CommandCenterTrigger } from '@/components/command-center';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Badge } from './ui/badge';
@@ -17,6 +18,7 @@ export function SiteHeader() {
         <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
         <SessionTabs />
         <div className="shrink-0 ml-auto flex items-center gap-2">
+          <CommandCenterTrigger />
           {location && (
             <Button
               onClick={() => {

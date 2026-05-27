@@ -19,6 +19,7 @@ type SettingsStoreState = {
   connectionTimeout: number;
   hiddenPlugins: string[];
   hiddenMainFeatures: MainFeatureId[];
+  showHiddenMainFeaturesInCommandCenter: boolean;
   assetSourceDir: string;
 };
 
@@ -39,6 +40,7 @@ type SettingsStoreActions = {
   toggleHiddenPlugin: (pluginId: string) => void;
   toggleHiddenMainFeature: (featureId: MainFeatureId) => void;
   setHiddenMainFeatures: (featureIds: MainFeatureId[]) => void;
+  setShowHiddenMainFeaturesInCommandCenter: (show: boolean) => void;
   setAssetSourceDir: (dir: string) => void;
   reset: () => void;
 };
@@ -67,6 +69,7 @@ const defaultSettings: SettingsStoreState = {
   connectionTimeout: 15,
   hiddenPlugins: [],
   hiddenMainFeatures: [],
+  showHiddenMainFeaturesInCommandCenter: false,
   assetSourceDir: '',
 };
 
@@ -99,6 +102,8 @@ export const useSettingsStore = create<SettingsStore>()(
       setConnectionTimeout: (connectionTimeout: number) => set({ connectionTimeout }),
       setAssetSourceDir: (assetSourceDir: string) => set({ assetSourceDir }),
       setHiddenMainFeatures: (hiddenMainFeatures: MainFeatureId[]) => set({ hiddenMainFeatures }),
+      setShowHiddenMainFeaturesInCommandCenter: (showHiddenMainFeaturesInCommandCenter: boolean) =>
+        set({ showHiddenMainFeaturesInCommandCenter }),
       toggleHiddenMainFeature: (featureId: MainFeatureId) =>
         set((state) => ({
           hiddenMainFeatures: state.hiddenMainFeatures.includes(featureId)

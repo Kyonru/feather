@@ -52,6 +52,16 @@ end
 
 ---
 
+## Command Center
+
+Press <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd>, or use the **Command** button in the app header, to open the Command Center.
+
+It searches pages, plugins, Console snippets, Debugger actions, Hot Reload shortcuts, sessions, and docs links. By default, features hidden from the sidebar are also hidden from Command Center search; enable **Show hidden sidebar features in Command Center** in Settings to keep them searchable with a **Hidden** badge. Disabled plugins hidden from the sidebar are hidden from Command Center too.
+
+Actions that need a live session or enabled plugin stay visible but disabled with a reason. The first pass only includes navigation and safe shortcuts: it can switch or refresh sessions, insert snippets into Console, open docs, and toggle debugger options, but it does not run arbitrary Console eval or plugin actions.
+
+---
+
 ## Observers
 
 Watch variable values in real-time from the Observability tab:

@@ -11,6 +11,7 @@ import { usePluginControl } from '@/hooks/use-plugin-control';
 import type { EvalResponse } from '@/hooks/use-ws-connection';
 import { useSessionStore } from '@/store/session';
 import { type ConsoleSnippet, useConsoleHistoryStore } from '@/store/console-history';
+import { useCommandCenterStore } from '@/store/command-center';
 import {
   CheckIcon,
   ClipboardIcon,
@@ -33,7 +34,7 @@ import onDark from '@/assets/theme/dark';
 import { copyToClipboardWithMeta } from '@/utils/strings';
 import { toast } from 'sonner';
 
-const BUILT_IN_SNIPPETS: Array<Pick<ConsoleSnippet, 'id' | 'name' | 'code'>> = [
+export const BUILT_IN_SNIPPETS: Array<Pick<ConsoleSnippet, 'id' | 'name' | 'code'>> = [
   {
     id: 'builtin-graphics-stats',
     name: 'Graphics stats',
@@ -299,6 +300,10 @@ export default function ConsolePage() {
   const apiKey = useEffectiveApiKey();
   const consolePlugin = usePluginControl('console');
   const [input, setInput] = useState('');
+  const pendingConsoleDraft = useCommandCenterStore((state) =>
+    sessionId ? state.consoleDraftBySession[sessionId] : undefined,
+  );
+  const consumeConsoleDraft = useCommandCenterStore((state) => state.consumeConsoleDraft);
   const emptyRef = useRef([]);
   // storedHistory: persisted string[], most-recent last, deduplicated, scoped to the active session
   const storedHistory = useConsoleHistoryStore((state) =>
@@ -355,6 +360,12 @@ export default function ConsolePage() {
 
   // storedHistory is most-recent-last; reverse for most-recent-first display/nav
   const historyNewestFirst = useMemo(() => [...storedHistory].reverse(), [storedHistory]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const draft = consumeConsoleDraft(sessionId);
+    if (draft !== undefined) setInput(draft);
+  }, [consumeConsoleDraft, pendingConsoleDraft, sessionId]);
 
   const searchResults = useMemo(() => {
     const q = searchQuery.toLowerCase();

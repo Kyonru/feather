@@ -169,8 +169,14 @@ const optionalFeatureDefaults: MainFeatureId[] = [
 
 function SidebarFeaturesInput() {
   const hiddenMainFeatures = useSettingsStore((state) => state.hiddenMainFeatures);
+  const showHiddenMainFeaturesInCommandCenter = useSettingsStore(
+    (state) => state.showHiddenMainFeaturesInCommandCenter,
+  );
   const toggleHiddenMainFeature = useSettingsStore((state) => state.toggleHiddenMainFeature);
   const setHiddenMainFeatures = useSettingsStore((state) => state.setHiddenMainFeatures);
+  const setShowHiddenMainFeaturesInCommandCenter = useSettingsStore(
+    (state) => state.setShowHiddenMainFeaturesInCommandCenter,
+  );
 
   return (
     <div className="grid gap-3">
@@ -205,6 +211,22 @@ function SidebarFeaturesInput() {
             </div>
           );
         })}
+      </div>
+      <div className="flex items-start gap-2 rounded border bg-muted/20 px-3 py-2">
+        <Checkbox
+          id="setting-command-center-hidden-features"
+          checked={showHiddenMainFeaturesInCommandCenter}
+          onCheckedChange={(checked) => setShowHiddenMainFeaturesInCommandCenter(checked === true)}
+        />
+        <div className="grid gap-1">
+          <Label htmlFor="setting-command-center-hidden-features" className="cursor-pointer">
+            Show hidden sidebar features in Command Center
+          </Label>
+          <FieldDescription>
+            When disabled, tools hidden from the sidebar are also hidden from Command Center search. Direct routes still
+            work.
+          </FieldDescription>
+        </div>
       </div>
     </div>
   );
