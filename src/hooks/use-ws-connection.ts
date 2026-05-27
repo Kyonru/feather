@@ -39,6 +39,8 @@ export const sessionQueryKey = {
   pluginAction: (sessionId: string, pluginId: string, action: string) => [sessionId, 'plugin-action', pluginId, action],
   console: (sessionId: string) => [sessionId, 'console'],
   consoleGlobals: (sessionId: string) => [sessionId, 'console-globals'],
+  consolePins: (sessionId: string) => [sessionId, 'console-pins'],
+  consoleInspect: (sessionId: string) => [sessionId, 'console-inspect'],
   timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
   timeTravelFrames: (sessionId: string) => [sessionId, 'time-travel-frames'],
   sessionReplay: (sessionId: string) => [sessionId, 'session-replay'],
@@ -89,11 +91,61 @@ export type EvalResponse = {
   status: 'success' | 'error';
   result: string | null;
   prints: string[];
+  values?: ConsoleValueMeta[];
 };
 
 export type ConsoleGlobalsResponse = {
   ok: boolean;
   globals?: Array<{ name: string; type: string }>;
+  error?: string;
+};
+
+export type ConsoleValueField = {
+  key: string;
+  keyType?: string;
+  type: string;
+  typeName?: string;
+  summary?: string;
+  preview?: string;
+  expandable?: boolean;
+  path?: string[];
+};
+
+export type ConsoleValueMeta = {
+  type: string;
+  typeName?: string;
+  summary?: string;
+  preview?: string;
+  expandable?: boolean;
+  handle?: string;
+  path?: string[];
+  fields?: ConsoleValueField[];
+  truncated?: boolean;
+};
+
+export type ConsoleInspectResultResponse = {
+  ok: boolean;
+  id?: string;
+  handle?: string;
+  path?: string[];
+  value?: ConsoleValueMeta;
+  error?: string;
+};
+
+export type ConsolePin = {
+  id: string;
+  name: string;
+  expression: string;
+  enabled: boolean;
+  status?: 'ok' | 'error';
+  error?: string;
+  value?: string;
+  updatedAt?: number;
+};
+
+export type ConsolePinsResponse = {
+  ok: boolean;
+  pins: ConsolePin[];
   error?: string;
 };
 
@@ -616,6 +668,7 @@ export const useWsConnection = () => {
                 status: evalMsg.status,
                 result: evalMsg.result ?? null,
                 prints: evalMsg.prints ?? [],
+                values: evalMsg.values,
               },
             ]);
             break;
@@ -633,6 +686,16 @@ export const useWsConnection = () => {
 
           case 'console:globals': {
             queryClient.setQueryData(sessionQueryKey.consoleGlobals(sessionId), data as ConsoleGlobalsResponse);
+            break;
+          }
+
+          case 'console:pins': {
+            queryClient.setQueryData(sessionQueryKey.consolePins(sessionId), data as ConsolePinsResponse);
+            break;
+          }
+
+          case 'console:inspect_result': {
+            queryClient.setQueryData(sessionQueryKey.consoleInspect(sessionId), data as ConsoleInspectResultResponse);
             break;
           }
 

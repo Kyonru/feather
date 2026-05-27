@@ -42,6 +42,77 @@ return PluginE2EHelper.createSmokeSuite("console", {
     assertTruthy(findGlobal(response.data.globals, "love"), "console globals include love")
     assertEqual(findGlobal(response.data.globals, "print").type, "function", "console globals include type metadata")
 
+    feather.apiKey = "secret"
+    sent = {}
+    console:handleEval({
+      id = "eval-table",
+      code = "return { health = 100, nested = { x = 12 } }",
+      apiKey = "secret",
+    }, feather)
+    response = lastEvent(sent, "eval:response")
+    assertEqual(response.status, "success", "structured eval succeeds")
+    assertTruthy(response.result, "structured eval preserves string result")
+    assertTruthy(response.values, "structured eval includes values metadata")
+    assertEqual(response.values[1].type, "table", "structured eval marks table values")
+    assertTruthy(response.values[1].fields, "structured eval includes shallow fields")
+    assertTruthy(response.values[1].handle, "structured eval includes result handle")
+
+    sent = {}
+    console:sendInspectResult({
+      data = {
+        handle = response.values[1].handle,
+        path = { "nested" },
+      },
+    }, feather)
+    local inspectResponse = lastEvent(sent, "console:inspect_result")
+    assertEqual(inspectResponse.data.ok, true, "nested inspect succeeds")
+    assertEqual(inspectResponse.data.value.type, "table", "nested inspect returns value metadata")
+
+    sent = {}
+    console:handleEval({
+      id = "eval-read-only-block",
+      code = "player.health = 1",
+      apiKey = "secret",
+      readOnly = true,
+    }, feather)
+    response = lastEvent(sent, "eval:response")
+    assertEqual(response.status, "error", "read-only guardrails block obvious assignment")
+
+    _G.player = { health = 10 }
+    sent = {}
+    console:handleEval({
+      id = "eval-read-only-read",
+      code = "return _G.player.health",
+      apiKey = "secret",
+      readOnly = true,
+    }, feather)
+    response = lastEvent(sent, "eval:response")
+    assertEqual(response.status, "success", "read-only guardrails allow global reads")
+
+    sent = {}
+    console:addPin({
+      apiKey = "secret",
+      data = {
+        name = "player_health",
+        expression = "player.health",
+      },
+    }, feather)
+    local pinsResponse = lastEvent(sent, "console:pins")
+    assertEqual(pinsResponse.data.ok, true, "console pin response succeeds")
+    assertEqual(pinsResponse.data.pins[1].status, "ok", "console pin evaluates")
+    _G.player.health = 11
+    console:update(1)
+    local observers = feather.featherObserver:getResponseBody(feather)
+    local pinnedObserver
+    for _, item in ipairs(observers) do
+      if item.key == "console.player_health" then
+        pinnedObserver = item
+      end
+    end
+    assertTruthy(pinnedObserver, "console pin publishes observability entry")
+    assertEqual(pinnedObserver.value, "11", "console pin updates observability entry")
+    _G.player = nil
+
     sent = {}
     feather.__connState = "connected"
     feather.pluginManager:disablePlugin("console")

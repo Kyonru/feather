@@ -731,6 +731,49 @@ function Feather:__handleCommand(msg)
         },
       }))
     end
+  elseif msg.type == "req:console:pins"
+    or msg.type == "cmd:console:pin"
+    or msg.type == "cmd:console:unpin"
+    or msg.type == "cmd:console:inspect_result"
+  then
+    local consolePlugin = self.pluginManager:getPlugin("console")
+    if consolePlugin and consolePlugin.instance and not consolePlugin.disabled then
+      if msg.type == "req:console:pins" then
+        consolePlugin.instance:sendPins(self)
+      elseif msg.type == "cmd:console:pin" then
+        consolePlugin.instance:addPin(msg, self)
+      elseif msg.type == "cmd:console:unpin" then
+        consolePlugin.instance:removePin(msg, self)
+      elseif msg.type == "cmd:console:inspect_result" then
+        consolePlugin.instance:sendInspectResult(msg, self)
+      end
+    else
+      local errorMessage = consolePlugin and "Console plugin is disabled. Enable it to manage pins."
+        or "Console plugin not registered. Add it to your plugins list."
+      if msg.type == "cmd:console:inspect_result" then
+        self:__sendWs(json.encode({
+          type = "console:inspect_result",
+          session = self.sessionId,
+          data = {
+            ok = false,
+            id = msg.data and msg.data.id or nil,
+            handle = msg.data and msg.data.handle or nil,
+            path = msg.data and msg.data.path or {},
+            error = errorMessage,
+          },
+        }))
+      else
+        self:__sendWs(json.encode({
+          type = "console:pins",
+          session = self.sessionId,
+          data = {
+            ok = false,
+            pins = {},
+            error = errorMessage,
+          },
+        }))
+      end
+    end
   elseif msg.type == "cmd:eval" and msg.code then
     local consolePlugin = self.pluginManager:getPlugin("console")
     if consolePlugin and consolePlugin.instance and not consolePlugin.disabled then

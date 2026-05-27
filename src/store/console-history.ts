@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { ConsoleValueMeta } from '@/hooks/use-ws-connection';
 
 const MAX_HISTORY = 200;
 const MAX_OUTPUT = 100;
@@ -12,6 +13,7 @@ export type StoredOutput = {
   status: 'success' | 'error';
   result: string | null;
   prints: string[];
+  values?: ConsoleValueMeta[];
 };
 
 export type ConsoleSnippet = {

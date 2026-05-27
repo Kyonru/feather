@@ -69,10 +69,23 @@ Each transcript entry includes a status badge, timestamp, and compact actions:
 - Put the command back into the editor.
 - Run the command again.
 - Expand long print/result output while keeping full-copy behavior intact.
+- Inspect structured table return values, copy fields, insert field paths, and pin expressions into Observability.
 
 The **Snippets** panel stores reusable Lua commands per Feather session. You can save the current editor input, insert a snippet without running it, run a snippet directly, rename saved snippets, or delete them. When no snippets have been saved yet, Feather shows built-in snippets for common checks like graphics stats, memory usage, frame timing, and window size.
 
 Press **Refresh `_G`** to fetch a shallow list of runtime global names for editor autocomplete. This is manual, not automatic, so Feather only snapshots globals when you ask. The snapshot includes names and Lua types, not inspected values.
+
+### Result inspectors and pins
+
+When a command returns a table, Console now sends a shallow structured preview in addition to the existing inspected string. Expand the result to browse top-level fields, copy values, insert a `return object.field` path back into the editor, or pin that path.
+
+Pinned expressions are evaluated by the Console plugin while the session is alive and published to Observability as `console.<name>` keys. Pins are live debugging helpers; unpin them from the Console sidebar when you no longer need them.
+
+### Read-only guardrails
+
+The **Read-only** toggle sends eval requests with best-effort mutation guardrails. It blocks obvious assignments and known mutating calls before the code runs, while keeping the normal sandbox enabled.
+
+This is not a true dry run or rollback system. Lua code can still hide side effects behind function calls, metatables, or game APIs. Treat it as a comfort rail for quick inspection, not as a security boundary.
 
 ### What gets captured
 
@@ -218,7 +231,7 @@ See [Recommendations → Level 3 — Exclude from the release build](./recommend
 2. Feather's `__handleCommand` routes the message to `ConsolePlugin:handleEval()`.
 3. The plugin validates auth, compiles the code via `loadstring`, and executes it in a sandboxed environment.
 4. `print()` calls inside the eval are captured and returned alongside the result.
-5. An `eval:response` message is sent back with `{ status, result, prints }`.
+5. An `eval:response` message is sent back with `{ status, result, prints }` plus optional structured result metadata for inspectors.
 
 ### Response format
 
@@ -230,5 +243,6 @@ See [Recommendations → Level 3 — Exclude from the release build](./recommend
   status = "success" | "error",
   result = "...",       -- inspected return value(s), or error message
   prints = { "..." },   -- captured print() output lines
+  values = { ... },      -- optional structured metadata for return values
 }
 ```

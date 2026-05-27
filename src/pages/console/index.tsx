@@ -8,7 +8,13 @@ import { Switch } from '@/components/ui/switch';
 import { useConsole, type ConsoleEntry } from '@/hooks/use-console';
 import { useEffectiveApiKey } from '@/hooks/use-session-api-key';
 import { usePluginControl } from '@/hooks/use-plugin-control';
-import type { EvalResponse } from '@/hooks/use-ws-connection';
+import type {
+  ConsoleInspectResultResponse,
+  ConsolePin,
+  ConsoleValueField,
+  ConsoleValueMeta,
+  EvalResponse,
+} from '@/hooks/use-ws-connection';
 import { useSessionStore } from '@/store/session';
 import { type ConsoleSnippet, useConsoleHistoryStore } from '@/store/console-history';
 import { useCommandCenterStore } from '@/store/command-center';
@@ -18,10 +24,12 @@ import {
   CornerDownLeftIcon,
   PencilIcon,
   PlayIcon,
+  PinIcon,
   RotateCcwIcon,
   SaveIcon,
   SearchIcon,
   SendIcon,
+  ShieldCheckIcon,
   SparklesIcon,
   TerminalIcon,
   Trash2Icon,
@@ -152,18 +160,158 @@ function displayOutput(value: string, expanded: boolean) {
   return `${value.slice(0, LONG_OUTPUT_LIMIT)}\n...`;
 }
 
+function expressionForPath(input: string, path?: string[]) {
+  const base = input.trim().replace(/^return\s+/, '');
+  if (!path || path.length === 0) return base;
+  return `${base}${path
+    .map((segment) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(segment) ? `.${segment}` : `[${JSON.stringify(segment)}]`))
+    .join('')}`;
+}
+
+function ConsoleValueInspector({
+  input,
+  value,
+  inspectResult,
+  onInspect,
+  onUseInput,
+  onPin,
+}: {
+  input: string;
+  value: ConsoleValueMeta;
+  inspectResult?: ConsoleInspectResultResponse;
+  onInspect: (handle: string, path: string[]) => void;
+  onUseInput: (code: string) => void;
+  onPin: (expression: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const fields = value.fields ?? [];
+  const resolved = inspectResult?.ok && inspectResult.value ? inspectResult.value : undefined;
+  const display =
+    resolved && JSON.stringify(resolved.path ?? []) === JSON.stringify(value.path ?? []) ? resolved : value;
+  const expression = expressionForPath(input, display.path);
+
+  return (
+    <div className="ml-4 mt-2 rounded-md border bg-background/70 text-xs">
+      <button
+        type="button"
+        className="flex w-full min-w-0 items-center gap-2 px-3 py-2 text-left hover:bg-muted/50"
+        onClick={() => setExpanded((next) => !next)}
+      >
+        <Badge variant="secondary" className="h-5 font-mono text-[10px]">
+          {display.typeName ?? display.type}
+        </Badge>
+        <span className="min-w-0 flex-1 truncate font-mono">{display.summary ?? display.preview ?? display.type}</span>
+        {display.truncated && (
+          <Badge variant="outline" className="h-5 text-[10px]">
+            truncated
+          </Badge>
+        )}
+      </button>
+      {expanded && (
+        <div className="grid gap-2 border-t p-2">
+          <div className="flex flex-wrap gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              onClick={() => copyText(display.preview ?? '', 'value')}
+            >
+              Copy
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              onClick={() => onUseInput(`return ${expression}`)}
+            >
+              Use path
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => onPin(expression)}>
+              <PinIcon className="size-3" /> Pin
+            </Button>
+          </div>
+          {fields.length > 0 ? (
+            <div className="grid gap-1">
+              {fields.map((field: ConsoleValueField) => {
+                const fieldExpression = expressionForPath(input, field.path);
+                return (
+                  <div
+                    key={`${field.key}:${field.path?.join('.')}`}
+                    className="grid grid-cols-[minmax(0,0.35fr)_minmax(0,1fr)_auto] items-center gap-2 rounded border px-2 py-1"
+                  >
+                    <span className="truncate font-mono text-cyan-600" title={field.key}>
+                      {field.key}
+                    </span>
+                    <span className="min-w-0 truncate font-mono text-muted-foreground" title={field.preview}>
+                      {field.preview ?? field.summary}
+                    </span>
+                    <div className="flex gap-1">
+                      {field.expandable && value.handle && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-6"
+                          title="Inspect nested value"
+                          onClick={() => onInspect(value.handle!, field.path ?? [])}
+                        >
+                          <SearchIcon className="size-3" />
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-6"
+                        title="Use field path"
+                        onClick={() => onUseInput(`return ${fieldExpression}`)}
+                      >
+                        <CornerDownLeftIcon className="size-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-6"
+                        title="Pin field"
+                        onClick={() => onPin(fieldExpression)}
+                      >
+                        <PinIcon className="size-3" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 font-mono text-[11px]">
+              {display.preview ?? 'No inspectable fields.'}
+            </pre>
+          )}
+          {inspectResult && inspectResult.ok === false && (
+            <p className="text-xs text-destructive">{inspectResult.error}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ConsoleOutput({
   entry,
   response,
   completedAt,
   onRerun,
   onUseInput,
+  inspectResult,
+  onInspect,
+  onPin,
 }: {
   entry: ConsoleEntry;
   response?: EvalResponse;
   completedAt?: number;
   onRerun: (code: string) => void;
   onUseInput: (code: string) => void;
+  inspectResult?: ConsoleInspectResultResponse;
+  onInspect: (handle: string, path: string[]) => void;
+  onPin: (expression: string) => void;
 }) {
   const theme = useTheme();
   const highlightTheme = theme === 'dark' ? onDark : oneLight;
@@ -290,12 +438,35 @@ function ConsoleOutput({
           {expanded ? 'Show less' : 'Show more'}
         </Button>
       )}
+      {response?.values?.map((value, index) => (
+        <ConsoleValueInspector
+          key={`${entry.id}:${index}`}
+          input={entry.input}
+          value={value}
+          inspectResult={inspectResult}
+          onInspect={onInspect}
+          onUseInput={onUseInput}
+          onPin={onPin}
+        />
+      ))}
     </div>
   );
 }
 
 export default function ConsolePage() {
-  const { responses, globals, execute, clear, refreshGlobals } = useConsole();
+  const {
+    responses,
+    globals,
+    pins,
+    inspectResult,
+    execute,
+    clear,
+    refreshGlobals,
+    refreshPins,
+    pinExpression,
+    unpinExpression,
+    inspectResultPath,
+  } = useConsole();
   const sessionId = useSessionStore((state) => state.sessionId);
   const apiKey = useEffectiveApiKey();
   const consolePlugin = usePluginControl('console');
@@ -327,6 +498,7 @@ export default function ConsolePage() {
   // Track which response IDs have already been persisted to avoid duplicates
   const persistedIds = useRef(new Set<string>());
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [readOnly, setReadOnly] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchIndex, setSearchIndex] = useState(0);
@@ -409,6 +581,7 @@ export default function ConsolePage() {
           status: response.status,
           result: response.result,
           prints: response.prints ?? [],
+          values: response.values,
         });
       }
     }
@@ -436,16 +609,20 @@ export default function ConsolePage() {
     closeSearch();
   };
 
+  useEffect(() => {
+    refreshPins();
+  }, [refreshPins]);
+
   const runCode = useCallback(
     (code: string) => {
       const trimmed = code.trim();
       if (!trimmed) return;
-      const entry = execute(trimmed);
+      const entry = execute(trimmed, { readOnly });
       setSessionEntries((prev) => [...prev, entry]);
       if (sessionId) pushHistory(sessionId, trimmed);
       setHistoryIndex(-1);
     },
-    [execute, pushHistory, sessionId],
+    [execute, pushHistory, readOnly, sessionId],
   );
 
   const handleSubmit = useCallback(() => {
@@ -597,6 +774,13 @@ export default function ConsolePage() {
         >
           {globalsLabel}
         </Badge>
+        <Badge
+          variant={readOnly ? 'outline' : 'secondary'}
+          className={cn('h-6 shrink-0 font-mono text-xs', readOnly && 'border-blue-500/40 text-blue-600')}
+          title="Read-only guardrails block obvious mutation patterns but are not a true dry run."
+        >
+          {readOnly ? 'Read-only guardrails' : 'Writable eval'}
+        </Badge>
         <Button
           variant="ghost"
           size="sm"
@@ -646,6 +830,15 @@ export default function ConsolePage() {
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section className="flex min-h-0 min-w-0 flex-col">
           <ScrollArea className="h-0 flex-1 overflow-y-auto px-4 py-3" ref={scrollRef}>
+            <div className="mb-3 rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
+              <div className="mb-1 flex items-center gap-2 font-medium text-foreground">
+                <ShieldCheckIcon className="size-3.5" />
+                Console safety
+              </div>
+              Sandbox mode can read globals through <code className="font-mono">_G</code>. Bare assignments stay in the
+              temporary eval environment, while explicit <code className="font-mono">_G.foo = ...</code> writes mutate
+              game globals. Read-only guardrails block obvious mutation patterns but cannot guarantee rollback.
+            </div>
             {/* Persisted outputs from previous page visits for this session */}
             {persistedOutputs
               .filter((o) => !sessionEntries.some((e) => e.id === o.id))
@@ -654,9 +847,12 @@ export default function ConsolePage() {
                   key={o.id}
                   entry={{ id: o.id, input: o.input, timestamp: o.timestamp }}
                   completedAt={o.completedAt}
-                  response={{ id: o.id, status: o.status, result: o.result, prints: o.prints }}
+                  response={{ id: o.id, status: o.status, result: o.result, prints: o.prints, values: o.values }}
                   onRerun={runCode}
                   onUseInput={setInput}
+                  inspectResult={inspectResult}
+                  onInspect={inspectResultPath}
+                  onPin={pinExpression}
                 />
               ))}
             {/* Live entries for the current page visit */}
@@ -667,6 +863,9 @@ export default function ConsolePage() {
                 response={responseMap.get(entry.id)}
                 onRerun={runCode}
                 onUseInput={setInput}
+                inspectResult={inspectResult}
+                onInspect={inspectResultPath}
+                onPin={pinExpression}
               />
             ))}
             {persistedOutputs.length === 0 && sessionEntries.length === 0 && historyNewestFirst.length === 0 && (
@@ -759,31 +958,87 @@ export default function ConsolePage() {
               >
                 <SendIcon className="size-4" />
               </Button>
+              <div
+                className="flex shrink-0 items-center gap-1 rounded-md border px-2 py-1"
+                title="Best-effort guardrails. Blocks obvious writes but is not a true dry run."
+              >
+                <ShieldCheckIcon className={cn('size-3.5', readOnly && 'text-blue-600')} />
+                <Switch id="console-read-only" size="sm" checked={readOnly} onCheckedChange={setReadOnly} />
+                <Label htmlFor="console-read-only" className="text-xs text-muted-foreground">
+                  Read-only
+                </Label>
+              </div>
             </div>
           </div>
         </section>
 
-        <aside className="hidden min-h-0 shrink-0 flex-col border-l bg-muted/20 lg:flex lg:w-80" data-testid="console-snippets">
-          <div className="flex h-10 items-center gap-2 border-b px-3">
-            <TerminalIcon className="size-3.5 text-muted-foreground" />
-            <span className="text-sm font-semibold">Snippets</span>
-            <Badge variant="secondary" className="ml-auto h-5 font-mono text-[11px]">
-              {savedSnippets.length > 0 ? savedSnippets.length : 'built-in'}
-            </Badge>
-            {savedSnippets.length > 0 && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-7"
-                title="Clear saved snippets"
-                onClick={() => sessionId && clearSnippets(sessionId)}
-              >
-                <Trash2Icon className="size-3" />
-              </Button>
-            )}
-          </div>
+        <aside
+          className="hidden min-h-0 shrink-0 flex-col border-l bg-muted/20 lg:flex lg:w-80"
+          data-testid="console-snippets"
+        >
           <ScrollArea className="min-h-0 flex-1">
             <div className="grid gap-3 p-3">
+              <div className="grid gap-2">
+                <div className="flex items-center gap-2">
+                  <PinIcon className="size-3.5 text-muted-foreground" />
+                  <span className="text-sm font-semibold">Observed Pins</span>
+                  <Badge variant="secondary" className="ml-auto h-5 font-mono text-[11px]">
+                    {pins?.pins.length ?? 0}
+                  </Badge>
+                </div>
+                {pins?.pins.length ? (
+                  pins.pins.map((pin: ConsolePin) => (
+                    <div key={pin.id} className="rounded-md border bg-background/70 p-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Badge variant={pin.status === 'error' ? 'destructive' : 'outline'} className="h-5 text-[10px]">
+                          {pin.status ?? 'pin'}
+                        </Badge>
+                        <span className="min-w-0 flex-1 truncate font-mono text-xs" title={pin.expression}>
+                          console.{pin.name}
+                        </span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-7"
+                          title="Unpin"
+                          onClick={() => unpinExpression(pin.id)}
+                        >
+                          <Trash2Icon className="size-3" />
+                        </Button>
+                      </div>
+                      <p
+                        className="mt-1 truncate font-mono text-[11px] text-muted-foreground"
+                        title={pin.value ?? pin.error}
+                      >
+                        {pin.error ?? pin.value ?? pin.expression}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-md border border-dashed p-2 text-xs text-muted-foreground">
+                    Pin a result field to publish it as <code className="font-mono">console.name</code> in
+                    Observability.
+                  </p>
+                )}
+              </div>
+              <div className="flex h-10 items-center gap-2 border-b px-3">
+                <TerminalIcon className="size-3.5 text-muted-foreground" />
+                <span className="text-sm font-semibold">Snippets</span>
+                <Badge variant="secondary" className="ml-auto h-5 font-mono text-[11px]">
+                  {savedSnippets.length > 0 ? savedSnippets.length : 'built-in'}
+                </Badge>
+                {savedSnippets.length > 0 && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-7"
+                    title="Clear saved snippets"
+                    onClick={() => sessionId && clearSnippets(sessionId)}
+                  >
+                    <Trash2Icon className="size-3" />
+                  </Button>
+                )}
+              </div>
               <div className="grid gap-2">
                 {snippets.map((snippet) => {
                   const isBuiltIn = snippet.id.startsWith('builtin-');

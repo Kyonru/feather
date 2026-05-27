@@ -137,6 +137,8 @@ player.speed = 500            -- tweak live
 return love.graphics.getStats()
 ```
 
+Console also includes structured inspectors for table results, live pins that publish expressions into Observability as `console.*` keys, and a best-effort **Read-only** guardrail mode. Read-only blocks obvious mutation patterns, but it is not a true dry run or rollback system.
+
 → [Full Console documentation](console.md)
 
 ---

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added a global Command Center with `Cmd/Ctrl+K` for discovering pages, hidden sidebar features, plugins, Console snippets, debugger shortcuts, sessions, and docs links.
+- Added Console result inspectors, live Observability pins, and best-effort read-only guardrails for safer runtime inspection.
 - root path fallback for deeplinking from trace.
 - Added `continueOnGameError` for opt-in callback crash recovery with an in-game toast while keeping normal crash behavior as the default.
 - Added a Session page toggle for enabling callback crash recovery on the current run.

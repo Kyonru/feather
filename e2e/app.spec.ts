@@ -499,6 +499,21 @@ async function seedConsoleSession(page: Page) {
                 status: 'success',
                 result: '100',
                 prints: ['health check'],
+                values: [
+                  {
+                    type: 'table',
+                    typeName: 'table',
+                    summary: 'table (2 fields)',
+                    preview: '{ health = 100, state = "idle" }',
+                    expandable: true,
+                    handle: 'r1',
+                    path: [],
+                    fields: [
+                      { key: 'health', type: 'number', typeName: 'number', preview: '100', summary: '100', path: ['health'] },
+                      { key: 'state', type: 'string', typeName: 'string', preview: '"idle"', summary: 'idle', path: ['state'] },
+                    ],
+                  },
+                ],
               },
             ],
           },
@@ -777,6 +792,26 @@ test('console renders transcript actions, snippets, and history search', async (
   await page.goto('/console');
 
   await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'console-pins'], {
+      ok: true,
+      pins: [
+        {
+          id: 'pin-player-health',
+          name: 'player_health',
+          expression: 'player.health',
+          enabled: true,
+          status: 'ok',
+          value: '100',
+        },
+      ],
+    });
+    client?.setQueryData(['demo', 'observers'], [
+      { key: 'console.player_health', value: '100', type: 'number', changed: false, history: [], group: 'console' },
+    ]);
+  });
 
   const header = page.getByTestId('console-header');
   await expect(header.getByText('Connected')).toBeVisible();
@@ -784,12 +819,19 @@ test('console renders transcript actions, snippets, and history search', async (
   await expect(header.getByText('API key missing')).toBeVisible();
   await expect(page.getByText('return player.health').first()).toBeVisible();
   await expect(page.getByText('health check')).toBeVisible();
-  await expect(page.getByText('100')).toBeVisible();
+  await expect(page.getByText('100').first()).toBeVisible();
   await expect(page.getByTitle('Copy command')).toBeVisible();
   await expect(page.getByTitle('Copy result')).toBeVisible();
   await expect(page.getByTitle('Use as input').first()).toBeVisible();
   await expect(page.getByTitle('Run again')).toBeVisible();
   await expect(page.getByText('Player health')).toBeVisible();
+  await expect(page.getByText('Console safety')).toBeVisible();
+  await expect(page.getByText('table (2 fields)')).toBeVisible();
+  await page.getByText('table (2 fields)').click();
+  await expect(page.getByText('health', { exact: true })).toBeVisible();
+  await expect(page.getByText('console.player_health')).toBeVisible();
+  await page.getByLabel('Read-only').check();
+  await expect(header.getByText('Read-only guardrails')).toBeVisible();
   const editor = page.locator('textarea').last();
   await editor.fill('return love.graphics.getStats()');
   page.once('dialog', (dialog) => dialog.accept('Graphics stats now'));
