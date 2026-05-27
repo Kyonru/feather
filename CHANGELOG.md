@@ -57,6 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed log row selection so live updates no longer prevent opening a log details panel.
 - Traceback path stripping.
 
+### Tests
+
+- Expanded app e2e coverage for responsive and degraded triage states, including missing sessions, partial payloads, missing/disabled plugins, and narrow layouts.
+
 ## [v1.5.0] - 2026-05-26 - The one with particles playground fixes
 
 ### Added

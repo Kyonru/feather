@@ -1,5 +1,22 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const NARROW_VIEWPORT = { width: 900, height: 720 };
+
+async function seedNoSession(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+    localStorage.setItem(
+      'session-storage',
+      JSON.stringify({
+        state: {
+          sessions: {},
+        },
+        version: 0,
+      }),
+    );
+  });
+}
+
 async function seedSession(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem('feather-e2e-query-client', '1');
@@ -152,6 +169,28 @@ async function pressCommandCenterShortcut(page: Page) {
   await page.keyboard.press('Control+K');
 }
 
+async function expectNoBrokenText(page: Page) {
+  const body = page.locator('body');
+  await expect(body).not.toContainText('NaN');
+  await expect(body).not.toContainText('undefined');
+  await expect(body).not.toContainText('Infinity');
+}
+
+async function expectPrimarySurfaceVisible(page: Page, labels: string[]) {
+  for (const label of labels) {
+    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+  }
+}
+
+async function expectNarrowStable(page: Page, screenshotName: string, labels: string[] = []) {
+  await page.setViewportSize(NARROW_VIEWPORT);
+  await expectNoBrokenText(page);
+  for (const label of labels) {
+    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+  }
+  await page.screenshot({ path: `test-results/${screenshotName}`, fullPage: true });
+}
+
 async function seedCommandCenterConfig(page: Page) {
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -194,6 +233,41 @@ async function seedCommandCenterConfig(page: Page) {
   });
 }
 
+async function seedPartialSessionConfig(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'config'], {
+      plugins: {
+        profiler: {
+          tabName: 'Profiler',
+          icon: 'gauge',
+          disabled: true,
+        },
+        'old-plugin': {
+          tabName: 'Old Plugin',
+          icon: 'plug-zap',
+          incompatible: true,
+          incompatibilityReason: 'Requires a newer Feather runtime.',
+        },
+      },
+      root_path: '/tmp/demo',
+      sourceDir: '/tmp/demo',
+      sessionName: 'Demo Session',
+      debugger: {
+        hotReload: {
+          enabled: false,
+          active: false,
+          persistToDisk: false,
+          modifiedModules: [],
+          persistedModules: [],
+          failedModules: [],
+        },
+      },
+    });
+  });
+}
+
 async function seedHealthySessionConfig(page: Page) {
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -230,6 +304,38 @@ async function seedHealthySessionConfig(page: Page) {
           failedModules: [],
         },
       },
+    });
+  });
+}
+
+async function seedMissingProfilerConfig(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'config'], {
+      plugins: {},
+      root_path: '/tmp/demo',
+      sourceDir: '/tmp/demo',
+      sessionName: 'Demo Session',
+    });
+  });
+}
+
+async function seedDisabledProfilerConfig(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'config'], {
+      plugins: {
+        profiler: {
+          tabName: 'Profiler',
+          icon: 'gauge',
+          disabled: true,
+        },
+      },
+      root_path: '/tmp/demo',
+      sourceDir: '/tmp/demo',
+      sessionName: 'Demo Session',
     });
   });
 }
@@ -404,6 +510,20 @@ async function seedNoisySessionHubConfig(page: Page) {
   });
 }
 
+async function seedPartialCompareData(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'observers'], [{ key: 'player.health', value: '100', type: 'number' }]);
+    client?.setQueryData(['other', 'observers'], [
+      { key: 'player.health', value: '100', type: 'number' },
+      { key: 'only.other', value: 'right' },
+    ]);
+    client?.setQueryData(['demo', 'performance'], [{ time: 1, fps: 60, frameTime: 0.016 }]);
+    client?.setQueryData(['other', 'performance'], [{ time: 2 }]);
+  });
+}
+
 async function seedCompareData(page: Page) {
   await page.evaluate(() => {
     const basePerf = {
@@ -480,6 +600,26 @@ async function seedCompareData(page: Page) {
   });
 }
 
+async function seedPartialPerformanceData(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'performance'], [
+      {
+        time: 1,
+        fps: 58,
+      },
+      {
+        time: 2,
+        frameTime: 0.018,
+        stats: {
+          drawcalls: 180,
+        },
+      },
+    ]);
+  });
+}
+
 async function seedPerformanceData(page: Page) {
   await page.evaluate(() => {
     const base = {
@@ -537,6 +677,30 @@ async function seedPerformanceData(page: Page) {
         stats: { drawcallsbatched: 80, canvasswitches: 10, shaderswitches: 6, canvases: 4, images: 10, fonts: 2, texturememory: 180, drawcalls: 1600 },
       },
     ]);
+  });
+}
+
+async function seedPartialAssetCatalog(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(['demo', 'assets'], {
+      enabled: false,
+      textures: [
+        {
+          id: 11,
+          name: 'runtime-texture',
+          displayName: 'runtime-texture',
+          width: 8,
+          height: 8,
+          format: 'rgba8',
+          mipmaps: 1,
+          loadCount: 1,
+        },
+      ],
+      fonts: [],
+      audio: [],
+      preview: null,
+    });
   });
 }
 
@@ -746,10 +910,12 @@ async function seedConsoleSession(page: Page) {
 }
 
 test('shows no-session empty state and opens settings', async ({ page }) => {
+  await seedNoSession(page);
   await page.goto('/');
 
   await expect(page.getByText('No session connected')).toBeVisible();
   await expect(page.getByText('Start a game with Feather enabled')).toBeVisible();
+  await expectNoBrokenText(page);
 
   await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
@@ -791,6 +957,7 @@ test('keeps tool routes gated until a session is selected', async ({ page }) => 
   await expect(page.getByText('No session connected')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Assets' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Compare' })).toHaveCount(0);
+  await expectNoBrokenText(page);
 });
 
 test('session health hub summarizes a healthy active session', async ({ page }) => {
@@ -811,8 +978,24 @@ test('session health hub summarizes a healthy active session', async ({ page }) 
   await expect(page.getByText('No urgent session issues detected.', { exact: true })).toBeVisible();
   await expect(page.getByText('Keep debugging')).toBeVisible();
   await expect(page.getByTestId('session-plugin-profiler')).toBeVisible();
-  await expect(page.locator('body')).not.toContainText('NaN');
-  await expect(page.locator('body')).not.toContainText('undefined');
+  await expectNoBrokenText(page);
+});
+
+test('session health hub tolerates partial config and degraded plugin state', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/');
+  await seedPartialSessionConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByRole('link', { name: 'Session', exact: true }).click();
+
+  await expect(page.getByTestId('session-health-hub')).toBeVisible();
+  await expect(page.getByText('Recommended Next Actions')).toBeVisible();
+  await expect(page.getByText('Disabled 1')).toBeVisible();
+  await expect(page.getByText('Incompatible 1')).toBeVisible();
+  await expect(page.getByTestId('session-plugin-profiler')).toBeVisible();
+  await expectNoBrokenText(page);
+  await expectNarrowStable(page, 'session-health-partial-narrow.png', ['Recommended Next Actions', 'Plugins']);
 });
 
 test('session health hub surfaces security, debugger, plugin, hot reload, and performance actions', async ({ page }) => {
@@ -839,10 +1022,9 @@ test('session health hub surfaces security, debugger, plugin, hot reload, and pe
   await expect(page.getByTestId('session-plugin-console')).toBeVisible();
   await expect(page.getByTestId('session-plugin-hot-reload')).toBeVisible();
   await expect(page.getByTestId('session-plugin-old-plugin')).toHaveCount(0);
-  await expect(page.locator('body')).not.toContainText('NaN');
-  await expect(page.locator('body')).not.toContainText('undefined');
+  await expectNoBrokenText(page);
 
-  await page.setViewportSize({ width: 900, height: 720 });
+  await page.setViewportSize(NARROW_VIEWPORT);
   await expect(hub).toBeVisible();
   await expect(page.getByText('Recommended Next Actions')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Packages' })).toBeVisible();
@@ -909,11 +1091,26 @@ test('shows compare only when two connected sessions are available', async ({ pa
   await page.getByPlaceholder('Search key or value').fill('health');
   await expect(page.getByText('player.health')).toBeVisible();
   await expect(page.getByText('enemy.count')).toHaveCount(0);
+  await expectNoBrokenText(page);
   await page.screenshot({ path: 'test-results/compare-layout-desktop.png', fullPage: true });
 
-  await page.setViewportSize({ width: 900, height: 720 });
+  await page.setViewportSize(NARROW_VIEWPORT);
   await expect(page.getByText('Showing 1')).toBeVisible();
   await page.screenshot({ path: 'test-results/compare-layout-narrow.png', fullPage: true });
+});
+
+test('compare degraded matrix renders partial payloads without broken deltas', async ({ page }) => {
+  await seedTwoConnectedSessions(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await seedPartialCompareData(page);
+
+  await page.getByRole('link', { name: /Compare/ }).click();
+  await expectPrimarySurfaceVisible(page, ['Total 2', 'Equal 1', 'Only B 1', 'FPS —', 'Mem —', 'Texture —']);
+  await expect(page.getByText('only.other')).toBeVisible();
+  await expectNoBrokenText(page);
+  await expectNarrowStable(page, 'compare-partial-payload-narrow.png', ['Total 2', 'FPS —']);
 });
 
 test('performance health surfaces actionable verdicts and safe metrics', async ({ page }) => {
@@ -933,16 +1130,49 @@ test('performance health surfaces actionable verdicts and safe metrics', async (
   await expect(page.getByText('Texture-heavy')).toBeVisible();
   await expect(page.getByText('max 45.0 ms', { exact: true })).toBeVisible();
   await expect(page.getByText('1,600 draw calls', { exact: true })).toBeVisible();
-  await expect(page.locator('body')).not.toContainText('NaN');
-  await expect(page.locator('body')).not.toContainText('undefined');
+  await expectNoBrokenText(page);
 
   await page.getByTitle('Chart draw calls').click();
   await expect(page.getByText('Draw Calls').first()).toBeVisible();
 
-  await page.setViewportSize({ width: 900, height: 720 });
+  await page.setViewportSize(NARROW_VIEWPORT);
   await expect(page.getByTestId('performance-verdicts')).toBeVisible();
   await expect(page.getByText('Recent Spikes', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/performance-health-narrow.png', fullPage: true });
+});
+
+test('performance and profiler degraded matrix handles partial samples and missing plugin', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/performance');
+  await seedMissingProfilerConfig(page);
+  await seedPartialPerformanceData(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await expect(page.getByTestId('performance-verdicts')).toBeVisible();
+  await expect(page.getByText('Recent Spikes', { exact: true })).toBeVisible();
+  await expectNoBrokenText(page);
+
+  await page.getByRole('tab', { name: 'Profiler' }).click();
+  await expect(page.getByText('The profiler plugin is not available in this session.')).toBeVisible();
+  await expectNoBrokenText(page);
+  await page.goto('/plugins/profiler');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await expect(page.getByText('Plugin not available')).toBeVisible();
+  await expectNoBrokenText(page);
+  await expectNarrowStable(page, 'performance-profiler-missing-narrow.png', ['Plugin not available']);
+});
+
+test('profiler disabled state stays readable', async ({ page }) => {
+  await seedSession(page);
+  await page.goto('/performance');
+  await seedDisabledProfilerConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByRole('tab', { name: 'Profiler' }).click();
+
+  await expect(page.getByText('The profiler plugin is disabled.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open profiler plugin' })).toBeVisible();
+  await expectNoBrokenText(page);
 });
 
 test('observability triage controls filter and open observer details', async ({ page }) => {
@@ -994,6 +1224,34 @@ test('observability triage controls filter and open observer details', async ({ 
   await page.getByRole('button', { name: 'Dismiss' }).click();
   await page.getByPlaceholder('Search keys or values...').fill('missing');
   await expect(page.getByText('No observers match the current filters.')).toBeVisible();
+  await expectNoBrokenText(page);
+});
+
+test('observability degraded matrix handles empty and partial observers', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/observability');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await expect(page.getByText('No observers yet')).toBeVisible();
+  await expectNoBrokenText(page);
+
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(['demo', 'observers'], [
+      {
+        key: 'partial.value',
+        value: 'ready',
+        type: 'string',
+      },
+    ]);
+  });
+  await expect(page.getByText('Observers 1')).toBeVisible();
+  await expect(page.getByText('partial.value')).toBeVisible();
+  await page.getByText('partial.value').click();
+  await expect(page.getByText('Observer JSON')).toBeVisible();
+  await expectNoBrokenText(page);
+  await expectNarrowStable(page, 'observability-partial-narrow.png', ['partial.value']);
 });
 
 test('activates a persisted session and renders core tools', async ({ page }) => {
@@ -1037,6 +1295,25 @@ test('activates a persisted session and renders core tools', async ({ page }) =>
   await expect(page.getByText('Preview on')).toBeVisible();
   await expect(page.getByText('Texture memory')).toBeVisible();
   await page.screenshot({ path: 'test-results/assets-layout-narrow.png', fullPage: true });
+});
+
+test('assets degraded matrix handles empty and partial catalogs', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/assets');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await expect(page.getByText('No assets captured yet')).toBeVisible();
+  await expectNoBrokenText(page);
+
+  await seedPartialAssetCatalog(page);
+  await expect(page.getByText('Textures 1')).toBeVisible();
+  await expect(page.getByText('Preview on')).toBeVisible();
+  await expect(page.getByText('runtime-texture', { exact: true })).toBeVisible();
+  await page.getByText('runtime-texture', { exact: true }).click();
+  await expect(page.getByText('Click preview to inspect this asset.')).toBeVisible();
+  await expectNoBrokenText(page);
+  await expectNarrowStable(page, 'assets-partial-catalog-narrow.png', ['Preview on', 'runtime-texture']);
 });
 
 test('debugger renders stable single-row header and three panels', async ({ page }) => {
