@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 import { useSessionStore, type SessionInfo } from '@/store/session';
@@ -100,8 +100,19 @@ function PerfStrip({ perf, label }: { perf: PerformanceMetrics | null; label: st
 
 export default function ComparePage() {
   const sessions = useSessionStore(useShallow((state) => Object.values(state.sessions)));
+  const connectedSessions = sessions.filter((session) => session.connected);
   const [leftId, setLeftId] = useState<string | null>(null);
   const [rightId, setRightId] = useState<string | null>(null);
+  const canCompare = connectedSessions.length >= 2;
+
+  useEffect(() => {
+    if (leftId && !connectedSessions.some((session) => session.id === leftId)) {
+      setLeftId(null);
+    }
+    if (rightId && !connectedSessions.some((session) => session.id === rightId)) {
+      setRightId(null);
+    }
+  }, [connectedSessions, leftId, rightId]);
 
   const leftObs = useSessionObservers(leftId);
   const rightObs = useSessionObservers(rightId);
@@ -128,9 +139,9 @@ export default function ComparePage() {
       <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2">
         <span className="text-sm font-semibold">Compare</span>
         <div className="ml-auto flex items-center gap-2">
-          <SessionPicker value={leftId} onChange={setLeftId} sessions={sessions} placeholder="Session A" />
+          <SessionPicker value={leftId} onChange={setLeftId} sessions={connectedSessions} placeholder="Session A" />
           <span className="text-xs text-muted-foreground">vs</span>
-          <SessionPicker value={rightId} onChange={setRightId} sessions={sessions} placeholder="Session B" />
+          <SessionPicker value={rightId} onChange={setRightId} sessions={connectedSessions} placeholder="Session B" />
         </div>
       </div>
 
@@ -151,7 +162,11 @@ export default function ComparePage() {
       </div>
 
       {/* Diff table */}
-      {!leftId && !rightId ? (
+      {!canCompare ? (
+        <div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+          Compare needs at least two connected sessions. Connect another session to compare runtime data.
+        </div>
+      ) : !leftId && !rightId ? (
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
           Select two sessions to compare their observer values.
         </div>

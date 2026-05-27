@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added manual `_G` refresh for Console autocomplete so runtime globals can be suggested without changing eval sandbox behavior.
 - Improved Console autocomplete with scoped Lua/LÖVE suggestions for member access such as `_G.print` and `love.graphics.getStats`.
 - Improved the Assets page with denser filtering, sorting, repeated-load badges, richer preview details, and copy/reveal actions.
+- Compare now appears below Session in the sidebar only when at least two sessions are connected.
 
 ### Fixed
 
@@ -679,6 +680,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v2.0.0]: https://github.com/Kyonru/feather/compare/v1.5.0...v2.0.0
 [v1.5.0]: https://github.com/Kyonru/feather/compare/v1.4.2...v1.5.0
 [v1.4.2]: https://github.com/Kyonru/feather/compare/v1.4.1...v1.4.2
 [v1.4.1]: https://github.com/Kyonru/feather/compare/v1.4.0...v1.4.1

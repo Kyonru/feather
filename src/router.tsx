@@ -262,11 +262,7 @@ export const Router = () => {
               />
               <Route
                 path="/compare"
-                element={
-                  <RequireSession>
-                    <Compare />
-                  </RequireSession>
-                }
+                element={<Compare />}
               />
               <Route path="/shader-graph" element={<ShaderGraph />} />
               <Route

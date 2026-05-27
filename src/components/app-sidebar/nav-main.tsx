@@ -26,7 +26,11 @@ import { useSessionStore } from '@/store/session';
 
 export function NavMain() {
   const sessionId = useSessionStore((state) => state.sessionId);
+  const connectedSessionCount = useSessionStore(
+    (state) => Object.values(state.sessions).filter((session) => session.connected).length,
+  );
   const hasSession = !!sessionId;
+  const canCompare = connectedSessionCount >= 2;
   const isPaused = useDebuggerStore((state) => (sessionId ? !!state.pausedState[sessionId] : false));
 
   const items = [
@@ -81,15 +85,19 @@ export function NavMain() {
       icon: RepeatIcon,
     },
     {
-      title: 'Compare',
-      url: '/compare',
-      icon: GitCompareArrowsIcon,
-    },
-    {
       title: 'Session',
       url: '/session',
       icon: CableIcon,
     },
+    ...(canCompare
+      ? [
+          {
+            title: 'Compare',
+            url: '/compare',
+            icon: GitCompareArrowsIcon,
+          },
+        ]
+      : []),
   ];
   const location = useLocation();
   return (

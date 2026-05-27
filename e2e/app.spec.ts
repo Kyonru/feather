@@ -23,6 +23,35 @@ async function seedSession(page: Page) {
   });
 }
 
+async function seedTwoConnectedSessions(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'session-storage',
+      JSON.stringify({
+        state: {
+          sessions: {
+            demo: {
+              id: 'demo',
+              name: 'Demo Session',
+              os: 'Web',
+              connected: true,
+              connectedAt: Date.now(),
+            },
+            other: {
+              id: 'other',
+              name: 'Second Session',
+              os: 'Web',
+              connected: true,
+              connectedAt: Date.now(),
+            },
+          },
+        },
+        version: 0,
+      }),
+    );
+  });
+}
+
 async function seedAssetCatalog(page: Page) {
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -251,6 +280,37 @@ test('keeps tool routes gated until a session is selected', async ({ page }) => 
 
   await expect(page.getByText('No session connected')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Assets' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Compare' })).toHaveCount(0);
+});
+
+test('shows compare only when two connected sessions are available', async ({ page }) => {
+  await seedSession(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await expect(page.getByRole('button', { name: 'Compare' })).toHaveCount(0);
+
+  await page.goto('/compare');
+  await expect(page.getByText('Compare needs at least two connected sessions')).toBeVisible();
+
+  await seedTwoConnectedSessions(page);
+  await page.reload();
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  const sessionButton = page.getByRole('button', { name: 'Session', exact: true });
+  const compareButton = page.getByRole('button', { name: 'Compare', exact: true });
+  await expect(compareButton).toBeVisible();
+  const sessionBox = await sessionButton.boundingBox();
+  const compareBox = await compareButton.boundingBox();
+  expect(sessionBox).not.toBeNull();
+  expect(compareBox).not.toBeNull();
+  expect(compareBox!.y).toBeGreaterThan(sessionBox!.y);
+
+  await page.getByRole('link', { name: /Compare/ }).click();
+  await expect(page.getByText('Select two sessions to compare their observer values.')).toBeVisible();
+  await page.getByRole('combobox').first().click();
+  await expect(page.getByRole('option', { name: /Demo Session/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /Second Session/ })).toBeVisible();
 });
 
 test('activates a persisted session and renders core tools', async ({ page }) => {
