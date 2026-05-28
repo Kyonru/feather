@@ -95,7 +95,7 @@ export function ShaderCanvas() {
   const addNode = useShaderGraphStore((s) => s.addNode);
   const addNodesAndEdges = useShaderGraphStore((s) => s.addNodesAndEdges);
   const replaceSelectionWithSubgraph = useShaderGraphStore((s) => s.replaceSelectionWithSubgraph);
-  const removeNode = useShaderGraphStore((s) => s.removeNode);
+  const removeNodes = useShaderGraphStore((s) => s.removeNodes);
   const removeEdge = useShaderGraphStore((s) => s.removeEdge);
   const unlinkNode = useShaderGraphStore((s) => s.unlinkNode);
   const selectNode = useShaderGraphStore((s) => s.selectNode);
@@ -548,18 +548,23 @@ export function ShaderCanvas() {
       }
 
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-      if (selectedNodeId) removeNode(selectedNodeId);
-      else if (selectedEdgeId) removeEdge(selectedEdgeId);
+      const nodeIds = [...getSelectedIds()];
+      if (nodeIds.length > 0) {
+        removeNodes(nodeIds);
+        setSelectedNodeIds(new Set());
+      } else if (selectedEdgeId) {
+        removeEdge(selectedEdgeId);
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
     copySelection,
     duplicateSelection,
+    getSelectedIds,
     pasteSelection,
-    selectedNodeId,
     selectedEdgeId,
-    removeNode,
+    removeNodes,
     removeEdge,
     redo,
     undo,

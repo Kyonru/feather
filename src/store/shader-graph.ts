@@ -47,6 +47,7 @@ type ShaderGraphStore = {
     selectedNodeId: string;
   }) => void;
   removeNode: (id: string) => void;
+  removeNodes: (ids: string[]) => void;
   removeEdge: (id: string) => void;
   updateNodeData: (id: string, patch: Partial<ShaderNodeData>) => void;
   unlinkNode: (id: string) => void;
@@ -318,6 +319,24 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
             textureUploads: Object.fromEntries(Object.entries(s.textureUploads).filter(([nodeId]) => nodeId !== id)),
             pinnedPreviewNodeIds: s.pinnedPreviewNodeIds.filter((nodeId) => nodeId !== id),
+          });
+        }),
+      removeNodes: (ids) =>
+        set((s) => {
+          const idSet = new Set(ids);
+          if (idSet.size === 0) return {};
+          const graph = activeGraph(s);
+          const nextEdges = graph.edges.filter((edge) => !idSet.has(edge.source) && !idSet.has(edge.target));
+          const selectedEdgeStillExists = s.selectedEdgeId ? nextEdges.some((edge) => edge.id === s.selectedEdgeId) : false;
+          return withHistory(s, {
+            ...patchActiveGraph(s, {
+              nodes: graph.nodes.filter((node) => !idSet.has(node.id)),
+              edges: nextEdges,
+            }),
+            selectedNodeId: s.selectedNodeId && idSet.has(s.selectedNodeId) ? null : s.selectedNodeId,
+            selectedEdgeId: selectedEdgeStillExists ? s.selectedEdgeId : null,
+            textureUploads: Object.fromEntries(Object.entries(s.textureUploads).filter(([nodeId]) => !idSet.has(nodeId))),
+            pinnedPreviewNodeIds: s.pinnedPreviewNodeIds.filter((nodeId) => !idSet.has(nodeId)),
           });
         }),
       removeEdge: (id) =>
