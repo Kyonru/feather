@@ -951,7 +951,7 @@ test('persists settings changes across reloads', async ({ page }) => {
   await expect(page.getByLabel('Show hidden sidebar features in Command Center')).toBeChecked();
 });
 
-test('persists Noctis theme variants and can return to system mode', async ({ page }) => {
+test('persists expanded theme variants and can return to system mode', async ({ page }) => {
   await seedNoSession(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
@@ -973,6 +973,14 @@ test('persists Noctis theme variants and can return to system mode', async ({ pa
 
   await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
   await page.getByRole('tab', { name: 'General' }).click();
+  await page.getByRole('combobox', { name: 'App Theme' }).click();
+  await page.getByRole('option', { name: '2017 Light (Visual Studio - C/C++)' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vs-cpp-2017-light');
+  await expect(page.locator('html')).toHaveClass(/\blight\b/);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+    .toBe('#ffffff');
+
   await page.getByRole('combobox', { name: 'App Theme' }).click();
   await page.getByRole('option', { name: 'System' }).click();
 

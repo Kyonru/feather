@@ -7,7 +7,7 @@ import {
   themeSelectorGroups,
   THEME_CSS_VARIABLES,
   type ThemeId,
-} from '../../src/assets/theme/registry.ts';
+} from '../../src/assets/theme/registry/index.ts';
 
 const noctisThemeIds: ThemeId[] = [
   'noctis-lux',
@@ -23,10 +23,17 @@ const noctisThemeIds: ThemeId[] = [
   'noctis-minimus',
 ];
 
-test('theme picker exposes Feather defaults and every Noctis variant', () => {
+const visualStudioCppThemeIds: ThemeId[] = [
+  'vs-cpp-light',
+  'vs-cpp-2017-light',
+  'vs-cpp-dark',
+  'vs-cpp-2017-dark',
+];
+
+test('theme picker exposes Feather defaults, Noctis, and Visual Studio C/C++ variants', () => {
   const options = themeSelectorGroups.flatMap((group) => group.options.map((option) => option.value));
 
-  assert.equal(options.length, 14);
+  assert.equal(options.length, 18);
   assert.deepEqual(options, [
     'system',
     'light',
@@ -42,6 +49,10 @@ test('theme picker exposes Feather defaults and every Noctis variant', () => {
     'noctis-uva',
     'noctis-viola',
     'noctis-minimus',
+    'vs-cpp-light',
+    'vs-cpp-2017-light',
+    'vs-cpp-dark',
+    'vs-cpp-2017-dark',
   ]);
 });
 
@@ -65,10 +76,24 @@ test('Noctis variants provide syntax highlighter styles', () => {
   }
 });
 
+test('Visual Studio C/C++ variants provide syntax highlighter styles', () => {
+  for (const id of visualStudioCppThemeIds) {
+    const theme = appThemes[id];
+
+    assert.equal(theme.family, 'Visual Studio C/C++');
+    assert.equal(theme.syntax.hljs?.background, theme.variables.background);
+    assert.ok(theme.syntax['hljs-keyword']?.color, `${id} is missing keyword syntax color`);
+    assert.ok(theme.syntax['hljs-string']?.color, `${id} is missing string syntax color`);
+    assert.ok(theme.syntax['hljs-comment']?.color, `${id} is missing comment syntax color`);
+  }
+});
+
 test('theme preferences normalize and resolve safely', () => {
   assert.equal(normalizeThemePreference('noctis-uva'), 'noctis-uva');
+  assert.equal(normalizeThemePreference('vs-cpp-2017-light'), 'vs-cpp-2017-light');
   assert.equal(normalizeThemePreference('not-a-real-theme'), 'system');
   assert.equal(resolveThemeId('system', 'dark'), 'dark');
   assert.equal(resolveThemeId('system', 'light'), 'light');
   assert.equal(resolveThemeId('noctis-viola', 'light'), 'noctis-viola');
+  assert.equal(resolveThemeId('vs-cpp-dark', 'light'), 'vs-cpp-dark');
 });
