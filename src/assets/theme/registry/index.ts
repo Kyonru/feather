@@ -1,5 +1,6 @@
 import featherDarkSyntax from '../dark';
 import featherLightSyntax from '../light';
+import { githubThemes } from './github';
 import { noctisThemes } from './noctis';
 import { rainglowThemes } from './rainglow';
 import { tokyoNightThemes } from './tokyo-night';
@@ -9,6 +10,7 @@ import type { AppTheme, SyntaxHighlighterStyle, ThemeId, ThemeMode, ThemePrefere
 export { THEME_CSS_VARIABLES } from './types';
 export type {
   AppTheme,
+  GitHubThemeId,
   NoctisThemeId,
   RainglowThemeId,
   SyntaxHighlighterStyle,
@@ -119,6 +121,7 @@ export const appThemes: Record<ThemeId, AppTheme> = {
     variables: featherDarkVariables,
     syntax: featherDarkSyntax as SyntaxHighlighterStyle,
   },
+  ...githubThemes,
   ...noctisThemes,
   ...rainglowThemes,
   ...tokyoNightThemes,
@@ -189,6 +192,24 @@ export const themeSelectorGroups: ThemeSelectorGroup[] = [
   {
     label: 'Rainglow Light',
     options: [optionForTheme('rainglow-absent-light')],
+  },
+  {
+    label: 'GitHub Light',
+    options: [
+      optionForTheme('github-light-default'),
+      optionForTheme('github-light-high-contrast'),
+      optionForTheme('github-light-colorblind'),
+      optionForTheme('github-light'),
+    ],
+  },
+  {
+    label: 'GitHub Dark',
+    options: [
+      optionForTheme('github-dark-default'),
+      optionForTheme('github-dark-high-contrast'),
+      optionForTheme('github-dark-colorblind'),
+      optionForTheme('github-dark-dimmed'),
+    ],
   },
   {
     label: 'Visual Studio C/C++ Light',

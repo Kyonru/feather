@@ -41,7 +41,7 @@ export const THEME_CSS_VARIABLES = [
 
 export type ThemeCssVariable = (typeof THEME_CSS_VARIABLES)[number];
 export type ThemeMode = 'light' | 'dark';
-export type ThemeFamily = 'Feather' | 'Noctis' | 'Rainglow' | 'Tokyo Night' | 'Visual Studio C/C++';
+export type ThemeFamily = 'Feather' | 'GitHub' | 'Noctis' | 'Rainglow' | 'Tokyo Night' | 'Visual Studio C/C++';
 export type NoctisThemeId =
   | 'noctis-lux'
   | 'noctis-hibernus'
@@ -64,9 +64,19 @@ export type TokyoNightThemeId =
   | 'tokyo-night'
   | 'tokyo-night-storm';
 export type RainglowThemeId = 'rainglow-absent-light';
+export type GitHubThemeId =
+  | 'github-light'
+  | 'github-light-default'
+  | 'github-light-high-contrast'
+  | 'github-light-colorblind'
+  | 'github-dark-default'
+  | 'github-dark-high-contrast'
+  | 'github-dark-colorblind'
+  | 'github-dark-dimmed';
 export type ThemeId =
   | 'light'
   | 'dark'
+  | GitHubThemeId
   | NoctisThemeId
   | RainglowThemeId
   | TokyoNightThemeId

@@ -998,6 +998,22 @@ test('persists expanded theme variants and can return to system mode', async ({ 
     .toBe('#228a96');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
+  await page.getByRole('option', { name: 'GitHub Light High Contrast' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'github-light-high-contrast');
+  await expect(page.locator('html')).toHaveClass(/\blight\b/);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
+    .toBe('#0349b4');
+
+  await page.getByRole('combobox', { name: 'App Theme' }).click();
+  await page.getByRole('option', { name: 'GitHub Dark Dimmed' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'github-dark-dimmed');
+  await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+    .toBe('#22272e');
+
+  await page.getByRole('combobox', { name: 'App Theme' }).click();
   await page.getByRole('option', { name: 'System' }).click();
 
   const expectedSystemTheme = await page.evaluate(() =>
