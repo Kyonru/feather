@@ -83,10 +83,17 @@ export function ShowcaseShaderGraph() {
     color: string;
     baseTexture: { filename: string; dataBase64: string } | null;
     parameters: ShaderParameter[];
-  }>({ shape: 'circle', color: '#ffffff', baseTexture: null, parameters: [] });
+    textures: { filename: string; dataBase64: string; uniform: string }[];
+  }>({ shape: 'circle', color: '#ffffff', baseTexture: null, parameters: [], textures: [] });
 
   const handlePreviewParamsChange = useCallback(
-    (params: { shape: string; color: string; baseTexture: { filename: string; dataBase64: string } | null; parameters: ShaderParameter[] }) => {
+    (params: {
+      shape: string;
+      color: string;
+      baseTexture: { filename: string; dataBase64: string } | null;
+      parameters: ShaderParameter[];
+      textures: { filename: string; dataBase64: string; uniform: string }[];
+    }) => {
       setPreviewParams(params);
     },
     [],
@@ -298,6 +305,7 @@ export function ShowcaseShaderGraph() {
             previewColor: previewParams.color,
             baseTexture: previewParams.baseTexture,
             parameters: previewParams.parameters,
+            textures: previewParams.textures,
           }}
         />
       </div>

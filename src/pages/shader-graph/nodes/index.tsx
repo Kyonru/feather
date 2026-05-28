@@ -1,15 +1,19 @@
 import { Fragment } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
-import { LinkIcon } from 'lucide-react';
+import { EyeIcon, LinkIcon } from 'lucide-react';
 import { cn } from '@/utils/styles';
+import { useShaderGraphStore } from '@/store/shader-graph';
 import type { ShaderNodeData } from '@/types/shader-graph';
 import { getNodeDef, CATEGORY_COLORS, PORT_TYPE_COLORS } from '../nodeDefs';
+import { LoveNodePreview } from '../LoveNodePreview';
 
 const ROW_H = 20;
 
 export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData>>) {
+  const selectedNodeId = useShaderGraphStore((s) => s.selectedNodeId);
   const def = getNodeDef(data);
   if (!def) return null;
+  const activePreview = data.nodeType === 'Preview' && selectedNodeId === id;
   const colorClass = CATEGORY_COLORS[def.category] ?? 'border-l-gray-500';
   const rows = Math.max(def.inputs.length, def.outputs.length, 1);
 
@@ -41,7 +45,15 @@ export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData
       <div className="mb-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
         {def.category}
       </div>
-      <div className="text-xs font-semibold">{data.label}</div>
+      <div className="flex items-center gap-1.5">
+        <div className="min-w-0 truncate text-xs font-semibold">{data.label}</div>
+        {data.nodeType === 'Preview' && (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded border border-violet-500/30 bg-violet-500/10 px-1 py-0.5 text-[9px] font-medium text-violet-700 dark:text-violet-300">
+            <EyeIcon className="size-2.5" />
+            Probe
+          </span>
+        )}
+      </div>
 
       {/* Handles must be direct children of this .relative div so they position relative to it */}
       <div className="relative mt-2" style={{ minHeight: rows * ROW_H }}>
@@ -114,6 +126,7 @@ export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData
           </Fragment>
         ))}
       </div>
+      {data.nodeType === 'Preview' && <LoveNodePreview nodeId={id} active={activePreview} />}
     </div>
   );
 }

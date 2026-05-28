@@ -97,6 +97,13 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     outputs: [],
     emitGlsl: () => '',
   },
+  Preview: {
+    category: 'Debug',
+    label: 'Preview',
+    inputs: [{ id: 'color', label: 'RGBA', type: 'vec4', defaultValue: [0, 0, 0, 1] }],
+    outputs: [{ id: 'out', label: 'RGBA', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = ${i.color};`,
+  },
   // ─── Input ──────────────────────────────────────────────────────────────────
   TextureColor: {
     category: 'Input',
@@ -2429,6 +2436,7 @@ export function getNodeDef(data: ShaderNodeData): NodeDef {
 
 export const CATEGORY_COLORS: Record<string, string> = {
   Custom: 'border-l-zinc-500',
+  Debug: 'border-l-violet-500',
   Input: 'border-l-blue-500',
   Math: 'border-l-orange-500',
   Complex: 'border-l-amber-500',
@@ -2451,6 +2459,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
 
 export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
   { category: 'Custom', nodes: ['CustomFunction'] },
+  { category: 'Debug', nodes: ['Preview'] },
   {
     category: 'Input',
     nodes: [

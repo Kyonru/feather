@@ -15,6 +15,7 @@ export type PortDef = {
 export const NODE_TYPES = [
   'CustomFunction',
   'SubgraphInstance',
+  'Preview',
   'TextureColor',
   'TextureInput',
   'TextureUniformColor',
@@ -210,7 +211,7 @@ export const NODE_TYPES = [
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Custom' | 'Input' | 'Math' | 'Complex' | 'Quaternion' | 'Symmetry' | 'Random' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
+export type NodeCategory = 'Custom' | 'Debug' | 'Input' | 'Math' | 'Complex' | 'Quaternion' | 'Symmetry' | 'Random' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
 
 export type ShaderNodeData = {
   label: string;
@@ -259,6 +260,8 @@ export type ShaderTextureUpload = {
   filename: string;
   dataBase64: string;
 };
+
+export type ShaderPreviewShape = 'circle' | 'line' | 'rectangle';
 
 export type ShaderParameter = {
   nodeId: string;

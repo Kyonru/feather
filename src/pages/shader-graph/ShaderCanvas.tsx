@@ -50,6 +50,7 @@ let shaderClipboard: ShaderClipboard | null = null;
 // Hex equivalents of the Tailwind *-500 colors used in CATEGORY_COLORS
 const CATEGORY_HEX: Record<string, string> = {
   Custom: '#71717a',
+  Debug: '#8b5cf6',
   Input: '#3b82f6',
   Math: '#f97316',
   Complex: '#f59e0b',

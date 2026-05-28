@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.1.0] - 2026-05-28 - The one with shader graph previews
+
+## Added
+
+- Improved Shader Graph compiler UX with local diagnostics for missing outputs, stale connections, missing texture uploads, invalid custom functions, and cyclic subgraphs before runtime validation.
+- Added Shader Graph Preview nodes as inline RGBA probes with embedded love.js previews and an optional send-to-game control for connected LÖVE sessions.
+- Shader Graph now renders only the selected Preview node's embedded love.js probe so multiple inline probes do not run preview runtimes at the same time.
+
+### Tests
+
+- Expanded app e2e coverage for responsive and degraded triage states, including missing sessions, partial payloads, missing/disabled plugins, and narrow layouts.
+- Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
+- Added showcase e2e coverage for inline Shader Graph Preview probes.
+- Expanded showcase e2e coverage to verify only the selected Shader Graph Preview probe renders live.
+- Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
+
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 
 ### Added
@@ -39,7 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance Health warnings now render as a compact collapsible strip so diagnostics do not crowd the chart.
 - Hidden sidebar features and hidden disabled plugins are now hidden from Command Center by default, with a Settings opt-in for sidebar features.
 - Shared triage UI primitives now keep search, filters, summary chips, empty states, copy actions, and details panels more consistent across live debugging pages.
-- Improved Shader Graph compiler UX with local diagnostics for missing outputs, stale connections, missing texture uploads, invalid custom functions, and cyclic subgraphs before runtime validation.
 
 ### Fixed
 
@@ -61,7 +76,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - Expanded app e2e coverage for responsive and degraded triage states, including missing sessions, partial payloads, missing/disabled plugins, and narrow layouts.
-- Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
 
 ## [v1.5.0] - 2026-05-26 - The one with particles playground fixes
 

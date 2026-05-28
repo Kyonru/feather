@@ -164,3 +164,64 @@ test('shader graph surfaces compiler diagnostics for broken imports', async ({ p
   await expect(page.getByText('Fallback texture until a file is loaded')).toBeVisible();
   await expect(page.getByRole('button', { name: /preview on/i })).toBeDisabled();
 });
+
+test('shader graph preview probes inspect inline rgba flow', async ({ page }) => {
+  await page.goto('/shader-graph');
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+
+  const graph = {
+    type: 'feather.shader-graph',
+    version: 2,
+    exportedAt: new Date('2026-05-27T00:00:00.000Z').toISOString(),
+    shaderName: 'preview-probe-flow',
+    playgroundTarget: null,
+    nodes: [
+      { id: 'tex', type: 'shaderNode', position: { x: 0, y: 0 }, data: { label: 'Base Texture', nodeType: 'TextureColor' } },
+      { id: 'probe-a', type: 'shaderNode', position: { x: 260, y: 0 }, data: { label: 'Before Invert', nodeType: 'Preview' } },
+      { id: 'amount', type: 'shaderNode', position: { x: 260, y: 170 }, data: { label: 'Invert Amount', nodeType: 'FloatConstant', values: { val: 1 } } },
+      { id: 'invert', type: 'shaderNode', position: { x: 520, y: 0 }, data: { label: 'Invert Pass', nodeType: 'InvertColor' } },
+      { id: 'probe-b', type: 'shaderNode', position: { x: 790, y: 0 }, data: { label: 'After Invert', nodeType: 'Preview' } },
+      { id: 'out', type: 'shaderNode', position: { x: 1060, y: 0 }, data: { label: 'Final Color', nodeType: 'FragmentOutput' } },
+      { id: 'probe-loose', type: 'shaderNode', position: { x: 520, y: 250 }, data: { label: 'Loose Preview', nodeType: 'Preview' } },
+    ],
+    edges: [
+      { id: 'tex:out->probe-a:color', source: 'tex', sourceHandle: 'out', target: 'probe-a', targetHandle: 'color' },
+      { id: 'probe-a:out->invert:color', source: 'probe-a', sourceHandle: 'out', target: 'invert', targetHandle: 'color' },
+      { id: 'amount:out->invert:amount', source: 'amount', sourceHandle: 'out', target: 'invert', targetHandle: 'amount' },
+      { id: 'invert:out->probe-b:color', source: 'invert', sourceHandle: 'out', target: 'probe-b', targetHandle: 'color' },
+      { id: 'probe-b:out->out:color', source: 'probe-b', sourceHandle: 'out', target: 'out', targetHandle: 'color' },
+    ],
+    subgraphs: [],
+  };
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'preview-probe-flow.feathershgh',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(graph)),
+  });
+
+  await expect(page.getByText(/vec4 v_probe_a_out/i)).toBeVisible();
+  const beforeProbe = page.locator('.react-flow__node').filter({ hasText: 'Before Invert' });
+  const afterProbe = page.locator('.react-flow__node').filter({ hasText: 'After Invert' });
+  const looseProbe = page.locator('.react-flow__node').filter({ hasText: 'Loose Preview' });
+
+  await expect(beforeProbe.getByTestId('shader-preview-probe')).toBeVisible();
+  await expect(beforeProbe.getByTestId('shader-preview-probe').getByText(/select this probe/i)).toBeVisible();
+  await expect(beforeProbe.locator('iframe[title="Before Invert love.js preview"]')).toHaveCount(0);
+
+  await beforeProbe.click();
+  await expect(beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas')).toBeVisible();
+  await expect(beforeProbe.getByTitle('Connect a LÖVE session to preview in game')).toBeDisabled();
+
+  await expect(afterProbe.getByTestId('shader-preview-probe')).toBeVisible();
+  await expect(afterProbe.getByTestId('shader-preview-probe').getByText(/select this probe/i)).toBeVisible();
+
+  await afterProbe.click();
+  await expect(beforeProbe.locator('iframe[title="Before Invert love.js preview"]')).toHaveCount(0);
+  await expect(afterProbe.frameLocator('iframe[title="After Invert love.js preview"]').locator('canvas')).toBeVisible();
+
+  await looseProbe.click();
+  await expect(afterProbe.locator('iframe[title="After Invert love.js preview"]')).toHaveCount(0);
+  await expect(looseProbe.getByTestId('shader-preview-probe').getByText(/connect an rgba input/i)).toBeVisible();
+  await expect(looseProbe.locator('iframe[title="Loose Preview love.js preview"]')).toHaveCount(0);
+});

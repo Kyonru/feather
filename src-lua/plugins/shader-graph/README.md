@@ -16,11 +16,12 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 4. Connect compatible ports by type.
 5. Connect the final `vec4` color into **Fragment Output**.
 6. Use **Custom Function** when a graph needs a small hand-written GLSL function. Function parameters become input ports; the return value and `out` parameters become output ports.
-7. Check **Graph Diagnostics** above the GLSL output before validating. Blocking diagnostics catch missing outputs, stale connections, invalid custom functions, missing textures, and subgraph reference cycles locally.
-8. Use **Validate** to compile in the running LÖVE game after local diagnostics are clear.
-9. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically.
-10. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
-11. Export/import `.feathershgh` files when you want to save or share editable graph projects.
+7. Insert **Preview** nodes between `vec4` effects when you want an inline love.js probe that shows the RGBA result up to that point while still passing the color downstream.
+8. Check **Graph Diagnostics** above the GLSL output before validating. Blocking diagnostics catch missing outputs, stale connections, invalid custom functions, missing textures, and subgraph reference cycles locally.
+9. Use **Validate** to compile in the running LÖVE game after local diagnostics are clear.
+10. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically.
+11. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
+12. Export/import `.feathershgh` files when you want to save or share editable graph projects.
 
 Select a node and edit **Node Name** in the inspector when a graph needs more descriptive labels. Renaming a node changes the canvas label only; the original node type stays visible in the inspector and code generation is unchanged.
 
@@ -31,6 +32,10 @@ The editor runs a local diagnostics pass on every graph edit and after importing
 Runtime validation is still the final compiler check. Driver-specific GLSL errors remain grouped by pixel and vertex stage, with the raw error text available to copy from the GLSL panel.
 
 ## Node Types
+
+### Debug
+
+Use **Preview** as an inline RGBA probe while building effect chains. It accepts a `vec4`, outputs the same `vec4`, and is safe to place between color/effect nodes because production GLSL treats it as a pass-through. The selected Preview node renders the graph up to that point inside the node with the standalone love.js preview; other Preview nodes stay paused so large graphs do not run multiple preview runtimes at once. Use the node's game-preview button to send that same probe shader to a connected LÖVE game; a disconnected Preview node shows a fallback until its RGBA input is connected.
 
 ### Custom
 

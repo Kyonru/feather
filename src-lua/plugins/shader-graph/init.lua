@@ -61,14 +61,6 @@ local function decodeBase64(data)
   return table.concat(out)
 end
 
-local function restoreCanvas(canvas)
-  if canvas then
-    love.graphics.setCanvas(canvas)
-  else
-    love.graphics.setCanvas()
-  end
-end
-
 local function clamp01(value, fallback)
   value = tonumber(value)
   if value == nil then
@@ -128,39 +120,40 @@ local function makePreviewCanvas(shape, size, color)
     size = 512
   end
 
-  local canvas = love.graphics.newCanvas(size, size)
-  local previousCanvas = love.graphics.getCanvas()
-  local previousShader = love.graphics.getShader()
-  local previousBlend, previousAlphaMode = love.graphics.getBlendMode()
-  local previousLineWidth = love.graphics.getLineWidth()
-  local r, g, b, a = love.graphics.getColor()
+  local imageData = love.image.newImageData(size, size)
   local pad = size * 0.22
+  local cx = size / 2
+  local cy = size / 2
+  local radius = size * 0.3
+  local lineWidth = math.max(6, size * 0.12)
+  local ax, ay = pad, size - pad
+  local bx, by = size - pad, pad
+  local abx, aby = bx - ax, by - ay
+  local abLen2 = abx * abx + aby * aby
 
-  love.graphics.push()
-  love.graphics.setCanvas(canvas)
-  love.graphics.origin()
-  love.graphics.clear(0, 0, 0, 0)
-  love.graphics.setShader()
-  love.graphics.setBlendMode("alpha")
-  love.graphics.setColor(color[1], color[2], color[3], color[4])
+  imageData:mapPixel(function(x, y)
+    local inside
+    if shape == "rectangle" then
+      inside = x >= pad and x <= size - pad and y >= pad and y <= size - pad
+    elseif shape == "line" then
+      local px, py = x - ax, y - ay
+      local t = math.max(0, math.min(1, (px * abx + py * aby) / abLen2))
+      local dx = x - (ax + abx * t)
+      local dy = y - (ay + aby * t)
+      inside = (dx * dx + dy * dy) <= (lineWidth * 0.5) * (lineWidth * 0.5)
+    else
+      local dx, dy = x - cx, y - cy
+      inside = (dx * dx + dy * dy) <= radius * radius
+    end
+    if inside then
+      return color[1], color[2], color[3], color[4]
+    end
+    return 0, 0, 0, 0
+  end)
 
-  if shape == "rectangle" then
-    love.graphics.rectangle("fill", pad, pad, size - pad * 2, size - pad * 2)
-  elseif shape == "line" then
-    love.graphics.setLineWidth(math.max(6, size * 0.12))
-    love.graphics.line(pad, size - pad, size - pad, pad)
-  else
-    love.graphics.circle("fill", size / 2, size / 2, size * 0.3)
-  end
-
-  restoreCanvas(previousCanvas)
-  love.graphics.pop()
-  love.graphics.setShader(previousShader)
-  love.graphics.setBlendMode(previousBlend, previousAlphaMode)
-  love.graphics.setLineWidth(previousLineWidth)
-  love.graphics.setColor(r, g, b, a)
-
-  return canvas
+  local image = love.graphics.newImage(imageData)
+  pcall(image.setFilter, image, "nearest", "nearest")
+  return image
 end
 
 local function imageFromUpload(upload, fallbackName)

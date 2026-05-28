@@ -1,7 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ShaderNodeData, PlaygroundTarget, GeneratedGlsl, ShaderTextureUpload, ShaderSubgraph } from '@/types/shader-graph';
+import type { ShaderNodeData, PlaygroundTarget, GeneratedGlsl, ShaderPreviewShape, ShaderTextureUpload, ShaderSubgraph } from '@/types/shader-graph';
 
 type ValidationStatus = 'idle' | 'validating' | 'ok' | 'error';
 
@@ -23,6 +23,9 @@ type ShaderGraphStore = {
   subgraphBreadcrumb: string[];
   shaderName: string;
   playgroundTarget: PlaygroundTarget | null;
+  previewShape: ShaderPreviewShape;
+  previewColor: string;
+  previewBaseTexture: ShaderTextureUpload | null;
   textureUploads: Record<string, ShaderTextureUpload>;
   lastGeneratedGlsl: GeneratedGlsl | null;
   validationStatus: ValidationStatus;
@@ -51,6 +54,9 @@ type ShaderGraphStore = {
   exitSubgraph: () => void;
   setShaderName: (name: string) => void;
   setPlaygroundTarget: (target: PlaygroundTarget | null) => void;
+  setPreviewShape: (shape: ShaderPreviewShape) => void;
+  setPreviewColor: (color: string) => void;
+  setPreviewBaseTexture: (texture: ShaderTextureUpload | null) => void;
   setTextureUpload: (nodeId: string, upload: ShaderTextureUpload) => void;
   clearTextureUpload: (nodeId: string) => void;
   setLastGlsl: (glsl: GeneratedGlsl | null) => void;
@@ -256,6 +262,9 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       subgraphBreadcrumb: [],
       shaderName: 'my-shader',
       playgroundTarget: null,
+      previewShape: 'circle',
+      previewColor: '#ffffff',
+      previewBaseTexture: null,
       textureUploads: {},
       lastGeneratedGlsl: null,
       validationStatus: 'idle',
@@ -386,6 +395,9 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
         }),
       setShaderName: (shaderName) => set({ shaderName }),
       setPlaygroundTarget: (playgroundTarget) => set({ playgroundTarget }),
+      setPreviewShape: (previewShape) => set({ previewShape }),
+      setPreviewColor: (previewColor) => set({ previewColor }),
+      setPreviewBaseTexture: (previewBaseTexture) => set({ previewBaseTexture }),
       setTextureUpload: (nodeId, upload) =>
         set((s) => ({
           textureUploads: {

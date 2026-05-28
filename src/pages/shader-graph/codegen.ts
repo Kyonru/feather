@@ -9,6 +9,13 @@ export const PASSTHROUGH_PIXEL = [
   '}',
 ].join('\n');
 
+export type PreviewProbeGlsl = GeneratedGlsl & {
+  nodeId: string;
+  nodeLabel: string;
+  connected: boolean;
+  message?: string;
+};
+
 const NOISE_HELPER = [
   'float feather_hash(vec2 p) {',
   '  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);',
@@ -487,4 +494,60 @@ export function codegen(nodes: ShaderNodeInstance[], edges: ShaderEdge[], subgra
 
   const hash = btoa(pixel.slice(0, 64)).slice(0, 16);
   return { pixel, vertex, hash, textures: [...textureMap.values()], parameters: [...parameterMap.values()] };
+}
+
+export function previewProbeCodegen(
+  nodes: ShaderNodeInstance[],
+  edges: ShaderEdge[],
+  subgraphs: ShaderSubgraph[] = [],
+  previewNodeId: string,
+): PreviewProbeGlsl | null {
+  const previewNode = nodes.find((node) => node.id === previewNodeId && node.data.nodeType === 'Preview');
+  if (!previewNode) return null;
+
+  const subgraphMap = new Map(subgraphs.map((subgraph) => [subgraph.id, subgraph]));
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const previewDef = getNodeDef(previewNode.data);
+  const colorPort = previewDef.inputs.find((port) => port.id === 'color');
+  const colorEdge = edges.find((edge) => edge.target === previewNode.id && edge.targetHandle === 'color');
+  const nodeLabel = String(previewNode.data.label || previewDef.label);
+
+  const reachable = collectReachable(previewNode.id, nodes, edges);
+  const pixelMeta = createMetadataSets();
+  const textureMap = new Map<string, { nodeId: string; uniform: string; label: string }>();
+  const parameterMap = new Map<string, ShaderParameter>();
+  collectGraphMetadata(reachable, pixelMeta.externSet, pixelMeta.helperKeys, pixelMeta.customFunctionSet, textureMap, parameterMap);
+  collectRootParameterDeclarations(nodes, pixelMeta.externSet, parameterMap);
+
+  const usedPixelSubgraphs = collectUsedSubgraphs(reachable, subgraphMap);
+  for (const subgraphId of usedPixelSubgraphs) {
+    const subgraph = subgraphMap.get(subgraphId);
+    if (subgraph) collectGraphMetadata(subgraph.nodes, pixelMeta.externSet, pixelMeta.helperKeys, pixelMeta.customFunctionSet, textureMap, parameterMap);
+  }
+
+  const bodyLines: string[] = [];
+  for (const node of reachable) {
+    bodyLines.push(...buildNodeBody(node, edges, nodeMap, subgraphMap));
+  }
+
+  const returnExpr = colorEdge?.sourceHandle
+    ? outputExpression(nodeMap, previewNode.id, 'out')
+    : defaultValue(colorPort ?? { id: 'color', label: 'RGBA', type: 'vec4', defaultValue: [0, 0, 0, 1] }, previewNode.data);
+
+  const parts = buildPrelude(pixelMeta.externSet, pixelMeta.helperKeys, pixelMeta.customFunctionSet, usedPixelSubgraphs, subgraphMap, 'pixel');
+  parts.push(buildEffect(bodyLines, returnExpr));
+  const pixel = parts.join('\n\n');
+  const hash = btoa(`${previewNode.id}:${pixel.slice(0, 64)}`).slice(0, 16);
+
+  return {
+    nodeId: previewNode.id,
+    nodeLabel,
+    connected: Boolean(colorEdge),
+    message: colorEdge ? undefined : 'Connect an RGBA input to preview this point.',
+    pixel,
+    vertex: null,
+    hash,
+    textures: [...textureMap.values()],
+    parameters: [...parameterMap.values()],
+  };
 }

@@ -1,0 +1,198 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { MonitorPlayIcon, RefreshCwIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { sendCommand } from '@/lib/send-command';
+import { useSessionStore } from '@/store/session';
+import { useShaderGraphStore } from '@/store/shader-graph';
+import type { ShaderTextureUpload } from '@/types/shader-graph';
+import { previewProbeCodegen, type PreviewProbeGlsl } from './codegen';
+
+type Status = 'idle' | 'sending' | 'live' | 'error';
+
+type Props = {
+  nodeId: string;
+  active: boolean;
+};
+
+function colorFromHex(value: string): [number, number, number, number] {
+  const match = value.match(/^#?([0-9a-f]{6})$/i);
+  if (!match) return [1, 1, 1, 1];
+  const int = Number.parseInt(match[1], 16);
+  return [((int >> 16) & 255) / 255, ((int >> 8) & 255) / 255, (int & 255) / 255, 1];
+}
+
+function missingTextures(
+  probe: PreviewProbeGlsl | null,
+  textureUploads: Record<string, ShaderTextureUpload>,
+): string[] {
+  if (!probe?.textures) return [];
+  return probe.textures.filter((texture) => !textureUploads[texture.nodeId]).map((texture) => texture.label);
+}
+
+function texturePayload(probe: PreviewProbeGlsl | null, textureUploads: Record<string, ShaderTextureUpload>) {
+  return probe?.textures
+    ?.map((texture) => {
+      const upload = textureUploads[texture.nodeId];
+      return upload ? { ...upload, uniform: texture.uniform } : null;
+    })
+    .filter((texture): texture is ShaderTextureUpload & { uniform: string } => Boolean(texture)) ?? [];
+}
+
+function InactiveLoveNodePreview() {
+  return (
+    <div className="nodrag nopan mt-2 overflow-hidden rounded border bg-black/95" data-testid="shader-preview-probe">
+      <div className="flex h-6 items-center border-b border-white/10 bg-card/95 px-1.5">
+        <span className="min-w-0 flex-1 truncate text-[9px] text-muted-foreground">paused</span>
+      </div>
+      <div className="grid h-24 place-items-center bg-black/80 p-2 text-center text-[10px] text-muted-foreground">
+        Select this probe to render its love.js preview.
+      </div>
+    </div>
+  );
+}
+
+function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
+  const sessionId = useSessionStore((s) => s.sessionId);
+  const nodes = useShaderGraphStore((s) => s.nodes);
+  const edges = useShaderGraphStore((s) => s.edges);
+  const subgraphs = useShaderGraphStore((s) => s.subgraphs);
+  const activeSubgraphId = useShaderGraphStore((s) => s.activeSubgraphId);
+  const textureUploads = useShaderGraphStore((s) => s.textureUploads);
+  const previewShape = useShaderGraphStore((s) => s.previewShape);
+  const previewColor = useShaderGraphStore((s) => s.previewColor);
+  const baseTexture = useShaderGraphStore((s) => s.previewBaseTexture);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const loadedRef = useRef(false);
+  const [status, setStatus] = useState<Status>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/index.html?g=showcase.love&v=11.5`;
+  const activeSubgraph = activeSubgraphId ? subgraphs.find((subgraph) => subgraph.id === activeSubgraphId) : null;
+  const graphNodes = activeSubgraph?.nodes ?? nodes;
+  const graphEdges = activeSubgraph?.edges ?? edges;
+  const probe = useMemo(
+    () => previewProbeCodegen(graphNodes, graphEdges, subgraphs, nodeId),
+    [graphEdges, graphNodes, nodeId, subgraphs],
+  );
+  const missing = missingTextures(probe, textureUploads);
+  const textures = useMemo(() => texturePayload(probe, textureUploads), [probe, textureUploads]);
+  const canPreview = Boolean(probe?.connected && missing.length === 0);
+  const payload = useMemo(() => ({
+    tool: 'shader-graph',
+    shaderName: probe?.nodeLabel ?? 'Preview',
+    pixel: canPreview ? probe?.pixel : '',
+    vertex: canPreview ? (probe?.vertex ?? '') : '',
+    previewShape,
+    previewColor,
+    baseTexture,
+    textureUniforms: probe?.textures ?? [],
+    parameters: probe?.parameters ?? [],
+    textures,
+  }), [baseTexture, canPreview, previewColor, previewShape, probe, textures]);
+
+  function sendPayload() {
+    iframeRef.current?.contentWindow?.postMessage(
+      { source: 'feather-showcase', type: 'preview:update', payload },
+      '*',
+    );
+  }
+
+  useEffect(() => {
+    if (loadedRef.current) sendPayload();
+  }, [payload]);
+
+  function handleLoad() {
+    loadedRef.current = true;
+    sendPayload();
+  }
+
+  function reloadPreview() {
+    if (!iframeRef.current) return;
+    loadedRef.current = false;
+    iframeRef.current.contentWindow?.location.reload();
+  }
+
+  async function sendToGame() {
+    if (!sessionId || !probe || !canPreview) return;
+    setStatus('sending');
+    setError(null);
+    try {
+      await sendCommand(sessionId, {
+        type: 'cmd:plugin:action',
+        plugin: 'shader-graph',
+        action: 'preview-shader',
+        params: {
+          pixelSource: probe.pixel,
+          vertexSource: probe.vertex ?? '',
+          shape: previewShape,
+          color: colorFromHex(previewColor),
+          baseTexture,
+          textureUniforms: probe.textures ?? [],
+          parameters: probe.parameters ?? [],
+          textures,
+        },
+      });
+      setStatus('live');
+    } catch (err) {
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Failed to send preview to LÖVE runtime.');
+    }
+  }
+
+  const fallback = !probe?.connected
+    ? (probe?.message ?? 'Connect an RGBA input.')
+    : missing.length > 0
+      ? `Upload texture: ${missing[0]}`
+      : null;
+
+  return (
+    <div className="nodrag nopan mt-2 overflow-hidden rounded border bg-black/95" data-testid="shader-preview-probe">
+      <div className="flex h-6 items-center gap-1 border-b border-white/10 bg-card/95 px-1.5">
+        <span className="min-w-0 flex-1 truncate text-[9px] text-muted-foreground">
+          {status === 'error' ? (error ?? 'Runtime preview failed.') : status === 'live' ? 'Sent to game' : 'love.js'}
+        </span>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-5 shrink-0 text-muted-foreground"
+          title="Reload node preview"
+          onClick={reloadPreview}
+        >
+          <RefreshCwIcon className="size-3" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-5 shrink-0 text-muted-foreground"
+          title={sessionId ? 'Preview this probe in the connected game' : 'Connect a LÖVE session to preview in game'}
+          disabled={!sessionId || !canPreview || status === 'sending'}
+          onClick={sendToGame}
+        >
+          <MonitorPlayIcon className="size-3" />
+        </Button>
+      </div>
+      <div className="relative h-24">
+        {canPreview && (
+          <iframe
+            ref={iframeRef}
+            title={`${probe?.nodeLabel ?? 'Preview'} love.js preview`}
+            src={previewSrc}
+            className="block h-full w-full border-0"
+            onLoad={handleLoad}
+          />
+        )}
+        {fallback && (
+          <div className="absolute inset-0 grid place-items-center bg-black/80 p-2 text-center text-[10px] text-muted-foreground">
+            {fallback}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function LoveNodePreview({ nodeId, active }: Props) {
+  if (!active) return <InactiveLoveNodePreview />;
+  return <ActiveLoveNodePreview nodeId={nodeId} />;
+}

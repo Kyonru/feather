@@ -251,36 +251,108 @@ local shaderState = {
 
 local function makePreviewCanvas(shape, r, g, b, a)
   local size = 256
-  local canvas = love.graphics.newCanvas(size, size)
-  local prevCanvas = love.graphics.getCanvas()
-  local prevShader = love.graphics.getShader()
-  local prevBlend, prevAlpha = love.graphics.getBlendMode()
-  local pr, pg, pb, pa = love.graphics.getColor()
-  local prevLW = love.graphics.getLineWidth()
-
-  love.graphics.setCanvas(canvas)
-  love.graphics.origin()
-  love.graphics.clear(0, 0, 0, 0)
-  love.graphics.setShader()
-  love.graphics.setBlendMode("alpha")
-  love.graphics.setColor(r, g, b, a)
-
+  local imageData = love.image.newImageData(size, size)
   local pad = size * 0.22
-  if shape == "rectangle" then
-    love.graphics.rectangle("fill", pad, pad, size - pad * 2, size - pad * 2)
-  elseif shape == "line" then
-    love.graphics.setLineWidth(math.max(6, size * 0.12))
-    love.graphics.line(pad, size - pad, size - pad, pad)
-  else
-    love.graphics.circle("fill", size / 2, size / 2, size * 0.3)
+  local cx = size / 2
+  local cy = size / 2
+  local radius = size * 0.3
+  local lineWidth = math.max(6, size * 0.12)
+  local ax, ay = pad, size - pad
+  local bx, by = size - pad, pad
+  local abx, aby = bx - ax, by - ay
+  local abLen2 = abx * abx + aby * aby
+
+  imageData:mapPixel(function(x, y)
+    local inside
+    if shape == "rectangle" then
+      inside = x >= pad and x <= size - pad and y >= pad and y <= size - pad
+    elseif shape == "line" then
+      local px, py = x - ax, y - ay
+      local t = math.max(0, math.min(1, (px * abx + py * aby) / abLen2))
+      local dx = x - (ax + abx * t)
+      local dy = y - (ay + aby * t)
+      inside = (dx * dx + dy * dy) <= (lineWidth * 0.5) * (lineWidth * 0.5)
+    else
+      local dx, dy = x - cx, y - cy
+      inside = (dx * dx + dy * dy) <= radius * radius
+    end
+    if inside then
+      return r, g, b, a
+    end
+    return 0, 0, 0, 0
+  end)
+
+  local image = love.graphics.newImage(imageData)
+  pcall(image.setFilter, image, "nearest", "nearest")
+  return image
+end
+
+local function imageFromUpload(upload, fallbackName)
+  if type(upload) ~= "table" or type(upload.dataBase64) ~= "string" or upload.dataBase64 == "" then
+    return nil
+  end
+  local raw = decodeBase64(upload.dataBase64)
+  if not raw or raw == "" then
+    return nil
+  end
+  local fn = tostring(upload.filename or fallbackName or "preview-texture.png")
+  local okFd, fd = pcall(love.filesystem.newFileData, raw, fn)
+  if not okFd or not fd then
+    return nil
+  end
+  local okImg, img = pcall(love.graphics.newImage, fd)
+  if not okImg or not img then
+    return nil
+  end
+  pcall(img.setFilter, img, "nearest", "nearest")
+  return img
+end
+
+local function cloneParameterValue(value, parameterType)
+  if parameterType == "float" then
+    return tonumber(value) or 0
+  end
+  if parameterType == "vec2" then
+    value = type(value) == "table" and value or {}
+    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0 }
+  end
+  if parameterType == "vec3" then
+    value = type(value) == "table" and value or {}
+    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0 }
+  end
+  if parameterType == "vec4" or parameterType == "color" then
+    value = type(value) == "table" and value or {}
+    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0, tonumber(value[4]) or 1 }
+  end
+  return value
+end
+
+local function sendShaderPayloadUniforms(shader, payload)
+  if not shader then
+    return
   end
 
-  love.graphics.setCanvas(prevCanvas)
-  love.graphics.setShader(prevShader)
-  love.graphics.setBlendMode(prevBlend, prevAlpha)
-  love.graphics.setColor(pr, pg, pb, pa)
-  love.graphics.setLineWidth(prevLW)
-  return canvas
+  local uploads = type(payload.textures) == "table" and payload.textures or {}
+  for _, upload in ipairs(uploads) do
+    local uniform = type(upload) == "table" and tostring(upload.uniform or "") or ""
+    if uniform ~= "" then
+      local image = imageFromUpload(upload, "preview-texture.png")
+      if image then
+        pcall(shader.send, shader, uniform, image)
+      end
+    end
+  end
+
+  local parameters = type(payload.parameters) == "table" and payload.parameters or {}
+  for _, parameter in ipairs(parameters) do
+    if type(parameter) == "table" then
+      local uniform = tostring(parameter.uniform or "")
+      local parameterType = tostring(parameter.type or "")
+      if uniform ~= "" and parameterType ~= "texture" then
+        pcall(shader.send, shader, uniform, cloneParameterValue(parameter.defaultValue, parameterType))
+      end
+    end
+  end
 end
 
 local function applyShaderPayload(payload)
@@ -313,18 +385,7 @@ local function applyShaderPayload(payload)
   local drawable = nil
   local bt = payload.baseTexture
   if type(bt) == "table" and type(bt.dataBase64) == "string" and bt.dataBase64 ~= "" then
-    local raw = decodeBase64(bt.dataBase64)
-    if raw and raw ~= "" then
-      local fn = tostring(bt.filename or "preview-texture.png")
-      local okFd, fd = pcall(love.filesystem.newFileData, raw, fn)
-      if okFd and fd then
-        local okImg, img = pcall(love.graphics.newImage, fd)
-        if okImg and img then
-          pcall(img.setFilter, img, "nearest", "nearest")
-          drawable = img
-        end
-      end
-    end
+    drawable = imageFromUpload(bt, "preview-texture.png")
   end
 
   if not drawable then
@@ -333,6 +394,8 @@ local function applyShaderPayload(payload)
       drawable = cv
     end
   end
+
+  sendShaderPayloadUniforms(shader, payload)
 
   shaderState.shader = shader
   shaderState.drawable = drawable

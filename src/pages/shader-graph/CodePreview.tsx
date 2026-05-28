@@ -4,9 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { type ShaderPreviewColor, type ShaderPreviewShape, useShaderGraph } from '@/hooks/use-shader-graph';
-import type { ShaderParameter } from '@/types/shader-graph';
+import { type ShaderPreviewColor, useShaderGraph } from '@/hooks/use-shader-graph';
+import type { ShaderParameter, ShaderPreviewShape } from '@/types/shader-graph';
 import { useSessionStore } from '@/store/session';
+import { useShaderGraphStore } from '@/store/shader-graph';
 import { useTheme } from '@/hooks/use-theme';
 import oneLight from '@/assets/theme/light';
 import onDark from '@/assets/theme/dark';
@@ -43,6 +44,7 @@ type PreviewParams = {
   color: string;
   baseTexture: { filename: string; dataBase64: string } | null;
   parameters: ShaderParameter[];
+  textures: { filename: string; dataBase64: string; uniform: string }[];
 };
 
 const diagnosticStyles: Record<ShaderGraphDiagnostic['severity'], string> = {
@@ -137,10 +139,13 @@ export function CodePreview({
   const theme = useTheme();
   const hlTheme = theme === 'dark' ? onDark : oneLight;
   const [copied, setCopied] = useState(false);
-  const [previewShape, setPreviewShape] = useState<ShaderPreviewShape>('circle');
-  const [previewColor, setPreviewColor] = useState('#ffffff');
+  const previewShape = useShaderGraphStore((s) => s.previewShape);
+  const previewColor = useShaderGraphStore((s) => s.previewColor);
+  const baseTexture = useShaderGraphStore((s) => s.previewBaseTexture);
+  const setPreviewShape = useShaderGraphStore((s) => s.setPreviewShape);
+  const setPreviewColor = useShaderGraphStore((s) => s.setPreviewColor);
+  const setBaseTexture = useShaderGraphStore((s) => s.setPreviewBaseTexture);
   const [previewEnabled, setPreviewEnabled] = useState(false);
-  const [baseTexture, setBaseTexture] = useState<{ filename: string; dataBase64: string } | null>(null);
   const sendShaderPreviewRef = useRef(sendShaderPreview);
   const onPreviewParamsChangeRef = useRef(onPreviewParamsChange);
   const debouncedNodes = useDebouncedValue(nodes, 180);
@@ -222,8 +227,14 @@ export function CodePreview({
 
   useEffect(() => {
     if (!standalone) return;
-    onPreviewParamsChangeRef.current?.({ shape: previewShape, color: previewColor, baseTexture, parameters: glsl.parameters ?? [] });
-  }, [previewShape, previewColor, baseTexture, standalone]);
+    onPreviewParamsChangeRef.current?.({
+      shape: previewShape,
+      color: previewColor,
+      baseTexture,
+      parameters: glsl.parameters ?? [],
+      textures: uploadedUniformTextures,
+    });
+  }, [previewShape, previewColor, baseTexture, glsl.parameters, standalone, uploadedUniformTextures]);
 
   useEffect(() => {
     if (!sessionId || !previewEnabled) return;
