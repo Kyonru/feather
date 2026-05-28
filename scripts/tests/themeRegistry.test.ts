@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   appThemes,
   normalizeThemePreference,
+  rainglowThemeIds,
   resolveThemeId,
   themeSelectorGroups,
   THEME_CSS_VARIABLES,
@@ -36,7 +37,6 @@ const tokyoNightThemeIds: ThemeId[] = [
   'tokyo-night-storm',
 ];
 
-const rainglowThemeIds: ThemeId[] = ['rainglow-absent-light'];
 const githubThemeIds: ThemeId[] = [
   'github-light-default',
   'github-light-high-contrast',
@@ -51,8 +51,12 @@ const githubThemeIds: ThemeId[] = [
 test('theme picker exposes Feather defaults and external theme variants', () => {
   const options = themeSelectorGroups.flatMap((group) => group.options.map((option) => option.value));
 
-  assert.equal(options.length, 30);
-  assert.deepEqual(options, [
+  assert.equal(rainglowThemeIds.length, 51);
+  assert.equal(options.length, 80);
+  assert.equal(themeSelectorGroups.find((group) => group.label === 'Rainglow Light')?.options.length, 17);
+  assert.equal(themeSelectorGroups.find((group) => group.label === 'Rainglow Dark')?.options.length, 17);
+  assert.equal(themeSelectorGroups.find((group) => group.label === 'Rainglow Contrast')?.options.length, 17);
+  assert.deepEqual(options.slice(0, 17), [
     'system',
     'light',
     'dark',
@@ -70,7 +74,19 @@ test('theme picker exposes Feather defaults and external theme variants', () => 
     'tokyo-night-light',
     'tokyo-night',
     'tokyo-night-storm',
-    'rainglow-absent-light',
+  ]);
+  assert.ok(options.includes('rainglow-absent-light'));
+  assert.ok(options.includes('rainglow-codecourse-contrast'));
+  assert.ok(options.includes('rainglow-hawaii-light'));
+  assert.ok(options.includes('rainglow-heroku'));
+  assert.ok(options.includes('rainglow-hive-contrast'));
+  assert.ok(options.includes('rainglow-horizon-light'));
+  assert.ok(options.includes('rainglow-hyrule'));
+  assert.ok(options.includes('rainglow-iceberg-contrast'));
+  assert.ok(options.includes('rainglow-vision-light-colorblind'));
+  assert.ok(options.indexOf('rainglow-absent-light') < options.indexOf('rainglow-absent'));
+  assert.ok(options.indexOf('rainglow-absent') < options.indexOf('rainglow-absent-contrast'));
+  assert.deepEqual(options.slice(-12), [
     'github-light-default',
     'github-light-high-contrast',
     'github-light-colorblind',
@@ -158,6 +174,8 @@ test('theme preferences normalize and resolve safely', () => {
   assert.equal(normalizeThemePreference('noctis-uva'), 'noctis-uva');
   assert.equal(normalizeThemePreference('tokyo-night-light'), 'tokyo-night-light');
   assert.equal(normalizeThemePreference('rainglow-absent-light'), 'rainglow-absent-light');
+  assert.equal(normalizeThemePreference('rainglow-codecourse-contrast'), 'rainglow-codecourse-contrast');
+  assert.equal(normalizeThemePreference('rainglow-vision-light-colorblind'), 'rainglow-vision-light-colorblind');
   assert.equal(normalizeThemePreference('github-light'), 'github-light');
   assert.equal(normalizeThemePreference('github-light-high-contrast'), 'github-light-high-contrast');
   assert.equal(normalizeThemePreference('github-dark-dimmed'), 'github-dark-dimmed');
@@ -168,6 +186,7 @@ test('theme preferences normalize and resolve safely', () => {
   assert.equal(resolveThemeId('noctis-viola', 'light'), 'noctis-viola');
   assert.equal(resolveThemeId('tokyo-night-storm', 'light'), 'tokyo-night-storm');
   assert.equal(resolveThemeId('rainglow-absent-light', 'dark'), 'rainglow-absent-light');
+  assert.equal(resolveThemeId('rainglow-codecourse-contrast', 'light'), 'rainglow-codecourse-contrast');
   assert.equal(resolveThemeId('github-light', 'dark'), 'github-light');
   assert.equal(resolveThemeId('github-dark-colorblind', 'light'), 'github-dark-colorblind');
   assert.equal(resolveThemeId('vs-cpp-dark', 'light'), 'vs-cpp-dark');

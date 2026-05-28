@@ -34,11 +34,7 @@ import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { MobileConnection } from '@/components/mobile-connection';
 import { openUrl } from '@/utils/linking';
-import {
-  normalizeThemePreference,
-  themeSelectorGroups,
-  type ThemeSelectorOption,
-} from '@/assets/theme/registry';
+import { normalizeThemePreference, themeSelectorGroups, type ThemeSelectorOption } from '@/assets/theme/registry';
 import { version as appVersion } from '../../../package.json';
 import {
   ActivityIcon,
@@ -202,7 +198,9 @@ function ThemeToggle() {
           ))}
         </SelectContent>
       </Select>
-      <FieldDescription>The selected theme styles Feather chrome and syntax-highlighted code surfaces.</FieldDescription>
+      <FieldDescription>
+        The selected theme styles Feather chrome and syntax-highlighted code surfaces.
+      </FieldDescription>
     </div>
   );
 }
@@ -232,13 +230,20 @@ function SidebarFeaturesInput() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="grid gap-1">
           <Label>Sidebar Features</Label>
-          <FieldDescription>Hide tools you do not use often. Hidden tools can still be opened by direct route.</FieldDescription>
+          <FieldDescription>
+            Hide tools you do not use often. Hidden tools can still be opened by direct route.
+          </FieldDescription>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => setHiddenMainFeatures([])}>
             Show all
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setHiddenMainFeatures(optionalFeatureDefaults)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setHiddenMainFeatures(optionalFeatureDefaults)}
+          >
             Hide extras
           </Button>
         </div>
@@ -253,7 +258,10 @@ function SidebarFeaturesInput() {
                 checked={checked}
                 onCheckedChange={() => toggleHiddenMainFeature(feature.id)}
               />
-              <Label htmlFor={`feature-visible-${feature.id}`} className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2">
+              <Label
+                htmlFor={`feature-visible-${feature.id}`}
+                className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2"
+              >
                 <span className="truncate">{feature.title}</span>
                 {feature.id === 'compare' && <span className="text-[10px] text-muted-foreground">2 sessions</span>}
               </Label>
@@ -760,13 +768,13 @@ export function SettingsModal() {
         <Tabs defaultValue="connection" className="min-h-0 flex-1 gap-0">
           <div className="border-b px-5 py-3">
             <TabsList className="w-full justify-start">
-              <TabsTrigger value="general" className="gap-2">
-                <MonitorIcon className="size-4" />
-                General
-              </TabsTrigger>
               <TabsTrigger value="connection" className="gap-2">
                 <NetworkIcon className="size-4" />
                 Connection
+              </TabsTrigger>
+              <TabsTrigger value="general" className="gap-2">
+                <MonitorIcon className="size-4" />
+                General
               </TabsTrigger>
               <TabsTrigger value="security" className="gap-2">
                 <ShieldIcon className="size-4" />

@@ -2,12 +2,18 @@ import featherDarkSyntax from '../dark';
 import featherLightSyntax from '../light';
 import { githubThemes } from './github';
 import { noctisThemes } from './noctis';
-import { rainglowThemes } from './rainglow';
+import {
+  rainglowContrastThemeIds,
+  rainglowDarkThemeIds,
+  rainglowLightThemeIds,
+  rainglowThemes,
+} from './rainglow';
 import { tokyoNightThemes } from './tokyo-night';
 import { visualStudioCppThemes } from './visual-studio-cpp';
 import type { AppTheme, SyntaxHighlighterStyle, ThemeId, ThemeMode, ThemePreference, ThemeVariables } from './types';
 
 export { THEME_CSS_VARIABLES } from './types';
+export { rainglowThemeIds } from './rainglow';
 export type {
   AppTheme,
   GitHubThemeId,
@@ -191,7 +197,15 @@ export const themeSelectorGroups: ThemeSelectorGroup[] = [
   },
   {
     label: 'Rainglow Light',
-    options: [optionForTheme('rainglow-absent-light')],
+    options: rainglowLightThemeIds.map(optionForTheme),
+  },
+  {
+    label: 'Rainglow Dark',
+    options: rainglowDarkThemeIds.map(optionForTheme),
+  },
+  {
+    label: 'Rainglow Contrast',
+    options: rainglowContrastThemeIds.map(optionForTheme),
   },
   {
     label: 'GitHub Light',

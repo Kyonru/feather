@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph Preview nodes now keep a stable embedded preview aspect ratio instead of stretching to an arbitrary fixed height.
 - Added all 11 Noctis theme variants as optional app themes with matching syntax highlighting while keeping Feather Light, Feather Dark, and System defaults.
 - Expanded GitHub themes with Light Default, Light High Contrast, Light Colorblind, Dark Default, Dark High Contrast, Dark Colorblind, and Dark Dimmed alongside the classic GitHub Light theme.
-- Added Rainglow Absent Light as an optional app theme with matching syntax highlighting.
+- Added a curated Rainglow VS Code theme selection, including Hawaii, Heroku, Hive, Horizon, Hyrule, and Iceberg families, as optional app themes grouped into Light, Dark, and Contrast options with matching syntax highlighting.
 - Added Tokyo Night Light, Tokyo Night, and Tokyo Night Storm as optional app themes with matching syntax highlighting.
 - Added Microsoft Visual Studio C/C++ Light, Dark, 2017 Light, and 2017 Dark as optional app themes with matching syntax highlighting.
 
@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added app e2e coverage for log type badge contrast in dark themes.
 - Added focused log-history coverage and app e2e coverage for restoring saved session logs.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
-- Expanded theme registry and app e2e coverage for the Rainglow Absent Light theme variant.
+- Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.
 - Expanded theme registry and app e2e coverage for Tokyo Night theme variants.
 

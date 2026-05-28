@@ -998,6 +998,14 @@ test('persists expanded theme variants and can return to system mode', async ({ 
     .toBe('#228a96');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
+  await page.getByRole('option', { name: 'Codecourse Contrast (Rainglow)' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'rainglow-codecourse-contrast');
+  await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
+    .toBe('#1ea8fc');
+
+  await page.getByRole('combobox', { name: 'App Theme' }).click();
   await page.getByRole('option', { name: 'GitHub Light High Contrast' }).click();
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'github-light-high-contrast');
