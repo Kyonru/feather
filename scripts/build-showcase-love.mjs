@@ -1,30 +1,15 @@
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+/* eslint-disable no-undef */
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { zipSync, strToU8 } from 'fflate';
+import { buildShowcaseLove } from './showcase-lovejs-utils.mjs';
 
 const root = process.cwd();
-const sourceDir = path.join(root, 'src-lua/example/showcase_preview');
 const outDir = path.join(root, 'dist-showcase/showcase-lovejs');
-
-const files = {
-  'main.lua': await readFile(path.join(sourceDir, 'main.lua'), 'utf8'),
-  'conf.lua': await readFile(path.join(sourceDir, 'conf.lua'), 'utf8'),
-  'shader-graph/preview_runtime.lua': await readFile(
-    path.join(root, 'src-lua/plugins/shader-graph/preview_runtime.lua'),
-    'utf8',
-  ),
-};
 
 await mkdir(outDir, { recursive: true });
 await copyFile(path.join(root, 'dist-showcase/showcase.html'), path.join(root, 'dist-showcase/index.html'));
 await copyFile(path.join(root, 'dist-showcase/showcase.html'), path.join(root, 'dist-showcase/404.html'));
-await writeFile(
-  path.join(outDir, 'showcase.love'),
-  zipSync(
-    Object.fromEntries(Object.entries(files).map(([name, content]) => [name, strToU8(content)])),
-    { level: 9 },
-  ),
-);
+await buildShowcaseLove({ root, outDir });
 await writeFile(
   path.join(outDir, 'README.md'),
   [
@@ -32,7 +17,7 @@ await writeFile(
     '',
     'This branch contains generated static files for the Feather standalone showcase.',
     '',
-    'The `./showcase-lovejs/` path is the isolated LÖVE preview boundary. When replacing the included bridge with the full 2dengine love.js player, serve this path with:',
+    'The `./showcase-lovejs/` path is the isolated LÖVE preview boundary. Serve this path with:',
     '',
     '- `Cross-Origin-Opener-Policy: same-origin`',
     '- `Cross-Origin-Embedder-Policy: require-corp`',

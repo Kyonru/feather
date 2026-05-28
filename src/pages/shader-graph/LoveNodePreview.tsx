@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MonitorOffIcon, MonitorPlayIcon, PinIcon, PinOffIcon, RefreshCwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { sendCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { ShaderTextureUpload } from '@/types/shader-graph';
 import { previewProbeCodegen, type PreviewProbeGlsl } from './codegen';
+import { shaderGraphGamePreviewController } from './gamePreviewController';
 
 type Status = 'idle' | 'sending' | 'live' | 'error';
 
@@ -14,6 +14,8 @@ type Props = {
   active: boolean;
   pinned: boolean;
 };
+
+const NODE_PREVIEW_ASPECT_CLASS = 'aspect-[18/11] w-full';
 
 function colorFromHex(value: string): [number, number, number, number] {
   const match = value.match(/^#?([0-9a-f]{6})$/i);
@@ -55,7 +57,7 @@ function InactiveLoveNodePreview({ pinned, onTogglePin }: Pick<Props, 'pinned'> 
           {pinned ? <PinOffIcon className="size-3" /> : <PinIcon className="size-3" />}
         </Button>
       </div>
-      <div className="grid h-24 place-items-center bg-black/80 p-2 text-center text-[10px] text-muted-foreground">
+      <div className={`grid ${NODE_PREVIEW_ASPECT_CLASS} place-items-center bg-black/80 p-2 text-center text-[10px] text-muted-foreground`}>
         Select or pin this probe to render its love.js preview.
       </div>
     </div>
@@ -144,12 +146,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
     setError(null);
     try {
       if (status === 'live') {
-        await sendCommand(sessionId, {
-          type: 'cmd:plugin:action',
-          plugin: 'shader-graph',
-          action: 'clear-preview',
-          params: {},
-        });
+        await shaderGraphGamePreviewController.clear(sessionId);
         setStatus('idle');
         return;
       }
@@ -159,20 +156,15 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
         return;
       }
 
-      await sendCommand(sessionId, {
-        type: 'cmd:plugin:action',
-        plugin: 'shader-graph',
-        action: 'preview-shader',
-        params: {
-          pixelSource: probe.pixel,
-          vertexSource: probe.vertex ?? '',
-          shape: previewShape,
-          color: colorFromHex(previewColor),
-          baseTexture,
-          textureUniforms: probe.textures ?? [],
-          parameters: probe.parameters ?? [],
-          textures,
-        },
+      await shaderGraphGamePreviewController.preview(sessionId, {
+        pixelSource: probe.pixel,
+        vertexSource: probe.vertex ?? '',
+        shape: previewShape,
+        color: colorFromHex(previewColor),
+        baseTexture,
+        textureUniforms: probe.textures ?? [],
+        parameters: probe.parameters ?? [],
+        textures,
       });
       setStatus('live');
     } catch (err) {
@@ -256,7 +248,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
           {status === 'live' ? <MonitorOffIcon className="size-3" /> : <MonitorPlayIcon className="size-3" />}
         </Button>
       </div>
-      <div className="relative h-24">
+      <div className={`relative ${NODE_PREVIEW_ASPECT_CLASS}`}>
         {canPreview && (
           <iframe
             ref={iframeRef}

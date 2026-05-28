@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Shader Graph canvas zoom range for inspecting dense node clusters and large graphs.
 - Added Shader Graph canvas mode buttons for switching empty-canvas drags between node selection and panning.
 - Shader Graph now deletes all selected nodes together with one Delete/Backspace action.
+- Shader Graph connected-game previews now dedupe and throttle live updates while the runtime caches preview shaders and draws through a capped overlay canvas.
+- Showcase dev now serves a generated real love.js preview target so Shader Graph Preview nodes exercise the same LÖVE path during browser development.
+- Shader Graph Preview nodes now keep a stable embedded preview aspect ratio instead of stretching to an arbitrary fixed height.
 
 ### Tests
 
@@ -28,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded showcase e2e coverage for Shader Graph Preview node zoom controls.
 - Expanded showcase e2e coverage for pinned Shader Graph Preview nodes.
 - Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
+- Added focused coverage for Shader Graph game-preview throttling and runtime preview caching.
+- Expanded showcase e2e coverage for Shader Graph Preview node aspect ratio.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 

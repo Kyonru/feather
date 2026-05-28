@@ -5,6 +5,7 @@ import { useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { sessionQueryKey } from './use-ws-connection';
 import { codegen } from '@/pages/shader-graph/codegen';
+import { shaderGraphGamePreviewController } from '@/pages/shader-graph/gamePreviewController';
 import { diagnoseShaderGraph, hasBlockingDiagnostics } from '@/pages/shader-graph/diagnostics';
 import type { GeneratedGlsl, ShaderParameter, ShaderTextureUpload } from '@/types/shader-graph';
 
@@ -109,20 +110,15 @@ export function useShaderGraph() {
       options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[]; parameters?: ShaderPreviewParameter[] } = {},
     ) => {
       if (!sessionId) return;
-      await sendCommand(sessionId, {
-        type: 'cmd:plugin:action',
-        plugin: SHADER_GRAPH_PLUGIN,
-        action: 'preview-shader',
-        params: {
-          pixelSource: glsl.pixel,
-          vertexSource: glsl.vertex ?? '',
-          shape,
-          color,
-          textureUniforms: glsl.textures ?? [],
-          parameters: options.parameters ?? glsl.parameters ?? [],
-          baseTexture: options.baseTexture,
-          textures: options.textures ?? [],
-        },
+      await shaderGraphGamePreviewController.preview(sessionId, {
+        pixelSource: glsl.pixel,
+        vertexSource: glsl.vertex ?? '',
+        shape,
+        color,
+        textureUniforms: glsl.textures ?? [],
+        parameters: options.parameters ?? glsl.parameters ?? [],
+        baseTexture: options.baseTexture,
+        textures: options.textures ?? [],
       });
     },
     [sessionId],
@@ -143,12 +139,7 @@ export function useShaderGraph() {
 
   const clearPreview = useCallback(async () => {
     if (!sessionId) return;
-    await sendCommand(sessionId, {
-      type: 'cmd:plugin:action',
-      plugin: SHADER_GRAPH_PLUGIN,
-      action: 'clear-preview',
-      params: {},
-    });
+    await shaderGraphGamePreviewController.clear(sessionId);
   }, [sessionId]);
 
   const compileResult = compileQuery.data;

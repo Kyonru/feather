@@ -19,7 +19,7 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 7. Insert **Preview** nodes between `vec4` effects when you want an inline love.js probe that shows the RGBA result up to that point while still passing the color downstream.
 8. Check **Graph Diagnostics** above the GLSL output before validating. Blocking diagnostics catch missing outputs, stale connections, invalid custom functions, missing textures, and subgraph reference cycles locally.
 9. Use **Validate** to compile in the running LÖVE game after local diagnostics are clear.
-10. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically.
+10. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically through a throttled live preview so the attached game stays responsive.
 11. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
 12. Export/import `.feathershgh` files when you want to save or share editable graph projects.
 
@@ -35,7 +35,13 @@ Runtime validation is still the final compiler check. Driver-specific GLSL error
 
 ### Debug
 
-Use **Preview** as an inline RGBA probe while building effect chains. It accepts a `vec4`, outputs the same `vec4`, and is safe to place between color/effect nodes because production GLSL treats it as a pass-through. The selected Preview node renders the graph up to that point inside the node with the standalone love.js preview; other Preview nodes stay paused so large graphs do not run multiple preview runtimes at once. Use the node's game-preview button to send that same probe shader to a connected LÖVE game; a disconnected Preview node shows a fallback until its RGBA input is connected.
+Use **Preview** as an inline RGBA probe while building effect chains. It accepts a `vec4`, outputs the same `vec4`, and is safe to place between color/effect nodes because production GLSL treats it as a pass-through. The selected Preview node renders the graph up to that point inside the node with the standalone love.js preview; other Preview nodes stay paused so large graphs do not run multiple preview runtimes at once. Use the node's game-preview button to send that same probe shader to a connected LÖVE game; game sends are deduped and throttled to about two updates per second, and the runtime overlay caches shader/drawable work while drawing a capped preview canvas. A disconnected Preview node shows a fallback until its RGBA input is connected.
+
+### Showcase development
+
+`npm run showcase:dev` serves the real love.js preview target from `.showcase-dev/showcase-lovejs` and builds a fresh `showcase.love` bundle from the standalone preview example plus the shared Shader Graph preview runtime. The dev server uses the same `/showcase-lovejs/index.html?g=showcase.love&v=11.5` path as the static showcase build so Preview nodes exercise the LÖVE code path during local browser development.
+
+If the love.js player is not already available, the showcase dev server looks at `SHOWCASE_LOVEJS_DIR`, `vendor/love.js`, and `.showcase-vendor/love.js`, then attempts to clone `https://github.com/2dengine/love.js`. Set `SHOWCASE_LOVEJS_SKIP_FETCH=1` when working offline and provide `SHOWCASE_LOVEJS_DIR` manually.
 
 ### Custom
 
@@ -459,7 +465,7 @@ Attempts to compile the provided GLSL source using `love.graphics.newShader`. Re
 
 ### `preview-shader`
 
-Compiles the provided GLSL source, creates a temporary padded shape texture, and draws it in-game with the shader until preview is cleared. This is useful for sprite shaders, especially outline graphs, before applying the shader to a Particle System Playground emitter.
+Compiles the provided GLSL source, creates a temporary padded shape texture, and draws it in-game with the shader until preview is cleared. Repeated identical preview payloads reuse cached shader, drawable, texture, and parameter state; the overlay renders through a capped preview canvas so live authoring does not monopolize the attached game's frame time. This is useful for sprite shaders, especially outline graphs, before applying the shader to a Particle System Playground emitter.
 
 **Params**
 
@@ -470,6 +476,7 @@ Compiles the provided GLSL source, creates a temporary padded shape texture, and
 | `shape`        | `string`   | `circle`, `line`, or `rectangle`; defaults to `circle`           |
 | `color`        | `number[]` | Preview element RGBA color, normalized `0..1`; defaults to white |
 | `size`         | `number`   | Temporary texture size in pixels; defaults to `128`              |
+| `previewKey`   | `string`   | Optional client-computed cache key for deduping live preview work |
 
 **Response**
 
@@ -489,7 +496,7 @@ Clears the active temporary shader preview.
 
 - Validation runs on the game process — a live LÖVE session must be connected.
 - The plugin uses `pcall` so a bad shader never crashes the game.
-- Validation discards shader objects immediately; previews keep the shader and temporary shape canvas only for the preview window.
+- Validation discards shader objects immediately; previews keep cached shader, drawable, texture, and capped canvas state only for the preview window.
 - Preview and apply are disabled while blocking graph diagnostics are present.
 - When vertex source is provided, validation compiles the combined pixel + vertex source because Feather applies shader graph output as a single LÖVE shader source.
 - Runtime preview is drawn by the Shader Graph plugin itself, so it does not require a Particle System Playground target.

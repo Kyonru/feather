@@ -11,6 +11,7 @@ node_modules
 dist
 dist-showcase
 .showcase-vendor
+.showcase-dev
 dist-ssr
 *.local
 

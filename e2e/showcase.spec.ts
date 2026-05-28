@@ -55,6 +55,19 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
 });
 
+test('showcase serves the real love.js shader preview target', async ({ page }) => {
+  const index = await page.request.get('/showcase-lovejs/index.html');
+  expect(index.status()).toBe(200);
+  expect(await index.text()).toContain('g=showcase.love');
+
+  const bundle = await page.request.get('/showcase-lovejs/showcase.love');
+  expect(bundle.status()).toBe(200);
+  expect((await bundle.body()).length).toBeGreaterThan(0);
+
+  await page.goto('/shader-graph');
+  await expect(page.frameLocator('iframe[title="Shader Preview"]').locator('canvas')).toBeVisible();
+});
+
 test('shader graph surfaces compiler diagnostics for broken imports', async ({ page }) => {
   await page.goto('/shader-graph');
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
@@ -210,7 +223,11 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
   await expect(beforeProbe.locator('iframe[title="Before Invert love.js preview"]')).toHaveCount(0);
 
   await beforeProbe.click();
+  const beforePreviewFrame = beforeProbe.locator('iframe[title="Before Invert love.js preview"]');
   await expect(beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas')).toBeVisible();
+  const beforePreviewFrameBox = await beforePreviewFrame.boundingBox();
+  expect(beforePreviewFrameBox).not.toBeNull();
+  expect(Math.abs(beforePreviewFrameBox!.width / beforePreviewFrameBox!.height - 18 / 11)).toBeLessThan(0.08);
   await expect(beforeProbe.getByText('100%')).toBeVisible();
   await beforeProbe.getByTitle('Zoom preview in').click();
   await expect(beforeProbe.getByText('125%')).toBeVisible();
