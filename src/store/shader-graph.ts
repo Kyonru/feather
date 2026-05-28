@@ -27,6 +27,7 @@ type ShaderGraphStore = {
   previewColor: string;
   previewBaseTexture: ShaderTextureUpload | null;
   previewZoom: number;
+  pinnedPreviewNodeIds: string[];
   textureUploads: Record<string, ShaderTextureUpload>;
   lastGeneratedGlsl: GeneratedGlsl | null;
   validationStatus: ValidationStatus;
@@ -59,6 +60,7 @@ type ShaderGraphStore = {
   setPreviewColor: (color: string) => void;
   setPreviewBaseTexture: (texture: ShaderTextureUpload | null) => void;
   setPreviewZoom: (zoom: number) => void;
+  togglePinnedPreviewNode: (nodeId: string) => void;
   setTextureUpload: (nodeId: string, upload: ShaderTextureUpload) => void;
   clearTextureUpload: (nodeId: string) => void;
   setLastGlsl: (glsl: GeneratedGlsl | null) => void;
@@ -227,7 +229,7 @@ function patchActiveGraph(
 
 function withHistory(
   state: ShaderGraphStore,
-  patch: Partial<Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs' | 'selectedNodeId' | 'selectedEdgeId' | 'textureUploads'>>,
+  patch: Partial<Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs' | 'selectedNodeId' | 'selectedEdgeId' | 'textureUploads' | 'pinnedPreviewNodeIds'>>,
 ) {
   const before = snapshot(state);
   const after = {
@@ -268,6 +270,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       previewColor: '#ffffff',
       previewBaseTexture: null,
       previewZoom: 1,
+      pinnedPreviewNodeIds: [],
       textureUploads: {},
       lastGeneratedGlsl: null,
       validationStatus: 'idle',
@@ -314,6 +317,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             }),
             selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
             textureUploads: Object.fromEntries(Object.entries(s.textureUploads).filter(([nodeId]) => nodeId !== id)),
+            pinnedPreviewNodeIds: s.pinnedPreviewNodeIds.filter((nodeId) => nodeId !== id),
           });
         }),
       removeEdge: (id) =>
@@ -402,6 +406,12 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       setPreviewColor: (previewColor) => set({ previewColor }),
       setPreviewBaseTexture: (previewBaseTexture) => set({ previewBaseTexture }),
       setPreviewZoom: (previewZoom) => set({ previewZoom: Math.max(0.4, Math.min(2.5, previewZoom)) }),
+      togglePinnedPreviewNode: (nodeId) =>
+        set((s) => ({
+          pinnedPreviewNodeIds: s.pinnedPreviewNodeIds.includes(nodeId)
+            ? s.pinnedPreviewNodeIds.filter((id) => id !== nodeId)
+            : [...s.pinnedPreviewNodeIds, nodeId],
+        })),
       setTextureUpload: (nodeId, upload) =>
         set((s) => ({
           textureUploads: {
@@ -440,6 +450,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             activeSubgraphId: null,
             subgraphBreadcrumb: [],
             textureUploads: {},
+            pinnedPreviewNodeIds: [],
             undoStack: [],
             redoStack: [],
             lastGeneratedGlsl: null,

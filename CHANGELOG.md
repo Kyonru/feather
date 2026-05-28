@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Shader Graph Preview nodes as inline RGBA probes with embedded love.js previews and an optional send-to-game control for connected LÖVE sessions.
 - Shader Graph now renders only the selected Preview node's embedded love.js probe so multiple inline probes do not run preview runtimes at the same time.
 - Added zoom controls to Shader Graph Preview nodes for inspecting details inside embedded love.js previews.
+- Shader Graph Preview node game-preview buttons now toggle the connected-game probe off after sending it live.
+- Added pinning for Shader Graph Preview nodes so chosen embedded previews stay live when another node is selected.
+- Expanded Shader Graph canvas zoom range for inspecting dense node clusters and large graphs.
 
 ### Tests
 
@@ -21,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added showcase e2e coverage for inline Shader Graph Preview probes.
 - Expanded showcase e2e coverage to verify only the selected Shader Graph Preview probe renders live.
 - Expanded showcase e2e coverage for Shader Graph Preview node zoom controls.
+- Expanded showcase e2e coverage for pinned Shader Graph Preview nodes.
 - Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces

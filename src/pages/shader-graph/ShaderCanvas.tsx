@@ -17,7 +17,14 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ShaderNodeData, NodeType } from '@/types/shader-graph';
@@ -99,8 +106,18 @@ export function ShaderCanvas() {
   const exitSubgraph = useShaderGraphStore((s) => s.exitSubgraph);
   const canUndo = useShaderGraphStore((s) => s.undoStack.length > 0);
   const canRedo = useShaderGraphStore((s) => s.redoStack.length > 0);
-  const [nodePicker, setNodePicker] = useState<{ x: number; y: number; position: { x: number; y: number }; search: string } | null>(null);
-  const [suggestionMenu, setSuggestionMenu] = useState<{ x: number; y: number; port: PortRef; items: LinkSuggestion[] } | null>(null);
+  const [nodePicker, setNodePicker] = useState<{
+    x: number;
+    y: number;
+    position: { x: number; y: number };
+    search: string;
+  } | null>(null);
+  const [suggestionMenu, setSuggestionMenu] = useState<{
+    x: number;
+    y: number;
+    port: PortRef;
+    items: LinkSuggestion[];
+  } | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [subgraphDialogOpen, setSubgraphDialogOpen] = useState(false);
   const [subgraphName, setSubgraphName] = useState('Subgraph');
@@ -242,9 +259,7 @@ export function ShaderCanvas() {
     const handler = (e: MouseEvent) => {
       e.preventDefault();
       const rf = rfRef.current;
-      const position = rf
-        ? rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
-        : { x: e.clientX, y: e.clientY };
+      const position = rf ? rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }) : { x: e.clientX, y: e.clientY };
       const rect = el.getBoundingClientRect();
       const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
@@ -260,12 +275,19 @@ export function ShaderCanvas() {
   const nodePickerItems = useMemo(() => {
     const query = nodePicker?.search.trim().toLowerCase() ?? '';
     return Object.entries(NODE_DEFS)
-      .filter(([nodeType, def]) => nodeType !== 'SubgraphInstance' && (!query || def.label.toLowerCase().includes(query) || def.category.toLowerCase().includes(query)))
+      .filter(
+        ([nodeType, def]) =>
+          nodeType !== 'SubgraphInstance' &&
+          (!query || def.label.toLowerCase().includes(query) || def.category.toLowerCase().includes(query)),
+      )
       .slice(0, 40) as Array<[NodeType, (typeof NODE_DEFS)[NodeType]]>;
   }, [nodePicker?.search]);
 
   const getSelectedIds = useCallback(() => {
-    const selectedIds = new Set([...selectedNodeIds, ...graphNodes.filter((node) => node.selected).map((node) => node.id)]);
+    const selectedIds = new Set([
+      ...selectedNodeIds,
+      ...graphNodes.filter((node) => node.selected).map((node) => node.id),
+    ]);
     if (selectedNodeId) selectedIds.add(selectedNodeId);
     return selectedIds;
   }, [graphNodes, selectedNodeId, selectedNodeIds]);
@@ -368,12 +390,15 @@ export function ShaderCanvas() {
       return;
     }
 
-    void navigator.clipboard?.readText()
+    void navigator.clipboard
+      ?.readText()
       .then((text) => {
         const parsed = JSON.parse(text) as Partial<ShaderClipboard>;
-        paste(parsed.type === 'feather.shader-graph-fragment' && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)
-          ? { type: 'feather.shader-graph-fragment', nodes: parsed.nodes, edges: parsed.edges }
-          : null);
+        paste(
+          parsed.type === 'feather.shader-graph-fragment' && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)
+            ? { type: 'feather.shader-graph-fragment', nodes: parsed.nodes, edges: parsed.edges }
+            : null,
+        );
       })
       .catch(() => paste(null));
   }, [pasteFragment]);
@@ -386,8 +411,12 @@ export function ShaderCanvas() {
 
   useEffect(() => {
     const onSuggest = (event: Event) => {
-      const detail = (event as CustomEvent<{ nodeId: string; portId: string; direction: 'input' | 'output'; x: number; y: number }>).detail;
-      const port = portRefs(graphNodes, detail.direction).find((candidate) => candidate.nodeId === detail.nodeId && candidate.portId === detail.portId);
+      const detail = (
+        event as CustomEvent<{ nodeId: string; portId: string; direction: 'input' | 'output'; x: number; y: number }>
+      ).detail;
+      const port = portRefs(graphNodes, detail.direction).find(
+        (candidate) => candidate.nodeId === detail.nodeId && candidate.portId === detail.portId,
+      );
       if (!port) return;
       const rect = wrapperRef.current?.getBoundingClientRect();
       const cx = detail.x - (rect?.left ?? 0);
@@ -425,12 +454,17 @@ export function ShaderCanvas() {
       if (suggestion.kind === 'connect') {
         const source = active.direction === 'output' ? active : suggestion.target;
         const target = active.direction === 'input' ? active : suggestion.target;
-        setEdges(addEdge({
-          source: source.nodeId,
-          sourceHandle: source.portId,
-          target: target.nodeId,
-          targetHandle: target.portId,
-        }, graphEdges));
+        setEdges(
+          addEdge(
+            {
+              source: source.nodeId,
+              sourceHandle: source.portId,
+              target: target.nodeId,
+              targetHandle: target.portId,
+            },
+            graphEdges,
+          ),
+        );
         setSuggestionMenu(null);
         return;
       }
@@ -466,7 +500,11 @@ export function ShaderCanvas() {
           targetHandle: active.portId,
         });
       }
-      addNodesAndEdges([bridge], nextEdges.filter((edge) => !graphEdges.some((existing) => existing.id === edge.id)), bridge.id);
+      addNodesAndEdges(
+        [bridge],
+        nextEdges.filter((edge) => !graphEdges.some((existing) => existing.id === edge.id)),
+        bridge.id,
+      );
       setSuggestionMenu(null);
     },
     [addNodesAndEdges, graphEdges, setEdges, suggestionMenu],
@@ -512,7 +550,17 @@ export function ShaderCanvas() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [copySelection, duplicateSelection, pasteSelection, selectedNodeId, selectedEdgeId, removeNode, removeEdge, redo, undo]);
+  }, [
+    copySelection,
+    duplicateSelection,
+    pasteSelection,
+    selectedNodeId,
+    selectedEdgeId,
+    removeNode,
+    removeEdge,
+    redo,
+    undo,
+  ]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -529,7 +577,6 @@ export function ShaderCanvas() {
       style={{ height: '100%', width: '100%' }}
       onDrop={onDrop}
       onDragOver={onDragOver}
-
       onClick={() => {
         setNodePicker(null);
         setSuggestionMenu(null);
@@ -554,12 +601,17 @@ export function ShaderCanvas() {
         proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
         fitView
+        minZoom={0.15}
+        maxZoom={2.5}
         deleteKeyCode={null}
         selectionOnDrag
         panOnDrag={[1, 2]}
         colorMode={theme}
       >
-        <div className="absolute left-3 top-3 z-10 flex gap-1 rounded-md border bg-card/95 p-1 shadow-sm">
+        <div
+          className="absolute left-3 top-3 z-10 flex gap-1 rounded-md border bg-card/95 p-1 shadow-sm"
+          id="node-canvas-actions"
+        >
           <Button
             size="icon"
             variant="ghost"
@@ -681,7 +733,11 @@ export function ShaderCanvas() {
               >
                 <span>{item.label}</span>
                 <span className="text-[10px] text-muted-foreground">
-                  {item.kind === 'connect' ? 'Connect directly' : item.kind === 'recipe' ? 'Insert recipe bridge' : 'Insert helper node'}
+                  {item.kind === 'connect'
+                    ? 'Connect directly'
+                    : item.kind === 'recipe'
+                      ? 'Insert recipe bridge'
+                      : 'Insert helper node'}
                 </span>
               </button>
             ))}

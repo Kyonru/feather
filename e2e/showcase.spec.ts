@@ -206,7 +206,7 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
   const looseProbe = page.locator('.react-flow__node').filter({ hasText: 'Loose Preview' });
 
   await expect(beforeProbe.getByTestId('shader-preview-probe')).toBeVisible();
-  await expect(beforeProbe.getByTestId('shader-preview-probe').getByText(/select this probe/i)).toBeVisible();
+  await expect(beforeProbe.getByTestId('shader-preview-probe').getByText(/select or pin this probe/i)).toBeVisible();
   await expect(beforeProbe.locator('iframe[title="Before Invert love.js preview"]')).toHaveCount(0);
 
   await beforeProbe.click();
@@ -217,15 +217,18 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
   await beforeProbe.getByTitle('Zoom preview out').click();
   await expect(beforeProbe.getByText('100%')).toBeVisible();
   await expect(beforeProbe.getByTitle('Connect a LÖVE session to preview in game')).toBeDisabled();
+  await beforeProbe.getByTitle('Pin this preview open').click();
 
   await expect(afterProbe.getByTestId('shader-preview-probe')).toBeVisible();
-  await expect(afterProbe.getByTestId('shader-preview-probe').getByText(/select this probe/i)).toBeVisible();
+  await expect(afterProbe.getByTestId('shader-preview-probe').getByText(/select or pin this probe/i)).toBeVisible();
 
   await afterProbe.click();
-  await expect(beforeProbe.locator('iframe[title="Before Invert love.js preview"]')).toHaveCount(0);
+  await expect(beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas')).toBeVisible();
   await expect(afterProbe.frameLocator('iframe[title="After Invert love.js preview"]').locator('canvas')).toBeVisible();
+  await beforeProbe.getByTitle('Unpin this preview').click();
 
   await looseProbe.click();
+  await expect(beforeProbe.locator('iframe[title="Before Invert love.js preview"]')).toHaveCount(0);
   await expect(afterProbe.locator('iframe[title="After Invert love.js preview"]')).toHaveCount(0);
   await expect(looseProbe.getByTestId('shader-preview-probe').getByText(/connect an rgba input/i)).toBeVisible();
   await expect(looseProbe.locator('iframe[title="Loose Preview love.js preview"]')).toHaveCount(0);

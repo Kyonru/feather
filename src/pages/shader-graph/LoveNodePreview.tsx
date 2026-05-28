@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MonitorPlayIcon, RefreshCwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
+import { MonitorOffIcon, MonitorPlayIcon, PinIcon, PinOffIcon, RefreshCwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sendCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
@@ -12,6 +12,7 @@ type Status = 'idle' | 'sending' | 'live' | 'error';
 type Props = {
   nodeId: string;
   active: boolean;
+  pinned: boolean;
 };
 
 function colorFromHex(value: string): [number, number, number, number] {
@@ -38,20 +39,30 @@ function texturePayload(probe: PreviewProbeGlsl | null, textureUploads: Record<s
     .filter((texture): texture is ShaderTextureUpload & { uniform: string } => Boolean(texture)) ?? [];
 }
 
-function InactiveLoveNodePreview() {
+function InactiveLoveNodePreview({ pinned, onTogglePin }: Pick<Props, 'pinned'> & { onTogglePin: () => void }) {
   return (
     <div className="nodrag nopan mt-2 overflow-hidden rounded border bg-black/95" data-testid="shader-preview-probe">
-      <div className="flex h-6 items-center border-b border-white/10 bg-card/95 px-1.5">
+      <div className="flex h-6 items-center gap-1 border-b border-white/10 bg-card/95 px-1.5">
         <span className="min-w-0 flex-1 truncate text-[9px] text-muted-foreground">paused</span>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-5 shrink-0 text-muted-foreground"
+          title={pinned ? 'Unpin this preview' : 'Pin this preview open'}
+          onClick={onTogglePin}
+        >
+          {pinned ? <PinOffIcon className="size-3" /> : <PinIcon className="size-3" />}
+        </Button>
       </div>
       <div className="grid h-24 place-items-center bg-black/80 p-2 text-center text-[10px] text-muted-foreground">
-        Select this probe to render its love.js preview.
+        Select or pin this probe to render its love.js preview.
       </div>
     </div>
   );
 }
 
-function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
+function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinned'>) {
   const sessionId = useSessionStore((s) => s.sessionId);
   const nodes = useShaderGraphStore((s) => s.nodes);
   const edges = useShaderGraphStore((s) => s.edges);
@@ -63,6 +74,7 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
   const baseTexture = useShaderGraphStore((s) => s.previewBaseTexture);
   const previewZoom = useShaderGraphStore((s) => s.previewZoom);
   const setPreviewZoom = useShaderGraphStore((s) => s.setPreviewZoom);
+  const togglePinnedPreviewNode = useShaderGraphStore((s) => s.togglePinnedPreviewNode);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadedRef = useRef(false);
   const [status, setStatus] = useState<Status>('idle');
@@ -103,6 +115,10 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
     if (loadedRef.current) sendPayload();
   }, [payload]);
 
+  useEffect(() => {
+    if (!sessionId) setStatus('idle');
+  }, [sessionId]);
+
   function handleLoad() {
     loadedRef.current = true;
     sendPayload();
@@ -122,11 +138,27 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
     setPreviewZoom(previewZoom + 0.25);
   }
 
-  async function sendToGame() {
-    if (!sessionId || !probe || !canPreview) return;
+  async function toggleGamePreview() {
+    if (!sessionId) return;
     setStatus('sending');
     setError(null);
     try {
+      if (status === 'live') {
+        await sendCommand(sessionId, {
+          type: 'cmd:plugin:action',
+          plugin: 'shader-graph',
+          action: 'clear-preview',
+          params: {},
+        });
+        setStatus('idle');
+        return;
+      }
+
+      if (!probe || !canPreview) {
+        setStatus('idle');
+        return;
+      }
+
       await sendCommand(sessionId, {
         type: 'cmd:plugin:action',
         plugin: 'shader-graph',
@@ -191,6 +223,16 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
           size="icon"
           variant="ghost"
           className="size-5 shrink-0 text-muted-foreground"
+          title={pinned ? 'Unpin this preview' : 'Pin this preview open'}
+          onClick={() => togglePinnedPreviewNode(nodeId)}
+        >
+          {pinned ? <PinOffIcon className="size-3" /> : <PinIcon className="size-3" />}
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-5 shrink-0 text-muted-foreground"
           title="Reload node preview"
           onClick={reloadPreview}
         >
@@ -201,11 +243,17 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
           size="icon"
           variant="ghost"
           className="size-5 shrink-0 text-muted-foreground"
-          title={sessionId ? 'Preview this probe in the connected game' : 'Connect a LÖVE session to preview in game'}
-          disabled={!sessionId || !canPreview || status === 'sending'}
-          onClick={sendToGame}
+          title={
+            sessionId
+              ? status === 'live'
+                ? 'Turn off this probe preview in the connected game'
+                : 'Preview this probe in the connected game'
+              : 'Connect a LÖVE session to preview in game'
+          }
+          disabled={!sessionId || (status !== 'live' && !canPreview) || status === 'sending'}
+          onClick={toggleGamePreview}
         >
-          <MonitorPlayIcon className="size-3" />
+          {status === 'live' ? <MonitorOffIcon className="size-3" /> : <MonitorPlayIcon className="size-3" />}
         </Button>
       </div>
       <div className="relative h-24">
@@ -228,7 +276,10 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
   );
 }
 
-export function LoveNodePreview({ nodeId, active }: Props) {
-  if (!active) return <InactiveLoveNodePreview />;
-  return <ActiveLoveNodePreview nodeId={nodeId} />;
+export function LoveNodePreview({ nodeId, active, pinned }: Props) {
+  const togglePinnedPreviewNode = useShaderGraphStore((s) => s.togglePinnedPreviewNode);
+  if (!active) {
+    return <InactiveLoveNodePreview pinned={pinned} onTogglePin={() => togglePinnedPreviewNode(nodeId)} />;
+  }
+  return <ActiveLoveNodePreview nodeId={nodeId} pinned={pinned} />;
 }

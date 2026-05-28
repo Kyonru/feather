@@ -11,9 +11,11 @@ const ROW_H = 20;
 
 export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData>>) {
   const selectedNodeId = useShaderGraphStore((s) => s.selectedNodeId);
+  const pinnedPreviewNodeIds = useShaderGraphStore((s) => s.pinnedPreviewNodeIds);
   const def = getNodeDef(data);
   if (!def) return null;
-  const activePreview = data.nodeType === 'Preview' && selectedNodeId === id;
+  const pinnedPreview = data.nodeType === 'Preview' && pinnedPreviewNodeIds.includes(id);
+  const activePreview = data.nodeType === 'Preview' && (selectedNodeId === id || pinnedPreview);
   const colorClass = CATEGORY_COLORS[def.category] ?? 'border-l-gray-500';
   const rows = Math.max(def.inputs.length, def.outputs.length, 1);
 
@@ -126,7 +128,7 @@ export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData
           </Fragment>
         ))}
       </div>
-      {data.nodeType === 'Preview' && <LoveNodePreview nodeId={id} active={activePreview} />}
+      {data.nodeType === 'Preview' && <LoveNodePreview nodeId={id} active={activePreview} pinned={pinnedPreview} />}
     </div>
   );
 }
