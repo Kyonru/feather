@@ -4,15 +4,12 @@ import { toast } from 'sonner';
 import { DownloadIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { GeneratedGlsl, PlaygroundTarget, ShaderEdge, ShaderNodeInstance, ShaderParameter, ShaderSubgraph } from '@/types/shader-graph';
 import { NodePalette } from '@/pages/shader-graph/NodePalette';
 import { ShaderCanvas } from '@/pages/shader-graph/ShaderCanvas';
-import { NodeInspector } from '@/pages/shader-graph/NodeInspector';
-import { TemplateControlsPanel } from '@/pages/shader-graph/TemplateControlsPanel';
-import { CodePreview } from '@/pages/shader-graph/CodePreview';
+import { ShaderRightPanel } from '@/pages/shader-graph/ShaderRightPanel';
 import { codegen } from '@/pages/shader-graph/codegen';
 import { diagnoseShaderGraph } from '@/pages/shader-graph/diagnostics';
 import { instantiateShaderGraphPreset, SHADER_GRAPH_PRESETS } from '@/pages/shader-graph/presets';
@@ -293,21 +290,7 @@ export function ShowcaseShaderGraph() {
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize="35%" minSize="24%" maxSize="48%" className="flex flex-col border-l">
-            <ResizablePanelGroup orientation="vertical" className="h-full min-h-0">
-              <ResizablePanel defaultSize="36%" minSize="20%" className="flex flex-col overflow-hidden">
-                <div className="border-b px-3 py-2 shrink-0">
-                  <span className="text-sm font-semibold">Inspector</span>
-                </div>
-                  <ScrollArea className="flex-1 min-h-0">
-                    <TemplateControlsPanel />
-                    <NodeInspector />
-                  </ScrollArea>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize="64%" minSize="24%" className="flex flex-col overflow-hidden">
-                <CodePreview standalone onPreviewParamsChange={handlePreviewParamsChange} />
-              </ResizablePanel>
-            </ResizablePanelGroup>
+            <ShaderRightPanel standalone onPreviewParamsChange={handlePreviewParamsChange} />
           </ResizablePanel>
         </ResizablePanelGroup>
         <LoveJsPreview

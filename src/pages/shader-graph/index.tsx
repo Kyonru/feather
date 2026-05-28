@@ -10,16 +10,13 @@ import { open as openDialog, save } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { GeneratedGlsl, PlaygroundTarget, ShaderEdge, ShaderNodeInstance, ShaderSubgraph } from '@/types/shader-graph';
 import { isWeb } from '@/utils/platform';
 import { NodePalette } from './NodePalette';
 import { ShaderCanvas } from './ShaderCanvas';
-import { NodeInspector } from './NodeInspector';
-import { TemplateControlsPanel } from './TemplateControlsPanel';
-import { CodePreview } from './CodePreview';
+import { ShaderRightPanel } from './ShaderRightPanel';
 import { instantiateShaderGraphPreset, SHADER_GRAPH_PRESETS } from './presets';
 import { diagnoseShaderGraph } from './diagnostics';
 
@@ -353,23 +350,7 @@ export default function ShaderGraph() {
             <ResizableHandle withHandle />
 
             <ResizablePanel defaultSize="27%" minSize="18%" maxSize="40%" className="flex flex-col border-l">
-              <ResizablePanelGroup orientation="vertical" className="h-full min-h-0">
-                <ResizablePanel defaultSize="35%" minSize="20%" className="flex flex-col overflow-hidden">
-                  <div className="border-b px-3 py-2 shrink-0">
-                    <span className="text-sm font-semibold">Inspector</span>
-                  </div>
-                  <ScrollArea className="flex-1 min-h-0">
-                    <TemplateControlsPanel />
-                    <NodeInspector />
-                  </ScrollArea>
-                </ResizablePanel>
-
-                <ResizableHandle withHandle />
-
-                <ResizablePanel defaultSize="65%" minSize="30%" className="flex flex-col overflow-hidden">
-                  <CodePreview />
-                </ResizablePanel>
-              </ResizablePanelGroup>
+              <ShaderRightPanel />
             </ResizablePanel>
           </ResizablePanelGroup>
         )}

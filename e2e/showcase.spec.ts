@@ -1,4 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function openShaderOutput(page: Page) {
+  await page.getByRole('tab', { name: 'Output' }).click();
+}
+
+async function openShaderControls(page: Page) {
+  await page.getByRole('tab', { name: 'Controls' }).click();
+}
 
 test('standalone showcase loads the landing page and tools', async ({ page }) => {
   await page.goto('/');
@@ -6,6 +14,8 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
 
   await page.locator('header').getByRole('button', { name: /^shader graph$/i }).click();
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+  await expect(page.getByTestId('shader-controls-panel')).toBeVisible();
+  await openShaderOutput(page);
   await expect(page.getByText('GLSL Output')).toBeVisible();
   await expect(page.frameLocator('iframe[title="Shader Preview"]').locator('canvas')).toBeVisible();
 
@@ -66,6 +76,63 @@ test('showcase serves the real love.js shader preview target', async ({ page }) 
 
   await page.goto('/shader-graph');
   await expect(page.frameLocator('iframe[title="Shader Preview"]').locator('canvas')).toBeVisible();
+});
+
+test('shader graph right panel exposes root shader controls', async ({ page }) => {
+  await page.goto('/shader-graph');
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 260, y: 260 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float parameter');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float parameter input$/i }).click();
+
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 420, y: 260 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('color parameter');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^color parameter input$/i }).click();
+
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 580, y: 260 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('texture parameter');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^texture parameter input$/i }).click();
+
+  const controls = page.getByTestId('shader-controls-panel');
+  await expect(controls).toBeVisible();
+  await expect(controls.getByText('float', { exact: true })).toBeVisible();
+  await expect(controls.getByText('color', { exact: true })).toBeVisible();
+  await expect(controls.getByText('texture', { exact: true })).toBeVisible();
+  await expect(controls.getByText('Not connected').first()).toBeVisible();
+
+  await controls.getByLabel('Float Parameter label').fill('Strength');
+  await controls.getByLabel('Strength value').fill('0.42');
+  await controls.getByLabel('Color Parameter label').fill('Tint');
+  await controls.getByLabel('Tint alpha').fill('0.75');
+
+  await expect.poll(async () => {
+    return page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('feather-shader-graph') || '{}')?.state;
+      const strength = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Strength');
+      const tint = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Tint');
+      return {
+        strength: strength?.data?.values?.val,
+        tintAlpha: tint?.data?.values?.val?.[3],
+      };
+    });
+  }).toEqual({ strength: 0.42, tintAlpha: 0.75 });
+
+  await controls.getByTitle('Select parameter node').first().click();
+  await expect(page.getByTestId('shader-right-panel-selection')).toBeVisible();
+  await expect(page.locator('input[value="Strength"]')).toBeVisible();
+
+  await page.getByText('Insert preset').click();
+  await page.getByRole('option', { name: /^outline$/i }).click();
+  await openShaderControls(page);
+  await expect(page.getByTestId('shader-template-controls')).toBeVisible();
+  await page.getByTestId('shader-template-controls').getByTitle('Select boundary node').first().click();
+  await expect(page.getByRole('button', { name: 'Back to parent graph' })).toBeEnabled();
+  await openShaderControls(page);
+  await expect(controls.getByText(/root graph controls/i)).toBeVisible();
+  await controls.getByTitle('Select parameter node').first().click();
+  await expect(page.getByRole('button', { name: 'Back to parent graph' })).toBeDisabled();
+  await expect(page.locator('input[value="Strength"]')).toBeVisible();
 });
 
 test('shader graph node palette sections collapse and search hidden matches', async ({ page }) => {
@@ -157,6 +224,7 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
     buffer: Buffer.from(JSON.stringify(compositionGraph)),
   });
 
+  await openShaderOutput(page);
   await expect(page.getByTestId('shader-diagnostics')).toHaveCount(0);
   await expect(page.getByText(/float v_luma_mask = mix/i)).toBeVisible();
   await expect(page.getByText(/vec4 v_gradient_rgba/i)).toBeVisible();
@@ -181,7 +249,9 @@ test('shader graph presets load as template subgraphs with public controls', asy
   await expect(page.locator('.react-flow__node').filter({ hasText: 'Fragment Output' })).toHaveCount(1);
 
   await templateControls.getByRole('spinbutton').first().fill('7');
+  await openShaderOutput(page);
   await expect(page.getByText(/,\s*7\.0,\s*vec4/i)).toBeVisible();
+  await openShaderControls(page);
 
   await page.locator('.react-flow__node').filter({ hasText: 'Outline' }).dblclick();
   await expect(page.locator('.react-flow__node').filter({ hasText: 'Source Color' })).toBeVisible();
@@ -190,6 +260,7 @@ test('shader graph presets load as template subgraphs with public controls', asy
 
   await page.getByRole('combobox', { name: 'Load preset' }).click();
   await page.getByRole('option', { name: /^texture noise water$/i }).click();
+  await openShaderControls(page);
   await expect(templateControls.getByText('Noise Texture')).toBeVisible();
   await expect(templateControls.getByText('No texture uploaded')).toBeVisible();
 });
@@ -280,6 +351,7 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
     buffer: Buffer.from(JSON.stringify(fake3dGraph)),
   });
 
+  await openShaderOutput(page);
   await expect(page.getByTestId('shader-diagnostics')).toHaveCount(0);
   await expect(page.getByText(/vec2 v_billboard_uv =/i)).toBeVisible();
   await expect(page.getByText(/vec4 v_sample_rgba = Texel\(tex/i)).toBeVisible();
@@ -383,6 +455,7 @@ test('shader graph surfaces compiler diagnostics for broken imports', async ({ p
     buffer: Buffer.from(JSON.stringify(brokenGraph)),
   });
 
+  await openShaderOutput(page);
   const diagnostics = page.getByTestId('shader-diagnostics');
   await expect(diagnostics).toBeVisible();
   await expect(diagnostics.getByText(/Upload a texture for Missing Noise Texture/i)).toBeVisible();
@@ -391,8 +464,10 @@ test('shader graph surfaces compiler diagnostics for broken imports', async ({ p
   await expect(diagnostics.getByText(/cyclic subgraph reference/i)).toBeVisible();
 
   await diagnostics.getByRole('button', { name: /Upload a texture for Missing Noise Texture/i }).click();
+  await page.getByRole('tab', { name: 'Selection' }).click();
   await expect(page.getByText('Texture File')).toBeVisible();
   await expect(page.getByText('Fallback texture until a file is loaded')).toBeVisible();
+  await openShaderOutput(page);
   await expect(page.getByRole('button', { name: /preview on/i })).toBeDisabled();
 });
 
@@ -431,6 +506,7 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
     buffer: Buffer.from(JSON.stringify(graph)),
   });
 
+  await openShaderOutput(page);
   await expect(page.getByText(/vec4 v_probe_a_out/i)).toBeVisible();
   const beforeProbe = page.locator('.react-flow__node').filter({ hasText: 'Before Invert' });
   const afterProbe = page.locator('.react-flow__node').filter({ hasText: 'After Invert' });

@@ -2,6 +2,14 @@ import { expect, test, type Page } from '@playwright/test';
 
 const NARROW_VIEWPORT = { width: 900, height: 720 };
 
+async function openShaderOutput(page: Page) {
+  await page.getByRole('tab', { name: 'Output' }).click();
+}
+
+async function openShaderControls(page: Page) {
+  await page.getByRole('tab', { name: 'Controls' }).click();
+}
+
 async function seedNoSession(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem('feather-e2e-query-client', '1');
@@ -1744,11 +1752,67 @@ test('shader graph template presets expose public controls in the app', async ({
   await expect(templateControls.getByText('Outline Color', { exact: true })).toBeVisible();
 
   await templateControls.getByRole('spinbutton').first().fill('6');
+  await openShaderOutput(page);
   await expect(page.getByText(/,\s*6\.0,\s*vec4/i)).toBeVisible();
 
   await page.locator('.react-flow__node').filter({ hasText: 'Outline' }).dblclick();
   await expect(page.locator('.react-flow__node').filter({ hasText: 'Source Color' })).toBeVisible();
   await expect(page.locator('.react-flow__node').filter({ hasText: 'RGBA Output' })).toBeVisible();
+});
+
+test('shader graph right panel exposes root shader controls in the app', async ({ page }) => {
+  await seedSession(page);
+  await page.goto('/');
+  await seedShaderGraphConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByTestId('sidebar-tool-shader-graph').getByRole('link', { name: 'Shader Graph' }).click();
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 260, y: 260 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float parameter');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float parameter input$/i }).click();
+
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 420, y: 260 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('color parameter');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^color parameter input$/i }).click();
+
+  const controls = page.getByTestId('shader-controls-panel');
+  await expect(controls).toBeVisible();
+  await expect(controls.getByText('float', { exact: true })).toBeVisible();
+  await expect(controls.getByText('color', { exact: true })).toBeVisible();
+
+  await controls.getByLabel('Float Parameter label').fill('Strength');
+  await controls.getByLabel('Strength value').fill('0.5');
+  await controls.getByLabel('Color Parameter label').fill('Tint');
+  await controls.getByLabel('Tint alpha').fill('0.6');
+
+  await expect.poll(async () => {
+    return page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('feather-shader-graph') || '{}')?.state;
+      const strength = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Strength');
+      const tint = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Tint');
+      return {
+        strength: strength?.data?.values?.val,
+        tintAlpha: tint?.data?.values?.val?.[3],
+      };
+    });
+  }).toEqual({ strength: 0.5, tintAlpha: 0.6 });
+
+  await controls.getByTitle('Select parameter node').first().click();
+  await expect(page.getByTestId('shader-right-panel-selection')).toBeVisible();
+  await expect(page.locator('input[value="Strength"]')).toBeVisible();
+
+  await page.getByText('Insert preset').click();
+  await page.getByRole('option', { name: /^outline$/i }).click();
+  await openShaderControls(page);
+  await expect(page.getByTestId('shader-template-controls')).toBeVisible();
+  await page.getByTestId('shader-template-controls').getByTitle('Select boundary node').first().click();
+  await expect(page.getByRole('button', { name: 'Back to parent graph' })).toBeEnabled();
+  await openShaderControls(page);
+  await expect(controls.getByText(/root graph controls/i)).toBeVisible();
+  await controls.getByTitle('Select parameter node').first().click();
+  await expect(page.getByRole('button', { name: 'Back to parent graph' })).toBeDisabled();
+  await expect(page.locator('input[value="Strength"]')).toBeVisible();
 });
 
 test('assets degraded matrix handles empty and partial catalogs', async ({ page }) => {

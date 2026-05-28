@@ -17,17 +17,24 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 5. Connect the final `vec4` color into **Fragment Output**.
 6. Use **Custom Function** when a graph needs a small hand-written GLSL function. Function parameters become input ports; the return value and `out` parameters become output ports.
 7. Insert **Preview** nodes between `vec4` effects when you want an inline love.js probe that shows the RGBA result up to that point while still passing the color downstream.
-8. Check **Graph Diagnostics** above the GLSL output before validating. Blocking diagnostics catch missing outputs, stale connections, invalid custom functions, missing textures, and subgraph reference cycles locally.
-9. Use **Validate** to compile in the running LÖVE game after local diagnostics are clear.
-10. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically through a throttled live preview so the attached game stays responsive.
-11. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
-12. Export/import `.feathershgh` files when you want to save or share editable graph projects. New template graphs export as version 3 files; older version 1/2 graphs still import as plain editable graphs.
+8. Use the right panel tabs while authoring: **Controls** for Template Controls and root Parameter nodes, **Selection** for the selected node or edge inspector, and **Output** for diagnostics, generated GLSL, validation, preview, and apply actions.
+9. Check **Graph Diagnostics** on the Output tab before validating. Blocking diagnostics catch missing outputs, stale connections, invalid custom functions, missing textures, and subgraph reference cycles locally.
+10. Use **Validate** to compile in the running LÖVE game after local diagnostics are clear.
+11. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically through a throttled live preview so the attached game stays responsive.
+12. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
+13. Export/import `.feathershgh` files when you want to save or share editable graph projects. New template graphs export as version 3 files; older version 1/2 graphs still import as plain editable graphs.
 
 Select a node and edit **Node Name** in the inspector when a graph needs more descriptive labels. Renaming a node changes the canvas label only; the original node type stays visible in the inspector and code generation is unchanged.
 
 ## Node Palette
 
 Palette sections are collapsible and remember their open/closed state across app restarts. Use **Expand all** or **Collapse all** when browsing the full library. Search matches node labels, node ids, and category names; matching categories open while the search is active, then return to the saved collapsed state when the search is cleared.
+
+## Right Panel Controls
+
+The right panel starts on **Controls** so an effect can be tuned without hunting through the graph. Template presets show their curated **Template Controls** first, followed by **Shader Controls**, which collects root-level `FloatParameter`, `Vec2Parameter`, `Vec3Parameter`, `Vec4Parameter`, `ColorParameter`, `BooleanParameter`, and `TextureParameter` nodes in one place.
+
+Shader Controls let you rename the exposed control, edit its default value or texture upload, inspect the generated uniform name, and jump back to the source node. Unconnected parameters stay visible with a small warning so reusable knobs are easy to find before they are wired. When editing inside a subgraph, Shader Controls still show root graph parameters; using a row's select action returns to the root graph and selects that parameter node.
 
 ## Template Presets And Subgraphs
 
@@ -372,8 +379,8 @@ Load a preset, tune its Template Controls, validate it, then double-click the Su
 
 - Start most shaders with `Texture Coords` and `Texture Color`.
 - Distort UV first, then use `Sample Texture` to read the texture at the modified UV.
-- Use `Vec4Constant` for editable colors like outline, flash, and dissolve edge color.
-- Use `FloatConstant` for user-tunable controls such as thickness, amount, speed, cutoff, and softness.
+- Use `ColorParameter`, `FloatParameter`, and the other Parameter nodes for effect knobs that should appear in Shader Controls.
+- Use `Vec4Constant` and `FloatConstant` for internal values that are part of the graph recipe rather than public controls.
 - Prefer `Smoothstep` over `Step` for effects that should have soft edges.
 - Keep masks as `float` values until the final color mix.
 - For particle shaders, preserve alpha unless you intentionally want to change particle fade behavior.

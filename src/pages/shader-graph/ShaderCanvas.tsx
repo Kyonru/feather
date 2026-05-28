@@ -129,6 +129,7 @@ export function ShaderCanvas() {
   const [subgraphName, setSubgraphName] = useState('Subgraph');
   const [canvasInteractionMode, setCanvasInteractionMode] = useState<CanvasInteractionMode>('select');
   const pasteOffsetRef = useRef(0);
+  const suppressNextEmptySelectionRef = useRef(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Captured via onInit — avoids calling useReactFlow() at the same level as <ReactFlow>
@@ -138,6 +139,7 @@ export function ShaderCanvas() {
   const graphEdges = activeSubgraph?.edges ?? edges;
 
   useEffect(() => {
+    suppressNextEmptySelectionRef.current = true;
     setSelectedNodeIds(new Set());
   }, [activeSubgraphId]);
 
@@ -189,6 +191,7 @@ export function ShaderCanvas() {
   );
 
   const onPaneClick = useCallback(() => {
+    suppressNextEmptySelectionRef.current = false;
     selectNode(null);
     setSelectedNodeIds(new Set());
   }, [selectNode]);
@@ -198,8 +201,13 @@ export function ShaderCanvas() {
       const nextIds = new Set(selectedNodes.map((node) => node.id));
       setSelectedNodeIds(nextIds);
       if (nextIds.size === 1) {
+        suppressNextEmptySelectionRef.current = false;
         selectNode(selectedNodes[0].id);
       } else if (nextIds.size === 0) {
+        if (suppressNextEmptySelectionRef.current) {
+          suppressNextEmptySelectionRef.current = false;
+          return;
+        }
         selectNode(null);
       }
     },

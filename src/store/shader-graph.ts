@@ -54,6 +54,7 @@ type ShaderGraphStore = {
   updateNodeData: (id: string, patch: Partial<ShaderNodeData>) => void;
   unlinkNode: (id: string) => void;
   selectNode: (id: string | null) => void;
+  focusRootNode: (id: string) => void;
   selectEdge: (id: string | null) => void;
   enterSubgraph: (id: string) => void;
   exitSubgraph: () => void;
@@ -424,6 +425,25 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
           });
         }),
       selectNode: (selectedNodeId) => set({ selectedNodeId, selectedEdgeId: null }),
+      focusRootNode: (selectedNodeId) => {
+        const refocus = () =>
+          set((s) =>
+            s.activeSubgraphId === null && s.nodes.some((node) => node.id === selectedNodeId)
+              ? { selectedNodeId, selectedEdgeId: null }
+              : {},
+          );
+        set({
+          activeSubgraphId: null,
+          subgraphBreadcrumb: [],
+          selectedNodeId,
+          selectedEdgeId: null,
+        });
+        if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+          window.requestAnimationFrame(() => window.requestAnimationFrame(refocus));
+        } else {
+          setTimeout(refocus, 0);
+        }
+      },
       selectEdge: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null }),
       enterSubgraph: (id) =>
         set((s) => ({
