@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/store/settings';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { sessionQueryKey } from './use-ws-connection';
 import { toast } from 'sonner';
+import { mergeLogLists, useLogHistoryStore } from '@/store/log-history';
 
 export enum LogType {
   OUTPUT = 'output',
@@ -68,6 +69,22 @@ export const useLogs = (): {
 
   // --- Live session path: reactive subscription to query cache ---
   const queryKey = sessionId ? sessionQueryKey.logs(sessionId) : ['noop-logs'];
+
+  useEffect(() => {
+    if (!sessionId || sessionId.startsWith('file:')) return;
+
+    const existing = queryClient.getQueryData<Log[]>(sessionQueryKey.logs(sessionId));
+    if (existing?.length) return;
+
+    const history = useLogHistoryStore.getState();
+    const restoredLogs = mergeLogLists(
+      history.getLogsForSession(sessionId),
+      history.getLogsForHistoryKeys(history.sessionHistoryKeys[sessionId]),
+    );
+    if (restoredLogs.length > 0) {
+      queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), restoredLogs);
+    }
+  }, [queryClient, sessionId]);
 
   const { data: liveLogs } = useQuery<Log[]>({
     queryKey,
@@ -160,6 +177,8 @@ export const useLogs = (): {
       queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (current) =>
         visibleSet ? (current ?? []).filter((log) => !visibleSet.has(log.id)) : [],
       );
+      const history = useLogHistoryStore.getState();
+      history.removeLogs(sessionId, visibleIds, history.sessionHistoryKeys[sessionId]);
       sendCommand(sessionId, { type: 'cmd:log', action: 'clear' }).catch(() => {});
     }
     setPausedSnapshot((current) =>

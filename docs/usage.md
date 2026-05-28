@@ -116,6 +116,8 @@ debugger:trace("Something happened")
 debugger:error("Something went wrong")
 ```
 
+Live session logs are also cached locally in the desktop app. Reopening Feather or restarting a CLI-launched game restores the recent log history for that saved session/project, while screenshots stay out of the cache to keep the app storage small.
+
 ---
 
 ## Performance And Profiler

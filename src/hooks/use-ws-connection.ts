@@ -27,6 +27,12 @@ import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { sendCommand } from '@/lib/send-command';
 import { base64ToUint8Array } from '@/utils/arrays';
 import { normalizePerformanceMetric } from '@/utils/performance-metrics';
+import {
+  applyLogUpdate,
+  mergeLogLists,
+  resolveLogHistoryKeys,
+  useLogHistoryStore,
+} from '@/store/log-history';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -388,6 +394,14 @@ export const useWsConnection = () => {
               );
             }
 
+            const historyKeys = resolveLogHistoryKeys(config, sessionId);
+            const sessionLabel = config.sessionName || config.root_path?.split('/').pop() || 'Game';
+            const logHistory = useLogHistoryStore.getState();
+            let restoredLogs = mergeLogLists(
+              logHistory.getLogsForSession(sessionId),
+              logHistory.getLogsForHistoryKeys(historyKeys),
+            );
+
             // Migrate cached data from previous session of the same device
             const deviceId = config.deviceId;
             if (deviceId) {
@@ -397,8 +411,16 @@ export const useWsConnection = () => {
                 // Carry over logs, performance, observers from old session
                 const oldLogs = queryClient.getQueryData<Log[]>(sessionQueryKey.logs(oldSession.id));
                 if (oldLogs?.length) {
-                  queryClient.setQueryData(sessionQueryKey.logs(sessionId), oldLogs);
+                  restoredLogs = mergeLogLists(restoredLogs, oldLogs);
                 }
+                const oldHistoryKeys =
+                  logHistory.sessionHistoryKeys[oldSession.id] ??
+                  (oldSession.deviceId ? [`device:${oldSession.deviceId}`] : []);
+                restoredLogs = mergeLogLists(
+                  restoredLogs,
+                  logHistory.getLogsForSession(oldSession.id),
+                  logHistory.getLogsForHistoryKeys(oldHistoryKeys),
+                );
                 const oldPerf = queryClient.getQueryData<PerformanceMetrics[]>(
                   sessionQueryKey.performance(oldSession.id),
                 );
@@ -416,6 +438,17 @@ export const useWsConnection = () => {
                 // Clean up old session cache
                 queryClient.removeQueries({ queryKey: [oldSession.id] });
               }
+            }
+
+            const logsToRestore = mergeLogLists(
+              queryClient.getQueryData<Log[]>(sessionQueryKey.logs(sessionId)),
+              restoredLogs,
+            );
+            if (logsToRestore.length > 0) {
+              queryClient.setQueryData(sessionQueryKey.logs(sessionId), logsToRestore);
+              logHistory.replaceSessionLogs(sessionId, logsToRestore, historyKeys, sessionLabel);
+            } else {
+              logHistory.rememberSession(sessionId, historyKeys, sessionLabel);
             }
 
             setSession(sessionId);
@@ -464,14 +497,18 @@ export const useWsConnection = () => {
           case 'log': {
             const log = data as Log;
             queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) => [...(prev ?? []), log]);
+            const history = useLogHistoryStore.getState();
+            history.appendLog(sessionId, log, history.sessionHistoryKeys[sessionId]);
             break;
           }
 
           case 'log:update': {
             const { id, count, time, lastTime } = data as { id: string; count: number; time: number; lastTime?: number };
             queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) =>
-              prev?.map((l) => (l.id === id ? { ...l, count, time, lastTime: lastTime ?? time } : l)) ?? [],
+              applyLogUpdate(prev ?? [], { id, count, time, lastTime }),
             );
+            const history = useLogHistoryStore.getState();
+            history.updateLog(sessionId, { id, count, time, lastTime }, history.sessionHistoryKeys[sessionId]);
             break;
           }
 

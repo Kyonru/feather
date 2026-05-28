@@ -1374,6 +1374,59 @@ test('log type badges keep readable foreground colors in dark themes', async ({ 
   expect(colors.color).not.toBe('rgb(255, 255, 255)');
 });
 
+test('logs restore from persisted history when reopening a saved session', async ({ page }) => {
+  await seedSession(page);
+  await page.addInitScript(() => {
+    const now = Date.now() / 1000;
+    const logs = [
+      {
+        id: '1',
+        count: 1,
+        time: now,
+        firstTime: now,
+        lastTime: now,
+        type: 'output',
+        str: 'Restored after app restart',
+        trace: '',
+      },
+    ];
+    localStorage.setItem(
+      'feather-log-history-v1',
+      JSON.stringify({
+        state: {
+          logsBySession: {
+            demo: {
+              logs,
+              label: 'Demo Session',
+              updatedAt: Date.now(),
+            },
+          },
+          logsByHistoryKey: {
+            'root:/tmp/demo': {
+              logs,
+              label: 'Demo Session',
+              updatedAt: Date.now(),
+            },
+          },
+          sessionHistoryKeys: {
+            demo: ['root:/tmp/demo', 'session:demo'],
+          },
+        },
+        version: 0,
+      }),
+    );
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  const restoredLog = page.getByText('Restored after app restart').first();
+  await expect(restoredLog).toBeVisible();
+  await restoredLog.click();
+  await expect(page.getByText('Log Details')).toBeVisible();
+  await expect(page.getByRole('code').getByText('Restored after app restart')).toBeVisible();
+});
+
 test('assets degraded matrix handles empty and partial catalogs', async ({ page }) => {
   await seedSession(page);
   await page.setViewportSize({ width: 1180, height: 760 });

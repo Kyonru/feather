@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed log type badges so their text and icons keep readable contrast across light, dark, and Noctis themes.
+- Fixed live session logs disappearing after reopening Feather or restarting a CLI-launched game by restoring recent log history from a bounded local cache.
 
 ### Tests
 
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded showcase e2e coverage for Shader Graph Preview node aspect ratio.
 - Added app e2e and focused registry coverage for Noctis theme selection, persistence, and fallback behavior.
 - Added app e2e coverage for log type badge contrast in dark themes.
+- Added focused log-history coverage and app e2e coverage for restoring saved session logs.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 
