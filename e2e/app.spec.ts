@@ -919,6 +919,9 @@ test('shows no-session empty state and opens settings', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Connection' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'General' })).toBeVisible();
+  await expect(page.getByText('Ports, session timing, and mobile pairing.')).toBeVisible();
   await expect(page.getByLabel('WebSocket Port')).toHaveValue('4004');
   await expect(page.getByLabel('Connection Timeout (seconds)')).toHaveValue('15');
 });

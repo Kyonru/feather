@@ -34,21 +34,28 @@ import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { MobileConnection } from '@/components/mobile-connection';
 import { openUrl } from '@/utils/linking';
+import { cn } from '@/utils/styles';
 import { normalizeThemePreference, themeSelectorGroups, type ThemeSelectorOption } from '@/assets/theme/registry';
 import { version as appVersion } from '../../../package.json';
 import {
   ActivityIcon,
+  CheckCircle2Icon,
   CodeIcon,
   CopyIcon,
   ExternalLinkIcon,
   EyeIcon,
   EyeOffIcon,
   FolderIcon,
+  KeyRoundIcon,
   MonitorIcon,
   NetworkIcon,
+  PaletteIcon,
   RefreshCwIcon,
+  Settings2Icon,
   ShieldIcon,
+  SmartphoneIcon,
   TerminalIcon,
+  XIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -106,39 +113,131 @@ type CliProjectStatus = {
   errors: string[];
 };
 
+const settingsTabs = [
+  {
+    value: 'connection',
+    label: 'Connection',
+    description: 'Ports, session timing, and mobile pairing.',
+    icon: NetworkIcon,
+  },
+  {
+    value: 'general',
+    label: 'General',
+    description: 'Appearance, sidebar tools, assets, and editor paths.',
+    icon: MonitorIcon,
+  },
+  {
+    value: 'security',
+    label: 'Security',
+    description: 'App identity and Console API keys.',
+    icon: ShieldIcon,
+  },
+  {
+    value: 'cli',
+    label: 'CLI',
+    description: 'Install status, project doctor, and build vendors.',
+    icon: TerminalIcon,
+  },
+] as const;
+
 function Section({
   icon: Icon,
   title,
+  description,
   children,
 }: {
   icon: React.ElementType;
   title: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="grid gap-3">
-      <div className="flex items-center gap-2">
-        <Icon className="size-4 text-muted-foreground" />
-        <h3 className="text-sm font-medium">{title}</h3>
+    <section className="overflow-hidden rounded-md border bg-card shadow-xs">
+      <div className="flex items-start gap-3 border-b bg-muted/20 px-4 py-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background">
+          <Icon className="size-4 text-muted-foreground" />
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          {description && <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>}
+        </div>
       </div>
-      <div className="grid gap-4">{children}</div>
+      <div className="grid gap-4 p-4">{children}</div>
     </section>
   );
 }
 
 function FieldDescription({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-muted-foreground -mt-2">{children}</p>;
+  return <p className="text-xs leading-relaxed text-muted-foreground">{children}</p>;
 }
 
 function SettingsGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid gap-4 md:grid-cols-2">{children}</div>;
+  return <div className="grid gap-4 lg:grid-cols-2">{children}</div>;
 }
 
-function SettingsTabContent({ value, children }: { value: string; children: React.ReactNode }) {
+function SettingsMetrics({ children }: { children: React.ReactNode }) {
+  return <div className="grid gap-2 sm:grid-cols-3">{children}</div>;
+}
+
+function SettingsMetric({
+  icon: Icon,
+  label,
+  value,
+  tone = 'default',
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: React.ReactNode;
+  tone?: 'default' | 'good' | 'warn';
+}) {
   return (
-    <TabsContent value={value} className="m-0 min-h-0">
-      <ScrollArea className="h-[calc(84vh-180px)]">
-        <div className="grid gap-6 p-5 pb-12">{children}</div>
+    <div
+      className={cn(
+        'flex min-w-0 items-center gap-3 rounded-md border bg-background/70 px-3 py-2.5',
+        tone === 'good' && 'border-emerald-500/30 bg-emerald-500/5',
+        tone === 'warn' && 'border-amber-500/35 bg-amber-500/5',
+      )}
+    >
+      <span
+        className={cn(
+          'flex size-8 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground',
+          tone === 'good' && 'border-emerald-500/30 text-emerald-600',
+          tone === 'warn' && 'border-amber-500/35 text-amber-600',
+        )}
+      >
+        <Icon className="size-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+        <span className="block truncate text-sm font-semibold">{value}</span>
+      </span>
+    </div>
+  );
+}
+
+function SettingsTabContent({
+  value,
+  title,
+  description,
+  children,
+}: {
+  value: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <TabsContent value={value} className="m-0 h-full min-h-0 data-[state=inactive]:hidden">
+      <ScrollArea className="h-full">
+        <div className="grid gap-5 p-4 pb-12 sm:p-5">
+          <div className="rounded-md border bg-muted/20 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-base font-semibold">{title}</p>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+            </div>
+          </div>
+          {children}
+        </div>
       </ScrollArea>
     </TabsContent>
   );
@@ -205,6 +304,27 @@ function ThemeToggle() {
   );
 }
 
+function GeneralOverview() {
+  const theme = normalizeThemePreference(useSettingsStore((state) => state.theme));
+  const hiddenMainFeatures = useSettingsStore((state) => state.hiddenMainFeatures);
+  const assetSourceDir = useSettingsStore((state) => state.assetSourceDir);
+  const selectedThemeLabel =
+    themeSelectorGroups.flatMap((group) => group.options).find((option) => option.value === theme)?.label ?? 'System';
+  const visibleFeatures = MAIN_FEATURES.length - hiddenMainFeatures.length;
+
+  return (
+    <SettingsMetrics>
+      <SettingsMetric icon={PaletteIcon} label="Theme" value={selectedThemeLabel} />
+      <SettingsMetric
+        icon={MonitorIcon}
+        label="Sidebar tools"
+        value={`${visibleFeatures}/${MAIN_FEATURES.length} visible`}
+      />
+      <SettingsMetric icon={FolderIcon} label="Asset source" value={assetSourceDir || 'Session default'} />
+    </SettingsMetrics>
+  );
+}
+
 const optionalFeatureDefaults: MainFeatureId[] = [
   'console',
   'particle-system-playground',
@@ -224,12 +344,18 @@ function SidebarFeaturesInput() {
   const setShowHiddenMainFeaturesInCommandCenter = useSettingsStore(
     (state) => state.setShowHiddenMainFeaturesInCommandCenter,
   );
+  const visibleFeatureCount = MAIN_FEATURES.length - hiddenMainFeatures.length;
 
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="grid gap-1">
-          <Label>Sidebar Features</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Label>Sidebar Features</Label>
+            <Badge variant="outline" className="text-[10px]">
+              {visibleFeatureCount}/{MAIN_FEATURES.length} visible
+            </Badge>
+          </div>
           <FieldDescription>
             Hide tools you do not use often. Hidden tools can still be opened by direct route.
           </FieldDescription>
@@ -252,7 +378,13 @@ function SidebarFeaturesInput() {
         {MAIN_FEATURES.map((feature) => {
           const checked = !hiddenMainFeatures.includes(feature.id);
           return (
-            <div key={feature.id} className="flex items-center gap-2 rounded border px-3 py-2">
+            <div
+              key={feature.id}
+              className={cn(
+                'flex items-center gap-2 rounded-md border bg-background/70 px-3 py-2 transition-colors',
+                checked ? 'border-border' : 'border-dashed bg-muted/25 text-muted-foreground',
+              )}
+            >
               <Checkbox
                 id={`feature-visible-${feature.id}`}
                 checked={checked}
@@ -263,13 +395,17 @@ function SidebarFeaturesInput() {
                 className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2"
               >
                 <span className="truncate">{feature.title}</span>
-                {feature.id === 'compare' && <span className="text-[10px] text-muted-foreground">2 sessions</span>}
+                {feature.id === 'compare' && (
+                  <span className="text-[10px] text-muted-foreground" aria-hidden="true">
+                    2 sessions
+                  </span>
+                )}
               </Label>
             </div>
           );
         })}
       </div>
-      <div className="flex items-start gap-2 rounded border bg-muted/20 px-3 py-2">
+      <div className="flex items-start gap-2 rounded-md border bg-muted/20 px-3 py-2">
         <Checkbox
           id="setting-command-center-hidden-features"
           checked={showHiddenMainFeaturesInCommandCenter}
@@ -330,6 +466,26 @@ function ConnectionTimeoutInput() {
         Seconds without a message before a session is considered disconnected (default: 15).
       </FieldDescription>
     </div>
+  );
+}
+
+function ConnectionOverview() {
+  const port = useSettingsStore((state) => state.port);
+  const timeout = useSettingsStore((state) => state.connectionTimeout);
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const session = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
+
+  return (
+    <SettingsMetrics>
+      <SettingsMetric icon={NetworkIcon} label="WebSocket" value={`:${port}`} />
+      <SettingsMetric icon={ActivityIcon} label="Timeout" value={`${timeout}s`} />
+      <SettingsMetric
+        icon={MonitorIcon}
+        label="Active session"
+        value={session?.name ?? 'None selected'}
+        tone={sessionId ? 'good' : 'warn'}
+      />
+    </SettingsMetrics>
   );
 }
 
@@ -417,6 +573,36 @@ function AppIdInput() {
         {appIdRequired ? ' The active session requires a matching app ID.' : ''}
       </FieldDescription>
     </div>
+  );
+}
+
+function SecurityOverview() {
+  const apiKey = useSettingsStore((state) => state.apiKey);
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const sessionApiKeys = useSettingsStore((state) => state.sessionApiKeys);
+  const appIdRequired = useConfigStore((state) => state.config?.security?.appIdRequired === true);
+  const hasSessionOverride = Boolean(sessionId && sessionApiKeys[sessionId]);
+
+  return (
+    <SettingsMetrics>
+      <SettingsMetric
+        icon={ShieldIcon}
+        label="App ID"
+        value={appIdRequired ? 'Required by session' : 'Available'}
+        tone={appIdRequired ? 'warn' : 'good'}
+      />
+      <SettingsMetric
+        icon={KeyRoundIcon}
+        label="Default API key"
+        value={apiKey ? 'Configured' : 'Not set'}
+        tone={apiKey ? 'good' : 'warn'}
+      />
+      <SettingsMetric
+        icon={MonitorIcon}
+        label="Session override"
+        value={hasSessionOverride ? 'Configured' : 'Using default'}
+      />
+    </SettingsMetrics>
   );
 }
 
@@ -759,61 +945,135 @@ export function SettingsModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="flex h-[84vh] w-[min(94vw,900px)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
-        <DialogHeader className="border-b px-5 py-4">
-          <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>Changes are applied immediately and persisted automatically.</DialogDescription>
+      <DialogContent
+        showCloseButton={false}
+        className="flex h-[88vh] max-h-[820px] w-[min(96vw,1080px)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none"
+      >
+        <DialogHeader className="border-b bg-muted/20 px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-background shadow-xs">
+                <Settings2Icon className="size-5 text-muted-foreground" />
+              </span>
+              <div className="min-w-0">
+                <DialogTitle>Settings</DialogTitle>
+                <DialogDescription className="mt-1">
+                  Configure connection, security, appearance, and local tooling from one place.
+                </DialogDescription>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-start gap-2">
+              <div className="flex flex-wrap justify-end gap-2 pt-0.5">
+                <Badge variant="outline" className="gap-1">
+                  <CheckCircle2Icon className="size-3" />
+                  Autosaved
+                </Badge>
+                <Badge variant="secondary" className="font-mono">
+                  v{appVersion}
+                </Badge>
+              </div>
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0"
+                  aria-label="Close"
+                  title="Close settings"
+                >
+                  <XIcon className="size-4" />
+                </Button>
+              </DialogClose>
+            </div>
+          </div>
         </DialogHeader>
 
-        <Tabs defaultValue="connection" className="min-h-0 flex-1 gap-0">
-          <div className="border-b px-5 py-3">
-            <TabsList className="w-full justify-start">
-              <TabsTrigger value="connection" className="gap-2">
-                <NetworkIcon className="size-4" />
-                Connection
-              </TabsTrigger>
-              <TabsTrigger value="general" className="gap-2">
-                <MonitorIcon className="size-4" />
-                General
-              </TabsTrigger>
-              <TabsTrigger value="security" className="gap-2">
-                <ShieldIcon className="size-4" />
-                Security
-              </TabsTrigger>
-              <TabsTrigger value="cli" className="gap-2">
-                <TerminalIcon className="size-4" />
-                CLI
-              </TabsTrigger>
+        <Tabs defaultValue="connection" orientation="vertical" className="min-h-0 flex-1 gap-0 md:flex-row">
+          <div className="border-b bg-muted/10 p-2 md:w-64 md:shrink-0 md:border-b-0 md:border-r">
+            <TabsList className="flex !h-auto w-full flex-wrap items-stretch justify-start gap-1 rounded-none bg-transparent p-0 md:flex-col">
+              {settingsTabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  aria-label={tab.label}
+                  className="!h-auto min-w-[calc(50%-0.25rem)] flex-1 justify-start gap-3 px-3 py-2 text-left md:min-w-0 md:flex-none"
+                >
+                  <tab.icon className="size-4 text-muted-foreground" />
+                  <span className="grid min-w-0 gap-0.5">
+                    <span className="truncate text-sm">{tab.label}</span>
+                    <span className="hidden truncate text-[11px] font-normal text-muted-foreground md:block">
+                      {tab.description}
+                    </span>
+                  </span>
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 
           <div className="min-h-0 flex-1">
-            <SettingsTabContent value="general">
-              <Section icon={MonitorIcon} title="Appearance">
+            <SettingsTabContent
+              value="general"
+              title="General"
+              description="Adjust the app surface, keep navigation focused, and point Feather at local project files."
+            >
+              <GeneralOverview />
+              <Section
+                icon={PaletteIcon}
+                title="Appearance"
+                description="Choose a theme and keep rarely used tools out of the sidebar."
+              >
                 <ThemeToggle />
                 <SidebarFeaturesInput />
               </Section>
-              <Section icon={CodeIcon} title="Editor">
+              <Section icon={CodeIcon} title="Editor" description="Control how file locations open from traces.">
                 <TextEditorInput />
               </Section>
-              <Section icon={FolderIcon} title="Assets">
+              <Section
+                icon={FolderIcon}
+                title="Assets"
+                description="Resolve local previews when the game runs elsewhere."
+              >
                 <AssetSourceDirInput />
               </Section>
             </SettingsTabContent>
 
-            <SettingsTabContent value="connection">
-              <Section icon={NetworkIcon} title="Connection">
+            <SettingsTabContent
+              value="connection"
+              title="Connection"
+              description="Set how games find this desktop app and how Feather decides a session is still alive."
+            >
+              <ConnectionOverview />
+              <Section
+                icon={NetworkIcon}
+                title="Desktop Server"
+                description="These values affect new and reconnecting game sessions."
+              >
                 <SettingsGrid>
                   <PortInput />
                   <ConnectionTimeoutInput />
                   <SampleRateInput />
                 </SettingsGrid>
+              </Section>
+              <Section
+                icon={SmartphoneIcon}
+                title="Mobile Pairing"
+                description="Use the same connection settings when testing on a phone or another machine."
+              >
                 <MobileConnection />
               </Section>
             </SettingsTabContent>
 
-            <SettingsTabContent value="security">
-              <Section icon={ShieldIcon} title="Security">
+            <SettingsTabContent
+              value="security"
+              title="Security"
+              description="Manage the desktop identity and API keys used for privileged runtime commands."
+            >
+              <SecurityOverview />
+              <Section
+                icon={ShieldIcon}
+                title="Command Trust"
+                description="Use App ID and API keys to restrict command-capable workflows."
+              >
                 <AppIdInput />
                 <SettingsGrid>
                   <ApiKeyInput />
@@ -822,8 +1082,16 @@ export function SettingsModal() {
               </Section>
             </SettingsTabContent>
 
-            <SettingsTabContent value="cli">
-              <Section icon={TerminalIcon} title="CLI">
+            <SettingsTabContent
+              value="cli"
+              title="CLI"
+              description="Check the detected CLI, inspect the current project, and jump to setup docs when needed."
+            >
+              <Section
+                icon={TerminalIcon}
+                title="CLI Health"
+                description="Refresh reads local tool and project status."
+              >
                 <CliStatusPanel />
               </Section>
             </SettingsTabContent>

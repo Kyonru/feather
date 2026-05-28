@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.1.0] - 2026-05-28 - The one with shader graph previews
 
-## Added
+### Added
 
 - Improved Shader Graph compiler UX with local diagnostics for missing outputs, stale connections, missing texture uploads, invalid custom functions, and cyclic subgraphs before runtime validation.
 - Added Shader Graph Preview nodes as inline RGBA probes with embedded love.js previews and an optional send-to-game control for connected LÖVE sessions.
@@ -27,10 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Tokyo Night Light, Tokyo Night, and Tokyo Night Storm as optional app themes with matching syntax highlighting.
 - Added Microsoft Visual Studio C/C++ Light, Dark, 2017 Light, and 2017 Dark as optional app themes with matching syntax highlighting.
 
+### Changed
+
+- Reworked the Settings modal with a wider responsive layout, left-side navigation, page summaries, framed setting groups, and clearer autosave/status cues.
+
 ### Fixed
 
 - Fixed log type badges so their text and icons keep readable contrast across light, dark, and Noctis themes.
 - Fixed live session logs disappearing after reopening Feather or restarting a CLI-launched game by restoring recent log history from a bounded local cache.
+- Fixed the Settings modal close button so it no longer overlaps the version badge in the header.
 
 ### Tests
 
@@ -44,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused coverage for Shader Graph game-preview throttling and runtime preview caching.
 - Expanded showcase e2e coverage for Shader Graph Preview node aspect ratio.
 - Added app e2e and focused registry coverage for Noctis theme selection, persistence, and fallback behavior.
+- Expanded app e2e coverage for the redesigned Settings modal navigation and connection summary.
 - Added app e2e coverage for log type badge contrast in dark themes.
 - Added focused log-history coverage and app e2e coverage for restoring saved session logs.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
