@@ -81,20 +81,58 @@ test('showcase serves the real love.js shader preview target', async ({ page }) 
 test('particle playground timeline edits clips and keyframes in the showcase', async ({ page }) => {
   await page.goto('/particle-system-playground');
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add Emitter' }).click();
+  await expect(page.getByTestId('particle-emitter-row-2')).toBeVisible();
   await page.getByRole('tab', { name: 'Timeline' }).click();
   await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
   await expect(page.getByTestId('particle-timeline-track-1')).toBeVisible();
+  await expect(page.getByTestId('particle-timeline-track-2')).toBeVisible();
   await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
+
+  const mainWidth = await page.getByTestId('particle-playground-main').evaluate((element) => element.getBoundingClientRect().width);
+  const panelWidth = await page.getByTestId('particle-timeline-panel').evaluate((element) => element.getBoundingClientRect().width);
+  expect(panelWidth).toBeGreaterThan(mainWidth * 0.85);
+
+  const timelineScroll = page.getByTestId('particle-timeline-scroll');
+  const defaultOverflow = await timelineScroll.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(defaultOverflow).toBeLessThanOrEqual(2);
 
   await page.getByTestId('particle-timeline-track-1').click();
   await expect(page.getByRole('button', { name: 'Select Emitter' })).toBeVisible();
 
-  await page.getByLabel('Clip End').first().fill('2.4');
+  const clipBox = await page.getByTestId('particle-timeline-clip-1').first().boundingBox();
+  const trackStripBox = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
+  expect(clipBox).not.toBeNull();
+  expect(trackStripBox).not.toBeNull();
+  expect(clipBox!.x).toBeGreaterThanOrEqual(trackStripBox!.x - 1);
+  expect(clipBox!.x + clipBox!.width).toBeLessThanOrEqual(trackStripBox!.x + trackStripBox!.width + 1);
+
+  await page.getByRole('button', { name: 'Zoom In' }).click();
+  await page.getByRole('button', { name: 'Zoom In' }).click();
+  const zoomedOverflow = await timelineScroll.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(zoomedOverflow).toBeGreaterThan(20);
+
+  await page.getByLabel('Stop at').first().fill('2.4');
+  const tail = page.getByTestId('particle-timeline-tail-1').first();
+  await expect(tail).toBeVisible();
+  const tailBox = await tail.boundingBox();
+  const zoomedTrackStripBox = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
+  expect(tailBox).not.toBeNull();
+  expect(zoomedTrackStripBox).not.toBeNull();
+  expect(tailBox!.x).toBeGreaterThanOrEqual(zoomedTrackStripBox!.x - 1);
+  expect(tailBox!.x + tailBox!.width).toBeLessThanOrEqual(zoomedTrackStripBox!.x + zoomedTrackStripBox!.width + 1);
+
   await page.getByText('Opacity').click();
   await page.getByRole('button', { name: /add key at playhead/i }).click();
   await page.getByLabel('Opacity key value').first().fill('0.55');
 
   await expect(page.getByTestId('particle-timeline-lane-opacity-1').getByText('4 keys')).toBeVisible();
+
+  await page.getByTestId('particle-emitter-row-1').dragTo(page.getByTestId('particle-emitter-row-2'));
+  await page.getByTestId('particle-timeline-track-2').click();
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.4');
+  await page.getByTestId('particle-timeline-track-1').click();
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('3');
 
   await page.getByTitle('Play timeline').click();
   await expect(page.getByTitle('Pause timeline')).toBeVisible();

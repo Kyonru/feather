@@ -439,6 +439,56 @@ export function normalizeParticleTimeline(
   };
 }
 
+function reindexTimelineTracks(tracks: ParticleTimelineTrack[]): ParticleTimelineTrack[] {
+  return tracks.map((track, index) => ({
+    ...track,
+    systemIndex: index + 1,
+  }));
+}
+
+export function reindexParticleSystems<T extends ParticleSystemPlaygroundSystem>(systems: T[]): T[] {
+  return systems.map((system, index) => ({
+    ...system,
+    index: index + 1,
+  }));
+}
+
+export function reorderParticleTimeline(
+  timeline: unknown,
+  systems: ParticleSystemPlaygroundSystem[],
+  fromIndex: number,
+  toIndex: number,
+): ParticleTimeline {
+  const normalized = normalizeParticleTimeline(timeline, systems);
+  const fromPosition = systems.findIndex((system) => system.index === fromIndex);
+  const toPosition = systems.findIndex((system) => system.index === toIndex);
+  if (fromPosition === -1 || toPosition === -1 || fromPosition === toPosition) return normalized;
+
+  const tracks = [...normalized.tracks];
+  const [moved] = tracks.splice(fromPosition, 1);
+  tracks.splice(toPosition, 0, moved);
+  return {
+    ...normalized,
+    tracks: reindexTimelineTracks(tracks),
+  };
+}
+
+export function removeParticleTimelineTrack(
+  timeline: unknown,
+  systems: ParticleSystemPlaygroundSystem[],
+  systemIndex: number,
+): ParticleTimeline {
+  const normalized = normalizeParticleTimeline(timeline, systems);
+  const position = systems.findIndex((system) => system.index === systemIndex);
+  if (position === -1) return normalized;
+
+  const tracks = normalized.tracks.filter((_, index) => index !== position);
+  return {
+    ...normalized,
+    tracks: reindexTimelineTracks(tracks),
+  };
+}
+
 export function withNormalizedTimeline(
   composite: ParticleSystemPlaygroundCompositeData,
   template?: ParticleSystemPlaygroundTemplate,

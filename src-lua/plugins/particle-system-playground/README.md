@@ -69,9 +69,11 @@ The playground includes a 3 second composite timeline for authoring multi-emitte
 - spread
 - offset X/Y
 
-Emitter properties remain the base values. Timeline lanes override or multiply those base values while the preview or exported effect plays. Speed and size lanes are multipliers; emission rate, direction, spread, offsets, and opacity are direct lane values. Clips can emit a burst when their start time is crossed.
+Emitter properties remain the base values. Timeline lanes override or multiply those base values while the preview or exported effect plays. Speed and size lanes are multipliers; emission rate, direction, spread, offsets, and opacity are direct lane values. A clip's **Emit At** time controls when the emitter enters, **Stop At** controls when it stops creating new particles, and **Burst Particles** controls how many particles fire at entry. The emitter-level **Default Burst** value is used as the clip burst fallback. Existing particles keep living after Stop At according to Particle Life, and the timeline shows that tail as a non-editable extension after the clip. Reordering or deleting emitters keeps each timeline track attached to its emitter instead of leaving timing values behind on the old slot.
 
-The desktop sends play, pause, stop, and throttled seek updates to the real LÖVE preview. Seeking resets the preview systems and fast-forwards from `0` to the playhead with capped fixed steps so the canvas matches the authored timeline. Looping timelines wrap and restart emitters at the cycle boundary; non-looping timelines stop scheduling at the duration.
+Stop and Reset Playhead reset playback state, but they do not rewrite the emitter's base rate or lifetime. When playback starts again, the clip window re-applies the saved emitter settings before muting emission outside the clip.
+
+The desktop sends play, pause, stop, and throttled seek updates to the real LÖVE preview. Seeking resets the preview systems and fast-forwards from `0` to the playhead with capped fixed steps so the canvas matches the authored timeline. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; non-looping timelines stop scheduling at the duration.
 
 Game-owned composites support timeline automation best-effort. Feather can adjust `ParticleSystem` values and emit scheduled bursts, but draw-only behavior such as opacity depends on the game drawing the registered systems.
 

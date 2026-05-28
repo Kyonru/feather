@@ -114,7 +114,7 @@ export default function ParticleSystemPlaygroundPage({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[18rem_minmax(0,1fr)] overflow-hidden">
+    <div className="grid min-h-0 w-full flex-1 grid-cols-[18rem_minmax(0,1fr)] overflow-hidden">
       <input
         ref={projectInputRef}
         type="file"
@@ -164,9 +164,9 @@ export default function ParticleSystemPlaygroundPage({
         </ScrollArea>
       </aside>
 
-      <main className="flex  flex-1 min-h-0 max-h-[calc(100vh-4rem)] overflow-hidden">
-        <ScrollArea>
-          <div className="grid gap-3 p-4">
+      <main className="flex min-h-0 min-w-0 w-full flex-1 overflow-hidden" data-testid="particle-playground-main">
+        <ScrollArea className="min-h-0 min-w-0 w-full flex-1">
+          <div className="grid min-w-0 w-full gap-3 p-4" data-testid="particle-playground-content">
             <header className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="text-lg font-semibold">Particles Playground</h1>
@@ -234,7 +234,7 @@ export default function ParticleSystemPlaygroundPage({
                   </div>
                 )}
 
-                <Tabs defaultValue="emitter" className="gap-3">
+                <Tabs defaultValue="emitter" className="min-w-0 w-full gap-3">
                   <TabsList className="grid h-8 w-full grid-cols-3 rounded-md lg:w-fit lg:min-w-[27rem]">
                     <TabsTrigger value="emitter" className="text-xs">
                       Emitter
@@ -247,13 +247,13 @@ export default function ParticleSystemPlaygroundPage({
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="emitter" className="mt-0">
+                  <TabsContent value="emitter" className="mt-0 min-w-0">
                     <Section title="Emitter Properties">
                       <PropertiesPanel system={system} onChange={playground.updateActiveParam} />
                     </Section>
                   </TabsContent>
 
-                  <TabsContent value="timeline" className="mt-0">
+                  <TabsContent value="timeline" className="mt-0 min-w-0">
                     <TimelinePanel
                       composite={composite}
                       activeSystemIndex={playground.activeSystemIndex}
@@ -267,7 +267,7 @@ export default function ParticleSystemPlaygroundPage({
                     />
                   </TabsContent>
 
-                  <TabsContent value="preview-assets" className="mt-0">
+                  <TabsContent value="preview-assets" className="mt-0 min-w-0">
                     <div className="grid gap-3 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
                       <div className="grid content-start gap-3">
                         <Section title="Composite Preview">

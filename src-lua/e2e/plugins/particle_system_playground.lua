@@ -50,6 +50,9 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "local timeline = {"), "particle playground export includes timeline data")
     assertTruthy(contains(code, "local timelineState = { time = 0, playing = false }"), "particle playground export includes timeline state")
     assertTruthy(contains(code, "local function applyTimeline(time)"), "particle playground export includes timeline evaluator")
+    assertTruthy(contains(code, "local function emitTimelineStartsForAdvance"), "particle playground export preserves timeline tails across loop wraps")
+    assertTruthy(contains(code, "emitter.system:start()"), "particle playground export restarts delayed timeline clips")
+    assertTruthy(contains(code, "emitter.system:setEmitterLifetime(-1)"), "particle playground export lets timeline clips own emission lifetime")
     assertTruthy(contains(code, "---@class ParticlePayload"), "particle playground export documents ParticlePayload")
     assertTruthy(contains(code, "LG.newImage("), "particle playground export loads texture assets")
     assertTruthy(contains(code, ':setFilter("linear", "linear")'), "particle playground export uses linear texture filtering")
@@ -202,6 +205,260 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       timelineSnapshot.data.timelineState.time < 1,
       "particle timeline looping wraps preview time"
     )
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Timeline Restart",
+        template = "fire",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Timeline Restart",
+        timeline = {
+          duration = 1,
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "restart", start = 0, ["end"] = 0.3, emit = 0 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    local restartSystem = plugin:_getSystemEntry("Timeline Restart", 1).system
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Timeline Restart",
+        command = "play",
+      },
+    })
+    plugin:update(0.5)
+    assertEqual(restartSystem:getEmissionRate(), 0, "particle timeline clip stop mutes continuous emission")
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Timeline Restart",
+        command = "stop",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Timeline Restart",
+        command = "play",
+      },
+    })
+    plugin:update(0.1)
+    assertEqual(restartSystem:getEmissionRate(), 100, "particle timeline stop then play restores base emission rate")
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Timeline Restart",
+        command = "seek",
+        time = 0,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Timeline Restart",
+        command = "play",
+      },
+    })
+    plugin:update(0.1)
+    assertEqual(restartSystem:getEmissionRate(), 100, "particle timeline reset playhead then play restores base emission rate")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Loop Tail",
+        template = "fire",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Loop Tail",
+        systemIndex = 1,
+        particleLifetimeMin = 2.5,
+        particleLifetimeMax = 2.5,
+        emitAtStart = 8,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Loop Tail",
+        timeline = {
+          duration = 1,
+          loop = true,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "tail", start = 0.8, ["end"] = 0.9, emit = 8 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Loop Tail",
+        command = "seek",
+        time = 0,
+      },
+    })
+    local tailSystem = plugin:_getSystemEntry("Loop Tail", 1).system
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Loop Tail",
+        command = "play",
+      },
+    })
+    plugin:update(0.81)
+    assertTruthy(tailSystem:getCount() > 0, "particle loop tail emits near the cycle end")
+    plugin:update(0.25)
+    local tailCountAfterWrap = tailSystem:getCount()
+    assertTruthy(tailCountAfterWrap > 0, "particle loop tail survives across wrap")
+    plugin:update(0.74)
+    assertTruthy(tailSystem:getCount() > tailCountAfterWrap, "particle loop tail overlaps the next cycle emission")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Delayed Loop Clip",
+        template = "muzzle-flash",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Delayed Loop Clip",
+        systemIndex = 1,
+        emitterLifetime = 0.05,
+        emitAtStart = 6,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Delayed Loop Clip",
+        timeline = {
+          duration = 1,
+          loop = true,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "delayed", start = 0.5, ["end"] = 0.8, emit = 6 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Delayed Loop Clip",
+        command = "seek",
+        time = 0,
+      },
+    })
+    local delayedSystem = plugin:_getSystemEntry("Delayed Loop Clip", 1).system
+    assertEqual(delayedSystem:getCount(), 0, "particle delayed timeline clip starts empty after seek")
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Delayed Loop Clip",
+        command = "play",
+      },
+    })
+    plugin:update(0.49)
+    assertEqual(delayedSystem:getCount(), 0, "particle delayed timeline clip does not emit before its offset")
+    plugin:update(0.02)
+    assertTruthy(delayedSystem:getCount() > 0, "particle delayed timeline clip emits at its offset")
+    plugin:update(0.51)
+    assertEqual(delayedSystem:getCount(), 0, "particle delayed timeline clip naturally expires after its short particle life")
+    plugin:update(0.5)
+    assertTruthy(delayedSystem:getCount() > 0, "particle delayed timeline clip emits again after loop wrap")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Reorder Timeline",
+        template = "explosion",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Reorder Timeline",
+        timeline = {
+          duration = 3,
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "core", start = 0, ["end"] = 0.4, emit = 101 } },
+              lanes = {
+                opacity = { { id = "core-opacity", time = 0, value = 0.11 } },
+              },
+            },
+            {
+              systemIndex = 2,
+              clips = { { id = "smoke", start = 0.2, ["end"] = 2.6, emit = 202 } },
+              lanes = {
+                opacity = { { id = "smoke-opacity", time = 0.2, value = 0.22 } },
+              },
+            },
+            {
+              systemIndex = 3,
+              clips = { { id = "sparks", start = 0.1, ["end"] = 1.2, emit = 303 } },
+              lanes = {
+                opacity = { { id = "sparks-opacity", time = 0.1, value = 0.33 } },
+              },
+            },
+          },
+        },
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "reorder-system",
+        composite = "Reorder Timeline",
+        fromIndex = 1,
+        toIndex = 3,
+      },
+    })
+    local reordered = plugin:handleRequest()
+    assertEqual(reordered.data.systems[3].title, "Core Blast", "particle reorder moves the emitter to the target slot")
+    assertEqual(reordered.data.timeline.tracks[1].clips[1].emit, 202, "particle reorder keeps slot 1 timeline with moved smoke emitter")
+    assertEqual(reordered.data.timeline.tracks[2].clips[1].emit, 303, "particle reorder keeps slot 2 timeline with moved sparks emitter")
+    assertEqual(reordered.data.timeline.tracks[3].clips[1].emit, 101, "particle reorder carries timeline clips with the moved emitter")
+    assertEqual(
+      reordered.data.timeline.tracks[3].lanes.opacity[1].value,
+      0.11,
+      "particle reorder carries keyframe lanes with the moved emitter"
+    )
+
+    plugin:handleActionRequest({
+      params = {
+        action = "remove-system",
+        composite = "Reorder Timeline",
+        systemIndex = 1,
+      },
+    })
+    local removed = plugin:handleRequest()
+    assertEqual(removed.data.systems[1].title, "Sparks", "particle remove renumbers remaining emitters")
+    assertEqual(removed.data.timeline.tracks[1].clips[1].emit, 303, "particle remove keeps timeline on the surviving emitter")
+    assertEqual(removed.data.timeline.tracks[2].clips[1].emit, 101, "particle remove preserves later emitter timeline data")
 
     plugin:handleActionRequest({
       params = {

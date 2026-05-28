@@ -44,7 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph previews in Feather dev and showcase dev now use the same generated love.js target when available so embedded node previews render through the same LÖVE path.
 - Shader Graph Parameter nodes can now be edited from the Controls tab, including labels, defaults, texture uploads, uniform names, connection warnings, and select-node actions.
 - Particle System Playground project files now save as `.featherparticles` version 2 with timelines, while version 1 imports migrate to a default 3-second timeline.
-- Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping resets.
+- Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping playback.
+- Improved Particle System Playground Timeline layout so the editor fills the available width and clips, playhead, zoom, and keyframe strips align on one timeline scale.
+- Renamed Particle System Playground timing controls so clip entry time is shown as Emit At and burst counts are shown separately from timing.
+- Particle System Playground timelines now treat clips as emission windows, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
 
 ### Fixed
 
@@ -56,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Feather dev Shader Graph node previews by serving the generated love.js preview route with the required isolation headers.
 - Fixed showcase love.js shader previews so node preview zoom is honored by the real LÖVE preview target.
 - Fixed Shader Graph Preview node toolbar actions so pin/zoom/reload clicks no longer re-select the node underneath.
+- Fixed looping Particle System Playground timelines so delayed emitter clips restart their particle system when the clip begins instead of expiring before they can emit.
+- Fixed Particle System Playground timeline clips and keyframes bleeding into the wrong emitter after reordering or deleting emitters.
+- Fixed Particle System Playground timeline Stop and Reset Playhead controls so restarting playback restores emitter base rates instead of keeping stale muted timeline values.
 
 ### Tests
 
@@ -78,9 +84,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added app e2e coverage for grouped sidebar navigation, pinned tool persistence, Settings pin controls, and hidden pinned tools.
 - Added showcase e2e and focused settings coverage for Shader Graph collapsible node palette defaults, persistence, search, and empty states.
 - Added focused codegen and showcase e2e coverage for the new Shader Graph composition helper nodes.
+- Expanded particle playground e2e coverage for full-width Timeline layout, default overflow behavior, and clip alignment.
 - Added focused codegen and showcase e2e coverage for the new Shader Graph Fake 3D sprite illusion nodes.
 - Added focused helper, showcase e2e, and app e2e coverage for Shader Graph template preset controls and subgraph boundary nodes.
 - Added showcase and app e2e coverage for the Shader Graph right-panel Controls, Selection, and Output workflow.
+- Expanded Lua e2e coverage for looping Particle System Playground timelines with delayed emitter clips.
+- Expanded Lua, showcase, and app e2e coverage for Particle System Playground particle-life tails in timeline loops.
+- Expanded Lua, showcase, and app e2e coverage for preserving Particle System Playground timeline values when emitters are reordered.
+- Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
 - Added Lua, showcase, and app e2e coverage for Particle System Playground timeline import/export, clip/keyframe editing, preview controls, and exported timeline replay hooks.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.

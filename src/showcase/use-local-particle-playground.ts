@@ -13,6 +13,9 @@ import {
   migrateParticleProject,
   PARTICLE_PROJECT_TYPE,
   PARTICLE_PROJECT_VERSION,
+  reindexParticleSystems,
+  removeParticleTimelineTrack,
+  reorderParticleTimeline,
   timelineForTemplate,
   withNormalizedTimeline,
 } from '@/pages/particle-system-playground/timeline';
@@ -293,8 +296,19 @@ export function useLocalParticlePlayground() {
     removeSystem: (systemIndex: number) =>
       setData((current) => {
         if (!current.data || current.data.systems.length <= 1) return current;
-        const systems = current.data.systems.filter((item) => item.index !== systemIndex);
-        return { ...current, activeSystem: systems[0]?.index ?? 1, data: withNormalizedTimeline({ ...current.data, systems }) };
+        const timeline = removeParticleTimelineTrack(current.data.timeline, current.data.systems, systemIndex);
+        const systems = reindexParticleSystems(current.data.systems.filter((item) => item.index !== systemIndex));
+        const activeSystem =
+          current.activeSystem === systemIndex
+            ? Math.min(systemIndex, systems.length)
+            : current.activeSystem > systemIndex
+              ? current.activeSystem - 1
+              : current.activeSystem;
+        return {
+          ...current,
+          activeSystem,
+          data: withNormalizedTimeline({ ...current.data, systems, timeline }),
+        };
       }),
     reorderSystem: (fromIndex: number, toIndex: number) =>
       setData((current) => {
@@ -303,9 +317,14 @@ export function useLocalParticlePlayground() {
         const fromPos = systems.findIndex((s) => s.index === fromIndex);
         const toPos = systems.findIndex((s) => s.index === toIndex);
         if (fromPos === -1 || toPos === -1 || fromPos === toPos) return current;
+        const timeline = reorderParticleTimeline(current.data.timeline, current.data.systems, fromIndex, toIndex);
         const [moved] = systems.splice(fromPos, 1);
         systems.splice(toPos, 0, moved);
-        return { ...current, data: withNormalizedTimeline({ ...current.data, systems }) };
+        return {
+          ...current,
+          activeSystem: toIndex,
+          data: withNormalizedTimeline({ ...current.data, systems: reindexParticleSystems(systems), timeline }),
+        };
       }),
     updateTimeline,
     playTimeline: () => setTimelineState({ playing: true }),

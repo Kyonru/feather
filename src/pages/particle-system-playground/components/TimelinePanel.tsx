@@ -16,7 +16,9 @@ import { ParticleNumberInput } from './ParticleNumberInput';
 import {
   PARTICLE_TIMELINE_LANES,
   type ParticleSystemPlaygroundCompositeData,
+  type ParticleSystemPlaygroundSystem,
   type ParticleTimeline,
+  type ParticleTimelineClip,
   type ParticleTimelineKeyframe,
   type ParticleTimelineLane,
   type ParticleTimelineTrack,
@@ -40,6 +42,53 @@ function formatTime(value: number): string {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function timeToPercent(time: number, duration: number): number {
+  if (duration <= 0) return 0;
+  return clamp((time / duration) * 100, 0, 100);
+}
+
+function finiteNumber(value: unknown, fallback: number): number {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function particleTailDuration(system: ParticleSystemPlaygroundSystem): number {
+  return Math.max(
+    0,
+    finiteNumber(
+      system.properties.particleLifetimeMax,
+      finiteNumber(system.properties.particleLifetimeMin, 0),
+    ),
+  );
+}
+
+function tailSegmentsForClip(
+  clip: ParticleTimelineClip,
+  tailDuration: number,
+  timelineDuration: number,
+  loop: boolean,
+): Array<{ start: number; end: number }> {
+  const tail = Math.min(Math.max(0, tailDuration), timelineDuration);
+  if (tail <= 0 || timelineDuration <= 0) return [];
+
+  if (!loop) {
+    const start = clamp(clip.end, 0, timelineDuration);
+    const end = clamp(clip.end + tail, 0, timelineDuration);
+    return end > start ? [{ start, end }] : [];
+  }
+
+  const segments: Array<{ start: number; end: number }> = [];
+  let remaining = tail;
+  let cursor = clip.end >= timelineDuration ? 0 : clamp(clip.end, 0, timelineDuration);
+  while (remaining > 0 && segments.length < 2) {
+    const end = Math.min(timelineDuration, cursor + remaining);
+    if (end > cursor) segments.push({ start: cursor, end });
+    remaining -= end - cursor;
+    cursor = 0;
+  }
+  return segments;
 }
 
 function uniqueId(prefix: string): string {
@@ -78,7 +127,8 @@ export function TimelinePanel({
   const currentTime = clamp(composite.timelineState?.time ?? 0, 0, timeline.duration);
   const playing = composite.timelineState?.playing === true;
   const visibleTrack = timeline.tracks.find((track) => track.systemIndex === expandedTrack) ?? timeline.tracks[0];
-  const timelineWidth = `${Math.round(100 * zoom)}%`;
+  const timelineWidth = `${Math.round(Math.max(1, zoom) * 100)}%`;
+  const playheadPercent = timeToPercent(currentTime, timeline.duration);
 
   const commitTimeline = (next: ParticleTimeline) => {
     onTimelineChange(normalizeParticleTimeline(next, composite.systems));
@@ -207,7 +257,7 @@ export function TimelinePanel({
           <input
             aria-label="Timeline playhead"
             data-testid="particle-timeline-playhead"
-            className="h-2 min-w-40 flex-1 accent-primary"
+            className="h-2 min-w-48 flex-1 accent-primary"
             type="range"
             min={0}
             max={timeline.duration}
@@ -219,7 +269,7 @@ export function TimelinePanel({
           />
         </div>
 
-        <div className="grid gap-2 md:grid-cols-[9rem_9rem_1fr]">
+        <div className="grid gap-2 lg:grid-cols-[9rem_9rem_minmax(18rem,1fr)]">
           <label className="grid gap-1 text-[10px] text-muted-foreground">
             Duration
             <ParticleNumberInput
@@ -236,14 +286,14 @@ export function TimelinePanel({
               Loop
             </Label>
           </div>
-          <div className="flex flex-wrap items-end gap-2">
-            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setZoom((value) => clamp(value - 0.25, 0.75, 3))}>
+          <div className="flex flex-wrap items-end justify-start gap-2 lg:justify-end">
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setZoom((value) => clamp(value - 0.25, 1, 3))}>
               Zoom Out
             </Button>
             <Badge variant="secondary" className="h-8 px-2 text-[10px]">
               {Math.round(zoom * 100)}%
             </Badge>
-            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setZoom((value) => clamp(value + 0.25, 0.75, 3))}>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setZoom((value) => clamp(value + 0.25, 1, 3))}>
               Zoom In
             </Button>
             <Button size="sm" variant={snap ? 'default' : 'outline'} className="h-8 text-xs" onClick={() => setSnap((value) => !value)}>
@@ -253,19 +303,20 @@ export function TimelinePanel({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border">
-        <div className="min-w-[42rem]" style={{ width: timelineWidth }}>
+      <div className="overflow-x-auto rounded-md border" data-testid="particle-timeline-scroll">
+        <div className="min-w-full" data-testid="particle-timeline-canvas" style={{ minWidth: timelineWidth }}>
           <div className="grid grid-cols-[11rem_minmax(24rem,1fr)] border-b bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             <div className="px-3 py-2">Emitter</div>
-            <div className="relative px-3 py-2">
-              <div className="flex justify-between">
-                <span>0s</span>
-                <span>{formatTime(timeline.duration)}</span>
+            <div className="px-3 py-2">
+              <div className="relative h-4" data-testid="particle-timeline-ruler-strip">
+                <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+                <span className="absolute left-0 top-0 -translate-y-0.5">0s</span>
+                <span className="absolute right-0 top-0 -translate-y-0.5">{formatTime(timeline.duration)}</span>
+                <div
+                  className="absolute top-[-0.5rem] h-[calc(100%+1rem)] w-px bg-primary/60"
+                  style={{ left: `${playheadPercent}%` }}
+                />
               </div>
-              <div
-                className="absolute top-0 h-full w-px bg-primary/60"
-                style={{ left: `${(currentTime / timeline.duration) * 100}%` }}
-              />
             </div>
           </div>
 
@@ -301,20 +352,52 @@ export function TimelinePanel({
                     </Badge>
                   )}
                 </div>
-                <div className="relative min-h-10 px-3 py-2">
-                  <div className="absolute inset-x-3 top-1/2 h-px bg-border" />
-                  {track?.clips.map((clip) => (
+                <div className="min-h-10 px-3 py-2">
+                  <div className="relative h-6" data-testid={`particle-timeline-track-strip-${system.index}`}>
+                    <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
                     <div
-                      key={clip.id}
-                      data-testid={`particle-timeline-clip-${system.index}`}
-                      className="absolute top-2 h-6 rounded-sm border border-primary/40 bg-primary/20"
-                      style={{
-                        left: `calc(0.75rem + ${(clip.start / timeline.duration) * 100}%)`,
-                        width: `${Math.max(1.5, ((clip.end - clip.start) / timeline.duration) * 100)}%`,
-                      }}
-                      title={`${system.title}: ${formatTime(clip.start)} to ${formatTime(clip.end)}`}
+                      className="absolute top-[-0.5rem] h-[calc(100%+1rem)] w-px bg-primary/40"
+                      style={{ left: `${playheadPercent}%` }}
                     />
-                  ))}
+                    {track?.clips.map((clip) =>
+                      tailSegmentsForClip(clip, particleTailDuration(system), timeline.duration, timeline.loop).map(
+                        (segment, index) => {
+                          const startPercent = timeToPercent(segment.start, timeline.duration);
+                          const endPercent = timeToPercent(segment.end, timeline.duration);
+                          return (
+                            <div
+                              key={`${clip.id}-tail-${index}`}
+                              data-testid={`particle-timeline-tail-${system.index}`}
+                              className="pointer-events-none absolute inset-y-[3px] rounded-sm border border-dashed border-primary/25 bg-primary/10"
+                              style={{
+                                left: `${startPercent}%`,
+                                right: `${100 - Math.max(startPercent, endPercent)}%`,
+                                minWidth: '0.25rem',
+                              }}
+                              title={`${system.title} particle tail: up to ${formatTime(particleTailDuration(system))}`}
+                            />
+                          );
+                        },
+                      ),
+                    )}
+                    {track?.clips.map((clip) => {
+                      const startPercent = timeToPercent(clip.start, timeline.duration);
+                      const endPercent = timeToPercent(clip.end, timeline.duration);
+                      return (
+                        <div
+                          key={clip.id}
+                          data-testid={`particle-timeline-clip-${system.index}`}
+                          className="absolute inset-y-0 rounded-sm border border-primary/40 bg-primary/20"
+                          style={{
+                            left: `${startPercent}%`,
+                            right: `${100 - Math.max(startPercent, endPercent)}%`,
+                            minWidth: '0.35rem',
+                          }}
+                          title={`${system.title}: ${formatTime(clip.start)} to ${formatTime(clip.end)}`}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               </button>
             );
@@ -337,9 +420,9 @@ export function TimelinePanel({
             {visibleTrack.clips.map((clip) => (
               <div key={clip.id} className="grid gap-2 rounded border bg-background p-2 md:grid-cols-3">
                 <label className="grid gap-1 text-[10px] text-muted-foreground">
-                  Clip Start
+                  Emit At
                   <ParticleNumberInput
-                    aria-label="Clip start"
+                    aria-label="Emit at"
                     className="h-8 rounded border bg-background px-2 text-xs text-foreground"
                     min={0}
                     max={timeline.duration}
@@ -348,9 +431,9 @@ export function TimelinePanel({
                   />
                 </label>
                 <label className="grid gap-1 text-[10px] text-muted-foreground">
-                  Clip End
+                  Stop At
                   <ParticleNumberInput
-                    aria-label="Clip end"
+                    aria-label="Stop at"
                     className="h-8 rounded border bg-background px-2 text-xs text-foreground"
                     min={0}
                     max={timeline.duration}
@@ -359,9 +442,9 @@ export function TimelinePanel({
                   />
                 </label>
                 <label className="grid gap-1 text-[10px] text-muted-foreground">
-                  Burst Count
+                  Burst Particles
                   <ParticleNumberInput
-                    aria-label="Clip burst count"
+                    aria-label="Burst particles"
                     className="h-8 rounded border bg-background px-2 text-xs text-foreground"
                     min={0}
                     value={clip.emit ?? 0}
@@ -405,6 +488,28 @@ export function TimelinePanel({
                           <div className="text-xs text-muted-foreground">No keyframes on this lane yet.</div>
                         ) : (
                           <div className="grid gap-2">
+                            <div
+                              className="relative h-7 rounded border bg-muted/30"
+                              data-testid={`particle-timeline-key-strip-${lane}-${visibleTrack.systemIndex}`}
+                            >
+                              <div className="absolute inset-x-2 inset-y-0">
+                                <div className="relative h-full">
+                                  <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+                                  <div
+                                    className="absolute top-1 h-5 w-px bg-primary/50"
+                                    style={{ left: `${playheadPercent}%` }}
+                                  />
+                                  {points.map((point) => (
+                                    <div
+                                      key={point.id}
+                                      className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1px] border border-primary bg-background"
+                                      style={{ left: `${timeToPercent(point.time, timeline.duration)}%` }}
+                                      title={`${PARTICLE_TIMELINE_LANE_LABELS[lane]} ${formatTime(point.time)} = ${point.value}`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
                             {points.map((point) => (
                               <div key={point.id} className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
                                 <label className="grid gap-1 text-[10px] text-muted-foreground">

@@ -489,6 +489,7 @@ local function applyTimelineAt(time)
     if entry and entry.ps and entry.enabled then
       local base = entry.base or {}
       local lanes = track.lanes or {}
+      pcall(entry.ps.setEmitterLifetime, entry.ps, -1)
       local rate = evaluateKeyframes(lanes.emissionRate, time, tonumber(base.emissionRate) or 0)
       if not trackActive(track, time) then
         rate = 0
@@ -529,6 +530,7 @@ local function emitTimelineStarts(previousTime, nextTime)
         local startTime = tonumber(clip.start) or 0
         if previousTime <= startTime and nextTime >= startTime then
           local count = math.max(0, math.floor(tonumber(clip.emit) or tonumber(entry.emitAtStart) or 0))
+          pcall(entry.ps.start, entry.ps)
           if count > 0 then
             pcall(entry.ps.emit, entry.ps, count)
           end
@@ -536,6 +538,40 @@ local function emitTimelineStarts(previousTime, nextTime)
       end
     end
   end
+end
+
+local function emitTimelineStartsForAdvance(previousTime, elapsed, duration)
+  local timeline = particleState.timeline
+  if type(timeline) ~= "table" or elapsed <= 0 then
+    return previousTime
+  end
+
+  local cursor = previousTime
+  local remaining = elapsed
+  local guard = 0
+  while remaining > 0 and guard < 128 do
+    if cursor >= duration then
+      cursor = 0
+    end
+    local room = math.max(0, duration - cursor)
+    if room <= 0 then
+      cursor = 0
+      room = duration
+    end
+    local segment = math.min(remaining, room)
+    local nextCursor = cursor + segment
+    if segment > 0 then
+      emitTimelineStarts(cursor, nextCursor)
+    end
+    remaining = remaining - segment
+    cursor = nextCursor
+    if remaining > 0 and cursor >= duration then
+      cursor = 0
+    end
+    guard = guard + 1
+  end
+
+  return cursor >= duration and 0 or cursor
 end
 
 local function resetParticleSystems()
@@ -734,10 +770,9 @@ function love.update(dt)
     local nextTime = previous + dt
     if nextTime > duration then
       if timeline.loop then
-        resetParticleSystems()
-        nextTime = nextTime % duration
-        emitTimelineStarts(0, nextTime)
+        nextTime = emitTimelineStartsForAdvance(previous, dt, duration)
       else
+        emitTimelineStarts(previous, duration)
         nextTime = duration
         particleState.timelineState.playing = false
       end

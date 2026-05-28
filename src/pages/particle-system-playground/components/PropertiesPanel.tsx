@@ -55,7 +55,7 @@ const groups: Array<{ title: string; fields: FieldDef[] }> = [
         label: 'Particle Life',
         step: 0.01,
       },
-      { key: 'emitAtStart', label: 'Emit At Start', min: 0, step: 1 },
+      { key: 'emitAtStart', label: 'Default Burst', min: 0, step: 1 },
       { key: 'kickStartSteps', label: 'Kick Steps', min: 0, step: 1 },
       { key: 'kickStartDt', label: 'Kick Dt', min: 0, step: 0.001 },
     ],

@@ -410,6 +410,39 @@ async function seedParticlePlaygroundConfig(page: Page) {
               bufferSize: 1000,
             },
           },
+          {
+            index: 2,
+            title: 'Smoke',
+            blendMode: 'alpha',
+            enabled: true,
+            x: 0,
+            y: 0,
+            kickStartSteps: 0,
+            kickStartDt: 1 / 60,
+            emitAtStart: 12,
+            texturePath: '',
+            texturePreset: 'light',
+            textureFilename: 'light.png',
+            shaderPath: '',
+            shaderFilename: '',
+            shaderSource: '',
+            exportReady: true,
+            properties: {
+              emissionRate: 60,
+              emitterLifetime: -1,
+              particleLifetimeMin: 0.5,
+              particleLifetimeMax: 1.6,
+              direction: -Math.PI / 2,
+              spread: Math.PI / 2,
+              speedMin: 20,
+              speedMax: 90,
+              sizes: '1, 0',
+              offsetX: 0,
+              offsetY: 0,
+              count: 0,
+              bufferSize: 1000,
+            },
+          },
         ],
         timeline: {
           duration: 3,
@@ -418,6 +451,11 @@ async function seedParticlePlaygroundConfig(page: Page) {
             {
               systemIndex: 1,
               clips: [{ id: 'clip-1', start: 0, end: 3, emit: 24 }],
+              lanes: {},
+            },
+            {
+              systemIndex: 2,
+              clips: [{ id: 'clip-2', start: 0, end: 3, emit: 12 }],
               lanes: {},
             },
           ],
@@ -1914,12 +1952,41 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
   await page.getByRole('tab', { name: 'Timeline' }).click();
   await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
+  const mainWidth = await page.getByTestId('particle-playground-main').evaluate((element) => element.getBoundingClientRect().width);
+  const panelWidth = await page.getByTestId('particle-timeline-panel').evaluate((element) => element.getBoundingClientRect().width);
+  expect(panelWidth).toBeGreaterThan(mainWidth * 0.85);
+
+  const timelineScroll = page.getByTestId('particle-timeline-scroll');
+  const defaultOverflow = await timelineScroll.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(defaultOverflow).toBeLessThanOrEqual(2);
+
   await page.getByTestId('particle-timeline-track-1').click();
-  await page.getByLabel('Clip End').first().fill('2.2');
+  const clipBox = await page.getByTestId('particle-timeline-clip-1').first().boundingBox();
+  const trackStripBox = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
+  expect(clipBox).not.toBeNull();
+  expect(trackStripBox).not.toBeNull();
+  expect(clipBox!.x).toBeGreaterThanOrEqual(trackStripBox!.x - 1);
+  expect(clipBox!.x + clipBox!.width).toBeLessThanOrEqual(trackStripBox!.x + trackStripBox!.width + 1);
+
+  await page.getByLabel('Stop at').first().fill('2.2');
+  const tail = page.getByTestId('particle-timeline-tail-1').first();
+  await expect(tail).toBeVisible();
+  const tailBox = await tail.boundingBox();
+  expect(tailBox).not.toBeNull();
+  expect(tailBox!.x).toBeGreaterThanOrEqual(trackStripBox!.x - 1);
+  expect(tailBox!.x + tailBox!.width).toBeLessThanOrEqual(trackStripBox!.x + trackStripBox!.width + 1);
+
   await page.getByText('Opacity').click();
   await page.getByRole('button', { name: /add key at playhead/i }).click();
   await page.getByLabel('Opacity key value').first().fill('0.4');
   await expect(page.getByTestId('particle-timeline-lane-opacity-1').getByText('1 keys')).toBeVisible();
+
+  await page.getByTestId('particle-emitter-row-1').dragTo(page.getByTestId('particle-emitter-row-2'));
+  await page.getByTestId('particle-timeline-track-2').click();
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.2');
+  await page.getByTestId('particle-timeline-track-1').click();
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('3');
+
   await page.getByTitle('Play timeline').click();
   await expect(page.getByTitle('Pause timeline')).toBeVisible();
 });

@@ -19,6 +19,9 @@ import {
   migrateParticleProject,
   PARTICLE_PROJECT_TYPE,
   normalizeParticleTimeline,
+  reindexParticleSystems,
+  removeParticleTimelineTrack,
+  reorderParticleTimeline,
   withNormalizedTimeline,
 } from '@/pages/particle-system-playground/timeline';
 
@@ -404,7 +407,25 @@ export function useParticleSystemPlayground() {
       refreshAfterAction('new-composite', { ...(name ? { name } : {}), ...(template ? { template } : {}) }),
     deleteComposite: () => refreshAfterAction('delete-composite'),
     addSystem: () => refreshAfterAction('add-system'),
-    removeSystem: (systemIndex: number) => refreshAfterAction('remove-system', { systemIndex }),
+    removeSystem: (systemIndex: number) => {
+      queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => {
+        if (!current?.data || current.data.systems.length <= 1) return current;
+        const timeline = removeParticleTimelineTrack(current.data.timeline, current.data.systems, systemIndex);
+        const systems = reindexParticleSystems(current.data.systems.filter((item) => item.index !== systemIndex));
+        const activeSystem =
+          current.activeSystem === systemIndex
+            ? Math.min(systemIndex, systems.length)
+            : current.activeSystem > systemIndex
+              ? current.activeSystem - 1
+              : current.activeSystem;
+        return {
+          ...current,
+          activeSystem,
+          data: withNormalizedTimeline({ ...current.data, systems, timeline }),
+        };
+      });
+      refreshAfterAction('remove-system', { systemIndex });
+    },
     reorderSystem: (fromIndex: number, toIndex: number) => {
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => {
         if (!current?.data) return current;
@@ -412,9 +433,18 @@ export function useParticleSystemPlayground() {
         const fromPos = systems.findIndex((s) => s.index === fromIndex);
         const toPos = systems.findIndex((s) => s.index === toIndex);
         if (fromPos === -1 || toPos === -1 || fromPos === toPos) return current;
+        const timeline = reorderParticleTimeline(current.data.timeline, current.data.systems, fromIndex, toIndex);
         const [moved] = systems.splice(fromPos, 1);
         systems.splice(toPos, 0, moved);
-        return { ...current, data: { ...current.data, systems } };
+        return {
+          ...current,
+          activeSystem: toIndex,
+          data: withNormalizedTimeline({
+            ...current.data,
+            systems: reindexParticleSystems(systems),
+            timeline,
+          }),
+        };
       });
       refreshAfterAction('reorder-system', { fromIndex, toIndex });
     },

@@ -1036,6 +1036,55 @@ local function normalizeTimeline(timeline, systems, template)
   }
 end
 
+local function reindexTimelineTracks(timeline)
+  local normalized = cloneTimeline(timeline)
+  if not normalized then
+    return timeline
+  end
+  for index, track in ipairs(normalized.tracks or {}) do
+    track.systemIndex = index
+  end
+  return normalized
+end
+
+local function removeTimelineTrack(timeline, systems, systemIndex)
+  local normalized = normalizeTimeline(timeline, systems)
+  table.remove(normalized.tracks, systemIndex)
+  return reindexTimelineTracks(normalized)
+end
+
+local function reorderTimelineTrack(timeline, systems, fromIndex, toIndex)
+  local normalized = normalizeTimeline(timeline, systems)
+  local moved = table.remove(normalized.tracks, fromIndex)
+  if moved then
+    table.insert(normalized.tracks, toIndex, moved)
+  end
+  return reindexTimelineTracks(normalized)
+end
+
+local function remapSystemIndexAfterRemove(activeIndex, removedIndex, count)
+  if activeIndex == removedIndex then
+    return math.max(1, math.min(removedIndex, count))
+  end
+  if activeIndex > removedIndex then
+    return math.max(1, activeIndex - 1)
+  end
+  return math.max(1, math.min(activeIndex, count))
+end
+
+local function remapSystemIndexAfterReorder(activeIndex, fromIndex, toIndex)
+  if activeIndex == fromIndex then
+    return toIndex
+  end
+  if fromIndex < toIndex and activeIndex > fromIndex and activeIndex <= toIndex then
+    return activeIndex - 1
+  end
+  if fromIndex > toIndex and activeIndex >= toIndex and activeIndex < fromIndex then
+    return activeIndex + 1
+  end
+  return activeIndex
+end
+
 local function evaluateKeyframes(points, time, fallback)
   if type(points) ~= "table" or #points == 0 then
     return fallback
@@ -1086,6 +1135,10 @@ local function applyTimelineToSystem(sys, track, time)
   local lanes = track and track.lanes or {}
   local active = trackActive(track, time)
 
+  -- Timeline clips own emission windows. Keep LÖVE's emitter lifetime from expiring the
+  -- particle system underneath while the timeline is responsible for rate changes.
+  pcall(sys.system.setEmitterLifetime, sys.system, -1)
+
   local emissionRate = evaluateKeyframes(lanes.emissionRate, time, safeNumber(base.emissionRate, 0))
   if not active then
     emissionRate = 0
@@ -1126,7 +1179,9 @@ local function resetTimelineSystems(plugin, name)
     if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, i)) then
       pcall(sys.system.reset, sys.system)
       pcall(sys.system.start, sys.system)
-      captureTimelineBase(sys)
+      if not sys._timelineBase then
+        captureTimelineBase(sys)
+      end
     end
   end
 end
@@ -1142,6 +1197,7 @@ local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline
         local startTime = safeNumber(item.start, 0)
         if previousTime <= startTime and nextTime >= startTime then
           local count = math.max(0, math.floor(safeNumber(item.emit, safeNumber(sys.emitAtStart, 0))))
+          pcall(sys.system.start, sys.system)
           if count > 0 then
             pcall(sys.system.emit, sys.system, count)
           end
@@ -1149,6 +1205,39 @@ local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline
       end
     end
   end
+end
+
+local function emitTimelineStartsForAdvance(plugin, name, previousTime, elapsed, timeline, duration)
+  if not timeline or elapsed <= 0 then
+    return previousTime
+  end
+
+  local cursor = previousTime
+  local remaining = elapsed
+  local guard = 0
+  while remaining > 0 and guard < 128 do
+    if cursor >= duration then
+      cursor = 0
+    end
+    local room = math.max(0, duration - cursor)
+    if room <= 0 then
+      cursor = 0
+      room = duration
+    end
+    local segment = math.min(remaining, room)
+    local nextCursor = cursor + segment
+    if segment > 0 then
+      emitTimelineStarts(plugin, name, cursor, nextCursor, timeline)
+    end
+    remaining = remaining - segment
+    cursor = nextCursor
+    if remaining > 0 and cursor >= duration then
+      cursor = 0
+    end
+    guard = guard + 1
+  end
+
+  return cursor >= duration and 0 or cursor
 end
 
 local function ensureTimelineState(entry)
@@ -1195,13 +1284,13 @@ local function advanceTimeline(plugin, name, dt)
   local nextTime = previous
 
   if state.playing then
-    nextTime = previous + math.max(0, dt or 0)
+    local elapsed = math.max(0, dt or 0)
+    nextTime = previous + elapsed
     if nextTime > duration then
       if entry.timeline.loop then
-        resetTimelineSystems(plugin, name)
-        emitTimelineStarts(plugin, name, 0, nextTime % duration, entry.timeline)
-        nextTime = nextTime % duration
+        nextTime = emitTimelineStartsForAdvance(plugin, name, previous, elapsed, entry.timeline, duration)
       else
+        emitTimelineStarts(plugin, name, previous, duration, entry.timeline)
         nextTime = duration
         state.playing = false
       end
@@ -2104,12 +2193,13 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     if sys and sys.system and sys.system.release then
       pcall(sys.system.release, sys.system)
     end
+    local nextTimeline = removeTimelineTrack(entry.timeline, entry.systems, index)
     table.remove(entry.systems, index)
     for i, item in ipairs(entry.systems) do
       item.index = i
     end
-    entry.timeline = normalizeTimeline(entry.timeline, entry.systems)
-    self.activeSystem = math.min(self.activeSystem, #entry.systems)
+    entry.timeline = normalizeTimeline(nextTimeline, entry.systems)
+    self.activeSystem = remapSystemIndexAfterRemove(self.activeSystem, index, #entry.systems)
     return true
   end
 
@@ -2122,12 +2212,14 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     if fromIdx == toIdx or fromIdx < 1 or toIdx < 1 or fromIdx > #entry.systems or toIdx > #entry.systems then
       return true
     end
+    local nextTimeline = reorderTimelineTrack(entry.timeline, entry.systems, fromIdx, toIdx)
     local moved = table.remove(entry.systems, fromIdx)
     table.insert(entry.systems, toIdx, moved)
     for i, item in ipairs(entry.systems) do
       item.index = i
     end
-    entry.timeline = normalizeTimeline(entry.timeline, entry.systems)
+    entry.timeline = normalizeTimeline(nextTimeline, entry.systems)
+    self.activeSystem = remapSystemIndexAfterReorder(self.activeSystem, fromIdx, toIdx)
     return true
   end
 
@@ -2775,6 +2867,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system then"
   lines[#lines + 1] = "      local base = emitter.base or {}"
   lines[#lines + 1] = "      local lanes = track.lanes or {}"
+  lines[#lines + 1] = "      emitter.system:setEmitterLifetime(-1)"
   lines[#lines + 1] = "      local rate = evalTimeline(lanes.emissionRate, time, base.emissionRate or 0)"
   lines[#lines + 1] = "      if not trackActive(track, time) then rate = 0 end"
   lines[#lines + 1] = "      emitter.system:setEmissionRate(rate)"
@@ -2802,11 +2895,32 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "        local start = tonumber(clip.start) or 0"
   lines[#lines + 1] = "        if previousTime <= start and nextTime >= start then"
   lines[#lines + 1] = "          local count = math.max(0, math.floor(tonumber(clip.emit) or tonumber(amount) or emitter.emitAtStart or 0))"
+  lines[#lines + 1] = "          emitter.system:start()"
   lines[#lines + 1] = "          if count > 0 then emitter.system:emit(count) end"
   lines[#lines + 1] = "        end"
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function emitTimelineStartsForAdvance(previousTime, elapsed, amount)"
+  lines[#lines + 1] = "  if elapsed <= 0 then return previousTime end"
+  lines[#lines + 1] = "  local cursor = previousTime"
+  lines[#lines + 1] = "  local remaining = elapsed"
+  lines[#lines + 1] = "  local guard = 0"
+  lines[#lines + 1] = "  while remaining > 0 and guard < 128 do"
+  lines[#lines + 1] = "    if cursor >= timeline.duration then cursor = 0 end"
+  lines[#lines + 1] = "    local room = math.max(0, timeline.duration - cursor)"
+  lines[#lines + 1] = "    if room <= 0 then cursor = 0; room = timeline.duration end"
+  lines[#lines + 1] = "    local segment = math.min(remaining, room)"
+  lines[#lines + 1] = "    local nextCursor = cursor + segment"
+  lines[#lines + 1] = "    if segment > 0 then emitTimelineStarts(cursor, nextCursor, amount) end"
+  lines[#lines + 1] = "    remaining = remaining - segment"
+  lines[#lines + 1] = "    cursor = nextCursor"
+  lines[#lines + 1] = "    if remaining > 0 and cursor >= timeline.duration then cursor = 0 end"
+  lines[#lines + 1] = "    guard = guard + 1"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return cursor >= timeline.duration and 0 or cursor"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function resetTimeline()"
@@ -2824,10 +2938,9 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    local nextTime = previous + dt"
   lines[#lines + 1] = "    if nextTime > timeline.duration then"
   lines[#lines + 1] = "      if timeline.loop then"
-  lines[#lines + 1] = "        resetTimeline()"
-  lines[#lines + 1] = "        nextTime = nextTime % timeline.duration"
-  lines[#lines + 1] = "        emitTimelineStarts(0, nextTime)"
+  lines[#lines + 1] = "        nextTime = emitTimelineStartsForAdvance(previous, dt)"
   lines[#lines + 1] = "      else"
+  lines[#lines + 1] = "        emitTimelineStarts(previous, timeline.duration)"
   lines[#lines + 1] = "        nextTime = timeline.duration"
   lines[#lines + 1] = "        timelineState.playing = false"
   lines[#lines + 1] = "      end"

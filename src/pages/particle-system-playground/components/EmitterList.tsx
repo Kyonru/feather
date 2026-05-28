@@ -67,6 +67,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
         return (
           <div
             key={system.index}
+            data-testid={`particle-emitter-row-${system.index}`}
             draggable={!isGameComposite}
             onDragStart={(e) => handleDragStart(e, system.index)}
             onDragOver={(e) => handleDragOver(e, system.index)}
