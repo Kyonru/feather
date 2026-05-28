@@ -268,6 +268,15 @@ export type ShaderParameter = {
   defaultValue?: number | number[];
 };
 
+export type ShaderGraphDiagnostic = {
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  nodeId?: string;
+  edgeId?: string;
+  portId?: string;
+  stage?: 'pixel' | 'vertex' | 'graph';
+};
+
 export type GeneratedGlsl = {
   pixel: string;
   vertex: string | null;

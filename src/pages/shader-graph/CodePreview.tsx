@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, FolderOpenIcon, XIcon } from 'lucide-react';
 import { codegen } from './codegen';
 import { pickShaderTexture } from './textureUpload';
+import type { ShaderGraphDiagnostic } from '@/types/shader-graph';
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -44,6 +45,68 @@ type PreviewParams = {
   parameters: ShaderParameter[];
 };
 
+const diagnosticStyles: Record<ShaderGraphDiagnostic['severity'], string> = {
+  error: 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300',
+  warning: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
+  info: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+};
+
+function DiagnosticPanel({
+  diagnostics,
+  onSelectNode,
+}: {
+  diagnostics: ShaderGraphDiagnostic[];
+  onSelectNode: (nodeId: string) => void;
+}) {
+  if (diagnostics.length === 0) return null;
+  const errorCount = diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
+  const warningCount = diagnostics.filter((diagnostic) => diagnostic.severity === 'warning').length;
+
+  return (
+    <div className="border-b bg-muted/20 px-3 py-2 shrink-0" data-testid="shader-diagnostics">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Graph Diagnostics</span>
+        <div className="flex items-center gap-1">
+          {errorCount > 0 && <Badge className="h-4 rounded-full bg-red-500/15 px-1.5 text-[9px] text-red-600 dark:text-red-300">{errorCount} error{errorCount === 1 ? '' : 's'}</Badge>}
+          {warningCount > 0 && <Badge className="h-4 rounded-full bg-yellow-500/15 px-1.5 text-[9px] text-yellow-700 dark:text-yellow-300">{warningCount} warning{warningCount === 1 ? '' : 's'}</Badge>}
+        </div>
+      </div>
+      <div className="grid max-h-28 gap-1 overflow-y-auto">
+        {diagnostics.map((diagnostic, index) => {
+          const content = (
+            <>
+              <span className={cn('rounded border px-1 py-0.5 text-[9px] font-semibold uppercase', diagnosticStyles[diagnostic.severity])}>
+                {diagnostic.severity}
+              </span>
+              {diagnostic.stage && <span className="text-[10px] uppercase text-muted-foreground">{diagnostic.stage}</span>}
+              <span className="min-w-0 truncate text-[10px] text-foreground">{diagnostic.message}</span>
+            </>
+          );
+
+          if (diagnostic.nodeId) {
+            return (
+              <button
+                key={`${diagnostic.message}-${index}`}
+                type="button"
+                className="flex min-w-0 items-center gap-1.5 rounded px-1 py-1 text-left hover:bg-muted"
+                onClick={() => onSelectNode(diagnostic.nodeId!)}
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <div key={`${diagnostic.message}-${index}`} className="flex min-w-0 items-center gap-1.5 rounded px-1 py-1">
+              {content}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function CodePreview({
   standalone,
   onPreviewParamsChange,
@@ -61,6 +124,9 @@ export function CodePreview({
     edges,
     subgraphs,
     textureUploads,
+    diagnostics,
+    hasBlockingGraphDiagnostics,
+    selectNode,
     generateAndStore,
     validateShader,
     applyToPlayground,
@@ -98,7 +164,13 @@ export function CodePreview({
     [textureUniforms, textureUploads],
   );
   const hasMissingTextureUploads = textureUniforms.some((texture) => !textureUploads[texture.nodeId]);
+  const applyDisabledReason = hasBlockingGraphDiagnostics
+    ? 'Fix blocking graph diagnostics before applying this shader'
+    : hasMissingTextureUploads
+      ? 'Upload all texture inputs in the node inspector before applying this shader'
+      : undefined;
   const fullSource = glsl.vertex ? `${glsl.pixel}\n\n// -- Vertex \n${glsl.vertex}` : glsl.pixel;
+  const rawValidationErrors = [validationErrors.pixelError, validationErrors.vertexError].filter(Boolean).join('\n\n');
 
   function handleCopy() {
     navigator.clipboard.writeText(fullSource).then(() => {
@@ -108,7 +180,7 @@ export function CodePreview({
   }
 
   async function handlePreviewToggle() {
-    if (!previewAvailable) return;
+    if (!previewAvailable || hasBlockingGraphDiagnostics) return;
     if (previewEnabled) {
       if (sessionId) await clearPreview();
       setPreviewEnabled(false);
@@ -127,6 +199,11 @@ export function CodePreview({
     if (!texture) return;
     setBaseTexture(texture);
     toast.success(`Preview texture loaded: ${texture.filename}`);
+  }
+
+  function copyValidationErrors() {
+    if (!rawValidationErrors) return;
+    navigator.clipboard.writeText(rawValidationErrors).then(() => toast.success('Shader error copied'));
   }
 
   useEffect(() => {
@@ -190,6 +267,8 @@ export function CodePreview({
         </div>
       </div>
 
+      <DiagnosticPanel diagnostics={diagnostics} onSelectNode={selectNode} />
+
       <ScrollArea className="flex-1 min-h-0">
         <SyntaxHighlighter
           language="glsl"
@@ -220,10 +299,29 @@ export function CodePreview({
 
       {(validationErrors.pixelError || validationErrors.vertexError) && (
         <div className="border-t px-3 py-2 shrink-0 bg-red-500/10">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-700 dark:text-red-300">
+              Runtime Compile Error
+            </span>
+            <button
+              type="button"
+              className="flex size-5 items-center justify-center rounded text-red-700 transition-colors hover:bg-red-500/10 dark:text-red-300"
+              title="Copy raw shader error"
+              onClick={copyValidationErrors}
+            >
+              <CopyIcon className="size-3" />
+            </button>
+          </div>
+          {validationErrors.pixelError && (
+            <p className="mb-1 text-[10px] font-semibold text-red-700 dark:text-red-300">Pixel stage failed</p>
+          )}
           {validationErrors.pixelError && (
             <p className="text-[10px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
               {validationErrors.pixelError}
             </p>
+          )}
+          {validationErrors.vertexError && (
+            <p className="mb-1 mt-2 text-[10px] font-semibold text-red-700 dark:text-red-300">Vertex stage failed</p>
           )}
           {validationErrors.vertexError && (
             <p className="text-[10px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
@@ -249,12 +347,8 @@ export function CodePreview({
         <Button
           size="sm"
           className="h-7 text-xs flex-1"
-          disabled={!sessionId || !playgroundTarget || hasMissingTextureUploads}
-          title={
-            hasMissingTextureUploads
-              ? 'Upload all texture inputs in the node inspector before applying this shader'
-              : undefined
-          }
+          disabled={!sessionId || !playgroundTarget || hasMissingTextureUploads || hasBlockingGraphDiagnostics}
+          title={applyDisabledReason}
           onClick={() => applyToPlayground(uploadedUniformTextures)}
         >
           Apply
@@ -290,10 +384,12 @@ export function CodePreview({
           size="sm"
           variant={previewEnabled ? 'default' : 'outline'}
           className="h-7 text-xs px-2 min-w-24"
-          disabled={!previewAvailable}
+          disabled={!previewAvailable || hasBlockingGraphDiagnostics}
           onClick={() => void handlePreviewToggle()}
           title={
-            standalone
+            hasBlockingGraphDiagnostics
+              ? 'Fix blocking graph diagnostics before previewing this shader'
+              : standalone
               ? 'Toggle shader preview in the isolated preview frame'
               : 'Toggle shader preview on a temporary shape in the running game'
           }

@@ -21,6 +21,7 @@ import { NodeInspector } from './NodeInspector';
 import { CodePreview } from './CodePreview';
 import { SHADER_GRAPH_PRESETS } from './presets';
 import { cloneGraphFragment } from './graphUtils';
+import { diagnoseShaderGraph } from './diagnostics';
 
 const FILE_VERSION = 2;
 const FILE_EXTENSION = 'feathershgh';
@@ -109,6 +110,11 @@ export default function ShaderGraph() {
 
   const importRaw = (raw: string) => {
     const parsed = parseShaderGraphFile(raw);
+    const diagnostics = diagnoseShaderGraph({
+      nodes: parsed.nodes,
+      edges: parsed.edges,
+      subgraphs: parsed.subgraphs,
+    });
     loadGraph({
       nodes: parsed.nodes,
       edges: parsed.edges,
@@ -116,7 +122,14 @@ export default function ShaderGraph() {
       shaderName: parsed.shaderName,
       playgroundTarget: parsed.playgroundTarget,
     });
-    toast.success('Shader graph imported');
+    const blockingCount = diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
+    if (blockingCount > 0) {
+      toast.warning(`Shader graph imported with ${blockingCount} blocking diagnostic${blockingCount === 1 ? '' : 's'}`);
+    } else if (diagnostics.length > 0) {
+      toast.info(`Shader graph imported with ${diagnostics.length} diagnostic${diagnostics.length === 1 ? '' : 's'}`);
+    } else {
+      toast.success('Shader graph imported');
+    }
   };
 
   const exportGraph = async () => {

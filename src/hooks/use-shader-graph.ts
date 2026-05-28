@@ -5,6 +5,7 @@ import { useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { sessionQueryKey } from './use-ws-connection';
 import { codegen } from '@/pages/shader-graph/codegen';
+import { diagnoseShaderGraph, hasBlockingDiagnostics } from '@/pages/shader-graph/diagnostics';
 import type { GeneratedGlsl, ShaderParameter, ShaderTextureUpload } from '@/types/shader-graph';
 
 const PLUGIN_ID = 'particle-system-playground';
@@ -42,9 +43,29 @@ export function useShaderGraph() {
     return glsl;
   }, [store]);
 
+  const diagnostics = diagnoseShaderGraph({
+    nodes: store.nodes,
+    edges: store.edges,
+    subgraphs: store.subgraphs,
+    textureUploads: store.textureUploads,
+  });
+  const hasBlockingGraphDiagnostics = hasBlockingDiagnostics(diagnostics);
+
   const validateShader = useCallback(async () => {
     if (!sessionId) return;
     const glsl = generateAndStore();
+    const nextDiagnostics = diagnoseShaderGraph({
+      nodes: store.nodes,
+      edges: store.edges,
+      subgraphs: store.subgraphs,
+      textureUploads: store.textureUploads,
+    });
+    const blocking = nextDiagnostics.find((diagnostic) => diagnostic.severity === 'error');
+    if (blocking) {
+      store.setValidationStatus('error');
+      store.setValidationErrors({ pixelError: blocking.message });
+      return;
+    }
     store.setValidationStatus('validating');
     store.setValidationErrors({});
     try {
@@ -155,5 +176,15 @@ export function useShaderGraph() {
     });
   }, [compileResult, store]);
 
-  return { ...store, generateAndStore, validateShader, applyToPlayground, previewShader, sendShaderPreview, clearPreview };
+  return {
+    ...store,
+    diagnostics,
+    hasBlockingGraphDiagnostics,
+    generateAndStore,
+    validateShader,
+    applyToPlayground,
+    previewShader,
+    sendShaderPreview,
+    clearPreview,
+  };
 }

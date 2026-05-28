@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance Health warnings now render as a compact collapsible strip so diagnostics do not crowd the chart.
 - Hidden sidebar features and hidden disabled plugins are now hidden from Command Center by default, with a Settings opt-in for sidebar features.
 - Shared triage UI primitives now keep search, filters, summary chips, empty states, copy actions, and details panels more consistent across live debugging pages.
+- Improved Shader Graph compiler UX with local diagnostics for missing outputs, stale connections, missing texture uploads, invalid custom functions, and cyclic subgraphs before runtime validation.
 
 ### Fixed
 
@@ -60,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - Expanded app e2e coverage for responsive and degraded triage states, including missing sessions, partial payloads, missing/disabled plugins, and narrow layouts.
+- Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
 
 ## [v1.5.0] - 2026-05-26 - The one with particles playground fixes
 
