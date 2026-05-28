@@ -100,11 +100,10 @@ export function mergeLogLists(...lists: Array<Log[] | undefined>): Log[] {
 
   for (const list of lists) {
     for (const log of list ?? []) {
-      const sanitized = sanitizeLogForHistory(log);
-      const fingerprint = logFingerprint(sanitized);
+      const fingerprint = logFingerprint(log);
       if (seen.has(fingerprint)) continue;
       seen.add(fingerprint);
-      merged.push(sanitized);
+      merged.push(log);
     }
   }
 
@@ -127,7 +126,7 @@ export function applyLogUpdate(logs: Log[], update: LogUpdate): Log[] {
 
 function makeBucket(logs: Log[], previous?: LogHistoryBucket, label?: string): LogHistoryBucket {
   return {
-    logs: mergeLogLists(logs),
+    logs: mergeLogLists(logs.map(sanitizeLogForHistory)),
     label: label ?? previous?.label,
     updatedAt: Date.now(),
   };
