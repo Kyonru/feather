@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reworked the Settings modal with a wider responsive layout, left-side navigation, page summaries, framed setting groups, and clearer autosave/status cues.
 - Reworked the About modal with clearer app identity, version/update status, quick actions, feature summaries, and project links.
 - Reworked the main sidebar into Favorites, Core, Inspect, Creative, and History groups for faster scanning.
+- Improved Shader Graph node palette scanability with collapsible category sections, remembered section state, node counts, and search that opens matching collapsed sections.
 
 ### Fixed
 
@@ -61,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added app e2e coverage for Performance Profiler filter controls at constrained desktop widths.
 - Added app e2e coverage for the constrained-width Logs toolbar layout.
 - Added app e2e coverage for grouped sidebar navigation, pinned tool persistence, Settings pin controls, and hidden pinned tools.
+- Added showcase e2e and focused settings coverage for Shader Graph collapsible node palette defaults, persistence, search, and empty states.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.

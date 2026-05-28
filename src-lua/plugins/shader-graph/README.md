@@ -12,7 +12,7 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 
 1. Open **Shader Graph** in Feather.
 2. On first open, Feather loads the **Water Shimmer** example so there is a complete graph ready to validate, edit, and apply.
-3. Drag nodes from the palette onto the canvas.
+3. Drag nodes from the palette onto the canvas. Common sections stay open by default, while specialized sections such as Complex, Quaternion, Pattern, Pixel Perfect, Vertex, and SDF start collapsed so the palette is easier to scan.
 4. Connect compatible ports by type.
 5. Connect the final `vec4` color into **Fragment Output**.
 6. Use **Custom Function** when a graph needs a small hand-written GLSL function. Function parameters become input ports; the return value and `out` parameters become output ports.
@@ -24,6 +24,10 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 12. Export/import `.feathershgh` files when you want to save or share editable graph projects.
 
 Select a node and edit **Node Name** in the inspector when a graph needs more descriptive labels. Renaming a node changes the canvas label only; the original node type stays visible in the inspector and code generation is unchanged.
+
+## Node Palette
+
+Palette sections are collapsible and remember their open/closed state across app restarts. Use **Expand all** or **Collapse all** when browsing the full library. Search matches node labels, node ids, and category names; matching categories open while the search is active, then return to the saved collapsed state when the search is cleared.
 
 ## Diagnostics
 

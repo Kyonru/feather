@@ -12,6 +12,29 @@ export type PortDef = {
   step?: number;
 };
 
+export const NODE_CATEGORIES = [
+  'Custom',
+  'Debug',
+  'Input',
+  'Math',
+  'Complex',
+  'Quaternion',
+  'Symmetry',
+  'Random',
+  'Vector',
+  'Color',
+  'Composite',
+  'Noise',
+  'Pattern',
+  'Halftone',
+  'Pixel Perfect',
+  'UV',
+  'Effect',
+  'Output',
+  'Vertex',
+  'SDF',
+] as const;
+
 export const NODE_TYPES = [
   'CustomFunction',
   'SubgraphInstance',
@@ -211,7 +234,7 @@ export const NODE_TYPES = [
 
 export type NodeType = (typeof NODE_TYPES)[number];
 
-export type NodeCategory = 'Custom' | 'Debug' | 'Input' | 'Math' | 'Complex' | 'Quaternion' | 'Symmetry' | 'Random' | 'Vector' | 'Color' | 'Composite' | 'Noise' | 'Pattern' | 'Halftone' | 'Pixel Perfect' | 'UV' | 'Effect' | 'Output' | 'Vertex' | 'SDF';
+export type NodeCategory = (typeof NODE_CATEGORIES)[number];
 
 export type ShaderNodeData = {
   label: string;

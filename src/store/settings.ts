@@ -6,7 +6,12 @@ import {
   type MainFeatureId,
   type SidebarToolId,
 } from '@/constants/main-features';
+import {
+  DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES,
+  normalizeShaderGraphNodeCategories,
+} from '@/constants/shader-graph';
 import { normalizeThemePreference, type ThemePreference } from '@/assets/theme/registry';
+import type { NodeCategory } from '@/types/shader-graph';
 
 type SettingsStoreState = {
   open: boolean;
@@ -26,6 +31,7 @@ type SettingsStoreState = {
   hiddenPlugins: string[];
   hiddenMainFeatures: MainFeatureId[];
   pinnedSidebarTools: SidebarToolId[];
+  collapsedShaderGraphNodeCategories: NodeCategory[];
   showHiddenMainFeaturesInCommandCenter: boolean;
   assetSourceDir: string;
 };
@@ -49,6 +55,8 @@ type SettingsStoreActions = {
   setHiddenMainFeatures: (featureIds: MainFeatureId[]) => void;
   togglePinnedSidebarTool: (toolId: SidebarToolId) => void;
   setPinnedSidebarTools: (toolIds: SidebarToolId[]) => void;
+  toggleShaderGraphNodeCategory: (category: NodeCategory) => void;
+  setCollapsedShaderGraphNodeCategories: (categories: NodeCategory[]) => void;
   setShowHiddenMainFeaturesInCommandCenter: (show: boolean) => void;
   setAssetSourceDir: (dir: string) => void;
   reset: () => void;
@@ -96,6 +104,7 @@ const defaultSettings: SettingsStoreState = {
   hiddenPlugins: [],
   hiddenMainFeatures: [],
   pinnedSidebarTools: [...DEFAULT_PINNED_SIDEBAR_TOOLS],
+  collapsedShaderGraphNodeCategories: [...DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES],
   showHiddenMainFeaturesInCommandCenter: false,
   assetSourceDir: '',
 };
@@ -131,6 +140,13 @@ export const useSettingsStore = create<SettingsStore>()(
       setHiddenMainFeatures: (hiddenMainFeatures: MainFeatureId[]) => set({ hiddenMainFeatures }),
       setPinnedSidebarTools: (pinnedSidebarTools: SidebarToolId[]) =>
         set({ pinnedSidebarTools: normalizePinnedSidebarTools(pinnedSidebarTools) }),
+      setCollapsedShaderGraphNodeCategories: (collapsedShaderGraphNodeCategories: NodeCategory[]) =>
+        set({
+          collapsedShaderGraphNodeCategories: normalizeShaderGraphNodeCategories(
+            collapsedShaderGraphNodeCategories,
+            [],
+          ),
+        }),
       setShowHiddenMainFeaturesInCommandCenter: (showHiddenMainFeaturesInCommandCenter: boolean) =>
         set({ showHiddenMainFeaturesInCommandCenter }),
       togglePinnedSidebarTool: (toolId: SidebarToolId) =>
@@ -140,6 +156,19 @@ export const useSettingsStore = create<SettingsStore>()(
             : [...state.pinnedSidebarTools, toolId];
 
           return { pinnedSidebarTools: normalizePinnedSidebarTools(pinnedSidebarTools) };
+        }),
+      toggleShaderGraphNodeCategory: (category: NodeCategory) =>
+        set((state) => {
+          const collapsedShaderGraphNodeCategories = state.collapsedShaderGraphNodeCategories.includes(category)
+            ? state.collapsedShaderGraphNodeCategories.filter((id) => id !== category)
+            : [...state.collapsedShaderGraphNodeCategories, category];
+
+          return {
+            collapsedShaderGraphNodeCategories: normalizeShaderGraphNodeCategories(
+              collapsedShaderGraphNodeCategories,
+              [],
+            ),
+          };
         }),
       toggleHiddenMainFeature: (featureId: MainFeatureId) =>
         set((state) => ({
@@ -164,6 +193,9 @@ export const useSettingsStore = create<SettingsStore>()(
           ...persisted,
           theme: normalizeThemePreference(persisted?.theme),
           pinnedSidebarTools: normalizePinnedSidebarTools(persisted?.pinnedSidebarTools),
+          collapsedShaderGraphNodeCategories: normalizeShaderGraphNodeCategories(
+            persisted?.collapsedShaderGraphNodeCategories,
+          ),
         };
       },
     },

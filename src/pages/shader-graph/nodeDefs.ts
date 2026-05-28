@@ -1,4 +1,4 @@
-import type { GlslType, NodeDef, NodeType, ShaderNodeData } from '@/types/shader-graph';
+import type { GlslType, NodeCategory, NodeDef, NodeType, ShaderNodeData } from '@/types/shader-graph';
 import { glslFloat, shaderParameterUniformName, shaderTextureUniformName } from './glslUtils';
 import { customFunctionNodeDef } from './customNode';
 
@@ -2434,7 +2434,7 @@ export function getNodeDef(data: ShaderNodeData): NodeDef {
   return NODE_DEFS[data.nodeType];
 }
 
-export const CATEGORY_COLORS: Record<string, string> = {
+export const CATEGORY_COLORS: Record<NodeCategory, string> = {
   Custom: 'border-l-zinc-500',
   Debug: 'border-l-violet-500',
   Input: 'border-l-blue-500',
@@ -2457,7 +2457,30 @@ export const CATEGORY_COLORS: Record<string, string> = {
   SDF: 'border-l-teal-500',
 };
 
-export const CATEGORY_ORDER: Array<{ category: string; nodes: NodeType[] }> = [
+export const CATEGORY_TOP_COLORS: Record<NodeCategory, string> = {
+  Custom: 'border-t-zinc-500',
+  Debug: 'border-t-violet-500',
+  Input: 'border-t-blue-500',
+  Math: 'border-t-orange-500',
+  Complex: 'border-t-amber-500',
+  Quaternion: 'border-t-fuchsia-500',
+  Symmetry: 'border-t-violet-500',
+  Random: 'border-t-stone-500',
+  Vector: 'border-t-purple-500',
+  Color: 'border-t-pink-500',
+  Composite: 'border-t-rose-500',
+  Noise: 'border-t-green-500',
+  Pattern: 'border-t-emerald-500',
+  Halftone: 'border-t-lime-500',
+  'Pixel Perfect': 'border-t-sky-500',
+  UV: 'border-t-indigo-500',
+  Effect: 'border-t-cyan-500',
+  Output: 'border-t-red-500',
+  Vertex: 'border-t-yellow-500',
+  SDF: 'border-t-teal-500',
+};
+
+export const CATEGORY_ORDER: Array<{ category: NodeCategory; nodes: NodeType[] }> = [
   { category: 'Custom', nodes: ['CustomFunction'] },
   { category: 'Debug', nodes: ['Preview'] },
   {

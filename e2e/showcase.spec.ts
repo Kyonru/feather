@@ -68,6 +68,42 @@ test('showcase serves the real love.js shader preview target', async ({ page }) 
   await expect(page.frameLocator('iframe[title="Shader Preview"]').locator('canvas')).toBeVisible();
 });
 
+test('shader graph node palette sections collapse and search hidden matches', async ({ page }) => {
+  await page.goto('/shader-graph');
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+
+  const palette = page.getByTestId('shader-node-palette');
+  const inputContent = palette.getByTestId('shader-node-category-content-input');
+  const complexToggle = palette.getByTestId('shader-node-category-toggle-complex');
+  const complexContent = palette.getByTestId('shader-node-category-content-complex');
+
+  await expect(inputContent).toBeVisible();
+  await expect(inputContent.getByRole('button', { name: 'Texture Color' })).toHaveAttribute('draggable', 'true');
+  await expect(complexToggle).toBeVisible();
+  await expect(complexContent).toBeHidden();
+
+  await complexToggle.click();
+  await expect(complexContent).toBeVisible();
+  await expect(complexContent.getByRole('button', { name: 'Complex Multiply' })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+  await expect(palette.getByTestId('shader-node-category-content-complex')).toBeVisible();
+
+  await palette.getByTestId('shader-node-category-toggle-complex').click();
+  await expect(palette.getByTestId('shader-node-category-content-complex')).toBeHidden();
+
+  await palette.getByLabel('Search shader nodes').fill('complexmultiply');
+  await expect(palette.getByTestId('shader-node-category-content-complex')).toBeVisible();
+  await expect(palette.getByRole('button', { name: 'Complex Multiply' })).toBeVisible();
+
+  await palette.getByLabel('Search shader nodes').fill('');
+  await expect(palette.getByTestId('shader-node-category-content-complex')).toBeHidden();
+
+  await palette.getByLabel('Search shader nodes').fill('not-a-real-node');
+  await expect(palette.getByText('No shader nodes match this search.')).toBeVisible();
+});
+
 test('shader graph surfaces compiler diagnostics for broken imports', async ({ page }) => {
   await page.goto('/shader-graph');
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
