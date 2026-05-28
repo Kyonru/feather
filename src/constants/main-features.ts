@@ -13,4 +13,21 @@ export const MAIN_FEATURES = [
 ] as const;
 
 export type MainFeatureId = (typeof MAIN_FEATURES)[number]['id'];
+export type SidebarToolId = MainFeatureId | 'session';
 
+export const DEFAULT_PINNED_SIDEBAR_TOOLS: SidebarToolId[] = ['logs', 'performance', 'session'];
+
+export const SIDEBAR_TOOL_ORDER: SidebarToolId[] = [
+  'logs',
+  'performance',
+  'session',
+  'compare',
+  'observability',
+  'debugger',
+  'console',
+  'assets',
+  'particle-system-playground',
+  'shader-graph',
+  'time-travel',
+  'session-replay',
+];

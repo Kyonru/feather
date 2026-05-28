@@ -944,6 +944,86 @@ test('opens redesigned about modal from the sidebar', async ({ page }) => {
   await expect(dialog).toBeHidden();
 });
 
+test('sidebar groups pinned defaults without duplicating tools', async ({ page }) => {
+  await seedTwoConnectedSessions(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  const favorites = page.getByTestId('sidebar-group-favorites');
+  const core = page.getByTestId('sidebar-group-core');
+
+  await expect(favorites.getByText('Favorites')).toBeVisible();
+  await expect(favorites.getByTestId('sidebar-tool-logs')).toBeVisible();
+  await expect(favorites.getByTestId('sidebar-tool-performance')).toBeVisible();
+  await expect(favorites.getByTestId('sidebar-tool-session')).toBeVisible();
+  await expect(core.getByText('Core')).toBeVisible();
+  await expect(core.getByTestId('sidebar-tool-compare')).toBeVisible();
+  await expect(page.getByTestId('sidebar-group-inspect').getByText('Inspect')).toBeVisible();
+  await expect(page.getByTestId('sidebar-group-creative').getByText('Creative')).toBeVisible();
+  await expect(page.getByTestId('sidebar-group-history').getByText('History')).toBeVisible();
+  await expect(page.getByTestId('sidebar-tool-logs')).toHaveCount(1);
+  await expect(page.getByTestId('sidebar-tool-performance')).toHaveCount(1);
+  await expect(page.getByTestId('sidebar-tool-session')).toHaveCount(1);
+});
+
+test('sidebar pin actions persist and settings can clear and restore pins', async ({ page }) => {
+  await seedSession(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await page.getByTestId('sidebar-tool-assets').hover();
+  await page.getByRole('button', { name: 'Pin Assets to favorites' }).click();
+  await expect(page.getByTestId('sidebar-group-favorites').getByTestId('sidebar-tool-assets')).toBeVisible();
+
+  await page.reload();
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await expect(page.getByTestId('sidebar-group-favorites').getByTestId('sidebar-tool-assets')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'General' }).click();
+  await page.getByTestId('pinned-sidebar-tools-editor').getByRole('button', { name: 'Clear pins' }).click();
+  await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Close' }).first().click();
+  await expect(page.getByTestId('sidebar-group-favorites')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'General' }).click();
+  await page.getByTestId('pinned-sidebar-tools-editor').getByRole('button', { name: 'Restore defaults' }).click();
+  await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Close' }).first().click();
+  await expect(page.getByTestId('sidebar-group-favorites').getByTestId('sidebar-tool-logs')).toBeVisible();
+  await expect(page.getByTestId('sidebar-group-favorites').getByTestId('sidebar-tool-performance')).toBeVisible();
+  await expect(page.getByTestId('sidebar-group-favorites').getByTestId('sidebar-tool-session')).toBeVisible();
+});
+
+test('hidden pinned sidebar tools stay hidden until re-enabled', async ({ page }) => {
+  await seedSession(page);
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'settings-storage',
+      JSON.stringify({
+        state: {
+          pinnedSidebarTools: ['assets', 'missing-tool'],
+          hiddenMainFeatures: ['assets'],
+        },
+        version: 0,
+      }),
+    );
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await expect(page.getByTestId('sidebar-tool-assets')).toHaveCount(0);
+  await expect(page.getByTestId('sidebar-group-favorites')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'General' }).click();
+  await expect(page.getByTestId('pinned-sidebar-tools-editor').getByLabel(/^Assets/)).toBeChecked();
+  await page.getByTestId('sidebar-features-editor').getByLabel('Assets', { exact: true }).check();
+  await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Close' }).first().click();
+
+  await expect(page.getByTestId('sidebar-group-favorites').getByTestId('sidebar-tool-assets')).toBeVisible();
+  await expect(page.getByTestId('sidebar-tool-assets')).toHaveCount(1);
+});
+
 test('persists settings changes across reloads', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
@@ -953,7 +1033,7 @@ test('persists settings changes across reloads', async ({ page }) => {
 
   await page.getByRole('tab', { name: 'General' }).click();
   await page.getByLabel('Asset Source Directory').fill('/tmp/feather-assets');
-  await page.getByLabel('Assets', { exact: true }).uncheck();
+  await page.getByTestId('sidebar-features-editor').getByLabel('Assets', { exact: true }).uncheck();
   await expect(page.getByLabel('Show hidden sidebar features in Command Center')).not.toBeChecked();
   await page.getByLabel('Show hidden sidebar features in Command Center').check();
 
@@ -968,7 +1048,7 @@ test('persists settings changes across reloads', async ({ page }) => {
 
   await page.getByRole('tab', { name: 'General' }).click();
   await expect(page.getByLabel('Asset Source Directory')).toHaveValue('/tmp/feather-assets');
-  await expect(page.getByLabel('Assets', { exact: true })).not.toBeChecked();
+  await expect(page.getByTestId('sidebar-features-editor').getByLabel('Assets', { exact: true })).not.toBeChecked();
   await expect(page.getByLabel('Show hidden sidebar features in Command Center')).toBeChecked();
 });
 
@@ -1056,8 +1136,8 @@ test('keeps tool routes gated until a session is selected', async ({ page }) => 
   await page.goto('/assets');
 
   await expect(page.getByText('No session connected')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Assets' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Compare' })).toHaveCount(0);
+  await expect(page.getByTestId('sidebar-tool-assets').getByRole('button', { name: 'Assets', exact: true })).toBeDisabled();
+  await expect(page.getByTestId('sidebar-tool-compare')).toHaveCount(0);
   await expectNoBrokenText(page);
 });
 
@@ -1137,7 +1217,7 @@ test('shows compare only when two connected sessions are available', async ({ pa
   await page.goto('/');
   await page.getByRole('button', { name: /Demo Session/ }).click();
 
-  await expect(page.getByRole('button', { name: 'Compare' })).toHaveCount(0);
+  await expect(page.getByTestId('sidebar-tool-compare')).toHaveCount(0);
 
   await page.goto('/compare');
   await expect(page.getByText('Compare needs at least two connected sessions')).toBeVisible();
@@ -1147,16 +1227,16 @@ test('shows compare only when two connected sessions are available', async ({ pa
   await page.getByRole('button', { name: /Demo Session/ }).click();
   await seedCompareData(page);
 
-  const sessionButton = page.getByRole('button', { name: 'Session', exact: true });
-  const compareButton = page.getByRole('button', { name: 'Compare', exact: true });
-  await expect(compareButton).toBeVisible();
-  const sessionBox = await sessionButton.boundingBox();
-  const compareBox = await compareButton.boundingBox();
+  const sessionTool = page.getByTestId('sidebar-tool-session');
+  const compareTool = page.getByTestId('sidebar-tool-compare');
+  await expect(compareTool.getByRole('link', { name: 'Compare', exact: true })).toBeVisible();
+  const sessionBox = await sessionTool.boundingBox();
+  const compareBox = await compareTool.boundingBox();
   expect(sessionBox).not.toBeNull();
   expect(compareBox).not.toBeNull();
   expect(compareBox!.y).toBeGreaterThan(sessionBox!.y);
 
-  await page.getByRole('link', { name: /Compare/ }).click();
+  await compareTool.getByRole('link', { name: 'Compare', exact: true }).click();
   await expect(page.getByText('Demo Session').first()).toBeVisible();
   await expect(page.getByText('Second Session').first()).toBeVisible();
   await expect(page.getByText('Total 5')).toBeVisible();

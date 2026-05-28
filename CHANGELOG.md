@@ -26,11 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a curated Rainglow VS Code theme selection, including Hawaii, Heroku, Hive, Horizon, Hyrule, and Iceberg families, as optional app themes grouped into Light, Dark, and Contrast options with matching syntax highlighting.
 - Added Tokyo Night Light, Tokyo Night, and Tokyo Night Storm as optional app themes with matching syntax highlighting.
 - Added Microsoft Visual Studio C/C++ Light, Dark, 2017 Light, and 2017 Dark as optional app themes with matching syntax highlighting.
+- Added pinned sidebar Favorites for common tools, with Settings controls and quick star actions for pinning tools from the sidebar.
 
 ### Changed
 
 - Reworked the Settings modal with a wider responsive layout, left-side navigation, page summaries, framed setting groups, and clearer autosave/status cues.
 - Reworked the About modal with clearer app identity, version/update status, quick actions, feature summaries, and project links.
+- Reworked the main sidebar into Favorites, Core, Inspect, Creative, and History groups for faster scanning.
 
 ### Fixed
 
@@ -58,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused log-history coverage and app e2e coverage for restoring saved session logs.
 - Added app e2e coverage for Performance Profiler filter controls at constrained desktop widths.
 - Added app e2e coverage for the constrained-width Logs toolbar layout.
+- Added app e2e coverage for grouped sidebar navigation, pinned tool persistence, Settings pin controls, and hidden pinned tools.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.

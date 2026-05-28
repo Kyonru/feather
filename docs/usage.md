@@ -70,6 +70,10 @@ Open **Settings → General → Appearance** to choose the app theme. Feather ke
 
 Theme choices update the app chrome and syntax-highlighted code surfaces, including Console output, Debugger source views, shader code, and Lua/GLSL editors.
 
+The sidebar groups tools into **Favorites**, **Core**, **Inspect**, **Creative**, and **History** sections so common workflows are easier to scan. By default, **Logs**, **Performance**, and **Session** are pinned to Favorites. Use the star action beside a sidebar tool, or **Settings → General → Appearance → Pinned Tools**, to change Favorites. Pinned tools follow Feather's fixed sidebar order rather than drag-and-drop order.
+
+Hidden sidebar features still take precedence over pins: a hidden tool does not appear in Favorites or its normal group, but its pin is remembered and returns when the tool is shown again.
+
 ---
 
 ## About And Updates

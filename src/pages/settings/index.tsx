@@ -28,7 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MAIN_FEATURES, type MainFeatureId } from '@/constants/main-features';
+import {
+  DEFAULT_PINNED_SIDEBAR_TOOLS,
+  MAIN_FEATURES,
+  SIDEBAR_TOOL_ORDER,
+  type MainFeatureId,
+  type SidebarToolId,
+} from '@/constants/main-features';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -54,6 +60,7 @@ import {
   Settings2Icon,
   ShieldIcon,
   SmartphoneIcon,
+  StarIcon,
   TerminalIcon,
   XIcon,
 } from 'lucide-react';
@@ -307,10 +314,14 @@ function ThemeToggle() {
 function GeneralOverview() {
   const theme = normalizeThemePreference(useSettingsStore((state) => state.theme));
   const hiddenMainFeatures = useSettingsStore((state) => state.hiddenMainFeatures);
+  const pinnedSidebarTools = useSettingsStore((state) => state.pinnedSidebarTools);
   const assetSourceDir = useSettingsStore((state) => state.assetSourceDir);
   const selectedThemeLabel =
     themeSelectorGroups.flatMap((group) => group.options).find((option) => option.value === theme)?.label ?? 'System';
   const visibleFeatures = MAIN_FEATURES.length - hiddenMainFeatures.length;
+  const visiblePinnedTools = pinnedSidebarTools.filter(
+    (toolId) => toolId === 'session' || !hiddenMainFeatures.includes(toolId),
+  );
 
   return (
     <SettingsMetrics>
@@ -318,7 +329,7 @@ function GeneralOverview() {
       <SettingsMetric
         icon={MonitorIcon}
         label="Sidebar tools"
-        value={`${visibleFeatures}/${MAIN_FEATURES.length} visible`}
+        value={`${visibleFeatures}/${MAIN_FEATURES.length} visible, ${visiblePinnedTools.length} pinned`}
       />
       <SettingsMetric icon={FolderIcon} label="Asset source" value={assetSourceDir || 'Session default'} />
     </SettingsMetrics>
@@ -334,6 +345,96 @@ const optionalFeatureDefaults: MainFeatureId[] = [
   'compare',
 ];
 
+const sidebarToolOptions: Array<{ id: SidebarToolId; title: string; helper?: string }> = SIDEBAR_TOOL_ORDER.map(
+  (toolId) => {
+    if (toolId === 'session') return { id: toolId, title: 'Session' };
+    const feature = MAIN_FEATURES.find((item) => item.id === toolId);
+    return {
+      id: toolId,
+      title: feature?.title ?? toolId,
+      helper: toolId === 'compare' ? '2 sessions' : undefined,
+    };
+  },
+);
+
+function PinnedSidebarToolsInput() {
+  const hiddenMainFeatures = useSettingsStore((state) => state.hiddenMainFeatures);
+  const pinnedSidebarTools = useSettingsStore((state) => state.pinnedSidebarTools);
+  const togglePinnedSidebarTool = useSettingsStore((state) => state.togglePinnedSidebarTool);
+  const setPinnedSidebarTools = useSettingsStore((state) => state.setPinnedSidebarTools);
+
+  return (
+    <div data-testid="pinned-sidebar-tools-editor" className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="grid gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Label>Pinned Tools</Label>
+            <Badge variant="outline" className="gap-1 text-[10px]">
+              <StarIcon className="size-3" />
+              {pinnedSidebarTools.length} pinned
+            </Badge>
+          </div>
+          <FieldDescription>
+            Pinned tools appear in Favorites at the top of the sidebar. Hidden tools stay hidden until re-enabled.
+          </FieldDescription>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPinnedSidebarTools(DEFAULT_PINNED_SIDEBAR_TOOLS)}
+          >
+            Restore defaults
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => setPinnedSidebarTools([])}>
+            Clear pins
+          </Button>
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {sidebarToolOptions.map((tool) => {
+          const checked = pinnedSidebarTools.includes(tool.id);
+          const hidden = tool.id !== 'session' && hiddenMainFeatures.includes(tool.id);
+          return (
+            <div
+              key={tool.id}
+              className={cn(
+                'flex items-center gap-2 rounded-md border bg-background/70 px-3 py-2 transition-colors',
+                hidden ? 'border-dashed bg-muted/25 text-muted-foreground' : 'border-border',
+              )}
+            >
+              <Checkbox
+                id={`tool-pinned-${tool.id}`}
+                checked={checked}
+                onCheckedChange={() => togglePinnedSidebarTool(tool.id)}
+              />
+              <Label
+                htmlFor={`tool-pinned-${tool.id}`}
+                className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2"
+              >
+                <span className="truncate">{tool.title}</span>
+                <span className="flex shrink-0 items-center gap-1">
+                  {hidden && (
+                    <Badge variant="outline" className="text-[10px]">
+                      Hidden
+                    </Badge>
+                  )}
+                  {tool.helper && (
+                    <span className="text-[10px] text-muted-foreground" aria-hidden="true">
+                      {tool.helper}
+                    </span>
+                  )}
+                </span>
+              </Label>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SidebarFeaturesInput() {
   const hiddenMainFeatures = useSettingsStore((state) => state.hiddenMainFeatures);
   const showHiddenMainFeaturesInCommandCenter = useSettingsStore(
@@ -347,7 +448,7 @@ function SidebarFeaturesInput() {
   const visibleFeatureCount = MAIN_FEATURES.length - hiddenMainFeatures.length;
 
   return (
-    <div className="grid gap-3">
+    <div data-testid="sidebar-features-editor" className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="grid gap-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -1023,6 +1124,7 @@ export function SettingsModal() {
                 description="Choose a theme and keep rarely used tools out of the sidebar."
               >
                 <ThemeToggle />
+                <PinnedSidebarToolsInput />
                 <SidebarFeaturesInput />
               </Section>
               <Section icon={CodeIcon} title="Editor" description="Control how file locations open from traces.">

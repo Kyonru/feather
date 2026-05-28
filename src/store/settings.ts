@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { MainFeatureId } from '@/constants/main-features';
+import {
+  DEFAULT_PINNED_SIDEBAR_TOOLS,
+  SIDEBAR_TOOL_ORDER,
+  type MainFeatureId,
+  type SidebarToolId,
+} from '@/constants/main-features';
 import { normalizeThemePreference, type ThemePreference } from '@/assets/theme/registry';
 
 type SettingsStoreState = {
@@ -20,6 +25,7 @@ type SettingsStoreState = {
   connectionTimeout: number;
   hiddenPlugins: string[];
   hiddenMainFeatures: MainFeatureId[];
+  pinnedSidebarTools: SidebarToolId[];
   showHiddenMainFeaturesInCommandCenter: boolean;
   assetSourceDir: string;
 };
@@ -41,6 +47,8 @@ type SettingsStoreActions = {
   toggleHiddenPlugin: (pluginId: string) => void;
   toggleHiddenMainFeature: (featureId: MainFeatureId) => void;
   setHiddenMainFeatures: (featureIds: MainFeatureId[]) => void;
+  togglePinnedSidebarTool: (toolId: SidebarToolId) => void;
+  setPinnedSidebarTools: (toolIds: SidebarToolId[]) => void;
   setShowHiddenMainFeaturesInCommandCenter: (show: boolean) => void;
   setAssetSourceDir: (dir: string) => void;
   reset: () => void;
@@ -53,6 +61,23 @@ function createAppId(): string {
     return `feather-app-${crypto.randomUUID()}`;
   }
   return `feather-app-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function normalizePinnedSidebarTools(toolIds?: unknown): SidebarToolId[] {
+  if (!Array.isArray(toolIds)) return [...DEFAULT_PINNED_SIDEBAR_TOOLS];
+  const valid = new Set<SidebarToolId>(SIDEBAR_TOOL_ORDER);
+  const seen = new Set<SidebarToolId>();
+  const normalized: SidebarToolId[] = [];
+
+  for (const toolId of toolIds) {
+    if (typeof toolId !== 'string' || !valid.has(toolId as SidebarToolId)) continue;
+    const id = toolId as SidebarToolId;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    normalized.push(id);
+  }
+
+  return SIDEBAR_TOOL_ORDER.filter((toolId) => normalized.includes(toolId));
 }
 
 const defaultSettings: SettingsStoreState = {
@@ -70,6 +95,7 @@ const defaultSettings: SettingsStoreState = {
   connectionTimeout: 15,
   hiddenPlugins: [],
   hiddenMainFeatures: [],
+  pinnedSidebarTools: [...DEFAULT_PINNED_SIDEBAR_TOOLS],
   showHiddenMainFeaturesInCommandCenter: false,
   assetSourceDir: '',
 };
@@ -103,8 +129,18 @@ export const useSettingsStore = create<SettingsStore>()(
       setConnectionTimeout: (connectionTimeout: number) => set({ connectionTimeout }),
       setAssetSourceDir: (assetSourceDir: string) => set({ assetSourceDir }),
       setHiddenMainFeatures: (hiddenMainFeatures: MainFeatureId[]) => set({ hiddenMainFeatures }),
+      setPinnedSidebarTools: (pinnedSidebarTools: SidebarToolId[]) =>
+        set({ pinnedSidebarTools: normalizePinnedSidebarTools(pinnedSidebarTools) }),
       setShowHiddenMainFeaturesInCommandCenter: (showHiddenMainFeaturesInCommandCenter: boolean) =>
         set({ showHiddenMainFeaturesInCommandCenter }),
+      togglePinnedSidebarTool: (toolId: SidebarToolId) =>
+        set((state) => {
+          const pinnedSidebarTools = state.pinnedSidebarTools.includes(toolId)
+            ? state.pinnedSidebarTools.filter((id) => id !== toolId)
+            : [...state.pinnedSidebarTools, toolId];
+
+          return { pinnedSidebarTools: normalizePinnedSidebarTools(pinnedSidebarTools) };
+        }),
       toggleHiddenMainFeature: (featureId: MainFeatureId) =>
         set((state) => ({
           hiddenMainFeatures: state.hiddenMainFeatures.includes(featureId)
@@ -127,6 +163,7 @@ export const useSettingsStore = create<SettingsStore>()(
           ...currentState,
           ...persisted,
           theme: normalizeThemePreference(persisted?.theme),
+          pinnedSidebarTools: normalizePinnedSidebarTools(persisted?.pinnedSidebarTools),
         };
       },
     },
