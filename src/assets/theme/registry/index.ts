@@ -1,6 +1,7 @@
 import featherDarkSyntax from '../dark';
 import featherLightSyntax from '../light';
 import { noctisThemes } from './noctis';
+import { tokyoNightThemes } from './tokyo-night';
 import { visualStudioCppThemes } from './visual-studio-cpp';
 import type { AppTheme, SyntaxHighlighterStyle, ThemeId, ThemeMode, ThemePreference, ThemeVariables } from './types';
 
@@ -15,6 +16,7 @@ export type {
   ThemeMode,
   ThemePreference,
   ThemeVariables,
+  TokyoNightThemeId,
   VisualStudioCppThemeId,
 } from './types';
 
@@ -116,6 +118,7 @@ export const appThemes: Record<ThemeId, AppTheme> = {
     syntax: featherDarkSyntax as SyntaxHighlighterStyle,
   },
   ...noctisThemes,
+  ...tokyoNightThemes,
   ...visualStudioCppThemes,
 };
 
@@ -171,6 +174,14 @@ export const themeSelectorGroups: ThemeSelectorGroup[] = [
       optionForTheme('noctis-viola'),
       optionForTheme('noctis-minimus'),
     ],
+  },
+  {
+    label: 'Tokyo Night Light',
+    options: [optionForTheme('tokyo-night-light')],
+  },
+  {
+    label: 'Tokyo Night Dark',
+    options: [optionForTheme('tokyo-night'), optionForTheme('tokyo-night-storm')],
   },
   {
     label: 'Visual Studio C/C++ Light',

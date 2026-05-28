@@ -41,7 +41,7 @@ export const THEME_CSS_VARIABLES = [
 
 export type ThemeCssVariable = (typeof THEME_CSS_VARIABLES)[number];
 export type ThemeMode = 'light' | 'dark';
-export type ThemeFamily = 'Feather' | 'Noctis' | 'Visual Studio C/C++';
+export type ThemeFamily = 'Feather' | 'Noctis' | 'Tokyo Night' | 'Visual Studio C/C++';
 export type NoctisThemeId =
   | 'noctis-lux'
   | 'noctis-hibernus'
@@ -59,10 +59,15 @@ export type VisualStudioCppThemeId =
   | 'vs-cpp-dark'
   | 'vs-cpp-2017-light'
   | 'vs-cpp-2017-dark';
+export type TokyoNightThemeId =
+  | 'tokyo-night-light'
+  | 'tokyo-night'
+  | 'tokyo-night-storm';
 export type ThemeId =
   | 'light'
   | 'dark'
   | NoctisThemeId
+  | TokyoNightThemeId
   | VisualStudioCppThemeId;
 export type ThemePreference = 'system' | ThemeId;
 export type ThemeVariables = Record<ThemeCssVariable, string>;

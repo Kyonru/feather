@@ -152,6 +152,7 @@ Available libraries include anim8, bump, hump, lume, flux, inspect, middleclass,
 - [HUMP](https://github.com/vrld/hump), [anim8](https://github.com/kikito/anim8), [flux](https://github.com/rxi/flux), [bump.lua](https://github.com/kikito/bump.lua), [lua-state-machine](https://github.com/kyleconroy/lua-state-machine)
 - [love2d-community/awesome-love2d](https://github.com/love2d-community/awesome-love2d?tab=readme-ov-file#animation) - Inspiration for package helpers
 - [Noctis](https://github.com/liviuschera/noctis) by Liviu Schera — optional app theme palettes
+- [Tokyo Night](https://github.com/tokyo-night/tokyo-night-vscode-theme) by Enkia — optional app theme palettes
 - [Microsoft C/C++ Themes](https://github.com/microsoft/vscode-cpptools/tree/main/Themes) — optional Visual Studio C/C++ theme palettes
 
 ---

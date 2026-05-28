@@ -982,6 +982,14 @@ test('persists expanded theme variants and can return to system mode', async ({ 
     .toBe('#ffffff');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
+  await page.getByRole('option', { name: 'Tokyo Night Light' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'tokyo-night-light');
+  await expect(page.locator('html')).toHaveClass(/\blight\b/);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+    .toBe('#e6e7ed');
+
+  await page.getByRole('combobox', { name: 'App Theme' }).click();
   await page.getByRole('option', { name: 'System' }).click();
 
   const expectedSystemTheme = await page.evaluate(() =>
