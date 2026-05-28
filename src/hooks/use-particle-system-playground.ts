@@ -8,11 +8,19 @@ import { useSessionStore } from '@/store/session';
 import { debounce } from '@/utils/timers';
 import { sessionQueryKey } from './use-ws-connection';
 import type {
+  ParticleTimeline,
+  ParticleTimelineState,
   ParticleSystemPlaygroundData,
   ParticleSystemPlaygroundProjectFile,
   ParticleSystemPlaygroundSystem,
   ParticleSystemPlaygroundTemplate,
 } from '@/types/particle-system-playground';
+import {
+  migrateParticleProject,
+  PARTICLE_PROJECT_TYPE,
+  normalizeParticleTimeline,
+  withNormalizedTimeline,
+} from '@/pages/particle-system-playground/timeline';
 
 const PLUGIN_ID = 'particle-system-playground';
 
@@ -122,6 +130,39 @@ function updateTextureDraft(
   };
 }
 
+function updateTimelineDraft(
+  data: ParticleSystemPlaygroundData | undefined,
+  timeline: ParticleTimeline,
+): ParticleSystemPlaygroundData | undefined {
+  if (!data?.data) return data;
+  return {
+    ...data,
+    data: withNormalizedTimeline({
+      ...data.data,
+      timeline: normalizeParticleTimeline(timeline, data.data.systems),
+    }),
+  };
+}
+
+function updateTimelineStateDraft(
+  data: ParticleSystemPlaygroundData | undefined,
+  state: Partial<ParticleTimelineState>,
+): ParticleSystemPlaygroundData | undefined {
+  if (!data?.data) return data;
+  const previous = data.data.timelineState ?? { time: 0, playing: false, scrubVersion: 0 };
+  return {
+    ...data,
+    data: {
+      ...data.data,
+      timelineState: {
+        ...previous,
+        ...state,
+        scrubVersion: state.time !== undefined ? (previous.scrubVersion ?? 0) + 1 : previous.scrubVersion,
+      },
+    },
+  };
+}
+
 function valuesEqual(a: unknown, b: unknown) {
   if (typeof a === 'number' || typeof b === 'number') {
     return Math.abs(Number(a) - Number(b)) < 0.0001;
@@ -164,6 +205,7 @@ export function useParticleSystemPlayground() {
   const plugin = useConfigStore((state) => state.config?.plugins?.[PLUGIN_ID]);
   const queryClient = useQueryClient();
   const pendingParams = useRef<ScopedParamBatches>({});
+  const pendingTimelineSeek = useRef<{ composite: string; time: number } | null>(null);
   const [optimisticParams, setOptimisticParams] = useState<ScopedParamBatches>({});
 
   const { data: serverData } = useQuery<ParticleSystemPlaygroundData>({
@@ -173,7 +215,10 @@ export function useParticleSystemPlayground() {
     initialData: EMPTY_DATA,
   });
 
-  const data = useMemo(() => updateDraft(serverData, optimisticParams) ?? serverData, [serverData, optimisticParams]);
+  const data = useMemo(() => {
+    const draft = updateDraft(serverData, optimisticParams) ?? serverData;
+    return draft.data ? { ...draft, data: withNormalizedTimeline(draft.data) } : draft;
+  }, [serverData, optimisticParams]);
 
   const lastShaderResponse = useQuery<{ status?: string; message?: string }>({
     queryKey: sessionQueryKey.pluginAction(sessionId ?? '', PLUGIN_ID, 'set-shader'),
@@ -314,6 +359,30 @@ export function useParticleSystemPlayground() {
     [queryClient, sendAction, sessionId],
   );
 
+  const setTimelineState = useCallback(
+    (state: Partial<ParticleTimelineState>) => {
+      queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>
+        updateTimelineStateDraft(current, state),
+      );
+    },
+    [pluginQueryKey, queryClient],
+  );
+
+  const sendTimelineSeek = useMemo(
+    () =>
+      debounce(() => {
+        const pending = pendingTimelineSeek.current;
+        if (!pending) return;
+        pendingTimelineSeek.current = null;
+        sendAction('timeline-control', {
+          command: 'seek',
+          composite: pending.composite,
+          time: pending.time,
+        });
+      }, 120),
+    [sendAction],
+  );
+
   return {
     plugin,
     available: !!plugin,
@@ -348,6 +417,34 @@ export function useParticleSystemPlayground() {
         return { ...current, data: { ...current.data, systems } };
       });
       refreshAfterAction('reorder-system', { fromIndex, toIndex });
+    },
+    updateTimeline: (timeline: ParticleTimeline) => {
+      queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => updateTimelineDraft(current, timeline));
+      refreshAfterAction('set-timeline', { timeline });
+    },
+    playTimeline: () => {
+      setTimelineState({ playing: true });
+      refreshAfterAction('timeline-control', { command: 'play' });
+    },
+    pauseTimeline: () => {
+      setTimelineState({ playing: false });
+      refreshAfterAction('timeline-control', { command: 'pause' });
+    },
+    stopTimeline: () => {
+      setTimelineState({ time: 0, playing: false });
+      pendingTimelineSeek.current = null;
+      refreshAfterAction('timeline-control', { command: 'stop', time: 0 });
+    },
+    seekTimeline: (time: number, immediate = false) => {
+      const composite = data.activeComposite ?? '';
+      setTimelineState({ time, playing: false });
+      if (immediate) {
+        pendingTimelineSeek.current = null;
+        refreshAfterAction('timeline-control', { command: 'seek', time, composite });
+        return;
+      }
+      pendingTimelineSeek.current = { composite, time };
+      sendTimelineSeek();
     },
     emit: (_all = true, count = 100) => refreshAfterAction('emit', { count }),
     reset: (_all = true) => refreshAfterAction('reset'),
@@ -387,10 +484,11 @@ export function useParticleSystemPlayground() {
         toast.error('Particle project JSON is invalid');
         return;
       }
-      if (project.type !== 'feather.particle-system-playground' || project.version !== 1) {
+      if (project.type !== PARTICLE_PROJECT_TYPE || (project.version !== 1 && project.version !== 2)) {
         toast.error('Unsupported particle project file');
         return;
       }
+      project = migrateParticleProject(project);
       refreshAfterAction('import-project', { project });
       toast.success('Particle project import requested');
     },

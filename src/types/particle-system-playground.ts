@@ -1,6 +1,14 @@
 export type MovementPattern = 'none' | 'circle' | 'figure-eight' | 'irregular';
 export type CompositeType = 'scratch' | 'game';
-export type ParticleSystemPlaygroundTemplate = 'fire' | 'explosion' | 'smoke' | 'sparkles';
+export type ParticleSystemPlaygroundTemplate =
+  | 'fire'
+  | 'explosion'
+  | 'smoke'
+  | 'sparkles'
+  | 'muzzle-flash'
+  | 'magic-burst'
+  | 'dust-puff';
+export type ParticleSystemPlaygroundProjectVersion = 1 | 2;
 
 export type ParticleSystemPlaygroundMovement = {
   pattern: MovementPattern;
@@ -71,6 +79,51 @@ export type ParticleSystemPlaygroundSystem = {
   properties: ParticleSystemPlaygroundSystemProperties;
 };
 
+export const PARTICLE_TIMELINE_LANES = [
+  'opacity',
+  'emissionRate',
+  'speedScale',
+  'sizeScale',
+  'direction',
+  'spread',
+  'offsetX',
+  'offsetY',
+] as const;
+
+export type ParticleTimelineLane = (typeof PARTICLE_TIMELINE_LANES)[number];
+
+export type ParticleTimelineKeyframe = {
+  id: string;
+  time: number;
+  value: number;
+  easing?: 'linear' | 'hold';
+};
+
+export type ParticleTimelineClip = {
+  id: string;
+  start: number;
+  end: number;
+  emit?: number;
+};
+
+export type ParticleTimelineTrack = {
+  systemIndex: number;
+  clips: ParticleTimelineClip[];
+  lanes: Partial<Record<ParticleTimelineLane, ParticleTimelineKeyframe[]>>;
+};
+
+export type ParticleTimeline = {
+  duration: number;
+  loop: boolean;
+  tracks: ParticleTimelineTrack[];
+};
+
+export type ParticleTimelineState = {
+  time: number;
+  playing: boolean;
+  scrubVersion?: number;
+};
+
 export type ParticleSystemPlaygroundCompositeData = {
   compositeType: CompositeType;
   x: number;
@@ -78,6 +131,8 @@ export type ParticleSystemPlaygroundCompositeData = {
   previewEnabled: boolean;
   movement: ParticleSystemPlaygroundMovement;
   systems: ParticleSystemPlaygroundSystem[];
+  timeline?: ParticleTimeline;
+  timelineState?: ParticleTimelineState;
 };
 
 export type ParticleSystemPlaygroundData = {
@@ -95,10 +150,10 @@ export type ParticleSystemPlaygroundProjectSystem = ParticleSystemPlaygroundSyst
 
 export type ParticleSystemPlaygroundProjectFile = {
   type: 'feather.particle-system-playground';
-  version: 1;
+  version: ParticleSystemPlaygroundProjectVersion;
   exportedAt: string;
   name: string;
-  composite: Omit<ParticleSystemPlaygroundCompositeData, 'compositeType' | 'systems'> & {
+  composite: Omit<ParticleSystemPlaygroundCompositeData, 'compositeType' | 'systems' | 'timelineState'> & {
     systems: ParticleSystemPlaygroundProjectSystem[];
   };
 };
@@ -110,6 +165,9 @@ export const PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES: Array<{ value: ParticleSystem
   { value: 'explosion', label: 'Explosion' },
   { value: 'smoke', label: 'Smoke' },
   { value: 'sparkles', label: 'Sparkles' },
+  { value: 'muzzle-flash', label: 'Muzzle Flash' },
+  { value: 'magic-burst', label: 'Magic Burst' },
+  { value: 'dust-puff', label: 'Dust Puff' },
 ];
 export const EMISSION_AREA_DISTRIBUTIONS = [
   'none',

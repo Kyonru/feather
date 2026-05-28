@@ -47,6 +47,9 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "local function draw()"), "particle playground export includes draw lifecycle")
     assertTruthy(contains(code, "local function emit(payload)"), "particle playground export includes payload emit lifecycle")
     assertTruthy(contains(code, "release = function()"), "particle playground export includes release lifecycle")
+    assertTruthy(contains(code, "local timeline = {"), "particle playground export includes timeline data")
+    assertTruthy(contains(code, "local timelineState = { time = 0, playing = false }"), "particle playground export includes timeline state")
+    assertTruthy(contains(code, "local function applyTimeline(time)"), "particle playground export includes timeline evaluator")
     assertTruthy(contains(code, "---@class ParticlePayload"), "particle playground export documents ParticlePayload")
     assertTruthy(contains(code, "LG.newImage("), "particle playground export loads texture assets")
     assertTruthy(contains(code, ':setFilter("linear", "linear")'), "particle playground export uses linear texture filtering")
@@ -146,6 +149,63 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     plugin:handleActionRequest({
       params = {
         action = "new-composite",
+        name = "Timeline Playback",
+        template = "fire",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Timeline Playback",
+        timeline = {
+          duration = 1,
+          loop = true,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "clip", start = 0, ["end"] = 1, emit = 4 } },
+              lanes = {
+                emissionRate = {
+                  { id = "rate-a", time = 0, value = 10 },
+                  { id = "rate-b", time = 1, value = 20 },
+                },
+                opacity = {
+                  { id = "alpha-a", time = 0, value = 1 },
+                  { id = "alpha-b", time = 1, value = 0 },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Timeline Playback",
+        command = "seek",
+        time = 0.5,
+      },
+    })
+    local timelineSystem = plugin:_getSystemEntry("Timeline Playback", 1)
+    assertEqual(timelineSystem.system:getEmissionRate(), 15, "particle timeline seek evaluates keyframes")
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Timeline Playback",
+        command = "play",
+      },
+    })
+    plugin:update(0.75)
+    local timelineSnapshot = plugin:handleRequest()
+    assertTruthy(
+      timelineSnapshot.data.timelineState.time < 1,
+      "particle timeline looping wraps preview time"
+    )
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
         name = "Project Save",
         template = "explosion",
       },
@@ -199,13 +259,15 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     })
     local project = projectResult and projectResult.project
     assertEqual(project.type, "feather.particle-system-playground", "particle project export includes type")
-    assertEqual(project.version, 1, "particle project export includes version")
+    assertEqual(project.version, 2, "particle project export includes version")
     assertEqual(project.name, "Project Save", "particle project export includes composite name")
     assertEqual(project.composite.x, 321, "particle project export includes composite x")
     assertEqual(project.composite.y, 432, "particle project export includes composite y")
     assertEqual(project.composite.previewEnabled, false, "particle project export includes preview pause")
     assertEqual(project.composite.movement.pattern, "circle", "particle project export includes movement")
     assertEqual(#project.composite.systems, 3, "particle project export includes every emitter")
+    assertEqual(project.composite.timeline.duration, 3, "particle project export includes timeline duration")
+    assertEqual(#project.composite.timeline.tracks, 3, "particle project export includes emitter tracks")
     assertEqual(project.composite.systems[1].enabled, false, "particle project export includes enabled state")
     assertEqual(project.composite.systems[1].title, "Saved Core", "particle project export includes title")
     assertEqual(project.composite.systems[1].blendMode, "add", "particle project export includes blend mode")
@@ -241,6 +303,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(imported.data.y, 432, "particle project import restores composite y")
     assertEqual(imported.data.previewEnabled, false, "particle project import restores preview pause")
     assertEqual(#imported.data.systems, 3, "particle project import restores emitter count")
+    assertEqual(#imported.data.timeline.tracks, 3, "particle project import restores timeline tracks")
     assertEqual(imported.data.systems[1].enabled, false, "particle project import restores enabled state")
     assertEqual(imported.data.systems[1].title, "Saved Core", "particle project import restores title")
     assertEqual(imported.data.systems[1].blendMode, "add", "particle project import restores blend mode")
@@ -248,6 +311,29 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(imported.data.systems[1].texturePreset, "star", "particle project import restores texture preset")
     assertEqual(imported.data.systems[1].shaderFilename, "saved-particle-shader.glsl", "particle project import restores shader metadata")
     assertEqual(imported.data.systems[1].properties.spinMin, -0.1, "particle project import restores particle properties")
+
+    local legacyProject = {
+      type = "feather.particle-system-playground",
+      version = 1,
+      name = "Legacy Particles",
+      composite = {
+        x = 12,
+        y = 34,
+        previewEnabled = true,
+        movement = { pattern = "none" },
+        systems = { project.composite.systems[1] },
+      },
+    }
+    local legacyResult = plugin:handleActionRequest({
+      params = {
+        action = "import-project",
+        project = legacyProject,
+      },
+    })
+    assertEqual(legacyResult.composite, "Legacy Particles", "particle project v1 import creates scratch composite")
+    local legacy = plugin:handleRequest()
+    assertEqual(legacy.data.timeline.duration, 3, "particle project v1 import migrates a default timeline")
+    assertEqual(#legacy.data.timeline.tracks, 1, "particle project v1 import creates one clip track per emitter")
 
     local invalid, invalidErr = plugin:handleActionRequest({
       params = {

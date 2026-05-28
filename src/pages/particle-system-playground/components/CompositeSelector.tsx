@@ -11,23 +11,25 @@ import {
 } from '@/components/ui/dialog';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
+import { PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES, type ParticleSystemPlaygroundTemplate } from '@/types/particle-system-playground';
 
 type Props = {
   composites: string[];
   activeComposite: string | null;
   compositeType?: 'scratch' | 'game';
   onSelect: (name: string) => void;
-  onCreate: (name?: string) => void;
+  onCreate: (name?: string, template?: ParticleSystemPlaygroundTemplate) => void;
   onDelete: () => void;
 };
 
 export function CompositeSelector({ composites, activeComposite, compositeType, onSelect, onCreate, onDelete }: Props) {
   const [name, setName] = useState('');
+  const [template, setTemplate] = useState<ParticleSystemPlaygroundTemplate>('fire');
   const [createOpen, setCreateOpen] = useState(false);
 
   const createComposite = () => {
     const trimmed = name.trim();
-    onCreate(trimmed || undefined);
+    onCreate(trimmed || undefined, template);
     setName('');
     setCreateOpen(false);
   };
@@ -87,6 +89,24 @@ export function CompositeSelector({ composites, activeComposite, compositeType, 
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
+            <label className="grid gap-1 text-xs text-muted-foreground">
+              Template
+              <Select
+                value={template}
+                onValueChange={(value) => setTemplate(value as ParticleSystemPlaygroundTemplate)}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
                 Cancel

@@ -342,6 +342,92 @@ async function seedShaderGraphConfig(page: Page) {
   });
 }
 
+async function seedParticlePlaygroundConfig(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'config'], {
+      plugins: {
+        'particle-system-playground': {
+          tabName: 'Particles Playground',
+          icon: 'sparkles',
+          capabilities: [],
+        },
+      },
+      root_path: '/tmp/demo',
+      sourceDir: '/tmp/demo',
+      version: '2.0.0',
+      API: 5,
+      sampleRate: 1,
+      outfile: '',
+      language: 'lua',
+      captureScreenshot: false,
+      location: '/tmp/demo',
+      sessionName: 'Demo Session',
+    });
+    client?.setQueryData(['demo', 'plugin', 'particle-system-playground'], {
+      type: 'particle-system-playground',
+      composites: ['Demo Particles'],
+      activeComposite: 'Demo Particles',
+      activeSystem: 1,
+      data: {
+        compositeType: 'scratch',
+        x: 400,
+        y: 300,
+        previewEnabled: true,
+        movement: { pattern: 'none', radius: 80, radiusX: 120, radiusY: 60, speed: 1, scale: 1 },
+        systems: [
+          {
+            index: 1,
+            title: 'Fire',
+            blendMode: 'add',
+            enabled: true,
+            x: 0,
+            y: 0,
+            kickStartSteps: 0,
+            kickStartDt: 1 / 60,
+            emitAtStart: 24,
+            texturePath: '',
+            texturePreset: 'circle',
+            textureFilename: 'circle.png',
+            shaderPath: '',
+            shaderFilename: '',
+            shaderSource: '',
+            exportReady: true,
+            properties: {
+              emissionRate: 100,
+              emitterLifetime: -1,
+              particleLifetimeMin: 0.35,
+              particleLifetimeMax: 1.3,
+              direction: -Math.PI / 2,
+              spread: Math.PI / 3,
+              speedMin: 40,
+              speedMax: 140,
+              sizes: '1, 0',
+              offsetX: 0,
+              offsetY: 0,
+              count: 0,
+              bufferSize: 1000,
+            },
+          },
+        ],
+        timeline: {
+          duration: 3,
+          loop: true,
+          tracks: [
+            {
+              systemIndex: 1,
+              clips: [{ id: 'clip-1', start: 0, end: 3, emit: 24 }],
+              lanes: {},
+            },
+          ],
+        },
+        timelineState: { time: 0, playing: false, scrubVersion: 0 },
+      },
+    });
+  });
+}
+
 async function seedMissingProfilerConfig(page: Page) {
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1813,6 +1899,29 @@ test('shader graph right panel exposes root shader controls in the app', async (
   await controls.getByTitle('Select parameter node').first().click();
   await expect(page.getByRole('button', { name: 'Back to parent graph' })).toBeDisabled();
   await expect(page.locator('input[value="Strength"]')).toBeVisible();
+});
+
+test('particle playground timeline is editable in the app', async ({ page }) => {
+  await seedSession(page);
+  await page.goto('/');
+  await seedParticlePlaygroundConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page
+    .getByTestId('sidebar-tool-particle-system-playground')
+    .getByRole('link', { name: 'Particles Playground' })
+    .click();
+
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
+  await page.getByTestId('particle-timeline-track-1').click();
+  await page.getByLabel('Clip End').first().fill('2.2');
+  await page.getByText('Opacity').click();
+  await page.getByRole('button', { name: /add key at playhead/i }).click();
+  await page.getByLabel('Opacity key value').first().fill('0.4');
+  await expect(page.getByTestId('particle-timeline-lane-opacity-1').getByText('1 keys')).toBeVisible();
+  await page.getByTitle('Play timeline').click();
+  await expect(page.getByTitle('Pause timeline')).toBeVisible();
 });
 
 test('assets degraded matrix handles empty and partial catalogs', async ({ page }) => {

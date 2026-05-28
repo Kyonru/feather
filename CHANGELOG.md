@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Shader Graph Fake 3D nodes for billboard UVs, parallax UVs, sprite texture sampling, depth shading, card shadows, and packed atlas sprite stacks.
 - Added Shader Graph template subgraphs for presets, with explicit Subgraph Input/Output boundary nodes and public Template Controls for common effect knobs and texture slots.
 - Added Shader Graph right-panel tabs with a Controls view that collects Template Controls and root Parameter nodes before the Selection inspector and Output panel.
+- Added a Particle System Playground Timeline tab with emitter clips, keyframed opacity/rate/speed/size/direction/spread/offset lanes, transport controls, and real LÖVE preview scrubbing.
+- Added timeline-authored beginner Particle System Playground templates for Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, and Dust Puff.
 
 ### Changed
 
@@ -41,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph presets now load and insert as reusable Subgraph instances instead of expanding full flat graphs onto the root canvas.
 - Shader Graph previews in Feather dev and showcase dev now use the same generated love.js target when available so embedded node previews render through the same LÖVE path.
 - Shader Graph Parameter nodes can now be edited from the Controls tab, including labels, defaults, texture uploads, uniform names, connection warnings, and select-node actions.
+- Particle System Playground project files now save as `.featherparticles` version 2 with timelines, while version 1 imports migrate to a default 3-second timeline.
+- Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping resets.
 
 ### Fixed
 
@@ -77,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused codegen and showcase e2e coverage for the new Shader Graph Fake 3D sprite illusion nodes.
 - Added focused helper, showcase e2e, and app e2e coverage for Shader Graph template preset controls and subgraph boundary nodes.
 - Added showcase and app e2e coverage for the Shader Graph right-panel Controls, Selection, and Output workflow.
+- Added Lua, showcase, and app e2e coverage for Particle System Playground timeline import/export, clip/keyframe editing, preview controls, and exported timeline replay hooks.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.

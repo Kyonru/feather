@@ -19,6 +19,7 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { ShaderEditor } from './components/ShaderEditor';
 import { TextureImporter } from './components/TextureImporter';
 import { ParticleNumberInput } from './components/ParticleNumberInput';
+import { TimelinePanel } from './components/TimelinePanel';
 import { isWeb } from '@/utils/platform';
 
 const PROJECT_FILE_EXTENSION = 'featherparticles';
@@ -234,9 +235,12 @@ export default function ParticleSystemPlaygroundPage({
                 )}
 
                 <Tabs defaultValue="emitter" className="gap-3">
-                  <TabsList className="grid h-8 w-full grid-cols-2 rounded-md lg:w-fit lg:min-w-72">
+                  <TabsList className="grid h-8 w-full grid-cols-3 rounded-md lg:w-fit lg:min-w-[27rem]">
                     <TabsTrigger value="emitter" className="text-xs">
                       Emitter
+                    </TabsTrigger>
+                    <TabsTrigger value="timeline" className="text-xs">
+                      Timeline
                     </TabsTrigger>
                     <TabsTrigger value="preview-assets" className="text-xs">
                       Preview &amp; Assets
@@ -247,6 +251,20 @@ export default function ParticleSystemPlaygroundPage({
                     <Section title="Emitter Properties">
                       <PropertiesPanel system={system} onChange={playground.updateActiveParam} />
                     </Section>
+                  </TabsContent>
+
+                  <TabsContent value="timeline" className="mt-0">
+                    <TimelinePanel
+                      composite={composite}
+                      activeSystemIndex={playground.activeSystemIndex}
+                      isGameComposite={isGameComposite}
+                      onSelectSystem={playground.selectSystem}
+                      onTimelineChange={playground.updateTimeline}
+                      onPlay={playground.playTimeline}
+                      onPause={playground.pauseTimeline}
+                      onStop={playground.stopTimeline}
+                      onSeek={playground.seekTimeline}
+                    />
                   </TabsContent>
 
                   <TabsContent value="preview-assets" className="mt-0">

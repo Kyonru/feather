@@ -10,7 +10,18 @@ local DEFAULT_X = 400
 local DEFAULT_Y = 300
 local TWO_PI = math.pi * 2
 local PROJECT_TYPE = "feather.particle-system-playground"
-local PROJECT_VERSION = 1
+local PROJECT_VERSION = 2
+local DEFAULT_TIMELINE_DURATION = 3
+local TIMELINE_LANES = {
+  "opacity",
+  "emissionRate",
+  "speedScale",
+  "sizeScale",
+  "direction",
+  "spread",
+  "offsetX",
+  "offsetY",
+}
 
 local B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 local B64_LOOKUP = {}
@@ -794,13 +805,460 @@ local function snapshotPS(ps)
   return snapshot
 end
 
+local function parseNumberList(value)
+  local values = {}
+  for raw in tostring(value or ""):gmatch("[^,]+") do
+    local n = tonumber(raw)
+    if n then
+      values[#values + 1] = n
+    end
+  end
+  return values
+end
+
+local function cloneTimeline(timeline)
+  if type(timeline) ~= "table" then
+    return nil
+  end
+  local copy = {
+    duration = safeNumber(timeline.duration, DEFAULT_TIMELINE_DURATION),
+    loop = safeBoolean(timeline.loop, false),
+    tracks = {},
+  }
+  for _, track in ipairs(timeline.tracks or {}) do
+    if type(track) == "table" then
+      local nextTrack = {
+        systemIndex = math.max(1, math.floor(safeNumber(track.systemIndex, 1))),
+        clips = {},
+        lanes = {},
+      }
+      for _, clip in ipairs(track.clips or {}) do
+        if type(clip) == "table" then
+          nextTrack.clips[#nextTrack.clips + 1] = {
+            id = safeString(clip.id, "clip"),
+            start = safeNumber(clip.start, 0),
+            ["end"] = safeNumber(clip["end"], DEFAULT_TIMELINE_DURATION),
+            emit = clip.emit ~= nil and math.max(0, math.floor(safeNumber(clip.emit, 0))) or nil,
+          }
+        end
+      end
+      if type(track.lanes) == "table" then
+        for _, lane in ipairs(TIMELINE_LANES) do
+          local points = track.lanes[lane]
+          if type(points) == "table" then
+            nextTrack.lanes[lane] = {}
+            for _, point in ipairs(points) do
+              if type(point) == "table" then
+                nextTrack.lanes[lane][#nextTrack.lanes[lane] + 1] = {
+                  id = safeString(point.id, lane),
+                  time = safeNumber(point.time, 0),
+                  value = safeNumber(point.value, 0),
+                  easing = point.easing == "hold" and "hold" or "linear",
+                }
+              end
+            end
+            table.sort(nextTrack.lanes[lane], function(a, b)
+              return a.time < b.time
+            end)
+          end
+        end
+      end
+      copy.tracks[#copy.tracks + 1] = nextTrack
+    end
+  end
+  return copy
+end
+
+local function timelineClip(systemIndex, startTime, endTime, emit)
+  return {
+    id = "clip-" .. tostring(systemIndex) .. "-" .. tostring(math.floor(startTime * 1000)),
+    start = startTime,
+    ["end"] = endTime,
+    emit = emit,
+  }
+end
+
+local function timelineKey(lane, systemIndex, time, value)
+  return {
+    id = lane .. "-" .. tostring(systemIndex) .. "-" .. tostring(math.floor(time * 1000)),
+    time = time,
+    value = value,
+  }
+end
+
+local function authoredTrack(sys, startTime, endTime, lanes, emit)
+  local index = safeNumber(sys and sys.index, 1)
+  local track = {
+    systemIndex = index,
+    clips = { timelineClip(index, startTime, endTime, emit or safeNumber(sys and sys.emitAtStart, 0)) },
+    lanes = {},
+  }
+  for lane, points in pairs(lanes or {}) do
+    track.lanes[lane] = {}
+    for _, point in ipairs(points) do
+      track.lanes[lane][#track.lanes[lane] + 1] = timelineKey(lane, index, point[1], point[2])
+    end
+  end
+  return track
+end
+
+local function defaultTimelineForSystems(systems, template)
+  local duration = DEFAULT_TIMELINE_DURATION
+  local loop = template == "fire" or template == "smoke" or template == "sparkles"
+  local tracks = {}
+
+  if template == "explosion" and systems[3] then
+    tracks[1] = authoredTrack(systems[1], 0, 0.42, {
+      opacity = { { 0, 1 }, { 0.32, 0.78 }, { 0.42, 0 } },
+      emissionRate = { { 0, 950 }, { 0.18, 280 }, { 0.42, 0 } },
+      sizeScale = { { 0, 0.7 }, { 0.2, 1.45 }, { 0.42, 0.55 } },
+    }, 220)
+    tracks[2] = authoredTrack(systems[2], 0.08, 2.8, {
+      opacity = { { 0.08, 0 }, { 0.32, 0.72 }, { 2.8, 0 } },
+      speedScale = { { 0.08, 1.2 }, { 1.1, 0.45 }, { 2.8, 0.15 } },
+      sizeScale = { { 0.08, 0.5 }, { 1.2, 1.8 }, { 2.8, 2.4 } },
+      offsetY = { { 0.08, 0 }, { 2.8, -34 } },
+    }, 90)
+    tracks[3] = authoredTrack(systems[3], 0.02, 1.25, {
+      opacity = { { 0.02, 1 }, { 0.8, 0.65 }, { 1.25, 0 } },
+      emissionRate = { { 0.02, 360 }, { 0.25, 80 }, { 1.25, 0 } },
+      speedScale = { { 0.02, 1.35 }, { 1.25, 0.35 } },
+    }, 140)
+    return { duration = duration, loop = false, tracks = tracks }
+  end
+
+  if template == "muzzle-flash" and systems[2] then
+    tracks[1] = authoredTrack(systems[1], 0, 0.28, {
+      opacity = { { 0, 1 }, { 0.12, 0.85 }, { 0.28, 0 } },
+      emissionRate = { { 0, 1000 }, { 0.1, 280 }, { 0.28, 0 } },
+      spread = { { 0, 0.3 }, { 0.28, 0.72 } },
+    }, 90)
+    tracks[2] = authoredTrack(systems[2], 0.03, 0.75, {
+      opacity = { { 0.03, 1 }, { 0.45, 0.65 }, { 0.75, 0 } },
+      speedScale = { { 0.03, 1.25 }, { 0.75, 0.25 } },
+    }, 80)
+    return { duration = duration, loop = false, tracks = tracks }
+  end
+
+  if template == "magic-burst" and systems[3] then
+    tracks[1] = authoredTrack(systems[1], 0, 0.65, {
+      opacity = { { 0, 1 }, { 0.45, 0.65 }, { 0.65, 0 } },
+      sizeScale = { { 0, 0.4 }, { 0.35, 1.6 }, { 0.65, 0.2 } },
+    }, 120)
+    tracks[2] = authoredTrack(systems[2], 0.05, 2.2, {
+      opacity = { { 0.05, 0.8 }, { 1.5, 0.5 }, { 2.2, 0 } },
+      direction = { { 0.05, -1.57 }, { 2.2, -2.3 } },
+      spread = { { 0.05, 6.28 }, { 2.2, 3.3 } },
+    }, 80)
+    tracks[3] = authoredTrack(systems[3], 0.12, 2.6, {
+      opacity = { { 0.12, 1 }, { 1.7, 0.75 }, { 2.6, 0 } },
+      offsetY = { { 0.12, 0 }, { 2.6, -28 } },
+    }, 110)
+    return { duration = duration, loop = false, tracks = tracks }
+  end
+
+  if template == "dust-puff" and systems[1] then
+    tracks[1] = authoredTrack(systems[1], 0, 2.25, {
+      opacity = { { 0, 0.65 }, { 0.45, 0.75 }, { 2.25, 0 } },
+      speedScale = { { 0, 0.9 }, { 1.2, 0.32 }, { 2.25, 0.12 } },
+      sizeScale = { { 0, 0.45 }, { 1.1, 1.75 }, { 2.25, 2.4 } },
+      offsetY = { { 0, 0 }, { 2.25, -18 } },
+    }, 120)
+    return { duration = duration, loop = false, tracks = tracks }
+  end
+
+  for index, sys in ipairs(systems or {}) do
+    tracks[index] = {
+      systemIndex = index,
+      clips = { timelineClip(index, 0, duration, safeNumber(sys.emitAtStart, 0)) },
+      lanes = {},
+    }
+  end
+  return { duration = duration, loop = loop, tracks = tracks }
+end
+
+local function normalizeTimeline(timeline, systems, template)
+  local fallback = defaultTimelineForSystems(systems or {}, template)
+  local raw = cloneTimeline(timeline) or fallback
+  local duration = math.max(0.25, math.min(60, safeNumber(raw.duration, DEFAULT_TIMELINE_DURATION)))
+  local tracksByIndex = {}
+  for _, track in ipairs(raw.tracks or {}) do
+    tracksByIndex[math.max(1, math.floor(safeNumber(track.systemIndex, 1)))] = track
+  end
+
+  local tracks = {}
+  for index, sys in ipairs(systems or {}) do
+    local source = tracksByIndex[index] or (fallback.tracks and fallback.tracks[index])
+    local nextTrack = {
+      systemIndex = index,
+      clips = {},
+      lanes = {},
+    }
+    for _, item in ipairs((source and source.clips) or {}) do
+      local startTime = math.max(0, math.min(duration, safeNumber(item.start, 0)))
+      local endTime = math.max(startTime + 0.01, math.min(duration, safeNumber(item["end"], duration)))
+      nextTrack.clips[#nextTrack.clips + 1] = {
+        id = safeString(item.id, "clip-" .. tostring(index)),
+        start = startTime,
+        ["end"] = endTime,
+        emit = item.emit ~= nil and math.max(0, math.floor(safeNumber(item.emit, 0))) or nil,
+      }
+    end
+    if #nextTrack.clips == 0 then
+      nextTrack.clips[1] = timelineClip(index, 0, duration, safeNumber(sys.emitAtStart, 0))
+    end
+    for _, lane in ipairs(TIMELINE_LANES) do
+      local points = source and source.lanes and source.lanes[lane]
+      if type(points) == "table" then
+        nextTrack.lanes[lane] = {}
+        for _, point in ipairs(points) do
+          if type(point) == "table" then
+            nextTrack.lanes[lane][#nextTrack.lanes[lane] + 1] = {
+              id = safeString(point.id, lane),
+              time = math.max(0, math.min(duration, safeNumber(point.time, 0))),
+              value = safeNumber(point.value, 0),
+              easing = point.easing == "hold" and "hold" or "linear",
+            }
+          end
+        end
+        table.sort(nextTrack.lanes[lane], function(a, b)
+          return a.time < b.time
+        end)
+      end
+    end
+    tracks[index] = nextTrack
+  end
+
+  return {
+    duration = duration,
+    loop = raw.loop == true,
+    tracks = tracks,
+  }
+end
+
+local function evaluateKeyframes(points, time, fallback)
+  if type(points) ~= "table" or #points == 0 then
+    return fallback
+  end
+  if time <= safeNumber(points[1].time, 0) then
+    return safeNumber(points[1].value, fallback)
+  end
+  for i = 1, #points - 1 do
+    local a = points[i]
+    local b = points[i + 1]
+    local at = safeNumber(a.time, 0)
+    local bt = safeNumber(b.time, at)
+    if time >= at and time <= bt then
+      if a.easing == "hold" then
+        return safeNumber(a.value, fallback)
+      end
+      local span = math.max(0.0001, bt - at)
+      local t = math.max(0, math.min(1, (time - at) / span))
+      return safeNumber(a.value, fallback) + (safeNumber(b.value, fallback) - safeNumber(a.value, fallback)) * t
+    end
+  end
+  return safeNumber(points[#points].value, fallback)
+end
+
+local function trackActive(track, time)
+  for _, clip in ipairs(track and track.clips or {}) do
+    if time >= safeNumber(clip.start, 0) and time <= safeNumber(clip["end"], 0) then
+      return true
+    end
+  end
+  return false
+end
+
+local function captureTimelineBase(sys)
+  if sys and sys.system then
+    sys._timelineBase = snapshotPS(sys.system)
+  end
+end
+
+local function applyTimelineToSystem(sys, track, time)
+  if not sys or not sys.system then
+    return
+  end
+  if not sys._timelineBase then
+    captureTimelineBase(sys)
+  end
+  local base = sys._timelineBase or {}
+  local lanes = track and track.lanes or {}
+  local active = trackActive(track, time)
+
+  local emissionRate = evaluateKeyframes(lanes.emissionRate, time, safeNumber(base.emissionRate, 0))
+  if not active then
+    emissionRate = 0
+  end
+  pcall(sys.system.setEmissionRate, sys.system, emissionRate)
+
+  local speedScale = evaluateKeyframes(lanes.speedScale, time, 1)
+  pcall(
+    sys.system.setSpeed,
+    sys.system,
+    safeNumber(base.speedMin, 0) * speedScale,
+    safeNumber(base.speedMax, 0) * speedScale
+  )
+
+  local sizeScale = evaluateKeyframes(lanes.sizeScale, time, 1)
+  local sizes = parseNumberList(base.sizes)
+  if #sizes > 0 then
+    for i, value in ipairs(sizes) do
+      sizes[i] = value * sizeScale
+    end
+    pcall(sys.system.setSizes, sys.system, unpack(sizes))
+  end
+
+  pcall(sys.system.setDirection, sys.system, evaluateKeyframes(lanes.direction, time, safeNumber(base.direction, 0)))
+  pcall(sys.system.setSpread, sys.system, evaluateKeyframes(lanes.spread, time, safeNumber(base.spread, 0)))
+  pcall(
+    sys.system.setOffset,
+    sys.system,
+    evaluateKeyframes(lanes.offsetX, time, safeNumber(base.offsetX, 0)),
+    evaluateKeyframes(lanes.offsetY, time, safeNumber(base.offsetY, 0))
+  )
+  sys._timelineOpacity = evaluateKeyframes(lanes.opacity, time, 1)
+end
+
+local function resetTimelineSystems(plugin, name)
+  for i = 1, plugin:_systemCount(name) do
+    local sys = plugin:_getSystemEntry(name, i)
+    if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, i)) then
+      pcall(sys.system.reset, sys.system)
+      pcall(sys.system.start, sys.system)
+      captureTimelineBase(sys)
+    end
+  end
+end
+
+local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline)
+  if not timeline then
+    return
+  end
+  for index, track in ipairs(timeline.tracks or {}) do
+    local sys = plugin:_getSystemEntry(name, index)
+    if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, index)) then
+      for _, item in ipairs(track.clips or {}) do
+        local startTime = safeNumber(item.start, 0)
+        if previousTime <= startTime and nextTime >= startTime then
+          local count = math.max(0, math.floor(safeNumber(item.emit, safeNumber(sys.emitAtStart, 0))))
+          if count > 0 then
+            pcall(sys.system.emit, sys.system, count)
+          end
+        end
+      end
+    end
+  end
+end
+
+local function ensureTimelineState(entry)
+  entry.timelineState = entry.timelineState or { time = 0, playing = false, scrubVersion = 0 }
+  entry.timelineState.time = safeNumber(entry.timelineState.time, 0)
+  entry.timelineState.playing = safeBoolean(entry.timelineState.playing, false)
+  entry.timelineState.scrubVersion = safeNumber(entry.timelineState.scrubVersion, 0)
+  return entry.timelineState
+end
+
+local function applyTimelineAt(plugin, name, time)
+  local entry = plugin.composites[name]
+  if not entry or not entry.timeline then
+    return
+  end
+  for index, track in ipairs(entry.timeline.tracks or {}) do
+    local sys = plugin:_getSystemEntry(name, index)
+    if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, index)) then
+      applyTimelineToSystem(sys, track, time)
+    end
+  end
+end
+
+local function timelineSystemsForPlugin(plugin, name)
+  local systems = {}
+  for i = 1, plugin:_systemCount(name) do
+    local sys = plugin:_getSystemEntry(name, i) or {}
+    systems[i] = {
+      index = i,
+      emitAtStart = safeNumber(sys.emitAtStart, 0),
+    }
+  end
+  return systems
+end
+
+local function advanceTimeline(plugin, name, dt)
+  local entry = plugin.composites[name]
+  if not entry or not entry.timeline then
+    return
+  end
+  local state = ensureTimelineState(entry)
+  local duration = math.max(0.25, safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
+  local previous = math.max(0, math.min(duration, state.time or 0))
+  local nextTime = previous
+
+  if state.playing then
+    nextTime = previous + math.max(0, dt or 0)
+    if nextTime > duration then
+      if entry.timeline.loop then
+        resetTimelineSystems(plugin, name)
+        emitTimelineStarts(plugin, name, 0, nextTime % duration, entry.timeline)
+        nextTime = nextTime % duration
+      else
+        nextTime = duration
+        state.playing = false
+      end
+    else
+      emitTimelineStarts(plugin, name, previous, nextTime, entry.timeline)
+    end
+    state.time = nextTime
+  end
+
+  applyTimelineAt(plugin, name, nextTime)
+end
+
+local function seekTimeline(plugin, name, time)
+  local entry = plugin.composites[name]
+  if not entry or not entry.timeline then
+    return
+  end
+  local state = ensureTimelineState(entry)
+  local duration = math.max(0.25, safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
+  local target = math.max(0, math.min(duration, safeNumber(time, 0)))
+  resetTimelineSystems(plugin, name)
+  state.time = target
+  state.playing = false
+  state.scrubVersion = safeNumber(state.scrubVersion, 0) + 1
+
+  local step = 1 / 60
+  local current = 0
+  local steps = 0
+  while current < target and steps < 600 do
+    local nextTime = math.min(target, current + step)
+    emitTimelineStarts(plugin, name, current, nextTime, entry.timeline)
+    applyTimelineAt(plugin, name, nextTime)
+    for i = 1, plugin:_systemCount(name) do
+      local sys = plugin:_getSystemEntry(name, i)
+      if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, i)) then
+        pcall(sys.system.update, sys.system, nextTime - current)
+      end
+    end
+    current = nextTime
+    steps = steps + 1
+  end
+  applyTimelineAt(plugin, name, target)
+end
+
 local function createDefaultSystem(index, template)
   template = template or "fire"
   local texturePreset = "circle"
   if template == "smoke" then
     texturePreset = "light"
   end
+  if template == "dust-puff" then
+    texturePreset = "light"
+  end
   if template == "sparkles" then
+    texturePreset = "star"
+  end
+  if template == "magic-burst" then
     texturePreset = "star"
   end
   if template == "explosion-smoke" then
@@ -862,11 +1320,44 @@ local function createDefaultSystem(index, template)
     ps:setColors(0.28, 0.26, 0.24, 0.55, 0.12, 0.11, 0.1, 0)
     ps:setSizes(0.4, 1.8, 2.6)
     ps:setSizeVariation(0.7)
+  elseif template == "muzzle-flash" then
+    ps:setEmitterLifetime(0.12)
+    ps:setEmissionRate(900)
+    ps:setParticleLifetime(0.08, 0.22)
+    ps:setSpeed(260, 680)
+    ps:setDirection(0)
+    ps:setSpread(math.pi / 8)
+    ps:setLinearDamping(1.5, 4)
+    ps:setColors(1, 0.96, 0.45, 1, 1, 0.35, 0.05, 0)
+    ps:setSizes(0.6, 1.15, 0)
+    ps:setSizeVariation(0.4)
+  elseif template == "magic-burst" then
+    ps:setEmissionRate(100)
+    ps:setParticleLifetime(0.35, 1.3)
+    ps:setSpeed(50, 170)
+    ps:setDirection(-math.pi / 2)
+    ps:setSpread(math.pi * 2)
+    ps:setLinearDamping(0.7, 1.6)
+    ps:setColors(0.75, 0.35, 1, 1, 0.2, 0.85, 1, 0)
+    ps:setSizes(0.45, 0.1)
+    ps:setSizeVariation(0.8)
+  elseif template == "dust-puff" then
+    ps:setEmissionRate(80)
+    ps:setParticleLifetime(1.2, 3.2)
+    ps:setSpeed(12, 45)
+    ps:setDirection(-math.pi / 2)
+    ps:setSpread(math.pi * 2)
+    ps:setLinearAcceleration(-8, -18, 8, -55)
+    ps:setLinearDamping(0.4, 1.2)
+    ps:setColors(0.7, 0.62, 0.48, 0.55, 0.45, 0.38, 0.28, 0)
+    ps:setSizes(0.35, 1.2, 2.2)
+    ps:setSizeVariation(0.6)
   end
 
   ps:start()
 
   return {
+    index = index,
     system = ps,
     title = "Emitter " .. tostring(index),
     blendMode = "alpha",
@@ -919,6 +1410,44 @@ local function createDefaultSystems(template)
     sparks.title = "Sparkles"
     sparks.blendMode = "add"
     return { sparks }
+  end
+
+  if template == "muzzle-flash" then
+    local flash = createDefaultSystem(1, "muzzle-flash")
+    flash.title = "Flash Cone"
+    flash.blendMode = "add"
+    flash.emitAtStart = 90
+
+    local sparks = createDefaultSystem(2, "sparkles")
+    sparks.title = "Barrel Sparks"
+    sparks.blendMode = "add"
+    sparks.emitAtStart = 80
+    return { flash, sparks }
+  end
+
+  if template == "magic-burst" then
+    local core = createDefaultSystem(1, "magic-burst")
+    core.title = "Core Pulse"
+    core.blendMode = "add"
+    core.emitAtStart = 120
+
+    local swirl = createDefaultSystem(2, "sparkles")
+    swirl.title = "Swirl"
+    swirl.blendMode = "add"
+    swirl.emitAtStart = 80
+
+    local glitter = createDefaultSystem(3, "sparkles")
+    glitter.title = "Glitter Trail"
+    glitter.blendMode = "add"
+    glitter.emitAtStart = 110
+    return { core, swirl, glitter }
+  end
+
+  if template == "dust-puff" then
+    local dust = createDefaultSystem(1, "dust-puff")
+    dust.title = "Dust Puff"
+    dust.emitAtStart = 120
+    return { dust }
   end
 
   local fire = createDefaultSystem(1, "fire")
@@ -1012,6 +1541,7 @@ function ParticleSystemPlaygroundPlugin:_newComposite(name, template)
     suffix = suffix + 1
   end
 
+  local systems = createDefaultSystems(template)
   self.composites[final] = {
     kind = "scratch",
     name = final,
@@ -1021,7 +1551,9 @@ function ParticleSystemPlaygroundPlugin:_newComposite(name, template)
     movement = { pattern = "none", radius = 50, radiusX = 80, radiusY = 40, speed = 1, scale = 50 },
     offsetX = 0,
     offsetY = 0,
-    systems = createDefaultSystems(template),
+    systems = systems,
+    timeline = normalizeTimeline(nil, systems, template),
+    timelineState = { time = 0, playing = false, scrubVersion = 0 },
   }
   self.compositeOrder[#self.compositeOrder + 1] = final
   self.activeComposite = final
@@ -1104,6 +1636,9 @@ end
 function ParticleSystemPlaygroundPlugin:update(dt)
   for _, name in ipairs(self.compositeOrder) do
     local entry = self.composites[name]
+    if entry and entry.timeline then
+      advanceTimeline(self, name, dt)
+    end
     if entry and entry.kind == "scratch" and safeBoolean(entry.previewEnabled, true) then
       local offsetX, offsetY = computeMovementOffset(entry.movement, dt)
       entry.offsetX, entry.offsetY = offsetX, offsetY
@@ -1143,7 +1678,7 @@ function ParticleSystemPlaygroundPlugin:onDraw()
             end
           end
           love.graphics.setShader(system.shader)
-          love.graphics.setColor(1, 1, 1, 1)
+          love.graphics.setColor(1, 1, 1, safeNumber(system._timelineOpacity, 1))
           love.graphics.draw(system.system, 0, 0)
         end
       end
@@ -1207,6 +1742,8 @@ function ParticleSystemPlaygroundPlugin:handleRequest()
       previewEnabled = compositePreviewEnabled(entry),
       movement = entry.kind == "scratch" and entry.movement or { pattern = "none" },
       systems = systems,
+      timeline = normalizeTimeline(entry.timeline, systems),
+      timelineState = ensureTimelineState(entry),
     }
   end
 
@@ -1292,8 +1829,14 @@ function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
     sys.emitAtStart = safeNumber(params.emitAtStart, sys.emitAtStart)
   end
 
+  local changedParticleProperty = false
   for key, value in pairs(params) do
-    setProp(sys.system, key, value)
+    if setProp(sys.system, key, value) then
+      changedParticleProperty = true
+    end
+  end
+  if changedParticleProperty then
+    sys._timelineBase = nil
   end
 end
 
@@ -1306,6 +1849,7 @@ function ParticleSystemPlaygroundPlugin:_replaceTexture(sys, image)
     local ok = pcall(old.setTexture, old, image)
     if ok then
       sys._ownedImage = image
+      sys._timelineBase = nil
       return
     end
   end
@@ -1314,6 +1858,7 @@ function ParticleSystemPlaygroundPlugin:_replaceTexture(sys, image)
   copyParticleProperties(old, new)
   sys.system = new
   sys._ownedImage = image
+  sys._timelineBase = nil
   new:start()
 end
 
@@ -1543,6 +2088,7 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     end
     local newIndex = #entry.systems + 1
     entry.systems[newIndex] = createDefaultSystem(newIndex, params.template)
+    entry.timeline = normalizeTimeline(entry.timeline, entry.systems)
     self.activeSystem = newIndex
     return { systemIndex = newIndex }
   end
@@ -1559,6 +2105,10 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
       pcall(sys.system.release, sys.system)
     end
     table.remove(entry.systems, index)
+    for i, item in ipairs(entry.systems) do
+      item.index = i
+    end
+    entry.timeline = normalizeTimeline(entry.timeline, entry.systems)
     self.activeSystem = math.min(self.activeSystem, #entry.systems)
     return true
   end
@@ -1574,6 +2124,35 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     end
     local moved = table.remove(entry.systems, fromIdx)
     table.insert(entry.systems, toIdx, moved)
+    for i, item in ipairs(entry.systems) do
+      item.index = i
+    end
+    entry.timeline = normalizeTimeline(entry.timeline, entry.systems)
+    return true
+  end
+
+  if action == "set-timeline" then
+    entry.timeline = normalizeTimeline(params.timeline, timelineSystemsForPlugin(self, name))
+    entry.timelineState = entry.timelineState or { time = 0, playing = false, scrubVersion = 0 }
+    entry.timelineState.time = math.min(safeNumber(entry.timelineState.time, 0), safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
+    return true
+  end
+
+  if action == "timeline-control" then
+    entry.timeline = normalizeTimeline(entry.timeline, timelineSystemsForPlugin(self, name))
+    local state = ensureTimelineState(entry)
+    local command = safeString(params.command, "")
+    if command == "play" then
+      state.playing = true
+    elseif command == "pause" then
+      state.playing = false
+    elseif command == "stop" then
+      seekTimeline(self, name, 0)
+      state = ensureTimelineState(entry)
+      state.playing = false
+    elseif command == "seek" then
+      seekTimeline(self, name, safeNumber(params.time, 0))
+    end
     return true
   end
 
@@ -1712,6 +2291,38 @@ function ParticleSystemPlaygroundPlugin:_textureLoadPath(asset)
   return sanitizeFilename(asset.textureFilename, "texture.png")
 end
 
+local function luaTimelineTable(timeline)
+  local lines = { "{" }
+  lines[#lines + 1] = "  duration = " .. fmt(timeline.duration) .. ","
+  lines[#lines + 1] = "  loop = " .. tostring(timeline.loop == true) .. ","
+  lines[#lines + 1] = "  tracks = {"
+  for _, track in ipairs(timeline.tracks or {}) do
+    lines[#lines + 1] = "    {"
+    lines[#lines + 1] = "      systemIndex = " .. tostring(math.max(1, math.floor(safeNumber(track.systemIndex, 1)))) .. ","
+    lines[#lines + 1] = "      clips = {"
+    for _, clip in ipairs(track.clips or {}) do
+      lines[#lines + 1] = "        { start = " .. fmt(clip.start) .. ", [\"end\"] = " .. fmt(clip["end"]) .. ", emit = " .. tostring(math.floor(safeNumber(clip.emit, 0))) .. " },"
+    end
+    lines[#lines + 1] = "      },"
+    lines[#lines + 1] = "      lanes = {"
+    for _, lane in ipairs(TIMELINE_LANES) do
+      local points = track.lanes and track.lanes[lane]
+      if type(points) == "table" and #points > 0 then
+        lines[#lines + 1] = "        " .. lane .. " = {"
+        for _, point in ipairs(points) do
+          lines[#lines + 1] = "          { time = " .. fmt(point.time) .. ", value = " .. fmt(point.value) .. " },"
+        end
+        lines[#lines + 1] = "        },"
+      end
+    end
+    lines[#lines + 1] = "      },"
+    lines[#lines + 1] = "    },"
+  end
+  lines[#lines + 1] = "  },"
+  lines[#lines + 1] = "}"
+  return table.concat(lines, "\n")
+end
+
 function ParticleSystemPlaygroundPlugin:_projectForComposite(name)
   local entry = self.composites[name]
   if not entry then
@@ -1756,6 +2367,7 @@ function ParticleSystemPlaygroundPlugin:_projectForComposite(name)
       previewEnabled = compositePreviewEnabled(entry),
       movement = entry.kind == "scratch" and entry.movement or { pattern = "none" },
       systems = systems,
+      timeline = normalizeTimeline(entry.timeline, systems),
     },
   }
 end
@@ -1818,6 +2430,7 @@ function ParticleSystemPlaygroundPlugin:_systemFromProject(index, systemData)
   local ps = love.graphics.newParticleSystem(image, bufferSize)
 
   local sys = {
+    index = index,
     system = ps,
     _ownedImage = image,
     title = safeString(systemData.title, "Emitter " .. tostring(index)),
@@ -1861,7 +2474,11 @@ function ParticleSystemPlaygroundPlugin:_importProject(project)
     project = decoded
   end
 
-  if type(project) ~= "table" or project.type ~= PROJECT_TYPE or project.version ~= PROJECT_VERSION then
+  if
+    type(project) ~= "table"
+    or project.type ~= PROJECT_TYPE
+    or (project.version ~= 1 and project.version ~= PROJECT_VERSION)
+  then
     return nil, "Unsupported particle project file"
   end
   local composite = project.composite
@@ -1896,6 +2513,8 @@ function ParticleSystemPlaygroundPlugin:_importProject(project)
     offsetX = 0,
     offsetY = 0,
     systems = systems,
+    timeline = normalizeTimeline(project.version == 1 and nil or composite.timeline, systems),
+    timelineState = { time = 0, playing = false, scrubVersion = 0 },
   }
   self.compositeOrder[#self.compositeOrder + 1] = name
   self.activeComposite = name
@@ -1916,6 +2535,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   local imageCount = 0
   local shaderCount = 0
   local hasShaders = false
+  local timeline = normalizeTimeline(entry.timeline, timelineSystemsForPlugin(self, name))
   local lines = {
     "-- Generated by Feather Particles Playground",
     "-- " .. os.date("%Y-%m-%d %H:%M:%S"),
@@ -1930,6 +2550,8 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     "",
     "local systems = {}",
     "local particles = { x = " .. fmt(entry.x or 0) .. ", y = " .. fmt(entry.y or 0) .. ", systems = systems }",
+    "local timeline = " .. luaTimelineTable(timeline),
+    "local timelineState = { time = 0, playing = false }",
     "local release",
     "",
   }
@@ -2093,6 +2715,23 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
         .. fmt(sys.x or 0)
         .. ", y = "
         .. fmt(sys.y or 0)
+        .. ", opacity = 1, base = { emissionRate = "
+        .. fmt(ps:getEmissionRate())
+        .. ", speedMin = "
+        .. fmt(speedMin)
+        .. ", speedMax = "
+        .. fmt(speedMax)
+        .. ", sizes = { "
+        .. table.concat(sizes, ", ")
+        .. " }, direction = "
+        .. fmt(ps:getDirection())
+        .. ", spread = "
+        .. fmt(ps:getSpread())
+        .. ", offsetX = "
+        .. fmt(offsetX)
+        .. ", offsetY = "
+        .. fmt(offsetY)
+        .. " }"
         .. " }"
       lines[#lines + 1] = "  for _ = 1, systems[" .. tostring(i) .. "].enabled and systems[" .. tostring(i) .. "].kickStartSteps or 0 do"
       lines[#lines + 1] = "    " .. psVar .. ":update(systems[" .. tostring(i) .. "].kickStartDt)"
@@ -2107,7 +2746,97 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return particles"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function evalTimeline(points, time, fallback)"
+  lines[#lines + 1] = "  if type(points) ~= \"table\" or #points == 0 then return fallback end"
+  lines[#lines + 1] = "  if time <= (points[1].time or 0) then return tonumber(points[1].value) or fallback end"
+  lines[#lines + 1] = "  for i = 1, #points - 1 do"
+  lines[#lines + 1] = "    local a, b = points[i], points[i + 1]"
+  lines[#lines + 1] = "    local at, bt = tonumber(a.time) or 0, tonumber(b.time) or 0"
+  lines[#lines + 1] = "    if time >= at and time <= bt then"
+  lines[#lines + 1] = "      local span = math.max(0.0001, bt - at)"
+  lines[#lines + 1] = "      local t = math.max(0, math.min(1, (time - at) / span))"
+  lines[#lines + 1] = "      local av, bv = tonumber(a.value) or fallback, tonumber(b.value) or fallback"
+  lines[#lines + 1] = "      return av + (bv - av) * t"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return tonumber(points[#points].value) or fallback"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function trackActive(track, time)"
+  lines[#lines + 1] = "  for _, clip in ipairs(track.clips or {}) do"
+  lines[#lines + 1] = "    if time >= (tonumber(clip.start) or 0) and time <= (tonumber(clip[\"end\"]) or 0) then return true end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return false"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function applyTimeline(time)"
+  lines[#lines + 1] = "  for index, track in ipairs(timeline.tracks or {}) do"
+  lines[#lines + 1] = "    local emitter = systems[index]"
+  lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system then"
+  lines[#lines + 1] = "      local base = emitter.base or {}"
+  lines[#lines + 1] = "      local lanes = track.lanes or {}"
+  lines[#lines + 1] = "      local rate = evalTimeline(lanes.emissionRate, time, base.emissionRate or 0)"
+  lines[#lines + 1] = "      if not trackActive(track, time) then rate = 0 end"
+  lines[#lines + 1] = "      emitter.system:setEmissionRate(rate)"
+  lines[#lines + 1] = "      local speedScale = evalTimeline(lanes.speedScale, time, 1)"
+  lines[#lines + 1] = "      emitter.system:setSpeed((base.speedMin or 0) * speedScale, (base.speedMax or 0) * speedScale)"
+  lines[#lines + 1] = "      local sizeScale = evalTimeline(lanes.sizeScale, time, 1)"
+  lines[#lines + 1] = "      if type(base.sizes) == \"table\" and #base.sizes > 0 then"
+  lines[#lines + 1] = "        local sizes = {}"
+  lines[#lines + 1] = "        for i, value in ipairs(base.sizes) do sizes[i] = value * sizeScale end"
+  lines[#lines + 1] = "        emitter.system:setSizes(unpack(sizes))"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      emitter.system:setDirection(evalTimeline(lanes.direction, time, base.direction or 0))"
+  lines[#lines + 1] = "      emitter.system:setSpread(evalTimeline(lanes.spread, time, base.spread or 0))"
+  lines[#lines + 1] = "      emitter.system:setOffset(evalTimeline(lanes.offsetX, time, base.offsetX or 0), evalTimeline(lanes.offsetY, time, base.offsetY or 0))"
+  lines[#lines + 1] = "      emitter.opacity = evalTimeline(lanes.opacity, time, 1)"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function emitTimelineStarts(previousTime, nextTime, amount)"
+  lines[#lines + 1] = "  for index, track in ipairs(timeline.tracks or {}) do"
+  lines[#lines + 1] = "    local emitter = systems[index]"
+  lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system then"
+  lines[#lines + 1] = "      for _, clip in ipairs(track.clips or {}) do"
+  lines[#lines + 1] = "        local start = tonumber(clip.start) or 0"
+  lines[#lines + 1] = "        if previousTime <= start and nextTime >= start then"
+  lines[#lines + 1] = "          local count = math.max(0, math.floor(tonumber(clip.emit) or tonumber(amount) or emitter.emitAtStart or 0))"
+  lines[#lines + 1] = "          if count > 0 then emitter.system:emit(count) end"
+  lines[#lines + 1] = "        end"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function resetTimeline()"
+  lines[#lines + 1] = "  for _, emitter in ipairs(systems) do"
+  lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
+  lines[#lines + 1] = "      emitter.system:reset()"
+  lines[#lines + 1] = "      emitter.system:start()"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
   lines[#lines + 1] = "local function update(dt)"
+  lines[#lines + 1] = "  if timelineState.playing then"
+  lines[#lines + 1] = "    local previous = timelineState.time"
+  lines[#lines + 1] = "    local nextTime = previous + dt"
+  lines[#lines + 1] = "    if nextTime > timeline.duration then"
+  lines[#lines + 1] = "      if timeline.loop then"
+  lines[#lines + 1] = "        resetTimeline()"
+  lines[#lines + 1] = "        nextTime = nextTime % timeline.duration"
+  lines[#lines + 1] = "        emitTimelineStarts(0, nextTime)"
+  lines[#lines + 1] = "      else"
+  lines[#lines + 1] = "        nextTime = timeline.duration"
+  lines[#lines + 1] = "        timelineState.playing = false"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "    else"
+  lines[#lines + 1] = "      emitTimelineStarts(previous, nextTime)"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "    timelineState.time = nextTime"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  applyTimeline(timelineState.time)"
   lines[#lines + 1] = "  for _, emitter in ipairs(systems) do"
   lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
   lines[#lines + 1] = "      emitter.system:update(dt)"
@@ -2127,7 +2856,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "        pcall(emitter.shader.send, emitter.shader, \"u_time\", love.timer.getTime())"
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "      LG.setShader(emitter.shader)"
-  lines[#lines + 1] = "      LG.setColor(1, 1, 1, 1)"
+  lines[#lines + 1] = "      LG.setColor(1, 1, 1, emitter.opacity or 1)"
   lines[#lines + 1] = "      LG.draw(emitter.system, 0, 0)"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
@@ -2156,9 +2885,12 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "      emitter.system:start()"
   lines[#lines + 1] = "      emitter.system:setPosition(x + (emitter.x or 0), y + (emitter.y or 0))"
   lines[#lines + 1] = "      emitter.system:setDirection(r)"
-  lines[#lines + 1] = "      emitter.system:emit(amount)"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  timelineState.time = 0"
+  lines[#lines + 1] = "  timelineState.playing = true"
+  lines[#lines + 1] = "  applyTimeline(0)"
+  lines[#lines + 1] = "  emitTimelineStarts(0, 0, amount)"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "  return true"
   lines[#lines + 1] = "end"

@@ -1,15 +1,23 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type {
+  ParticleTimeline,
+  ParticleTimelineState,
   ParticleSystemPlaygroundCompositeData,
   ParticleSystemPlaygroundData,
   ParticleSystemPlaygroundProjectFile,
   ParticleSystemPlaygroundSystem,
   ParticleSystemPlaygroundTemplate,
 } from '@/types/particle-system-playground';
+import {
+  migrateParticleProject,
+  PARTICLE_PROJECT_TYPE,
+  PARTICLE_PROJECT_VERSION,
+  timelineForTemplate,
+  withNormalizedTimeline,
+} from '@/pages/particle-system-playground/timeline';
 
 type ParamValue = string | number | boolean;
-const PROJECT_TYPE = 'feather.particle-system-playground';
 
 function downloadProject(project: ParticleSystemPlaygroundProjectFile) {
   const json = JSON.stringify(project, null, 2);
@@ -23,17 +31,27 @@ function downloadProject(project: ParticleSystemPlaygroundProjectFile) {
 }
 
 function system(index: number, title: string, template: ParticleSystemPlaygroundTemplate): ParticleSystemPlaygroundSystem {
-  const texturePreset = template === 'smoke' ? 'light' : template === 'sparkles' ? 'star' : 'circle';
+  const texturePreset =
+    template === 'smoke' || template === 'dust-puff' ? 'light' : template === 'sparkles' || template === 'magic-burst' ? 'star' : 'circle';
   return {
     index,
     title,
-    blendMode: template === 'sparkles' ? 'add' : 'alpha',
+    blendMode: template === 'sparkles' || template === 'muzzle-flash' || template === 'magic-burst' ? 'add' : 'alpha',
     enabled: true,
     x: 0,
     y: 0,
     kickStartSteps: 0,
     kickStartDt: 1 / 60,
-    emitAtStart: template === 'explosion' ? 160 : 0,
+    emitAtStart:
+      template === 'explosion'
+        ? 160
+        : template === 'muzzle-flash'
+          ? 90
+          : template === 'magic-burst'
+            ? 120
+            : template === 'dust-puff'
+              ? 120
+              : 0,
     texturePath: '',
     texturePreset,
     textureFilename: `${texturePreset}.png`,
@@ -42,26 +60,57 @@ function system(index: number, title: string, template: ParticleSystemPlayground
     shaderSource: '',
     exportReady: true,
     properties: {
-      emissionRate: template === 'smoke' ? 45 : template === 'sparkles' ? 70 : 100,
+      emissionRate:
+        template === 'smoke'
+          ? 45
+          : template === 'sparkles'
+            ? 70
+            : template === 'muzzle-flash'
+              ? 900
+              : template === 'dust-puff'
+                ? 80
+                : 100,
       emitterLifetime: -1,
-      particleLifetimeMin: template === 'smoke' ? 1.2 : 0.35,
-      particleLifetimeMax: template === 'smoke' ? 3.2 : template === 'sparkles' ? 0.9 : 1.3,
-      direction: -Math.PI / 2,
-      spread: template === 'sparkles' ? Math.PI * 2 : Math.PI / 3,
-      speedMin: template === 'smoke' ? 12 : template === 'sparkles' ? 80 : 40,
-      speedMax: template === 'smoke' ? 45 : template === 'sparkles' ? 220 : 140,
-      linearAccelXMin: template === 'smoke' ? -8 : 0,
-      linearAccelYMin: template === 'smoke' ? -18 : 0,
-      linearAccelXMax: template === 'smoke' ? 8 : 0,
-      linearAccelYMax: template === 'smoke' ? -55 : 0,
+      particleLifetimeMin: template === 'smoke' || template === 'dust-puff' ? 1.2 : template === 'muzzle-flash' ? 0.08 : 0.35,
+      particleLifetimeMax:
+        template === 'smoke' || template === 'dust-puff' ? 3.2 : template === 'sparkles' ? 0.9 : template === 'muzzle-flash' ? 0.22 : 1.3,
+      direction: template === 'muzzle-flash' ? 0 : -Math.PI / 2,
+      spread: template === 'sparkles' || template === 'magic-burst' || template === 'dust-puff' ? Math.PI * 2 : template === 'muzzle-flash' ? Math.PI / 8 : Math.PI / 3,
+      speedMin:
+        template === 'smoke' || template === 'dust-puff'
+          ? 12
+          : template === 'sparkles'
+            ? 80
+            : template === 'muzzle-flash'
+              ? 260
+              : 40,
+      speedMax:
+        template === 'smoke' || template === 'dust-puff'
+          ? 45
+          : template === 'sparkles'
+            ? 220
+            : template === 'muzzle-flash'
+              ? 680
+              : 140,
+      linearAccelXMin: template === 'smoke' || template === 'dust-puff' ? -8 : 0,
+      linearAccelYMin: template === 'smoke' || template === 'dust-puff' ? -18 : 0,
+      linearAccelXMax: template === 'smoke' || template === 'dust-puff' ? 8 : 0,
+      linearAccelYMax: template === 'smoke' || template === 'dust-puff' ? -55 : 0,
       radialAccelMin: 0,
       radialAccelMax: 0,
       tangentialAccelMin: 0,
       tangentialAccelMax: 0,
       linearDampingMin: template === 'sparkles' ? 1.5 : 0,
       linearDampingMax: template === 'sparkles' ? 3 : 0,
-      sizes: template === 'smoke' ? '0.35, 1.2, 2.2' : template === 'sparkles' ? '0.45, 0.1' : '1, 0',
-      sizeVariation: template === 'smoke' ? 0.6 : template === 'sparkles' ? 0.8 : 0,
+      sizes:
+        template === 'smoke' || template === 'dust-puff'
+          ? '0.35, 1.2, 2.2'
+          : template === 'sparkles' || template === 'magic-burst'
+            ? '0.45, 0.1'
+            : template === 'muzzle-flash'
+              ? '0.6, 1.15, 0'
+              : '1, 0',
+      sizeVariation: template === 'smoke' || template === 'dust-puff' ? 0.6 : template === 'sparkles' || template === 'magic-burst' ? 0.8 : 0,
       rotationMin: 0,
       rotationMax: 0,
       relativeRotation: false,
@@ -74,6 +123,12 @@ function system(index: number, title: string, template: ParticleSystemPlayground
       colors:
         template === 'smoke'
           ? '0.35, 0.35, 0.38, 0.45, 0.15, 0.15, 0.17, 0'
+          : template === 'dust-puff'
+            ? '0.7, 0.62, 0.48, 0.55, 0.45, 0.38, 0.28, 0'
+            : template === 'muzzle-flash'
+              ? '1, 0.96, 0.45, 1, 1, 0.35, 0.05, 0'
+              : template === 'magic-burst'
+                ? '0.75, 0.35, 1, 1, 0.2, 0.85, 1, 0'
           : template === 'sparkles'
             ? '1, 0.95, 0.55, 1, 0.35, 0.75, 1, 0'
             : '1, 0.5, 0.1, 1, 1, 0.1, 0, 0',
@@ -92,8 +147,12 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
   const systems =
     template === 'explosion'
       ? [system(1, 'Core Blast', 'explosion'), system(2, 'Smoke Bloom', 'smoke'), system(3, 'Sparks', 'sparkles')]
+      : template === 'muzzle-flash'
+        ? [system(1, 'Flash Cone', 'muzzle-flash'), system(2, 'Barrel Sparks', 'sparkles')]
+        : template === 'magic-burst'
+          ? [system(1, 'Core Pulse', 'magic-burst'), system(2, 'Swirl', 'sparkles'), system(3, 'Glitter Trail', 'sparkles')]
       : [system(1, template === 'smoke' ? 'Smoke' : template === 'sparkles' ? 'Sparkles' : 'Flame', template)];
-  return {
+  const data: ParticleSystemPlaygroundCompositeData = {
     compositeType: 'scratch',
     x: 400,
     y: 300,
@@ -101,6 +160,7 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
     movement: { pattern: 'none', radius: 80, radiusX: 120, radiusY: 60, speed: 1, scale: 1 },
     systems,
   };
+  return withNormalizedTimeline({ ...data, timeline: timelineForTemplate(template, systems) }, template);
 }
 
 function updateSystemDraft(systemDraft: ParticleSystemPlaygroundSystem, key: string, value: ParamValue): ParticleSystemPlaygroundSystem {
@@ -164,6 +224,31 @@ export function useLocalParticlePlayground() {
     });
   }
 
+  function updateTimeline(timeline: ParticleTimeline) {
+    setData((current) => {
+      if (!current.data) return current;
+      return { ...current, data: withNormalizedTimeline({ ...current.data, timeline }) };
+    });
+  }
+
+  function setTimelineState(state: Partial<ParticleTimelineState>) {
+    setData((current) => {
+      if (!current.data) return current;
+      const previous = current.data.timelineState ?? { time: 0, playing: false, scrubVersion: 0 };
+      return {
+        ...current,
+        data: {
+          ...current.data,
+          timelineState: {
+            ...previous,
+            ...state,
+            scrubVersion: state.time !== undefined ? (previous.scrubVersion ?? 0) + 1 : previous.scrubVersion,
+          },
+        },
+      };
+    });
+  }
+
   function createComposite(name?: string, template: ParticleSystemPlaygroundTemplate = 'fire') {
     const nextName = name?.trim() || `Showcase ${data.composites.length + 1}`;
     setData({
@@ -198,17 +283,18 @@ export function useLocalParticlePlayground() {
       setData((current) => {
         if (!current.data) return current;
         const nextIndex = Math.max(0, ...current.data.systems.map((item) => item.index)) + 1;
+        const systems = [...current.data.systems, system(nextIndex, `Emitter ${nextIndex}`, 'sparkles')];
         return {
           ...current,
           activeSystem: nextIndex,
-          data: { ...current.data, systems: [...current.data.systems, system(nextIndex, `Emitter ${nextIndex}`, 'sparkles')] },
+          data: withNormalizedTimeline({ ...current.data, systems }),
         };
       }),
     removeSystem: (systemIndex: number) =>
       setData((current) => {
         if (!current.data || current.data.systems.length <= 1) return current;
         const systems = current.data.systems.filter((item) => item.index !== systemIndex);
-        return { ...current, activeSystem: systems[0]?.index ?? 1, data: { ...current.data, systems } };
+        return { ...current, activeSystem: systems[0]?.index ?? 1, data: withNormalizedTimeline({ ...current.data, systems }) };
       }),
     reorderSystem: (fromIndex: number, toIndex: number) =>
       setData((current) => {
@@ -219,8 +305,13 @@ export function useLocalParticlePlayground() {
         if (fromPos === -1 || toPos === -1 || fromPos === toPos) return current;
         const [moved] = systems.splice(fromPos, 1);
         systems.splice(toPos, 0, moved);
-        return { ...current, data: { ...current.data, systems } };
+        return { ...current, data: withNormalizedTimeline({ ...current.data, systems }) };
       }),
+    updateTimeline,
+    playTimeline: () => setTimelineState({ playing: true }),
+    pauseTimeline: () => setTimelineState({ playing: false }),
+    stopTimeline: () => setTimelineState({ time: 0, playing: false }),
+    seekTimeline: (time: number) => setTimelineState({ time, playing: false }),
     emit: () => toast.success('Emit sent to the showcase preview'),
     reset: () => toast.success('Preview reset'),
     kickStart: () => toast.success('Kick start sent to the showcase preview'),
@@ -276,12 +367,13 @@ export function useLocalParticlePlayground() {
     exportZip: () => toast.info('ZIP export is available in the Feather desktop app.'),
     saveProject: () => {
       if (!data.data || !data.activeComposite) return;
+      const { timelineState: _timelineState, ...compositeData } = withNormalizedTimeline(data.data);
       downloadProject({
-        type: PROJECT_TYPE,
-        version: 1,
+        type: PARTICLE_PROJECT_TYPE,
+        version: PARTICLE_PROJECT_VERSION,
         exportedAt: new Date().toISOString(),
         name: data.activeComposite,
-        composite: data.data,
+        composite: compositeData,
       });
       toast.success('Particle project saved');
     },
@@ -293,10 +385,11 @@ export function useLocalParticlePlayground() {
         toast.error('Particle project JSON is invalid');
         return;
       }
-      if (project.type !== PROJECT_TYPE || project.version !== 1 || !project.composite?.systems?.length) {
+      if (project.type !== PARTICLE_PROJECT_TYPE || (project.version !== 1 && project.version !== 2) || !project.composite?.systems?.length) {
         toast.error('Unsupported particle project file');
         return;
       }
+      project = migrateParticleProject(project);
       const nextName = project.name && !data.composites.includes(project.name)
         ? project.name
         : `${project.name || 'Imported Particles'} ${data.composites.length + 1}`;
@@ -305,7 +398,7 @@ export function useLocalParticlePlayground() {
         composites: [...data.composites, nextName],
         activeComposite: nextName,
         activeSystem: 1,
-        data: { ...project.composite, compositeType: 'scratch' },
+        data: withNormalizedTimeline({ ...project.composite, compositeType: 'scratch' }),
       });
       toast.success('Particle project imported');
     },

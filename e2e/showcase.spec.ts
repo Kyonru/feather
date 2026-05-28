@@ -61,7 +61,7 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await page.locator('header').getByRole('button', { name: /particle playground/i }).click();
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Emitter Properties' })).toBeVisible();
-  await expect(page.getByText('Rate')).toBeVisible();
+  await expect(page.getByText('Rate', { exact: true })).toBeVisible();
   await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
 });
 
@@ -76,6 +76,35 @@ test('showcase serves the real love.js shader preview target', async ({ page }) 
 
   await page.goto('/shader-graph');
   await expect(page.frameLocator('iframe[title="Shader Preview"]').locator('canvas')).toBeVisible();
+});
+
+test('particle playground timeline edits clips and keyframes in the showcase', async ({ page }) => {
+  await page.goto('/particle-system-playground');
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
+  await expect(page.getByTestId('particle-timeline-track-1')).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
+
+  await page.getByTestId('particle-timeline-track-1').click();
+  await expect(page.getByRole('button', { name: 'Select Emitter' })).toBeVisible();
+
+  await page.getByLabel('Clip End').first().fill('2.4');
+  await page.getByText('Opacity').click();
+  await page.getByRole('button', { name: /add key at playhead/i }).click();
+  await page.getByLabel('Opacity key value').first().fill('0.55');
+
+  await expect(page.getByTestId('particle-timeline-lane-opacity-1').getByText('4 keys')).toBeVisible();
+
+  await page.getByTitle('Play timeline').click();
+  await expect(page.getByTitle('Pause timeline')).toBeVisible();
+  await page.getByTitle('Pause timeline').click();
+  await page.getByTitle('Reset playhead').click();
+
+  const playhead = page.getByTestId('particle-timeline-playhead');
+  await playhead.fill('1.2');
+  await playhead.dispatchEvent('change');
+  await expect(page.getByText(/1\.20s \/ 3\.00s/)).toBeVisible();
 });
 
 test('shader graph right panel exposes root shader controls', async ({ page }) => {
