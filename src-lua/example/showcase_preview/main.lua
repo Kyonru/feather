@@ -201,7 +201,18 @@ local shaderState = {
   drawable = nil,
   shape = "circle",
   name = "shader graph",
+  zoom = 1,
 }
+
+local function normalizePreviewZoom(value)
+  value = tonumber(value) or 1
+  if value < 0.4 then
+    return 0.4
+  elseif value > 2.5 then
+    return 2.5
+  end
+  return value
+end
 
 local function applyShaderPayload(payload)
   local pixel = tostring(payload.pixel or "")
@@ -209,6 +220,7 @@ local function applyShaderPayload(payload)
   local shape = PreviewRuntime.normalizeShape(payload.previewShape)
   local color = PreviewRuntime.colorFromHex(payload.previewColor or "#ffffff")
   local name = tostring(payload.shaderName or "shader graph")
+  local zoom = normalizePreviewZoom(payload.previewZoom)
 
   local shader = nil
   if pixel ~= "" then
@@ -239,6 +251,7 @@ local function applyShaderPayload(payload)
   shaderState.drawable = drawable
   shaderState.shape = shape
   shaderState.name = name
+  shaderState.zoom = zoom
 end
 
 local function drawShaderPreview(w, h)
@@ -262,7 +275,7 @@ local function drawShaderPreview(w, h)
   local pr, pg, pb, pa = love.graphics.getColor()
   local prevLW = love.graphics.getLineWidth()
 
-  local previewSize = math.min(280, math.max(128, math.min(w, h) * 0.42))
+  local previewSize = math.min(280, math.max(128, math.min(w, h) * 0.42)) * normalizePreviewZoom(shaderState.zoom)
   local dw = drawable:getWidth()
   local scale = previewSize / (dw > 0 and dw or 256)
   local x = (w - previewSize) / 2

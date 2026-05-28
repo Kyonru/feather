@@ -29,6 +29,7 @@ export const NODE_CATEGORIES = [
   'Halftone',
   'Pixel Perfect',
   'UV',
+  'Fake 3D',
   'Effect',
   'Output',
   'Vertex',
@@ -229,6 +230,14 @@ export const NODE_TYPES = [
   // UV
   'ZoomUV',
   'FlipUV',
+  // Fake 3D
+  'SpriteTextureSample',
+  'BillboardUV',
+  'ParallaxUV',
+  'FakeDepthShade',
+  'BillboardShadow',
+  'AtlasSliceUV',
+  'StackedSpriteSample',
   // SDF
   'SDFLine',
   'SDFCircle',

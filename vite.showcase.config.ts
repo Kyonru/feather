@@ -5,6 +5,14 @@ import { readFile } from 'node:fs/promises';
 import path from 'path';
 import tailwindcss from '@tailwindcss/vite';
 
+const loveJsPreviewHeaders = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' blob: data: ws:; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'",
+};
+
 function showcaseLoveJsDevPlugin() {
   const root = __dirname;
   const outDir = path.join(root, '.showcase-dev/showcase-lovejs');
@@ -47,6 +55,7 @@ function showcaseLoveJsDevPlugin() {
         try {
           const filePath = await resolveLoveJsRequest(outDir, request.url || '/');
           response.writeHead(200, {
+            ...loveJsPreviewHeaders,
             'Content-Type': contentTypeForLoveJsPath(filePath),
             'Cache-Control': filePath.endsWith('.html') || filePath.endsWith('.love') ? 'no-cache' : 'public, max-age=3600',
           });
@@ -75,6 +84,7 @@ function showcaseLoveJsDevPlugin() {
           const html = await readFile(showcaseHtml, 'utf8');
           const transformed = await server.transformIndexHtml(request.url || '/', html);
           response.writeHead(200, {
+            ...loveJsPreviewHeaders,
             'Content-Type': 'text/html',
             'Cache-Control': 'no-cache',
           });
@@ -110,23 +120,11 @@ export default defineConfig({
     watch: {
       ignored: ['**/.showcase-dev/**'],
     },
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'same-origin',
-      'Content-Security-Policy':
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' blob: data: ws:; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'",
-    },
+    headers: loveJsPreviewHeaders,
   },
   preview: {
     port: 4174,
     strictPort: true,
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'same-origin',
-      'Content-Security-Policy':
-        "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' blob: data:; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'",
-    },
+    headers: loveJsPreviewHeaders,
   },
 });

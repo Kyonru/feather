@@ -6,13 +6,13 @@ The desktop editor owns the graph UI and GLSL code generation. This runtime plug
 
 The node library is inspired by common visual shader graph systems, including Unity Shader Graph's category model: Artistic, Channel, Input, Math, Procedural, Utility, and UV. Feather's implementation is intentionally smaller and LÖVE-focused.
 
-Several higher-level nodes and presets are also inspired by common VFX Shader Graph recipes, including texture strength, opacity, dissolve masks, water displacement, and vertex displacement. Feather includes both a self-contained procedural water preset and a texture-noise water preset that uses an uploaded color noise texture. Unity-specific camera depth effects are not copied directly because LÖVE 2D shaders do not expose Unity's scene depth buffer in the same way.
+Several higher-level nodes and presets are also inspired by common VFX Shader Graph recipes, including texture strength, opacity, dissolve masks, water displacement, fake 2.5D sprite cards, and vertex displacement. Feather includes both a self-contained procedural water preset and a texture-noise water preset that uses an uploaded color noise texture. Unity-specific camera depth effects are not copied directly because LÖVE 2D shaders do not expose Unity's scene depth buffer in the same way.
 
 ## Workflow
 
 1. Open **Shader Graph** in Feather.
 2. On first open, Feather loads the **Water Shimmer** example so there is a complete graph ready to validate, edit, and apply.
-3. Drag nodes from the palette onto the canvas. Common sections stay open by default, while specialized sections such as Complex, Quaternion, Pattern, Pixel Perfect, Vertex, and SDF start collapsed so the palette is easier to scan.
+3. Drag nodes from the palette onto the canvas. Common sections, including Fake 3D, stay open by default, while specialized sections such as Complex, Quaternion, Pattern, Pixel Perfect, Vertex, and SDF start collapsed so the palette is easier to scan.
 4. Connect compatible ports by type.
 5. Connect the final `vec4` color into **Fragment Output**.
 6. Use **Custom Function** when a graph needs a small hand-written GLSL function. Function parameters become input ports; the return value and `out` parameters become output ports.
@@ -43,9 +43,9 @@ Use **Preview** as an inline RGBA probe while building effect chains. It accepts
 
 ### Showcase development
 
-`npm run showcase:dev` serves the real love.js preview target from `.showcase-dev/showcase-lovejs` and builds a fresh `showcase.love` bundle from the standalone preview example plus the shared Shader Graph preview runtime. The dev server uses the same `/showcase-lovejs/index.html?g=showcase.love&v=11.5` path as the static showcase build so Preview nodes exercise the LÖVE code path during local browser development.
+`npm run dev`, Tauri dev, and `npm run showcase:dev` serve the same real love.js preview target from `.showcase-dev/showcase-lovejs` when a love.js player is available. The helper builds a fresh `showcase.love` bundle from the standalone preview example plus the shared Shader Graph preview runtime. The dev servers use the same `/showcase-lovejs/index.html?g=showcase.love&v=11.5` path and serve it with the isolation headers love.js needs, so Preview nodes exercise the LÖVE code path during local app and browser development.
 
-If the love.js player is not already available, the showcase dev server looks at `SHOWCASE_LOVEJS_DIR`, `vendor/love.js`, and `.showcase-vendor/love.js`, then attempts to clone `https://github.com/2dengine/love.js`. Set `SHOWCASE_LOVEJS_SKIP_FETCH=1` when working offline and provide `SHOWCASE_LOVEJS_DIR` manually.
+If the love.js player is not already available, the dev server looks at `SHOWCASE_LOVEJS_DIR`, `vendor/love.js`, and `.showcase-vendor/love.js`, then attempts to clone `https://github.com/2dengine/love.js`. Set `SHOWCASE_LOVEJS_SKIP_FETCH=1` when working offline and provide `SHOWCASE_LOVEJS_DIR` manually. If no real player is available, Feather falls back to the lightweight `public/showcase-lovejs` bridge.
 
 ### Custom
 
@@ -238,6 +238,20 @@ UV nodes transform texture coordinates before sampling.
 - `Rotate UV`: rotate UVs around the center.
 - `Twirl UV`: swirl UVs toward the center.
 - `Polar Coordinates`: convert UVs into radius/angle space.
+
+### Fake 3D
+
+Fake 3D nodes create 2.5D sprite illusions without generating mesh geometry. They work by warping UVs, sampling the current sprite texture at those warped coordinates, and layering simple depth, shadow, and packed-atlas tricks. Use them for tilted cards, parallax sprites, chunky stacked-sprite looks, and pseudo 3D Sprite-style effect experiments that still need to run as regular LÖVE shaders.
+
+- `Sprite Texture Sample`: samples LÖVE's current sprite texture `tex` at a custom UV and masks alpha, which makes it the usual sampler after `Billboard UV` or `Parallax UV`.
+- `Billboard UV`: projects regular sprite UVs into a tilted card; outputs the projected UV, an inside mask, and a 0-1 depth value.
+- `Parallax UV`: offsets UVs by a height or mask value and a view direction.
+- `Fake Depth Shade`: shades a color from a depth value using screen derivatives, a simple light direction, ambient light, and rim strength.
+- `Billboard Shadow`: creates a soft rectangular card shadow that can be composited behind a tilted sprite.
+- `Atlas Slice UV`: maps local UVs into one slice of a packed atlas; slices are laid out left-to-right, top-to-bottom.
+- `Stacked Sprite Sample`: composites up to 16 packed atlas slices back-to-front and outputs RGBA, mask, and depth. Keep the `Layers` value at or below the real number of atlas slices; extra slices are clamped for preview and game performance.
+
+For a simple fake card, connect `Texture Coords -> Billboard UV -> Sprite Texture Sample -> Fake Depth Shade`, then composite `Billboard Shadow` behind the shaded sprite before `Fragment Output`. For stacked sprites, upload a packed atlas with `Texture Input`, connect it to `Stacked Sprite Sample`, and set `Columns`, `Rows`, and `Layers` to match the atlas layout.
 
 ### SDF
 

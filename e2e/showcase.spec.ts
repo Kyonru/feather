@@ -163,6 +163,98 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
   await expect(page.getByText(/vec4 v_mix_out/i)).toBeVisible();
 });
 
+test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }) => {
+  await page.goto('/shader-graph');
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+
+  const palette = page.getByTestId('shader-node-palette');
+  await palette.getByLabel('Search shader nodes').fill('billboard');
+  await expect(palette.getByRole('button', { name: 'Billboard UV' })).toBeVisible();
+  await expect(palette.getByRole('button', { name: 'Billboard Shadow' })).toBeVisible();
+
+  await palette.getByLabel('Search shader nodes').fill('parallax');
+  await expect(palette.getByRole('button', { name: 'Parallax UV' })).toBeVisible();
+
+  await palette.getByLabel('Search shader nodes').fill('stack');
+  await expect(palette.getByRole('button', { name: 'Stacked Sprite Sample' })).toBeVisible();
+
+  const nodesBeforeInsert = await page.locator('.react-flow__node').count();
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 320, y: 260 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('billboard uv');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^billboard uv fake 3d$/i }).click();
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 1);
+
+  const fake3dGraph = {
+    type: 'feather.shader-graph',
+    version: 2,
+    exportedAt: new Date('2026-05-28T00:00:00.000Z').toISOString(),
+    shaderName: 'fake-3d-billboard-flow',
+    playgroundTarget: null,
+    nodes: [
+      { id: 'uv', type: 'shaderNode', position: { x: 0, y: 0 }, data: { label: 'Source UVs', nodeType: 'TextureCoords' } },
+      {
+        id: 'billboard',
+        type: 'shaderNode',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Tilt Sprite',
+          nodeType: 'BillboardUV',
+          values: { tilt: [0.28, -0.18], perspective: 0.45, scale: [0.92, 0.92], pivot: [0.5, 0.5] },
+        },
+      },
+      { id: 'sample', type: 'shaderNode', position: { x: 560, y: 0 }, data: { label: 'Sample Tilted Sprite', nodeType: 'SpriteTextureSample' } },
+      {
+        id: 'shade',
+        type: 'shaderNode',
+        position: { x: 840, y: 0 },
+        data: {
+          label: 'Light Tilt',
+          nodeType: 'FakeDepthShade',
+          values: { lightDir: [-0.45, -0.7], ambient: 0.82, lightStrength: 0.35, rimStrength: 0.2 },
+        },
+      },
+      {
+        id: 'shadow',
+        type: 'shaderNode',
+        position: { x: 560, y: 260 },
+        data: {
+          label: 'Card Shadow',
+          nodeType: 'BillboardShadow',
+          values: { offset: [0.06, 0.08], softness: 0.16, opacity: 0.36, color: [0, 0, 0, 1] },
+        },
+      },
+      { id: 'composite', type: 'shaderNode', position: { x: 1120, y: 130 }, data: { label: 'Composite Shadow', nodeType: 'CompositeAlpha', values: { mode: 0 } } },
+      { id: 'out', type: 'shaderNode', position: { x: 1400, y: 150 }, data: { label: 'Final Color', nodeType: 'FragmentOutput' } },
+    ],
+    edges: [
+      { id: 'uv:out->billboard:uv', source: 'uv', sourceHandle: 'out', target: 'billboard', targetHandle: 'uv' },
+      { id: 'billboard:uv->sample:uv', source: 'billboard', sourceHandle: 'uv', target: 'sample', targetHandle: 'uv' },
+      { id: 'billboard:mask->sample:mask', source: 'billboard', sourceHandle: 'mask', target: 'sample', targetHandle: 'mask' },
+      { id: 'sample:rgba->shade:color', source: 'sample', sourceHandle: 'rgba', target: 'shade', targetHandle: 'color' },
+      { id: 'billboard:depth->shade:depth', source: 'billboard', sourceHandle: 'depth', target: 'shade', targetHandle: 'depth' },
+      { id: 'billboard:mask->shade:mask', source: 'billboard', sourceHandle: 'mask', target: 'shade', targetHandle: 'mask' },
+      { id: 'uv:out->shadow:uv', source: 'uv', sourceHandle: 'out', target: 'shadow', targetHandle: 'uv' },
+      { id: 'billboard:mask->shadow:mask', source: 'billboard', sourceHandle: 'mask', target: 'shadow', targetHandle: 'mask' },
+      { id: 'billboard:depth->shadow:depth', source: 'billboard', sourceHandle: 'depth', target: 'shadow', targetHandle: 'depth' },
+      { id: 'shade:rgba->composite:a', source: 'shade', sourceHandle: 'rgba', target: 'composite', targetHandle: 'a' },
+      { id: 'shadow:rgba->composite:b', source: 'shadow', sourceHandle: 'rgba', target: 'composite', targetHandle: 'b' },
+      { id: 'composite:out->out:color', source: 'composite', sourceHandle: 'out', target: 'out', targetHandle: 'color' },
+    ],
+    subgraphs: [],
+  };
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'fake-3d-billboard-flow.feathershgh',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(fake3dGraph)),
+  });
+
+  await expect(page.getByTestId('shader-diagnostics')).toHaveCount(0);
+  await expect(page.getByText(/vec2 v_billboard_uv =/i)).toBeVisible();
+  await expect(page.getByText(/vec4 v_sample_rgba = Texel\(tex/i)).toBeVisible();
+  await expect(page.getByText(/vec4 v_shade_rgba =/i)).toBeVisible();
+});
+
 test('shader graph surfaces compiler diagnostics for broken imports', async ({ page }) => {
   await page.goto('/shader-graph');
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
