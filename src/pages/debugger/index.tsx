@@ -44,9 +44,7 @@ import {
 } from 'lucide-react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useLanguage } from '@/hooks/use-config';
-import oneLight from '@/assets/theme/light';
-import onDark from '@/assets/theme/dark';
-import { useTheme } from '@/hooks/use-theme';
+import { useSyntaxTheme } from '@/hooks/use-theme';
 
 interface FileEntry {
   name: string;
@@ -208,8 +206,7 @@ function SourceView({
   const scrollTargetRef = useRef<HTMLDivElement>(null);
   const matchTargetRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const theme = useTheme();
-  const style = theme === 'dark' ? onDark : oneLight;
+  const style = useSyntaxTheme();
   const language = useLanguage();
 
   const [search, setSearch] = useState('');
@@ -445,7 +442,6 @@ function SourceView({
                     language={language}
                     style={{
                       ...style,
-                      // @ts-expect-error react-syntax-highlighter's types are incomplete
                       hljs: {
                         ...style.hljs,
                         background: 'transparent',

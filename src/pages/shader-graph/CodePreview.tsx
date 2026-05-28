@@ -8,9 +8,7 @@ import { type ShaderPreviewColor, useShaderGraph } from '@/hooks/use-shader-grap
 import type { ShaderParameter, ShaderPreviewShape } from '@/types/shader-graph';
 import { useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
-import { useTheme } from '@/hooks/use-theme';
-import oneLight from '@/assets/theme/light';
-import onDark from '@/assets/theme/dark';
+import { useSyntaxTheme } from '@/hooks/use-theme';
 import { cn } from '@/utils/styles';
 import { toast } from 'sonner';
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, FolderOpenIcon, XIcon } from 'lucide-react';
@@ -136,8 +134,7 @@ export function CodePreview({
     clearPreview,
     playgroundTarget,
   } = useShaderGraph();
-  const theme = useTheme();
-  const hlTheme = theme === 'dark' ? onDark : oneLight;
+  const hlTheme = useSyntaxTheme();
   const [copied, setCopied] = useState(false);
   const previewShape = useShaderGraphStore((s) => s.previewShape);
   const previewColor = useShaderGraphStore((s) => s.previewColor);

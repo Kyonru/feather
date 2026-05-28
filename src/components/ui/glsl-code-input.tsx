@@ -1,8 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { useTheme } from '@/hooks/use-theme';
-import oneLight from '@/assets/theme/light';
-import onDark from '@/assets/theme/dark';
+import { useSyntaxTheme } from '@/hooks/use-theme';
 import { cn } from '@/utils/styles';
 
 interface GlslCodeInputProps {
@@ -30,8 +28,7 @@ export function GlslCodeInput({
   maxHeight = 420,
 }: GlslCodeInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const theme = useTheme();
-  const highlightTheme = theme === 'dark' ? onDark : oneLight;
+  const highlightTheme = useSyntaxTheme();
 
   const resize = () => {
     const el = textareaRef.current;

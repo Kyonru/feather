@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { MainFeatureId } from '@/constants/main-features';
+import { normalizeThemePreference, type ThemePreference } from '@/assets/theme/registry';
 
 type SettingsStoreState = {
   open: boolean;
-  theme: 'system' | 'light' | 'dark';
+  theme: ThemePreference;
   // Port the Feather desktop WS server listens on (games connect to this)
   port: number;
   textEditorPath: string;
@@ -26,7 +27,7 @@ type SettingsStoreState = {
 type SettingsStoreActions = {
   setIsLatestVersion: (isLatestVersion: boolean) => void;
   setOpen: (open: boolean) => void;
-  setTheme: (theme: 'system' | 'light' | 'dark') => void;
+  setTheme: (theme: ThemePreference) => void;
   setPort: (port: number) => void;
   setTextEditorPath: (textEditorPath: string) => void;
   setCliPath: (cliPath: string) => void;
@@ -79,7 +80,7 @@ export const useSettingsStore = create<SettingsStore>()(
       ...defaultSettings,
       setIsLatestVersion: (isLatestVersion: boolean) => set({ isLatestVersion }),
       setOpen: (open: boolean) => set({ open }),
-      setTheme: (theme: 'system' | 'light' | 'dark') => set({ theme }),
+      setTheme: (theme: ThemePreference) => set({ theme: normalizeThemePreference(theme) }),
       setPort: (port: number) => set({ port }),
       setTextEditorPath: (textEditorPath: string) => set({ textEditorPath }),
       setCliPath: (cliPath: string) => set({ cliPath }),
@@ -117,6 +118,17 @@ export const useSettingsStore = create<SettingsStore>()(
             : [...state.hiddenPlugins, pluginId],
         })),
     }),
-    { name: 'settings-storage' },
+    {
+      name: 'settings-storage',
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<SettingsStore> | undefined;
+
+        return {
+          ...currentState,
+          ...persisted,
+          theme: normalizeThemePreference(persisted?.theme),
+        };
+      },
+    },
   ),
 );

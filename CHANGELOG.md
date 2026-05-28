@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph connected-game previews now dedupe and throttle live updates while the runtime caches preview shaders and draws through a capped overlay canvas.
 - Showcase dev now serves a generated real love.js preview target so Shader Graph Preview nodes exercise the same LÖVE path during browser development.
 - Shader Graph Preview nodes now keep a stable embedded preview aspect ratio instead of stretching to an arbitrary fixed height.
+- Added all 11 Noctis theme variants as optional app themes with matching syntax highlighting while keeping Feather Light, Feather Dark, and System defaults.
+
+### Fixed
+
+- Fixed log type badges so their text and icons keep readable contrast across light, dark, and Noctis themes.
 
 ### Tests
 
@@ -33,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
 - Added focused coverage for Shader Graph game-preview throttling and runtime preview caching.
 - Expanded showcase e2e coverage for Shader Graph Preview node aspect ratio.
+- Added app e2e and focused registry coverage for Noctis theme selection, persistence, and fallback behavior.
+- Added app e2e coverage for log type badge contrast in dark themes.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 

@@ -1,10 +1,14 @@
 import { useSettingsStore } from '@/store/settings';
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
+import { resolveTheme } from '@/assets/theme/registry';
+import { useSystemThemeMode } from '@/hooks/use-theme';
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const theme = useSettingsStore((state) => state.theme);
+  const systemMode = useSystemThemeMode();
+  const resolvedTheme = resolveTheme(theme, systemMode);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = window.document.documentElement;
 
     if (!root.classList.add || !root.classList) {
@@ -12,17 +16,14 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     root.classList.remove('light', 'dark');
+    root.classList.add(resolvedTheme.mode);
+    root.dataset.theme = resolvedTheme.id;
+    root.style.colorScheme = resolvedTheme.mode;
 
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-
-      root.classList.add(systemTheme);
-
-      return;
+    for (const [name, value] of Object.entries(resolvedTheme.variables)) {
+      root.style.setProperty(`--${name}`, value);
     }
-
-    root.classList.add(theme);
-  }, [theme]);
+  }, [resolvedTheme]);
 
   return <>{children}</>;
 };

@@ -3,10 +3,6 @@ import { useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import {
-  CircleXIcon,
-  FeatherIcon,
-  FileClockIcon,
-  FileQuestionMarkIcon,
   PauseIcon,
   PlayIcon,
   ScreenShareIcon,
@@ -15,8 +11,6 @@ import {
   UploadIcon,
   ChevronsDownIcon,
 } from 'lucide-react';
-import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,9 +25,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { LogTypeBadge } from '@/components/log-type-badge';
 import type { Log } from '@/hooks/use-logs';
 import { LogType } from '@/hooks/use-logs';
-import { useConfigStore } from '@/store/config';
 import { cn } from '@/utils/styles';
 import { isWeb } from '@/utils/platform';
 
@@ -66,53 +60,6 @@ function relativeTime(seconds: number) {
   if (diff < 60) return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   return `${Math.floor(diff / 3600)}h`;
-}
-
-export function LogTypeBadge({ type }: { type: string }) {
-  const config = useConfigStore((state) => state.config);
-
-  let color = 'bg-gray-700 dark:bg-gray-400';
-  let Icon = <FileQuestionMarkIcon className={color} />;
-
-  if (type === 'output') {
-    color = 'bg-cyan-700 dark:bg-cyan-400';
-    Icon = <FileClockIcon className={color} />;
-  }
-
-  if (type === 'error' || type === 'fatal') {
-    color = 'bg-red-700 dark:bg-red-400';
-    Icon = <CircleXIcon className={color} />;
-  }
-
-  if (isFeatherEvent(type)) {
-    color = 'bg-yellow-700 dark:bg-yellow-400';
-    Icon = <FeatherIcon className={color} />;
-  }
-
-  if (config?.plugins) {
-    const pluginKey = Object.keys(config.plugins).find((key) => {
-      const pluginType = config.plugins[key].type;
-      return pluginType ? type.includes(pluginType) : false;
-    });
-
-    if (pluginKey) {
-      const plugin = config.plugins[pluginKey];
-      if (plugin.icon) {
-        Icon = (
-          <span className="inline-flex w-3">
-            <DynamicIcon className={cn(color, 'size-3')} name={plugin.icon as IconName} />
-          </span>
-        );
-      }
-    }
-  }
-
-  return (
-    <Badge variant="default" className={`${color} h-7 min-w-16 justify-center px-1.5 text-[10px]`}>
-      {Icon}
-      {type}
-    </Badge>
-  );
 }
 
 export function LogTable({
@@ -322,7 +269,7 @@ export function LogTable({
                 }}
                 onClick={() => onSelect(log.id)}
               >
-                <LogTypeBadge type={log.type} />
+                <LogTypeBadge type={log.type} className="h-7" />
                 <span className="flex min-w-0 items-center gap-2">
                   {log.count > 1 && (
                     <span className="shrink-0 rounded-full bg-muted-foreground/20 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">

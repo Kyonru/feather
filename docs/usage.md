@@ -62,6 +62,14 @@ Actions that need a live session or enabled plugin stay visible but disabled wit
 
 ---
 
+## Appearance
+
+Open **Settings → General → Appearance** to choose the app theme. Feather keeps the default **System**, **Feather Light**, and **Feather Dark** options, and also includes all Noctis variants: Lux, Hibernus, Lilac, Noctis, Azureus, Bordo, Obscuro, Sereno, Uva, Viola, and Minimus.
+
+Theme choices update the app chrome and syntax-highlighted code surfaces, including Console output, Debugger source views, shader code, and Lua/GLSL editors.
+
+---
+
 ## Session Health
 
 Open **Session** first when you want to know what Feather thinks is happening. The page summarizes connection state, runtime/API version, project roots, capabilities, enabled or incompatible plugins, Console/API-key status, Hot Reload state, debugger state, package lockfile status, and recent performance signals.

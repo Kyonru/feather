@@ -1,8 +1,6 @@
 import { useEffect, useRef } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { useTheme } from '@/hooks/use-theme';
-import oneLight from '@/assets/theme/light';
-import onDark from '@/assets/theme/dark';
+import { useSyntaxTheme } from '@/hooks/use-theme';
 import { cn } from '@/utils/styles';
 
 type Props = {
@@ -23,8 +21,7 @@ const codeStyle: React.CSSProperties = {
 export function ShaderCodeInput({ value, onChange, placeholder, className }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
-  const theme = useTheme();
-  const highlightTheme = theme === 'dark' ? onDark : oneLight;
+  const highlightTheme = useSyntaxTheme();
   const lineCount = Math.max(1, value.split('\n').length);
 
   const syncScroll = () => {

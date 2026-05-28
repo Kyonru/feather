@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { useTheme } from '@/hooks/use-theme';
-import oneLight from '@/assets/theme/light';
-import onDark from '@/assets/theme/dark';
+import { useSyntaxTheme } from '@/hooks/use-theme';
 import { cn } from '@/utils/styles';
 
 export type LuaCompletionItem = {
@@ -46,8 +44,7 @@ export function LuaCodeInput({
   completions = [],
 }: LuaCodeInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const theme = useTheme();
-  const highlightTheme = theme === 'dark' ? onDark : oneLight;
+  const highlightTheme = useSyntaxTheme();
   const [completionIndex, setCompletionIndex] = useState(0);
   const [completionOpen, setCompletionOpen] = useState(false);
 

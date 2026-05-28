@@ -17,7 +17,8 @@ import { useSessionStore } from '@/store/session';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import { toast } from 'sonner';
-import { LogTable, LogTypeBadge } from './LogTable';
+import { LogTypeBadge } from '@/components/log-type-badge';
+import { LogTable } from './LogTable';
 
 function stripPrefix(trace: string, dir: string): string {
   const prefix = dir.replace(/[/\\]+$/, '') + '/';

@@ -36,9 +36,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/utils/styles';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { useTheme } from '@/hooks/use-theme';
-import oneLight from '@/assets/theme/light';
-import onDark from '@/assets/theme/dark';
+import { useSyntaxTheme } from '@/hooks/use-theme';
 import { copyToClipboardWithMeta } from '@/utils/strings';
 import { toast } from 'sonner';
 
@@ -313,8 +311,7 @@ function ConsoleOutput({
   onInspect: (handle: string, path: string[]) => void;
   onPin: (expression: string) => void;
 }) {
-  const theme = useTheme();
-  const highlightTheme = theme === 'dark' ? onDark : oneLight;
+  const highlightTheme = useSyntaxTheme();
   const [expanded, setExpanded] = useState(false);
   const resultText = buildResultText(response);
   const hasLongOutput = resultText.length > LONG_OUTPUT_LIMIT;

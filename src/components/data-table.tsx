@@ -16,20 +16,14 @@ import {
 } from '@tanstack/react-table';
 import { open } from '@tauri-apps/plugin-dialog';
 import { TableVirtuoso } from 'react-virtuoso';
-import { Badge } from '@/components/ui/badge';
+import { LogTypeBadge } from '@/components/log-type-badge';
 import { TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/utils/styles';
-import { Log, LogType } from '@/hooks/use-logs';
+import { Log } from '@/hooks/use-logs';
 import { isWeb } from '@/utils/platform';
 import { Input } from './ui/input';
-import { useConfigStore } from '@/store/config';
-import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import {
-  CircleXIcon,
-  FeatherIcon,
-  FileClockIcon,
-  FileQuestionMarkIcon,
   PauseIcon,
   PlayIcon,
   ScreenShareIcon,
@@ -60,72 +54,11 @@ const TableComponent = forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTab
 );
 TableComponent.displayName = 'TableComponent';
 
-export const BadgeType = ({ type }: { type: string }) => {
-  const config = useConfigStore((state) => state.config);
-
-  let color = 'bg-gray-700 dark:bg-gray-400';
-  let Icon = <FileQuestionMarkIcon className={color} />;
-
-  if (type === 'output') {
-    color = 'bg-cyan-700 dark:bg-cyan-400';
-    Icon = <FileClockIcon className={color} />;
-  }
-
-  if (type === 'error' || type === 'fatal') {
-    color = 'bg-red-700 dark:bg-red-400';
-    Icon = <CircleXIcon className={color} />;
-  }
-
-  if (type === LogType.FEATHER_FINISH || type === LogType.FEATHER_START) {
-    color = 'bg-yellow-700 dark:bg-yellow-400';
-    Icon = <FeatherIcon className={color} />;
-  }
-
-  if (config && config.plugins) {
-    const pluginKey = Object.keys(config.plugins).find((key) => {
-      if (!config.plugins[key].type) {
-        return false;
-      }
-
-      return type.includes(config.plugins[key].type);
-    });
-
-    if (pluginKey) {
-      const plugin = config.plugins[pluginKey];
-
-      if (plugin.icon) {
-        Icon = (
-          <div
-            style={{
-              width: 12,
-            }}
-          >
-            <DynamicIcon className={cn(color, 'size-3')} name={plugin.icon as IconName} />
-          </div>
-        );
-      }
-
-      // TODO: Fix color not being applied
-      // if (plugin.color) {
-      //   const temp = plugin.color.trim().toLowerCase();
-      //   color = ` bg-[${temp}]`;
-      // }
-    }
-  }
-
-  return (
-    <Badge variant="default" className={`${color} h-8 min-w-16 px-1.5`}>
-      {Icon}
-      {type}
-    </Badge>
-  );
-};
-
 export const columns: ColumnDef<Log>[] = [
   {
     accessorKey: 'type',
     header: 'Type',
-    cell: ({ row }) => <BadgeType type={row.original.type} />,
+    cell: ({ row }) => <LogTypeBadge type={row.original.type} className="h-8" />,
     size: 200,
     enableColumnFilter: true,
   },

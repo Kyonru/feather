@@ -1,10 +1,8 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import oneLight from '@/assets/theme/light';
-import onDark from '@/assets/theme/dark';
 
 import { cn } from '@/utils/styles';
-import { useTheme } from '@/hooks/use-theme';
+import { useSyntaxTheme } from '@/hooks/use-theme';
 import { useLanguage } from '@/hooks/use-config';
 
 export function LuaBlock({
@@ -16,8 +14,7 @@ export function LuaBlock({
   className?: string;
   showLineNumbers?: boolean;
 }) {
-  const theme = useTheme();
-  const style = theme === 'dark' ? onDark : oneLight;
+  const style = useSyntaxTheme();
 
   const language = useLanguage();
 
@@ -27,8 +24,6 @@ export function LuaBlock({
         <SyntaxHighlighter
           wrapLines
           language={language}
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-expect-error
           style={style}
           showLineNumbers={showLineNumbers}
         >

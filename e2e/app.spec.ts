@@ -951,6 +951,38 @@ test('persists settings changes across reloads', async ({ page }) => {
   await expect(page.getByLabel('Show hidden sidebar features in Command Center')).toBeChecked();
 });
 
+test('persists Noctis theme variants and can return to system mode', async ({ page }) => {
+  await seedNoSession(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
+  await page.getByRole('tab', { name: 'General' }).click();
+
+  await page.getByRole('combobox', { name: 'App Theme' }).click();
+  await page.getByRole('option', { name: 'Noctis Uva' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'noctis-uva');
+  await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+    .toBe('#292640');
+
+  await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Close' }).first().click();
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'noctis-uva');
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+    .toBe('#292640');
+
+  await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
+  await page.getByRole('tab', { name: 'General' }).click();
+  await page.getByRole('combobox', { name: 'App Theme' }).click();
+  await page.getByRole('option', { name: 'System' }).click();
+
+  const expectedSystemTheme = await page.evaluate(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+  );
+  await expect(page.locator('html')).toHaveAttribute('data-theme', expectedSystemTheme);
+  await expect(page.locator('html')).toHaveClass(new RegExp(`\\b${expectedSystemTheme}\\b`));
+});
+
 test('keeps tool routes gated until a session is selected', async ({ page }) => {
   await page.goto('/assets');
 
@@ -1295,6 +1327,51 @@ test('activates a persisted session and renders core tools', async ({ page }) =>
   await expect(page.getByText('Preview on')).toBeVisible();
   await expect(page.getByText('Texture memory')).toBeVisible();
   await page.screenshot({ path: 'test-results/assets-layout-narrow.png', fullPage: true });
+});
+
+test('log type badges keep readable foreground colors in dark themes', async ({ page }) => {
+  await seedSession(page);
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'settings-storage',
+      JSON.stringify({
+        state: {
+          theme: 'dark',
+        },
+        version: 0,
+      }),
+    );
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'logs'], [
+      {
+        id: 'feather-start-contrast',
+        count: 1,
+        time: Date.now() / 1000,
+        type: 'feather:start',
+        str: 'Feather started',
+        trace: '',
+      },
+    ]);
+  });
+
+  const badge = page.locator('[data-slot="badge"]').filter({ hasText: 'feather:start' }).first();
+  await expect(badge).toBeVisible();
+  const colors = await badge.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      color: style.color,
+    };
+  });
+
+  expect(colors.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(colors.color).not.toBe('rgb(255, 255, 255)');
 });
 
 test('assets degraded matrix handles empty and partial catalogs', async ({ page }) => {

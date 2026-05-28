@@ -18,13 +18,27 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettingsStore } from '@/store/settings';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { MAIN_FEATURES, type MainFeatureId } from '@/constants/main-features';
 import { useConfig } from '@/hooks/use-config';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { MobileConnection } from '@/components/mobile-connection';
 import { openUrl } from '@/utils/linking';
+import {
+  normalizeThemePreference,
+  themeSelectorGroups,
+  type ThemeSelectorOption,
+} from '@/assets/theme/registry';
 import { version as appVersion } from '../../../package.json';
 import {
   ActivityIcon,
@@ -134,26 +148,61 @@ function SettingsTabContent({ value, children }: { value: string; children: Reac
   );
 }
 
+function ThemeSwatches({ option }: { option: Pick<ThemeSelectorOption, 'swatches'> }) {
+  return (
+    <span className="flex shrink-0 items-center gap-0.5" aria-hidden="true">
+      {option.swatches.map((swatch, index) => (
+        <span
+          key={`${swatch}-${index}`}
+          className="size-3 rounded-full border border-black/10 dark:border-white/15"
+          style={{ backgroundColor: swatch }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function ThemeOptionLabel({ option }: { option: ThemeSelectorOption }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <ThemeSwatches option={option} />
+      <span className="truncate">{option.label}</span>
+    </span>
+  );
+}
+
 function ThemeToggle() {
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
+  const selectedTheme = normalizeThemePreference(theme);
+
   return (
     <div className="grid gap-2">
-      <Label>App Theme</Label>
-      <ToggleGroup
-        type="single"
-        value={theme}
-        onValueChange={(value: 'dark' | 'light' | 'system') => {
-          if (value && (value === 'system' || value === 'light' || value === 'dark')) {
-            setTheme(value);
-          }
+      <Label htmlFor="setting-theme">App Theme</Label>
+      <Select
+        value={selectedTheme}
+        onValueChange={(value) => {
+          setTheme(normalizeThemePreference(value));
         }}
-        className="justify-start"
       >
-        <ToggleGroupItem value="light">Light</ToggleGroupItem>
-        <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
-        <ToggleGroupItem value="system">System</ToggleGroupItem>
-      </ToggleGroup>
+        <SelectTrigger id="setting-theme" className="w-full justify-between">
+          <SelectValue aria-label={selectedTheme} />
+        </SelectTrigger>
+        <SelectContent className="max-h-96">
+          {themeSelectorGroups.map((group, index) => (
+            <SelectGroup key={group.label}>
+              <SelectLabel>{group.label}</SelectLabel>
+              {group.options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <ThemeOptionLabel option={option} />
+                </SelectItem>
+              ))}
+              {index < themeSelectorGroups.length - 1 && <SelectSeparator />}
+            </SelectGroup>
+          ))}
+        </SelectContent>
+      </Select>
+      <FieldDescription>The selected theme styles Feather chrome and syntax-highlighted code surfaces.</FieldDescription>
     </div>
   );
 }
