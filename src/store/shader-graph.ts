@@ -26,6 +26,7 @@ type ShaderGraphStore = {
   previewShape: ShaderPreviewShape;
   previewColor: string;
   previewBaseTexture: ShaderTextureUpload | null;
+  previewZoom: number;
   textureUploads: Record<string, ShaderTextureUpload>;
   lastGeneratedGlsl: GeneratedGlsl | null;
   validationStatus: ValidationStatus;
@@ -57,6 +58,7 @@ type ShaderGraphStore = {
   setPreviewShape: (shape: ShaderPreviewShape) => void;
   setPreviewColor: (color: string) => void;
   setPreviewBaseTexture: (texture: ShaderTextureUpload | null) => void;
+  setPreviewZoom: (zoom: number) => void;
   setTextureUpload: (nodeId: string, upload: ShaderTextureUpload) => void;
   clearTextureUpload: (nodeId: string) => void;
   setLastGlsl: (glsl: GeneratedGlsl | null) => void;
@@ -265,6 +267,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       previewShape: 'circle',
       previewColor: '#ffffff',
       previewBaseTexture: null,
+      previewZoom: 1,
       textureUploads: {},
       lastGeneratedGlsl: null,
       validationStatus: 'idle',
@@ -398,6 +401,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       setPreviewShape: (previewShape) => set({ previewShape }),
       setPreviewColor: (previewColor) => set({ previewColor }),
       setPreviewBaseTexture: (previewBaseTexture) => set({ previewBaseTexture }),
+      setPreviewZoom: (previewZoom) => set({ previewZoom: Math.max(0.4, Math.min(2.5, previewZoom)) }),
       setTextureUpload: (nodeId, upload) =>
         set((s) => ({
           textureUploads: {

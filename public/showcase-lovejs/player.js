@@ -2,6 +2,8 @@
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl', { alpha: false, antialias: true });
   document.body.appendChild(canvas);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   let payload = { tool: 'idle' };
   let tick = 0;
@@ -116,7 +118,8 @@ void main() {
   }
 
   function ensureQuadBuffer(width, height) {
-    const size = Math.max(32, Math.min(width, height) * 0.62);
+    const zoom = Math.max(0.4, Math.min(2.5, Number(payload.previewZoom) || 1));
+    const size = Math.max(32, Math.min(width, height) * 0.62 * zoom);
     const x = size / width;
     const y = size / height;
     const key = `${width}:${height}:${size}`;

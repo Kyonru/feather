@@ -211,6 +211,11 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
 
   await beforeProbe.click();
   await expect(beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas')).toBeVisible();
+  await expect(beforeProbe.getByText('100%')).toBeVisible();
+  await beforeProbe.getByTitle('Zoom preview in').click();
+  await expect(beforeProbe.getByText('125%')).toBeVisible();
+  await beforeProbe.getByTitle('Zoom preview out').click();
+  await expect(beforeProbe.getByText('100%')).toBeVisible();
   await expect(beforeProbe.getByTitle('Connect a LÖVE session to preview in game')).toBeDisabled();
 
   await expect(afterProbe.getByTestId('shader-preview-probe')).toBeVisible();

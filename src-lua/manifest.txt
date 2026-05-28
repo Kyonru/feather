@@ -70,6 +70,7 @@ plugin:session-replay:manifest.lua
 plugin:session-replay:replay_adapter.lua
 plugin:shader-graph:init.lua
 plugin:shader-graph:manifest.lua
+plugin:shader-graph:preview_runtime.lua
 plugin:time-travel:init.lua
 plugin:time-travel:manifest.lua
 plugin:timer-inspector:init.lua

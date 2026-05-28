@@ -9,43 +9,7 @@ local _loveJs = type(love) == "table" and rawget(love, "js") or nil
 local isLoveJs = type(_loveJs) == "table" and type(rawget(_loveJs, "eval")) == "function"
 local _jsEval = isLoveJs and _loveJs.eval or nil
 
--- Base64 decoder
-
-local B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-local B64_LUT = {}
-for i = 1, #B64_CHARS do
-  B64_LUT[B64_CHARS:sub(i, i)] = i - 1
-end
-
-local function decodeBase64(data)
-  data = tostring(data or ""):gsub("%s+", "")
-  local out = {}
-  local n = 1
-  for i = 1, #data, 4 do
-    local c1 = data:sub(i, i)
-    local c2 = data:sub(i + 1, i + 1)
-    local c3 = data:sub(i + 2, i + 2)
-    local c4 = data:sub(i + 3, i + 3)
-    local n1 = B64_LUT[c1]
-    local n2 = B64_LUT[c2]
-    local n3 = c3 ~= "=" and B64_LUT[c3] or nil
-    local n4 = c4 ~= "=" and B64_LUT[c4] or nil
-    if not n1 or not n2 then
-      break
-    end
-    out[n] = string.char(n1 * 4 + math.floor(n2 / 16))
-    n = n + 1
-    if n3 then
-      out[n] = string.char((n2 % 16) * 16 + math.floor(n3 / 4))
-      n = n + 1
-    end
-    if n3 and n4 then
-      out[n] = string.char((n3 % 4) * 64 + n4)
-      n = n + 1
-    end
-  end
-  return table.concat(out)
-end
+local PreviewRuntime = require("shader-graph.preview_runtime")
 
 -- Minimal JSON parser
 
@@ -164,16 +128,6 @@ local function parseJson(src)
   return ok and v or nil
 end
 
--- Utilities
-
-local function hexToRgba(hex)
-  hex = tostring(hex or ""):gsub("^#", "")
-  if #hex >= 6 then
-    return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255, 1
-  end
-  return 1, 1, 1, 1
-end
-
 local function parseCsvNumbers(s)
   local vals = {}
   for part in tostring(s or ""):gmatch("[^,]+") do
@@ -249,153 +203,37 @@ local shaderState = {
   name = "shader graph",
 }
 
-local function makePreviewCanvas(shape, r, g, b, a)
-  local size = 256
-  local imageData = love.image.newImageData(size, size)
-  local pad = size * 0.22
-  local cx = size / 2
-  local cy = size / 2
-  local radius = size * 0.3
-  local lineWidth = math.max(6, size * 0.12)
-  local ax, ay = pad, size - pad
-  local bx, by = size - pad, pad
-  local abx, aby = bx - ax, by - ay
-  local abLen2 = abx * abx + aby * aby
-
-  imageData:mapPixel(function(x, y)
-    local inside
-    if shape == "rectangle" then
-      inside = x >= pad and x <= size - pad and y >= pad and y <= size - pad
-    elseif shape == "line" then
-      local px, py = x - ax, y - ay
-      local t = math.max(0, math.min(1, (px * abx + py * aby) / abLen2))
-      local dx = x - (ax + abx * t)
-      local dy = y - (ay + aby * t)
-      inside = (dx * dx + dy * dy) <= (lineWidth * 0.5) * (lineWidth * 0.5)
-    else
-      local dx, dy = x - cx, y - cy
-      inside = (dx * dx + dy * dy) <= radius * radius
-    end
-    if inside then
-      return r, g, b, a
-    end
-    return 0, 0, 0, 0
-  end)
-
-  local image = love.graphics.newImage(imageData)
-  pcall(image.setFilter, image, "nearest", "nearest")
-  return image
-end
-
-local function imageFromUpload(upload, fallbackName)
-  if type(upload) ~= "table" or type(upload.dataBase64) ~= "string" or upload.dataBase64 == "" then
-    return nil
-  end
-  local raw = decodeBase64(upload.dataBase64)
-  if not raw or raw == "" then
-    return nil
-  end
-  local fn = tostring(upload.filename or fallbackName or "preview-texture.png")
-  local okFd, fd = pcall(love.filesystem.newFileData, raw, fn)
-  if not okFd or not fd then
-    return nil
-  end
-  local okImg, img = pcall(love.graphics.newImage, fd)
-  if not okImg or not img then
-    return nil
-  end
-  pcall(img.setFilter, img, "nearest", "nearest")
-  return img
-end
-
-local function cloneParameterValue(value, parameterType)
-  if parameterType == "float" then
-    return tonumber(value) or 0
-  end
-  if parameterType == "vec2" then
-    value = type(value) == "table" and value or {}
-    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0 }
-  end
-  if parameterType == "vec3" then
-    value = type(value) == "table" and value or {}
-    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0 }
-  end
-  if parameterType == "vec4" or parameterType == "color" then
-    value = type(value) == "table" and value or {}
-    return { tonumber(value[1]) or 0, tonumber(value[2]) or 0, tonumber(value[3]) or 0, tonumber(value[4]) or 1 }
-  end
-  return value
-end
-
-local function sendShaderPayloadUniforms(shader, payload)
-  if not shader then
-    return
-  end
-
-  local uploads = type(payload.textures) == "table" and payload.textures or {}
-  for _, upload in ipairs(uploads) do
-    local uniform = type(upload) == "table" and tostring(upload.uniform or "") or ""
-    if uniform ~= "" then
-      local image = imageFromUpload(upload, "preview-texture.png")
-      if image then
-        pcall(shader.send, shader, uniform, image)
-      end
-    end
-  end
-
-  local parameters = type(payload.parameters) == "table" and payload.parameters or {}
-  for _, parameter in ipairs(parameters) do
-    if type(parameter) == "table" then
-      local uniform = tostring(parameter.uniform or "")
-      local parameterType = tostring(parameter.type or "")
-      if uniform ~= "" and parameterType ~= "texture" then
-        pcall(shader.send, shader, uniform, cloneParameterValue(parameter.defaultValue, parameterType))
-      end
-    end
-  end
-end
-
 local function applyShaderPayload(payload)
   local pixel = tostring(payload.pixel or "")
   local vertex = tostring(payload.vertex or "")
-  local shape = tostring(payload.previewShape or "circle")
-  local r, g, b, a = hexToRgba(payload.previewColor or "#ffffff")
+  local shape = PreviewRuntime.normalizeShape(payload.previewShape)
+  local color = PreviewRuntime.colorFromHex(payload.previewColor or "#ffffff")
   local name = tostring(payload.shaderName or "shader graph")
 
   local shader = nil
   if pixel ~= "" then
-    if vertex ~= "" then
-      local ok, s = pcall(love.graphics.newShader, pixel .. "\n" .. vertex)
-      if ok then
-        shader = s
-      else
-        local ok2, s2 = pcall(love.graphics.newShader, pixel)
-        if ok2 then
-          shader = s2
-        end
-      end
-    else
-      local ok, s = pcall(love.graphics.newShader, pixel)
-      if ok then
-        shader = s
-      end
-    end
+    shader = PreviewRuntime.buildShader(pixel, vertex, true)
   end
 
   local drawable = nil
   local bt = payload.baseTexture
   if type(bt) == "table" and type(bt.dataBase64) == "string" and bt.dataBase64 ~= "" then
-    drawable = imageFromUpload(bt, "preview-texture.png")
+    drawable = PreviewRuntime.imageFromUpload(bt, "preview-texture.png")
   end
 
   if not drawable then
-    local ok, cv = pcall(makePreviewCanvas, shape, r, g, b, a)
+    local ok, cv = pcall(PreviewRuntime.makePreviewImage, shape, 256, color)
     if ok then
       drawable = cv
     end
   end
 
-  sendShaderPayloadUniforms(shader, payload)
+  PreviewRuntime.sendTextureUniforms(shader, payload.textureUniforms, payload.textures, {
+    allowUploadListOnly = true,
+    fallbackMissing = false,
+    ignoreErrors = true,
+  })
+  PreviewRuntime.sendShaderParameters(shader, payload.parameters, { ignoreErrors = true })
 
   shaderState.shader = shader
   shaderState.drawable = drawable

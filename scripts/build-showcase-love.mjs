@@ -9,6 +9,10 @@ const outDir = path.join(root, 'dist-showcase/showcase-lovejs');
 const files = {
   'main.lua': await readFile(path.join(sourceDir, 'main.lua'), 'utf8'),
   'conf.lua': await readFile(path.join(sourceDir, 'conf.lua'), 'utf8'),
+  'shader-graph/preview_runtime.lua': await readFile(
+    path.join(root, 'src-lua/plugins/shader-graph/preview_runtime.lua'),
+    'utf8',
+  ),
 };
 
 await mkdir(outDir, { recursive: true });

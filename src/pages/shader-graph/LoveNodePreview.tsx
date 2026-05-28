@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MonitorPlayIcon, RefreshCwIcon } from 'lucide-react';
+import { MonitorPlayIcon, RefreshCwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sendCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
@@ -61,6 +61,8 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
   const previewShape = useShaderGraphStore((s) => s.previewShape);
   const previewColor = useShaderGraphStore((s) => s.previewColor);
   const baseTexture = useShaderGraphStore((s) => s.previewBaseTexture);
+  const previewZoom = useShaderGraphStore((s) => s.previewZoom);
+  const setPreviewZoom = useShaderGraphStore((s) => s.setPreviewZoom);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadedRef = useRef(false);
   const [status, setStatus] = useState<Status>('idle');
@@ -87,7 +89,8 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
     textureUniforms: probe?.textures ?? [],
     parameters: probe?.parameters ?? [],
     textures,
-  }), [baseTexture, canPreview, previewColor, previewShape, probe, textures]);
+    previewZoom,
+  }), [baseTexture, canPreview, previewColor, previewShape, previewZoom, probe, textures]);
 
   function sendPayload() {
     iframeRef.current?.contentWindow?.postMessage(
@@ -109,6 +112,14 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
     if (!iframeRef.current) return;
     loadedRef.current = false;
     iframeRef.current.contentWindow?.location.reload();
+  }
+
+  function zoomOut() {
+    setPreviewZoom(previewZoom - 0.25);
+  }
+
+  function zoomIn() {
+    setPreviewZoom(previewZoom + 0.25);
   }
 
   async function sendToGame() {
@@ -150,6 +161,31 @@ function ActiveLoveNodePreview({ nodeId }: Pick<Props, 'nodeId'>) {
         <span className="min-w-0 flex-1 truncate text-[9px] text-muted-foreground">
           {status === 'error' ? (error ?? 'Runtime preview failed.') : status === 'live' ? 'Sent to game' : 'love.js'}
         </span>
+        <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground">
+          {Math.round(previewZoom * 100)}%
+        </span>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-5 shrink-0 text-muted-foreground"
+          title="Zoom preview out"
+          disabled={previewZoom <= 0.4}
+          onClick={zoomOut}
+        >
+          <ZoomOutIcon className="size-3" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-5 shrink-0 text-muted-foreground"
+          title="Zoom preview in"
+          disabled={previewZoom >= 2.5}
+          onClick={zoomIn}
+        >
+          <ZoomInIcon className="size-3" />
+        </Button>
         <Button
           type="button"
           size="icon"

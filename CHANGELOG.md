@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Shader Graph compiler UX with local diagnostics for missing outputs, stale connections, missing texture uploads, invalid custom functions, and cyclic subgraphs before runtime validation.
 - Added Shader Graph Preview nodes as inline RGBA probes with embedded love.js previews and an optional send-to-game control for connected LÖVE sessions.
 - Shader Graph now renders only the selected Preview node's embedded love.js probe so multiple inline probes do not run preview runtimes at the same time.
+- Added zoom controls to Shader Graph Preview nodes for inspecting details inside embedded love.js previews.
 
 ### Tests
 
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
 - Added showcase e2e coverage for inline Shader Graph Preview probes.
 - Expanded showcase e2e coverage to verify only the selected Shader Graph Preview probe renders live.
+- Expanded showcase e2e coverage for Shader Graph Preview node zoom controls.
 - Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
@@ -71,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Log details now stay synced as repeat counts update.
 - Clearing logs now resets the runtime repeat counter so the next identical log appears normally.
 - Fixed log row selection so live updates no longer prevent opening a log details panel.
+- Fixed Shader Graph node previews so alpha-masked shaders stay clipped to the selected preview shape instead of tinting the full preview quad.
 - Traceback path stripping.
 
 ### Tests
