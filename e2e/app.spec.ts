@@ -1527,6 +1527,45 @@ test('log type badges keep readable foreground colors in dark themes', async ({ 
   expect(colors.color).not.toBe('rgb(255, 255, 255)');
 });
 
+test('logs toolbar puts search on its own row when space is tight', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 900, height: 720 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  const toolbar = page.getByTestId('logs-toolbar');
+  const search = page.getByTestId('logs-toolbar-search');
+  const controls = page.getByTestId('logs-toolbar-controls');
+
+  await expect(toolbar).toBeVisible();
+  await expect(page.getByPlaceholder('Search logs...')).toBeVisible();
+  await expect(controls.getByRole('button', { name: 'All' })).toBeVisible();
+  await expect(controls.getByRole('button', { name: 'Errors' })).toBeVisible();
+  await expect(controls.getByRole('button', { name: 'Pause logs' })).toBeVisible();
+
+  const layout = await toolbar.evaluate((element) => {
+    const searchElement = element.querySelector('[data-testid="logs-toolbar-search"]');
+    const controlsElement = element.querySelector('[data-testid="logs-toolbar-controls"]');
+    if (!(searchElement instanceof HTMLElement) || !(controlsElement instanceof HTMLElement)) {
+      return null;
+    }
+    const toolbarRect = element.getBoundingClientRect();
+    const searchRect = searchElement.getBoundingClientRect();
+    const controlsRect = controlsElement.getBoundingClientRect();
+    return {
+      searchTop: Math.round(searchRect.top),
+      controlsTop: Math.round(controlsRect.top),
+      toolbarWidth: Math.round(toolbarRect.width),
+      searchWidth: Math.round(searchRect.width),
+    };
+  });
+
+  expect(layout).not.toBeNull();
+  expect(layout!.controlsTop).toBeGreaterThan(layout!.searchTop);
+  expect(layout!.searchWidth).toBeGreaterThanOrEqual(layout!.toolbarWidth - 2);
+  await expectNoBrokenText(page);
+});
+
 test('logs restore from persisted history when reopening a saved session', async ({ page }) => {
   await seedSession(page);
   await page.addInitScript(() => {

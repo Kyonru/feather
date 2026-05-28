@@ -119,124 +119,139 @@ export function LogTable({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 py-3 lg:px-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          className="h-8 min-w-48 flex-1 text-xs"
-          placeholder="Search logs..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-
-        <div className="flex flex-wrap gap-1">
-          {FILTERS.map((filter) => (
-            <Button
-              key={filter.value}
-              type="button"
-              size="sm"
-              variant={typeFilter === filter.value ? 'default' : 'outline'}
-              className="h-8 px-2 text-xs"
-              onClick={() => setTypeFilter(filter.value)}
-            >
-              {filter.label}
-            </Button>
-          ))}
+      <div data-testid="logs-toolbar" className="grid gap-2 xl:flex xl:items-center">
+        <div data-testid="logs-toolbar-search" className="min-w-0 xl:min-w-48 xl:flex-1">
+          <Input
+            className="h-8 w-full text-xs"
+            placeholder="Search logs..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
         </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="secondary" size="icon" className="size-8" onClick={onPlayPause}>
-              {isPaused ? <PlayIcon className="size-4 text-green-500" /> : <PauseIcon className="size-4 text-blue-500" />}
-              <span className="sr-only">{isPaused ? 'Resume logs' : 'Pause logs'}</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{isPaused ? 'Resume logs' : 'Pause logs'}</p>
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={followTail ? 'default' : 'secondary'}
-              size="icon"
-              className="size-8"
-              onClick={() => setFollowTail((value) => !value)}
-            >
-              <ChevronsDownIcon className="size-4" />
-              <span className="sr-only">{followTail ? 'Disable follow tail' : 'Enable follow tail'}</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{followTail ? 'Following tail' : 'Follow tail'}</p>
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="secondary" size="icon" className="size-8" onClick={() => onClear(filteredLogs.map((log) => log.id))}>
-              <Trash2Icon className="size-4 text-orange-500" />
-              <span className="sr-only">Clear visible logs</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Clear visible logs</p>
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="secondary" size="icon" className="size-8" onClick={onScreenshotChange}>
-              {screenshotEnabled ? (
-                <ScreenShareIcon className="size-4 text-green-500" />
-              ) : (
-                <ScreenShareOffIcon className="size-4 text-red-500" />
-              )}
-              <span className="sr-only">{screenshotEnabled ? 'Disable screenshots' : 'Enable screenshots'}</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{screenshotEnabled ? 'Disable screenshots' : 'Enable screenshots'}</p>
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          {isWeb() ? (
-            <Dialog>
-              <TooltipTrigger asChild>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" size="icon" className="size-8">
-                    <UploadIcon className="size-4 text-yellow-500" />
-                    <span className="sr-only">Upload logs</span>
-                  </Button>
-                </DialogTrigger>
-              </TooltipTrigger>
-              <DialogContent className="sm:max-w-sm">
-                <DialogHeader>
-                  <DialogTitle>Use Log File</DialogTitle>
-                  <DialogDescription>Enter a log file path to use instead of the live session logs.</DialogDescription>
-                </DialogHeader>
-
-                <Label htmlFor="log-file-path">Pathname</Label>
-                <Input id="log-file-path" name="name" onChange={onFileChange} />
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Save</Button>
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          ) : (
-            <TooltipTrigger asChild>
-              <Button variant="secondary" size="icon" className="size-8" onClick={onSelectFile}>
-                <UploadIcon className="size-4 text-yellow-500" />
-                <span className="sr-only">Use log file</span>
+        <div data-testid="logs-toolbar-controls" className="flex min-w-0 flex-wrap items-center gap-2 xl:shrink-0">
+          <div className="flex min-w-0 flex-wrap gap-1">
+            {FILTERS.map((filter) => (
+              <Button
+                key={filter.value}
+                type="button"
+                size="sm"
+                variant={typeFilter === filter.value ? 'default' : 'outline'}
+                className="h-8 px-2 text-xs"
+                onClick={() => setTypeFilter(filter.value)}
+              >
+                {filter.label}
               </Button>
-            </TooltipTrigger>
-          )}
-          <TooltipContent>
-            <p>Use log file</p>
-          </TooltipContent>
-        </Tooltip>
+            ))}
+          </div>
+
+          <div className="flex shrink-0 flex-wrap items-center gap-1 sm:ml-auto xl:ml-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="icon" className="size-8" onClick={onPlayPause}>
+                  {isPaused ? (
+                    <PlayIcon className="size-4 text-green-500" />
+                  ) : (
+                    <PauseIcon className="size-4 text-blue-500" />
+                  )}
+                  <span className="sr-only">{isPaused ? 'Resume logs' : 'Pause logs'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isPaused ? 'Resume logs' : 'Pause logs'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={followTail ? 'default' : 'secondary'}
+                  size="icon"
+                  className="size-8"
+                  onClick={() => setFollowTail((value) => !value)}
+                >
+                  <ChevronsDownIcon className="size-4" />
+                  <span className="sr-only">{followTail ? 'Disable follow tail' : 'Enable follow tail'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{followTail ? 'Following tail' : 'Follow tail'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => onClear(filteredLogs.map((log) => log.id))}
+                >
+                  <Trash2Icon className="size-4 text-orange-500" />
+                  <span className="sr-only">Clear visible logs</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Clear visible logs</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="icon" className="size-8" onClick={onScreenshotChange}>
+                  {screenshotEnabled ? (
+                    <ScreenShareIcon className="size-4 text-green-500" />
+                  ) : (
+                    <ScreenShareOffIcon className="size-4 text-red-500" />
+                  )}
+                  <span className="sr-only">{screenshotEnabled ? 'Disable screenshots' : 'Enable screenshots'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{screenshotEnabled ? 'Disable screenshots' : 'Enable screenshots'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              {isWeb() ? (
+                <Dialog>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Button variant="secondary" size="icon" className="size-8">
+                        <UploadIcon className="size-4 text-yellow-500" />
+                        <span className="sr-only">Upload logs</span>
+                      </Button>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle>Use Log File</DialogTitle>
+                      <DialogDescription>Enter a log file path to use instead of the live session logs.</DialogDescription>
+                    </DialogHeader>
+
+                    <Label htmlFor="log-file-path">Pathname</Label>
+                    <Input id="log-file-path" name="name" onChange={onFileChange} />
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Save</Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <TooltipTrigger asChild>
+                  <Button variant="secondary" size="icon" className="size-8" onClick={onSelectFile}>
+                    <UploadIcon className="size-4 text-yellow-500" />
+                    <span className="sr-only">Use log file</span>
+                  </Button>
+                </TooltipTrigger>
+              )}
+              <TooltipContent>
+                <p>Use log file</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-[7.5rem_minmax(0,1fr)_7rem] items-center gap-3 rounded-t-lg border border-b-0 bg-card px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">

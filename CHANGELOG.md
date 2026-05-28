@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed live session logs disappearing after reopening Feather or restarting a CLI-launched game by restoring recent log history from a bounded local cache.
 - Fixed the Settings modal close button so it no longer overlaps the version badge in the header.
 - Fixed the Performance Profiler filter row so controls wrap instead of overflowing at medium desktop widths.
+- Fixed the Logs toolbar so search takes its own row before filters and actions when horizontal space is tight.
 
 ### Tests
 
@@ -56,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added app e2e coverage for log type badge contrast in dark themes.
 - Added focused log-history coverage and app e2e coverage for restoring saved session logs.
 - Added app e2e coverage for Performance Profiler filter controls at constrained desktop widths.
+- Added app e2e coverage for the constrained-width Logs toolbar layout.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.
