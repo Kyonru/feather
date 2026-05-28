@@ -31,7 +31,7 @@ import type { ShaderNodeData, NodeType } from '@/types/shader-graph';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { getNodeDef, NODE_DEFS } from './nodeDefs';
 import { nodeTypes } from './nodes';
-import { ArrowLeftIcon, CombineIcon, Redo2Icon, SearchIcon, Undo2Icon } from 'lucide-react';
+import { ArrowLeftIcon, CombineIcon, HandIcon, MousePointer2Icon, Redo2Icon, SearchIcon, Undo2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/use-theme';
 import {
@@ -51,6 +51,8 @@ type ShaderClipboard = {
   nodes: Node<ShaderNodeData>[];
   edges: Edge[];
 };
+
+type CanvasInteractionMode = 'select' | 'pan';
 
 let shaderClipboard: ShaderClipboard | null = null;
 
@@ -121,6 +123,7 @@ export function ShaderCanvas() {
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [subgraphDialogOpen, setSubgraphDialogOpen] = useState(false);
   const [subgraphName, setSubgraphName] = useState('Subgraph');
+  const [canvasInteractionMode, setCanvasInteractionMode] = useState<CanvasInteractionMode>('select');
   const pasteOffsetRef = useRef(0);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -604,13 +607,14 @@ export function ShaderCanvas() {
         minZoom={0.15}
         maxZoom={2.5}
         deleteKeyCode={null}
-        selectionOnDrag
-        panOnDrag={[1, 2]}
+        selectionOnDrag={canvasInteractionMode === 'select'}
+        panOnDrag={canvasInteractionMode === 'pan' ? true : [1, 2]}
         colorMode={theme}
       >
         <div
           className="absolute left-3 top-3 z-10 flex gap-1 rounded-md border bg-card/95 p-1 shadow-sm"
           id="node-canvas-actions"
+          onPointerDown={(event) => event.stopPropagation()}
         >
           <Button
             size="icon"
@@ -664,6 +668,35 @@ export function ShaderCanvas() {
             }}
           >
             <CombineIcon className="size-4" />
+          </Button>
+          <div className="mx-0.5 h-7 w-px bg-border" />
+          <Button
+            size="icon"
+            variant={canvasInteractionMode === 'select' ? 'secondary' : 'ghost'}
+            className="size-7"
+            aria-label="Select canvas mode"
+            aria-pressed={canvasInteractionMode === 'select'}
+            title="Select mode: drag empty canvas to select nodes"
+            onClick={(event) => {
+              event.stopPropagation();
+              setCanvasInteractionMode('select');
+            }}
+          >
+            <MousePointer2Icon className="size-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant={canvasInteractionMode === 'pan' ? 'secondary' : 'ghost'}
+            className="size-7"
+            aria-label="Pan canvas mode"
+            aria-pressed={canvasInteractionMode === 'pan'}
+            title="Pan mode: drag empty canvas to move around"
+            onClick={(event) => {
+              event.stopPropagation();
+              setCanvasInteractionMode('pan');
+            }}
+          >
+            <HandIcon className="size-4" />
           </Button>
         </div>
         <Background gap={20} size={1} className="text-muted-foreground/20!" />

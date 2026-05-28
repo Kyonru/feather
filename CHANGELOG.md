@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph Preview node game-preview buttons now toggle the connected-game probe off after sending it live.
 - Added pinning for Shader Graph Preview nodes so chosen embedded previews stay live when another node is selected.
 - Expanded Shader Graph canvas zoom range for inspecting dense node clusters and large graphs.
+- Added Shader Graph canvas mode buttons for switching empty-canvas drags between node selection and panning.
 
 ### Tests
 
