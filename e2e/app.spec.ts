@@ -308,6 +308,32 @@ async function seedHealthySessionConfig(page: Page) {
   });
 }
 
+async function seedShaderGraphConfig(page: Page) {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    client?.setQueryData(['demo', 'config'], {
+      plugins: {
+        'shader-graph': {
+          tabName: 'Shader Graph',
+          icon: 'blend',
+          capabilities: [],
+        },
+      },
+      root_path: '/tmp/demo',
+      sourceDir: '/tmp/demo',
+      version: '2.0.0',
+      API: 5,
+      sampleRate: 1,
+      outfile: '',
+      language: 'lua',
+      captureScreenshot: false,
+      location: '/tmp/demo',
+      sessionName: 'Demo Session',
+    });
+  });
+}
+
 async function seedMissingProfilerConfig(page: Page) {
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1697,6 +1723,32 @@ test('logs restore from persisted history when reopening a saved session', async
   await restoredLog.click();
   await expect(page.getByText('Log Details')).toBeVisible();
   await expect(page.getByRole('code').getByText('Restored after app restart')).toBeVisible();
+});
+
+test('shader graph template presets expose public controls in the app', async ({ page }) => {
+  await seedSession(page);
+  await page.goto('/');
+  await seedShaderGraphConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByTestId('sidebar-tool-shader-graph').getByRole('link', { name: 'Shader Graph' }).click();
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+  page.on('dialog', (dialog) => dialog.accept());
+
+  await page.getByRole('combobox', { name: 'Load preset' }).click();
+  await page.getByRole('option', { name: /^outline$/i }).click();
+
+  const templateControls = page.getByTestId('shader-template-controls');
+  await expect(templateControls).toBeVisible();
+  await expect(templateControls.getByText('Outline', { exact: true })).toBeVisible();
+  await expect(templateControls.getByText('Thickness')).toBeVisible();
+  await expect(templateControls.getByText('Outline Color', { exact: true })).toBeVisible();
+
+  await templateControls.getByRole('spinbutton').first().fill('6');
+  await expect(page.getByText(/,\s*6\.0,\s*vec4/i)).toBeVisible();
+
+  await page.locator('.react-flow__node').filter({ hasText: 'Outline' }).dblclick();
+  await expect(page.locator('.react-flow__node').filter({ hasText: 'Source Color' })).toBeVisible();
+  await expect(page.locator('.react-flow__node').filter({ hasText: 'RGBA Output' })).toBeVisible();
 });
 
 test('assets degraded matrix handles empty and partial catalogs', async ({ page }) => {

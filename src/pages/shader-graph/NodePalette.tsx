@@ -17,9 +17,11 @@ function categorySlug(category: NodeCategory): string {
   return category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+const BOUNDARY_NODE_TYPES = new Set<NodeType>(['SubgraphInput', 'SubgraphOutput']);
+
 export function NodePalette() {
   const [search, setSearch] = useState('');
-  const { playgroundTarget, setPlaygroundTarget } = useShaderGraphStore();
+  const { playgroundTarget, setPlaygroundTarget, activeSubgraphId } = useShaderGraphStore();
   const collapsedCategories = useSettingsStore((state) => state.collapsedShaderGraphNodeCategories);
   const toggleCategory = useSettingsStore((state) => state.toggleShaderGraphNodeCategory);
   const setCollapsedCategories = useSettingsStore((state) => state.setCollapsedShaderGraphNodeCategories);
@@ -32,7 +34,8 @@ export function NodePalette() {
   const allCategories = CATEGORY_ORDER.map(({ category }) => category);
   const categoryRows = CATEGORY_ORDER
     .map(({ category, nodes }) => {
-      const visible = nodes.filter((nodeType) => {
+      const availableNodes = nodes.filter((nodeType) => !BOUNDARY_NODE_TYPES.has(nodeType) || Boolean(activeSubgraphId));
+      const visible = availableNodes.filter((nodeType) => {
         const def = NODE_DEFS[nodeType];
         if (!filtered) return true;
         return (
@@ -42,7 +45,7 @@ export function NodePalette() {
         );
       });
 
-      return { category, nodes: visible, total: nodes.length };
+      return { category, nodes: visible, total: availableNodes.length };
     })
     .filter((row) => row.nodes.length > 0);
 

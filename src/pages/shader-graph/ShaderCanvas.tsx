@@ -74,11 +74,14 @@ const CATEGORY_HEX: Record<string, string> = {
   Halftone: '#84cc16',
   'Pixel Perfect': '#0ea5e9',
   UV: '#6366f1',
+  'Fake 3D': '#14b8a6',
   Effect: '#06b6d4',
   Output: '#ef4444',
   Vertex: '#eab308',
   SDF: '#14b8a6',
 };
+
+const BOUNDARY_NODE_TYPES = new Set<NodeType>(['SubgraphInput', 'SubgraphOutput']);
 
 function miniMapNodeColor(node: Node<ShaderNodeData>): string {
   const def = getNodeDef(node.data);
@@ -106,6 +109,7 @@ export function ShaderCanvas() {
   const redo = useShaderGraphStore((s) => s.redo);
   const enterSubgraph = useShaderGraphStore((s) => s.enterSubgraph);
   const exitSubgraph = useShaderGraphStore((s) => s.exitSubgraph);
+  const setActiveTemplateInstanceId = useShaderGraphStore((s) => s.setActiveTemplateInstanceId);
   const canUndo = useShaderGraphStore((s) => s.undoStack.length > 0);
   const canRedo = useShaderGraphStore((s) => s.redoStack.length > 0);
   const [nodePicker, setNodePicker] = useState<{
@@ -162,9 +166,10 @@ export function ShaderCanvas() {
     (event: React.MouseEvent, node: Node) => {
       if (event.shiftKey || event.metaKey || event.ctrlKey) return;
       selectNode(node.id);
+      if (node.data.nodeType === 'SubgraphInstance') setActiveTemplateInstanceId(node.id);
       setSelectedNodeIds(new Set([node.id]));
     },
-    [selectNode],
+    [selectNode, setActiveTemplateInstanceId],
   );
 
   const onEdgeClick = useCallback(
@@ -225,6 +230,10 @@ export function ShaderCanvas() {
       event.preventDefault();
       const nodeType = event.dataTransfer.getData('application/shader-node-type') as NodeType;
       if (!nodeType || !NODE_DEFS[nodeType]) return;
+      if (BOUNDARY_NODE_TYPES.has(nodeType) && !activeSubgraphId) {
+        toast.info('Subgraph boundary nodes are only available inside a subgraph.');
+        return;
+      }
 
       const rf = rfRef.current;
       const position = rf
@@ -242,7 +251,7 @@ export function ShaderCanvas() {
       });
       selectNode(id);
     },
-    [addNode, selectNode],
+    [activeSubgraphId, addNode, selectNode],
   );
 
   const insertNode = useCallback(
@@ -281,10 +290,11 @@ export function ShaderCanvas() {
       .filter(
         ([nodeType, def]) =>
           nodeType !== 'SubgraphInstance' &&
+          (!BOUNDARY_NODE_TYPES.has(nodeType as NodeType) || Boolean(activeSubgraphId)) &&
           (!query || def.label.toLowerCase().includes(query) || def.category.toLowerCase().includes(query)),
       )
       .slice(0, 40) as Array<[NodeType, (typeof NODE_DEFS)[NodeType]]>;
-  }, [nodePicker?.search]);
+  }, [activeSubgraphId, nodePicker?.search]);
 
   const getSelectedIds = useCallback(() => {
     const selectedIds = new Set([

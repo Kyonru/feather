@@ -2,6 +2,7 @@ import type { XYPosition } from '@xyflow/react';
 import type { GlslType, NodeType, PortDef, ShaderEdge, ShaderNodeData, ShaderNodeInstance, ShaderSubgraph } from '@/types/shader-graph';
 import { DEFAULT_CUSTOM_FUNCTION_CODE } from './customNode';
 import { getNodeDef, NODE_DEFS } from './nodeDefs';
+import { clonePortDef, defaultBoundaryPort } from './subgraphBoundary';
 
 let graphIdCounter = Date.now();
 
@@ -16,6 +17,20 @@ export function defaultNodeData(nodeType: NodeType, label: string): ShaderNodeDa
       label,
       nodeType,
       customCode: DEFAULT_CUSTOM_FUNCTION_CODE,
+    };
+  }
+  if (nodeType === 'SubgraphInput') {
+    return {
+      label,
+      nodeType,
+      boundaryPort: defaultBoundaryPort('input', label),
+    };
+  }
+  if (nodeType === 'SubgraphOutput') {
+    return {
+      label,
+      nodeType,
+      boundaryPort: defaultBoundaryPort('output', label),
     };
   }
   if (nodeType === 'Vec2Parameter') return { label, nodeType, values: { val: [0, 0] } };
@@ -40,6 +55,9 @@ export function cloneShaderNodeData(data: ShaderNodeData): ShaderNodeData {
       ...port,
       defaultValue: Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue,
     })),
+    boundaryPort: data.boundaryPort && typeof data.boundaryPort === 'object'
+      ? clonePortDef(data.boundaryPort as PortDef)
+      : data.boundaryPort,
   };
 }
 

@@ -308,7 +308,9 @@ function buildSubgraphFunction(
   const inputOverrides = new Map(
     Object.entries(subgraph.inputMappings).map(([inputId, mapping]) => [`${mapping.nodeId}:${mapping.portId}`, `sg_in_${inputId}`]),
   );
-  const outputOverrides = new Map<string, string>();
+  const outputOverrides = new Map(
+    Object.entries(subgraph.inputMappings).map(([inputId, mapping]) => [`${mapping.nodeId}:${mapping.portId}`, `sg_in_${inputId}`]),
+  );
   const reachableIds = new Set<string>();
   const orderedNodes: ShaderNodeInstance[] = [];
   for (const mapping of Object.values(subgraph.outputMappings)) {

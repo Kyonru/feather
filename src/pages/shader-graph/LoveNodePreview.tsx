@@ -52,7 +52,11 @@ function InactiveLoveNodePreview({ pinned, onTogglePin }: Pick<Props, 'pinned'> 
           variant="ghost"
           className="size-5 shrink-0 text-muted-foreground"
           title={pinned ? 'Unpin this preview' : 'Pin this preview open'}
-          onClick={onTogglePin}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onTogglePin();
+          }}
         >
           {pinned ? <PinOffIcon className="size-3" /> : <PinIcon className="size-3" />}
         </Button>
@@ -195,7 +199,11 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
           className="size-5 shrink-0 text-muted-foreground"
           title="Zoom preview out"
           disabled={previewZoom <= 0.4}
-          onClick={zoomOut}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            zoomOut();
+          }}
         >
           <ZoomOutIcon className="size-3" />
         </Button>
@@ -206,7 +214,11 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
           className="size-5 shrink-0 text-muted-foreground"
           title="Zoom preview in"
           disabled={previewZoom >= 2.5}
-          onClick={zoomIn}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            zoomIn();
+          }}
         >
           <ZoomInIcon className="size-3" />
         </Button>
@@ -216,7 +228,11 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
           variant="ghost"
           className="size-5 shrink-0 text-muted-foreground"
           title={pinned ? 'Unpin this preview' : 'Pin this preview open'}
-          onClick={() => togglePinnedPreviewNode(nodeId)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            togglePinnedPreviewNode(nodeId);
+          }}
         >
           {pinned ? <PinOffIcon className="size-3" /> : <PinIcon className="size-3" />}
         </Button>
@@ -226,7 +242,11 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
           variant="ghost"
           className="size-5 shrink-0 text-muted-foreground"
           title="Reload node preview"
-          onClick={reloadPreview}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            reloadPreview();
+          }}
         >
           <RefreshCwIcon className="size-3" />
         </Button>
@@ -243,7 +263,11 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
               : 'Connect a LÖVE session to preview in game'
           }
           disabled={!sessionId || (status !== 'live' && !canPreview) || status === 'sending'}
-          onClick={toggleGamePreview}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void toggleGamePreview();
+          }}
         >
           {status === 'live' ? <MonitorOffIcon className="size-3" /> : <MonitorPlayIcon className="size-3" />}
         </Button>

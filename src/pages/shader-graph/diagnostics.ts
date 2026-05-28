@@ -21,8 +21,12 @@ function portTypeMatches(sourceType: GlslType, targetType: GlslType): boolean {
   return sourceType === targetType;
 }
 
-function collectReachableFromOutputs(nodes: ShaderNodeInstance[], edges: ShaderEdge[]): Set<string> {
-  const roots = nodes.filter((node) => node.data.nodeType === 'FragmentOutput' || node.data.nodeType === 'VertexOutput');
+function collectReachableFromOutputs(nodes: ShaderNodeInstance[], edges: ShaderEdge[], includeSubgraphOutputs = false): Set<string> {
+  const roots = nodes.filter((node) =>
+    node.data.nodeType === 'FragmentOutput' ||
+    node.data.nodeType === 'VertexOutput' ||
+    (includeSubgraphOutputs && node.data.nodeType === 'SubgraphOutput')
+  );
   const visited = new Set<string>();
 
   function visit(id: string) {
@@ -71,16 +75,24 @@ function diagnoseGraph(
   edges: ShaderEdge[],
   subgraphMap: Map<string, ShaderSubgraph>,
   textureUploads: Record<string, ShaderTextureUpload | null | undefined>,
-  options: { requireFragmentOutput: boolean; graphName?: string },
+  options: { requireFragmentOutput: boolean; graphName?: string; requireExplicitSubgraphOutput?: boolean },
 ) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-  const reachable = collectReachableFromOutputs(nodes, edges);
+  const reachable = collectReachableFromOutputs(nodes, edges, Boolean(options.graphName));
 
   if (options.requireFragmentOutput && !nodes.some((node) => node.data.nodeType === 'FragmentOutput')) {
     diagnostics.push({
       severity: 'error',
       message: 'Add a Fragment Output node before validating or applying this shader.',
       stage: 'pixel',
+    });
+  }
+
+  if (options.requireExplicitSubgraphOutput && !nodes.some((node) => node.data.nodeType === 'SubgraphOutput')) {
+    diagnostics.push({
+      severity: 'error',
+      message: `${options.graphName} needs at least one Subgraph Output node to expose a reusable result.`,
+      stage: 'graph',
     });
   }
 
@@ -121,6 +133,15 @@ function diagnoseGraph(
     const incoming = edges.filter((edge) => edge.target === node.id);
     const connectedInputs = new Set(incoming.map((edge) => edge.targetHandle));
 
+    if (!options.graphName && (node.data.nodeType === 'SubgraphInput' || node.data.nodeType === 'SubgraphOutput')) {
+      diagnostics.push({
+        severity: 'error',
+        message: `${nodeLabel(node)} can only be used while editing inside a subgraph.`,
+        nodeId: node.id,
+        stage: 'graph',
+      });
+    }
+
     if (node.data.nodeType === 'CustomFunction') {
       const validation = validateCustomFunctionSource(customFunctionSource(node.data));
       if (!validation.signature || validation.errors.length > 0) {
@@ -143,6 +164,16 @@ function diagnoseGraph(
           stage: 'graph',
         });
       }
+    }
+
+    if (options.graphName && node.data.nodeType === 'SubgraphOutput' && !connectedInputs.has('value')) {
+      diagnostics.push({
+        severity: 'error',
+        message: `${nodeLabel(node)} is disconnected; connect an internal value to expose this output.`,
+        nodeId: node.id,
+        portId: 'value',
+        stage: 'graph',
+      });
     }
 
     if (TEXTURE_NODE_TYPES.has(node.data.nodeType) && reachable.has(node.id) && !textureUploads[node.id]) {
@@ -205,9 +236,11 @@ export function diagnoseShaderGraph({
         stage: 'graph',
       });
     }
+    const hasBoundaryNodes = subgraph.nodes.some((node) => node.data.nodeType === 'SubgraphInput' || node.data.nodeType === 'SubgraphOutput');
     diagnoseGraph(diagnostics, subgraph.nodes, subgraph.edges, subgraphMap, textureUploads, {
       requireFragmentOutput: false,
       graphName: subgraph.name,
+      requireExplicitSubgraphOutput: hasBoundaryNodes,
     });
   }
 

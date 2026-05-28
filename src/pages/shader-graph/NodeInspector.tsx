@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { GlslCodeInput } from '@/components/ui/glsl-code-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShaderGraphStore } from '@/store/shader-graph';
@@ -15,6 +16,7 @@ import { pickShaderTexture } from './textureUpload';
 import { toast } from 'sonner';
 import { customFunctionNodeDef, customFunctionSource, validateCustomFunctionSource } from './customNode';
 import { ShaderNumberInput } from './ShaderNumberInput';
+import { subgraphBoundaryPort } from './subgraphBoundary';
 
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
@@ -144,6 +146,18 @@ export function NodeInspector() {
     updateNodeData(selected.id, { values: { ...selected.data.values, [port.id]: next } });
   }
 
+  function updateBoundaryPort(patch: Partial<PortDef>) {
+    if (!selected) return;
+    const direction = selected.data.nodeType === 'SubgraphOutput' ? 'output' : 'input';
+    const current = subgraphBoundaryPort(selected.data, direction);
+    updateNodeData(selected.id, {
+      boundaryPort: {
+        ...current,
+        ...patch,
+      },
+    });
+  }
+
   async function uploadSelectedTexture() {
     if (!selected) return;
     const texture = await pickShaderTexture();
@@ -240,6 +254,53 @@ export function NodeInspector() {
     return null;
   }
 
+  function renderBoundaryDefaultEditor(port: PortDef) {
+    const rawValue = port.defaultValue ?? defaultPortValue(port);
+    const inputProps = {
+      min: port.min,
+      max: port.max,
+      step: portStep(port),
+    };
+
+    if (port.type === 'float') {
+      return (
+        <ShaderNumberInput
+          className="h-7 text-xs"
+          {...inputProps}
+          value={finiteValue(rawValue)}
+          onValueChange={(value) => updateBoundaryPort({ defaultValue: clampValue(value, port) })}
+        />
+      );
+    }
+
+    if (port.type === 'vec2' || port.type === 'vec3' || port.type === 'vec4') {
+      const count = port.type === 'vec2' ? 2 : port.type === 'vec3' ? 3 : 4;
+      const fallback = defaultPortValue(port) as number[];
+      const value = Array.isArray(rawValue) ? rawValue : fallback;
+      const gridClass = count === 2 ? 'grid grid-cols-2 gap-1' : count === 3 ? 'grid grid-cols-3 gap-1' : 'grid grid-cols-2 gap-1';
+      return (
+        <div className={gridClass}>
+          {Array.from({ length: count }).map((_, idx) => (
+            <ShaderNumberInput
+              key={idx}
+              aria-label={`${port.label} default ${idx + 1}`}
+              className="h-7 text-xs"
+              {...inputProps}
+              value={finiteValue(value[idx], finiteValue(fallback[idx]))}
+              onValueChange={(nextValue) => {
+                const next = [...value];
+                next[idx] = clampValue(nextValue, port);
+                updateBoundaryPort({ defaultValue: next });
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-3 p-3 text-xs">
       <div className="grid gap-1">
@@ -284,6 +345,77 @@ export function NodeInspector() {
               }}
             />
           </div>
+
+          {(selected.data.nodeType === 'SubgraphInput' || selected.data.nodeType === 'SubgraphOutput') && (
+            <div className="grid gap-2 rounded border border-border/70 p-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Public {selected.data.nodeType === 'SubgraphInput' ? 'Input' : 'Output'}
+              </div>
+              {(() => {
+                const direction = selected.data.nodeType === 'SubgraphOutput' ? 'output' : 'input';
+                const port = subgraphBoundaryPort(selected.data, direction);
+                return (
+                  <>
+                    <div className="grid gap-1">
+                      <Label className="text-[10px] text-muted-foreground">Port ID</Label>
+                      <Input
+                        className="h-7 text-xs font-mono"
+                        value={port.id}
+                        onChange={(event) => updateBoundaryPort({ id: event.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label className="text-[10px] text-muted-foreground">Port Label</Label>
+                      <Input
+                        className="h-7 text-xs"
+                        value={port.label}
+                        onChange={(event) => updateBoundaryPort({ label: event.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="grid gap-1">
+                        <Label className="text-[10px] text-muted-foreground">Type</Label>
+                        <Select value={port.type} onValueChange={(value) => updateBoundaryPort({ type: value as PortDef['type'] })}>
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {['float', 'vec2', 'vec3', 'vec4', 'image'].map((type) => (
+                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {direction === 'input' && (
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] text-muted-foreground">Role</Label>
+                          <Select value={port.uiRole ?? 'control'} onValueChange={(value) => updateBoundaryPort({ uiRole: value as PortDef['uiRole'] })}>
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="control">Control</SelectItem>
+                              <SelectItem value="source">Source</SelectItem>
+                              <SelectItem value="texture">Texture</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                    {direction === 'input' && port.type !== 'image' && (
+                      <div className="grid gap-1">
+                        <Label className="text-[10px] text-muted-foreground">Default</Label>
+                        {renderBoundaryDefaultEditor(port)}
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">
+                      This node defines the subgraph interface. The root Subgraph node updates automatically.
+                    </p>
+                  </>
+                );
+              })()}
+            </div>
+          )}
 
           {isParameterNode(selected.data.nodeType) && selected.data.nodeType !== 'TextureParameter' && (
             <div className="grid gap-1">

@@ -163,6 +163,37 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
   await expect(page.getByText(/vec4 v_mix_out/i)).toBeVisible();
 });
 
+test('shader graph presets load as template subgraphs with public controls', async ({ page }) => {
+  await page.goto('/shader-graph');
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+  page.on('dialog', (dialog) => dialog.accept());
+
+  await page.getByRole('combobox', { name: 'Load preset' }).click();
+  await page.getByRole('option', { name: /^outline$/i }).click();
+
+  const templateControls = page.getByTestId('shader-template-controls');
+  await expect(templateControls).toBeVisible();
+  await expect(templateControls.getByText('Outline', { exact: true })).toBeVisible();
+  await expect(templateControls.getByText('Thickness')).toBeVisible();
+  await expect(templateControls.getByText('Outline Color', { exact: true })).toBeVisible();
+
+  await expect(page.locator('.react-flow__node').filter({ hasText: 'Outline' })).toHaveCount(1);
+  await expect(page.locator('.react-flow__node').filter({ hasText: 'Fragment Output' })).toHaveCount(1);
+
+  await templateControls.getByRole('spinbutton').first().fill('7');
+  await expect(page.getByText(/,\s*7\.0,\s*vec4/i)).toBeVisible();
+
+  await page.locator('.react-flow__node').filter({ hasText: 'Outline' }).dblclick();
+  await expect(page.locator('.react-flow__node').filter({ hasText: 'Source Color' })).toBeVisible();
+  await expect(page.locator('.react-flow__node').filter({ hasText: 'Thickness' })).toBeVisible();
+  await expect(page.locator('.react-flow__node').filter({ hasText: 'RGBA Output' })).toBeVisible();
+
+  await page.getByRole('combobox', { name: 'Load preset' }).click();
+  await page.getByRole('option', { name: /^texture noise water$/i }).click();
+  await expect(templateControls.getByText('Noise Texture')).toBeVisible();
+  await expect(templateControls.getByText('No texture uploaded')).toBeVisible();
+});
+
 test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }) => {
   await page.goto('/shader-graph');
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
@@ -431,7 +462,7 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
   await expect(afterProbe.frameLocator('iframe[title="After Invert love.js preview"]').locator('canvas')).toBeVisible();
   await beforeProbe.getByTitle('Unpin this preview').click();
 
-  await looseProbe.click();
+  await looseProbe.getByText('Loose Preview', { exact: true }).click({ force: true });
   await expect(beforeProbe.locator('iframe[title="Before Invert love.js preview"]')).toHaveCount(0);
   await expect(afterProbe.locator('iframe[title="After Invert love.js preview"]')).toHaveCount(0);
   await expect(looseProbe.getByTestId('shader-preview-probe').getByText(/connect an rgba input/i)).toBeVisible();

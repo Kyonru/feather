@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added pinned sidebar Favorites for common tools, with Settings controls and quick star actions for pinning tools from the sidebar.
 - Added Shader Graph composition helper nodes for effect mixing, alpha/luma/range masks, gradient maps, mask combining, blend modes, and color ramps.
 - Added Shader Graph Fake 3D nodes for billboard UVs, parallax UVs, sprite texture sampling, depth shading, card shadows, and packed atlas sprite stacks.
+- Added Shader Graph template subgraphs for presets, with explicit Subgraph Input/Output boundary nodes and public Template Controls for common effect knobs and texture slots.
 
 ### Changed
 
@@ -36,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reworked the About modal with clearer app identity, version/update status, quick actions, feature summaries, and project links.
 - Reworked the main sidebar into Favorites, Core, Inspect, Creative, and History groups for faster scanning.
 - Improved Shader Graph node palette scanability with collapsible category sections, remembered section state, node counts, and search that opens matching collapsed sections.
+- Shader Graph presets now load and insert as reusable Subgraph instances instead of expanding full flat graphs onto the root canvas.
 - Shader Graph previews in Feather dev and showcase dev now use the same generated love.js target when available so embedded node previews render through the same LÖVE path.
 
 ### Fixed
@@ -47,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the Logs toolbar so search takes its own row before filters and actions when horizontal space is tight.
 - Fixed Feather dev Shader Graph node previews by serving the generated love.js preview route with the required isolation headers.
 - Fixed showcase love.js shader previews so node preview zoom is honored by the real LÖVE preview target.
+- Fixed Shader Graph Preview node toolbar actions so pin/zoom/reload clicks no longer re-select the node underneath.
 
 ### Tests
 
@@ -70,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added showcase e2e and focused settings coverage for Shader Graph collapsible node palette defaults, persistence, search, and empty states.
 - Added focused codegen and showcase e2e coverage for the new Shader Graph composition helper nodes.
 - Added focused codegen and showcase e2e coverage for the new Shader Graph Fake 3D sprite illusion nodes.
+- Added focused helper, showcase e2e, and app e2e coverage for Shader Graph template preset controls and subgraph boundary nodes.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.

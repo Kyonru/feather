@@ -1,6 +1,7 @@
 import type { GlslType, NodeCategory, NodeDef, NodeType, ShaderNodeData } from '@/types/shader-graph';
 import { glslFloat, shaderParameterUniformName, shaderTextureUniformName } from './glslUtils';
 import { customFunctionNodeDef } from './customNode';
+import { subgraphBoundaryPort } from './subgraphBoundary';
 
 export const PORT_TYPE_COLORS: Record<GlslType, string> = {
   float: '#94a3b8',
@@ -96,6 +97,20 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     inputs: [],
     outputs: [],
     emitGlsl: () => '',
+  },
+  SubgraphInput: {
+    category: 'Custom',
+    label: 'Subgraph Input',
+    inputs: [],
+    outputs: [{ id: 'out', label: 'Value', type: 'float' }],
+    emitGlsl: () => '',
+  },
+  SubgraphOutput: {
+    category: 'Custom',
+    label: 'Subgraph Output',
+    inputs: [{ id: 'value', label: 'Value', type: 'vec4', defaultValue: [0, 0, 0, 1] }],
+    outputs: [{ id: 'out', label: 'Out', type: 'vec4' }],
+    emitGlsl: (i, o) => `vec4 ${o.out} = ${i.value};`,
   },
   Preview: {
     category: 'Debug',
@@ -2771,6 +2786,26 @@ export function getNodeDef(data: ShaderNodeData): NodeDef {
       emitGlsl: () => '',
     };
   }
+  if (data.nodeType === 'SubgraphInput') {
+    const port = subgraphBoundaryPort(data, 'input');
+    return {
+      category: 'Custom',
+      label: String(data.label || 'Subgraph Input'),
+      inputs: [],
+      outputs: [{ ...port, id: 'out' }],
+      emitGlsl: () => '',
+    };
+  }
+  if (data.nodeType === 'SubgraphOutput') {
+    const port = subgraphBoundaryPort(data, 'output');
+    return {
+      category: 'Custom',
+      label: String(data.label || 'Subgraph Output'),
+      inputs: [{ ...port, id: 'value' }],
+      outputs: [{ ...port, id: 'out', label: port.label || 'Out' }],
+      emitGlsl: (i, o) => `${port.type} ${o.out} = ${i.value};`,
+    };
+  }
   return NODE_DEFS[data.nodeType];
 }
 
@@ -2823,7 +2858,7 @@ export const CATEGORY_TOP_COLORS: Record<NodeCategory, string> = {
 };
 
 export const CATEGORY_ORDER: Array<{ category: NodeCategory; nodes: NodeType[] }> = [
-  { category: 'Custom', nodes: ['CustomFunction'] },
+  { category: 'Custom', nodes: ['CustomFunction', 'SubgraphInput', 'SubgraphOutput'] },
   { category: 'Debug', nodes: ['Preview'] },
   {
     category: 'Input',

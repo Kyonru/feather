@@ -1,6 +1,8 @@
 import type { Edge } from '@xyflow/react';
-import type { NodeType, ShaderNodeData, ShaderNodeInstance } from '@/types/shader-graph';
+import type { GlslType, PortDef, ShaderEdge, ShaderNodeData, ShaderNodeInstance, ShaderSubgraph, SubgraphPortRole, NodeType } from '@/types/shader-graph';
 import { NODE_DEFS } from './nodeDefs';
+import { cloneShaderNodeData, nextGraphId } from './graphUtils';
+import { clonePortDef, syncSubgraphBoundary } from './subgraphBoundary';
 
 type PresetNode = {
   id: string;
@@ -29,6 +31,27 @@ export type ShaderGraphPreset = {
   shaderName: string;
   nodes: ShaderNodeInstance[];
   edges: Edge[];
+};
+
+type TemplateInputSpec = {
+  id: string;
+  label: string;
+  type: GlslType;
+  replaceNodeId?: string;
+  targetNodeId?: string;
+  targetPortId?: string;
+  uiRole?: SubgraphPortRole;
+  defaultValue?: number | number[];
+  min?: number;
+  max?: number;
+  step?: number;
+};
+
+export type ShaderGraphPresetTemplate = {
+  nodes: ShaderNodeInstance[];
+  edges: ShaderEdge[];
+  subgraphs: ShaderSubgraph[];
+  activeTemplateInstanceId: string | null;
 };
 
 const PRESET_LABELS: Record<string, string> = {
@@ -1191,3 +1214,339 @@ export const SHADER_GRAPH_PRESETS: ShaderGraphPreset[] = [
     ],
   ),
 ];
+
+const TEMPLATE_INPUTS: Record<string, TemplateInputSpec[]> = {
+  'fake-3d-billboard': [
+    { id: 'tilt', label: 'Tilt', type: 'vec2', targetNodeId: 'fake3d-billboard', targetPortId: 'tilt', uiRole: 'control', defaultValue: [0.28, -0.18], min: -1, max: 1, step: 0.01 },
+    { id: 'strength', label: 'Perspective', type: 'float', targetNodeId: 'fake3d-billboard', targetPortId: 'perspective', uiRole: 'control', defaultValue: 0.45, min: 0, max: 1, step: 0.01 },
+    { id: 'scale', label: 'Scale', type: 'vec2', targetNodeId: 'fake3d-billboard', targetPortId: 'scale', uiRole: 'control', defaultValue: [0.92, 0.92], min: 0.1, max: 2, step: 0.01 },
+    { id: 'softness', label: 'Shadow Softness', type: 'float', targetNodeId: 'fake3d-shadow', targetPortId: 'softness', uiRole: 'control', defaultValue: 0.16, min: 0, max: 1, step: 0.01 },
+  ],
+  outline: [
+    { id: 'strength', label: 'Thickness', type: 'float', replaceNodeId: 'thickness', uiRole: 'control', defaultValue: 3, min: 0, max: 16, step: 0.25 },
+    { id: 'color', label: 'Outline Color', type: 'vec4', replaceNodeId: 'outline-color', uiRole: 'control', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+  ],
+  wave: [
+    { id: 'strength', label: 'Strength', type: 'float', replaceNodeId: 'amp', uiRole: 'control', defaultValue: 0.025, min: 0, max: 0.2, step: 0.001 },
+    { id: 'scale', label: 'Frequency', type: 'float', replaceNodeId: 'freq', uiRole: 'control', defaultValue: 28, min: 1, max: 96, step: 1 },
+    { id: 'speed', label: 'Speed', type: 'float', replaceNodeId: 'speed', uiRole: 'control', defaultValue: 1.6, min: -8, max: 8, step: 0.05 },
+  ],
+  dissolve: [
+    { id: 'threshold', label: 'Threshold', type: 'float', replaceNodeId: 'cut', uiRole: 'control', defaultValue: 0.42, min: 0, max: 1, step: 0.01 },
+    { id: 'softness', label: 'Softness', type: 'float', replaceNodeId: 'soft', uiRole: 'control', defaultValue: 0.08, min: 0.001, max: 0.5, step: 0.005 },
+    { id: 'color', label: 'Edge Color', type: 'vec4', replaceNodeId: 'edge-color', uiRole: 'control', defaultValue: [1, 0.45, 0.05, 1], min: 0, max: 1, step: 0.01 },
+  ],
+  'hit-flash': [
+    { id: 'color', label: 'Flash Color', type: 'vec4', replaceNodeId: 'flash-color', uiRole: 'control', defaultValue: [1, 1, 1, 1], min: 0, max: 1, step: 0.01 },
+    { id: 'strength', label: 'Strength', type: 'float', replaceNodeId: 'amount', uiRole: 'control', defaultValue: 0.65, min: 0, max: 1, step: 0.01 },
+  ],
+  'rim-glow': [
+    { id: 'strength', label: 'Intensity', type: 'float', replaceNodeId: 'intensity', uiRole: 'control', defaultValue: 1.2, min: 0, max: 4, step: 0.05 },
+    { id: 'softness', label: 'Edge Power', type: 'float', replaceNodeId: 'power', uiRole: 'control', defaultValue: 2.8, min: 0.1, max: 8, step: 0.05 },
+    { id: 'color', label: 'Glow Color', type: 'vec4', replaceNodeId: 'glow-color', uiRole: 'control', defaultValue: [0.25, 0.8, 1, 1], min: 0, max: 1, step: 0.01 },
+  ],
+  'water-shimmer': [
+    { id: 'speed', label: 'Speed', type: 'float', replaceNodeId: 'speed', uiRole: 'control', defaultValue: 0.18, min: -1, max: 1, step: 0.01 },
+    { id: 'strength', label: 'Strength', type: 'float', replaceNodeId: 'amp', uiRole: 'control', defaultValue: 0.025, min: 0, max: 0.2, step: 0.001 },
+    { id: 'scale', label: 'Scale', type: 'float', replaceNodeId: 'scale', uiRole: 'control', defaultValue: 10, min: 1, max: 64, step: 0.5 },
+  ],
+  'masked-water-shimmer': [
+    { id: 'speed', label: 'Speed', type: 'float', replaceNodeId: 'speed', uiRole: 'control', defaultValue: 0.18, min: -1, max: 1, step: 0.01 },
+    { id: 'strength', label: 'Strength', type: 'float', replaceNodeId: 'amp', uiRole: 'control', defaultValue: 0.02, min: 0, max: 0.2, step: 0.001 },
+    { id: 'scale', label: 'Scale', type: 'float', replaceNodeId: 'scale', uiRole: 'control', defaultValue: 12, min: 1, max: 64, step: 0.5 },
+    { id: 'threshold', label: 'Mask Threshold', type: 'float', replaceNodeId: 'mask', uiRole: 'control', defaultValue: 0.5, min: 0, max: 1, step: 0.01 },
+  ],
+  'texture-noise-water': [
+    { id: 'speed', label: 'Speed', type: 'float', replaceNodeId: 'water-speed', uiRole: 'control', defaultValue: 0.05, min: -1, max: 1, step: 0.001 },
+    { id: 'strength', label: 'Strength', type: 'float', replaceNodeId: 'water-amp', uiRole: 'control', defaultValue: 0.05, min: 0, max: 0.25, step: 0.001 },
+    { id: 'noiseTexture', label: 'Noise Texture', type: 'image', replaceNodeId: 'water-noise', uiRole: 'texture' },
+  ],
+};
+
+function clonePresetNodes(preset: ShaderGraphPreset): { nodes: ShaderNodeInstance[]; edges: ShaderEdge[]; idMap: Map<string, string> } {
+  const idMap = new Map(preset.nodes.map((item) => [item.id, nextGraphId('preset-node')]));
+  const nodes = preset.nodes.map((item) => {
+    const id = idMap.get(item.id) ?? nextGraphId('preset-node');
+    return {
+      ...item,
+      id,
+      selected: false,
+      data: cloneShaderNodeData(item.data),
+    };
+  });
+  const edges = preset.edges
+    .filter((item) => idMap.has(item.source) && idMap.has(item.target))
+    .map((item) => {
+      const source = idMap.get(item.source) ?? item.source;
+      const target = idMap.get(item.target) ?? item.target;
+      return {
+        ...item,
+        id: `${source}:${item.sourceHandle ?? 'out'}->${target}:${item.targetHandle ?? 'in'}`,
+        source,
+        target,
+      } satisfies ShaderEdge;
+    });
+  return { nodes, edges, idMap };
+}
+
+function glslFunctionName(name: string, id: string): string {
+  const base = name.trim().replace(/[^a-zA-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'template';
+  const suffix = id.replace(/[^a-zA-Z0-9_]+/g, '_');
+  return `feather_template_${base}_${suffix}`;
+}
+
+function sourceSpecForNode(node: ShaderNodeInstance): TemplateInputSpec | null {
+  if (node.data.nodeType === 'TextureColor') {
+    return { id: 'sourceColor', label: 'Source Color', type: 'vec4', replaceNodeId: node.id, uiRole: 'source', defaultValue: [1, 1, 1, 1] };
+  }
+  if (node.data.nodeType === 'TextureCoords') {
+    return { id: 'uv', label: 'Source UV', type: 'vec2', replaceNodeId: node.id, uiRole: 'source', defaultValue: [0, 0] };
+  }
+  if (node.data.nodeType === 'Time') {
+    return { id: 'time', label: 'Time', type: 'float', replaceNodeId: node.id, uiRole: 'source', defaultValue: 0 };
+  }
+  return null;
+}
+
+function inputNodeForSpec(spec: TemplateInputSpec, index: number): ShaderNodeInstance {
+  return {
+    id: nextGraphId(`template-input-${spec.id}`),
+    type: 'shaderNode',
+    position: { x: -320, y: index * 130 },
+    data: {
+      label: spec.label,
+      nodeType: 'SubgraphInput',
+      boundaryPort: {
+        id: spec.id,
+        label: spec.label,
+        type: spec.type,
+        ...(spec.defaultValue !== undefined ? { defaultValue: spec.defaultValue } : {}),
+        ...(spec.min !== undefined ? { min: spec.min } : {}),
+        ...(spec.max !== undefined ? { max: spec.max } : {}),
+        ...(spec.step !== undefined ? { step: spec.step } : {}),
+        ...(spec.uiRole ? { uiRole: spec.uiRole } : {}),
+      } satisfies PortDef,
+    },
+  };
+}
+
+function outputNode(position: { x: number; y: number }): ShaderNodeInstance {
+  return {
+    id: nextGraphId('template-output-rgba'),
+    type: 'shaderNode',
+    position,
+    data: {
+      label: 'RGBA Output',
+      nodeType: 'SubgraphOutput',
+      boundaryPort: { id: 'rgba', label: 'RGBA', type: 'vec4', defaultValue: [0, 0, 0, 1] } satisfies PortDef,
+    },
+  };
+}
+
+function rootSourceNode(spec: TemplateInputSpec, x: number, y: number): ShaderNodeInstance | null {
+  const nodeType =
+    spec.uiRole === 'texture'
+      ? 'TextureInput'
+      : spec.id === 'sourceColor'
+        ? 'TextureColor'
+        : spec.id === 'uv'
+          ? 'TextureCoords'
+          : spec.id === 'time'
+            ? 'Time'
+            : null;
+  if (!nodeType) return null;
+  return {
+    id: nextGraphId(`template-root-${spec.id}`),
+    type: 'shaderNode',
+    position: { x, y },
+    data: {
+      label: spec.label,
+      nodeType,
+      ...(spec.uiRole === 'texture' ? { uniformName: spec.id } : {}),
+    } satisfies ShaderNodeData,
+  };
+}
+
+function sourceHandleForRootNode(node: ShaderNodeInstance): string {
+  if (node.data.nodeType === 'TextureInput' || node.data.nodeType === 'TextureParameter') return 'texture';
+  return 'out';
+}
+
+export function instantiateShaderGraphPreset(
+  preset: ShaderGraphPreset,
+  options: { includeOutput?: boolean; position?: { x: number; y: number } } = {},
+): ShaderGraphPresetTemplate {
+  const includeOutput = options.includeOutput ?? true;
+  const rootPosition = options.position ?? { x: 0, y: 80 };
+  const cloned = clonePresetNodes(preset);
+  if (preset.nodes.some((node) => node.data.nodeType === 'VertexOutput')) {
+    return {
+      nodes: cloned.nodes.map((node) => ({
+        ...node,
+        position: { x: node.position.x + rootPosition.x, y: node.position.y + rootPosition.y },
+      })),
+      edges: cloned.edges,
+      subgraphs: [],
+      activeTemplateInstanceId: null,
+    };
+  }
+  let internalNodes = cloned.nodes;
+  let internalEdges = cloned.edges;
+  const originalByMappedId = new Map([...cloned.idMap.entries()].map(([originalId, mappedId]) => [mappedId, originalId]));
+  const templateInputs: TemplateInputSpec[] = [];
+  const seenInputIds = new Set<string>();
+
+  for (const node of internalNodes) {
+    const sourceSpec = sourceSpecForNode({ ...node, id: originalByMappedId.get(node.id) ?? node.id });
+    if (!sourceSpec || seenInputIds.has(sourceSpec.id)) continue;
+    const mappedId = sourceSpec.replaceNodeId ? cloned.idMap.get(sourceSpec.replaceNodeId) : null;
+    if (!mappedId) continue;
+    templateInputs.push({ ...sourceSpec, replaceNodeId: mappedId });
+    seenInputIds.add(sourceSpec.id);
+  }
+
+  for (const spec of TEMPLATE_INPUTS[preset.id] ?? []) {
+    if (seenInputIds.has(spec.id)) continue;
+    const mappedReplacementId = spec.replaceNodeId ? cloned.idMap.get(spec.replaceNodeId) : undefined;
+    const mappedTargetId = spec.targetNodeId ? cloned.idMap.get(spec.targetNodeId) : undefined;
+    if (spec.replaceNodeId && !mappedReplacementId) continue;
+    if (spec.targetNodeId && !mappedTargetId) continue;
+    templateInputs.push({
+      ...spec,
+      ...(mappedReplacementId ? { replaceNodeId: mappedReplacementId } : {}),
+      ...(mappedTargetId ? { targetNodeId: mappedTargetId } : {}),
+    });
+    seenInputIds.add(spec.id);
+  }
+
+  const replacementIds = new Set(templateInputs.map((item) => item.replaceNodeId).filter((id): id is string => Boolean(id)));
+  const boundaryInputs = templateInputs.map(inputNodeForSpec);
+  const replacementNodeById = new Map(
+    templateInputs
+      .map((item, index) => item.replaceNodeId ? [item.replaceNodeId, boundaryInputs[index]] as const : null)
+      .filter((entry): entry is readonly [string, ShaderNodeInstance] => Boolean(entry)),
+  );
+
+  internalNodes = internalNodes.filter((node) => !replacementIds.has(node.id));
+  internalNodes = [...boundaryInputs, ...internalNodes];
+  internalEdges = internalEdges
+    .filter((edge) => !replacementIds.has(edge.target))
+    .map((edge) => {
+      const replacement = replacementNodeById.get(edge.source);
+      if (!replacement) return edge;
+      return {
+        ...edge,
+        id: `${replacement.id}:out->${edge.target}:${edge.targetHandle ?? 'in'}`,
+        source: replacement.id,
+        sourceHandle: 'out',
+      };
+    });
+
+  for (const [index, spec] of templateInputs.entries()) {
+    if (!spec.targetNodeId || !spec.targetPortId) continue;
+    const source = boundaryInputs[index];
+    internalEdges.push({
+      id: `${source.id}:out->${spec.targetNodeId}:${spec.targetPortId}`,
+      source: source.id,
+      sourceHandle: 'out',
+      target: spec.targetNodeId,
+      targetHandle: spec.targetPortId,
+    });
+  }
+
+  const fragmentOutput = internalNodes.find((node) => node.data.nodeType === 'FragmentOutput');
+  const output = outputNode(fragmentOutput?.position ?? { x: 640, y: 80 });
+  if (fragmentOutput) {
+    const colorEdge = internalEdges.find((edge) => edge.target === fragmentOutput.id && edge.targetHandle === 'color');
+    internalNodes = internalNodes.filter((node) => node.id !== fragmentOutput.id);
+    internalEdges = internalEdges.filter((edge) => edge.target !== fragmentOutput.id && edge.source !== fragmentOutput.id);
+    if (colorEdge?.sourceHandle) {
+      internalEdges.push({
+        id: `${colorEdge.source}:${colorEdge.sourceHandle}->${output.id}:value`,
+        source: colorEdge.source,
+        sourceHandle: colorEdge.sourceHandle,
+        target: output.id,
+        targetHandle: 'value',
+      });
+    }
+  }
+  internalNodes.push(output);
+
+  const subgraphId = nextGraphId('preset-subgraph');
+  const subgraph = syncSubgraphBoundary({
+    id: subgraphId,
+    name: preset.name,
+    functionName: glslFunctionName(preset.shaderName, subgraphId),
+    nodes: internalNodes,
+    edges: internalEdges,
+    inputs: [],
+    outputs: [],
+    inputMappings: {},
+    outputMappings: {},
+  });
+
+  const instanceId = nextGraphId('preset-instance');
+  const instanceValues: Record<string, number | number[]> = Object.fromEntries(
+    subgraph.inputs
+      .filter((port) => port.defaultValue !== undefined)
+      .map((port) => [port.id, Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue as number]),
+  );
+  const instance: ShaderNodeInstance = {
+    id: instanceId,
+    type: 'shaderNode',
+    position: { x: rootPosition.x + 300, y: rootPosition.y },
+    data: {
+      label: preset.name,
+      nodeType: 'SubgraphInstance',
+      subgraphId,
+      subgraphInputs: subgraph.inputs.map(clonePortDef),
+      subgraphOutputs: subgraph.outputs.map(clonePortDef),
+      values: instanceValues,
+    },
+  };
+
+  const rootNodes: ShaderNodeInstance[] = [];
+  const rootEdges: ShaderEdge[] = [];
+  let sourceIndex = 0;
+  for (const port of subgraph.inputs) {
+    if (port.uiRole !== 'source' && port.uiRole !== 'texture') continue;
+    const spec = templateInputs.find((item) => item.id === port.id);
+    if (!spec) continue;
+    const source = rootSourceNode(spec, rootPosition.x, rootPosition.y + sourceIndex * 120);
+    if (!source) continue;
+    rootNodes.push(source);
+    rootEdges.push({
+      id: `${source.id}:${sourceHandleForRootNode(source)}->${instanceId}:${port.id}`,
+      source: source.id,
+      sourceHandle: sourceHandleForRootNode(source),
+      target: instanceId,
+      targetHandle: port.id,
+    });
+    sourceIndex += 1;
+  }
+
+  rootNodes.push(instance);
+  if (includeOutput) {
+    const fragmentOutputNode: ShaderNodeInstance = {
+      id: nextGraphId('preset-root-output'),
+      type: 'shaderNode',
+      position: { x: rootPosition.x + 650, y: rootPosition.y },
+      data: { label: 'Fragment Output', nodeType: 'FragmentOutput' },
+    };
+    rootNodes.push(fragmentOutputNode);
+    rootEdges.push({
+      id: `${instanceId}:rgba->${fragmentOutputNode.id}:color`,
+      source: instanceId,
+      sourceHandle: 'rgba',
+      target: fragmentOutputNode.id,
+      targetHandle: 'color',
+    });
+  }
+
+  return {
+    nodes: rootNodes,
+    edges: rootEdges,
+    subgraphs: [subgraph],
+    activeTemplateInstanceId: instanceId,
+  };
+}

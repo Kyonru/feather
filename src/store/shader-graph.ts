@@ -2,6 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ShaderNodeData, PlaygroundTarget, GeneratedGlsl, ShaderPreviewShape, ShaderTextureUpload, ShaderSubgraph } from '@/types/shader-graph';
+import { clonePortDef, syncSubgraphBoundary, syncSubgraphInstances } from '@/pages/shader-graph/subgraphBoundary';
 
 type ValidationStatus = 'idle' | 'validating' | 'ok' | 'error';
 
@@ -21,6 +22,7 @@ type ShaderGraphStore = {
   selectedEdgeId: string | null;
   activeSubgraphId: string | null;
   subgraphBreadcrumb: string[];
+  activeTemplateInstanceId: string | null;
   shaderName: string;
   playgroundTarget: PlaygroundTarget | null;
   previewShape: ShaderPreviewShape;
@@ -57,6 +59,7 @@ type ShaderGraphStore = {
   exitSubgraph: () => void;
   setShaderName: (name: string) => void;
   setPlaygroundTarget: (target: PlaygroundTarget | null) => void;
+  setActiveTemplateInstanceId: (id: string | null) => void;
   setPreviewShape: (shape: ShaderPreviewShape) => void;
   setPreviewColor: (color: string) => void;
   setPreviewBaseTexture: (texture: ShaderTextureUpload | null) => void;
@@ -70,7 +73,7 @@ type ShaderGraphStore = {
   setHasInitializedExample: (hasInitializedExample: boolean) => void;
   markClean: () => void;
   isDirty: () => boolean;
-  loadGraph: (graph: { nodes: Node<ShaderNodeData>[]; edges: Edge[]; subgraphs?: ShaderSubgraph[]; shaderName?: string; playgroundTarget?: PlaygroundTarget | null }) => void;
+  loadGraph: (graph: { nodes: Node<ShaderNodeData>[]; edges: Edge[]; subgraphs?: ShaderSubgraph[]; shaderName?: string; playgroundTarget?: PlaygroundTarget | null; activeTemplateInstanceId?: string | null }) => void;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -105,6 +108,9 @@ function cloneShaderNodeData(data: ShaderNodeData): ShaderNodeData {
       : undefined,
     subgraphInputs: data.subgraphInputs?.map((port) => ({ ...port, defaultValue: Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue })),
     subgraphOutputs: data.subgraphOutputs?.map((port) => ({ ...port, defaultValue: Array.isArray(port.defaultValue) ? [...port.defaultValue] : port.defaultValue })),
+    boundaryPort: data.boundaryPort && typeof data.boundaryPort === 'object'
+      ? clonePortDef(data.boundaryPort as ShaderSubgraph['inputs'][number])
+      : data.boundaryPort,
   };
 }
 
@@ -206,31 +212,34 @@ function patchActiveGraph(
   graph: Partial<Pick<GraphSnapshot, 'nodes' | 'edges'>>,
 ): Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs'> {
   if (!state.activeSubgraphId) {
+    const subgraphs = state.subgraphs.map(syncSubgraphBoundary);
     return {
-      nodes: graph.nodes ?? state.nodes,
+      nodes: syncSubgraphInstances(graph.nodes ?? state.nodes, subgraphs),
       edges: graph.edges ?? state.edges,
-      subgraphs: state.subgraphs,
+      subgraphs,
     };
   }
 
+  const subgraphs = state.subgraphs.map((subgraph) =>
+    subgraph.id === state.activeSubgraphId
+      ? syncSubgraphBoundary({
+        ...subgraph,
+        nodes: graph.nodes ?? subgraph.nodes,
+        edges: graph.edges ?? subgraph.edges,
+      })
+      : syncSubgraphBoundary(subgraph),
+  );
+
   return {
-    nodes: state.nodes,
+    nodes: syncSubgraphInstances(state.nodes, subgraphs),
     edges: state.edges,
-    subgraphs: state.subgraphs.map((subgraph) =>
-      subgraph.id === state.activeSubgraphId
-        ? {
-          ...subgraph,
-          nodes: graph.nodes ?? subgraph.nodes,
-          edges: graph.edges ?? subgraph.edges,
-        }
-        : subgraph,
-    ),
+    subgraphs,
   };
 }
 
 function withHistory(
   state: ShaderGraphStore,
-  patch: Partial<Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs' | 'selectedNodeId' | 'selectedEdgeId' | 'textureUploads' | 'pinnedPreviewNodeIds'>>,
+  patch: Partial<Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs' | 'selectedNodeId' | 'selectedEdgeId' | 'textureUploads' | 'pinnedPreviewNodeIds' | 'activeTemplateInstanceId'>>,
 ) {
   const before = snapshot(state);
   const after = {
@@ -265,6 +274,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       selectedEdgeId: null,
       activeSubgraphId: null,
       subgraphBreadcrumb: [],
+      activeTemplateInstanceId: null,
       shaderName: 'my-shader',
       playgroundTarget: null,
       previewShape: 'circle',
@@ -281,7 +291,13 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
 
       setNodes: (nodes) => set((s) => withHistory(s, patchActiveGraph(s, { nodes }))),
       setEdges: (edges) => set((s) => withHistory(s, patchActiveGraph(s, { edges }))),
-      setSubgraphs: (subgraphs) => set((s) => withHistory(s, { subgraphs })),
+      setSubgraphs: (subgraphs) => set((s) => {
+        const syncedSubgraphs = subgraphs.map(syncSubgraphBoundary);
+        return withHistory(s, {
+          nodes: syncSubgraphInstances(s.nodes, syncedSubgraphs),
+          subgraphs: syncedSubgraphs,
+        });
+      }),
       addNode: (node) =>
         set((s) => {
           const graph = activeGraph(s);
@@ -317,6 +333,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
               edges: graph.edges.filter((e) => e.source !== id && e.target !== id),
             }),
             selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
+            activeTemplateInstanceId: s.activeTemplateInstanceId === id ? null : s.activeTemplateInstanceId,
             textureUploads: Object.fromEntries(Object.entries(s.textureUploads).filter(([nodeId]) => nodeId !== id)),
             pinnedPreviewNodeIds: s.pinnedPreviewNodeIds.filter((nodeId) => nodeId !== id),
           });
@@ -335,6 +352,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             }),
             selectedNodeId: s.selectedNodeId && idSet.has(s.selectedNodeId) ? null : s.selectedNodeId,
             selectedEdgeId: selectedEdgeStillExists ? s.selectedEdgeId : null,
+            activeTemplateInstanceId: s.activeTemplateInstanceId && idSet.has(s.activeTemplateInstanceId) ? null : s.activeTemplateInstanceId,
             textureUploads: Object.fromEntries(Object.entries(s.textureUploads).filter(([nodeId]) => !idSet.has(nodeId))),
             pinnedPreviewNodeIds: s.pinnedPreviewNodeIds.filter((nodeId) => !idSet.has(nodeId)),
           });
@@ -353,6 +371,11 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
         set((s) => {
           const graph = activeGraph(s);
           const editedNode = graph.nodes.find((n) => n.id === id);
+          if (!editedNode && s.nodes.some((node) => node.id === id)) {
+            return withHistory(s, {
+              nodes: s.nodes.map((node) => node.id === id ? { ...node, data: { ...node.data, ...patch } } : node),
+            });
+          }
           const linkedSourceNodeId = typeof editedNode?.data.linkedSourceNodeId === 'string' ? editedNode.data.linkedSourceNodeId : null;
           const linkedGroupSourceId = linkedSourceNodeId ?? id;
           const shouldUpdateLinkedGroup =
@@ -421,6 +444,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
         }),
       setShaderName: (shaderName) => set({ shaderName }),
       setPlaygroundTarget: (playgroundTarget) => set({ playgroundTarget }),
+      setActiveTemplateInstanceId: (activeTemplateInstanceId) => set({ activeTemplateInstanceId }),
       setPreviewShape: (previewShape) => set({ previewShape }),
       setPreviewColor: (previewColor) => set({ previewColor }),
       setPreviewBaseTexture: (previewBaseTexture) => set({ previewBaseTexture }),
@@ -455,15 +479,17 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       },
       loadGraph: (graph) =>
         set(() => {
+          const subgraphs = (graph.subgraphs ?? []).map(syncSubgraphBoundary);
           const next = {
-            nodes: graph.nodes,
+            nodes: syncSubgraphInstances(graph.nodes, subgraphs),
             edges: graph.edges,
-            subgraphs: graph.subgraphs ?? [],
+            subgraphs,
           };
           return {
             ...next,
             shaderName: graph.shaderName ?? get().shaderName,
             playgroundTarget: graph.playgroundTarget ?? null,
+            activeTemplateInstanceId: graph.activeTemplateInstanceId ?? null,
             selectedNodeId: null,
             selectedEdgeId: null,
             activeSubgraphId: null,
@@ -493,6 +519,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             selectedEdgeId: null,
             activeSubgraphId: null,
             subgraphBreadcrumb: [],
+            activeTemplateInstanceId: s.activeTemplateInstanceId,
             lastGeneratedGlsl: null,
             validationStatus: 'idle',
             validationErrors: {},
@@ -526,6 +553,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
         nodes: s.nodes,
         edges: s.edges,
         subgraphs: s.subgraphs,
+        activeTemplateInstanceId: s.activeTemplateInstanceId,
         shaderName: s.shaderName,
         playgroundTarget: s.playgroundTarget,
         hasInitializedExample: s.hasInitializedExample,

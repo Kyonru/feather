@@ -11,7 +11,7 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 ## Workflow
 
 1. Open **Shader Graph** in Feather.
-2. On first open, Feather loads the **Water Shimmer** example so there is a complete graph ready to validate, edit, and apply.
+2. On first open, Feather loads the **Water Shimmer** template so there is a complete graph ready to tune, validate, edit, and apply.
 3. Drag nodes from the palette onto the canvas. Common sections, including Fake 3D, stay open by default, while specialized sections such as Complex, Quaternion, Pattern, Pixel Perfect, Vertex, and SDF start collapsed so the palette is easier to scan.
 4. Connect compatible ports by type.
 5. Connect the final `vec4` color into **Fragment Output**.
@@ -21,13 +21,26 @@ Several higher-level nodes and presets are also inspired by common VFX Shader Gr
 9. Use **Validate** to compile in the running LÖVE game after local diagnostics are clear.
 10. Toggle **Preview On** to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically through a throttled live preview so the attached game stays responsive.
 11. Use **Apply** to send the generated shader to the selected Particle System Playground emitter.
-12. Export/import `.feathershgh` files when you want to save or share editable graph projects.
+12. Export/import `.feathershgh` files when you want to save or share editable graph projects. New template graphs export as version 3 files; older version 1/2 graphs still import as plain editable graphs.
 
 Select a node and edit **Node Name** in the inspector when a graph needs more descriptive labels. Renaming a node changes the canvas label only; the original node type stays visible in the inspector and code generation is unchanged.
 
 ## Node Palette
 
 Palette sections are collapsible and remember their open/closed state across app restarts. Use **Expand all** or **Collapse all** when browsing the full library. Search matches node labels, node ids, and category names; matching categories open while the search is active, then return to the saved collapsed state when the search is cleared.
+
+## Template Presets And Subgraphs
+
+Preset loading now keeps the root canvas clean. **Load preset** replaces the current graph with source nodes, one reusable **Subgraph** instance, and the final output node. **Insert preset** drops the same reusable instance into the current graph without expanding every internal node onto the root canvas.
+
+Select the preset Subgraph instance to use **Template Controls** in the inspector. These controls are just the subgraph's public inputs: common knobs such as strength, speed, color, scale, threshold, and softness update the Subgraph node's disconnected input defaults. Source ports such as Source Color, UV, and Time stay wired on the root canvas. Texture slots, such as the Texture Noise Water noise texture, are backed by root texture input nodes and use the same texture upload path as normal Shader Graph texture nodes.
+
+Double-click a Subgraph instance to enter it. Template subgraphs use explicit boundary nodes:
+
+- **Subgraph Input** defines a public input port with a type, label, default value, optional min/max/step, and a role of source, control, or texture.
+- **Subgraph Output** exposes one internal value as a public output.
+
+Boundary nodes only appear in the palette while editing inside a subgraph. Root-level boundary nodes are diagnostics because they do not make sense outside a subgraph. Template diagnostics also report missing explicit outputs and disconnected Subgraph Output nodes before GLSL validation.
 
 ## Diagnostics
 
@@ -353,7 +366,7 @@ The Shader Graph page includes complete preset graphs:
 - **SDF Crescent**: difference of two circle fields.
 - **Masked Water Shimmer**: alpha-constrained displacement that keeps transparent edges stable.
 
-Load a preset, validate it, then inspect how the nodes are connected. Presets are intended as editable starting points, not black boxes.
+Load a preset, tune its Template Controls, validate it, then double-click the Subgraph if you want to inspect or edit the full internal graph. Presets are intended as editable starting points, not black boxes.
 
 ## Practical Tips
 

@@ -2,6 +2,8 @@ import type { Node, Edge } from '@xyflow/react';
 
 export type GlslType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4' | 'image';
 
+export type SubgraphPortRole = 'source' | 'control' | 'texture';
+
 export type PortDef = {
   id: string;
   label: string;
@@ -10,6 +12,7 @@ export type PortDef = {
   min?: number;
   max?: number;
   step?: number;
+  uiRole?: SubgraphPortRole;
 };
 
 export const NODE_CATEGORIES = [
@@ -39,6 +42,8 @@ export const NODE_CATEGORIES = [
 export const NODE_TYPES = [
   'CustomFunction',
   'SubgraphInstance',
+  'SubgraphInput',
+  'SubgraphOutput',
   'Preview',
   'TextureColor',
   'TextureInput',
