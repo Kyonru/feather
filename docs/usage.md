@@ -72,6 +72,12 @@ Theme choices update the app chrome and syntax-highlighted code surfaces, includ
 
 ---
 
+## About And Updates
+
+Open **About** from the lower sidebar to see the desktop app version, update status, project links, release notes, license, docs, and sponsorship links. When Feather detects that a newer desktop release is available, the About entry changes to **Update available** and the modal links directly to releases.
+
+---
+
 ## Session Health
 
 Open **Session** first when you want to know what Feather thinks is happening. The page summarizes connection state, runtime/API version, project roots, capabilities, enabled or incompatible plugins, Console/API-key status, Hot Reload state, debugger state, package lockfile status, and recent performance signals.

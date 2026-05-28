@@ -33,10 +33,10 @@ export function NavBottom({ ...props }: {} & React.ComponentPropsWithoutRef<type
 
   const aboutTitle = React.useMemo(() => {
     if (!isLatestVersion) {
-      return 'New version available';
+      return 'Update available';
     }
 
-    return 'Info';
+    return 'About';
   }, [isLatestVersion]);
 
   const items = [
@@ -63,17 +63,9 @@ export function NavBottom({ ...props }: {} & React.ComponentPropsWithoutRef<type
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild className={item.className}>
-                <a
-                  onClick={(e) => {
-                    e.preventDefault();
-
-                    item.onPress();
-                  }}
-                >
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                </a>
+              <SidebarMenuButton type="button" className={item.className} onClick={item.onPress}>
+                {item.icon && <item.icon />}
+                <span>{item.title}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

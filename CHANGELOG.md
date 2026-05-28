@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Reworked the Settings modal with a wider responsive layout, left-side navigation, page summaries, framed setting groups, and clearer autosave/status cues.
+- Reworked the About modal with clearer app identity, version/update status, quick actions, feature summaries, and project links.
 
 ### Fixed
 
@@ -50,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded showcase e2e coverage for Shader Graph Preview node aspect ratio.
 - Added app e2e and focused registry coverage for Noctis theme selection, persistence, and fallback behavior.
 - Expanded app e2e coverage for the redesigned Settings modal navigation and connection summary.
+- Added app e2e coverage for opening the redesigned About modal from the sidebar.
 - Added app e2e coverage for log type badge contrast in dark themes.
 - Added focused log-history coverage and app e2e coverage for restoring saved session logs.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.

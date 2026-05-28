@@ -74,8 +74,8 @@ export function ProfilerPanel() {
 
   const tableData = data.type === 'table' ? data.data : [];
   const recording = data.type === 'table' ? data.recording !== false : false;
-  const captureElapsed = data.type === 'table' ? data.captureElapsed ?? 0 : 0;
-  const totalCapturedTime = data.type === 'table' ? data.totalCapturedTime ?? 0 : 0;
+  const captureElapsed = data.type === 'table' ? (data.captureElapsed ?? 0) : 0;
+  const totalCapturedTime = data.type === 'table' ? (data.totalCapturedTime ?? 0) : 0;
   const snapshots = data.type === 'table' ? (data.snapshots ?? []) : [];
   const selectedSnapshot = snapshots.find((snapshot) => snapshot.label === compareSnapshot);
 
@@ -93,8 +93,10 @@ export function ProfilerPanel() {
         if (needle && !textValue(row, 'name').toLowerCase().includes(needle)) return false;
         if (groupFilter !== 'all' && textValue(row, 'group') !== groupFilter) return false;
         if (hideOneCall && numberValue(row, 'calls') <= 1) return false;
-        if (Number.isFinite(minTotalSeconds) && minTotalMs.trim() && numberValue(row, 'totalTimeRaw') < minTotalSeconds) return false;
-        if (Number.isFinite(minAvgSeconds) && minAvgMs.trim() && numberValue(row, 'avgTimeRaw') < minAvgSeconds) return false;
+        if (Number.isFinite(minTotalSeconds) && minTotalMs.trim() && numberValue(row, 'totalTimeRaw') < minTotalSeconds)
+          return false;
+        if (Number.isFinite(minAvgSeconds) && minAvgMs.trim() && numberValue(row, 'avgTimeRaw') < minAvgSeconds)
+          return false;
         return true;
       })
       .sort((a, b) => {
@@ -126,7 +128,11 @@ export function ProfilerPanel() {
           <CardTitle>Profiler</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>{plugin.incompatible ? 'The profiler plugin is incompatible with this session.' : 'The profiler plugin is disabled.'}</p>
+          <p>
+            {plugin.incompatible
+              ? 'The profiler plugin is incompatible with this session.'
+              : 'The profiler plugin is disabled.'}
+          </p>
           <Button asChild variant="outline" size="sm">
             <Link to="/plugins/profiler">Open profiler plugin</Link>
           </Button>
@@ -141,49 +147,49 @@ export function ProfilerPanel() {
         className="rounded-md border"
         actions={
           <>
-          <Button size="sm" variant={recording ? 'secondary' : 'default'} onClick={() => onAction('start')}>
-            <PlayIcon className="size-4" />
-            Start
-          </Button>
-          <Button size="sm" variant={!recording ? 'secondary' : 'outline'} onClick={() => onAction('stop')}>
-            <PauseIcon className="size-4" />
-            Stop
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onAction('reset')}>
-            <RotateCcwIcon className="size-4" />
-            Reset
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onAction('snapshot', { label: 'Before' })}>
-            <CameraIcon className="size-4" />
-            Before
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onAction('snapshot', { label: 'After' })}>
-            <CameraIcon className="size-4" />
-            After
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onAction('snapshot', { label: 'Last capture' })}>
-            <CameraIcon className="size-4" />
-            Snapshot
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              exportProfiler(filteredRows, {
-                recording,
-                captureElapsed,
-                totalCapturedTime,
-              })
-            }
-          >
-            <DownloadIcon className="size-4" />
-            Export JSON
-          </Button>
+            <Button size="sm" variant={recording ? 'secondary' : 'default'} onClick={() => onAction('start')}>
+              <PlayIcon className="size-4" />
+              Start
+            </Button>
+            <Button size="sm" variant={!recording ? 'secondary' : 'outline'} onClick={() => onAction('stop')}>
+              <PauseIcon className="size-4" />
+              Stop
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onAction('reset')}>
+              <RotateCcwIcon className="size-4" />
+              Reset
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onAction('snapshot', { label: 'Before' })}>
+              <CameraIcon className="size-4" />
+              Before
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onAction('snapshot', { label: 'After' })}>
+              <CameraIcon className="size-4" />
+              After
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onAction('snapshot', { label: 'Last capture' })}>
+              <CameraIcon className="size-4" />
+              Snapshot
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                exportProfiler(filteredRows, {
+                  recording,
+                  captureElapsed,
+                  totalCapturedTime,
+                })
+              }
+            >
+              <DownloadIcon className="size-4" />
+              Export JSON
+            </Button>
           </>
         }
         summary={
           <>
-          <span className={cn('size-2 rounded-full', recording ? 'bg-green-500' : 'bg-muted-foreground')} />
+            <span className={cn('size-2 rounded-full', recording ? 'bg-green-500' : 'bg-muted-foreground')} />
             <TriageSummaryChip label={recording ? 'Recording' : 'Stopped'} tone={recording ? 'good' : 'muted'} />
             <TriageSummaryChip label="Capture" value={`${captureElapsed.toFixed(1)}s`} />
             <TriageSummaryChip label="Total" value={formatSeconds(totalCapturedTime)} />
@@ -191,7 +197,10 @@ export function ProfilerPanel() {
         }
       />
 
-      <div className="grid gap-2 rounded-md border p-3 lg:grid-cols-[minmax(16rem,1fr)_11rem_11rem_11rem_10rem_10rem]">
+      <div
+        className="grid gap-2 rounded-md border p-3 lg:grid-cols-[minmax(16rem,1fr)_11rem_11rem_11rem_10rem_10rem]"
+        id="filters-container-row"
+      >
         <TriageSearch value={search} onChange={setSearch} placeholder="Search functions..." />
         <Select value={groupFilter} onValueChange={setGroupFilter}>
           <SelectTrigger>
@@ -235,13 +244,23 @@ export function ProfilerPanel() {
           <Label htmlFor="profiler-min-total" className="text-[10px] text-muted-foreground">
             Min total ms
           </Label>
-          <Input id="profiler-min-total" inputMode="decimal" value={minTotalMs} onChange={(event) => setMinTotalMs(event.target.value)} />
+          <Input
+            id="profiler-min-total"
+            inputMode="decimal"
+            value={minTotalMs}
+            onChange={(event) => setMinTotalMs(event.target.value)}
+          />
         </div>
         <div className="grid gap-1">
           <Label htmlFor="profiler-min-avg" className="text-[10px] text-muted-foreground">
             Min avg ms
           </Label>
-          <Input id="profiler-min-avg" inputMode="decimal" value={minAvgMs} onChange={(event) => setMinAvgMs(event.target.value)} />
+          <Input
+            id="profiler-min-avg"
+            inputMode="decimal"
+            value={minAvgMs}
+            onChange={(event) => setMinAvgMs(event.target.value)}
+          />
         </div>
         <label className="flex items-center gap-2 text-sm text-muted-foreground lg:col-span-6">
           <Checkbox checked={hideOneCall} onCheckedChange={(checked) => setHideOneCall(checked === true)} />
@@ -276,7 +295,8 @@ export function ProfilerPanel() {
             ) : (
               filteredRows.map((row) => {
                 const previous = selectedSnapshot?.rows?.[textValue(row, 'name')];
-                const deltaTotal = numberValue(row, 'totalTimeRaw') - (previous ? numberValue(previous, 'totalTimeRaw') : 0);
+                const deltaTotal =
+                  numberValue(row, 'totalTimeRaw') - (previous ? numberValue(previous, 'totalTimeRaw') : 0);
                 const deltaCalls = numberValue(row, 'calls') - (previous ? numberValue(previous, 'calls') : 0);
 
                 return (
@@ -284,14 +304,36 @@ export function ProfilerPanel() {
                     <TableCell className="font-mono">{textValue(row, 'name')}</TableCell>
                     <TableCell className="font-mono text-muted-foreground">{textValue(row, 'group')}</TableCell>
                     <TableCell className="text-right tabular-nums">{numberValue(row, 'percent').toFixed(1)}%</TableCell>
-                    <TableCell className="text-right tabular-nums">{numberValue(row, 'callsPerSecond').toFixed(1)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{numberValue(row, 'calls').toLocaleString()}</TableCell>
-                    <TableCell className="text-right tabular-nums">{textValue(row, 'totalTime') || formatSeconds(numberValue(row, 'totalTimeRaw'))}</TableCell>
-                    {selectedSnapshot ? <TableCell className="text-right tabular-nums">{deltaTotal >= 0 ? '+' : ''}{formatSeconds(deltaTotal)}</TableCell> : null}
-                    {selectedSnapshot ? <TableCell className="text-right tabular-nums">{deltaCalls >= 0 ? '+' : ''}{deltaCalls.toLocaleString()}</TableCell> : null}
-                    <TableCell className="text-right tabular-nums">{textValue(row, 'avgTime') || formatSeconds(numberValue(row, 'avgTimeRaw'))}</TableCell>
-                    <TableCell className="text-right tabular-nums">{textValue(row, 'minTime') || formatSeconds(numberValue(row, 'minTimeRaw'))}</TableCell>
-                    <TableCell className="text-right tabular-nums">{textValue(row, 'maxTime') || formatSeconds(numberValue(row, 'maxTimeRaw'))}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {numberValue(row, 'callsPerSecond').toFixed(1)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {numberValue(row, 'calls').toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {textValue(row, 'totalTime') || formatSeconds(numberValue(row, 'totalTimeRaw'))}
+                    </TableCell>
+                    {selectedSnapshot ? (
+                      <TableCell className="text-right tabular-nums">
+                        {deltaTotal >= 0 ? '+' : ''}
+                        {formatSeconds(deltaTotal)}
+                      </TableCell>
+                    ) : null}
+                    {selectedSnapshot ? (
+                      <TableCell className="text-right tabular-nums">
+                        {deltaCalls >= 0 ? '+' : ''}
+                        {deltaCalls.toLocaleString()}
+                      </TableCell>
+                    ) : null}
+                    <TableCell className="text-right tabular-nums">
+                      {textValue(row, 'avgTime') || formatSeconds(numberValue(row, 'avgTimeRaw'))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {textValue(row, 'minTime') || formatSeconds(numberValue(row, 'minTimeRaw'))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {textValue(row, 'maxTime') || formatSeconds(numberValue(row, 'maxTimeRaw'))}
+                    </TableCell>
                   </TableRow>
                 );
               })

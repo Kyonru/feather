@@ -926,6 +926,24 @@ test('shows no-session empty state and opens settings', async ({ page }) => {
   await expect(page.getByLabel('Connection Timeout (seconds)')).toHaveValue('15');
 });
 
+test('opens redesigned about modal from the sidebar', async ({ page }) => {
+  await seedNoSession(page);
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'About' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'About Feather' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('Built for LÖVE development')).toBeVisible();
+  await expect(dialog.getByText('What Feather Covers')).toBeVisible();
+  await expect(dialog.getByText('Project Links')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Open Docs' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Star on GitHub' })).toBeVisible();
+
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await expect(dialog).toBeHidden();
+});
+
 test('persists settings changes across reloads', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
