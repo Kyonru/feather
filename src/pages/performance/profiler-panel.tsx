@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { CameraIcon, DownloadIcon, PauseIcon, PlayIcon, RotateCcwIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -58,6 +58,30 @@ function exportProfiler(rows: PluginTableRow[], metadata: Record<string, unknown
   };
   const src = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
   void downloadFile(`feather-profiler-${Date.now()}.json`, src, 'string');
+}
+
+function ProfilerFilterField({
+  label,
+  htmlFor,
+  className,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn('grid min-w-0 content-start gap-1', className)}>
+      <Label
+        htmlFor={htmlFor}
+        className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+      >
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
 }
 
 export function ProfilerPanel() {
@@ -198,74 +222,102 @@ export function ProfilerPanel() {
       />
 
       <div
-        className="grid gap-2 rounded-md border p-3 lg:grid-cols-[minmax(16rem,1fr)_11rem_11rem_11rem_10rem_10rem]"
+        className="grid gap-2 rounded-md border p-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[minmax(14rem,1.4fr)_repeat(3,minmax(8rem,1fr))_repeat(3,minmax(7rem,0.8fr))]"
         id="filters-container-row"
       >
-        <TriageSearch value={search} onChange={setSearch} placeholder="Search functions..." />
-        <Select value={groupFilter} onValueChange={setGroupFilter}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All groups</SelectItem>
-            {groups.map((group) => (
-              <SelectItem key={group} value={group}>
-                {group}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortKey)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(sortLabels).map(([key, label]) => (
-              <SelectItem key={key} value={key}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={compareSnapshot} onValueChange={setCompareSnapshot}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No diff</SelectItem>
-            {snapshots.map((snapshot) => (
-              <SelectItem key={snapshot.label ?? 'snapshot'} value={snapshot.label ?? 'snapshot'}>
-                Compare {snapshot.label ?? 'Snapshot'}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="grid gap-1">
-          <Label htmlFor="profiler-min-total" className="text-[10px] text-muted-foreground">
-            Min total ms
-          </Label>
+        <ProfilerFilterField label="Function" className="md:col-span-2 lg:col-span-1 xl:col-span-1">
+          <TriageSearch value={search} onChange={setSearch} placeholder="Search functions..." className="min-w-0" />
+        </ProfilerFilterField>
+        <ProfilerFilterField label="Group" htmlFor="profiler-group-filter">
+          <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <SelectTrigger
+              id="profiler-group-filter"
+              size="sm"
+              aria-label="Profiler group filter"
+              className="w-full min-w-0 text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All groups</SelectItem>
+              {groups.map((group) => (
+                <SelectItem key={group} value={group}>
+                  {group}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </ProfilerFilterField>
+        <ProfilerFilterField label="Sort" htmlFor="profiler-sort">
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortKey)}>
+            <SelectTrigger
+              id="profiler-sort"
+              size="sm"
+              aria-label="Profiler sort"
+              className="w-full min-w-0 text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(sortLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </ProfilerFilterField>
+        <ProfilerFilterField label="Diff" htmlFor="profiler-diff-snapshot">
+          <Select value={compareSnapshot} onValueChange={setCompareSnapshot}>
+            <SelectTrigger
+              id="profiler-diff-snapshot"
+              size="sm"
+              aria-label="Profiler diff snapshot"
+              className="w-full min-w-0 text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No diff</SelectItem>
+              {snapshots.map((snapshot) => (
+                <SelectItem key={snapshot.label ?? 'snapshot'} value={snapshot.label ?? 'snapshot'}>
+                  Compare {snapshot.label ?? 'Snapshot'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </ProfilerFilterField>
+        <ProfilerFilterField label="Min total" htmlFor="profiler-min-total">
           <Input
             id="profiler-min-total"
             inputMode="decimal"
             value={minTotalMs}
             onChange={(event) => setMinTotalMs(event.target.value)}
+            className="h-8 text-xs"
           />
-        </div>
-        <div className="grid gap-1">
-          <Label htmlFor="profiler-min-avg" className="text-[10px] text-muted-foreground">
-            Min avg ms
-          </Label>
+        </ProfilerFilterField>
+        <ProfilerFilterField label="Min avg" htmlFor="profiler-min-avg">
           <Input
             id="profiler-min-avg"
             inputMode="decimal"
             value={minAvgMs}
             onChange={(event) => setMinAvgMs(event.target.value)}
+            className="h-8 text-xs"
           />
-        </div>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground lg:col-span-6">
-          <Checkbox checked={hideOneCall} onCheckedChange={(checked) => setHideOneCall(checked === true)} />
-          Hide one-call entries
-        </label>
+        </ProfilerFilterField>
+        <ProfilerFilterField label="Call filter">
+          <label
+            data-testid="profiler-hide-one-call-control"
+            className="flex h-8 min-w-0 items-center gap-2 rounded-md border border-input bg-transparent px-3 text-xs text-muted-foreground shadow-xs dark:bg-input/30"
+          >
+            <Checkbox
+              id="profiler-hide-one-call"
+              checked={hideOneCall}
+              onCheckedChange={(checked) => setHideOneCall(checked === true)}
+            />
+            <span className="truncate">Hide one-call entries</span>
+          </label>
+        </ProfilerFilterField>
       </div>
 
       <div className="rounded-md border">

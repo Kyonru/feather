@@ -1276,6 +1276,90 @@ test('profiler disabled state stays readable', async ({ page }) => {
   await expectNoBrokenText(page);
 });
 
+test('profiler filters wrap without horizontal overflow', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1100, height: 760 });
+  await page.goto('/performance');
+  await seedHealthySessionConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    const frameRow = {
+      name: 'game.update',
+      group: 'game',
+      percent: 68.5,
+      callsPerSecond: 60,
+      calls: 120,
+      totalTimeRaw: 0.034,
+      totalTime: '34.0 ms',
+      avgTimeRaw: 0.00028,
+      avgTime: '0.3 ms',
+      minTimeRaw: 0.0001,
+      minTime: '0.1 ms',
+      maxTimeRaw: 0.0011,
+      maxTime: '1.1 ms',
+    };
+    client?.setQueryData(['demo', 'plugin', 'profiler'], {
+      type: 'table',
+      columns: [],
+      data: [
+        frameRow,
+        {
+          ...frameRow,
+          name: 'effects.shader.pass',
+          group: 'render',
+          percent: 31.5,
+          calls: 44,
+        },
+      ],
+      loading: false,
+      recording: true,
+      captureElapsed: 3.2,
+      totalCapturedTime: 0.054,
+      snapshots: [{ label: 'Before', rows: { 'game.update': frameRow } }],
+    });
+  });
+
+  await page.getByRole('tab', { name: 'Profiler' }).click();
+  const filters = page.locator('#filters-container-row');
+
+  await expect(filters).toBeVisible();
+  await expect(page.getByPlaceholder('Search functions...')).toBeVisible();
+  await expect(page.getByLabel('Profiler group filter')).toBeVisible();
+  await expect(page.getByLabel('Profiler diff snapshot')).toBeVisible();
+  await expect(page.getByLabel('Hide one-call entries')).toBeVisible();
+  await expect.poll(() => filters.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  const controlMetrics = await filters.evaluate((element) => {
+    const selectors = [
+      'input[placeholder="Search functions..."]',
+      '#profiler-group-filter',
+      '#profiler-sort',
+      '#profiler-diff-snapshot',
+      '#profiler-min-total',
+      '#profiler-min-avg',
+      '[data-testid="profiler-hide-one-call-control"]',
+    ];
+
+    return selectors.map((selector) => {
+      const target = element.querySelector(selector);
+      if (!(target instanceof HTMLElement)) {
+        return { top: -1, height: -1 };
+      }
+      const rect = target.getBoundingClientRect();
+      return { top: Math.round(rect.top), height: Math.round(rect.height) };
+    });
+  });
+  expect(controlMetrics.every(({ top }) => top >= 0)).toBe(true);
+  const controlHeights = controlMetrics.map(({ height }) => height);
+  expect(Math.max(...controlHeights) - Math.min(...controlHeights)).toBeLessThanOrEqual(2);
+  const firstRowTops = controlMetrics.slice(0, 4).map(({ top }) => top);
+  const secondRowTops = controlMetrics.slice(4).map(({ top }) => top);
+  expect(Math.max(...firstRowTops) - Math.min(...firstRowTops)).toBeLessThanOrEqual(1);
+  expect(Math.max(...secondRowTops) - Math.min(...secondRowTops)).toBeLessThanOrEqual(1);
+  await expectNoBrokenText(page);
+});
+
 test('observability triage controls filter and open observer details', async ({ page }) => {
   await seedSession(page);
   await page.setViewportSize({ width: 1180, height: 760 });
