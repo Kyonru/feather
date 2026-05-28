@@ -64,7 +64,7 @@ Actions that need a live session or enabled plugin stay visible but disabled wit
 
 ## Appearance
 
-Open **Settings → General → Appearance** to choose the app theme. Feather keeps the default **System**, **Feather Light**, and **Feather Dark** options, and also includes all Noctis variants: Lux, Hibernus, Lilac, Noctis, Azureus, Bordo, Obscuro, Sereno, Uva, Viola, and Minimus. Tokyo Night variants are available as Light, Night, and Storm, and the Microsoft Visual Studio C/C++ set includes Light, Dark, 2017 Light, and 2017 Dark.
+Open **Settings → General → Appearance** to choose the app theme. Feather keeps the default **System**, **Feather Light**, and **Feather Dark** options, and also includes all Noctis variants: Lux, Hibernus, Lilac, Noctis, Azureus, Bordo, Obscuro, Sereno, Uva, Viola, and Minimus. Tokyo Night variants are available as Light, Night, and Storm, Rainglow includes Absent Light, and the Microsoft Visual Studio C/C++ set includes Light, Dark, 2017 Light, and 2017 Dark.
 
 Theme choices update the app chrome and syntax-highlighted code surfaces, including Console output, Debugger source views, shader code, and Lua/GLSL editors.
 

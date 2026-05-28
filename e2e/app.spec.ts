@@ -990,6 +990,14 @@ test('persists expanded theme variants and can return to system mode', async ({ 
     .toBe('#e6e7ed');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
+  await page.getByRole('option', { name: 'Absent Light (Rainglow)' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'rainglow-absent-light');
+  await expect(page.locator('html')).toHaveClass(/\blight\b/);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
+    .toBe('#228a96');
+
+  await page.getByRole('combobox', { name: 'App Theme' }).click();
   await page.getByRole('option', { name: 'System' }).click();
 
   const expectedSystemTheme = await page.evaluate(() =>

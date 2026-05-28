@@ -36,10 +36,12 @@ const tokyoNightThemeIds: ThemeId[] = [
   'tokyo-night-storm',
 ];
 
+const rainglowThemeIds: ThemeId[] = ['rainglow-absent-light'];
+
 test('theme picker exposes Feather defaults and external theme variants', () => {
   const options = themeSelectorGroups.flatMap((group) => group.options.map((option) => option.value));
 
-  assert.equal(options.length, 21);
+  assert.equal(options.length, 22);
   assert.deepEqual(options, [
     'system',
     'light',
@@ -58,6 +60,7 @@ test('theme picker exposes Feather defaults and external theme variants', () => 
     'tokyo-night-light',
     'tokyo-night',
     'tokyo-night-storm',
+    'rainglow-absent-light',
     'vs-cpp-light',
     'vs-cpp-2017-light',
     'vs-cpp-dark',
@@ -78,6 +81,18 @@ test('Noctis variants provide syntax highlighter styles', () => {
     const theme = appThemes[id];
 
     assert.equal(theme.family, 'Noctis');
+    assert.equal(theme.syntax.hljs?.background, theme.variables.background);
+    assert.ok(theme.syntax['hljs-keyword']?.color, `${id} is missing keyword syntax color`);
+    assert.ok(theme.syntax['hljs-string']?.color, `${id} is missing string syntax color`);
+    assert.ok(theme.syntax['hljs-comment']?.color, `${id} is missing comment syntax color`);
+  }
+});
+
+test('Rainglow variants provide syntax highlighter styles', () => {
+  for (const id of rainglowThemeIds) {
+    const theme = appThemes[id];
+
+    assert.equal(theme.family, 'Rainglow');
     assert.equal(theme.syntax.hljs?.background, theme.variables.background);
     assert.ok(theme.syntax['hljs-keyword']?.color, `${id} is missing keyword syntax color`);
     assert.ok(theme.syntax['hljs-string']?.color, `${id} is missing string syntax color`);
@@ -112,11 +127,13 @@ test('Visual Studio C/C++ variants provide syntax highlighter styles', () => {
 test('theme preferences normalize and resolve safely', () => {
   assert.equal(normalizeThemePreference('noctis-uva'), 'noctis-uva');
   assert.equal(normalizeThemePreference('tokyo-night-light'), 'tokyo-night-light');
+  assert.equal(normalizeThemePreference('rainglow-absent-light'), 'rainglow-absent-light');
   assert.equal(normalizeThemePreference('vs-cpp-2017-light'), 'vs-cpp-2017-light');
   assert.equal(normalizeThemePreference('not-a-real-theme'), 'system');
   assert.equal(resolveThemeId('system', 'dark'), 'dark');
   assert.equal(resolveThemeId('system', 'light'), 'light');
   assert.equal(resolveThemeId('noctis-viola', 'light'), 'noctis-viola');
   assert.equal(resolveThemeId('tokyo-night-storm', 'light'), 'tokyo-night-storm');
+  assert.equal(resolveThemeId('rainglow-absent-light', 'dark'), 'rainglow-absent-light');
   assert.equal(resolveThemeId('vs-cpp-dark', 'light'), 'vs-cpp-dark');
 });
