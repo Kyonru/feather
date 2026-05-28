@@ -174,9 +174,19 @@ Color nodes transform an existing `vec4`.
 
 ### Composite
 
-Composite nodes combine two straight-alpha `vec4` colors using Porter-Duff alpha compositing equations.
+Composite nodes combine colors and masks so beginners can layer effects without rebuilding common shader math.
 
 - `Composite`: combines color `A` and color `B`. `Mode` is stepped from `0` to `4`: `0` Over, `1` In, `2` Out, `3` Atop, `4` Xor.
+- `Effect Mix`: mixes a base color and effect color by a mask and opacity.
+- `Alpha Mask`: turns sprite alpha into a soft mask and an optionally masked color.
+- `Luma Mask`: turns perceived brightness into a soft mask.
+- `Mask Range`: isolates a scalar range with soft edges.
+- `Gradient Map`: maps a mask/noise value between two colors.
+- `Mask Combine`: outputs common mask combinations such as multiply, add, max, min, and subtract.
+- `Blend Modes`: outputs normal, multiply, screen, overlay, add, and difference blends from the same inputs.
+- `Color Ramp`: maps a value through low, middle, and high colors.
+
+For a simple composition flow, connect `Texture Color -> Luma Mask -> Gradient Map`, then feed the original texture and mapped color into `Effect Mix` before `Fragment Output`.
 
 ### Noise
 

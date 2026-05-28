@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Tokyo Night Light, Tokyo Night, and Tokyo Night Storm as optional app themes with matching syntax highlighting.
 - Added Microsoft Visual Studio C/C++ Light, Dark, 2017 Light, and 2017 Dark as optional app themes with matching syntax highlighting.
 - Added pinned sidebar Favorites for common tools, with Settings controls and quick star actions for pinning tools from the sidebar.
+- Added Shader Graph composition helper nodes for effect mixing, alpha/luma/range masks, gradient maps, mask combining, blend modes, and color ramps.
 
 ### Changed
 
@@ -63,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added app e2e coverage for the constrained-width Logs toolbar layout.
 - Added app e2e coverage for grouped sidebar navigation, pinned tool persistence, Settings pin controls, and hidden pinned tools.
 - Added showcase e2e and focused settings coverage for Shader Graph collapsible node palette defaults, persistence, search, and empty states.
+- Added focused codegen and showcase e2e coverage for the new Shader Graph composition helper nodes.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.

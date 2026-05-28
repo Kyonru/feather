@@ -104,6 +104,65 @@ test('shader graph node palette sections collapse and search hidden matches', as
   await expect(palette.getByText('No shader nodes match this search.')).toBeVisible();
 });
 
+test('shader graph composition nodes support beginner effect flows', async ({ page }) => {
+  await page.goto('/shader-graph');
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+
+  const palette = page.getByTestId('shader-node-palette');
+  await palette.getByLabel('Search shader nodes').fill('mask');
+  await expect(palette.getByRole('button', { name: 'Alpha Mask' })).toBeVisible();
+  await expect(palette.getByRole('button', { name: 'Luma Mask' })).toBeVisible();
+  await expect(palette.getByRole('button', { name: 'Mask Range' })).toBeVisible();
+  await expect(palette.getByRole('button', { name: 'Mask Combine' })).toBeVisible();
+
+  await palette.getByLabel('Search shader nodes').fill('gradient');
+  await expect(palette.getByRole('button', { name: 'Gradient Map' })).toBeVisible();
+
+  await palette.getByLabel('Search shader nodes').fill('blend');
+  await expect(palette.getByRole('button', { name: 'Blend Modes' })).toBeVisible();
+
+  const nodesBeforeInsert = await page.locator('.react-flow__node').count();
+  await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 320, y: 260 } });
+  await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('blend modes');
+  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^blend modes composite$/i }).click();
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 1);
+
+  const compositionGraph = {
+    type: 'feather.shader-graph',
+    version: 2,
+    exportedAt: new Date('2026-05-28T00:00:00.000Z').toISOString(),
+    shaderName: 'composition-basics-flow',
+    playgroundTarget: null,
+    nodes: [
+      { id: 'texture', type: 'shaderNode', position: { x: 0, y: 0 }, data: { label: 'Sprite Texture', nodeType: 'TextureColor' } },
+      { id: 'luma', type: 'shaderNode', position: { x: 280, y: 0 }, data: { label: 'Brightness Mask', nodeType: 'LumaMask' } },
+      { id: 'gradient', type: 'shaderNode', position: { x: 560, y: 0 }, data: { label: 'Mapped Color', nodeType: 'GradientMap' } },
+      { id: 'mix', type: 'shaderNode', position: { x: 840, y: 0 }, data: { label: 'Mix Into Sprite', nodeType: 'EffectMix' } },
+      { id: 'out', type: 'shaderNode', position: { x: 1120, y: 0 }, data: { label: 'Final Color', nodeType: 'FragmentOutput' } },
+    ],
+    edges: [
+      { id: 'texture:out->luma:color', source: 'texture', sourceHandle: 'out', target: 'luma', targetHandle: 'color' },
+      { id: 'luma:mask->gradient:value', source: 'luma', sourceHandle: 'mask', target: 'gradient', targetHandle: 'value' },
+      { id: 'texture:out->mix:base', source: 'texture', sourceHandle: 'out', target: 'mix', targetHandle: 'base' },
+      { id: 'gradient:rgba->mix:effect', source: 'gradient', sourceHandle: 'rgba', target: 'mix', targetHandle: 'effect' },
+      { id: 'luma:mask->mix:mask', source: 'luma', sourceHandle: 'mask', target: 'mix', targetHandle: 'mask' },
+      { id: 'mix:out->out:color', source: 'mix', sourceHandle: 'out', target: 'out', targetHandle: 'color' },
+    ],
+    subgraphs: [],
+  };
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'composition-basics-flow.feathershgh',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(compositionGraph)),
+  });
+
+  await expect(page.getByTestId('shader-diagnostics')).toHaveCount(0);
+  await expect(page.getByText(/float v_luma_mask = mix/i)).toBeVisible();
+  await expect(page.getByText(/vec4 v_gradient_rgba/i)).toBeVisible();
+  await expect(page.getByText(/vec4 v_mix_out/i)).toBeVisible();
+});
+
 test('shader graph surfaces compiler diagnostics for broken imports', async ({ page }) => {
   await page.goto('/shader-graph');
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
