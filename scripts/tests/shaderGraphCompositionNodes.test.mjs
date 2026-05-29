@@ -52,6 +52,7 @@ test('composition helper nodes emit expected GLSL outputs', () => {
     { type: 'AlphaMask', graph: graphForVec4Node('AlphaMask', 'rgba'), snippets: ['float v_alphamask_mask', 'vec4 v_alphamask_rgba'] },
     { type: 'LumaMask', graph: graphForFloatNode('LumaMask', 'mask'), snippets: ['dot(', 'float v_lumamask_mask'] },
     { type: 'MaskRange', graph: graphForFloatNode('MaskRange', 'mask'), snippets: ['float v_maskrange_mask_min', 'float v_maskrange_mask'] },
+    { type: 'ColorKeyMask', graph: graphForVec4Node('ColorKeyMask', 'rgba'), snippets: ['distance(', 'float v_colorkeymask_mask', 'vec4 v_colorkeymask_rgba'] },
     { type: 'GradientMap', graph: graphForVec4Node('GradientMap', 'rgba'), snippets: ['vec4 v_gradientmap_rgba'] },
     { type: 'MaskCombine', graph: graphForFloatNode('MaskCombine', 'multiply'), snippets: ['float v_maskcombine_multiply', 'float v_maskcombine_subtract'] },
     { type: 'BlendModes', graph: graphForVec4Node('BlendModes', 'normal'), snippets: ['vec4 v_blendmodes_normal', 'vec4 v_blendmodes_difference'] },

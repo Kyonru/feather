@@ -1,3 +1,4 @@
+/* eslint-disable no-undef, @typescript-eslint/no-unused-vars */
 (() => {
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl', { alpha: false, antialias: true });
@@ -249,10 +250,38 @@ void main() {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
   }
 
+  function uploadFingerprint(upload) {
+    const data = uploadData(upload);
+    return `${upload?.filename || ''}:${data.length}:${data.slice(0, 16)}:${data.slice(-16)}`;
+  }
+
+  function uploadData(upload) {
+    if (upload?.dataBase64) return String(upload.dataBase64);
+    if (!upload?.dataKey || !upload?.dataLength) return '';
+    const cache = window._featherUploadCache || window.parent?.__featherPreviewUploadCache || null;
+    return cache?.[String(upload.dataKey)] || '';
+  }
+
+  function hasUploadData(upload) {
+    return uploadData(upload).length > 0;
+  }
+
+  function mimeFromFilename(filename) {
+    const lower = String(filename || '').toLowerCase();
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.bmp')) return 'image/bmp';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return 'image/png';
+  }
+
+  function dataUrlForUpload(upload) {
+    return `data:${mimeFromFilename(upload?.filename)};base64,${uploadData(upload)}`;
+  }
+
   function ensurePreviewTexture() {
     const base = payload.baseTexture;
-    const key = base?.dataBase64
-      ? `base:${base.filename || ''}:${base.dataBase64.length}`
+    const key = hasUploadData(base)
+      ? `base:${uploadFingerprint(base)}`
       : `shape:${payload.previewShape || 'circle'}:${JSON.stringify(payload.previewColor || '#ffffff')}`;
     if (previewTexture && previewTextureKey === key) return previewTexture;
     if (previewTexture) gl.deleteTexture(previewTexture);
@@ -262,17 +291,25 @@ void main() {
     quadBufferKey = '';
     configureTexture(previewTexture);
 
-    if (base?.dataBase64) {
+    if (hasUploadData(base)) {
       previewTextureSize = { width: 1, height: 1 };
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
       const image = new Image();
       image.onload = () => {
+        if (previewTextureKey !== key) return;
         gl.bindTexture(gl.TEXTURE_2D, previewTexture);
         previewTextureSize = { width: image.naturalWidth || image.width || 1, height: image.naturalHeight || image.height || 1 };
         quadBufferKey = '';
         uploadTextureSource(image);
       };
-      image.src = `data:image/png;base64,${base.dataBase64}`;
+      image.onerror = () => {
+        if (previewTextureKey !== key) return;
+        gl.bindTexture(gl.TEXTURE_2D, previewTexture);
+        previewTextureSize = { width: 256, height: 256 };
+        quadBufferKey = '';
+        uploadTextureSource(makeShapeCanvas());
+      };
+      image.src = dataUrlForUpload(base);
       return previewTexture;
     }
 
@@ -424,13 +461,13 @@ void main() {
 
   function refreshUploadedTextures() {
     const uploads = Array.isArray(payload.textures) ? payload.textures : [];
-    const key = JSON.stringify(uploads.map((upload) => [upload.uniform, upload.filename, upload.dataBase64?.length || 0]));
+    const key = JSON.stringify(uploads.map((upload) => [upload.uniform, uploadFingerprint(upload)]));
     if (key === textureCacheKey) return;
     textureCache.forEach((texture) => gl.deleteTexture(texture));
     textureCache = new Map();
     textureCacheKey = key;
     uploads.forEach((upload) => {
-      if (!upload?.uniform || !upload.dataBase64) return;
+      if (!upload?.uniform || !hasUploadData(upload)) return;
       const texture = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
@@ -443,7 +480,7 @@ void main() {
         gl.bindTexture(gl.TEXTURE_2D, texture);
         uploadTextureSource(image);
       };
-      image.src = `data:image/png;base64,${upload.dataBase64}`;
+      image.src = dataUrlForUpload(upload);
       textureCache.set(upload.uniform, texture);
     });
   }

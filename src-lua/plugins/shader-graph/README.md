@@ -201,6 +201,7 @@ Composite nodes combine colors and masks so beginners can layer effects without 
 - `Alpha Mask`: turns sprite alpha into a soft mask and an optionally masked color.
 - `Luma Mask`: turns perceived brightness into a soft mask.
 - `Mask Range`: isolates a scalar range with soft edges.
+- `Color Key Mask`: selects pixels close to a target color with tolerance/softness controls, returning both a mask and masked RGBA.
 - `Gradient Map`: maps a mask/noise value between two colors.
 - `Mask Combine`: outputs common mask combinations such as multiply, add, max, min, and subtract.
 - `Blend Modes`: outputs normal, multiply, screen, overlay, add, and difference blends from the same inputs.

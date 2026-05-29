@@ -150,6 +150,10 @@ function parameterGlslType(type: ShaderParameter['type']): 'number' | 'vec2' | '
   return 'number';
 }
 
+function glslTypeName(type: PortDef['type']): 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4' | 'Image' {
+  return type === 'image' ? 'Image' : type;
+}
+
 function cloneDefaultValue(value: number | number[] | undefined): number | number[] | undefined {
   return Array.isArray(value) ? [...value] : value;
 }
@@ -214,10 +218,10 @@ function buildNodeBody(
 
     if (subgraph.outputs.length === 1) {
       const output = subgraph.outputs[0];
-      return [`${output.type} ${outVars[output.id]} = ${functionName}(${[...contextArgs, ...inputArgs].join(', ')});`];
+      return [`${glslTypeName(output.type)} ${outVars[output.id]} = ${functionName}(${[...contextArgs, ...inputArgs].join(', ')});`];
     }
 
-    const declarations = subgraph.outputs.map((port) => `${port.type} ${outVars[port.id]};`);
+    const declarations = subgraph.outputs.map((port) => `${glslTypeName(port.type)} ${outVars[port.id]};`);
     const outArgs = subgraph.outputs.map((port) => outVars[port.id]);
     return [...declarations, `${functionName}(${[...contextArgs, ...inputArgs, ...outArgs].join(', ')});`];
   }
@@ -331,10 +335,10 @@ function buildSubgraphFunction(
     const returnExpr = mapping
       ? outputExpressionWithOverrides(nodeMap, mapping.nodeId, mapping.portId, outputOverrides)
       : defaultValue(output, { label: subgraph.name, nodeType: 'SubgraphInstance' });
-    const args = [...SUBGRAPH_CONTEXT[stage].params, ...subgraph.inputs.map((port) => `${port.type} sg_in_${port.id}`)];
+    const args = [...SUBGRAPH_CONTEXT[stage].params, ...subgraph.inputs.map((port) => `${glslTypeName(port.type)} sg_in_${port.id}`)];
     stack.delete(subgraph.id);
     return [
-      `${output.type} ${subgraphFunctionName(subgraph, stage)}(${args.join(', ')}) {`,
+      `${glslTypeName(output.type)} ${subgraphFunctionName(subgraph, stage)}(${args.join(', ')}) {`,
       ...bodyLines.map((line) => `  ${line}`),
       `  return ${returnExpr};`,
       '}',
@@ -346,8 +350,8 @@ function buildSubgraphFunction(
   }
   const args = [
     ...SUBGRAPH_CONTEXT[stage].params,
-    ...subgraph.inputs.map((port) => `${port.type} sg_in_${port.id}`),
-    ...subgraph.outputs.map((port) => `out ${port.type} sg_out_${port.id}`),
+    ...subgraph.inputs.map((port) => `${glslTypeName(port.type)} sg_in_${port.id}`),
+    ...subgraph.outputs.map((port) => `out ${glslTypeName(port.type)} sg_out_${port.id}`),
   ];
   stack.delete(subgraph.id);
   return [

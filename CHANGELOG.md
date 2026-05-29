@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Tokyo Night Light, Tokyo Night, and Tokyo Night Storm as optional app themes with matching syntax highlighting.
 - Added Microsoft Visual Studio C/C++ Light, Dark, 2017 Light, and 2017 Dark as optional app themes with matching syntax highlighting.
 - Added pinned sidebar Favorites for common tools, with Settings controls and quick star actions for pinning tools from the sidebar.
-- Added Shader Graph composition helper nodes for effect mixing, alpha/luma/range masks, gradient maps, mask combining, blend modes, and color ramps.
+- Added Shader Graph composition helper nodes for effect mixing, alpha/luma/range/color-key masks, gradient maps, mask combining, blend modes, and color ramps.
 - Added Shader Graph Fake 3D nodes for billboard UVs, parallax UVs, sprite texture sampling, depth shading, card shadows, and packed atlas sprite stacks.
 - Added Shader Graph template subgraphs for presets, with explicit Subgraph Input/Output boundary nodes and public Template Controls for common effect knobs and texture slots.
 - Added Shader Graph right-panel tabs with a Controls view that collects Template Controls and root Parameter nodes before the Selection inspector and Output panel.
@@ -74,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Feather dev Shader Graph node previews by serving the generated love.js preview route with the required isolation headers.
 - Fixed showcase love.js shader previews so node preview zoom is honored by the real LÖVE preview target.
 - Fixed Shader Graph preview probes so embedded love.js previews use the same 16:9 aspect ratio in web and preserve uploaded texture proportions while zooming.
+- Fixed Shader Graph Preview nodes so uploaded preview textures are passed through the embedded love.js bridge instead of falling back to generated preview shapes.
+- Fixed Shader Graph texture preview handling so the shared Preview Texture remains the source sprite while texture-uniform nodes require and bind their own uploads.
+- Fixed Shader Graph link suggestions so image outputs create type-correct Sample Texture nodes instead of wiring image data into Texture Uniform Color UV inputs.
 - Fixed Shader Graph palette dragging in the showcase by replacing native browser drag with a pointer-driven drop path and hardening the standalone layout against 0x0 canvas collapse.
 - Fixed Shader Graph Preview node toolbar actions so pin/zoom/reload clicks no longer re-select the node underneath.
 - Fixed looping Particle System Playground timelines so delayed emitter clips restart their particle system when the clip begins instead of expiring before they can emit.

@@ -418,6 +418,7 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
   await expect(palette.getByRole('button', { name: 'Alpha Mask' })).toBeVisible();
   await expect(palette.getByRole('button', { name: 'Luma Mask' })).toBeVisible();
   await expect(palette.getByRole('button', { name: 'Mask Range' })).toBeVisible();
+  await expect(palette.getByRole('button', { name: 'Color Key Mask' })).toBeVisible();
   await expect(palette.getByRole('button', { name: 'Mask Combine' })).toBeVisible();
 
   await palette.getByLabel('Search shader nodes').fill('gradient');
@@ -461,6 +462,12 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
         data: { label: 'Mapped Color', nodeType: 'GradientMap' },
       },
       {
+        id: 'key',
+        type: 'shaderNode',
+        position: { x: 560, y: 220 },
+        data: { label: 'Red Key Mask', nodeType: 'ColorKeyMask', values: { targetColor: [1, 0, 0, 1], tolerance: 0.18, softness: 0.04 } },
+      },
+      {
         id: 'mix',
         type: 'shaderNode',
         position: { x: 840, y: 0 },
@@ -483,6 +490,7 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
         targetHandle: 'value',
       },
       { id: 'texture:out->mix:base', source: 'texture', sourceHandle: 'out', target: 'mix', targetHandle: 'base' },
+      { id: 'texture:out->key:source', source: 'texture', sourceHandle: 'out', target: 'key', targetHandle: 'source' },
       {
         id: 'gradient:rgba->mix:effect',
         source: 'gradient',
@@ -490,7 +498,7 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
         target: 'mix',
         targetHandle: 'effect',
       },
-      { id: 'luma:mask->mix:mask', source: 'luma', sourceHandle: 'mask', target: 'mix', targetHandle: 'mask' },
+      { id: 'key:mask->mix:mask', source: 'key', sourceHandle: 'mask', target: 'mix', targetHandle: 'mask' },
       { id: 'mix:out->out:color', source: 'mix', sourceHandle: 'out', target: 'out', targetHandle: 'color' },
     ],
     subgraphs: [],
@@ -506,6 +514,7 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
   await openShaderOutput(page);
   await expect(page.getByTestId('shader-diagnostics')).toHaveCount(0);
   await expect(page.getByText(/float v_luma_mask = mix/i)).toBeVisible();
+  await expect(page.getByText(/float v_key_mask = mix/i)).toBeVisible();
   await expect(page.getByText(/vec4 v_gradient_rgba/i)).toBeVisible();
   await expect(page.getByText(/vec4 v_mix_out/i)).toBeVisible();
 });

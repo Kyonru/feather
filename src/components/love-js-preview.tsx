@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type R
 import { ChevronDownIcon, ChevronUpIcon, RefreshCwIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { stripLovePreviewUploads } from '@/utils/love-preview-upload-bridge';
 import { cn } from '@/utils/styles';
 
 const DEFAULT_W = 360;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const MIN_W = 220;
 const MAX_W = 720;
-const PREVIEW_ASSET_VERSION = 'particle-preview-v2';
+const PREVIEW_ASSET_VERSION = 'preview-bridge-v5';
 
 type LoveJsPreviewProps = {
   title: string;
@@ -49,7 +50,7 @@ export function LoveJsPreview({
 
   function sendPayload(p: Record<string, unknown>) {
     iframeRef.current?.contentWindow?.postMessage(
-      { source: 'feather-showcase', type: 'preview:update', payload: p },
+      { source: 'feather-showcase', type: 'preview:update', payload: stripLovePreviewUploads(p) },
       '*',
     );
   }

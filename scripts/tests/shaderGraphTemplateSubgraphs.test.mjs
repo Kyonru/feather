@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { codegen } from '../../src/pages/shader-graph/codegen.ts';
@@ -84,4 +85,46 @@ test('root-level boundary nodes and missing explicit outputs are diagnostics', (
     ],
   });
   assert.ok(subgraphDiagnostics.some((item) => item.severity === 'error' && /needs at least one Subgraph Output/i.test(item.message)));
+});
+
+test('texture uniform diagnostics require node-specific uploads', () => {
+  const graph = {
+    nodes: [
+      shaderNode('uv', 'TextureCoords'),
+      shaderNode('sample', 'TextureUniformColor'),
+      shaderNode('out', 'FragmentOutput'),
+    ],
+    edges: [
+      { id: 'uv:out->sample:uv', source: 'uv', sourceHandle: 'out', target: 'sample', targetHandle: 'uv' },
+      { id: 'sample:out->out:color', source: 'sample', sourceHandle: 'out', target: 'out', targetHandle: 'color' },
+    ],
+  };
+
+  const missing = diagnoseShaderGraph(graph);
+  assert.ok(missing.some((item) => /Upload a texture for sample/i.test(item.message)));
+
+  const withoutNodeTexture = diagnoseShaderGraph({
+    ...graph,
+    textureUploads: {},
+  });
+  assert.ok(withoutNodeTexture.some((item) => /texture uniforms need their own upload/i.test(item.message)));
+
+  const withNodeTexture = diagnoseShaderGraph({
+    ...graph,
+    textureUploads: {
+      sample: { filename: 'uniform.png', dataBase64: 'abc123' },
+    },
+  });
+  assert.equal(withNodeTexture.some((item) => /Upload a texture for sample/i.test(item.message)), false);
+});
+
+test('texture noise water template emits Image subgraph inputs', () => {
+  const preset = SHADER_GRAPH_PRESETS.find((item) => item.id === 'texture-noise-water');
+  assert.ok(preset);
+  const template = instantiateShaderGraphPreset(preset);
+  const generated = codegen(template.nodes, template.edges, template.subgraphs);
+
+  assert.match(generated.pixel, /Image sg_in_noiseTexture/);
+  assert.doesNotMatch(generated.pixel, /\bimage sg_in_noiseTexture\b/);
+  assert.ok(generated.textures.some((texture) => texture.label === 'Noise Texture'));
 });

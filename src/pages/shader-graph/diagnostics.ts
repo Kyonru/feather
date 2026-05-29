@@ -179,7 +179,7 @@ function diagnoseGraph(
     if (TEXTURE_NODE_TYPES.has(node.data.nodeType) && reachable.has(node.id) && !textureUploads[node.id]) {
       diagnostics.push({
         severity: 'error',
-        message: `Upload a texture for ${nodeLabel(node)} before previewing or applying.`,
+        message: `Upload a texture for ${nodeLabel(node)} before previewing or applying. The Preview Texture only changes the source sprite; texture uniforms need their own upload.`,
         nodeId: node.id,
         stage: 'pixel',
       });

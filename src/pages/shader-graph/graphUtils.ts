@@ -312,7 +312,7 @@ export function linkSuggestions(nodes: ShaderNodeInstance[], port: PortRef): Lin
       { kind: 'recipe', label: 'Composite alpha layers', nodeType: 'CompositeAlpha', needsSecondOutput: true },
     );
   }
-  if (port.type === 'image') suggestions.push({ kind: 'node', label: 'Sample with Texture Uniform Color', nodeType: 'TextureUniformColor' });
+  if (port.type === 'image') suggestions.push({ kind: 'node', label: 'Sample image with UV', nodeType: 'SampleTexture' });
   if (port.type === 'vec2') suggestions.push({ kind: 'node', label: 'Sample texture at UV', nodeType: 'TextureUniformColor' });
   return suggestions.slice(0, 14);
 }

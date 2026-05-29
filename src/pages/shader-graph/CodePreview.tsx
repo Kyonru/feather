@@ -172,7 +172,7 @@ export function CodePreview({
   const applyDisabledReason = hasBlockingGraphDiagnostics
     ? 'Fix blocking graph diagnostics before applying this shader'
     : hasMissingTextureUploads
-      ? 'Upload all texture inputs in the node inspector before applying this shader'
+      ? 'Upload each texture uniform in the node inspector before applying this shader. Preview Texture only changes the source sprite.'
       : undefined;
   const fullSource = glsl.vertex ? `${glsl.pixel}\n\n// -- Vertex \n${glsl.vertex}` : glsl.pixel;
   const rawValidationErrors = [validationErrors.pixelError, validationErrors.vertexError].filter(Boolean).join('\n\n');

@@ -139,6 +139,69 @@ local function parseCsvNumbers(s)
   return vals
 end
 
+local function jsString(value)
+  value = tostring(value or "")
+  value = value:gsub("\\", "\\\\")
+  value = value:gsub('"', '\\"')
+  value = value:gsub("\n", "\\n")
+  value = value:gsub("\r", "\\r")
+  return '"' .. value .. '"'
+end
+
+local function hydrateUpload(upload)
+  if type(upload) ~= "table" then
+    return upload
+  end
+  if type(upload.dataBase64) == "string" and upload.dataBase64 ~= "" then
+    return upload
+  end
+  if not _jsEval or type(upload.dataKey) ~= "string" then
+    return upload
+  end
+
+  local length = tonumber(upload.dataLength) or 0
+  if length <= 0 then
+    return upload
+  end
+
+  local chunks = {}
+  local chunkSize = 32768
+  local offset = 0
+  while offset < length do
+    local remaining = math.min(chunkSize, length - offset)
+    local expression = string.format(
+      "window._featherUploadChunk && window._featherUploadChunk(%s,%d,%d) || ''",
+      jsString(upload.dataKey),
+      offset,
+      remaining
+    )
+    local ok, chunk = pcall(_jsEval, expression)
+    if not ok or type(chunk) ~= "string" or chunk == "" then
+      return upload
+    end
+    chunks[#chunks + 1] = chunk
+    offset = offset + remaining
+  end
+
+  local copy = {}
+  for key, value in pairs(upload) do
+    copy[key] = value
+  end
+  copy.dataBase64 = table.concat(chunks)
+  return copy
+end
+
+local function hydrateUploadList(uploads)
+  if type(uploads) ~= "table" then
+    return uploads
+  end
+  local hydrated = {}
+  for index, upload in ipairs(uploads) do
+    hydrated[index] = hydrateUpload(upload)
+  end
+  return hydrated
+end
+
 -- Grid
 
 local function drawGrid(w, h)
@@ -228,9 +291,9 @@ local function applyShaderPayload(payload)
   end
 
   local drawable = nil
-  local bt = payload.baseTexture
+  local bt = hydrateUpload(payload.baseTexture)
   if type(bt) == "table" and type(bt.dataBase64) == "string" and bt.dataBase64 ~= "" then
-    drawable = PreviewRuntime.imageFromUpload(bt, "preview-texture.png")
+    drawable = PreviewRuntime.imageFromUpload(bt, bt.filename or "preview-texture.png")
   end
 
   if not drawable then
@@ -240,7 +303,7 @@ local function applyShaderPayload(payload)
     end
   end
 
-  PreviewRuntime.sendTextureUniforms(shader, payload.textureUniforms, payload.textures, {
+  PreviewRuntime.sendTextureUniforms(shader, payload.textureUniforms, hydrateUploadList(payload.textures), {
     allowUploadListOnly = true,
     fallbackMissing = false,
     ignoreErrors = true,

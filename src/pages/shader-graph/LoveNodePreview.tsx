@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { ShaderTextureUpload } from '@/types/shader-graph';
+import { stripLovePreviewUploads } from '@/utils/love-preview-upload-bridge';
 import { previewProbeCodegen, type PreviewProbeGlsl } from './codegen';
 import { shaderGraphGamePreviewController } from './gamePreviewController';
 
@@ -16,7 +17,7 @@ type Props = {
 };
 
 const NODE_PREVIEW_ASPECT_CLASS = 'aspect-video w-full';
-const PREVIEW_ASSET_VERSION = 'shader-node-preview-v3';
+const PREVIEW_ASSET_VERSION = 'shader-node-preview-v6';
 
 function colorFromHex(value: string): [number, number, number, number] {
   const match = value.match(/^#?([0-9a-f]{6})$/i);
@@ -33,7 +34,10 @@ function missingTextures(
   return probe.textures.filter((texture) => !textureUploads[texture.nodeId]).map((texture) => texture.label);
 }
 
-function texturePayload(probe: PreviewProbeGlsl | null, textureUploads: Record<string, ShaderTextureUpload>) {
+function texturePayload(
+  probe: PreviewProbeGlsl | null,
+  textureUploads: Record<string, ShaderTextureUpload>,
+) {
   return probe?.textures
     ?.map((texture) => {
       const upload = textureUploads[texture.nodeId];
@@ -113,7 +117,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
 
   function sendPayload() {
     iframeRef.current?.contentWindow?.postMessage(
-      { source: 'feather-showcase', type: 'preview:update', payload },
+      { source: 'feather-showcase', type: 'preview:update', payload: stripLovePreviewUploads(payload) },
       '*',
     );
   }

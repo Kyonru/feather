@@ -6,7 +6,7 @@ import path from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
 
 export const LOVEJS_REPO = 'https://github.com/2dengine/love.js';
-const LOVEJS_PREVIEW_QUERY = 'g=showcase.love&v=11.5&featherPreview=particle-preview-v2';
+const LOVEJS_PREVIEW_QUERY = 'g=showcase.love&v=11.5&featherPreview=preview-bridge-v5';
 
 export const loveJsContentTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -75,13 +75,80 @@ export function resolveLoveJsVendor({
 export async function patchLoveJsPlayer(dir) {
   const readyBridge =
     "if (window.parent && window.parent !== window) window.parent.postMessage({ source: 'feather-showcase', type: 'preview:ready' }, '*');";
+  const uploadBridge = [
+    '',
+    '// Feather showcase upload bridge: keep large base64 texture payloads out of the Lua polling JSON.',
+    '(function() {',
+    '  window._featherUploadCache = window._featherUploadCache || Object.create(null);',
+    '  window._featherUploadChunk = function(key, start, length) {',
+    "    var cache = window._featherUploadCache || (window.parent && window.parent.__featherPreviewUploadCache) || null;",
+    "    var data = cache && cache[String(key)] || '';",
+    '    return data.slice(Number(start) || 0, (Number(start) || 0) + (Number(length) || 0));',
+    '  };',
+    '  function storeUpload(upload, fallbackKey) {',
+    "    if (!upload || typeof upload !== 'object') return upload || null;",
+    "    if (typeof upload.dataBase64 !== 'string' || upload.dataBase64.length === 0) return upload;",
+    '    var key = [fallbackKey, upload.uniform || "", upload.filename || "", upload.dataBase64.length].join(":");',
+    '    window._featherUploadCache[key] = upload.dataBase64;',
+    '    var next = Object.assign({}, upload);',
+    "    next.dataBase64 = '';",
+    '    next.dataKey = key;',
+    '    next.dataLength = upload.dataBase64.length;',
+    '    return next;',
+    '  }',
+    '  function stripPayload(payload) {',
+    "    if (!payload || typeof payload !== 'object') return payload || null;",
+    '    var next = Object.assign({}, payload);',
+    "    next.baseTexture = storeUpload(payload.baseTexture, 'baseTexture');",
+    '    if (Array.isArray(payload.textures)) {',
+    '      next.textures = payload.textures.map(function(upload, index) {',
+    "        return storeUpload(upload, 'texture-' + index);",
+    '      });',
+    '    }',
+    '    return next;',
+    '  }',
+    "  window.addEventListener('message', function(e) {",
+    "    if (!e.data || e.data.source !== 'feather-showcase' || e.data.type !== 'preview:update') return;",
+    '    window._featherPayload = stripPayload(e.data.payload);',
+    '  });',
+    '}());',
+    '',
+  ].join('\n');
   const bridge = [
     '',
     '// Feather showcase bridge: store postMessage preview payload for love.js.eval() polling',
     'window._featherPayload = null;',
+    'window._featherUploadCache = window._featherUploadCache || Object.create(null);',
+    'window._featherUploadChunk = window._featherUploadChunk || function(key, start, length) {',
+    "  var cache = window._featherUploadCache || (window.parent && window.parent.__featherPreviewUploadCache) || null;",
+    "  var data = cache && cache[String(key)] || '';",
+    '  return data.slice(Number(start) || 0, (Number(start) || 0) + (Number(length) || 0));',
+    '};',
+    'function featherStoreUpload(upload, fallbackKey) {',
+    "  if (!upload || typeof upload !== 'object') return upload || null;",
+    "  if (typeof upload.dataBase64 !== 'string' || upload.dataBase64.length === 0) return upload;",
+    '  var key = [fallbackKey, upload.uniform || "", upload.filename || "", upload.dataBase64.length].join(":");',
+    '  window._featherUploadCache[key] = upload.dataBase64;',
+    '  var next = Object.assign({}, upload);',
+    "  next.dataBase64 = '';",
+    '  next.dataKey = key;',
+    '  next.dataLength = upload.dataBase64.length;',
+    '  return next;',
+    '}',
+    'function featherStripPreviewPayload(payload) {',
+    "  if (!payload || typeof payload !== 'object') return payload || null;",
+    '  var next = Object.assign({}, payload);',
+    "  next.baseTexture = featherStoreUpload(payload.baseTexture, 'baseTexture');",
+    '  if (Array.isArray(payload.textures)) {',
+    '    next.textures = payload.textures.map(function(upload, index) {',
+    "      return featherStoreUpload(upload, 'texture-' + index);",
+    '    });',
+    '  }',
+    '  return next;',
+    '}',
     "window.addEventListener('message', function(e) {",
     "  if (!e.data || e.data.source !== 'feather-showcase' || e.data.type !== 'preview:update') return;",
-    '  window._featherPayload = e.data.payload || null;',
+    '  window._featherPayload = featherStripPreviewPayload(e.data.payload);',
     '});',
     readyBridge,
     '',
@@ -92,6 +159,10 @@ export async function patchLoveJsPlayer(dir) {
   const existing = await readFile(target, 'utf8');
   if (!existing.includes('_featherPayload')) {
     await writeFile(target, existing + bridge);
+    return;
+  }
+  if (!existing.includes('_featherUploadChunk') || !existing.includes('__featherPreviewUploadCache')) {
+    await writeFile(target, existing + uploadBridge + (existing.includes('preview:ready') ? '' : `\n${readyBridge}\n`));
     return;
   }
   if (!existing.includes('preview:ready')) {
