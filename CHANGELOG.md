@@ -77,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Shader Graph Preview nodes so uploaded preview textures are passed through the embedded love.js bridge instead of falling back to generated preview shapes.
 - Fixed Shader Graph texture preview handling so the shared Preview Texture remains the source sprite while texture-uniform nodes require and bind their own uploads.
 - Fixed Shader Graph link suggestions so image outputs create type-correct Sample Texture nodes instead of wiring image data into Texture Uniform Color UV inputs.
+- Fixed Shader Graph template codegen so texture-image inputs, including Texture Noise Water's noise slot, emit valid LÖVE `Image` parameters.
+- Fixed Shader Graph connected-game preview so switching away from the Output tab no longer turns off an active runtime preview.
 - Fixed Shader Graph palette dragging in the showcase by replacing native browser drag with a pointer-driven drop path and hardening the standalone layout against 0x0 canvas collapse.
 - Fixed Shader Graph Preview node toolbar actions so pin/zoom/reload clicks no longer re-select the node underneath.
 - Fixed looping Particle System Playground timelines so delayed emitter clips restart their particle system when the clip begins instead of expiring before they can emit.

@@ -57,7 +57,7 @@ export function ShaderRightPanel({ standalone, onPreviewParamsChange }: Props) {
         </ScrollArea>
       </TabsContent>
 
-      <TabsContent value="output" className="min-h-0 overflow-hidden" data-testid="shader-right-panel-output">
+      <TabsContent value="output" forceMount className="min-h-0 overflow-hidden" data-testid="shader-right-panel-output">
         <CodePreview standalone={standalone} onPreviewParamsChange={onPreviewParamsChange} />
       </TabsContent>
     </Tabs>
