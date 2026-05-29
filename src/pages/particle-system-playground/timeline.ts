@@ -283,6 +283,117 @@ export function timelineForTemplate(
     };
   }
 
+  if (template === 'complex-composite' && systems.length >= 5) {
+    return {
+      duration,
+      loop: false,
+      tracks: [
+        authoredTrack(systems[0], 0, 0.72, {
+          opacity: [
+            [0, 1],
+            [0.45, 0.82],
+            [0.72, 0],
+          ],
+          emissionRate: [
+            [0, 720],
+            [0.18, 260],
+            [0.72, 0],
+          ],
+          sizeScale: [
+            [0, 0.35],
+            [0.34, 1.8],
+            [0.72, 0.3],
+          ],
+        }, 140),
+        authoredTrack(systems[1], 0.04, 0.58, {
+          opacity: [
+            [0.04, 0.95],
+            [0.32, 0.68],
+            [0.58, 0],
+          ],
+          speedScale: [
+            [0.04, 1.5],
+            [0.58, 0.45],
+          ],
+          sizeScale: [
+            [0.04, 0.45],
+            [0.58, 2.2],
+          ],
+          spread: [
+            [0.04, 6.28],
+            [0.58, 6.28],
+          ],
+        }, 90),
+        authoredTrack(systems[2], 0.16, 3, {
+          opacity: [
+            [0.16, 0],
+            [0.5, 0.72],
+            [2.75, 0],
+          ],
+          speedScale: [
+            [0.16, 1.1],
+            [1.4, 0.42],
+            [3, 0.18],
+          ],
+          sizeScale: [
+            [0.16, 0.45],
+            [1.35, 1.8],
+            [3, 2.5],
+          ],
+          offsetY: [
+            [0.16, 0],
+            [3, -42],
+          ],
+        }, 110),
+        authoredTrack(systems[3], 0.1, 1.45, {
+          opacity: [
+            [0.1, 1],
+            [0.75, 0.8],
+            [1.45, 0],
+          ],
+          emissionRate: [
+            [0.1, 520],
+            [0.42, 120],
+            [1.45, 0],
+          ],
+          speedScale: [
+            [0.1, 1.35],
+            [1.45, 0.34],
+          ],
+          direction: [
+            [0.1, -0.9],
+            [1.45, -2.25],
+          ],
+          spread: [
+            [0.1, 4.6],
+            [1.45, 2.2],
+          ],
+        }, 180),
+        authoredTrack(systems[4], 0.28, 2.7, {
+          opacity: [
+            [0.28, 0],
+            [0.62, 0.5],
+            [2.7, 0],
+          ],
+          speedScale: [
+            [0.28, 0.8],
+            [1.4, 0.28],
+            [2.7, 0.12],
+          ],
+          sizeScale: [
+            [0.28, 0.4],
+            [1.2, 1.35],
+            [2.7, 2],
+          ],
+          offsetY: [
+            [0.28, 10],
+            [2.7, 30],
+          ],
+        }, 100),
+      ],
+    };
+  }
+
   if (template === 'fire') {
     return {
       duration,

@@ -7,7 +7,8 @@ export type ParticleSystemPlaygroundTemplate =
   | 'sparkles'
   | 'muzzle-flash'
   | 'magic-burst'
-  | 'dust-puff';
+  | 'dust-puff'
+  | 'complex-composite';
 export type ParticleSystemPlaygroundProjectVersion = 1 | 2;
 
 export type ParticleSystemPlaygroundMovement = {
@@ -168,6 +169,7 @@ export const PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES: Array<{ value: ParticleSystem
   { value: 'muzzle-flash', label: 'Muzzle Flash' },
   { value: 'magic-burst', label: 'Magic Burst' },
   { value: 'dust-puff', label: 'Dust Puff' },
+  { value: 'complex-composite', label: 'Complex Composite' },
 ];
 export const EMISSION_AREA_DISTRIBUTIONS = [
   'none',

@@ -214,6 +214,7 @@ function PluginE2EHelper.createFeather(config)
     sessionName = config.sessionName,
     deviceId = config.deviceId,
     assetPreview = config.assetPreview == true,
+    capabilities = config.capabilities,
     plugins = config.plugins,
     debugger = {
       enabled = false,

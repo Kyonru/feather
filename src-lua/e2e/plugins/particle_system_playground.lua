@@ -49,10 +49,16 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "release = function()"), "particle playground export includes release lifecycle")
     assertTruthy(contains(code, "local timeline = {"), "particle playground export includes timeline data")
     assertTruthy(contains(code, "local timelineState = { time = 0, playing = false }"), "particle playground export includes timeline state")
-    assertTruthy(contains(code, "local function applyTimeline(time)"), "particle playground export includes timeline evaluator")
+    assertTruthy(contains(code, "local function applyTimeline(time, allowEmission)"), "particle playground export includes timeline evaluator")
+    assertTruthy(contains(code, "local function clipAllowsEmission"), "particle playground export includes lifetime-aware clip emission")
+    assertTruthy(contains(code, "not allowEmission or not trackAllowsEmission"), "particle playground export mutes paused timeline emission")
     assertTruthy(contains(code, "local function emitTimelineStartsForAdvance"), "particle playground export preserves timeline tails across loop wraps")
     assertTruthy(contains(code, "emitter.system:start()"), "particle playground export restarts delayed timeline clips")
-    assertTruthy(contains(code, "emitter.system:setEmitterLifetime(-1)"), "particle playground export lets timeline clips own emission lifetime")
+    assertTruthy(contains(code, "base.emitterLifetime"), "particle playground export preserves emitter lifetime during timeline playback")
+    assertTruthy(
+      not contains(code, "      emitter.system:setEmitterLifetime(-1)"),
+      "particle playground export no longer forces timeline emitter lifetime to infinite"
+    )
     assertTruthy(contains(code, "---@class ParticlePayload"), "particle playground export documents ParticlePayload")
     assertTruthy(contains(code, "LG.newImage("), "particle playground export loads texture assets")
     assertTruthy(contains(code, ':setFilter("linear", "linear")'), "particle playground export uses linear texture filtering")
@@ -222,7 +228,8 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       },
     })
     local timelineSystem = plugin:_getSystemEntry("Timeline Playback", 1)
-    assertEqual(timelineSystem.system:getEmissionRate(), 15, "particle timeline seek evaluates keyframes")
+    assertEqual(timelineSystem.system:getEmissionRate(), 0, "particle timeline seek mutes paused continuous emission")
+    assertEqual(timelineSystem._timelineOpacity, 0.5, "particle timeline seek still evaluates non-emission keyframes")
     plugin:handleActionRequest({
       params = {
         action = "timeline-control",
@@ -308,6 +315,160 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     plugin:handleActionRequest({
       params = {
         action = "new-composite",
+        name = "Emitter Lifetime Clip",
+        template = "fire",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Emitter Lifetime Clip",
+        systemIndex = 1,
+        emissionRate = 120,
+        emitterLifetime = 0.2,
+        particleLifetimeMin = 1.5,
+        particleLifetimeMax = 1.5,
+        emitAtStart = 12,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Emitter Lifetime Clip",
+        timeline = {
+          duration = 1,
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "lifetime", start = 0, ["end"] = 0.8, emit = 12 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Emitter Lifetime Clip",
+        command = "seek",
+        time = 0,
+      },
+    })
+    local lifetimeSystem = plugin:_getSystemEntry("Emitter Lifetime Clip", 1).system
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Emitter Lifetime Clip",
+        command = "play",
+      },
+    })
+    plugin:update(0.05)
+    assertEqual(lifetimeSystem:getEmissionRate(), 120, "particle timeline emits while finite emitter lifetime is active")
+    plugin:update(0.2)
+    assertEqual(lifetimeSystem:getEmissionRate(), 0, "particle timeline finite emitter lifetime stops emission before Stop At")
+    assertTruthy(lifetimeSystem:getCount() > 0, "particle timeline finite emitter lifetime preserves particle-life tails")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Infinite Lifetime Clip",
+        template = "fire",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Infinite Lifetime Clip",
+        systemIndex = 1,
+        emissionRate = 80,
+        emitterLifetime = -1,
+        particleLifetimeMin = 1.2,
+        particleLifetimeMax = 1.2,
+        emitAtStart = 8,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Infinite Lifetime Clip",
+        timeline = {
+          duration = 1,
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "infinite", start = 0, ["end"] = 0.6, emit = 8 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    local infiniteSystem = plugin:_getSystemEntry("Infinite Lifetime Clip", 1).system
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Infinite Lifetime Clip",
+        command = "play",
+      },
+    })
+    plugin:update(0.45)
+    assertEqual(infiniteSystem:getEmissionRate(), 80, "particle timeline infinite emitter lifetime emits through the clip")
+    plugin:update(0.2)
+    assertEqual(infiniteSystem:getEmissionRate(), 0, "particle timeline Stop At still stops infinite emitter lifetime clips")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Stop At Wins",
+        template = "fire",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Stop At Wins",
+        systemIndex = 1,
+        emissionRate = 90,
+        emitterLifetime = 2,
+        particleLifetimeMin = 1.1,
+        particleLifetimeMax = 1.1,
+        emitAtStart = 9,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Stop At Wins",
+        timeline = {
+          duration = 1,
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "stop", start = 0, ["end"] = 0.15, emit = 9 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    local stopWinsSystem = plugin:_getSystemEntry("Stop At Wins", 1).system
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Stop At Wins",
+        command = "play",
+      },
+    })
+    plugin:update(0.05)
+    assertEqual(stopWinsSystem:getEmissionRate(), 90, "particle timeline emits before Stop At with long emitter lifetime")
+    plugin:update(0.2)
+    assertEqual(stopWinsSystem:getEmissionRate(), 0, "particle timeline Stop At caps emission before long emitter lifetime")
+    assertTruthy(stopWinsSystem:getCount() > 0, "particle timeline Stop At preserves particle-life tails")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
         name = "Loop Tail",
         template = "fire",
       },
@@ -316,6 +477,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       params = {
         composite = "Loop Tail",
         systemIndex = 1,
+        emitterLifetime = 0.08,
         particleLifetimeMin = 2.5,
         particleLifetimeMax = 2.5,
         emitAtStart = 8,
@@ -419,6 +581,76 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(delayedSystem:getCount(), 0, "particle delayed timeline clip naturally expires after its short particle life")
     plugin:update(0.5)
     assertTruthy(delayedSystem:getCount() > 0, "particle delayed timeline clip emits again after loop wrap")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Complex Template",
+        template = "complex-composite",
+      },
+    })
+    local complex = plugin:handleRequest()
+    assertEqual(#complex.data.systems, 5, "particle complex composite template creates five emitters")
+    assertEqual(complex.data.systems[1].title, "Core Pulse", "particle complex composite names the core emitter")
+    assertEqual(complex.data.systems[2].title, "Shock Ring", "particle complex composite names the ring emitter")
+    assertEqual(complex.data.systems[3].title, "Smoke Bloom", "particle complex composite names the smoke emitter")
+    assertEqual(complex.data.systems[4].title, "Spark Trails", "particle complex composite names the spark emitter")
+    assertEqual(complex.data.systems[5].title, "Dust Wake", "particle complex composite names the dust emitter")
+    assertEqual(complex.data.timeline.duration, 3, "particle complex composite uses the standard three second timeline")
+    assertEqual(complex.data.timeline.loop, false, "particle complex composite is a one-shot timeline")
+    assertEqual(#complex.data.timeline.tracks, 5, "particle complex composite authors one timeline track per emitter")
+    assertEqual(complex.data.timeline.tracks[1].clips[1].emit, 140, "particle complex composite starts with a strong core burst")
+    assertEqual(complex.data.timeline.tracks[4].clips[1].emit, 180, "particle complex composite adds a spark-trail burst")
+    assertEqual(complex.data.timeline.tracks[5].clips[1].start, 0.28, "particle complex composite staggers the dust wake")
+    assertEqual(
+      complex.data.timeline.tracks[3].lanes.offsetY[2].value,
+      -42,
+      "particle complex composite lifts the smoke bloom over time"
+    )
+
+    local pausedComplexSystem = plugin:_getSystemEntry("Complex Template", 1).system
+    pausedComplexSystem:reset()
+    plugin:update(0.2)
+    assertEqual(
+      pausedComplexSystem:getCount(),
+      0,
+      "particle paused timeline does not continuously emit from a clip at the playhead"
+    )
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Complex Template",
+        command = "play",
+      },
+    })
+    plugin:update(0.02)
+    assertTruthy(pausedComplexSystem:getCount() > 0, "particle paused timeline resumes emission when played")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Inactive Preview",
+        template = "complex-composite",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Inactive Preview",
+        command = "play",
+      },
+    })
+    local inactiveSystem = plugin:_getSystemEntry("Inactive Preview", 1).system
+    inactiveSystem:reset()
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Active Preview",
+        template = "fire",
+      },
+    })
+    plugin:update(0.2)
+    assertEqual(inactiveSystem:getCount(), 0, "particle inactive scratch previews do not keep updating in the game loop")
 
     plugin:handleActionRequest({
       params = {

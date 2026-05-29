@@ -83,6 +83,8 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
   await page.getByRole('button', { name: 'Add Emitter' }).click();
   await expect(page.getByTestId('particle-emitter-row-2')).toBeVisible();
+  await page.getByTestId('particle-emitter-row-1').click();
+  await page.getByText('Emitter Lifetime').locator('..').getByRole('spinbutton').fill('0.8');
   await page.getByRole('tab', { name: 'Timeline' }).click();
   await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
   await expect(page.getByTestId('particle-timeline-track-1')).toBeVisible();
@@ -113,6 +115,14 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   expect(zoomedOverflow).toBeGreaterThan(20);
 
   await page.getByLabel('Stop at').first().fill('2.4');
+  const emissionWindow = page.getByTestId('particle-timeline-emission-window-1').first();
+  await expect(emissionWindow).toBeVisible();
+  const resizedClipBox = await page.getByTestId('particle-timeline-clip-1').first().boundingBox();
+  const emissionBox = await emissionWindow.boundingBox();
+  expect(resizedClipBox).not.toBeNull();
+  expect(emissionBox).not.toBeNull();
+  expect(emissionBox!.width).toBeLessThan(resizedClipBox!.width * 0.6);
+  await expect(page.getByTestId('particle-timeline-emission-window-2')).toHaveCount(0);
   const tail = page.getByTestId('particle-timeline-tail-1').first();
   await expect(tail).toBeVisible();
   const tailBox = await tail.boundingBox();
@@ -143,6 +153,30 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await playhead.fill('1.2');
   await playhead.dispatchEvent('change');
   await expect(page.getByText(/1\.20s \/ 3\.00s/)).toBeVisible();
+});
+
+test('particle playground creates the complex composite timeline template in the showcase', async ({ page }) => {
+  await page.goto('/particle-system-playground');
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+
+  await page.getByTitle('New composite').click();
+  const dialog = page.getByRole('dialog', { name: 'New Composite' });
+  await dialog.getByPlaceholder('Explosion').fill('Complex Demo');
+  await dialog.getByRole('combobox').click();
+  await page.getByRole('option', { name: 'Complex Composite' }).click();
+  await dialog.getByRole('button', { name: 'Create' }).click();
+
+  await expect(page.getByTestId('particle-emitter-row-5')).toBeVisible();
+  await expect(page.getByText('Spark Trails')).toBeVisible();
+  await expect(page.getByText('Dust Wake')).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await expect(page.getByTestId('particle-timeline-track-5')).toBeVisible();
+  await expect(page.getByTestId('particle-timeline-track-4').getByText('Spark Trails')).toBeVisible();
+  await expect(page.getByTestId('particle-timeline-track-5').getByText('Dust Wake')).toBeVisible();
+  await page.getByTestId('particle-timeline-track-5').click();
+  await expect(page.getByLabel('Emit at').first()).toHaveValue('0.28');
+  await expect(page.getByLabel('Burst particles').first()).toHaveValue('100');
 });
 
 test('shader graph right panel exposes root shader controls', async ({ page }) => {

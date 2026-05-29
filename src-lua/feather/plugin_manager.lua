@@ -229,12 +229,14 @@ function FeatherPluginManager:init(feather, logger, observer)
           })
         end
 
-        -- Warn if a plugin requests a capability not in the user's allowlist
-        if allowedPerms and allowedPerms ~= "all" then
+        -- Warn if an enabled plugin requests a capability not in the user's allowlist.
+        -- Disabled plugins are inert until explicitly enabled, so reporting them here
+        -- makes startup look scarier than it is.
+        if not pluginRecord.disabled and allowedPerms and allowedPerms ~= "all" then
           for _, perm in ipairs(plugin.capabilities or {}) do
             if not allowedPerms[perm] then
               self.logger:log({
-                type = "error",
+                type = "warn",
                 str = "[Plugin "
                   .. plugin.identifier
                   .. "] requests capability '"

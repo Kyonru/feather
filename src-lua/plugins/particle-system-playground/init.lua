@@ -128,6 +128,20 @@ local function hasPlayingTimeline(plugin)
   return false
 end
 
+local function pauseScratchTimeline(entry)
+  if entry and entry.kind == "scratch" and entry.timelineState then
+    entry.timelineState.playing = false
+  end
+end
+
+local function pauseOtherScratchTimelines(plugin, keepName)
+  for name, entry in pairs(plugin.composites or {}) do
+    if name ~= keepName then
+      pauseScratchTimeline(entry)
+    end
+  end
+end
+
 local function sanitizeFilename(name, fallback)
   name = tostring(name or fallback or "asset"):gsub("\\", "/"):match("([^/]+)$") or fallback or "asset"
   name = name:gsub("[^%w%._%-]", "_")
@@ -990,6 +1004,40 @@ local function defaultTimelineForSystems(systems, template)
     return { duration = duration, loop = false, tracks = tracks }
   end
 
+  if template == "complex-composite" and systems[5] then
+    tracks[1] = authoredTrack(systems[1], 0, 0.72, {
+      opacity = { { 0, 1 }, { 0.45, 0.82 }, { 0.72, 0 } },
+      emissionRate = { { 0, 720 }, { 0.18, 260 }, { 0.72, 0 } },
+      sizeScale = { { 0, 0.35 }, { 0.34, 1.8 }, { 0.72, 0.3 } },
+    }, 140)
+    tracks[2] = authoredTrack(systems[2], 0.04, 0.58, {
+      opacity = { { 0.04, 0.95 }, { 0.32, 0.68 }, { 0.58, 0 } },
+      speedScale = { { 0.04, 1.5 }, { 0.58, 0.45 } },
+      sizeScale = { { 0.04, 0.45 }, { 0.58, 2.2 } },
+      spread = { { 0.04, 6.28 }, { 0.58, 6.28 } },
+    }, 90)
+    tracks[3] = authoredTrack(systems[3], 0.16, 3, {
+      opacity = { { 0.16, 0 }, { 0.5, 0.72 }, { 2.75, 0 } },
+      speedScale = { { 0.16, 1.1 }, { 1.4, 0.42 }, { 3, 0.18 } },
+      sizeScale = { { 0.16, 0.45 }, { 1.35, 1.8 }, { 3, 2.5 } },
+      offsetY = { { 0.16, 0 }, { 3, -42 } },
+    }, 110)
+    tracks[4] = authoredTrack(systems[4], 0.1, 1.45, {
+      opacity = { { 0.1, 1 }, { 0.75, 0.8 }, { 1.45, 0 } },
+      emissionRate = { { 0.1, 520 }, { 0.42, 120 }, { 1.45, 0 } },
+      speedScale = { { 0.1, 1.35 }, { 1.45, 0.34 } },
+      direction = { { 0.1, -0.9 }, { 1.45, -2.25 } },
+      spread = { { 0.1, 4.6 }, { 1.45, 2.2 } },
+    }, 180)
+    tracks[5] = authoredTrack(systems[5], 0.28, 2.7, {
+      opacity = { { 0.28, 0 }, { 0.62, 0.5 }, { 2.7, 0 } },
+      speedScale = { { 0.28, 0.8 }, { 1.4, 0.28 }, { 2.7, 0.12 } },
+      sizeScale = { { 0.28, 0.4 }, { 1.2, 1.35 }, { 2.7, 2 } },
+      offsetY = { { 0.28, 10 }, { 2.7, 30 } },
+    }, 100)
+    return { duration = duration, loop = false, tracks = tracks }
+  end
+
   for index, sys in ipairs(systems or {}) do
     tracks[index] = {
       systemIndex = index,
@@ -1132,9 +1180,22 @@ local function evaluateKeyframes(points, time, fallback)
   return safeNumber(points[#points].value, fallback)
 end
 
-local function trackActive(track, time)
+local function clipAllowsEmission(clip, time, emitterLifetime)
+  local startTime = safeNumber(clip and clip.start, 0)
+  local endTime = safeNumber(clip and clip["end"], 0)
+  if time < startTime or time > endTime then
+    return false
+  end
+  local lifetime = safeNumber(emitterLifetime, -1)
+  if lifetime < 0 then
+    return true
+  end
+  return time <= startTime + lifetime
+end
+
+local function trackAllowsEmission(track, time, emitterLifetime)
   for _, clip in ipairs(track and track.clips or {}) do
-    if time >= safeNumber(clip.start, 0) and time <= safeNumber(clip["end"], 0) then
+    if clipAllowsEmission(clip, time, emitterLifetime) then
       return true
     end
   end
@@ -1147,7 +1208,7 @@ local function captureTimelineBase(sys)
   end
 end
 
-local function applyTimelineToSystem(sys, track, time)
+local function applyTimelineToSystem(sys, track, time, allowEmission)
   if not sys or not sys.system then
     return
   end
@@ -1156,14 +1217,10 @@ local function applyTimelineToSystem(sys, track, time)
   end
   local base = sys._timelineBase or {}
   local lanes = track and track.lanes or {}
-  local active = trackActive(track, time)
-
-  -- Timeline clips own emission windows. Keep LÖVE's emitter lifetime from expiring the
-  -- particle system underneath while the timeline is responsible for rate changes.
-  pcall(sys.system.setEmitterLifetime, sys.system, -1)
+  local active = trackAllowsEmission(track, time, safeNumber(base.emitterLifetime, -1))
 
   local emissionRate = evaluateKeyframes(lanes.emissionRate, time, safeNumber(base.emissionRate, 0))
-  if not active then
+  if not active or not allowEmission then
     emissionRate = 0
   end
   pcall(sys.system.setEmissionRate, sys.system, emissionRate)
@@ -1200,11 +1257,13 @@ local function resetTimelineSystems(plugin, name)
   for i = 1, plugin:_systemCount(name) do
     local sys = plugin:_getSystemEntry(name, i)
     if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, i)) then
-      pcall(sys.system.reset, sys.system)
-      pcall(sys.system.start, sys.system)
       if not sys._timelineBase then
         captureTimelineBase(sys)
       end
+      local base = sys._timelineBase or {}
+      pcall(sys.system.reset, sys.system)
+      pcall(sys.system.setEmitterLifetime, sys.system, safeNumber(base.emitterLifetime, -1))
+      pcall(sys.system.start, sys.system)
     end
   end
 end
@@ -1219,7 +1278,12 @@ local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline
       for _, item in ipairs(track.clips or {}) do
         local startTime = safeNumber(item.start, 0)
         if previousTime <= startTime and nextTime >= startTime then
+          if not sys._timelineBase then
+            captureTimelineBase(sys)
+          end
+          local base = sys._timelineBase or {}
           local count = math.max(0, math.floor(safeNumber(item.emit, safeNumber(sys.emitAtStart, 0))))
+          pcall(sys.system.setEmitterLifetime, sys.system, safeNumber(base.emitterLifetime, -1))
           pcall(sys.system.start, sys.system)
           if count > 0 then
             pcall(sys.system.emit, sys.system, count)
@@ -1271,7 +1335,7 @@ local function ensureTimelineState(entry)
   return entry.timelineState
 end
 
-local function applyTimelineAt(plugin, name, time)
+local function applyTimelineAt(plugin, name, time, allowEmission)
   local entry = plugin.composites[name]
   if not entry or not entry.timeline then
     return
@@ -1279,7 +1343,7 @@ local function applyTimelineAt(plugin, name, time)
   for index, track in ipairs(entry.timeline.tracks or {}) do
     local sys = plugin:_getSystemEntry(name, index)
     if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, index)) then
-      applyTimelineToSystem(sys, track, time)
+      applyTimelineToSystem(sys, track, time, allowEmission == true)
     end
   end
 end
@@ -1322,7 +1386,7 @@ local function advanceTimeline(plugin, name, dt)
   end
   state.time = nextTime
 
-  applyTimelineAt(plugin, name, nextTime)
+  applyTimelineAt(plugin, name, nextTime, state.playing)
 end
 
 local function seekTimeline(plugin, name, time)
@@ -1344,7 +1408,7 @@ local function seekTimeline(plugin, name, time)
   while current < target and steps < 600 do
     local nextTime = math.min(target, current + step)
     emitTimelineStarts(plugin, name, current, nextTime, entry.timeline)
-    applyTimelineAt(plugin, name, nextTime)
+    applyTimelineAt(plugin, name, nextTime, true)
     for i = 1, plugin:_systemCount(name) do
       local sys = plugin:_getSystemEntry(name, i)
       if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, i)) then
@@ -1354,7 +1418,7 @@ local function seekTimeline(plugin, name, time)
     current = nextTime
     steps = steps + 1
   end
-  applyTimelineAt(plugin, name, target)
+  applyTimelineAt(plugin, name, target, false)
 end
 
 local function createDefaultSystem(index, template)
@@ -1554,6 +1618,53 @@ local function createDefaultSystems(template)
     return { core, swirl, glitter }
   end
 
+  if template == "complex-composite" then
+    local core = createDefaultSystem(1, "magic-burst")
+    core.title = "Core Pulse"
+    core.blendMode = "add"
+    core.emitAtStart = 140
+    core.system:setEmissionRate(720)
+    core.system:setSizes(0.35, 1.8, 0.3)
+
+    local ring = createDefaultSystem(2, "sparkles")
+    ring.title = "Shock Ring"
+    ring.blendMode = "add"
+    ring.emitAtStart = 90
+    ring.system:setSpeed(160, 360)
+    ring.system:setSpread(math.pi * 2)
+    ring.system:setSizes(0.18, 1.4, 0)
+
+    local smoke = createDefaultSystem(3, "smoke")
+    smoke.title = "Smoke Bloom"
+    smoke.blendMode = "alpha"
+    smoke.emitAtStart = 110
+    smoke.y = -8
+    smoke.system:setEmissionRate(95)
+    smoke.system:setSpeed(18, 90)
+    smoke.system:setSizes(0.45, 1.8, 2.6)
+
+    local sparks = createDefaultSystem(4, "sparkles")
+    sparks.title = "Spark Trails"
+    sparks.blendMode = "add"
+    sparks.emitAtStart = 180
+    sparks.y = -10
+    sparks.system:setEmissionRate(520)
+    sparks.system:setSpeed(120, 300)
+    sparks.system:setDirection(-0.9)
+    sparks.system:setSpread(4.6)
+
+    local dust = createDefaultSystem(5, "dust-puff")
+    dust.title = "Dust Wake"
+    dust.blendMode = "alpha"
+    dust.emitAtStart = 100
+    dust.y = 18
+    dust.system:setEmissionRate(70)
+    dust.system:setSpeed(20, 70)
+    dust.system:setSizes(0.3, 1.2, 2)
+
+    return { core, ring, smoke, sparks, dust }
+  end
+
   if template == "dust-puff" then
     local dust = createDefaultSystem(1, "dust-puff")
     dust.title = "Dust Puff"
@@ -1620,11 +1731,13 @@ function ParticleSystemPlaygroundPlugin:_setRuntimePreviewActive(active, composi
   local target = composite and self.composites[composite] and composite or self.activeComposite
   self.previewSessionActive = true
   self.previewComposite = target
+  pauseOtherScratchTimelines(self, target)
   local entry = target and self.composites[target]
   if entry and entry.timeline then
     local state = ensureTimelineState(entry)
     applyTimelineAt(self, target, state.time or 0)
   end
+  self.timelineRuntimeActive = hasPlayingTimeline(self)
   return true
 end
 
@@ -1670,6 +1783,7 @@ function ParticleSystemPlaygroundPlugin:removeComposite(name)
       self.previewSessionActive = false
     end
   end
+  self.timelineRuntimeActive = hasPlayingTimeline(self)
   return true
 end
 
@@ -1700,12 +1814,14 @@ function ParticleSystemPlaygroundPlugin:_newComposite(name, template)
     timelineState = { time = 0, playing = false, scrubVersion = 0 },
   }
   self.compositeOrder[#self.compositeOrder + 1] = final
+  pauseOtherScratchTimelines(self, final)
   self.activeComposite = final
   self.activeSystem = 1
   if self.previewSessionActive then
     self.previewComposite = final
   end
   applyTimelineAt(self, final, 0)
+  self.timelineRuntimeActive = hasPlayingTimeline(self)
   return final
 end
 
@@ -1789,21 +1905,35 @@ function ParticleSystemPlaygroundPlugin:update(dt)
   for _, name in ipairs(self.compositeOrder) do
     local entry = self.composites[name]
     local timelineWasPlaying = entry and entry.timelineState and safeBoolean(entry.timelineState.playing, false)
-    if entry and entry.timeline then
-      advanceTimeline(self, name, dt)
-      if entry.timelineState and safeBoolean(entry.timelineState.playing, false) then
-        timelineRuntimeActive = true
-      end
-    end
     local previewActive = scratchPreviewRuntimeActive(self, name, entry)
-    local timelineStillPlaying = entry and entry.timelineState and safeBoolean(entry.timelineState.playing, false)
-    if entry and entry.kind == "scratch" and (previewActive or timelineWasPlaying or timelineStillPlaying) then
+    local scratchUpdated = false
+    if entry and entry.kind == "scratch" and (previewActive or timelineWasPlaying) then
       local offsetX = safeNumber(entry.offsetX, 0)
       local offsetY = safeNumber(entry.offsetY, 0)
       if previewActive then
         offsetX, offsetY = computeMovementOffset(entry.movement, dt)
         entry.offsetX, entry.offsetY = offsetX, offsetY
       end
+      local x = (entry.x or DEFAULT_X) + offsetX
+      local y = (entry.y or DEFAULT_Y) + offsetY
+      for index, system in ipairs(entry.systems or {}) do
+        if system.system and isSystemEnabled(system, self:_meta(name, index)) then
+          pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
+          pcall(system.system.update, system.system, dt)
+        end
+      end
+      scratchUpdated = true
+    end
+    if entry and entry.timeline and (timelineWasPlaying or previewActive) then
+      advanceTimeline(self, name, dt)
+      if entry.timelineState and safeBoolean(entry.timelineState.playing, false) then
+        timelineRuntimeActive = true
+      end
+    end
+    local timelineStillPlaying = entry and entry.timelineState and safeBoolean(entry.timelineState.playing, false)
+    if entry and entry.kind == "scratch" and not scratchUpdated and timelineStillPlaying then
+      local offsetX = safeNumber(entry.offsetX, 0)
+      local offsetY = safeNumber(entry.offsetY, 0)
       local x = (entry.x or DEFAULT_X) + offsetX
       local y = (entry.y or DEFAULT_Y) + offsetY
       for index, system in ipairs(entry.systems or {}) do
@@ -1923,7 +2053,11 @@ end
 function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
   local params = request.params or {}
   if params.composite and self.composites[params.composite] then
+    if params.composite ~= self.activeComposite then
+      pauseOtherScratchTimelines(self, params.composite)
+    end
     self.activeComposite = params.composite
+    self.timelineRuntimeActive = hasPlayingTimeline(self)
   end
   if params.systemIndex then
     self.activeSystem = math.max(1, safeNumber(params.systemIndex, self.activeSystem))
@@ -2217,11 +2351,15 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
 
   if action == "select-composite" then
     if params.composite and self.composites[params.composite] then
+      if params.composite ~= self.activeComposite then
+        pauseOtherScratchTimelines(self, params.composite)
+      end
       self.activeComposite = params.composite
       self.activeSystem = 1
       if self.previewSessionActive then
         self.previewComposite = params.composite
       end
+      self.timelineRuntimeActive = hasPlayingTimeline(self)
     end
     return true
   end
@@ -2321,6 +2459,7 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     local state = ensureTimelineState(entry)
     local command = safeString(params.command, "")
     if command == "play" then
+      pauseOtherScratchTimelines(self, name)
       applyTimelineAt(self, name, state.time or 0)
       state.playing = true
       self.timelineRuntimeActive = true
@@ -2700,12 +2839,14 @@ function ParticleSystemPlaygroundPlugin:_importProject(project)
     timelineState = { time = 0, playing = false, scrubVersion = 0 },
   }
   self.compositeOrder[#self.compositeOrder + 1] = name
+  pauseOtherScratchTimelines(self, name)
   self.activeComposite = name
   self.activeSystem = 1
   if self.previewSessionActive then
     self.previewComposite = name
   end
   applyTimelineAt(self, name, 0)
+  self.timelineRuntimeActive = hasPlayingTimeline(self)
 
   return name
 end
@@ -2904,6 +3045,8 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
         .. fmt(sys.y or 0)
         .. ", opacity = 1, base = { emissionRate = "
         .. fmt(ps:getEmissionRate())
+        .. ", emitterLifetime = "
+        .. fmt(ps:getEmitterLifetime())
         .. ", speedMin = "
         .. fmt(speedMin)
         .. ", speedMax = "
@@ -2949,22 +3092,30 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return tonumber(points[#points].value) or fallback"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function trackActive(track, time)"
+  lines[#lines + 1] = "local function clipAllowsEmission(clip, time, emitterLifetime)"
+  lines[#lines + 1] = "  local start = tonumber(clip.start) or 0"
+  lines[#lines + 1] = "  local stop = tonumber(clip[\"end\"]) or 0"
+  lines[#lines + 1] = "  if time < start or time > stop then return false end"
+  lines[#lines + 1] = "  local lifetime = tonumber(emitterLifetime) or -1"
+  lines[#lines + 1] = "  if lifetime < 0 then return true end"
+  lines[#lines + 1] = "  return time <= start + lifetime"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function trackAllowsEmission(track, time, emitterLifetime)"
   lines[#lines + 1] = "  for _, clip in ipairs(track.clips or {}) do"
-  lines[#lines + 1] = "    if time >= (tonumber(clip.start) or 0) and time <= (tonumber(clip[\"end\"]) or 0) then return true end"
+  lines[#lines + 1] = "    if clipAllowsEmission(clip, time, emitterLifetime) then return true end"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  return false"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function applyTimeline(time)"
+  lines[#lines + 1] = "local function applyTimeline(time, allowEmission)"
   lines[#lines + 1] = "  for index, track in ipairs(timeline.tracks or {}) do"
   lines[#lines + 1] = "    local emitter = systems[index]"
   lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system then"
   lines[#lines + 1] = "      local base = emitter.base or {}"
   lines[#lines + 1] = "      local lanes = track.lanes or {}"
-  lines[#lines + 1] = "      emitter.system:setEmitterLifetime(-1)"
   lines[#lines + 1] = "      local rate = evalTimeline(lanes.emissionRate, time, base.emissionRate or 0)"
-  lines[#lines + 1] = "      if not trackActive(track, time) then rate = 0 end"
+  lines[#lines + 1] = "      if not allowEmission or not trackAllowsEmission(track, time, base.emitterLifetime or -1) then rate = 0 end"
   lines[#lines + 1] = "      emitter.system:setEmissionRate(rate)"
   lines[#lines + 1] = "      local speedScale = evalTimeline(lanes.speedScale, time, 1)"
   lines[#lines + 1] = "      emitter.system:setSpeed((base.speedMin or 0) * speedScale, (base.speedMax or 0) * speedScale)"
@@ -2990,6 +3141,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "        local start = tonumber(clip.start) or 0"
   lines[#lines + 1] = "        if previousTime <= start and nextTime >= start then"
   lines[#lines + 1] = "          local count = math.max(0, math.floor(tonumber(clip.emit) or tonumber(amount) or emitter.emitAtStart or 0))"
+  lines[#lines + 1] = "          emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "          emitter.system:start()"
   lines[#lines + 1] = "          if count > 0 then emitter.system:emit(count) end"
   lines[#lines + 1] = "        end"
@@ -3022,6 +3174,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  for _, emitter in ipairs(systems) do"
   lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
   lines[#lines + 1] = "      emitter.system:reset()"
+  lines[#lines + 1] = "      emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "      emitter.system:start()"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
@@ -3044,7 +3197,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "    timelineState.time = nextTime"
   lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  applyTimeline(timelineState.time)"
+  lines[#lines + 1] = "  applyTimeline(timelineState.time, timelineState.playing)"
   lines[#lines + 1] = "  for _, emitter in ipairs(systems) do"
   lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
   lines[#lines + 1] = "      emitter.system:update(dt)"
@@ -3090,6 +3243,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  for i, emitter in ipairs(systems) do"
   lines[#lines + 1] = "    if emitter.enabled and emitter.system and (not index or index == i) then"
   lines[#lines + 1] = "      emitter.system:reset()"
+  lines[#lines + 1] = "      emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "      emitter.system:start()"
   lines[#lines + 1] = "      emitter.system:setPosition(x + (emitter.x or 0), y + (emitter.y or 0))"
   lines[#lines + 1] = "      emitter.system:setDirection(r)"
@@ -3097,7 +3251,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  timelineState.time = 0"
   lines[#lines + 1] = "  timelineState.playing = true"
-  lines[#lines + 1] = "  applyTimeline(0)"
+  lines[#lines + 1] = "  applyTimeline(0, true)"
   lines[#lines + 1] = "  emitTimelineStarts(0, 0, amount)"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "  return true"

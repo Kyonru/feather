@@ -64,6 +64,22 @@ function particleTailDuration(system: ParticleSystemPlaygroundSystem): number {
   );
 }
 
+function emitterLifetimeDuration(system: ParticleSystemPlaygroundSystem): number {
+  return finiteNumber(system.properties.emitterLifetime, -1);
+}
+
+function emissionSegmentForClip(
+  clip: ParticleTimelineClip,
+  emitterLifetime: number,
+): { start: number; end: number } | null {
+  const clipDuration = Math.max(0, clip.end - clip.start);
+  if (clipDuration <= 0 || emitterLifetime < 0 || emitterLifetime >= clipDuration) return null;
+  return {
+    start: clip.start,
+    end: Math.min(clip.end, clip.start + Math.max(0.01, emitterLifetime)),
+  };
+}
+
 function tailSegmentsForClip(
   clip: ParticleTimelineClip,
   tailDuration: number,
@@ -383,6 +399,7 @@ export function TimelinePanel({
                     {track?.clips.map((clip) => {
                       const startPercent = timeToPercent(clip.start, timeline.duration);
                       const endPercent = timeToPercent(clip.end, timeline.duration);
+                      const emissionSegment = emissionSegmentForClip(clip, emitterLifetimeDuration(system));
                       return (
                         <div
                           key={clip.id}
@@ -394,7 +411,23 @@ export function TimelinePanel({
                             minWidth: '0.35rem',
                           }}
                           title={`${system.title}: ${formatTime(clip.start)} to ${formatTime(clip.end)}`}
-                        />
+                        >
+                          {emissionSegment && (
+                            <div
+                              data-testid={`particle-timeline-emission-window-${system.index}`}
+                              className="pointer-events-none absolute inset-y-[5px] rounded-sm bg-primary/55"
+                              style={{
+                                left: `${timeToPercent(emissionSegment.start - clip.start, Math.max(0.01, clip.end - clip.start))}%`,
+                                right: `${
+                                  100 -
+                                  timeToPercent(emissionSegment.end - clip.start, Math.max(0.01, clip.end - clip.start))
+                                }%`,
+                                minWidth: '0.2rem',
+                              }}
+                              title={`${system.title} emits for ${formatTime(emitterLifetimeDuration(system))} inside this clip`}
+                            />
+                          )}
+                        </div>
                       );
                     })}
                   </div>

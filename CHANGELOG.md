@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Shader Graph right-panel tabs with a Controls view that collects Template Controls and root Parameter nodes before the Selection inspector and Output panel.
 - Added a Particle System Playground Timeline tab with emitter clips, keyframed opacity/rate/speed/size/direction/spread/offset lanes, transport controls, and real LÖVE preview scrubbing.
 - Added timeline-authored beginner Particle System Playground templates for Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, and Dust Puff.
+- Added a Complex Composite Particle System Playground template with five emitters and a staggered authored timeline for combining burst, ring, smoke, spark, and dust layers.
 
 ### Changed
 
@@ -47,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping playback.
 - Improved Particle System Playground Timeline layout so the editor fills the available width and clips, playhead, zoom, and keyframe strips align on one timeline scale.
 - Renamed Particle System Playground timing controls so clip entry time is shown as Emit At and burst counts are shown separately from timing.
-- Particle System Playground timelines now treat clips as emission windows, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
+- Particle System Playground timelines now treat clips as emission windows, intersect clip timing with Emitter Lifetime, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
 - Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
 - Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
 - Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
@@ -70,6 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Particle Playground and Shader Graph connected-game preview work lingering after leaving the page or switching sessions.
 - Fixed connected Lua games stuttering on the default one-second sample cadence when several live payloads were pushed together.
 - Fixed Runtime Snapshot contributing to idle connected-game stutters through default live dashboard pushes.
+- Fixed Particle System Playground connected-game preview performance by muting paused timeline emission and updating only the selected scratch composite.
+- Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
 
 ### Tests
 
@@ -99,8 +102,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added showcase and app e2e coverage for the Shader Graph right-panel Controls, Selection, and Output workflow.
 - Expanded Lua e2e coverage for looping Particle System Playground timelines with delayed emitter clips.
 - Expanded Lua, showcase, and app e2e coverage for Particle System Playground particle-life tails in timeline loops.
+- Expanded Lua, showcase, and app e2e coverage for Particle System Playground Emitter Lifetime and timeline clip intersections.
 - Expanded Lua, showcase, and app e2e coverage for preserving Particle System Playground timeline values when emitters are reordered.
 - Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
+- Added Lua and showcase e2e coverage for the Complex Composite Particle System Playground timeline template.
+- Expanded Lua e2e coverage for paused Particle System Playground timelines and inactive scratch preview throttling.
+- Expanded Lua e2e coverage for capability allowlist startup warnings.
 - Added Lua, showcase, and app e2e coverage for Particle System Playground timeline import/export, clip/keyframe editing, preview controls, and exported timeline replay hooks.
 - Added Lua, app e2e, and focused store coverage for idle creative preview runtime behavior, stable connected-game config probing, and batched log-history persistence.
 - Added Lua e2e coverage for incremental connected-game sample pushes.

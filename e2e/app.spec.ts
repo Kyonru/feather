@@ -549,7 +549,7 @@ async function seedParticlePlaygroundConfig(page: Page, sessionId = 'demo') {
             exportReady: true,
             properties: {
               emissionRate: 100,
-              emitterLifetime: -1,
+              emitterLifetime: 0.8,
               particleLifetimeMin: 0.35,
               particleLifetimeMax: 1.3,
               direction: -Math.PI / 2,
@@ -2187,6 +2187,14 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   expect(clipBox!.x + clipBox!.width).toBeLessThanOrEqual(trackStripBox!.x + trackStripBox!.width + 1);
 
   await page.getByLabel('Stop at').first().fill('2.2');
+  const emissionWindow = page.getByTestId('particle-timeline-emission-window-1').first();
+  await expect(emissionWindow).toBeVisible();
+  const resizedClipBox = await page.getByTestId('particle-timeline-clip-1').first().boundingBox();
+  const emissionBox = await emissionWindow.boundingBox();
+  expect(resizedClipBox).not.toBeNull();
+  expect(emissionBox).not.toBeNull();
+  expect(emissionBox!.width).toBeLessThan(resizedClipBox!.width * 0.65);
+  await expect(page.getByTestId('particle-timeline-emission-window-2')).toHaveCount(0);
   const tail = page.getByTestId('particle-timeline-tail-1').first();
   await expect(tail).toBeVisible();
   const tailBox = await tail.boundingBox();

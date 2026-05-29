@@ -146,6 +146,22 @@ function system(index: number, title: string, template: ParticleSystemPlayground
   };
 }
 
+function customizeSystem(
+  base: ParticleSystemPlaygroundSystem,
+  overrides: Partial<Omit<ParticleSystemPlaygroundSystem, 'properties'>> & {
+    properties?: Partial<ParticleSystemPlaygroundSystem['properties']>;
+  },
+): ParticleSystemPlaygroundSystem {
+  return {
+    ...base,
+    ...overrides,
+    properties: {
+      ...base.properties,
+      ...(overrides.properties ?? {}),
+    },
+  };
+}
+
 function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPlaygroundCompositeData {
   const systems =
     template === 'explosion'
@@ -154,7 +170,33 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
         ? [system(1, 'Flash Cone', 'muzzle-flash'), system(2, 'Barrel Sparks', 'sparkles')]
         : template === 'magic-burst'
           ? [system(1, 'Core Pulse', 'magic-burst'), system(2, 'Swirl', 'sparkles'), system(3, 'Glitter Trail', 'sparkles')]
-      : [system(1, template === 'smoke' ? 'Smoke' : template === 'sparkles' ? 'Sparkles' : 'Flame', template)];
+          : template === 'complex-composite'
+            ? [
+                customizeSystem(system(1, 'Core Pulse', 'magic-burst'), {
+                  emitAtStart: 140,
+                  properties: { emissionRate: 720, sizes: '0.35, 1.8, 0.3' },
+                }),
+                customizeSystem(system(2, 'Shock Ring', 'sparkles'), {
+                  emitAtStart: 90,
+                  properties: { speedMin: 160, speedMax: 360, sizes: '0.18, 1.4, 0', spread: Math.PI * 2 },
+                }),
+                customizeSystem(system(3, 'Smoke Bloom', 'smoke'), {
+                  emitAtStart: 110,
+                  y: -8,
+                  properties: { emissionRate: 95, speedMin: 18, speedMax: 90, sizes: '0.45, 1.8, 2.6' },
+                }),
+                customizeSystem(system(4, 'Spark Trails', 'sparkles'), {
+                  emitAtStart: 180,
+                  y: -10,
+                  properties: { emissionRate: 520, speedMin: 120, speedMax: 300, direction: -0.9, spread: 4.6 },
+                }),
+                customizeSystem(system(5, 'Dust Wake', 'dust-puff'), {
+                  emitAtStart: 100,
+                  y: 18,
+                  properties: { emissionRate: 70, speedMin: 20, speedMax: 70, sizes: '0.3, 1.2, 2' },
+                }),
+              ]
+            : [system(1, template === 'smoke' ? 'Smoke' : template === 'sparkles' ? 'Sparkles' : 'Flame', template)];
   const data: ParticleSystemPlaygroundCompositeData = {
     compositeType: 'scratch',
     x: 400,
