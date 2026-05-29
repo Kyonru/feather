@@ -222,6 +222,7 @@ export function TimelinePanel({
   const [selectedItem, setSelectedItem] = useState<SelectedTimelineItem | null>(null);
   const [localPlayheadTime, setLocalPlayheadTime] = useState<number | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
   const playbackFrameRef = useRef<number | null>(null);
   const displayTimeRef = useRef(0);
   const currentTime = clamp(composite.timelineState?.time ?? 0, 0, timeline.duration);
@@ -471,6 +472,91 @@ export function TimelinePanel({
     return () => window.removeEventListener('keydown', onKeyDown);
   });
 
+  const applyDragClientX = (clientX: number) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+
+    if (drag.type === 'keyframe') {
+      updateKeyframe(
+        drag.systemIndex,
+        drag.lane,
+        drag.keyframeId,
+        'time',
+        timeFromClientX(clientX, drag.stripLeft, drag.stripWidth, timeline.duration),
+      );
+      return;
+    }
+
+    if (drag.mode === 'move') {
+      const clipDuration = Math.max(MIN_CLIP_DURATION, drag.initialEnd - drag.initialStart);
+      const delta = ((clientX - drag.pointerStartX) / drag.stripWidth) * timeline.duration;
+      const start = clamp(snapTime(drag.initialStart + delta), 0, Math.max(0, timeline.duration - clipDuration));
+      const end = roundTimelineTime(clamp(start + clipDuration, start + MIN_CLIP_DURATION, timeline.duration));
+      commitTimeline(
+        updateTrack(timeline, drag.systemIndex, (track) => ({
+          ...track,
+          clips: track.clips.map((clip) => (clip.id === drag.clipId ? { ...clip, start, end } : clip)),
+        })),
+      );
+      return;
+    }
+
+    const pointerTime = timeFromClientX(clientX, drag.stripLeft, drag.stripWidth, timeline.duration);
+    commitTimeline(
+      updateTrack(timeline, drag.systemIndex, (track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          if (clip.id !== drag.clipId) return clip;
+          if (drag.mode === 'start') {
+            return { ...clip, start: snapTime(Math.min(pointerTime, drag.initialEnd - MIN_CLIP_DURATION)) };
+          }
+          return { ...clip, end: snapTime(Math.max(pointerTime, drag.initialStart + MIN_CLIP_DURATION)) };
+        }),
+      })),
+    );
+  };
+
+  const cleanupDocumentDrag = () => {
+    dragCleanupRef.current?.();
+    dragCleanupRef.current = null;
+  };
+
+  const endPointerDrag = (event?: React.PointerEvent<HTMLElement>) => {
+    if (!dragRef.current) return;
+    event?.stopPropagation();
+    if (event) {
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture may already be released by the browser.
+      }
+    }
+    cleanupDocumentDrag();
+    dragRef.current = null;
+  };
+
+  const beginDocumentDrag = () => {
+    cleanupDocumentDrag();
+    const handleDocumentMove = (event: PointerEvent) => {
+      if (!dragRef.current) return;
+      event.preventDefault();
+      applyDragClientX(event.clientX);
+    };
+    const handleDocumentEnd = () => {
+      if (!dragRef.current) return;
+      cleanupDocumentDrag();
+      dragRef.current = null;
+    };
+    window.addEventListener('pointermove', handleDocumentMove, { passive: false });
+    window.addEventListener('pointerup', handleDocumentEnd);
+    window.addEventListener('pointercancel', handleDocumentEnd);
+    dragCleanupRef.current = () => {
+      window.removeEventListener('pointermove', handleDocumentMove);
+      window.removeEventListener('pointerup', handleDocumentEnd);
+      window.removeEventListener('pointercancel', handleDocumentEnd);
+    };
+  };
+
   const beginClipDrag = (
     event: React.PointerEvent<HTMLElement>,
     mode: 'move' | 'start' | 'end',
@@ -494,6 +580,7 @@ export function TimelinePanel({
       initialStart: clip.start,
       initialEnd: clip.end,
     };
+    beginDocumentDrag();
     setExpandedTrack(systemIndex);
     setSelectedItem({ type: 'clip', systemIndex, clipId: clip.id });
   };
@@ -518,66 +605,19 @@ export function TimelinePanel({
       stripLeft: rect.left,
       stripWidth: rect.width,
     };
+    beginDocumentDrag();
     setExpandedTrack(systemIndex);
     setSelectedItem({ type: 'keyframe', systemIndex, lane, keyframeId: point.id });
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    const drag = dragRef.current;
-    if (!drag) return;
+    if (!dragRef.current) return;
     event.preventDefault();
     event.stopPropagation();
-
-    if (drag.type === 'keyframe') {
-      updateKeyframe(
-        drag.systemIndex,
-        drag.lane,
-        drag.keyframeId,
-        'time',
-        timeFromClientX(event.clientX, drag.stripLeft, drag.stripWidth, timeline.duration),
-      );
-      return;
-    }
-
-    if (drag.mode === 'move') {
-      const clipDuration = Math.max(MIN_CLIP_DURATION, drag.initialEnd - drag.initialStart);
-      const delta = ((event.clientX - drag.pointerStartX) / drag.stripWidth) * timeline.duration;
-      const start = clamp(snapTime(drag.initialStart + delta), 0, Math.max(0, timeline.duration - clipDuration));
-      const end = roundTimelineTime(clamp(start + clipDuration, start + MIN_CLIP_DURATION, timeline.duration));
-      commitTimeline(
-        updateTrack(timeline, drag.systemIndex, (track) => ({
-          ...track,
-          clips: track.clips.map((clip) => (clip.id === drag.clipId ? { ...clip, start, end } : clip)),
-        })),
-      );
-      return;
-    }
-
-    const pointerTime = timeFromClientX(event.clientX, drag.stripLeft, drag.stripWidth, timeline.duration);
-    commitTimeline(
-      updateTrack(timeline, drag.systemIndex, (track) => ({
-        ...track,
-        clips: track.clips.map((clip) => {
-          if (clip.id !== drag.clipId) return clip;
-          if (drag.mode === 'start') {
-            return { ...clip, start: snapTime(Math.min(pointerTime, drag.initialEnd - MIN_CLIP_DURATION)) };
-          }
-          return { ...clip, end: snapTime(Math.max(pointerTime, drag.initialStart + MIN_CLIP_DURATION)) };
-        }),
-      })),
-    );
+    applyDragClientX(event.clientX);
   };
 
-  const endPointerDrag = (event: React.PointerEvent<HTMLElement>) => {
-    if (!dragRef.current) return;
-    event.stopPropagation();
-    try {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    } catch {
-      // Pointer capture may already be released by the browser.
-    }
-    dragRef.current = null;
-  };
+  useEffect(() => () => cleanupDocumentDrag(), []);
 
   const renderPlayhead = (opacity = 'bg-primary/40') => (
     <div
@@ -799,6 +839,9 @@ export function TimelinePanel({
                       className="relative h-7"
                       data-testid={`particle-timeline-track-strip-${system.index}`}
                       data-timeline-strip="true"
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={endPointerDrag}
+                      onPointerCancel={endPointerDrag}
                       onDoubleClick={(event) => {
                         const rect = event.currentTarget.getBoundingClientRect();
                         addClipAt(system.index, timeFromClientX(event.clientX, rect.left, rect.width, timeline.duration));
@@ -855,9 +898,6 @@ export function TimelinePanel({
                               setSelectedItem({ type: 'clip', systemIndex: system.index, clipId: clip.id });
                             }}
                             onPointerDown={(event) => beginClipDrag(event, 'move', system.index, clip)}
-                            onPointerMove={handlePointerMove}
-                            onPointerUp={endPointerDrag}
-                            onPointerCancel={endPointerDrag}
                           >
                             <div
                               data-testid={`particle-timeline-clip-start-handle-${system.index}`}
@@ -925,6 +965,9 @@ export function TimelinePanel({
                               className="relative h-6 rounded border bg-background/70"
                               data-testid={`particle-timeline-key-strip-${lane}-${system.index}`}
                               data-timeline-strip="true"
+                              onPointerMove={handlePointerMove}
+                              onPointerUp={endPointerDrag}
+                              onPointerCancel={endPointerDrag}
                               onClick={() => setSelectedItem({ type: 'lane', systemIndex: system.index, lane })}
                               onDoubleClick={(event) => {
                                 const rect = event.currentTarget.getBoundingClientRect();
@@ -963,9 +1006,6 @@ export function TimelinePanel({
                                           setSelectedItem({ type: 'keyframe', systemIndex: system.index, lane, keyframeId: point.id });
                                         }}
                                         onPointerDown={(event) => beginKeyframeDrag(event, system.index, lane, point)}
-                                        onPointerMove={handlePointerMove}
-                                        onPointerUp={endPointerDrag}
-                                        onPointerCancel={endPointerDrag}
                                       />
                                     );
                                   })}
