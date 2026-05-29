@@ -38,6 +38,10 @@ function PushCountingPlugin:handleRequest()
   }
 end
 
+function PushCountingPlugin:getPushInterval()
+  return tonumber(self.options.pushInterval) or 0
+end
+
 local results = {}
 
 local function record(name)
@@ -777,6 +781,45 @@ return M
   scheduledFeather:update(0)
   assertEqual(pushRequestCount, 3, "connected sample finishes without re-pushing plugins in the same cadence")
   scheduledFeather:finish()
+
+  local throttledPushFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Throttled Push E2E",
+    deviceId = "throttled-push-e2e",
+    assetPreview = false,
+    sampleRate = 1,
+    pluginPushBatchSize = 1,
+    writeToDisk = false,
+    plugins = {
+      FeatherPluginManager.createPlugin(PushCountingPlugin, "push-throttled", { label = "Throttled", pushInterval = 10 }),
+    },
+    debugger = {
+      enabled = false,
+    },
+  })
+  throttledPushFeather.mode = "socket"
+  throttledPushFeather.wsConnected = true
+  throttledPushFeather.__connState = "connected"
+  throttledPushFeather.wsClient = {
+    status = 1,
+    update = function() end,
+    send = function() end,
+  }
+  pushRequestCount = 0
+  throttledPushFeather:update(1)
+  throttledPushFeather:update(0)
+  throttledPushFeather:update(0)
+  throttledPushFeather:update(0)
+  assertEqual(pushRequestCount, 1, "plugin push interval allows the first scheduled payload")
+  throttledPushFeather:update(1)
+  throttledPushFeather:update(0)
+  throttledPushFeather:update(0)
+  throttledPushFeather:update(0)
+  assertEqual(pushRequestCount, 1, "plugin push interval skips scheduled payloads until due")
+  throttledPushFeather.pluginManager:pushAll(throttledPushFeather)
+  assertEqual(pushRequestCount, 2, "manual plugin refresh ignores scheduled push interval")
+  throttledPushFeather:finish()
 
   -- ── Auth handshake state machine ───────────────────────────────────────────
   -- Test the challenge-response logic in isolation. We use a disk-mode instance

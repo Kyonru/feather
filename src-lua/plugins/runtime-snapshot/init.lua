@@ -150,6 +150,10 @@ function RuntimeSnapshotPlugin:update(dt)
   self.frames = self.frames + 1
 end
 
+function RuntimeSnapshotPlugin:getPushInterval()
+  return tonumber(self.options.pushInterval) or 5
+end
+
 function RuntimeSnapshotPlugin:handleRequest(_request, feather)
   local ui = feather.ui
   local fps = love and love.timer and love.timer.getFPS and love.timer.getFPS() or 0

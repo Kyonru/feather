@@ -438,32 +438,60 @@ function FeatherPluginManager:pushAll(feather)
   local index = 1
   local done = false
   while not done do
-    index, done = self:pushSome(feather, index, #self.plugins)
+    index, done = self:pushSome(feather, index, #self.plugins, { force = true })
   end
+end
+
+local function now()
+  if love and love.timer and love.timer.getTime then
+    return love.timer.getTime()
+  end
+  return os.clock()
+end
+
+local function getPushInterval(plugin)
+  if not plugin or not plugin.instance or type(plugin.instance.getPushInterval) ~= "function" then
+    return 0
+  end
+
+  local ok, interval = pcall(plugin.instance.getPushInterval, plugin.instance)
+  if not ok or type(interval) ~= "number" or interval <= 0 then
+    return 0
+  end
+  return interval
 end
 
 --- Push a bounded number of plugin payloads to the desktop.
 ---@param feather Feather
 ---@param startIndex number|nil
 ---@param maxPlugins number|nil
+---@param opts table|nil
 ---@return number nextIndex
 ---@return boolean done
-function FeatherPluginManager:pushSome(feather, startIndex, maxPlugins)
+function FeatherPluginManager:pushSome(feather, startIndex, maxPlugins, opts)
   local fakeRequest = { method = "GET", params = {}, headers = {} }
   local index = math.max(1, startIndex or 1)
   local pushed = 0
   local limit = math.max(1, maxPlugins or 1)
+  local force = opts and opts.force == true
+  local currentTime = now()
 
   while index <= #self.plugins and pushed < limit do
     local plugin = self.plugins[index]
     if plugin.instance and not plugin.disabled then
-      fakeRequest.path = "/plugins/" .. plugin.identifier
+      local interval = force and 0 or getPushInterval(plugin)
+      if force or interval <= 0 or not plugin._nextPushAt or currentTime >= plugin._nextPushAt then
+        fakeRequest.path = "/plugins/" .. plugin.identifier
 
-      local ok, data = pcall(plugin.instance.handleRequest, plugin.instance, fakeRequest, feather)
-      if ok and data then
-        pcall(feather.pushPlugin, feather, plugin.identifier, data)
+        local ok, data = pcall(plugin.instance.handleRequest, plugin.instance, fakeRequest, feather)
+        if ok and data then
+          pcall(feather.pushPlugin, feather, plugin.identifier, data)
+        end
+        if interval > 0 then
+          plugin._nextPushAt = currentTime + interval
+        end
+        pushed = pushed + 1
       end
-      pushed = pushed + 1
     end
     index = index + 1
   end
