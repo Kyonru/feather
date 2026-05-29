@@ -101,6 +101,7 @@ void main() {
     src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?Image\s+/g, 'uniform $1sampler2D ');
     src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?number\s+/g, 'uniform $1float ');
     src = src.replace(/\bextern\s+/g, 'uniform ');
+    src = src.replace(/\bImage\b/g, 'sampler2D');
     src = src.replace(/\bTexel\s*\(/g, 'texture2D(');
     src = src.replace(
       /\bvec4\s+effect\s*\([^)]+\)\s*\{/,

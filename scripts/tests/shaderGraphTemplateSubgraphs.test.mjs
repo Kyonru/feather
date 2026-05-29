@@ -4,6 +4,7 @@ import test from 'node:test';
 import { codegen } from '../../src/pages/shader-graph/codegen.ts';
 import { diagnoseShaderGraph } from '../../src/pages/shader-graph/diagnostics.ts';
 import { instantiateShaderGraphPreset, SHADER_GRAPH_PRESETS } from '../../src/pages/shader-graph/presets.ts';
+import { adaptLoveShader } from '../../src/pages/shader-graph/webglPreview.ts';
 
 if (typeof globalThis.btoa === 'undefined') {
   globalThis.btoa = (value) => Buffer.from(value, 'binary').toString('base64');
@@ -127,4 +128,16 @@ test('texture noise water template emits Image subgraph inputs', () => {
   assert.match(generated.pixel, /Image sg_in_noiseTexture/);
   assert.doesNotMatch(generated.pixel, /\bimage sg_in_noiseTexture\b/);
   assert.ok(generated.textures.some((texture) => texture.label === 'Noise Texture'));
+});
+
+test('webgl preview adapter converts texture image parameters inside subgraphs', () => {
+  const preset = SHADER_GRAPH_PRESETS.find((item) => item.id === 'texture-noise-water');
+  assert.ok(preset);
+  const template = instantiateShaderGraphPreset(preset);
+  const generated = codegen(template.nodes, template.edges, template.subgraphs);
+  const adapted = adaptLoveShader(generated.pixel);
+
+  assert.match(adapted, /sampler2D sg_in_noiseTexture/);
+  assert.doesNotMatch(adapted, /\bImage\b/);
+  assert.doesNotMatch(adapted, /\bTexel\s*\(/);
 });

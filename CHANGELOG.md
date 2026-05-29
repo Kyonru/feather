@@ -79,6 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Shader Graph link suggestions so image outputs create type-correct Sample Texture nodes instead of wiring image data into Texture Uniform Color UV inputs.
 - Fixed Shader Graph template codegen so texture-image inputs, including Texture Noise Water's noise slot, emit valid LÖVE `Image` parameters.
 - Fixed Shader Graph connected-game preview so switching away from the Output tab no longer turns off an active runtime preview.
+- Fixed Shader Graph Preview nodes so the selected Preview Texture is sent directly to the embedded love.js iframe instead of falling back to the generated shape when upload-cache hydration is unavailable.
+- Fixed Shader Graph Preview nodes so texture-image parameters inside template subgraphs are converted to WebGL sampler uniforms for embedded previews.
 - Fixed Shader Graph palette dragging in the showcase by replacing native browser drag with a pointer-driven drop path and hardening the standalone layout against 0x0 canvas collapse.
 - Fixed Shader Graph Preview node toolbar actions so pin/zoom/reload clicks no longer re-select the node underneath.
 - Fixed looping Particle System Playground timelines so delayed emitter clips restart their particle system when the clip begins instead of expiring before they can emit.
@@ -187,6 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance Health warnings now render as a compact collapsible strip so diagnostics do not crowd the chart.
 - Hidden sidebar features and hidden disabled plugins are now hidden from Command Center by default, with a Settings opt-in for sidebar features.
 - Shared triage UI primitives now keep search, filters, summary chips, empty states, copy actions, and details panels more consistent across live debugging pages.
+- Shader Graph Output now keeps GLSL as the main scrollable content while docking diagnostics and preview/apply controls at the bottom of the panel.
 
 ### Fixed
 

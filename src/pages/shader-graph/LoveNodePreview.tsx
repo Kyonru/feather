@@ -17,7 +17,7 @@ type Props = {
 };
 
 const NODE_PREVIEW_ASPECT_CLASS = 'aspect-video w-full';
-const PREVIEW_ASSET_VERSION = 'shader-node-preview-v6';
+const PREVIEW_ASSET_VERSION = 'shader-node-preview-v8';
 
 function colorFromHex(value: string): [number, number, number, number] {
   const match = value.match(/^#?([0-9a-f]{6})$/i);
@@ -117,7 +117,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
 
   function sendPayload() {
     iframeRef.current?.contentWindow?.postMessage(
-      { source: 'feather-showcase', type: 'preview:update', payload: stripLovePreviewUploads(payload) },
+      { source: 'feather-showcase', type: 'preview:update', payload: stripLovePreviewUploads(payload, { stripBaseTexture: false }) },
       '*',
     );
   }

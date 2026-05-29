@@ -9,7 +9,7 @@ const DEFAULT_W = 360;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const MIN_W = 220;
 const MAX_W = 720;
-const PREVIEW_ASSET_VERSION = 'preview-bridge-v5';
+const PREVIEW_ASSET_VERSION = 'preview-bridge-v6';
 
 type LoveJsPreviewProps = {
   title: string;

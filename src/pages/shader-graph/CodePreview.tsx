@@ -109,7 +109,84 @@ function DiagnosticPanel({
   );
 }
 
-export function CodePreview({
+export function CodePreview() {
+  const {
+    lastGeneratedGlsl,
+    validationStatus,
+    nodes,
+    edges,
+    subgraphs,
+  } = useShaderGraph();
+  const hlTheme = useSyntaxTheme();
+  const [copied, setCopied] = useState(false);
+  const glsl = useMemo(
+    () => lastGeneratedGlsl ?? codegen(nodes, edges, subgraphs),
+    [edges, lastGeneratedGlsl, nodes, subgraphs],
+  );
+  const fullSource = glsl.vertex ? `${glsl.pixel}\n\n// -- Vertex \n${glsl.vertex}` : glsl.pixel;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(fullSource).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  const statusColor = {
+    idle: 'bg-muted text-muted-foreground',
+    validating: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+    ok: 'bg-green-500/20 text-green-600 dark:text-green-400',
+    error: 'bg-red-500/20 text-red-600 dark:text-red-400',
+  }[validationStatus];
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b shrink-0">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">GLSL Output</span>
+        <div className="flex items-center gap-2">
+          <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', statusColor)}>{validationStatus}</Badge>
+          <button
+            onClick={handleCopy}
+            className="flex items-center justify-center size-5 rounded hover:bg-muted text-muted-foreground transition-colors"
+            title="Copy GLSL"
+          >
+            {copied ? <CheckIcon className="size-3 text-green-500" /> : <CopyIcon className="size-3" />}
+          </button>
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1 min-h-0">
+        <SyntaxHighlighter
+          language="glsl"
+          breakLines
+          style={{
+            ...hlTheme,
+            hljs: {
+              ...(hlTheme as Record<string, React.CSSProperties>).hljs,
+              background: 'transparent',
+              padding: 0,
+            },
+          }}
+          customStyle={{
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            fontSize: '0.625rem',
+            lineHeight: '1.6',
+            padding: '12px',
+            background: 'transparent',
+            margin: 0,
+            width: '100%',
+          }}
+          showLineNumbers
+          wrapLines
+        >
+          {fullSource}
+        </SyntaxHighlighter>
+      </ScrollArea>
+    </div>
+  );
+}
+
+export function ShaderOutputDock({
   standalone,
   onPreviewParamsChange,
 }: {
@@ -136,8 +213,6 @@ export function CodePreview({
     clearPreview,
     playgroundTarget,
   } = useShaderGraph();
-  const hlTheme = useSyntaxTheme();
-  const [copied, setCopied] = useState(false);
   const previewShape = useShaderGraphStore((s) => s.previewShape);
   const previewColor = useShaderGraphStore((s) => s.previewColor);
   const previewZoom = useShaderGraphStore((s) => s.previewZoom);
@@ -174,15 +249,7 @@ export function CodePreview({
     : hasMissingTextureUploads
       ? 'Upload each texture uniform in the node inspector before applying this shader. Preview Texture only changes the source sprite.'
       : undefined;
-  const fullSource = glsl.vertex ? `${glsl.pixel}\n\n// -- Vertex \n${glsl.vertex}` : glsl.pixel;
   const rawValidationErrors = [validationErrors.pixelError, validationErrors.vertexError].filter(Boolean).join('\n\n');
-
-  function handleCopy() {
-    navigator.clipboard.writeText(fullSource).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  }
 
   async function handlePreviewToggle() {
     if (!previewAvailable || hasBlockingGraphDiagnostics) return;
@@ -264,61 +331,15 @@ export function CodePreview({
     };
   }, [previewEnabled, sessionId]);
 
-  const statusColor = {
-    idle: 'bg-muted text-muted-foreground',
-    validating: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
-    ok: 'bg-green-500/20 text-green-600 dark:text-green-400',
-    error: 'bg-red-500/20 text-red-600 dark:text-red-400',
-  }[validationStatus];
-
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b shrink-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">GLSL Output</span>
-        <div className="flex items-center gap-2">
-          <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', statusColor)}>{validationStatus}</Badge>
-          <button
-            onClick={handleCopy}
-            className="flex items-center justify-center size-5 rounded hover:bg-muted text-muted-foreground transition-colors"
-            title="Copy GLSL"
-          >
-            {copied ? <CheckIcon className="size-3 text-green-500" /> : <CopyIcon className="size-3" />}
-          </button>
-        </div>
-      </div>
-
+    <div
+      className="shrink-0 border-t bg-background shadow-[0_-8px_18px_rgba(0,0,0,0.04)]"
+      data-testid="shader-output-dock"
+    >
       <DiagnosticPanel diagnostics={diagnostics} onSelectNode={selectNode} />
 
-      <ScrollArea className="flex-1 min-h-0">
-        <SyntaxHighlighter
-          language="glsl"
-          breakLines
-          style={{
-            ...hlTheme,
-            hljs: {
-              ...(hlTheme as Record<string, React.CSSProperties>).hljs,
-              background: 'transparent',
-              padding: 0,
-            },
-          }}
-          customStyle={{
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-            fontSize: '0.625rem',
-            lineHeight: '1.6',
-            padding: '12px',
-            background: 'transparent',
-            margin: 0,
-            width: '100%',
-          }}
-          showLineNumbers
-          wrapLines
-        >
-          {fullSource}
-        </SyntaxHighlighter>
-      </ScrollArea>
-
       {(validationErrors.pixelError || validationErrors.vertexError) && (
-        <div className="border-t px-3 py-2 shrink-0 bg-red-500/10">
+        <div className="border-b px-3 py-2 bg-red-500/10">
           <div className="mb-1 flex items-center justify-between gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-red-700 dark:text-red-300">
               Runtime Compile Error
@@ -336,7 +357,7 @@ export function CodePreview({
             <p className="mb-1 text-[10px] font-semibold text-red-700 dark:text-red-300">Pixel stage failed</p>
           )}
           {validationErrors.pixelError && (
-            <p className="text-[10px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
+            <p className="max-h-20 overflow-y-auto text-[10px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
               {validationErrors.pixelError}
             </p>
           )}
@@ -344,14 +365,14 @@ export function CodePreview({
             <p className="mb-1 mt-2 text-[10px] font-semibold text-red-700 dark:text-red-300">Vertex stage failed</p>
           )}
           {validationErrors.vertexError && (
-            <p className="text-[10px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
+            <p className="max-h-20 overflow-y-auto text-[10px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
               {validationErrors.vertexError}
             </p>
           )}
         </div>
       )}
 
-      <div className="border-t px-3 py-2 flex gap-2 shrink-0">
+      <div className="px-3 py-2 flex gap-2">
         <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => generateAndStore()}>
           Generate
         </Button>
@@ -375,7 +396,7 @@ export function CodePreview({
         </Button>
       </div>
 
-      <div className="border-t px-3 py-2 flex items-center gap-2 shrink-0">
+      <div className="border-t px-3 py-2 flex items-center gap-2">
         <Select value={previewShape} onValueChange={handlePreviewShapeChange} disabled={!previewAvailable}>
           <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
             <SelectValue aria-label={previewShape} />
@@ -410,8 +431,8 @@ export function CodePreview({
             hasBlockingGraphDiagnostics
               ? 'Fix blocking graph diagnostics before previewing this shader'
               : standalone
-              ? 'Toggle shader preview in the isolated preview frame'
-              : 'Toggle shader preview on a temporary shape in the running game'
+                ? 'Toggle shader preview in the isolated preview frame'
+                : 'Toggle shader preview on a temporary shape in the running game'
           }
         >
           {previewEnabled ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
@@ -419,7 +440,7 @@ export function CodePreview({
         </Button>
       </div>
 
-      <div className="border-t px-3 py-2 grid gap-2 shrink-0">
+      <div className="border-t px-3 py-2 grid gap-2">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
