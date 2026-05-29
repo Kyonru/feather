@@ -57,6 +57,7 @@ type DragState =
       systemIndex: number;
       clipId: string;
       pointerStartX: number;
+      hasMoved: boolean;
       stripLeft: number;
       stripWidth: number;
       initialStart: number;
@@ -67,11 +68,14 @@ type DragState =
       systemIndex: number;
       lane: ParticleTimelineLane;
       keyframeId: string;
+      pointerStartX: number;
+      hasMoved: boolean;
       stripLeft: number;
       stripWidth: number;
     };
 
 const MIN_CLIP_DURATION = 0.01;
+const DRAG_START_THRESHOLD_PX = 2;
 
 function formatTime(value: number): string {
   return `${value.toFixed(2)}s`;
@@ -210,7 +214,7 @@ export function TimelinePanel({
   onStop,
   onSeek,
 }: Props) {
-  const timeline = useMemo(
+  const sourceTimeline = useMemo(
     () => normalizeParticleTimeline(composite.timeline, composite.systems),
     [composite.systems, composite.timeline],
   );
@@ -221,10 +225,13 @@ export function TimelinePanel({
   const [expandedTrack, setExpandedTrack] = useState<number>(activeSystemIndex);
   const [selectedItem, setSelectedItem] = useState<SelectedTimelineItem | null>(null);
   const [localPlayheadTime, setLocalPlayheadTime] = useState<number | null>(null);
+  const [draftTimeline, setDraftTimeline] = useState<ParticleTimeline | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const dragCleanupRef = useRef<(() => void) | null>(null);
+  const dragDraftRef = useRef<ParticleTimeline | null>(null);
   const playbackFrameRef = useRef<number | null>(null);
   const displayTimeRef = useRef(0);
+  const timeline = draftTimeline ?? sourceTimeline;
   const currentTime = clamp(composite.timelineState?.time ?? 0, 0, timeline.duration);
   const displayTime = localPlayheadTime ?? currentTime;
   const playing = composite.timelineState?.playing === true;
@@ -251,6 +258,12 @@ export function TimelinePanel({
   useEffect(() => {
     displayTimeRef.current = displayTime;
   }, [displayTime]);
+
+  useEffect(() => {
+    if (dragRef.current) return;
+    dragDraftRef.current = null;
+    setDraftTimeline(null);
+  }, [sourceTimeline]);
 
   useEffect(() => {
     if (!playing) return;
@@ -309,6 +322,13 @@ export function TimelinePanel({
 
   const commitTimeline = (next: ParticleTimeline) => {
     onTimelineChange(normalizeParticleTimeline(next, composite.systems));
+  };
+
+  const stageDragTimeline = (next: ParticleTimeline) => {
+    const normalized = normalizeParticleTimeline(next, composite.systems);
+    dragDraftRef.current = normalized;
+    setDraftTimeline(normalized);
+    return normalized;
   };
 
   const snapTime = (time: number) => {
@@ -472,19 +492,31 @@ export function TimelinePanel({
     return () => window.removeEventListener('keydown', onKeyDown);
   });
 
-  const applyDragClientX = (clientX: number) => {
+  const applyDragClientX = (clientX: number): ParticleTimeline | null => {
     const drag = dragRef.current;
-    if (!drag) return;
+    if (!drag) return null;
+    if (!drag.hasMoved) {
+      if (Math.abs(clientX - drag.pointerStartX) < DRAG_START_THRESHOLD_PX) return null;
+      drag.hasMoved = true;
+    }
 
     if (drag.type === 'keyframe') {
-      updateKeyframe(
-        drag.systemIndex,
-        drag.lane,
-        drag.keyframeId,
-        'time',
-        timeFromClientX(clientX, drag.stripLeft, drag.stripWidth, timeline.duration),
+      return stageDragTimeline(
+        updateTrack(timeline, drag.systemIndex, (track) => ({
+          ...track,
+          lanes: {
+            ...track.lanes,
+            [drag.lane]: sortedKeyframes(track.lanes[drag.lane]).map((point) =>
+              point.id === drag.keyframeId
+                ? {
+                    ...point,
+                    time: snapTime(timeFromClientX(clientX, drag.stripLeft, drag.stripWidth, timeline.duration)),
+                  }
+                : point,
+            ),
+          },
+        })),
       );
-      return;
     }
 
     if (drag.mode === 'move') {
@@ -492,17 +524,16 @@ export function TimelinePanel({
       const delta = ((clientX - drag.pointerStartX) / drag.stripWidth) * timeline.duration;
       const start = clamp(snapTime(drag.initialStart + delta), 0, Math.max(0, timeline.duration - clipDuration));
       const end = roundTimelineTime(clamp(start + clipDuration, start + MIN_CLIP_DURATION, timeline.duration));
-      commitTimeline(
+      return stageDragTimeline(
         updateTrack(timeline, drag.systemIndex, (track) => ({
           ...track,
           clips: track.clips.map((clip) => (clip.id === drag.clipId ? { ...clip, start, end } : clip)),
         })),
       );
-      return;
     }
 
     const pointerTime = timeFromClientX(clientX, drag.stripLeft, drag.stripWidth, timeline.duration);
-    commitTimeline(
+    return stageDragTimeline(
       updateTrack(timeline, drag.systemIndex, (track) => ({
         ...track,
         clips: track.clips.map((clip) => {
@@ -516,6 +547,17 @@ export function TimelinePanel({
     );
   };
 
+  const commitDragTimeline = (next: ParticleTimeline | null) => {
+    const drag = dragRef.current;
+    const finalTimeline = next ?? dragDraftRef.current;
+    const shouldCommit = drag?.hasMoved === true && finalTimeline !== null;
+    cleanupDocumentDrag();
+    dragRef.current = null;
+    dragDraftRef.current = null;
+    setDraftTimeline(null);
+    if (shouldCommit && finalTimeline) commitTimeline(finalTimeline);
+  };
+
   const cleanupDocumentDrag = () => {
     dragCleanupRef.current?.();
     dragCleanupRef.current = null;
@@ -524,9 +566,7 @@ export function TimelinePanel({
   const endPointerDrag = (event?: React.PointerEvent<HTMLElement>) => {
     if (!dragRef.current) return;
     event?.stopPropagation();
-    if (event) {
-      applyDragClientX(event.clientX);
-    }
+    const next = event ? applyDragClientX(event.clientX) : dragDraftRef.current;
     if (event) {
       try {
         event.currentTarget.releasePointerCapture(event.pointerId);
@@ -534,8 +574,7 @@ export function TimelinePanel({
         // Pointer capture may already be released by the browser.
       }
     }
-    cleanupDocumentDrag();
-    dragRef.current = null;
+    commitDragTimeline(next);
   };
 
   const beginDocumentDrag = () => {
@@ -547,9 +586,7 @@ export function TimelinePanel({
     };
     const handleDocumentEnd = (event: PointerEvent) => {
       if (!dragRef.current) return;
-      applyDragClientX(event.clientX);
-      cleanupDocumentDrag();
-      dragRef.current = null;
+      commitDragTimeline(applyDragClientX(event.clientX));
     };
     window.addEventListener('pointermove', handleDocumentMove, { passive: false });
     window.addEventListener('pointerup', handleDocumentEnd);
@@ -579,6 +616,7 @@ export function TimelinePanel({
       systemIndex,
       clipId: clip.id,
       pointerStartX: event.clientX,
+      hasMoved: false,
       stripLeft: rect.left,
       stripWidth: rect.width,
       initialStart: clip.start,
@@ -606,6 +644,8 @@ export function TimelinePanel({
       systemIndex,
       lane,
       keyframeId: point.id,
+      pointerStartX: event.clientX,
+      hasMoved: false,
       stripLeft: rect.left,
       stripWidth: rect.width,
     };

@@ -83,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
 - Fixed the Particle System Playground Timeline loop control so it renders as a stable explicit toggle.
 - Fixed Particle System Playground timeline playback after applying motion presets while paused, so presets no longer capture the muted preview emission rate as the base rate.
+- Fixed Particle System Playground timeline drags so runtime timeline updates are sent only when the drag is released.
 - Fixed Feather Particle System Playground local previews when the app falls back to the static showcase love.js bridge.
 - Fixed Feather Particle System Playground local preview playback so play/pause timeline sync no longer rebuilds particle systems and interrupts continuous emission.
 - Fixed Particle System Playground local preview timelines so Feather keeps advancing local playback while Show in Game is off and love.js previews respect clip/lane timing.
