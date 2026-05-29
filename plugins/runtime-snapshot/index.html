@@ -1078,6 +1078,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../feel-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feel Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../filesystem/" class="md-nav__link">
         
   
@@ -1492,6 +1520,7 @@
 
 <h1 id="runtime-snapshot">Runtime Snapshot<a class="headerlink" href="#runtime-snapshot" title="Permanent link">&para;</a></h1>
 <p>Runtime Snapshot is a small live dashboard for the current Feather session. It is also a reference plugin for the declarative <code>feather.ui</code> renderer.</p>
+<p>Runtime Snapshot is opt-in and disabled by default because its dashboard is diagnostic rather than required for normal debugging. When enabled, its automatic live refresh is capped to a low-frequency push interval so the plugin does not add a steady one-second hitch to connected games. Manual refresh requests still return a fresh snapshot immediately.</p>
 <p>It shows:</p>
 <ul>
 <li>FPS, uptime, frame count, and memory usage</li>

@@ -535,6 +535,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#appearance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appearance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#about-and-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        About And Updates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#session-health" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1272,6 +1294,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../plugins/feel-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feel Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../plugins/filesystem/" class="md-nav__link">
         
   
@@ -1685,6 +1735,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#appearance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appearance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#about-and-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        About And Updates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#session-health" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1878,9 +1950,20 @@
 <p>It searches pages, plugins, Console snippets, Debugger actions, Hot Reload shortcuts, sessions, and docs links. By default, features hidden from the sidebar are also hidden from Command Center search; enable <strong>Show hidden sidebar features in Command Center</strong> in Settings to keep them searchable with a <strong>Hidden</strong> badge. Disabled plugins hidden from the sidebar are hidden from Command Center too.</p>
 <p>Actions that need a live session or enabled plugin stay visible but disabled with a reason. The first pass only includes navigation and safe shortcuts: it can switch or refresh sessions, insert snippets into Console, open docs, and toggle debugger options, but it does not run arbitrary Console eval or plugin actions.</p>
 <hr />
+<h2 id="appearance">Appearance<a class="headerlink" href="#appearance" title="Permanent link">&para;</a></h2>
+<p>Settings is organized into <strong>Connection</strong>, <strong>General</strong>, <strong>Security</strong>, and <strong>CLI</strong> areas. Each area shows a short summary at the top, and changes are saved as soon as you make them.</p>
+<p>Open <strong>Settings → General → Appearance</strong> to choose the app theme. Feather keeps the default <strong>System</strong>, <strong>Feather Light</strong>, and <strong>Feather Dark</strong> options, and also includes all Noctis variants: Lux, Hibernus, Lilac, Noctis, Azureus, Bordo, Obscuro, Sereno, Uva, Viola, and Minimus. Tokyo Night variants are available as Light, Night, and Storm, Rainglow includes a curated selection grouped into Light, Dark, and Contrast options, GitHub includes Light Default, Light High Contrast, Light Colorblind, Dark Default, Dark High Contrast, Dark Colorblind, Dark Dimmed, and classic Light, and the Microsoft Visual Studio C/C++ set includes Light, Dark, 2017 Light, and 2017 Dark.</p>
+<p>Theme choices update the app chrome and syntax-highlighted code surfaces, including Console output, Debugger source views, shader code, and Lua/GLSL editors.</p>
+<p>The sidebar groups tools into <strong>Favorites</strong>, <strong>Core</strong>, <strong>Inspect</strong>, <strong>Creative</strong>, and <strong>History</strong> sections so common workflows are easier to scan. By default, <strong>Logs</strong>, <strong>Performance</strong>, and <strong>Session</strong> are pinned to Favorites. Use the star action beside a sidebar tool, or <strong>Settings → General → Appearance → Pinned Tools</strong>, to change Favorites. Pinned tools follow Feather's fixed sidebar order rather than drag-and-drop order.</p>
+<p>Hidden sidebar features still take precedence over pins: a hidden tool does not appear in Favorites or its normal group, but its pin is remembered and returns when the tool is shown again.</p>
+<hr />
+<h2 id="about-and-updates">About And Updates<a class="headerlink" href="#about-and-updates" title="Permanent link">&para;</a></h2>
+<p>Open <strong>About</strong> from the lower sidebar to see the desktop app version, update status, project links, release notes, license, docs, and sponsorship links. When Feather detects that a newer desktop release is available, the About entry changes to <strong>Update available</strong> and the modal links directly to releases.</p>
+<hr />
 <h2 id="session-health">Session Health<a class="headerlink" href="#session-health" title="Permanent link">&para;</a></h2>
 <p>Open <strong>Session</strong> first when you want to know what Feather thinks is happening. The page summarizes connection state, runtime/API version, project roots, capabilities, enabled or incompatible plugins, Console/API-key status, Hot Reload state, debugger state, package lockfile status, and recent performance signals.</p>
 <p>The <strong>Recommended Next Actions</strong> panel points to the next useful place to go, such as Settings for security/API-key issues, Debugger for paused breakpoints or Hot Reload failures, Performance for frame hitches, or package guidance when no lockfile is available.</p>
+<p>Use the pause button beside the active live session tab to temporarily suspend Feather runtime work inside the connected game. The socket stays open so you can resume from the desktop, but sampling, plugin updates, asset work, and preview overlays stay dormant until resumed.</p>
 <hr />
 <h2 id="observers">Observers<a class="headerlink" href="#observers" title="Permanent link">&para;</a></h2>
 <p>Watch variable values in real-time from the Observability tab:</p>
@@ -1904,6 +1987,7 @@
 <h3 id="error-logging">Error logging<a class="headerlink" href="#error-logging" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">error</span><span class="p">(</span><span class="s2">&quot;Something went wrong&quot;</span><span class="p">)</span>
 </code></pre></div>
+<p>Live session logs are also cached locally in the desktop app. Reopening Feather or restarting a CLI-launched game restores the recent log history for that saved session/project, while screenshots stay out of the cache to keep the app storage small.</p>
 <hr />
 <h2 id="performance-and-profiler">Performance And Profiler<a class="headerlink" href="#performance-and-profiler" title="Permanent link">&para;</a></h2>
 <p>The <strong>Performance</strong> page has a <strong>Health</strong> tab for live FPS, frame-time, memory, disk, draw-call, canvas-switch, shader-switch, and texture-memory charts. Use pause/follow when a hitch happens, inspect recent spikes, then export the visible JSON window if you need to compare runs.</p>
