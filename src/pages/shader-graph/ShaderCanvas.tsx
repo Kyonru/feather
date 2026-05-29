@@ -103,6 +103,7 @@ export function ShaderCanvas() {
   const unlinkNode = useShaderGraphStore((s) => s.unlinkNode);
   const selectNode = useShaderGraphStore((s) => s.selectNode);
   const selectEdge = useShaderGraphStore((s) => s.selectEdge);
+  const setRightPanelTab = useShaderGraphStore((s) => s.setRightPanelTab);
   const selectedNodeId = useShaderGraphStore((s) => s.selectedNodeId);
   const selectedEdgeId = useShaderGraphStore((s) => s.selectedEdgeId);
   const undo = useShaderGraphStore((s) => s.undo);
@@ -168,17 +169,19 @@ export function ShaderCanvas() {
     (event: React.MouseEvent, node: Node) => {
       if (event.shiftKey || event.metaKey || event.ctrlKey) return;
       selectNode(node.id);
+      setRightPanelTab('selection');
       if (node.data.nodeType === 'SubgraphInstance') setActiveTemplateInstanceId(node.id);
       setSelectedNodeIds(new Set([node.id]));
     },
-    [selectNode, setActiveTemplateInstanceId],
+    [selectNode, setActiveTemplateInstanceId, setRightPanelTab],
   );
 
   const onEdgeClick = useCallback(
     (_: React.MouseEvent, edge: { id: string }) => {
       selectEdge(edge.id);
+      setRightPanelTab('selection');
     },
-    [selectEdge],
+    [selectEdge, setRightPanelTab],
   );
 
   const onNodeDoubleClick = useCallback(
@@ -203,6 +206,7 @@ export function ShaderCanvas() {
       if (nextIds.size === 1) {
         suppressNextEmptySelectionRef.current = false;
         selectNode(selectedNodes[0].id);
+        setRightPanelTab('selection');
       } else if (nextIds.size === 0) {
         if (suppressNextEmptySelectionRef.current) {
           suppressNextEmptySelectionRef.current = false;
@@ -211,7 +215,7 @@ export function ShaderCanvas() {
         selectNode(null);
       }
     },
-    [selectNode],
+    [selectNode, setRightPanelTab],
   );
 
   const isValidConnection = useCallback(
@@ -534,10 +538,28 @@ export function ShaderCanvas() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        tag === 'BUTTON' ||
+        (e.target as HTMLElement).isContentEditable
+      ) {
+        return;
+      }
 
       const modifier = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
+      if (!modifier && (e.code === 'Space' || e.key === ' ') && !e.repeat) {
+        e.preventDefault();
+        setCanvasInteractionMode((mode) => (mode === 'select' ? 'pan' : 'select'));
+        return;
+      }
+      if (!modifier && (e.code === 'Space' || e.key === ' ')) {
+        e.preventDefault();
+        return;
+      }
+
       if (modifier && key === 'z') {
         e.preventDefault();
         if (e.shiftKey) redo();

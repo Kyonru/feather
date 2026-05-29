@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph presets now load and insert as reusable Subgraph instances instead of expanding full flat graphs onto the root canvas.
 - Shader Graph previews in Feather dev and showcase dev now use the same generated love.js target when available so embedded node previews render through the same LÖVE path.
 - Shader Graph Parameter nodes can now be edited from the Controls tab, including labels, defaults, texture uploads, uniform names, connection warnings, and select-node actions.
+- Shader Graph now opens the Selection tab when a node is selected and lets Space toggle the canvas between selection and panning modes.
 - Particle System Playground project files now save as `.featherparticles` version 2 with timelines, while version 1 imports migrate to a default 3-second timeline.
 - Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping playback.
 - Improved Particle System Playground Timeline layout so the editor fills the available width and clips, playhead, zoom, and keyframe strips align on one timeline scale.

@@ -5,6 +5,7 @@ import type { ShaderNodeData, PlaygroundTarget, GeneratedGlsl, ShaderPreviewShap
 import { clonePortDef, syncSubgraphBoundary, syncSubgraphInstances } from '@/pages/shader-graph/subgraphBoundary';
 
 type ValidationStatus = 'idle' | 'validating' | 'ok' | 'error';
+type ShaderRightPanelTab = 'controls' | 'selection' | 'output';
 
 type GraphSnapshot = {
   nodes: Node<ShaderNodeData>[];
@@ -20,6 +21,7 @@ type ShaderGraphStore = {
   redoStack: GraphSnapshot[];
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
+  rightPanelTab: ShaderRightPanelTab;
   activeSubgraphId: string | null;
   subgraphBreadcrumb: string[];
   activeTemplateInstanceId: string | null;
@@ -56,6 +58,7 @@ type ShaderGraphStore = {
   selectNode: (id: string | null) => void;
   focusRootNode: (id: string) => void;
   selectEdge: (id: string | null) => void;
+  setRightPanelTab: (tab: ShaderRightPanelTab) => void;
   enterSubgraph: (id: string) => void;
   exitSubgraph: () => void;
   setShaderName: (name: string) => void;
@@ -273,6 +276,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
       redoStack: [],
       selectedNodeId: null,
       selectedEdgeId: null,
+      rightPanelTab: 'controls',
       activeSubgraphId: null,
       subgraphBreadcrumb: [],
       activeTemplateInstanceId: null,
@@ -445,6 +449,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
         }
       },
       selectEdge: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null }),
+      setRightPanelTab: (rightPanelTab) => set({ rightPanelTab }),
       enterSubgraph: (id) =>
         set((s) => ({
           activeSubgraphId: id,

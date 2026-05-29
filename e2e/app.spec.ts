@@ -2018,7 +2018,6 @@ test('logs toolbar puts search on its own row when space is tight', async ({ pag
   await page.getByRole('button', { name: /Demo Session/ }).click();
 
   const toolbar = page.getByTestId('logs-toolbar');
-  const search = page.getByTestId('logs-toolbar-search');
   const controls = page.getByTestId('logs-toolbar-controls');
 
   await expect(toolbar).toBeVisible();
@@ -2374,6 +2373,17 @@ test('shader graph right panel exposes root shader controls in the app', async (
       };
     });
   }).toEqual({ strength: 0.5, tintAlpha: 0.6 });
+
+  await openShaderOutput(page);
+  await page.locator('.react-flow__node').filter({ hasText: 'Strength' }).first().click();
+  await expect(page.getByTestId('shader-right-panel-selection')).toBeVisible();
+  await openShaderControls(page);
+  await page.getByTestId('shader-canvas').click({ position: { x: 24, y: 96 } });
+  await expect(page.getByLabel('Select canvas mode')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Space');
+  await expect(page.getByLabel('Pan canvas mode')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Space');
+  await expect(page.getByLabel('Select canvas mode')).toHaveAttribute('aria-pressed', 'true');
 
   await controls.getByTitle('Select parameter node').first().click();
   await expect(page.getByTestId('shader-right-panel-selection')).toBeVisible();
