@@ -61,7 +61,7 @@ function InputReplaySuite.run(assertEqual, assertTruthy)
       lateRecordOverrideCount = lateRecordOverrideCount + 1
     end
 
-    inputReplayFeather:update(0)
+    inputReplayFeather:update(inputReplayFeather.callbackHookInterval or 0.25)
     love.keypressed("b", "b", false)
     assertEqual(lateRecordOverrideCount, 1, "input replay recording survives late keypressed override")
     assertEqual(#replay.events, 2, "input replay keeps recording after late keypressed override")
@@ -77,7 +77,7 @@ function InputReplaySuite.run(assertEqual, assertTruthy)
     end
 
     replay:startReplay()
-    inputReplayFeather:update(0)
+    inputReplayFeather:update(inputReplayFeather.callbackHookInterval or 0.25)
     assertEqual(lateReplayOverrideCount, 2, "input replay replays through late keypressed override")
     assertEqual(replay.replaying, false, "input replay stops after queued replay events finish")
 

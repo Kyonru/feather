@@ -55,6 +55,8 @@ Scratch composites are created from the desktop playground. The plugin owns thei
 
 Composite preview `x`/`y` and preview movement patterns change emitter positions via `ParticleSystem:setPosition(...)`. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.
 
+Scratch preview work is dormant until the desktop Particle Playground page is open and has activated a preview session. Leaving the page, switching sessions, or disabling preview sends an inactive signal so the game stops updating and drawing plugin-owned scratch previews. Only the active scratch composite is updated/drawn; switching composites replaces the runtime preview target instead of keeping older composites alive.
+
 Scratch composites can pause the plugin-owned preview without changing emitter settings or exported code. Individual emitters can also be disabled; disabled emitters remain in the composite metadata but are skipped by preview update/draw, composite emit/reset actions, and generated runtime modules.
 
 ## Timeline Preview
@@ -73,7 +75,7 @@ Emitter properties remain the base values. Timeline lanes override or multiply t
 
 Stop and Reset Playhead reset playback state, but they do not rewrite the emitter's base rate or lifetime. When playback starts again, the clip window re-applies the saved emitter settings before muting emission outside the clip.
 
-The desktop sends play, pause, stop, and throttled seek updates to the real LÖVE preview. Seeking resets the preview systems and fast-forwards from `0` to the playhead with capped fixed steps so the canvas matches the authored timeline. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; non-looping timelines stop scheduling at the duration.
+The desktop sends play, pause, stop, and throttled seek updates to the real LÖVE preview. Timeline automation applies when playback/seek/editing asks for it, not as idle per-frame work for every saved composite. Seeking resets the preview systems and fast-forwards from `0` to the playhead with capped fixed steps so the canvas matches the authored timeline. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; non-looping timelines stop scheduling at the duration.
 
 Game-owned composites support timeline automation best-effort. Feather can adjust `ParticleSystem` values and emit scheduled bursts, but draw-only behavior such as opacity depends on the game drawing the registered systems.
 
@@ -104,6 +106,7 @@ Important actions:
 | `remove-system` | Remove an emitter from a scratch composite |
 | `select-composite` | Select the active composite |
 | `select-system` | Select the active emitter |
+| `runtime-preview` | Mark the desktop playground preview active/inactive for the selected composite |
 | `set-texture` | Apply a texture preset, game path, or uploaded base64 texture |
 | `set-shader` | Apply inline shader source or a shader path |
 | `set-timeline` | Replace the active composite timeline |

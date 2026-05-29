@@ -338,6 +338,22 @@ export function useParticleSystemPlayground() {
     [data.activeComposite, data.activeSystem, send],
   );
 
+  const setRuntimePreviewActive = useCallback(
+    (active: boolean, composite?: string | null) => {
+      return send({
+        type: 'cmd:plugin:action',
+        plugin: PLUGIN_ID,
+        action: 'runtime-preview',
+        params: {
+          composite: composite ?? data.activeComposite ?? '',
+          systemIndex: data.activeSystem,
+          active,
+        },
+      });
+    },
+    [data.activeComposite, data.activeSystem, send],
+  );
+
   const setTextureFromUpload = useCallback(
     (filename: string, dataBase64: string) => {
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>
@@ -400,6 +416,7 @@ export function useParticleSystemPlayground() {
     updateActiveParam,
     updateParam,
     sendAction,
+    setRuntimePreviewActive,
     refreshAfterAction,
     selectComposite: (name: string) => refreshAfterAction('select-composite', { composite: name }),
     selectSystem: (index: number) => refreshAfterAction('select-system', { systemIndex: index }),

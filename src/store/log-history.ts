@@ -5,7 +5,17 @@ import type { Log } from '@/hooks/use-logs';
 
 export const LOG_HISTORY_STORAGE_KEY = 'feather-log-history-v1';
 export const MAX_LOG_HISTORY_ENTRIES = 1000;
+export const LOG_HISTORY_PERSIST_DEBOUNCE_MS = 500;
 const MAX_LOG_HISTORY_BUCKETS = 16;
+
+type DebouncedStorageTimers = {
+  setTimer: (callback: () => void, delayMs: number) => ReturnType<typeof globalThis.setTimeout>;
+  clearTimer: (timer: ReturnType<typeof globalThis.setTimeout>) => void;
+};
+
+export type DebouncedStorage = Storage & {
+  flush: () => void;
+};
 
 export type LogHistoryBucket = {
   logs: Log[];
@@ -32,6 +42,76 @@ type LogHistoryState = {
   getLogsForSession: (sessionId: string) => Log[];
   getLogsForHistoryKeys: (historyKeys?: string[] | string | null) => Log[];
 };
+
+export function createDebouncedStorage(
+  storage: Storage,
+  delayMs = LOG_HISTORY_PERSIST_DEBOUNCE_MS,
+  timers: DebouncedStorageTimers = {
+    setTimer: (callback, delay) => globalThis.setTimeout(callback, delay),
+    clearTimer: (timer) => globalThis.clearTimeout(timer),
+  },
+): DebouncedStorage {
+  const pending = new Map<string, string>();
+  let timer: ReturnType<typeof globalThis.setTimeout> | null = null;
+
+  function clearPendingTimer() {
+    if (!timer) return;
+    timers.clearTimer(timer);
+    timer = null;
+  }
+
+  function flush() {
+    clearPendingTimer();
+    if (pending.size === 0) return;
+    const writes = Array.from(pending.entries());
+    pending.clear();
+    for (const [key, value] of writes) {
+      storage.setItem(key, value);
+    }
+  }
+
+  function scheduleFlush() {
+    clearPendingTimer();
+    timer = timers.setTimer(flush, delayMs);
+  }
+
+  return {
+    get length() {
+      flush();
+      return storage.length;
+    },
+    clear() {
+      clearPendingTimer();
+      pending.clear();
+      storage.clear();
+    },
+    flush,
+    getItem(key) {
+      return pending.has(key) ? (pending.get(key) ?? null) : storage.getItem(key);
+    },
+    key(index) {
+      flush();
+      return storage.key(index);
+    },
+    removeItem(key) {
+      pending.delete(key);
+      storage.removeItem(key);
+    },
+    setItem(key, value) {
+      pending.set(key, value);
+      scheduleFlush();
+    },
+  };
+}
+
+function createLogHistoryStorage(): Storage {
+  const storage = createDebouncedStorage(globalThis.localStorage);
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', storage.flush);
+    window.addEventListener('pagehide', storage.flush);
+  }
+  return storage;
+}
 
 function trimValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
@@ -275,7 +355,7 @@ export const useLogHistoryStore = create<LogHistoryState>()(
     }),
     {
       name: LOG_HISTORY_STORAGE_KEY,
-      storage: createJSONStorage(() => globalThis.localStorage),
+      storage: createJSONStorage(createLogHistoryStorage),
       partialize: (state) => ({
         logsBySession: state.logsBySession,
         logsByHistoryKey: state.logsByHistoryKey,

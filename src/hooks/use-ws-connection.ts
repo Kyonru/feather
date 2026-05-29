@@ -6,7 +6,7 @@ import { writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { useQueryClient } from '@tanstack/react-query';
 import { zipSync, strToU8 } from 'fflate';
 import { useConfigStore } from '@/store/config';
-import { useSessionStore } from '@/store/session';
+import { PENDING_SESSION_NAME, useSessionStore } from '@/store/session';
 import { useSettingsStore } from '@/store/settings';
 import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
@@ -33,6 +33,7 @@ import {
   resolveLogHistoryKeys,
   useLogHistoryStore,
 } from '@/store/log-history';
+import { shouldRequestSessionConfig } from '@/utils/session-reconnect';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 export const sessionQueryKey = {
@@ -265,6 +266,26 @@ export const useWsConnection = () => {
     const unlisteners: Array<() => void> = [];
 
     const setup = async () => {
+      const markSessionPending = (sessionId: string) => {
+        const { sessions, sessionId: activeSessionId } = useSessionStore.getState();
+        const existing = sessions[sessionId];
+
+        addSession({
+          ...(existing ?? {}),
+          id: sessionId,
+          name: existing?.name && existing.name !== PENDING_SESSION_NAME ? existing.name : PENDING_SESSION_NAME,
+          connected: true,
+          connectedAt: existing?.connectedAt ?? Date.now(),
+          pendingConfig: true,
+        });
+
+        const activeSession = activeSessionId ? sessions[activeSessionId] : null;
+        if (!activeSessionId || !activeSession?.connected) {
+          setSession(sessionId);
+        }
+        setDisconnected(false);
+      };
+
       const queueBinaryRefs = (
         sessionId: string,
         target: BinaryTarget,
@@ -374,7 +395,10 @@ export const useWsConnection = () => {
         // "connected" state so it will respond immediately with feather:hello.
         if (type !== 'feather:hello' && type !== 'auth:response') {
           const sessions = useSessionStore.getState().sessions;
-          if (!sessions[sessionId]) {
+          const session = sessions[sessionId];
+          const hasConfig = !!queryClient.getQueryData(sessionQueryKey.config(sessionId));
+          if (shouldRequestSessionConfig(session, hasConfig)) {
+            markSessionPending(sessionId);
             sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
           }
         }
@@ -397,10 +421,19 @@ export const useWsConnection = () => {
             const historyKeys = resolveLogHistoryKeys(config, sessionId);
             const sessionLabel = config.sessionName || config.root_path?.split('/').pop() || 'Game';
             const logHistory = useLogHistoryStore.getState();
+            const removeSession = useSessionStore.getState().removeSession;
+            const currentSessions = useSessionStore.getState().sessions;
             let restoredLogs = mergeLogLists(
               logHistory.getLogsForSession(sessionId),
               logHistory.getLogsForHistoryKeys(historyKeys),
             );
+
+            for (const [id, session] of Object.entries(currentSessions)) {
+              const hasCachedConfig = !!queryClient.getQueryData(sessionQueryKey.config(id));
+              if (id !== sessionId && session.name === PENDING_SESSION_NAME && !session.pendingConfig && !hasCachedConfig) {
+                removeSession(id);
+              }
+            }
 
             // Migrate cached data from previous session of the same device
             const deviceId = config.deviceId;
@@ -490,6 +523,7 @@ export const useWsConnection = () => {
               connectedAt: Date.now(),
               deviceId: config.deviceId,
               insecure: config.security?.__DANGEROUS_INSECURE_CONNECTION__ === true,
+              pendingConfig: false,
             });
             break;
           }
@@ -861,6 +895,7 @@ export const useWsConnection = () => {
       // send feather:hello on its own. req:config is a nudge in case feather:hello is delayed.
       const unlistenStart = await listen<string>('feather://session-start', (event) => {
         if (cancelled) return;
+        markSessionPending(event.payload);
         sendCommand(event.payload, { type: 'req:config' }).catch(() => {});
       });
 
@@ -882,7 +917,10 @@ export const useWsConnection = () => {
             if (cancelled) return;
             const knownSessions = useSessionStore.getState().sessions;
             sessionIds.forEach((sessionId) => {
-              if (knownSessions[sessionId]) return;
+              const session = knownSessions[sessionId];
+              const hasConfig = !!queryClient.getQueryData(sessionQueryKey.config(sessionId));
+              if (!shouldRequestSessionConfig(session, hasConfig)) return;
+              markSessionPending(sessionId);
               sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
             });
           })

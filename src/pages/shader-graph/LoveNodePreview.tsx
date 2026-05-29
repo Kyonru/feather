@@ -125,6 +125,14 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
     if (!sessionId) setStatus('idle');
   }, [sessionId]);
 
+  useEffect(() => {
+    if (!sessionId || status !== 'live') return;
+    const activeSession = sessionId;
+    return () => {
+      void shaderGraphGamePreviewController.clear(activeSession);
+    };
+  }, [sessionId, status]);
+
   function handleLoad() {
     loadedRef.current = true;
     sendPayload();

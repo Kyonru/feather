@@ -32,6 +32,7 @@ async function seedSession(page: Page) {
       'session-storage',
       JSON.stringify({
         state: {
+          __e2eLiveSessions: true,
           sessions: {
             demo: {
               id: 'demo',
@@ -55,6 +56,7 @@ async function seedTwoConnectedSessions(page: Page) {
       'session-storage',
       JSON.stringify({
         state: {
+          __e2eLiveSessions: true,
           sessions: {
             demo: {
               id: 'demo',
@@ -78,6 +80,155 @@ async function seedTwoConnectedSessions(page: Page) {
   });
 }
 
+async function seedTauriConnectedGame(page: Page) {
+  await page.addInitScript(() => {
+    type EventCallback = (event: { id: number; event: string; payload: unknown }) => void;
+
+    localStorage.setItem('feather-e2e-query-client', '1');
+    localStorage.setItem(
+      'session-storage',
+      JSON.stringify({
+        state: {
+          sessionId: 'stale-connecting',
+          sessions: {
+            'stale-connecting': {
+              id: 'stale-connecting',
+              name: 'Connecting game',
+              os: 'MacOS',
+              connected: true,
+              connectedAt: Date.now() - 10_000,
+            },
+          },
+        },
+        version: 0,
+      }),
+    );
+
+    const activeSessions = ['live-game-session'];
+    const callbacks = new Map<number, EventCallback>();
+    const listeners = new Map<string, Map<number, number>>();
+    const commands: Array<{ sessionId: string; message: Record<string, unknown> }> = [];
+    let nextCallbackId = 1;
+    let nextEventId = 1;
+
+    const emitTauriEvent = (event: string, payload: unknown) => {
+      const eventListeners = listeners.get(event);
+      if (!eventListeners) return;
+      for (const [eventId, callbackId] of eventListeners.entries()) {
+        callbacks.get(callbackId)?.({ id: eventId, event, payload });
+      }
+    };
+
+    const sendHello = (sessionId: string) => {
+      setTimeout(() => {
+        emitTauriEvent(
+          'feather://message',
+          JSON.stringify({
+            _session: sessionId,
+            type: 'feather:hello',
+            data: {
+              plugins: {
+                profiler: {
+                  tabName: 'Profiler',
+                  icon: 'gauge',
+                  capabilities: [],
+                },
+                'particle-system-playground': {
+                  tabName: 'Particles Playground',
+                  icon: 'sparkles',
+                  capabilities: [],
+                },
+              },
+              root_path: '/tmp/cli-example',
+              sourceDir: '/tmp/cli-example',
+              version: '2.0.0',
+              API: 5,
+              sampleRate: 1,
+              outfile: '',
+              language: 'lua',
+              captureScreenshot: false,
+              location: '/tmp/cli-example',
+              sessionName: 'CLI Example',
+              capabilities: [],
+              security: { appIdRequired: true },
+              sysInfo: { os: 'MacOS', arch: 'arm64', cpuCount: 8, loveVersion: '11.5' },
+              debugger: {
+                enabled: false,
+                hotReload: {
+                  enabled: false,
+                  active: false,
+                  persistToDisk: false,
+                  modifiedModules: [],
+                  persistedModules: [],
+                  failedModules: [],
+                },
+              },
+            },
+          }),
+        );
+      }, 0);
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+      unregisterListener(event: string, eventId: number) {
+        listeners.get(event)?.delete(eventId);
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__TAURI_INTERNALS__ = {
+      transformCallback(callback: EventCallback) {
+        const id = nextCallbackId;
+        nextCallbackId += 1;
+        callbacks.set(id, callback);
+        return id;
+      },
+      unregisterCallback(id: number) {
+        callbacks.delete(id);
+      },
+      invoke(cmd: string, args: Record<string, unknown> = {}) {
+        if (cmd === 'set_app_id') return Promise.resolve();
+        if (cmd === 'get_active_sessions') return Promise.resolve([...activeSessions]);
+        if (cmd === 'send_command') {
+          const sessionId = String(args.sessionId ?? '');
+          const message = JSON.parse(String(args.message ?? '{}')) as Record<string, unknown>;
+          commands.push({ sessionId, message });
+          if (message.type === 'req:config') {
+            sendHello(sessionId);
+          }
+          return Promise.resolve();
+        }
+        if (cmd === 'plugin:event|listen') {
+          const event = String(args.event ?? '');
+          const handler = Number(args.handler);
+          const eventId = nextEventId;
+          nextEventId += 1;
+          const eventListeners = listeners.get(event) ?? new Map<number, number>();
+          eventListeners.set(eventId, handler);
+          listeners.set(event, eventListeners);
+          return Promise.resolve(eventId);
+        }
+        if (cmd === 'plugin:event|unlisten') {
+          const event = String(args.event ?? '');
+          const eventId = Number(args.eventId);
+          listeners.get(event)?.delete(eventId);
+          return Promise.resolve();
+        }
+        return Promise.resolve(null);
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_E2E_TAURI__ = {
+      commands,
+      emitSessionStart: () => emitTauriEvent('feather://session-start', activeSessions[0]),
+    };
+
+    setTimeout(() => emitTauriEvent('feather://session-start', activeSessions[0]), 0);
+  });
+}
+
 async function seedCommandCenterState(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem('feather-e2e-query-client', '1');
@@ -85,6 +236,7 @@ async function seedCommandCenterState(page: Page) {
       'session-storage',
       JSON.stringify({
         state: {
+          __e2eLiveSessions: true,
           sessions: {
             demo: {
               id: 'demo',
@@ -147,6 +299,7 @@ async function seedCommandCenterHiddenDefault(page: Page) {
       'session-storage',
       JSON.stringify({
         state: {
+          __e2eLiveSessions: true,
           sessions: {
             demo: {
               id: 'demo',
@@ -342,11 +495,11 @@ async function seedShaderGraphConfig(page: Page) {
   });
 }
 
-async function seedParticlePlaygroundConfig(page: Page) {
-  await page.evaluate(() => {
+async function seedParticlePlaygroundConfig(page: Page, sessionId = 'demo') {
+  await page.evaluate((targetSession) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
-    client?.setQueryData(['demo', 'config'], {
+    client?.setQueryData([targetSession, 'config'], {
       plugins: {
         'particle-system-playground': {
           tabName: 'Particles Playground',
@@ -365,7 +518,7 @@ async function seedParticlePlaygroundConfig(page: Page) {
       location: '/tmp/demo',
       sessionName: 'Demo Session',
     });
-    client?.setQueryData(['demo', 'plugin', 'particle-system-playground'], {
+    client?.setQueryData([targetSession, 'plugin', 'particle-system-playground'], {
       type: 'particle-system-playground',
       composites: ['Demo Particles'],
       activeComposite: 'Demo Particles',
@@ -463,7 +616,7 @@ async function seedParticlePlaygroundConfig(page: Page) {
         timelineState: { time: 0, playing: false, scrubVersion: 0 },
       },
     });
-  });
+  }, sessionId);
 }
 
 async function seedMissingProfilerConfig(page: Page) {
@@ -505,6 +658,7 @@ async function seedSessionHubState(page: Page) {
       'session-storage',
       JSON.stringify({
         state: {
+          __e2eLiveSessions: true,
           sessions: {
             demo: {
               id: 'demo',
@@ -936,6 +1090,7 @@ async function seedDebuggerSession(page: Page) {
       'session-storage',
       JSON.stringify({
         state: {
+          __e2eLiveSessions: true,
           sessions: {
             demo: {
               id: 'demo',
@@ -1855,6 +2010,69 @@ test('logs restore from persisted history when reopening a saved session', async
   await restoredLog.click();
   await expect(page.getByText('Log Details')).toBeVisible();
   await expect(page.getByRole('code').getByText('Restored after app restart')).toBeVisible();
+});
+
+test('live game reconnect promotes stale connecting sessions to the real game session', async ({ page }) => {
+  await seedTauriConnectedGame(page);
+  await page.goto('/');
+
+  await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Connecting game/ })).toHaveCount(0);
+  await expect(page.getByPlaceholder('Search logs...')).toBeVisible();
+
+  const requestConfigCount = () =>
+    page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+        (item: { message?: { type?: string } }) => item.message?.type === 'req:config',
+      ).length;
+    });
+
+  await expect
+    .poll(requestConfigCount)
+    .toBeGreaterThan(0);
+
+  await page.waitForTimeout(2400);
+  const stableCount = await requestConfigCount();
+  await page.waitForTimeout(2400);
+  expect(await requestConfigCount()).toBe(stableCount);
+});
+
+test('particle playground arms and clears runtime preview work when leaving the page', async ({ page }) => {
+  await seedTauriConnectedGame(page);
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
+  await seedParticlePlaygroundConfig(page, 'live-game-session');
+  await page
+    .getByTestId('sidebar-tool-particle-system-playground')
+    .getByRole('link', { name: 'Particles Playground' })
+    .click();
+
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+          (item: { message?: { action?: string; params?: { active?: boolean } } }) =>
+            item.message?.action === 'runtime-preview' && item.message.params?.active === true,
+        ).length;
+      }),
+    )
+    .toBeGreaterThan(0);
+
+  await page.getByTestId('sidebar-tool-logs').getByRole('link', { name: 'Logs' }).click();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+          (item: { message?: { action?: string; params?: { active?: boolean } } }) =>
+            item.message?.action === 'runtime-preview' && item.message.params?.active === false,
+        ).length;
+      }),
+    )
+    .toBeGreaterThan(0);
 });
 
 test('shader graph template presets expose public controls in the app', async ({ page }) => {

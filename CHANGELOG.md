@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Particle System Playground Timeline layout so the editor fills the available width and clips, playhead, zoom, and keyframe strips align on one timeline scale.
 - Renamed Particle System Playground timing controls so clip entry time is shown as Emit At and burst counts are shown separately from timing.
 - Particle System Playground timelines now treat clips as emission windows, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
+- Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
+- Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
 
 ### Fixed
 
@@ -62,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed looping Particle System Playground timelines so delayed emitter clips restart their particle system when the clip begins instead of expiring before they can emit.
 - Fixed Particle System Playground timeline clips and keyframes bleeding into the wrong emitter after reordering or deleting emitters.
 - Fixed Particle System Playground timeline Stop and Reset Playhead controls so restarting playback restores emitter base rates instead of keeping stale muted timeline values.
+- Fixed live-session reconnects so restored log-history sessions no longer block the app from requesting fresh config from an already-connected game.
+- Fixed Particle Playground and Shader Graph connected-game preview work lingering after leaving the page or switching sessions.
 
 ### Tests
 
@@ -79,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added app e2e coverage for opening the redesigned About modal from the sidebar.
 - Added app e2e coverage for log type badge contrast in dark themes.
 - Added focused log-history coverage and app e2e coverage for restoring saved session logs.
+- Added focused and app e2e reconnect coverage for remembered sessions, pending config handshakes, and persisted session state.
 - Added app e2e coverage for Performance Profiler filter controls at constrained desktop widths.
 - Added app e2e coverage for the constrained-width Logs toolbar layout.
 - Added app e2e coverage for grouped sidebar navigation, pinned tool persistence, Settings pin controls, and hidden pinned tools.
@@ -93,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Lua, showcase, and app e2e coverage for preserving Particle System Playground timeline values when emitters are reordered.
 - Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
 - Added Lua, showcase, and app e2e coverage for Particle System Playground timeline import/export, clip/keyframe editing, preview controls, and exported timeline replay hooks.
+- Added Lua, app e2e, and focused store coverage for idle creative preview runtime behavior, stable connected-game config probing, and batched log-history persistence.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.

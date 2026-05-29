@@ -277,6 +277,7 @@ export function useLocalParticlePlayground() {
     updateActiveParam,
     updateParam,
     sendAction: () => Promise.resolve(),
+    setRuntimePreviewActive: () => Promise.resolve(),
     refreshAfterAction: () => undefined,
     selectComposite: (name: string) => setData((current) => ({ ...current, activeComposite: name })),
     selectSystem: (index: number) => setData((current) => ({ ...current, activeSystem: index })),

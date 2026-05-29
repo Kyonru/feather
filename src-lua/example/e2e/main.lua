@@ -589,7 +589,7 @@ return M
   end
 
   resetStressHooks()
-  stressFeather:update(0)
+  stressFeather:update(stressFeather.callbackHookInterval or 0.25)
   love.draw()
   assertEqual(afterOverrideCount, 1, "external draw override registered after Feather still runs after rehook")
   assertEqual(
@@ -616,7 +616,7 @@ return M
   end
 
   resetStressHooks()
-  stressFeather:update(0)
+  stressFeather:update(stressFeather.callbackHookInterval or 0.25)
   love.draw()
   love.keypressed("space", "space", false)
   assertEqual(repeatedOverrideCount, 1, "second external draw override still runs after another rehook")

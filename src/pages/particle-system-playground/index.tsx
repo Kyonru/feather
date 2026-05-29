@@ -1,7 +1,7 @@
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { AlertTriangleIcon, FileWarningIcon, RotateCcwIcon, SparklesIcon, ZapIcon } from 'lucide-react';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -51,6 +51,15 @@ export default function ParticleSystemPlaygroundPage({
   const system = playground.activeSystem;
   const isGameComposite = composite?.compositeType === 'game';
   const projectInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (standalone || !playground.enabled || !playground.activeComposite) return;
+    const compositeName = playground.activeComposite;
+    void playground.setRuntimePreviewActive(true, compositeName);
+    return () => {
+      void playground.setRuntimePreviewActive(false, compositeName);
+    };
+  }, [playground.activeComposite, playground.enabled, playground.setRuntimePreviewActive, standalone]);
 
   const importProject = async () => {
     if (isWeb()) {

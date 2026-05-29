@@ -105,6 +105,29 @@ local function compositePreviewEnabled(entry)
   return true
 end
 
+local function scratchPreviewRuntimeActive(plugin, name, entry)
+  if not plugin or not entry or entry.kind ~= "scratch" then
+    return false
+  end
+  if not plugin.previewSessionActive then
+    return false
+  end
+  local target = plugin.previewComposite
+  if target and target ~= "" and target ~= name then
+    return false
+  end
+  return compositePreviewEnabled(entry)
+end
+
+local function hasPlayingTimeline(plugin)
+  for _, entry in pairs(plugin.composites or {}) do
+    if entry.timelineState and safeBoolean(entry.timelineState.playing, false) then
+      return true
+    end
+  end
+  return false
+end
+
 local function sanitizeFilename(name, fallback)
   name = tostring(name or fallback or "asset"):gsub("\\", "/"):match("([^/]+)$") or fallback or "asset"
   name = name:gsub("[^%w%._%-]", "_")
@@ -1279,26 +1302,25 @@ local function advanceTimeline(plugin, name, dt)
     return
   end
   local state = ensureTimelineState(entry)
+  if not state.playing then
+    return
+  end
   local duration = math.max(0.25, safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
   local previous = math.max(0, math.min(duration, state.time or 0))
-  local nextTime = previous
-
-  if state.playing then
-    local elapsed = math.max(0, dt or 0)
-    nextTime = previous + elapsed
-    if nextTime > duration then
-      if entry.timeline.loop then
-        nextTime = emitTimelineStartsForAdvance(plugin, name, previous, elapsed, entry.timeline, duration)
-      else
-        emitTimelineStarts(plugin, name, previous, duration, entry.timeline)
-        nextTime = duration
-        state.playing = false
-      end
+  local elapsed = math.max(0, dt or 0)
+  local nextTime = previous + elapsed
+  if nextTime > duration then
+    if entry.timeline.loop then
+      nextTime = emitTimelineStartsForAdvance(plugin, name, previous, elapsed, entry.timeline, duration)
     else
-      emitTimelineStarts(plugin, name, previous, nextTime, entry.timeline)
+      emitTimelineStarts(plugin, name, previous, duration, entry.timeline)
+      nextTime = duration
+      state.playing = false
     end
-    state.time = nextTime
+  else
+    emitTimelineStarts(plugin, name, previous, nextTime, entry.timeline)
   end
+  state.time = nextTime
 
   applyTimelineAt(plugin, name, nextTime)
 end
@@ -1577,6 +1599,33 @@ function ParticleSystemPlaygroundPlugin:init(config)
   self.compositeOrder = {}
   self.activeComposite = nil
   self.activeSystem = 1
+  self.previewSessionActive = false
+  self.previewComposite = nil
+  self.timelineRuntimeActive = false
+end
+
+function ParticleSystemPlaygroundPlugin:_setRuntimePreviewActive(active, composite)
+  if not active then
+    self.previewSessionActive = false
+    self.previewComposite = nil
+    self.timelineRuntimeActive = false
+    for _, entry in pairs(self.composites) do
+      if entry.timelineState then
+        entry.timelineState.playing = false
+      end
+    end
+    return true
+  end
+
+  local target = composite and self.composites[composite] and composite or self.activeComposite
+  self.previewSessionActive = true
+  self.previewComposite = target
+  local entry = target and self.composites[target]
+  if entry and entry.timeline then
+    local state = ensureTimelineState(entry)
+    applyTimelineAt(self, target, state.time or 0)
+  end
+  return true
 end
 
 function ParticleSystemPlaygroundPlugin:addComposite(name, getter)
@@ -1615,6 +1664,12 @@ function ParticleSystemPlaygroundPlugin:removeComposite(name)
     self.activeComposite = self.compositeOrder[1]
     self.activeSystem = 1
   end
+  if self.previewComposite == name then
+    self.previewComposite = self.activeComposite
+    if not self.previewComposite then
+      self.previewSessionActive = false
+    end
+  end
   return true
 end
 
@@ -1647,6 +1702,10 @@ function ParticleSystemPlaygroundPlugin:_newComposite(name, template)
   self.compositeOrder[#self.compositeOrder + 1] = final
   self.activeComposite = final
   self.activeSystem = 1
+  if self.previewSessionActive then
+    self.previewComposite = final
+  end
+  applyTimelineAt(self, final, 0)
   return final
 end
 
@@ -1723,14 +1782,28 @@ function ParticleSystemPlaygroundPlugin:_meta(name, index)
 end
 
 function ParticleSystemPlaygroundPlugin:update(dt)
+  if not self.previewSessionActive and not self.timelineRuntimeActive then
+    return
+  end
+  local timelineRuntimeActive = false
   for _, name in ipairs(self.compositeOrder) do
     local entry = self.composites[name]
+    local timelineWasPlaying = entry and entry.timelineState and safeBoolean(entry.timelineState.playing, false)
     if entry and entry.timeline then
       advanceTimeline(self, name, dt)
+      if entry.timelineState and safeBoolean(entry.timelineState.playing, false) then
+        timelineRuntimeActive = true
+      end
     end
-    if entry and entry.kind == "scratch" and safeBoolean(entry.previewEnabled, true) then
-      local offsetX, offsetY = computeMovementOffset(entry.movement, dt)
-      entry.offsetX, entry.offsetY = offsetX, offsetY
+    local previewActive = scratchPreviewRuntimeActive(self, name, entry)
+    local timelineStillPlaying = entry and entry.timelineState and safeBoolean(entry.timelineState.playing, false)
+    if entry and entry.kind == "scratch" and (previewActive or timelineWasPlaying or timelineStillPlaying) then
+      local offsetX = safeNumber(entry.offsetX, 0)
+      local offsetY = safeNumber(entry.offsetY, 0)
+      if previewActive then
+        offsetX, offsetY = computeMovementOffset(entry.movement, dt)
+        entry.offsetX, entry.offsetY = offsetX, offsetY
+      end
       local x = (entry.x or DEFAULT_X) + offsetX
       local y = (entry.y or DEFAULT_Y) + offsetY
       for index, system in ipairs(entry.systems or {}) do
@@ -1741,10 +1814,16 @@ function ParticleSystemPlaygroundPlugin:update(dt)
       end
     end
   end
+  self.timelineRuntimeActive = timelineRuntimeActive
 end
 
 function ParticleSystemPlaygroundPlugin:onDraw()
   if not love or not love.graphics then
+    return
+  end
+  local name = self.previewComposite
+  local entry = name and self.composites[name]
+  if not scratchPreviewRuntimeActive(self, name, entry) then
     return
   end
 
@@ -1752,25 +1831,20 @@ function ParticleSystemPlaygroundPlugin:onDraw()
   local previousShader = love.graphics.getShader()
   local r, g, b, a = love.graphics.getColor()
 
-  for _, name in ipairs(self.compositeOrder) do
-    local entry = self.composites[name]
-    if entry and entry.kind == "scratch" and safeBoolean(entry.previewEnabled, true) then
-      for index, system in ipairs(entry.systems or {}) do
-        if system.system and isSystemEnabled(system, self:_meta(name, index)) then
-          pcall(love.graphics.setBlendMode, system.blendMode or "alpha")
-          if system.shader and system.shader.send and love.timer then
-            pcall(system.shader.send, system.shader, "u_time", love.timer.getTime())
-            if type(system.shaderTextures) == "table" then
-              for uniform, image in pairs(system.shaderTextures) do
-                pcall(system.shader.send, system.shader, uniform, image)
-              end
-            end
+  for index, system in ipairs(entry.systems or {}) do
+    if system.system and isSystemEnabled(system, self:_meta(name, index)) then
+      pcall(love.graphics.setBlendMode, system.blendMode or "alpha")
+      if system.shader and system.shader.send and love.timer then
+        pcall(system.shader.send, system.shader, "u_time", love.timer.getTime())
+        if type(system.shaderTextures) == "table" then
+          for uniform, image in pairs(system.shaderTextures) do
+            pcall(system.shader.send, system.shader, uniform, image)
           end
-          love.graphics.setShader(system.shader)
-          love.graphics.setColor(1, 1, 1, safeNumber(system._timelineOpacity, 1))
-          love.graphics.draw(system.system, 0, 0)
         end
       end
+      love.graphics.setShader(system.shader)
+      love.graphics.setColor(1, 1, 1, safeNumber(system._timelineOpacity, 1))
+      love.graphics.draw(system.system, 0, 0)
     end
   end
 
@@ -1870,6 +1944,10 @@ function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
     end
     if params.previewEnabled ~= nil then
       entry.previewEnabled = safeBoolean(params.previewEnabled, true)
+      if not entry.previewEnabled and self.previewComposite == name and entry.timelineState then
+        entry.timelineState.playing = false
+        self.timelineRuntimeActive = hasPlayingTimeline(self)
+      end
     end
     entry.movement = entry.movement or { pattern = "none" }
     if params["movement.pattern"] ~= nil then
@@ -2141,6 +2219,9 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     if params.composite and self.composites[params.composite] then
       self.activeComposite = params.composite
       self.activeSystem = 1
+      if self.previewSessionActive then
+        self.previewComposite = params.composite
+      end
     end
     return true
   end
@@ -2148,6 +2229,10 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
   if action == "select-system" then
     self.activeSystem = index
     return true
+  end
+
+  if action == "runtime-preview" then
+    return self:_setRuntimePreviewActive(safeBoolean(params.active, false), params.composite)
   end
 
   if action == "import-project" then
@@ -2227,6 +2312,7 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     entry.timeline = normalizeTimeline(params.timeline, timelineSystemsForPlugin(self, name))
     entry.timelineState = entry.timelineState or { time = 0, playing = false, scrubVersion = 0 }
     entry.timelineState.time = math.min(safeNumber(entry.timelineState.time, 0), safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
+    applyTimelineAt(self, name, entry.timelineState.time)
     return true
   end
 
@@ -2235,15 +2321,20 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     local state = ensureTimelineState(entry)
     local command = safeString(params.command, "")
     if command == "play" then
+      applyTimelineAt(self, name, state.time or 0)
       state.playing = true
+      self.timelineRuntimeActive = true
     elseif command == "pause" then
       state.playing = false
+      self.timelineRuntimeActive = hasPlayingTimeline(self)
     elseif command == "stop" then
       seekTimeline(self, name, 0)
       state = ensureTimelineState(entry)
       state.playing = false
+      self.timelineRuntimeActive = hasPlayingTimeline(self)
     elseif command == "seek" then
       seekTimeline(self, name, safeNumber(params.time, 0))
+      self.timelineRuntimeActive = hasPlayingTimeline(self)
     end
     return true
   end
@@ -2611,6 +2702,10 @@ function ParticleSystemPlaygroundPlugin:_importProject(project)
   self.compositeOrder[#self.compositeOrder + 1] = name
   self.activeComposite = name
   self.activeSystem = 1
+  if self.previewSessionActive then
+    self.previewComposite = name
+  end
+  applyTimelineAt(self, name, 0)
 
   return name
 end

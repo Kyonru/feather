@@ -22,6 +22,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 
 const {
   applyLogUpdate,
+  createDebouncedStorage,
   mergeLogLists,
   resolveLogHistoryKeys,
   sanitizeLogForHistory,
@@ -115,4 +116,35 @@ test('clearing a session also clears its stable history buckets', () => {
 
   assert.deepEqual(useLogHistoryStore.getState().getLogsForSession('session-1'), []);
   assert.deepEqual(useLogHistoryStore.getState().getLogsForHistoryKeys(['device:abc', 'root:/tmp/game']), []);
+});
+
+test('debounced log history storage coalesces localStorage writes', () => {
+  const backing = createMemoryStorage();
+  let pendingFlush: (() => void) | null = null;
+  let timerId = 0;
+  let scheduled = 0;
+  let cleared = 0;
+  const storage = createDebouncedStorage(backing, 100, {
+    setTimer: (callback) => {
+      scheduled += 1;
+      pendingFlush = callback;
+      timerId += 1;
+      return timerId as unknown as ReturnType<typeof globalThis.setTimeout>;
+    },
+    clearTimer: () => {
+      cleared += 1;
+    },
+  });
+
+  storage.setItem('history', 'first');
+  storage.setItem('history', 'second');
+
+  assert.equal(backing.getItem('history'), null);
+  assert.equal(storage.getItem('history'), 'second');
+  assert.equal(scheduled, 2);
+  assert.equal(cleared, 1);
+
+  pendingFlush?.();
+
+  assert.equal(backing.getItem('history'), 'second');
 });

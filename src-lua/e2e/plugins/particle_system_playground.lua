@@ -131,9 +131,40 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       },
     })
     plugin:update(1 / 60)
+    local idleX, idleY = system1:getPosition()
+    assertEqual(idleX, beforeX, "particle playground preview stays dormant until the page activates it")
+    assertEqual(idleY, beforeY, "particle playground preview dormant state keeps emitter y unchanged")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Composite Controls",
+        active = true,
+      },
+    })
+    plugin:update(1 / 60)
     local resumedX, resumedY = system1:getPosition()
-    assertEqual(resumedX, 123, "particle playground preview resume updates emitter x")
-    assertEqual(resumedY, 234, "particle playground preview resume updates emitter y")
+    assertEqual(resumedX, 123, "particle playground active runtime preview updates emitter x")
+    assertEqual(resumedY, 234, "particle playground active runtime preview updates emitter y")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Composite Controls",
+        active = false,
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Composite Controls",
+        compositeX = 345,
+        compositeY = 456,
+      },
+    })
+    plugin:update(1 / 60)
+    local stoppedX, stoppedY = system1:getPosition()
+    assertEqual(stoppedX, resumedX, "particle playground runtime preview inactive stops scratch updates")
+    assertEqual(stoppedY, resumedY, "particle playground runtime preview inactive stops scratch y updates")
 
     plugin:handleParamsUpdate({
       params = {

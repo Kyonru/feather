@@ -13,6 +13,7 @@ import { cn } from '@/utils/styles';
 import { toast } from 'sonner';
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, FolderOpenIcon, XIcon } from 'lucide-react';
 import { codegen } from './codegen';
+import { shaderGraphGamePreviewController } from './gamePreviewController';
 import { pickShaderTexture } from './textureUpload';
 import type { ShaderGraphDiagnostic } from '@/types/shader-graph';
 
@@ -251,6 +252,14 @@ export function CodePreview({
     subgraphs,
     uploadedUniformTextures,
   ]);
+
+  useEffect(() => {
+    if (!sessionId || !previewEnabled) return;
+    const activeSession = sessionId;
+    return () => {
+      void shaderGraphGamePreviewController.clear(activeSession);
+    };
+  }, [previewEnabled, sessionId]);
 
   const statusColor = {
     idle: 'bg-muted text-muted-foreground',

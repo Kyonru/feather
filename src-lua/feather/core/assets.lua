@@ -19,6 +19,8 @@ function FeatherAssets:init(logger)
   self._wrappedDrawTarget = nil
   self._pendingPreview = nil
   self._previewReady = nil
+  self._hookElapsed = 0
+  self._hookInterval = 0.25
 
   self:_hookLove()
 end
@@ -251,7 +253,12 @@ function FeatherAssets:_hookDraw()
   love.draw = self._drawWrapper
 end
 
-function FeatherAssets:update()
+function FeatherAssets:update(dt)
+  self._hookElapsed = (self._hookElapsed or 0) + (dt or 0)
+  if self._hookElapsed < (self._hookInterval or 0.25) then
+    return
+  end
+  self._hookElapsed = 0
   self:_hookDraw()
 end
 

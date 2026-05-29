@@ -150,6 +150,8 @@ function Feather:init(config)
   self.maxTempLogs = conf.maxTempLogs or 200
   self.updateInterval = conf.updateInterval or 0.1
   self.sampleRate = conf.sampleRate or 1
+  self.callbackHookInterval = conf.callbackHookInterval or 0.25
+  self._callbackHookElapsed = 0
   self.defaultObservers = conf.defaultObservers or false
   self.captureScreenshot = conf.captureScreenshot or false
   self.apiKey = conf.apiKey or ""
@@ -937,10 +939,14 @@ function Feather:update(dt)
   end
 
   -- Always update local systems
-  self.pluginManager:hookLoveCallbacks()
+  self._callbackHookElapsed = (self._callbackHookElapsed or 0) + (dt or 0)
+  if self._callbackHookElapsed >= (self.callbackHookInterval or 0.25) then
+    self._callbackHookElapsed = 0
+    self.pluginManager:hookLoveCallbacks()
+  end
   self.featherLogger:update()
   if self.assets then
-    self.assets:update()
+    self.assets:update(dt)
   end
   self.pluginManager:update(dt, self)
 
