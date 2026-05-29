@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle System Playground timelines now treat clips as emission windows, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
 - Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
 - Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
+- Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
 
 ### Fixed
 
@@ -66,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Particle System Playground timeline Stop and Reset Playhead controls so restarting playback restores emitter base rates instead of keeping stale muted timeline values.
 - Fixed live-session reconnects so restored log-history sessions no longer block the app from requesting fresh config from an already-connected game.
 - Fixed Particle Playground and Shader Graph connected-game preview work lingering after leaving the page or switching sessions.
+- Fixed connected Lua games stuttering on the default one-second sample cadence when several live payloads were pushed together.
 
 ### Tests
 
@@ -99,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
 - Added Lua, showcase, and app e2e coverage for Particle System Playground timeline import/export, clip/keyframe editing, preview controls, and exported timeline replay hooks.
 - Added Lua, app e2e, and focused store coverage for idle creative preview runtime behavior, stable connected-game config probing, and batched log-history persistence.
+- Added Lua e2e coverage for incremental connected-game sample pushes.
 - Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.

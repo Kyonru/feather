@@ -21,6 +21,23 @@ function E2EPlugin:getConfig()
   }
 end
 
+local pushRequestCount = 0
+local PushCountingPlugin = Class({
+  __includes = FeatherPluginBase,
+})
+
+function PushCountingPlugin:init(config)
+  FeatherPluginBase.init(self, config)
+end
+
+function PushCountingPlugin:handleRequest()
+  pushRequestCount = pushRequestCount + 1
+  return {
+    type = "push-counting",
+    label = self.options.label,
+  }
+end
+
 local results = {}
 
 local function record(name)
@@ -718,6 +735,48 @@ return M
   love.draw = originalDraw
 
   PluginE2ESuite.run(assertEqual, assertTruthy)
+
+  local scheduledFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Scheduled Push E2E",
+    deviceId = "scheduled-push-e2e",
+    assetPreview = false,
+    sampleRate = 1,
+    pluginPushBatchSize = 1,
+    writeToDisk = false,
+    plugins = {
+      FeatherPluginManager.createPlugin(PushCountingPlugin, "push-a", { label = "A" }),
+      FeatherPluginManager.createPlugin(PushCountingPlugin, "push-b", { label = "B" }),
+      FeatherPluginManager.createPlugin(PushCountingPlugin, "push-c", { label = "C" }),
+    },
+    debugger = {
+      enabled = false,
+    },
+  })
+  scheduledFeather.mode = "socket"
+  scheduledFeather.wsConnected = true
+  scheduledFeather.__connState = "connected"
+  scheduledFeather.wsClient = {
+    status = 1,
+    update = function() end,
+    send = function() end,
+  }
+  pushRequestCount = 0
+  scheduledFeather:update(1)
+  assertEqual(pushRequestCount, 0, "connected sample starts with non-plugin payload work")
+  scheduledFeather:update(0)
+  scheduledFeather:update(0)
+  assertEqual(pushRequestCount, 0, "connected sample spreads observer and asset payload work before plugins")
+  scheduledFeather:update(0)
+  assertEqual(pushRequestCount, 1, "connected sample pushes one plugin payload per frame")
+  scheduledFeather:update(0)
+  assertEqual(pushRequestCount, 2, "connected sample continues plugin payload batch on next frame")
+  scheduledFeather:update(0)
+  assertEqual(pushRequestCount, 3, "connected sample drains plugin payloads incrementally")
+  scheduledFeather:update(0)
+  assertEqual(pushRequestCount, 3, "connected sample finishes without re-pushing plugins in the same cadence")
+  scheduledFeather:finish()
 
   -- ── Auth handshake state machine ───────────────────────────────────────────
   -- Test the challenge-response logic in isolation. We use a disk-mode instance

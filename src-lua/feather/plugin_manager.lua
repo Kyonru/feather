@@ -435,9 +435,27 @@ end
 --- Push current data for every plugin to the desktop over WS.
 --- Called at the throttled updateInterval cadence from Feather:update().
 function FeatherPluginManager:pushAll(feather)
-  local fakeRequest = { method = "GET", params = {}, headers = {} }
+  local index = 1
+  local done = false
+  while not done do
+    index, done = self:pushSome(feather, index, #self.plugins)
+  end
+end
 
-  for _, plugin in ipairs(self.plugins) do
+--- Push a bounded number of plugin payloads to the desktop.
+---@param feather Feather
+---@param startIndex number|nil
+---@param maxPlugins number|nil
+---@return number nextIndex
+---@return boolean done
+function FeatherPluginManager:pushSome(feather, startIndex, maxPlugins)
+  local fakeRequest = { method = "GET", params = {}, headers = {} }
+  local index = math.max(1, startIndex or 1)
+  local pushed = 0
+  local limit = math.max(1, maxPlugins or 1)
+
+  while index <= #self.plugins and pushed < limit do
+    local plugin = self.plugins[index]
     if plugin.instance and not plugin.disabled then
       fakeRequest.path = "/plugins/" .. plugin.identifier
 
@@ -445,8 +463,12 @@ function FeatherPluginManager:pushAll(feather)
       if ok and data then
         pcall(feather.pushPlugin, feather, plugin.identifier, data)
       end
+      pushed = pushed + 1
     end
+    index = index + 1
   end
+
+  return index, index > #self.plugins
 end
 
 --- Patch love callbacks so all plugins receive events via their on* methods.

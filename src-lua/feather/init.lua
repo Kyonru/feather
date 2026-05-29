@@ -113,6 +113,8 @@ local customErrorHandler = errorhandler
 ---@field maxTempLogs? number
 ---@field updateInterval? number
 ---@field sampleRate? number
+---@field pluginPushBatchSize? number
+---@field gcStepAmount? number
 ---@field sessionName? string  Custom display name shown in desktop session tabs (e.g. "My RPG")
 ---@field deviceId? string  Override persistent device ID (auto-generated and saved to disk if not set)
 ---@field appId? string  Desktop app ID allowed to send commands to this game. Required unless __DANGEROUS_INSECURE_CONNECTION__ = true.
@@ -150,6 +152,8 @@ function Feather:init(config)
   self.maxTempLogs = conf.maxTempLogs or 200
   self.updateInterval = conf.updateInterval or 0.1
   self.sampleRate = conf.sampleRate or 1
+  self.pluginPushBatchSize = conf.pluginPushBatchSize or 2
+  self.gcStepAmount = conf.gcStepAmount or 40
   self.callbackHookInterval = conf.callbackHookInterval or 0.25
   self._callbackHookElapsed = 0
   self.defaultObservers = conf.defaultObservers or false
@@ -194,6 +198,9 @@ function Feather:init(config)
   self._nextBinaryId = 1
   self._pendingBinaries = {}
   self._binaryDrainQueue = {}
+  self._scheduledSampleTasks = {}
+  self._pluginPushIndex = nil
+  self._lastSampleDt = 0
   self.lastError = 0
   self.wsConnected = false
   self.__connState = "idle"
@@ -848,6 +855,52 @@ function Feather:__pushAssets()
   end
 end
 
+function Feather:__queueSampleTasks(dt)
+  self._lastSampleDt = dt or self._lastSampleDt or 0
+  self._scheduledSampleTasks = self._scheduledSampleTasks or {}
+  if #self._scheduledSampleTasks > 0 then
+    return
+  end
+
+  self._scheduledSampleTasks = { "performance", "observers", "assets", "plugins", "gc" }
+  self._pluginPushIndex = 1
+end
+
+function Feather:__runNextSampleTask()
+  local tasks = self._scheduledSampleTasks
+  if not tasks or #tasks == 0 then
+    return
+  end
+
+  local task = tasks[1]
+  if task == "performance" then
+    self:__pushPerformance(self._lastSampleDt or 0)
+    table.remove(tasks, 1)
+  elseif task == "observers" then
+    self:__pushObservers()
+    table.remove(tasks, 1)
+  elseif task == "assets" then
+    self:__pushAssets()
+    table.remove(tasks, 1)
+  elseif task == "plugins" then
+    local nextIndex, done = self.pluginManager:pushSome(
+      self,
+      self._pluginPushIndex or 1,
+      self.pluginPushBatchSize or 2
+    )
+    self._pluginPushIndex = nextIndex
+    if done then
+      self._pluginPushIndex = nil
+      table.remove(tasks, 1)
+    end
+  elseif task == "gc" then
+    collectgarbage("step", self.gcStepAmount or 40)
+    table.remove(tasks, 1)
+  else
+    table.remove(tasks, 1)
+  end
+end
+
 function Feather:__errorTraceback(msg)
   local trace = debug.traceback()
 
@@ -993,12 +1046,9 @@ function Feather:update(dt)
     self._wsElapsed = (self._wsElapsed or 0) + dt
     if self._wsElapsed >= self.sampleRate then
       self._wsElapsed = 0
-      self:__pushPerformance(dt)
-      self:__pushObservers()
-      self:__pushAssets()
-      self.pluginManager:pushAll(self)
-      collectgarbage("step", 200)
+      self:__queueSampleTasks(dt)
     end
+    self:__runNextSampleTask()
   end
 end
 
