@@ -2353,6 +2353,16 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   const defaultOverflow = await timelineScroll.evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(defaultOverflow).toBeLessThanOrEqual(2);
 
+  const playhead = page.getByTestId('particle-timeline-playhead');
+  await page.getByTitle('Play timeline').click();
+  await expect
+    .poll(async () => Number(await playhead.inputValue()), { timeout: 1500 })
+    .toBeGreaterThan(0.05);
+  const animatedTime = Number(await playhead.inputValue());
+  expect(animatedTime).toBeLessThan(1);
+  await page.getByTitle('Pause timeline').click();
+  await page.getByTitle('Reset playhead').click();
+
   await page.getByTestId('particle-timeline-track-1').click();
   const clipBox = await page.getByTestId('particle-timeline-clip-1').first().boundingBox();
   const trackStripBox = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();

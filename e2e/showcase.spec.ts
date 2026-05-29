@@ -117,6 +117,16 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   const defaultOverflow = await timelineScroll.evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(defaultOverflow).toBeLessThanOrEqual(2);
 
+  const smoothPlayhead = page.getByTestId('particle-timeline-playhead');
+  await page.getByTitle('Play timeline').click();
+  await expect
+    .poll(async () => Number(await smoothPlayhead.inputValue()), { timeout: 1500 })
+    .toBeGreaterThan(0.05);
+  const animatedTime = Number(await smoothPlayhead.inputValue());
+  expect(animatedTime).toBeLessThan(1);
+  await page.getByTitle('Pause timeline').click();
+  await page.getByTitle('Reset playhead').click();
+
   await page.getByTestId('particle-timeline-track-1').click();
   await expect(page.getByRole('button', { name: 'Select Emitter' })).toBeVisible();
 

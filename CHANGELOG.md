@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reworked the Particle System Playground Timeline tab with video-editor-style clip dragging, resize handles, inline selected-emitter lanes, draggable keyframe timing, a selection inspector, and remembered zoom/snap preferences.
 - Renamed Particle System Playground timing controls so clip entry time is shown as Emit At and burst counts are shown separately from timing.
 - Particle System Playground timelines now treat clips as emission windows, intersect clip timing with Emitter Lifetime, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
+- Particle System Playground timeline playback now animates the visible playhead smoothly between runtime updates instead of jumping in coarse connected-game intervals.
 - Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
 - Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
 - Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
@@ -76,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Particle System Playground connected-game preview performance by muting paused timeline emission and updating only the selected scratch composite.
 - Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
 - Fixed the Particle System Playground Timeline loop control so it renders as a stable explicit toggle.
+- Fixed Particle System Playground timeline playback after applying motion presets while paused, so presets no longer capture the muted preview emission rate as the base rate.
 - Fixed Follow Tail in Logs so newly appended visible rows scroll into view through the virtual log list.
 - Fixed Profiler actions so Start, Stop, Snapshot, and Reset refresh the visible capture table immediately.
 
@@ -111,6 +113,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Lua, showcase, and app e2e coverage for Particle System Playground Emitter Lifetime and timeline clip intersections.
 - Expanded Lua, showcase, and app e2e coverage for preserving Particle System Playground timeline values when emitters are reordered.
 - Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
+- Expanded showcase and app e2e coverage for smooth Particle System Playground timeline playback.
+- Expanded Lua e2e coverage for Particle System Playground timeline playback after applying motion presets while the preview is muted.
 - Added Lua and showcase e2e coverage for the Complex Composite Particle System Playground timeline template.
 - Expanded Lua e2e coverage for paused Particle System Playground timelines and inactive scratch preview throttling.
 - Expanded Lua e2e coverage for capability allowlist startup warnings.

@@ -11,6 +11,7 @@ import type {
 } from '@/types/particle-system-playground';
 import {
   migrateParticleProject,
+  normalizeParticleTimeline,
   PARTICLE_PROJECT_TYPE,
   PARTICLE_PROJECT_VERSION,
   reindexParticleSystems,
@@ -370,8 +371,17 @@ export function useLocalParticlePlayground() {
         };
       }),
     updateTimeline,
-    playTimeline: () => setTimelineState({ playing: true }),
-    pauseTimeline: () => setTimelineState({ playing: false }),
+    playTimeline: () => {
+      const timeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
+      const time = data.data?.timelineState?.time ?? 0;
+      const restart = !!timeline && !timeline.loop && time >= timeline.duration - 0.001;
+      setTimelineState({ ...(restart ? { time: 0 } : {}), playing: true });
+    },
+    pauseTimeline: (time?: number) =>
+      setTimelineState({
+        ...(typeof time === 'number' && Number.isFinite(time) ? { time } : {}),
+        playing: false,
+      }),
     stopTimeline: () => setTimelineState({ time: 0, playing: false }),
     seekTimeline: (time: number) => setTimelineState({ time, playing: false }),
     emit: () => toast.success('Emit sent to the showcase preview'),

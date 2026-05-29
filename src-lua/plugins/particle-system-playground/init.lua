@@ -814,7 +814,14 @@ local function setProp(ps, key, raw)
     value = tostring(raw)
   end
 
-  return pcall(prop.set, ps, value)
+  local ok = pcall(prop.set, ps, value)
+  if ok then
+    if prop.type == "number" then
+      value = roundSnapshotNumber(value)
+    end
+    return true, prop.key, value
+  end
+  return false
 end
 
 local function snapshotPS(ps)
@@ -1800,6 +1807,9 @@ function ParticleSystemPlaygroundPlugin:_newComposite(name, template)
   end
 
   local systems = createDefaultSystems(template)
+  for _, system in ipairs(systems) do
+    captureTimelineBase(system)
+  end
   self.composites[final] = {
     kind = "scratch",
     name = final,
@@ -1919,7 +1929,6 @@ function ParticleSystemPlaygroundPlugin:update(dt)
       for index, system in ipairs(entry.systems or {}) do
         if system.system and isSystemEnabled(system, self:_meta(name, index)) then
           pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
-          pcall(system.system.update, system.system, dt)
         end
       end
       scratchUpdated = true
@@ -1931,7 +1940,7 @@ function ParticleSystemPlaygroundPlugin:update(dt)
       end
     end
     local timelineStillPlaying = entry and entry.timelineState and safeBoolean(entry.timelineState.playing, false)
-    if entry and entry.kind == "scratch" and not scratchUpdated and timelineStillPlaying then
+    if entry and entry.kind == "scratch" and (scratchUpdated or timelineStillPlaying) then
       local offsetX = safeNumber(entry.offsetX, 0)
       local offsetY = safeNumber(entry.offsetY, 0)
       local x = (entry.x or DEFAULT_X) + offsetX
@@ -2130,14 +2139,13 @@ function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
     sys.emitAtStart = safeNumber(params.emitAtStart, sys.emitAtStart)
   end
 
-  local changedParticleProperty = false
   for key, value in pairs(params) do
-    if setProp(sys.system, key, value) then
-      changedParticleProperty = true
+    local changed, propKey, normalizedValue = setProp(sys.system, key, value)
+    if changed then
+      if sys._timelineBase and propKey then
+        sys._timelineBase[propKey] = normalizedValue
+      end
     end
-  end
-  if changedParticleProperty then
-    sys._timelineBase = nil
   end
 end
 
@@ -2150,7 +2158,6 @@ function ParticleSystemPlaygroundPlugin:_replaceTexture(sys, image)
     local ok = pcall(old.setTexture, old, image)
     if ok then
       sys._ownedImage = image
-      sys._timelineBase = nil
       return
     end
   end
@@ -2159,7 +2166,6 @@ function ParticleSystemPlaygroundPlugin:_replaceTexture(sys, image)
   copyParticleProperties(old, new)
   sys.system = new
   sys._ownedImage = image
-  sys._timelineBase = nil
   new:start()
 end
 
@@ -2400,6 +2406,7 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     end
     local newIndex = #entry.systems + 1
     entry.systems[newIndex] = createDefaultSystem(newIndex, params.template)
+    captureTimelineBase(entry.systems[newIndex])
     entry.timeline = normalizeTimeline(entry.timeline, entry.systems)
     self.activeSystem = newIndex
     return { systemIndex = newIndex }
@@ -2460,10 +2467,20 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     local command = safeString(params.command, "")
     if command == "play" then
       pauseOtherScratchTimelines(self, name)
+      local duration = math.max(0.25, safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
+      if not entry.timeline.loop and safeNumber(state.time, 0) >= duration then
+        state.time = 0
+        resetTimelineSystems(self, name)
+      end
       applyTimelineAt(self, name, state.time or 0)
       state.playing = true
       self.timelineRuntimeActive = true
     elseif command == "pause" then
+      if params.time ~= nil then
+        local duration = math.max(0.25, safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
+        state.time = math.max(0, math.min(duration, safeNumber(params.time, state.time or 0)))
+        applyTimelineAt(self, name, state.time, false)
+      end
       state.playing = false
       self.timelineRuntimeActive = hasPlayingTimeline(self)
     elseif command == "stop" then
@@ -2783,6 +2800,7 @@ function ParticleSystemPlaygroundPlugin:_systemFromProject(index, systemData)
     end
   end
 
+  captureTimelineBase(sys)
   ps:start()
   return sys
 end

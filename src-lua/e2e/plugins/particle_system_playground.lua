@@ -315,6 +315,50 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     plugin:handleActionRequest({
       params = {
         action = "new-composite",
+        name = "Preset Playback",
+        template = "fire",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Preset Playback",
+        active = true,
+      },
+    })
+    local presetSystem = plugin:_getSystemEntry("Preset Playback", 1).system
+    assertEqual(presetSystem:getEmissionRate(), 0, "particle timeline preview mutes paused continuous emission")
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Preset Playback",
+        systemIndex = 1,
+        direction = 4.712,
+        spread = 6.283,
+        speedMin = 200,
+        speedMax = 700,
+        radialAccelMin = 100,
+        radialAccelMax = 300,
+        tangentialAccelMin = 0,
+        tangentialAccelMax = 30,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Preset Playback",
+        command = "play",
+      },
+    })
+    plugin:update(0.1)
+    assertEqual(
+      presetSystem:getEmissionRate(),
+      100,
+      "particle timeline preserves base emission after applying a motion preset while paused"
+    )
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
         name = "Emitter Lifetime Clip",
         template = "fire",
       },

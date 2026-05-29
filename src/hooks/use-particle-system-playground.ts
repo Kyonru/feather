@@ -470,12 +470,21 @@ export function useParticleSystemPlayground() {
       refreshAfterAction('set-timeline', { timeline });
     },
     playTimeline: () => {
-      setTimelineState({ playing: true });
+      const timeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
+      const time = data.data?.timelineState?.time ?? 0;
+      const restart = !!timeline && !timeline.loop && time >= timeline.duration - 0.001;
+      setTimelineState({ ...(restart ? { time: 0 } : {}), playing: true });
       refreshAfterAction('timeline-control', { command: 'play' });
     },
-    pauseTimeline: () => {
-      setTimelineState({ playing: false });
-      refreshAfterAction('timeline-control', { command: 'pause' });
+    pauseTimeline: (time?: number) => {
+      setTimelineState({
+        ...(typeof time === 'number' && Number.isFinite(time) ? { time } : {}),
+        playing: false,
+      });
+      refreshAfterAction('timeline-control', {
+        command: 'pause',
+        ...(typeof time === 'number' && Number.isFinite(time) ? { time } : {}),
+      });
     },
     stopTimeline: () => {
       setTimelineState({ time: 0, playing: false });

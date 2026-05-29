@@ -39,7 +39,7 @@ type Props = {
   onSelectSystem: (index: number) => void;
   onTimelineChange: (timeline: ParticleTimeline) => void;
   onPlay: () => void;
-  onPause: () => void;
+  onPause: (time?: number) => void;
   onStop: () => void;
   onSeek: (time: number, immediate?: boolean) => void;
 };
@@ -220,11 +220,15 @@ export function TimelinePanel({
   const setSnap = useSettingsStore((state) => state.setParticleTimelineSnap);
   const [expandedTrack, setExpandedTrack] = useState<number>(activeSystemIndex);
   const [selectedItem, setSelectedItem] = useState<SelectedTimelineItem | null>(null);
+  const [localPlayheadTime, setLocalPlayheadTime] = useState<number | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const playbackFrameRef = useRef<number | null>(null);
+  const displayTimeRef = useRef(0);
   const currentTime = clamp(composite.timelineState?.time ?? 0, 0, timeline.duration);
+  const displayTime = localPlayheadTime ?? currentTime;
   const playing = composite.timelineState?.playing === true;
   const timelineWidth = `${Math.round(Math.max(1, zoom) * 100)}%`;
-  const playheadPercent = timeToPercent(currentTime, timeline.duration);
+  const playheadPercent = timeToPercent(displayTime, timeline.duration);
   const ticks = useMemo(() => timelineTicks(timeline.duration, zoom), [timeline.duration, zoom]);
   const selectedSystemIndex = selectedItem?.systemIndex ?? expandedTrack;
   const selectedTrack =
@@ -242,6 +246,53 @@ export function TimelinePanel({
     selectedItem?.type === 'keyframe' && selectedTrack
       ? sortedKeyframes(selectedTrack.lanes[selectedItem.lane]).find((point) => point.id === selectedItem.keyframeId) ?? null
       : null;
+
+  useEffect(() => {
+    displayTimeRef.current = displayTime;
+  }, [displayTime]);
+
+  useEffect(() => {
+    if (!playing) return;
+
+    const duration = Math.max(0.01, timeline.duration);
+    const startedAt = performance.now();
+    const startTime = clamp(displayTimeRef.current, 0, duration);
+
+    const tick = (now: number) => {
+      const elapsed = (now - startedAt) / 1000;
+      const nextTime = startTime + elapsed;
+      const displayed = timeline.loop ? nextTime % duration : Math.min(nextTime, duration);
+      setLocalPlayheadTime(displayed);
+
+      if (!timeline.loop && nextTime >= duration) {
+        playbackFrameRef.current = null;
+        return;
+      }
+      playbackFrameRef.current = requestAnimationFrame(tick);
+    };
+
+    setLocalPlayheadTime(startTime);
+    playbackFrameRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (playbackFrameRef.current !== null) {
+        cancelAnimationFrame(playbackFrameRef.current);
+        playbackFrameRef.current = null;
+      }
+    };
+  }, [playing, timeline.duration, timeline.loop]);
+
+  useEffect(() => {
+    setLocalPlayheadTime((time) => (time === null ? null : clamp(time, 0, timeline.duration)));
+  }, [timeline.duration]);
+
+  useEffect(() => {
+    if (playing) return;
+    setLocalPlayheadTime((time) => {
+      if (time === null) return null;
+      return Math.abs(time - currentTime) < 0.05 ? null : time;
+    });
+  }, [currentTime, playing]);
 
   useEffect(() => {
     if (!timeline.tracks.some((track) => track.systemIndex === activeSystemIndex)) return;
@@ -306,7 +357,7 @@ export function TimelinePanel({
     );
   };
 
-  const addClipAt = (systemIndex: number, time = currentTime) => {
+  const addClipAt = (systemIndex: number, time = displayTime) => {
     const id = uniqueId('clip');
     const defaultLength = Math.min(0.75, timeline.duration);
     const start = clamp(snapTime(time), 0, Math.max(0, timeline.duration - MIN_CLIP_DURATION));
@@ -347,7 +398,7 @@ export function TimelinePanel({
     setSelectedItem({ type: 'emitter', systemIndex });
   };
 
-  const addKeyframeAt = (systemIndex: number, lane: ParticleTimelineLane, time = currentTime) => {
+  const addKeyframeAt = (systemIndex: number, lane: ParticleTimelineLane, time = displayTime) => {
     const id = uniqueId(lane);
     const track = timeline.tracks.find((item) => item.systemIndex === systemIndex);
     const keyTime = snapTime(time);
@@ -558,18 +609,43 @@ export function TimelinePanel({
             variant="outline"
             className="size-8"
             title={playing ? 'Pause timeline' : 'Play timeline'}
-            onClick={playing ? onPause : onPlay}
+            onClick={() => {
+              if (playing) {
+                setLocalPlayheadTime(displayTimeRef.current);
+                onPause(displayTimeRef.current);
+              } else {
+                onPlay();
+              }
+            }}
           >
             {playing ? <PauseIcon className="size-4" /> : <PlayIcon className="size-4" />}
           </Button>
-          <Button size="icon" variant="outline" className="size-8" title="Stop timeline" onClick={onStop}>
+          <Button
+            size="icon"
+            variant="outline"
+            className="size-8"
+            title="Stop timeline"
+            onClick={() => {
+              setLocalPlayheadTime(null);
+              onStop();
+            }}
+          >
             <SquareIcon className="size-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="size-8" title="Reset playhead" onClick={() => onSeek(0, true)}>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-8"
+            title="Reset playhead"
+            onClick={() => {
+              setLocalPlayheadTime(null);
+              onSeek(0, true);
+            }}
+          >
             <RotateCcwIcon className="size-4" />
           </Button>
           <div className="min-w-28 text-xs tabular-nums text-muted-foreground">
-            {formatTime(currentTime)} / {formatTime(timeline.duration)}
+            {formatTime(displayTime)} / {formatTime(timeline.duration)}
           </div>
           <input
             aria-label="Timeline playhead"
@@ -579,10 +655,19 @@ export function TimelinePanel({
             min={0}
             max={timeline.duration}
             step={snap ? 0.1 : 0.01}
-            value={currentTime}
-            onChange={(event) => onSeek(Number(event.target.value), false)}
-            onMouseUp={(event) => onSeek(Number((event.target as HTMLInputElement).value), true)}
-            onTouchEnd={(event) => onSeek(Number((event.target as HTMLInputElement).value), true)}
+            value={displayTime}
+            onChange={(event) => {
+              setLocalPlayheadTime(null);
+              onSeek(Number(event.target.value), false);
+            }}
+            onMouseUp={(event) => {
+              setLocalPlayheadTime(null);
+              onSeek(Number((event.target as HTMLInputElement).value), true);
+            }}
+            onTouchEnd={(event) => {
+              setLocalPlayheadTime(null);
+              onSeek(Number((event.target as HTMLInputElement).value), true);
+            }}
           />
         </div>
 
@@ -664,7 +749,7 @@ export function TimelinePanel({
 
           {composite.systems.map((system) => {
             const track = timeline.tracks.find((item) => item.systemIndex === system.index);
-            const active = track ? trackIsActive(track, currentTime) : false;
+            const active = track ? trackIsActive(track, displayTime) : false;
             const selected = system.index === activeSystemIndex;
             const expanded = system.index === expandedTrack;
             const trackKeyCount = PARTICLE_TIMELINE_LANES.reduce(
