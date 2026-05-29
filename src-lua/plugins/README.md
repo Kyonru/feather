@@ -841,6 +841,7 @@ Here are some examples of Feather plugins:
 - [Coroutine Monitor Plugin](./plugins/coroutine-monitor.md)
 - [Collision Debug Plugin](./plugins/collision-debug.md)
 - [Animation Inspector Plugin](./plugins/animation-inspector.md)
+- [Feel Inspector Plugin](./plugins/feel-inspector.md)
 - [Timer Inspector Plugin](./plugins/timer-inspector.md)
 
 ## Plugin documentation

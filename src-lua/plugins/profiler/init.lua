@@ -358,21 +358,21 @@ function ProfilerPlugin:handleRequest(_request, _feather)
   }
 end
 
-function ProfilerPlugin:handleActionRequest(request, _feather)
+function ProfilerPlugin:handleActionRequest(request, feather)
   local action = request.params and request.params.action
   if action == "reset" then
     self:reset()
-    return self:handleRequest(request, _feather)
+    return self:handleRequest(request, feather)
   elseif action == "start" then
     self:start()
-    return self:handleRequest(request, _feather)
+    return self:handleRequest(request, feather)
   elseif action == "stop" then
     self:stop()
-    return self:handleRequest(request, _feather)
+    return self:handleRequest(request, feather)
   elseif action == "snapshot" then
     local label = request.params and request.params.label
     self:snapshot(label)
-    return self:handleRequest(request, _feather)
+    return self:handleRequest(request, feather)
   end
 end
 

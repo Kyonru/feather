@@ -439,7 +439,8 @@ export function useLocalParticlePlayground() {
     exportZip: () => toast.info('ZIP export is available in the Feather desktop app.'),
     saveProject: () => {
       if (!data.data || !data.activeComposite) return;
-      const { timelineState: _timelineState, ...compositeData } = withNormalizedTimeline(data.data);
+      const compositeData = { ...withNormalizedTimeline(data.data) };
+      delete compositeData.timelineState;
       downloadProject({
         type: PARTICLE_PROJECT_TYPE,
         version: PARTICLE_PROJECT_VERSION,

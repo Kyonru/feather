@@ -101,6 +101,16 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
+    "id": "feel-inspector",
+    "sourceDir": "feel-inspector",
+    "name": "Feel Inspector",
+    "description": "Inspect feel.lua sequences, active runners, targets, events, and LOVE adapter state",
+    "version": "1.0.0",
+    "capabilities": [],
+    "optIn": true,
+    "disabled": true
+  },
+  {
     "id": "filesystem",
     "sourceDir": "filesystem",
     "name": "Filesystem",

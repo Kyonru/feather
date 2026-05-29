@@ -35,6 +35,8 @@ plugin:coroutine-monitor:init.lua
 plugin:coroutine-monitor:manifest.lua
 plugin:entity-inspector:init.lua
 plugin:entity-inspector:manifest.lua
+plugin:feel-inspector:init.lua
+plugin:feel-inspector:manifest.lua
 plugin:filesystem:init.lua
 plugin:filesystem:manifest.lua
 plugin:hot-reload:hot_reloader.lua

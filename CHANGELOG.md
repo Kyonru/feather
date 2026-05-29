@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added timeline-authored beginner Particle System Playground templates for Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, and Dust Puff.
 - Added a Complex Composite Particle System Playground template with five emitters and a staggered authored timeline for combining burst, ring, smoke, spark, and dust layers.
 - Added a session-tab suspend/resume control that temporarily pauses Feather runtime work in a connected game while keeping the command socket available.
+- Added an opt-in Feel Inspector plugin for feel.lua sequences, active plays, targets, recent events, and LOVE adapter state.
 
 ### Changed
 
@@ -118,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused helper, showcase e2e, and app e2e coverage for Shader Graph template preset controls and subgraph boundary nodes.
 - Added showcase and app e2e coverage for the Shader Graph right-panel Controls, Selection, and Output workflow.
 - Expanded Lua e2e coverage for looping Particle System Playground timelines with delayed emitter clips.
+- Added Lua e2e coverage for Feel Inspector registration, handler preservation, replay/clear actions, and LOVE adapter summaries.
 - Expanded Lua, showcase, and app e2e coverage for Particle System Playground particle-life tails in timeline loops.
 - Expanded Lua, showcase, and app e2e coverage for Particle System Playground Emitter Lifetime and timeline clip intersections.
 - Expanded Lua, showcase, and app e2e coverage for preserving Particle System Playground timeline values when emitters are reordered.

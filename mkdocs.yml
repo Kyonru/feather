@@ -55,6 +55,7 @@ nav:
       - Config Tweaker: plugins/config-tweaker.md
       - Coroutine Monitor: plugins/coroutine-monitor.md
       - Entity Inspector: plugins/entity-inspector.md
+      - Feel Inspector: plugins/feel-inspector.md
       - Filesystem: plugins/filesystem.md
       - HUMP Signal: plugins/hump-signal.md
       - In-game overlay: plugins/ingame-overlay.md

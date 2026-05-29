@@ -45,6 +45,11 @@ local pluginSpecs = {
     suiteModulePath = "e2e.plugins.entity_inspector",
   },
   {
+    id = "feel-inspector",
+    modulePath = "plugins.feel-inspector",
+    suiteModulePath = "e2e.plugins.feel_inspector",
+  },
+  {
     id = "filesystem",
     modulePath = "plugins.filesystem",
     suiteModulePath = "e2e.plugins.filesystem",

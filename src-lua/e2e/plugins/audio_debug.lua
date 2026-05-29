@@ -8,7 +8,6 @@ return PluginE2EHelper.createSmokeSuite("audio-debug", {
   disabled = true,
   capabilities = { "filesystem" },
   run = function(context)
-    local assertEqual = context.assertEqual
     local assertTruthy = context.assertTruthy
     local disabledLog = context.feather.featherLogger.last_log
     assertTruthy(
