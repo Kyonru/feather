@@ -234,6 +234,7 @@ export const useWsConnection = () => {
   const setSession = useSessionStore((state) => state.setSession);
   const clearSession = useSessionStore((state) => state.clearSession);
   const addSession = useSessionStore((state) => state.addSession);
+  const setRuntimeSuspended = useSessionStore((state) => state.setRuntimeSuspended);
   const connectionTimeout = useSettingsStore((state) => state.connectionTimeout);
   const appId = useSettingsStore((state) => state.appId);
   const setPausedState = useDebuggerStore((state) => state.setPausedState);
@@ -252,6 +253,8 @@ export const useWsConnection = () => {
     const checkInterval = setInterval(() => {
       const sessionId = useSessionStore.getState().sessionId;
       if (!sessionId) return;
+      const session = useSessionStore.getState().sessions[sessionId];
+      if (session?.runtimeSuspended) return;
       const elapsed = (Date.now() - lastMessageRef.current) / 1000;
       if (elapsed >= connectionTimeout) {
         setDisconnected(true);
@@ -524,7 +527,14 @@ export const useWsConnection = () => {
               deviceId: config.deviceId,
               insecure: config.security?.__DANGEROUS_INSECURE_CONNECTION__ === true,
               pendingConfig: false,
+              runtimeSuspended: false,
             });
+            break;
+          }
+
+          case 'runtime:suspended': {
+            const payload = data as { suspended?: boolean };
+            setRuntimeSuspended(sessionId, payload.suspended === true);
             break;
           }
 
@@ -666,6 +676,19 @@ export const useWsConnection = () => {
             const action = response.action;
             if (pluginId && action) {
               queryClient.setQueryData(sessionQueryKey.pluginAction(sessionId, pluginId, action), response);
+            }
+            if (pluginId && response.data && typeof response.data === 'object' && typeof response.data.type === 'string') {
+              const pluginData = response.data as PluginContentProps;
+              queueBinaryRefs(sessionId, { type: 'plugin', pluginId }, pluginData);
+              queryClient.setQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId), (prev) => {
+                if (pluginData?.type === 'gallery' && pluginData.persist && prev?.type === 'gallery') {
+                  return {
+                    ...pluginData,
+                    data: unionBy<PluginDataType, string>(prev.data, pluginData.data, (item) => item.name),
+                  };
+                }
+                return pluginData;
+              });
             }
             if (response.status === 'error') {
               toast.error(`Plugin action failed: ${response.message || 'Unknown error'}`);
@@ -944,5 +967,5 @@ export const useWsConnection = () => {
       cancelled = true;
       unlisteners.forEach((fn) => fn());
     };
-  }, [queryClient, setConfig, setDisconnected, setSession, clearSession, addSession]);
+  }, [queryClient, setConfig, setDisconnected, setSession, clearSession, addSession, setRuntimeSuspended]);
 };

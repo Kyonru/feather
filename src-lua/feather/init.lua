@@ -203,6 +203,7 @@ function Feather:init(config)
   self._lastSampleDt = 0
   self.lastError = 0
   self.wsConnected = false
+  self.runtimeSuspended = false
   self.__connState = "idle"
   self.version = FEATHER_VERSION.api
   self.versionName = FEATHER_VERSION.name
@@ -517,7 +518,21 @@ function Feather:__handleCommand(msg)
     return
   end
 
-  if msg.type == "cmd:config" and msg.data then
+  if msg.type == "cmd:runtime" then
+    local suspended = msg.action == "suspend"
+    if msg.action == "resume" then
+      suspended = false
+    end
+    self.runtimeSuspended = suspended
+    if not suspended then
+      self:__sendHello()
+    end
+    self:__sendWs(json.encode({
+      type = "runtime:suspended",
+      session = self.sessionId,
+      data = { suspended = self.runtimeSuspended },
+    }))
+  elseif msg.type == "cmd:config" and msg.data then
     self:__setConfig(msg.data)
   elseif msg.type == "cmd:log" and msg.action == "clear" then
     self.featherLogger:clear()
@@ -991,17 +1006,19 @@ function Feather:update(dt)
     return
   end
 
-  -- Always update local systems
-  self._callbackHookElapsed = (self._callbackHookElapsed or 0) + (dt or 0)
-  if self._callbackHookElapsed >= (self.callbackHookInterval or 0.25) then
-    self._callbackHookElapsed = 0
-    self.pluginManager:hookLoveCallbacks()
+  -- Keep suspended runtimes cheap: only pump the websocket so the desktop can resume.
+  if not self.runtimeSuspended then
+    self._callbackHookElapsed = (self._callbackHookElapsed or 0) + (dt or 0)
+    if self._callbackHookElapsed >= (self.callbackHookInterval or 0.25) then
+      self._callbackHookElapsed = 0
+      self.pluginManager:hookLoveCallbacks()
+    end
+    self.featherLogger:update()
+    if self.assets then
+      self.assets:update(dt)
+    end
+    self.pluginManager:update(dt, self)
   end
-  self.featherLogger:update()
-  if self.assets then
-    self.assets:update(dt)
-  end
-  self.pluginManager:update(dt, self)
 
   if self.mode == "disk" then
     return
@@ -1026,7 +1043,7 @@ function Feather:update(dt)
     else
       self.wsClient:update()
       -- Drain queued binary frames: at most 2 per game frame to avoid flooding the socket
-      if self.wsConnected and self._binaryDrainQueue and #self._binaryDrainQueue > 0 then
+      if not self.runtimeSuspended and self.wsConnected and self._binaryDrainQueue and #self._binaryDrainQueue > 0 then
         for _ = 1, 2 do
           local binary = table.remove(self._binaryDrainQueue, 1)
           if not binary then break end
@@ -1039,6 +1056,10 @@ function Feather:update(dt)
   end
 
   -- Push-based data delivery: only after handshake is complete
+  if self.runtimeSuspended then
+    return
+  end
+
   if self.wsConnected and self.__connState == "connected" then
     if self.assets and self.assets:hasPreview() then
       self:__pushAssets()

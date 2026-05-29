@@ -1,7 +1,7 @@
 import { open } from '@tauri-apps/plugin-dialog';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { Virtuoso } from 'react-virtuoso';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import {
   PauseIcon,
   PlayIcon,
@@ -87,6 +87,7 @@ export function LogTable({
   const [typeFilter, setTypeFilter] = useState<LogFilter>('all');
   const [followTail, setFollowTail] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<VirtuosoHandle>(null);
 
   const filteredLogs = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -96,11 +97,22 @@ export function LogTable({
       return log.str.toLowerCase().includes(needle) || log.type.toLowerCase().includes(needle);
     });
   }, [logs, search, typeFilter]);
+  const tailLog = filteredLogs[filteredLogs.length - 1];
+  const tailSignature = tailLog ? `${tailLog.id}:${tailLog.count}:${tailLog.lastTime ?? tailLog.time}` : '';
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const pathname = event.target.value;
     if (pathname) onUpload(pathname);
   };
+
+  useEffect(() => {
+    if (!followTail || filteredLogs.length === 0) return;
+    listRef.current?.scrollToIndex({
+      index: filteredLogs.length - 1,
+      align: 'end',
+      behavior: 'smooth',
+    });
+  }, [filteredLogs.length, followTail, tailSignature]);
 
   const onSelectFile = async () => {
     if (isWeb()) {
@@ -262,6 +274,7 @@ export function LogTable({
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-b-lg border">
         <Virtuoso
+          ref={listRef}
           className="h-full"
           data={filteredLogs}
           followOutput={followTail ? 'smooth' : false}

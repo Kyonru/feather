@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a Particle System Playground Timeline tab with emitter clips, keyframed opacity/rate/speed/size/direction/spread/offset lanes, transport controls, and real LÖVE preview scrubbing.
 - Added timeline-authored beginner Particle System Playground templates for Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, and Dust Puff.
 - Added a Complex Composite Particle System Playground template with five emitters and a staggered authored timeline for combining burst, ring, smoke, spark, and dust layers.
+- Added a session-tab suspend/resume control that temporarily pauses Feather runtime work in a connected game while keeping the command socket available.
 
 ### Changed
 
@@ -74,6 +75,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Runtime Snapshot contributing to idle connected-game stutters through default live dashboard pushes.
 - Fixed Particle System Playground connected-game preview performance by muting paused timeline emission and updating only the selected scratch composite.
 - Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
+- Fixed the Particle System Playground Timeline loop control so it renders as a stable explicit toggle.
+- Fixed Follow Tail in Logs so newly appended visible rows scroll into view through the virtual log list.
+- Fixed Profiler actions so Start, Stop, Snapshot, and Reset refresh the visible capture table immediately.
 
 ### Tests
 
@@ -118,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.
 - Expanded theme registry and app e2e coverage for Tokyo Night theme variants.
+- Added app e2e coverage for live runtime suspend/resume, Profiler action refreshes, and Logs Follow Tail behavior.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 

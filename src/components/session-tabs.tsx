@@ -20,6 +20,8 @@ import {
   PlusIcon,
   FileTextIcon,
   ClockIcon,
+  PauseIcon,
+  PlayIcon,
 } from 'lucide-react';
 import { version } from '../../package.json';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -41,6 +43,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { sendCommand } from '@/lib/send-command';
 
 const osIcons: Record<string, React.ReactNode> = {
   Windows: <AppWindowIcon className="size-3" />,
@@ -168,8 +171,10 @@ export function SessionTabs() {
   const setConfig = useConfigStore((state) => state.setConfig);
   const setLogOverride = useConfigStore((state) => state.setLogOverride);
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
+  const setRuntimeSuspended = useSessionStore((state) => state.setRuntimeSuspended);
 
   const sessionList = Object.values(sessions);
+  const activeSession = activeSessionId ? sessions[activeSessionId] : null;
 
   const refreshLiveSession = (session: SessionInfo) => {
     if (!session.connected || session.kind) return;
@@ -193,6 +198,22 @@ export function SessionTabs() {
     setConfig(config);
     setDisconnected(false);
     queryClient.setQueryData(sessionQueryKey.config(session.id), config);
+  };
+
+  const toggleRuntimeSuspended = async () => {
+    if (!activeSession || activeSession.kind || !activeSession.connected) return;
+    const nextSuspended = !activeSession.runtimeSuspended;
+    setRuntimeSuspended(activeSession.id, nextSuspended);
+    try {
+      await sendCommand(activeSession.id, {
+        type: 'cmd:runtime',
+        action: nextSuspended ? 'suspend' : 'resume',
+      });
+      toast.success(nextSuspended ? 'Feather runtime suspended' : 'Feather runtime resumed');
+    } catch (error) {
+      setRuntimeSuspended(activeSession.id, !nextSuspended);
+      toast.error(error instanceof Error ? error.message : 'Failed to update Feather runtime');
+    }
   };
 
   const openLogFile = async () => {
@@ -296,6 +317,34 @@ export function SessionTabs() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {activeSession && !activeSession.kind && activeSession.connected ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                'flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground',
+                activeSession.runtimeSuspended && 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+              )}
+              title={activeSession.runtimeSuspended ? 'Resume Feather runtime' : 'Suspend Feather runtime'}
+              aria-pressed={activeSession.runtimeSuspended === true}
+              onClick={toggleRuntimeSuspended}
+            >
+              {activeSession.runtimeSuspended ? <PlayIcon className="size-3.5" /> : <PauseIcon className="size-3.5" />}
+              <span className="sr-only">
+                {activeSession.runtimeSuspended ? 'Resume Feather runtime' : 'Suspend Feather runtime'}
+              </span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              {activeSession.runtimeSuspended
+                ? 'Resume Feather runtime work in the connected game'
+                : 'Temporarily suspend Feather runtime work in the connected game'}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
       {sessionList.map((session) => {
         const cachedSessionConfig = queryClient.getQueryData<Config>(sessionQueryKey.config(session.id));
         const hasVersionMismatch = !!cachedSessionConfig?.version && cachedSessionConfig.version !== version;

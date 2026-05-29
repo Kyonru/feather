@@ -3,6 +3,7 @@ import {
   PauseIcon,
   PlayIcon,
   PlusIcon,
+  RepeatIcon,
   RotateCcwIcon,
   SquareIcon,
   Trash2Icon,
@@ -11,8 +12,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/store/settings';
 import {
   PARTICLE_TIMELINE_LANE_DEFAULTS,
@@ -598,11 +597,18 @@ export function TimelinePanel({
               onValueChange={setDuration}
             />
           </label>
-          <div className="flex items-end gap-2">
-            <Checkbox id="particle-timeline-loop" checked={timeline.loop} onCheckedChange={(checked) => setLoop(checked === true)} />
-            <Label htmlFor="particle-timeline-loop" className="pb-2 text-xs">
-              Loop
-            </Label>
+          <div className="flex items-end">
+            <Button
+              type="button"
+              size="sm"
+              variant={timeline.loop ? 'default' : 'outline'}
+              className="h-8 w-full justify-start gap-2 text-xs"
+              aria-pressed={timeline.loop}
+              onClick={() => setLoop(!timeline.loop)}
+            >
+              <RepeatIcon className="size-3.5" />
+              Loop {timeline.loop ? 'On' : 'Off'}
+            </Button>
           </div>
           <div className="flex flex-wrap items-end justify-start gap-2 lg:justify-end">
             <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setZoom(zoom - 0.25)}>

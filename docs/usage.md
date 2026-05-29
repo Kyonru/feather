@@ -88,6 +88,8 @@ Open **Session** first when you want to know what Feather thinks is happening. T
 
 The **Recommended Next Actions** panel points to the next useful place to go, such as Settings for security/API-key issues, Debugger for paused breakpoints or Hot Reload failures, Performance for frame hitches, or package guidance when no lockfile is available.
 
+Use the pause button beside the active live session tab to temporarily suspend Feather runtime work inside the connected game. The socket stays open so you can resume from the desktop, but sampling, plugin updates, asset work, and preview overlays stay dormant until resumed.
+
 ---
 
 ## Observers

@@ -14,6 +14,7 @@ export type SessionInfo = {
   connectedAt: number;
   insecure?: boolean;
   pendingConfig?: boolean;
+  runtimeSuspended?: boolean;
 };
 
 type SessionStore = {
@@ -24,13 +25,14 @@ type SessionStore = {
   addSession: (info: SessionInfo) => void;
   removeSession: (sessionId: string) => void;
   setActiveSession: (sessionId: string | null) => void;
+  setRuntimeSuspended: (sessionId: string, suspended: boolean) => void;
 };
 
 export function prepareSessionsForPersistence(sessions: Record<string, SessionInfo>): Record<string, SessionInfo> {
   return Object.fromEntries(
     Object.entries(sessions)
       .filter(([id, session]) => !id.startsWith('file:') && !session.pendingConfig && session.name !== PENDING_SESSION_NAME)
-      .map(([id, session]) => [id, { ...session, connected: false, pendingConfig: false }]),
+      .map(([id, session]) => [id, { ...session, connected: false, pendingConfig: false, runtimeSuspended: false }]),
   );
 }
 
@@ -71,6 +73,20 @@ export const useSessionStore = create<SessionStore>()(
           };
         }),
       setActiveSession: (sessionId) => set({ sessionId }),
+      setRuntimeSuspended: (sessionId, runtimeSuspended) =>
+        set((state) => {
+          const session = state.sessions[sessionId];
+          if (!session) return state;
+          return {
+            sessions: {
+              ...state.sessions,
+              [sessionId]: {
+                ...session,
+                runtimeSuspended,
+              },
+            },
+          };
+        }),
     }),
     {
       name: 'session-storage',

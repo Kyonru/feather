@@ -241,6 +241,14 @@ async function seedTauriConnectedGame(page: Page) {
     (window as any).__FEATHER_E2E_TAURI__ = {
       commands,
       emitSessionStart: () => emitTauriEvent('feather://session-start', activeSessions[0]),
+      emitMessage: (sessionId: string, message: Record<string, unknown>) =>
+        emitTauriEvent(
+          'feather://message',
+          JSON.stringify({
+            _session: sessionId,
+            ...message,
+          }),
+        ),
     };
 
     setTimeout(() => emitTauriEvent('feather://session-start', activeSessions[0]), 0);
@@ -1771,6 +1779,71 @@ test('profiler filters wrap without horizontal overflow', async ({ page }) => {
   await expectNoBrokenText(page);
 });
 
+test('profiler action responses refresh visible capture data', async ({ page }) => {
+  await seedTauriConnectedGame(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/performance');
+  await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Profiler' }).click();
+  await page.getByRole('button', { name: 'Stop' }).click();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+          (item: { message?: { type?: string; plugin?: string; action?: string } }) =>
+            item.message?.type === 'cmd:plugin:action' &&
+            item.message.plugin === 'profiler' &&
+            item.message.action === 'stop',
+        ).length;
+      }),
+    )
+    .toBeGreaterThan(0);
+
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_E2E_TAURI__.emitMessage('live-game-session', {
+      type: 'plugin:action:response',
+      plugin: 'profiler',
+      action: 'stop',
+      status: 'success',
+      data: {
+        type: 'table',
+        columns: [],
+        data: [
+          {
+            name: 'game.update',
+            group: 'game',
+            percent: 100,
+            callsPerSecond: 60,
+            calls: 120,
+            totalTimeRaw: 0.004,
+            totalTime: '4.000 ms',
+            avgTimeRaw: 0.000033,
+            avgTime: '0.033 ms',
+            minTimeRaw: 0.00002,
+            minTime: '0.020 ms',
+            maxTimeRaw: 0.00009,
+            maxTime: '0.090 ms',
+          },
+        ],
+        loading: false,
+        recording: false,
+        captureElapsed: 1.2,
+        totalCapturedTime: 0.004,
+        snapshots: [],
+      },
+    });
+  });
+
+  await expect(page.getByText('Stopped')).toBeVisible();
+  await expect(page.getByText('game.update')).toBeVisible();
+  await expect(page.getByRole('cell', { name: '4.000 ms' })).toBeVisible();
+  await expectNoBrokenText(page);
+});
+
 test('observability triage controls filter and open observer details', async ({ page }) => {
   await seedSession(page);
   await page.setViewportSize({ width: 1180, height: 760 });
@@ -1977,6 +2050,44 @@ test('logs toolbar puts search on its own row when space is tight', async ({ pag
   await expectNoBrokenText(page);
 });
 
+test('logs follow tail scrolls to newly appended visible rows', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await page.evaluate(() => {
+    const now = Date.now() / 1000;
+    const logs = Array.from({ length: 8 }, (_, index) => ({
+      id: `tail-${index}`,
+      count: 1,
+      time: now + index,
+      type: 'output',
+      str: `Follow tail line ${index}`,
+      trace: '',
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(['demo', 'logs'], logs);
+  });
+  await expect(page.getByText('Follow tail line 7')).toBeVisible();
+
+  await page.evaluate(() => {
+    const now = Date.now() / 1000;
+    const logs = Array.from({ length: 80 }, (_, index) => ({
+      id: `tail-${index}`,
+      count: 1,
+      time: now + index,
+      type: 'output',
+      str: `Follow tail line ${index}`,
+      trace: '',
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(['demo', 'logs'], logs);
+  });
+
+  await expect(page.getByText('Follow tail line 79')).toBeVisible();
+});
+
 test('logs restore from persisted history when reopening a saved session', async ({ page }) => {
   await seedSession(page);
   await page.addInitScript(() => {
@@ -2054,6 +2165,52 @@ test('live game reconnect promotes stale connecting sessions to the real game se
   const stableCount = await requestConfigCount();
   await page.waitForTimeout(2400);
   expect(await requestConfigCount()).toBe(stableCount);
+});
+
+test('live game runtime can be suspended and resumed from the session tabs', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'settings-storage',
+      JSON.stringify({
+        state: {
+          connectionTimeout: 0.2,
+        },
+        version: 0,
+      }),
+    );
+  });
+  await seedTauriConnectedGame(page);
+  await page.goto('/');
+
+  await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Suspend Feather runtime' }).click();
+  await expect(page.getByRole('button', { name: 'Resume Feather runtime' })).toBeVisible();
+  await page.waitForTimeout(1300);
+  await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Resume Feather runtime' })).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? [])
+          .filter((item: { message?: { type?: string; action?: string } }) => item.message?.type === 'cmd:runtime')
+          .map((item: { message?: { action?: string } }) => item.message?.action);
+      }),
+    )
+    .toEqual(expect.arrayContaining(['suspend']));
+
+  await page.getByRole('button', { name: 'Resume Feather runtime' }).click();
+  await expect(page.getByRole('button', { name: 'Suspend Feather runtime' })).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? [])
+          .filter((item: { message?: { type?: string; action?: string } }) => item.message?.type === 'cmd:runtime')
+          .map((item: { message?: { action?: string } }) => item.message?.action);
+      }),
+    )
+    .toEqual(expect.arrayContaining(['suspend', 'resume']));
 });
 
 test('particle playground arms and clears runtime preview work when leaving the page', async ({ page }) => {
