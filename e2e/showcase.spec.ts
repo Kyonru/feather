@@ -127,6 +127,7 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await expect(page.getByTestId('particle-timeline-track-1')).toBeVisible();
   await expect(page.getByTestId('particle-timeline-track-2')).toBeVisible();
   await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
+  await page.getByTitle('Minimise').click();
 
   const mainWidth = await page.getByTestId('particle-playground-main').evaluate((element) => element.getBoundingClientRect().width);
   const panelWidth = await page.getByTestId('particle-timeline-panel').evaluate((element) => element.getBoundingClientRect().width);
@@ -205,8 +206,15 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await page.getByText('Opacity').click();
   await page.getByRole('button', { name: /add key at playhead/i }).click();
   await page.getByLabel('Opacity key value').first().fill('0.55');
+  const curveSelect = page.getByTestId('particle-timeline-inspector').getByLabel('Opacity key curve');
+  await curveSelect.click();
+  await page.getByRole('option', { name: 'Out Quad', exact: true }).click();
+  await expect(curveSelect).toContainText('Out Quad');
   const createdKey = page.locator('[title="Opacity 1.20s = 0.55"]').first();
   await expect(createdKey).toBeVisible();
+  await page.getByTestId('particle-timeline-keyframe-opacity-1').last().click();
+  await expect(page.getByTestId('particle-timeline-inspector').getByLabel('Opacity key curve')).toBeDisabled();
+  await createdKey.click();
   await dragLocatorBy(page, createdKey, zoomedTrackStripBox!.width * (0.4 / 3));
   await expect(page.getByLabel('Opacity key time').first()).toHaveValue('1.6');
 

@@ -336,6 +336,40 @@ local TIMELINE_LANES = {
   "offsetY",
 }
 
+local VALID_TIMELINE_EASINGS = {
+  linear = true,
+  hold = true,
+  inSine = true,
+  outSine = true,
+  inOutSine = true,
+  inQuad = true,
+  outQuad = true,
+  inOutQuad = true,
+  inCubic = true,
+  outCubic = true,
+  inOutCubic = true,
+  inQuart = true,
+  outQuart = true,
+  inOutQuart = true,
+  inExpo = true,
+  outExpo = true,
+  inOutExpo = true,
+  inBack = true,
+  outBack = true,
+  inOutBack = true,
+  inElastic = true,
+  outElastic = true,
+  inOutElastic = true,
+  inBounce = true,
+  outBounce = true,
+  inOutBounce = true,
+}
+
+local function normalizeTimelineEasing(value)
+  value = tostring(value or "linear")
+  return VALID_TIMELINE_EASINGS[value] and value or "linear"
+end
+
 local function applySystemProperties(ps, props)
   pcall(ps.setEmissionRate, ps, tonumber(props.emissionRate) or 100)
   pcall(ps.setEmitterLifetime, ps, tonumber(props.emitterLifetime) or -1)
@@ -439,6 +473,7 @@ local function normalizeTimeline(timeline, systems)
               track.lanes[lane][#track.lanes[lane] + 1] = {
                 time = math.max(0, math.min(duration, tonumber(point.time) or 0)),
                 value = tonumber(point.value) or 0,
+                easing = normalizeTimelineEasing(point.easing),
               }
             end
           end
@@ -451,6 +486,78 @@ local function normalizeTimeline(timeline, systems)
     normalized.tracks[index] = track
   end
   return normalized
+end
+
+local function easeOutBounce(t)
+  local n1 = 7.5625
+  local d1 = 2.75
+  if t < 1 / d1 then
+    return n1 * t * t
+  elseif t < 2 / d1 then
+    t = t - 1.5 / d1
+    return n1 * t * t + 0.75
+  elseif t < 2.5 / d1 then
+    t = t - 2.25 / d1
+    return n1 * t * t + 0.9375
+  end
+  t = t - 2.625 / d1
+  return n1 * t * t + 0.984375
+end
+
+local function easeTimelineValue(easing, t)
+  easing = normalizeTimelineEasing(easing)
+  t = math.max(0, math.min(1, t))
+  local c1 = 1.70158
+  local c2 = c1 * 1.525
+  local c3 = c1 + 1
+  local c4 = (2 * math.pi) / 3
+  local c5 = (2 * math.pi) / 4.5
+  if easing == "hold" then return 0 end
+  if easing == "inSine" then return 1 - math.cos((t * math.pi) / 2) end
+  if easing == "outSine" then return math.sin((t * math.pi) / 2) end
+  if easing == "inOutSine" then return -(math.cos(math.pi * t) - 1) / 2 end
+  if easing == "inQuad" then return t * t end
+  if easing == "outQuad" then return 1 - (1 - t) * (1 - t) end
+  if easing == "inOutQuad" then return t < 0.5 and 2 * t * t or 1 - ((-2 * t + 2) ^ 2) / 2 end
+  if easing == "inCubic" then return t * t * t end
+  if easing == "outCubic" then return 1 - ((1 - t) ^ 3) end
+  if easing == "inOutCubic" then return t < 0.5 and 4 * t * t * t or 1 - ((-2 * t + 2) ^ 3) / 2 end
+  if easing == "inQuart" then return t * t * t * t end
+  if easing == "outQuart" then return 1 - ((1 - t) ^ 4) end
+  if easing == "inOutQuart" then return t < 0.5 and 8 * t * t * t * t or 1 - ((-2 * t + 2) ^ 4) / 2 end
+  if easing == "inExpo" then return t == 0 and 0 or 2 ^ (10 * t - 10) end
+  if easing == "outExpo" then return t == 1 and 1 or 1 - 2 ^ (-10 * t) end
+  if easing == "inOutExpo" then
+    if t == 0 or t == 1 then return t end
+    return t < 0.5 and (2 ^ (20 * t - 10)) / 2 or (2 - 2 ^ (-20 * t + 10)) / 2
+  end
+  if easing == "inBack" then return c3 * t * t * t - c1 * t * t end
+  if easing == "outBack" then return 1 + c3 * ((t - 1) ^ 3) + c1 * ((t - 1) ^ 2) end
+  if easing == "inOutBack" then
+    return t < 0.5
+      and (((2 * t) ^ 2) * ((c2 + 1) * 2 * t - c2)) / 2
+      or (((2 * t - 2) ^ 2) * ((c2 + 1) * (2 * t - 2) + c2) + 2) / 2
+  end
+  if easing == "inElastic" then
+    if t == 0 or t == 1 then return t end
+    return -(2 ^ (10 * t - 10)) * math.sin((t * 10 - 10.75) * c4)
+  end
+  if easing == "outElastic" then
+    if t == 0 or t == 1 then return t end
+    return (2 ^ (-10 * t)) * math.sin((t * 10 - 0.75) * c4) + 1
+  end
+  if easing == "inOutElastic" then
+    if t == 0 or t == 1 then return t end
+    return t < 0.5
+      and -((2 ^ (20 * t - 10)) * math.sin((20 * t - 11.125) * c5)) / 2
+      or ((2 ^ (-20 * t + 10)) * math.sin((20 * t - 11.125) * c5)) / 2 + 1
+  end
+  if easing == "inBounce" then return 1 - easeOutBounce(1 - t) end
+  if easing == "outBounce" then return easeOutBounce(t) end
+  if easing == "inOutBounce" then
+    return t < 0.5 and (1 - easeOutBounce(1 - 2 * t)) / 2 or (1 + easeOutBounce(2 * t - 1)) / 2
+  end
+  return t
 end
 
 local function evaluateKeyframes(points, time, fallback)
@@ -468,9 +575,10 @@ local function evaluateKeyframes(points, time, fallback)
     if time >= at and time <= bt then
       local span = math.max(0.0001, bt - at)
       local t = math.max(0, math.min(1, (time - at) / span))
+      local eased = easeTimelineValue(a.easing, t)
       local av = tonumber(a.value) or fallback
       local bv = tonumber(b.value) or fallback
-      return av + (bv - av) * t
+      return av + (bv - av) * eased
     end
   end
   return tonumber(points[#points].value) or fallback

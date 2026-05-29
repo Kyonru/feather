@@ -50,6 +50,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "local timeline = {"), "particle playground export includes timeline data")
     assertTruthy(contains(code, "local timelineState = { time = 0, playing = false }"), "particle playground export includes timeline state")
     assertTruthy(contains(code, "local function applyTimeline(time, allowEmission)"), "particle playground export includes timeline evaluator")
+    assertTruthy(contains(code, "local function easeTimeline"), "particle playground export includes easing evaluator")
     assertTruthy(contains(code, "local function clipAllowsEmission"), "particle playground export includes lifetime-aware clip emission")
     assertTruthy(contains(code, "not allowEmission or not trackAllowsEmission"), "particle playground export mutes paused timeline emission")
     assertTruthy(contains(code, "local function emitTimelineStartsForAdvance"), "particle playground export preserves timeline tails across loop wraps")
@@ -210,8 +211,8 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
                   { id = "rate-b", time = 1, value = 20 },
                 },
                 opacity = {
-                  { id = "alpha-a", time = 0, value = 1 },
-                  { id = "alpha-b", time = 1, value = 0 },
+                  { id = "alpha-a", time = 0, value = 0, easing = "outQuad" },
+                  { id = "alpha-b", time = 1, value = 1 },
                 },
               },
             },
@@ -229,7 +230,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     })
     local timelineSystem = plugin:_getSystemEntry("Timeline Playback", 1)
     assertEqual(timelineSystem.system:getEmissionRate(), 0, "particle timeline seek mutes paused continuous emission")
-    assertEqual(timelineSystem._timelineOpacity, 0.5, "particle timeline seek still evaluates non-emission keyframes")
+    assertEqual(timelineSystem._timelineOpacity, 0.75, "particle timeline seek evaluates eased non-emission keyframes")
     plugin:handleActionRequest({
       params = {
         action = "timeline-control",

@@ -2473,6 +2473,7 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   await page.getByText('Opacity').click();
   await page.getByRole('button', { name: /add key at playhead/i }).click();
   await page.getByLabel('Opacity key value').first().fill('0.4');
+  await expect(page.getByTestId('particle-timeline-inspector').getByLabel('Opacity key curve')).toBeDisabled();
   await expect(page.getByTestId('particle-timeline-lane-opacity-1').getByText('1 keys')).toBeVisible();
   const keyframe = page.locator('[title="Opacity 0.00s = 0.4"]').first();
   await expect(keyframe).toBeVisible();

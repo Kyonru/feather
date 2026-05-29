@@ -1,5 +1,6 @@
 import {
   PARTICLE_TIMELINE_LANES,
+  type ParticleTimelineEasing,
   type ParticleSystemPlaygroundCompositeData,
   type ParticleSystemPlaygroundProjectFile,
   type ParticleSystemPlaygroundProjectSystem,
@@ -11,6 +12,7 @@ import {
   type ParticleTimelineLane,
   type ParticleTimelineTrack,
 } from '@/types/particle-system-playground';
+import { easeParticleTimelineValue, normalizeParticleTimelineEasing } from './easing';
 
 export const PARTICLE_PROJECT_TYPE = 'feather.particle-system-playground';
 export const PARTICLE_PROJECT_VERSION = 2;
@@ -55,11 +57,18 @@ function idPart(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'item';
 }
 
-function keyframe(lane: ParticleTimelineLane, systemIndex: number, time: number, value: number): ParticleTimelineKeyframe {
+function keyframe(
+  lane: ParticleTimelineLane,
+  systemIndex: number,
+  time: number,
+  value: number,
+  easing?: ParticleTimelineEasing,
+): ParticleTimelineKeyframe {
   return {
     id: `${idPart(lane)}-${systemIndex}-${String(time).replace('.', '-')}`,
     time,
     value,
+    ...(easing && easing !== 'linear' ? { easing } : {}),
   };
 }
 
@@ -84,7 +93,7 @@ function authoredTrack(
   system: Pick<ParticleSystemPlaygroundSystem, 'index' | 'emitAtStart'>,
   start: number,
   end: number,
-  lanes: Partial<Record<ParticleTimelineLane, Array<[number, number]>>>,
+  lanes: Partial<Record<ParticleTimelineLane, Array<[number, number, ParticleTimelineEasing?]>>>,
   emit?: number,
 ): ParticleTimelineTrack {
   const track: ParticleTimelineTrack = {
@@ -93,8 +102,8 @@ function authoredTrack(
     lanes: {},
   };
 
-  for (const [lane, points] of Object.entries(lanes) as Array<[ParticleTimelineLane, Array<[number, number]>]>) {
-    track.lanes[lane] = points.map(([time, value]) => keyframe(lane, system.index, time, value));
+  for (const [lane, points] of Object.entries(lanes) as Array<[ParticleTimelineLane, Array<[number, number, ParticleTimelineEasing?]>]>) {
+    track.lanes[lane] = points.map(([time, value, easing]) => keyframe(lane, system.index, time, value, easing));
   }
 
   return track;
@@ -114,30 +123,30 @@ export function timelineForTemplate(
       tracks: [
         authoredTrack(systems[0], 0, 0.42, {
           opacity: [
-            [0, 1],
-            [0.32, 0.78],
+            [0, 1, 'outExpo'],
+            [0.32, 0.78, 'inQuad'],
             [0.42, 0],
           ],
           emissionRate: [
-            [0, 950],
-            [0.18, 280],
+            [0, 950, 'outExpo'],
+            [0.18, 280, 'inQuad'],
             [0.42, 0],
           ],
           sizeScale: [
-            [0, 0.7],
-            [0.2, 1.45],
+            [0, 0.7, 'outBack'],
+            [0.2, 1.45, 'inQuad'],
             [0.42, 0.55],
           ],
         }, 220),
         authoredTrack(systems[1], 0.08, 2.8, {
           opacity: [
             [0.08, 0],
-            [0.32, 0.72],
+            [0.32, 0.72, 'outSine'],
             [2.8, 0],
           ],
           speedScale: [
-            [0.08, 1.2],
-            [1.1, 0.45],
+            [0.08, 1.2, 'outCubic'],
+            [1.1, 0.45, 'outSine'],
             [2.8, 0.15],
           ],
           sizeScale: [
@@ -427,13 +436,13 @@ export function timelineForTemplate(
       tracks: systems.map((system) =>
         authoredTrack(system, 0, duration, {
           opacity: [
-            [0, 0.55],
-            [1.5, 0.7],
+            [0, 0.55, 'inOutSine'],
+            [1.5, 0.7, 'inOutSine'],
             [3, 0.5],
           ],
           sizeScale: [
-            [0, 0.85],
-            [1.5, 1.2],
+            [0, 0.85, 'outSine'],
+            [1.5, 1.2, 'inOutSine'],
             [3, 1],
           ],
           offsetY: [
@@ -452,9 +461,9 @@ export function timelineForTemplate(
       tracks: systems.map((system) =>
         authoredTrack(system, 0, duration, {
           opacity: [
-            [0, 1],
-            [0.9, 0.55],
-            [1.7, 1],
+            [0, 1, 'outSine'],
+            [0.9, 0.55, 'inOutSine'],
+            [1.7, 1, 'outSine'],
             [3, 0.65],
           ],
           emissionRate: [
@@ -484,12 +493,11 @@ function normalizeKeyframes(
   return raw
     .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
     .map((item, index): ParticleTimelineKeyframe => {
-      const easing: ParticleTimelineKeyframe['easing'] = item.easing === 'hold' ? 'hold' : 'linear';
       return {
         id: String(item.id || `${lane}-${index}`),
         time: clamp(finiteNumber(item.time, 0), 0, duration),
         value: finiteNumber(item.value, PARTICLE_TIMELINE_LANE_DEFAULTS[lane]),
-        easing,
+        easing: normalizeParticleTimelineEasing(item.easing),
       };
     })
     .sort((a, b) => a.time - b.time);
@@ -649,10 +657,10 @@ export function evaluateParticleKeyframes(
     const current = sorted[i];
     const next = sorted[i + 1];
     if (time >= current.time && time <= next.time) {
-      if (current.easing === 'hold') return current.value;
       const span = Math.max(0.0001, next.time - current.time);
       const t = clamp((time - current.time) / span, 0, 1);
-      return current.value + (next.value - current.value) * t;
+      const eased = easeParticleTimelineValue(current.easing, t);
+      return current.value + (next.value - current.value) * eased;
     }
   }
   return sorted[sorted.length - 1].value;

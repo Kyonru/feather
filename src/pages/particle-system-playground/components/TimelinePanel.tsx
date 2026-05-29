@@ -12,7 +12,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettingsStore } from '@/store/settings';
+import {
+  PARTICLE_TIMELINE_EASING_LABELS,
+  normalizeParticleTimelineEasing,
+} from '../easing';
 import {
   PARTICLE_TIMELINE_LANE_DEFAULTS,
   PARTICLE_TIMELINE_LANE_LABELS,
@@ -23,9 +28,11 @@ import {
 import { ParticleNumberInput } from './ParticleNumberInput';
 import {
   PARTICLE_TIMELINE_LANES,
+  PARTICLE_TIMELINE_EASINGS,
   type ParticleSystemPlaygroundCompositeData,
   type ParticleSystemPlaygroundSystem,
   type ParticleTimeline,
+  type ParticleTimelineEasing,
   type ParticleTimelineClip,
   type ParticleTimelineKeyframe,
   type ParticleTimelineLane,
@@ -254,6 +261,13 @@ export function TimelinePanel({
     selectedItem?.type === 'keyframe' && selectedTrack
       ? sortedKeyframes(selectedTrack.lanes[selectedItem.lane]).find((point) => point.id === selectedItem.keyframeId) ?? null
       : null;
+  const selectedKeyframes =
+    selectedItem?.type === 'keyframe' && selectedTrack ? sortedKeyframes(selectedTrack.lanes[selectedItem.lane]) : [];
+  const selectedKeyframeIndex = selectedKeyframe
+    ? selectedKeyframes.findIndex((point) => point.id === selectedKeyframe.id)
+    : -1;
+  const selectedKeyframeHasOutgoingSegment =
+    selectedKeyframeIndex >= 0 && selectedKeyframeIndex < selectedKeyframes.length - 1;
 
   useEffect(() => {
     displayTimeRef.current = displayTime;
@@ -458,6 +472,30 @@ export function TimelinePanel({
               ? {
                   ...point,
                   [key]: key === 'time' ? snapTime(value) : value,
+                }
+              : point,
+          ),
+        },
+      })),
+    );
+  };
+
+  const updateKeyframeEasing = (
+    systemIndex: number,
+    lane: ParticleTimelineLane,
+    id: string,
+    easing: ParticleTimelineEasing,
+  ) => {
+    commitTimeline(
+      updateTrack(timeline, systemIndex, (track) => ({
+        ...track,
+        lanes: {
+          ...track.lanes,
+          [lane]: sortedKeyframes(track.lanes[lane]).map((point) =>
+            point.id === id
+              ? {
+                  ...point,
+                  easing: normalizeParticleTimelineEasing(easing),
                 }
               : point,
           ),
@@ -1152,7 +1190,7 @@ export function TimelinePanel({
               </div>
             </div>
           ) : selectedKeyframe && selectedLane ? (
-            <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+            <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
               <label className="grid gap-1 text-[10px] text-muted-foreground">
                 Time
                 <ParticleNumberInput
@@ -1172,6 +1210,32 @@ export function TimelinePanel({
                   value={selectedKeyframe.value}
                   onValueChange={(value) => updateKeyframe(selectedTrack.systemIndex, selectedLane, selectedKeyframe.id, 'value', value)}
                 />
+              </label>
+              <label className="grid gap-1 text-[10px] text-muted-foreground">
+                Curve to next key
+                <Select
+                  value={normalizeParticleTimelineEasing(selectedKeyframe.easing)}
+                  disabled={!selectedKeyframeHasOutgoingSegment}
+                  onValueChange={(value) =>
+                    updateKeyframeEasing(
+                      selectedTrack.systemIndex,
+                      selectedLane,
+                      selectedKeyframe.id,
+                      value as ParticleTimelineEasing,
+                    )
+                  }
+                >
+                  <SelectTrigger aria-label={`${PARTICLE_TIMELINE_LANE_LABELS[selectedLane]} key curve`} className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PARTICLE_TIMELINE_EASINGS.map((easing) => (
+                      <SelectItem key={easing} value={easing}>
+                        {PARTICLE_TIMELINE_EASING_LABELS[easing]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </label>
               <Button
                 size="icon"

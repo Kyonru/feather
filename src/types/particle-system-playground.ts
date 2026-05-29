@@ -93,11 +93,42 @@ export const PARTICLE_TIMELINE_LANES = [
 
 export type ParticleTimelineLane = (typeof PARTICLE_TIMELINE_LANES)[number];
 
+export const PARTICLE_TIMELINE_EASINGS = [
+  'linear',
+  'hold',
+  'inSine',
+  'outSine',
+  'inOutSine',
+  'inQuad',
+  'outQuad',
+  'inOutQuad',
+  'inCubic',
+  'outCubic',
+  'inOutCubic',
+  'inQuart',
+  'outQuart',
+  'inOutQuart',
+  'inExpo',
+  'outExpo',
+  'inOutExpo',
+  'inBack',
+  'outBack',
+  'inOutBack',
+  'inElastic',
+  'outElastic',
+  'inOutElastic',
+  'inBounce',
+  'outBounce',
+  'inOutBounce',
+] as const;
+
+export type ParticleTimelineEasing = (typeof PARTICLE_TIMELINE_EASINGS)[number];
+
 export type ParticleTimelineKeyframe = {
   id: string;
   time: number;
   value: number;
-  easing?: 'linear' | 'hold';
+  easing?: ParticleTimelineEasing;
 };
 
 export type ParticleTimelineClip = {

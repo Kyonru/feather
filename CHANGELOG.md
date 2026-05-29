@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Particle System Playground timing controls so clip entry time is shown as Emit At and burst counts are shown separately from timing.
 - Particle System Playground timelines now treat clips as emission windows, intersect clip timing with Emitter Lifetime, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
 - Particle System Playground timeline playback now animates the visible playhead smoothly between runtime updates instead of jumping in coarse connected-game intervals.
+- Particle System Playground timeline keyframes now support curated easing curves, including hold, sine, quad, cubic, quart, expo, back, elastic, and bounce shapes.
 - Particle System Playground keeps the local love.js preview in the browser showcase, while the Feather/Tauri app now uses connected-game runtime preview only through the explicit Show in Game toggle.
 - Particle System Playground showcase previews now float over the editor and keep a locked 16:9 love.js canvas aspect ratio.
 - Particle System Playground replaced the header Emit action with a Play action that starts timeline playback.
@@ -129,6 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Lua, showcase, and app e2e coverage for preserving Particle System Playground timeline values when emitters are reordered.
 - Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
 - Expanded showcase and app e2e coverage for smooth Particle System Playground timeline playback.
+- Added focused, Lua, showcase, and app e2e coverage for Particle System Playground timeline easing curves.
 - Expanded app and showcase e2e coverage for Particle System Playground showcase-local previews and Feather on-demand connected-game preview activation.
 - Expanded showcase e2e coverage for the floating, aspect-locked Particle System Playground preview.
 - Expanded app and showcase e2e coverage for the Particle System Playground header Play action replacing Emit.
