@@ -87,9 +87,7 @@ function featherLoveJsPreviewPlugin(): Plugin {
         response.writeHead(200, {
           ...loveJsPreviewHeaders,
           "Content-Type": contentTypeForLoveJsPath(filePath),
-          "Cache-Control": filePath.endsWith(".html") || filePath.endsWith(".love")
-            ? "no-cache"
-            : "public, max-age=3600",
+          "Cache-Control": "no-store",
         });
         createReadStream(filePath).pipe(response);
       } catch (error) {
@@ -144,9 +142,18 @@ const loveJsPreviewHeaders = {
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' blob: data: ws:; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'",
 };
 
+const viteDevHeaders = {
+  ...loveJsPreviewHeaders,
+  "Cache-Control": "no-store",
+};
+
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
+  cacheDir: "node_modules/.vite/feather-app",
   plugins: [featherLoveJsPreviewPlugin(), react(), tailwindcss()],
+  optimizeDeps: {
+    include: ["react", "react-dom", "react/jsx-runtime", "react-router"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -173,7 +180,7 @@ export default defineConfig(async () => ({
       // 3. tell vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**", "**/.showcase-dev/**"],
     },
-    headers: loveJsPreviewHeaders,
+    headers: viteDevHeaders,
   },
   preview: {
     headers: loveJsPreviewHeaders,

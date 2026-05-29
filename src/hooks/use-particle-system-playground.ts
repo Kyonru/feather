@@ -39,6 +39,7 @@ type ParamValue = string | number | boolean;
 type ParamBatch = Record<string, ParamValue>;
 type ScopedParamBatches = Record<string, ParamBatch>;
 type ActionParams = Record<string, unknown>;
+type TimelineStateByComposite = Record<string, ParticleTimelineState>;
 
 function targetKey(composite: string, systemIndex: number) {
   return `${composite}\u0000${systemIndex}`;
@@ -166,6 +167,16 @@ function updateTimelineStateDraft(
   };
 }
 
+function clampTimelineState(state: ParticleTimelineState, duration: number): ParticleTimelineState {
+  const safeDuration = Math.max(0.01, Number.isFinite(duration) ? duration : 3);
+  const time = Math.max(0, Math.min(safeDuration, Number(state.time) || 0));
+  return {
+    time,
+    playing: state.playing === true,
+    scrubVersion: Number.isFinite(Number(state.scrubVersion)) ? Number(state.scrubVersion) : 0,
+  };
+}
+
 function valuesEqual(a: unknown, b: unknown) {
   if (typeof a === 'number' || typeof b === 'number') {
     return Math.abs(Number(a) - Number(b)) < 0.0001;
@@ -210,6 +221,7 @@ export function useParticleSystemPlayground() {
   const pendingParams = useRef<ScopedParamBatches>({});
   const pendingTimelineSeek = useRef<{ composite: string; time: number } | null>(null);
   const [optimisticParams, setOptimisticParams] = useState<ScopedParamBatches>({});
+  const [localTimelineStates, setLocalTimelineStates] = useState<TimelineStateByComposite>({});
 
   const { data: serverData } = useQuery<ParticleSystemPlaygroundData>({
     queryKey: sessionQueryKey.plugin(sessionId ?? '', PLUGIN_ID),
@@ -220,8 +232,19 @@ export function useParticleSystemPlayground() {
 
   const data = useMemo(() => {
     const draft = updateDraft(serverData, optimisticParams) ?? serverData;
-    return draft.data ? { ...draft, data: withNormalizedTimeline(draft.data) } : draft;
-  }, [serverData, optimisticParams]);
+    if (!draft.data) return draft;
+    const normalized = withNormalizedTimeline(draft.data);
+    const localState = draft.activeComposite ? localTimelineStates[draft.activeComposite] : undefined;
+    return {
+      ...draft,
+      data: {
+        ...normalized,
+        timelineState: localState
+          ? clampTimelineState(localState, normalized.timeline?.duration ?? 3)
+          : normalized.timelineState,
+      },
+    };
+  }, [localTimelineStates, serverData, optimisticParams]);
 
   const lastShaderResponse = useQuery<{ status?: string; message?: string }>({
     queryKey: sessionQueryKey.pluginAction(sessionId ?? '', PLUGIN_ID, 'set-shader'),
@@ -380,12 +403,69 @@ export function useParticleSystemPlayground() {
 
   const setTimelineState = useCallback(
     (state: Partial<ParticleTimelineState>) => {
+      const composite = data.activeComposite ?? '';
+      if (composite) {
+        setLocalTimelineStates((current) => {
+          const previous = current[composite] ?? data.data?.timelineState ?? { time: 0, playing: false, scrubVersion: 0 };
+          return {
+            ...current,
+            [composite]: {
+              ...previous,
+              ...state,
+              scrubVersion: state.time !== undefined ? (previous.scrubVersion ?? 0) + 1 : previous.scrubVersion,
+            },
+          };
+        });
+      }
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>
         updateTimelineStateDraft(current, state),
       );
     },
-    [pluginQueryKey, queryClient],
+    [data.activeComposite, data.data?.timelineState, pluginQueryKey, queryClient],
   );
+
+  const localTimeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
+  const localTimelineDuration = localTimeline?.duration ?? 0;
+  const localTimelineLoop = localTimeline?.loop === true;
+  const localTimelinePlaying = data.data?.timelineState?.playing === true;
+
+  useEffect(() => {
+    const composite = data.activeComposite;
+    const initialTimelineState = data.data?.timelineState;
+    if (!composite || localTimelineDuration <= 0 || !localTimelinePlaying) return;
+
+    let last = performance.now();
+    const interval = window.setInterval(() => {
+      const now = performance.now();
+      const dt = Math.max(0, Math.min(0.12, (now - last) / 1000));
+      last = now;
+      setLocalTimelineStates((current) => {
+        const previous = current[composite] ?? initialTimelineState ?? { time: 0, playing: true, scrubVersion: 0 };
+        if (previous.playing !== true) return current;
+        const duration = Math.max(0.01, localTimelineDuration);
+        let nextTime = (Number(previous.time) || 0) + dt;
+        let nextPlaying = true;
+        if (nextTime > duration) {
+          if (localTimelineLoop) {
+            nextTime %= duration;
+          } else {
+            nextTime = duration;
+            nextPlaying = false;
+          }
+        }
+        return {
+          ...current,
+          [composite]: {
+            ...previous,
+            time: nextTime,
+            playing: nextPlaying,
+          },
+        };
+      });
+    }, 33);
+
+    return () => window.clearInterval(interval);
+  }, [data.activeComposite, localTimelineDuration, localTimelineLoop, localTimelinePlaying]);
 
   const sendTimelineSeek = useMemo(
     () =>
@@ -469,31 +549,38 @@ export function useParticleSystemPlayground() {
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => updateTimelineDraft(current, timeline));
       refreshAfterAction('set-timeline', { timeline });
     },
-    playTimeline: () => {
+    playTimeline: (sendRuntime = true) => {
       const timeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
       const time = data.data?.timelineState?.time ?? 0;
       const restart = !!timeline && !timeline.loop && time >= timeline.duration - 0.001;
       setTimelineState({ ...(restart ? { time: 0 } : {}), playing: true });
+      if (!sendRuntime) return;
       refreshAfterAction('timeline-control', { command: 'play' });
     },
-    pauseTimeline: (time?: number) => {
+    pauseTimeline: (time?: number, sendRuntime = true) => {
       setTimelineState({
         ...(typeof time === 'number' && Number.isFinite(time) ? { time } : {}),
         playing: false,
       });
+      if (!sendRuntime) return;
       refreshAfterAction('timeline-control', {
         command: 'pause',
         ...(typeof time === 'number' && Number.isFinite(time) ? { time } : {}),
       });
     },
-    stopTimeline: () => {
+    stopTimeline: (sendRuntime = true) => {
       setTimelineState({ time: 0, playing: false });
       pendingTimelineSeek.current = null;
+      if (!sendRuntime) return;
       refreshAfterAction('timeline-control', { command: 'stop', time: 0 });
     },
-    seekTimeline: (time: number, immediate = false) => {
+    seekTimeline: (time: number, immediate = false, sendRuntime = true) => {
       const composite = data.activeComposite ?? '';
       setTimelineState({ time, playing: false });
+      if (!sendRuntime) {
+        pendingTimelineSeek.current = null;
+        return;
+      }
       if (immediate) {
         pendingTimelineSeek.current = null;
         refreshAfterAction('timeline-control', { command: 'seek', time, composite });

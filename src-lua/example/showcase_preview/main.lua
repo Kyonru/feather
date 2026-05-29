@@ -317,6 +317,8 @@ local particleState = {
   systems = {},
   timeline = nil,
   timelineState = { time = 0, playing = false },
+  payloadSignature = "",
+  lastScrubVersion = -1,
 }
 
 local TIMELINE_LANES = {
@@ -470,16 +472,69 @@ local function evaluateKeyframes(points, time, fallback)
   return tonumber(points[#points].value) or fallback
 end
 
-local function trackActive(track, time)
+local function stableSignature(value)
+  local valueType = type(value)
+  if valueType == "table" then
+    local keys = {}
+    for key in pairs(value) do
+      if key ~= "timelineState" then
+        keys[#keys + 1] = key
+      end
+    end
+    table.sort(keys, function(a, b)
+      return tostring(a) < tostring(b)
+    end)
+    local parts = { "{" }
+    for _, key in ipairs(keys) do
+      parts[#parts + 1] = tostring(key)
+      parts[#parts + 1] = ":"
+      parts[#parts + 1] = stableSignature(value[key])
+      parts[#parts + 1] = ";"
+    end
+    parts[#parts + 1] = "}"
+    return table.concat(parts)
+  elseif valueType == "number" then
+    return string.format("%.6f", value)
+  elseif valueType == "boolean" then
+    return value and "true" or "false"
+  end
+  return tostring(value)
+end
+
+local function particlePayloadSignature(payload)
+  local composite = type(payload) == "table" and payload.composite or nil
+  if type(composite) ~= "table" then
+    return ""
+  end
+  return stableSignature({
+    activeComposite = payload.activeComposite,
+    composite = composite,
+  })
+end
+
+local function clipAllowsEmission(clip, time, emitterLifetime)
+  local startTime = tonumber(clip and clip.start) or 0
+  local endTime = tonumber(clip and clip["end"]) or 0
+  if time < startTime or time > endTime then
+    return false
+  end
+  local lifetime = tonumber(emitterLifetime) or -1
+  if lifetime < 0 then
+    return true
+  end
+  return time <= startTime + lifetime
+end
+
+local function trackAllowsEmission(track, time, emitterLifetime)
   for _, clip in ipairs(track and track.clips or {}) do
-    if time >= (tonumber(clip.start) or 0) and time <= (tonumber(clip["end"]) or 0) then
+    if clipAllowsEmission(clip, time, emitterLifetime) then
       return true
     end
   end
   return false
 end
 
-local function applyTimelineAt(time)
+local function applyTimelineAt(time, allowEmission)
   local timeline = particleState.timeline
   if type(timeline) ~= "table" then
     return
@@ -489,9 +544,9 @@ local function applyTimelineAt(time)
     if entry and entry.ps and entry.enabled then
       local base = entry.base or {}
       local lanes = track.lanes or {}
-      pcall(entry.ps.setEmitterLifetime, entry.ps, -1)
+      local active = trackAllowsEmission(track, time, tonumber(base.emitterLifetime) or -1)
       local rate = evaluateKeyframes(lanes.emissionRate, time, tonumber(base.emissionRate) or 0)
-      if not trackActive(track, time) then
+      if not active or allowEmission ~= true then
         rate = 0
       end
       pcall(entry.ps.setEmissionRate, entry.ps, rate)
@@ -529,7 +584,9 @@ local function emitTimelineStarts(previousTime, nextTime)
       for _, clip in ipairs(track.clips or {}) do
         local startTime = tonumber(clip.start) or 0
         if previousTime <= startTime and nextTime >= startTime then
+          local base = entry.base or {}
           local count = math.max(0, math.floor(tonumber(clip.emit) or tonumber(entry.emitAtStart) or 0))
+          pcall(entry.ps.setEmitterLifetime, entry.ps, tonumber(base.emitterLifetime) or -1)
           pcall(entry.ps.start, entry.ps)
           if count > 0 then
             pcall(entry.ps.emit, entry.ps, count)
@@ -578,6 +635,8 @@ local function resetParticleSystems()
   for _, entry in ipairs(particleState.systems) do
     if entry.ps then
       pcall(entry.ps.reset, entry.ps)
+      local base = entry.base or {}
+      pcall(entry.ps.setEmitterLifetime, entry.ps, tonumber(base.emitterLifetime) or -1)
       pcall(entry.ps.start, entry.ps)
     end
   end
@@ -600,7 +659,7 @@ local function seekParticleTimeline(time, playing)
   while current < target and steps < 600 do
     local nextTime = math.min(target, current + step)
     emitTimelineStarts(current, nextTime)
-    applyTimelineAt(nextTime)
+    applyTimelineAt(nextTime, true)
     for _, entry in ipairs(particleState.systems) do
       if entry.ps and entry.enabled then
         pcall(entry.ps.update, entry.ps, nextTime - current)
@@ -609,7 +668,39 @@ local function seekParticleTimeline(time, playing)
     current = nextTime
     steps = steps + 1
   end
-  applyTimelineAt(target)
+  applyTimelineAt(target, playing == true)
+end
+
+local function syncParticleTimelineState(state)
+  if type(state) ~= "table" or type(particleState.timeline) ~= "table" then
+    return
+  end
+
+  local duration = tonumber(particleState.timeline.duration) or 3
+  local currentTime = tonumber(particleState.timelineState.time) or 0
+  local target = math.max(0, math.min(duration, tonumber(state.time) or currentTime))
+  local incomingPlaying = state.playing == true
+  local scrubVersion = tonumber(state.scrubVersion) or particleState.lastScrubVersion
+  local wasPlaying = particleState.timelineState.playing == true
+  local explicitSeek = scrubVersion ~= particleState.lastScrubVersion and not wasPlaying and not incomingPlaying
+
+  if explicitSeek then
+    seekParticleTimeline(target, incomingPlaying)
+  else
+    if incomingPlaying and wasPlaying then
+      if target >= currentTime then
+        emitTimelineStarts(currentTime, target)
+      elseif particleState.timeline.loop then
+        emitTimelineStarts(currentTime, duration)
+        emitTimelineStarts(0, target)
+      end
+    end
+    particleState.timelineState.time = target
+    particleState.timelineState.playing = incomingPlaying
+    applyTimelineAt(target, incomingPlaying)
+  end
+
+  particleState.lastScrubVersion = scrubVersion
 end
 
 local function applyParticlePayload(payload)
@@ -662,6 +753,7 @@ local function applyParticlePayload(payload)
             opacity = 1,
             base = {
               emissionRate = tonumber(props.emissionRate) or 100,
+              emitterLifetime = tonumber(props.emitterLifetime) or -1,
               speedMin = tonumber(props.speedMin) or 40,
               speedMax = tonumber(props.speedMax) or 140,
               sizes = parseCsvNumbers(props.sizes),
@@ -678,6 +770,7 @@ local function applyParticlePayload(payload)
 
   particleState.timeline = normalizeTimeline(composite.timeline, systems)
   local incomingState = type(composite.timelineState) == "table" and composite.timelineState or {}
+  particleState.lastScrubVersion = tonumber(incomingState.scrubVersion) or -1
   seekParticleTimeline(tonumber(incomingState.time) or 0, incomingState.playing == true)
 end
 
@@ -747,9 +840,19 @@ local function pollPayload()
   local tool = tostring(payload.tool or "idle")
   pollState.tool = tool
   if tool == "shader-graph" then
+    particleState.payloadSignature = ""
     pcall(applyShaderPayload, payload)
   elseif tool == "particle-system-playground" then
-    pcall(applyParticlePayload, payload)
+    local signature = particlePayloadSignature(payload)
+    if signature ~= particleState.payloadSignature then
+      particleState.payloadSignature = signature
+      pcall(applyParticlePayload, payload)
+    else
+      local composite = type(payload.composite) == "table" and payload.composite or nil
+      pcall(syncParticleTimelineState, type(composite) == "table" and composite.timelineState or nil)
+    end
+  else
+    particleState.payloadSignature = ""
   end
 end
 
@@ -763,28 +866,30 @@ function love.update(dt)
     pollState.pollTimer = 0
     pollPayload()
   end
-  local timeline = particleState.timeline
-  if type(timeline) == "table" and particleState.timelineState.playing then
-    local duration = tonumber(timeline.duration) or 3
-    local previous = particleState.timelineState.time or 0
-    local nextTime = previous + dt
-    if nextTime > duration then
-      if timeline.loop then
-        nextTime = emitTimelineStartsForAdvance(previous, dt, duration)
+  if pollState.tool == "particle-system-playground" then
+    local timeline = particleState.timeline
+    if type(timeline) == "table" and particleState.timelineState.playing then
+      local duration = tonumber(timeline.duration) or 3
+      local previous = particleState.timelineState.time or 0
+      local nextTime = previous + dt
+      if nextTime > duration then
+        if timeline.loop then
+          nextTime = emitTimelineStartsForAdvance(previous, dt, duration)
+        else
+          emitTimelineStarts(previous, duration)
+          nextTime = duration
+          particleState.timelineState.playing = false
+        end
       else
-        emitTimelineStarts(previous, duration)
-        nextTime = duration
-        particleState.timelineState.playing = false
+        emitTimelineStarts(previous, nextTime)
       end
-    else
-      emitTimelineStarts(previous, nextTime)
+      particleState.timelineState.time = nextTime
     end
-    particleState.timelineState.time = nextTime
-  end
-  applyTimelineAt(particleState.timelineState.time or 0)
-  for _, entry in ipairs(particleState.systems) do
-    if entry.ps then
-      pcall(entry.ps.update, entry.ps, dt)
+    applyTimelineAt(particleState.timelineState.time or 0, particleState.timelineState.playing == true)
+    for _, entry in ipairs(particleState.systems) do
+      if entry.ps then
+        pcall(entry.ps.update, entry.ps, dt)
+      end
     end
   end
 end

@@ -25,6 +25,7 @@
     "extension:package": "npm run extension:binary && npm run extension:build && npm run generate:icon --workspace=vscode-extension && cd vscode-extension && npx @vscode/vsce package",
     "feather": "npm run bundle:lua --workspace=cli && npm run cli:build && node cli/dist/index.js",
     "dev": "vite",
+    "dev:tauri": "vite --force",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
     "docs": "docker run --rm -it -p 8000:8000 -v \"$(pwd):/docs\" -w /docs --entrypoint sh squidfunk/mkdocs-material -c \"pip install -r requirements-docs.txt && mkdocs serve --dev-addr=0.0.0.0:8000\"",
     "native": "npm run tauri build -- --debug",

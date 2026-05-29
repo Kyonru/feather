@@ -2213,7 +2213,8 @@ test('live game runtime can be suspended and resumed from the session tabs', asy
     .toEqual(expect.arrayContaining(['suspend', 'resume']));
 });
 
-test('particle playground arms and clears runtime preview work when leaving the page', async ({ page }) => {
+test('particle playground uses connected-game preview on demand in the app', async ({ page }) => {
+  await page.setViewportSize({ width: 980, height: 420 });
   await seedTauriConnectedGame(page);
   await page.goto('/');
   await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
@@ -2224,6 +2225,46 @@ test('particle playground arms and clears runtime preview work when leaving the 
     .click();
 
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Play$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Emit$/ })).toHaveCount(0);
+  const mainViewport = page.getByTestId('particle-playground-main').locator('[data-slot="scroll-area-viewport"]');
+  await expect.poll(async () => mainViewport.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  await expect
+    .poll(async () =>
+      mainViewport.evaluate((element) => {
+        element.scrollTop = 120;
+        return element.scrollTop;
+      }),
+    )
+    .toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)).toBe(0);
+  await expect(page.getByTestId('particle-preview-monitor')).toBeVisible();
+  await expect(page.getByText('game runtime')).toBeVisible();
+  await expect(page.locator('iframe[title="Particle Preview"]')).toHaveCount(0);
+  await page.waitForTimeout(150);
+  expect(
+    await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+        (item: { message?: { action?: string; params?: { active?: boolean } } }) =>
+          item.message?.action === 'runtime-preview' && item.message.params?.active === true,
+      ).length;
+    }),
+  ).toBe(0);
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await page.getByTitle('Play timeline').click();
+  await page.waitForTimeout(150);
+  expect(
+    await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+        (item: { message?: { action?: string } }) => item.message?.action === 'timeline-control',
+      ).length;
+    }),
+  ).toBe(0);
+  await page.getByTitle('Pause timeline').click();
+
+  await page.getByRole('button', { name: 'Show in Game' }).click();
   await expect
     .poll(async () =>
       page.evaluate(() => {
@@ -2236,7 +2277,7 @@ test('particle playground arms and clears runtime preview work when leaving the 
     )
     .toBeGreaterThan(0);
 
-  await page.getByTestId('sidebar-tool-logs').getByRole('link', { name: 'Logs' }).click();
+  await page.getByRole('button', { name: 'Hide in Game' }).click();
   await expect
     .poll(async () =>
       page.evaluate(() => {
@@ -2248,6 +2289,25 @@ test('particle playground arms and clears runtime preview work when leaving the 
       }),
     )
     .toBeGreaterThan(0);
+
+  const clearsBeforeLeave = await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+      (item: { message?: { action?: string; params?: { active?: boolean } } }) =>
+        item.message?.action === 'runtime-preview' && item.message.params?.active === false,
+    ).length;
+  });
+  await page.getByTestId('sidebar-tool-logs').getByRole('link', { name: 'Logs' }).click();
+  await page.waitForTimeout(150);
+  expect(
+    await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+        (item: { message?: { action?: string; params?: { active?: boolean } } }) =>
+          item.message?.action === 'runtime-preview' && item.message.params?.active === false,
+      ).length;
+    }),
+  ).toBe(clearsBeforeLeave);
 });
 
 test('shader graph template presets expose public controls in the app', async ({ page }) => {

@@ -13,6 +13,11 @@ const loveJsPreviewHeaders = {
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' blob: data: ws:; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'",
 };
 
+const viteDevHeaders = {
+  ...loveJsPreviewHeaders,
+  'Cache-Control': 'no-store',
+};
+
 function showcaseLoveJsDevPlugin() {
   const root = __dirname;
   const outDir = path.join(root, '.showcase-dev/showcase-lovejs');
@@ -57,7 +62,7 @@ function showcaseLoveJsDevPlugin() {
           response.writeHead(200, {
             ...loveJsPreviewHeaders,
             'Content-Type': contentTypeForLoveJsPath(filePath),
-            'Cache-Control': filePath.endsWith('.html') || filePath.endsWith('.love') ? 'no-cache' : 'public, max-age=3600',
+            'Cache-Control': 'no-store',
           });
           createReadStream(filePath).pipe(response);
         } catch (error) {
@@ -99,7 +104,11 @@ function showcaseLoveJsDevPlugin() {
 
 export default defineConfig({
   base: './',
+  cacheDir: 'node_modules/.vite/feather-showcase',
   plugins: [showcaseLoveJsDevPlugin(), react(), tailwindcss()],
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react/jsx-runtime', 'react-router'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -120,7 +129,7 @@ export default defineConfig({
     watch: {
       ignored: ['**/.showcase-dev/**'],
     },
-    headers: loveJsPreviewHeaders,
+    headers: viteDevHeaders,
   },
   preview: {
     port: 4174,

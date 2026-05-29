@@ -1,7 +1,7 @@
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { AlertTriangleIcon, FileWarningIcon, RotateCcwIcon, SparklesIcon, ZapIcon } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { AlertTriangleIcon, FileWarningIcon, PlayIcon, RotateCcwIcon, SparklesIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,6 +19,7 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { ShaderEditor } from './components/ShaderEditor';
 import { TextureImporter } from './components/TextureImporter';
 import { ParticleNumberInput } from './components/ParticleNumberInput';
+import { ParticlePreviewMonitor } from './components/ParticlePreviewMonitor';
 import { TimelinePanel } from './components/TimelinePanel';
 import { isWeb } from '@/utils/platform';
 
@@ -38,11 +39,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ParticleSystemPlaygroundPage({
   playgroundOverride,
   standalone = false,
-  preview,
 }: {
   playgroundOverride?: ParticleSystemPlaygroundController;
   standalone?: boolean;
-  preview?: React.ReactNode;
 } = {}) {
   const livePlayground = useParticleSystemPlayground();
   const playground = playgroundOverride ?? livePlayground;
@@ -51,15 +50,20 @@ export default function ParticleSystemPlaygroundPage({
   const system = playground.activeSystem;
   const isGameComposite = composite?.compositeType === 'game';
   const projectInputRef = useRef<HTMLInputElement>(null);
+  const [gamePreviewActive, setGamePreviewActive] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window === 'undefined' ? 0 : window.innerHeight,
+  );
 
   useEffect(() => {
-    if (standalone || !playground.enabled || !playground.activeComposite) return;
-    const compositeName = playground.activeComposite;
-    void playground.setRuntimePreviewActive(true, compositeName);
-    return () => {
-      void playground.setRuntimePreviewActive(false, compositeName);
-    };
-  }, [playground.activeComposite, playground.enabled, playground.setRuntimePreviewActive, standalone]);
+    if (standalone) return;
+    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    return () => window.removeEventListener('resize', updateViewportHeight);
+  }, [standalone]);
+
+  const appRootHeight = !standalone && viewportHeight > 0 ? Math.max(240, viewportHeight - 64) : undefined;
 
   const importProject = async () => {
     if (isWeb()) {
@@ -123,7 +127,13 @@ export default function ParticleSystemPlaygroundPage({
   }
 
   return (
-    <div className="grid min-h-0 w-full flex-1 grid-cols-[18rem_minmax(0,1fr)] overflow-hidden">
+    <div
+      data-testid="particle-playground-root"
+      className={`grid min-h-0 w-full grid-cols-[18rem_minmax(0,1fr)] overflow-hidden ${
+        standalone ? 'h-0 flex-1' : 'shrink-0'
+      }`}
+      style={appRootHeight ? { height: appRootHeight } : undefined}
+    >
       <input
         ref={projectInputRef}
         type="file"
@@ -141,7 +151,7 @@ export default function ParticleSystemPlaygroundPage({
             });
         }}
       />
-      <aside className="flex min-h-0 flex-col border-r bg-muted/20">
+      <aside className="flex h-full min-h-0 flex-col border-r bg-muted/20">
         <CompositeSelector
           composites={playground.composites}
           activeComposite={playground.activeComposite}
@@ -150,7 +160,7 @@ export default function ParticleSystemPlaygroundPage({
           onCreate={playground.createComposite}
           onDelete={playground.deleteComposite}
         />
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="h-0 min-h-0 flex-1">
           {composite ? (
             <EmitterList
               systems={composite.systems}
@@ -173,8 +183,8 @@ export default function ParticleSystemPlaygroundPage({
         </ScrollArea>
       </aside>
 
-      <main className="flex min-h-0 min-w-0 w-full flex-1 overflow-hidden" data-testid="particle-playground-main">
-        <ScrollArea className="min-h-0 min-w-0 w-full flex-1">
+      <main className="flex h-full min-h-0 min-w-0 w-full overflow-hidden" data-testid="particle-playground-main">
+        <ScrollArea className="h-full min-h-0 min-w-0 w-full">
           <div className="grid min-w-0 w-full gap-3 p-4" data-testid="particle-playground-content">
             <header className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -196,10 +206,11 @@ export default function ParticleSystemPlaygroundPage({
                     size="sm"
                     variant="outline"
                     className="h-8 gap-2 text-xs"
-                    onClick={() => playground.emit(false)}
+                    title="Play particle timeline"
+                    onClick={() => playground.playTimeline(gamePreviewActive)}
                   >
-                    <ZapIcon className="size-4" />
-                    Emit
+                    <PlayIcon className="size-4" />
+                    Play
                   </Button>
                   <Button
                     size="sm"
@@ -216,9 +227,6 @@ export default function ParticleSystemPlaygroundPage({
                 </div>
               )}
             </header>
-
-            {preview}
-
             {!system || !composite ? (
               <div className="grid min-h-72 place-items-center rounded-md border bg-card p-8 text-center text-sm text-muted-foreground">
                 <div className="grid justify-items-center gap-3">
@@ -242,6 +250,14 @@ export default function ParticleSystemPlaygroundPage({
                     import a texture before relying on ZIP export.
                   </div>
                 )}
+
+                <ParticlePreviewMonitor
+                  playground={playground}
+                  standalone={standalone}
+                  isGameComposite={isGameComposite}
+                  gamePreviewActive={gamePreviewActive}
+                  onGamePreviewActiveChange={setGamePreviewActive}
+                />
 
                 <Tabs defaultValue="emitter" className="min-w-0 w-full gap-3">
                   <TabsList className="grid h-8 w-full grid-cols-3 rounded-md lg:w-fit lg:min-w-[27rem]">
@@ -269,10 +285,10 @@ export default function ParticleSystemPlaygroundPage({
                       isGameComposite={isGameComposite}
                       onSelectSystem={playground.selectSystem}
                       onTimelineChange={playground.updateTimeline}
-                      onPlay={playground.playTimeline}
-                      onPause={playground.pauseTimeline}
-                      onStop={playground.stopTimeline}
-                      onSeek={playground.seekTimeline}
+                      onPlay={() => playground.playTimeline(gamePreviewActive)}
+                      onPause={(time) => playground.pauseTimeline(time, gamePreviewActive)}
+                      onStop={() => playground.stopTimeline(gamePreviewActive)}
+                      onSeek={(time, immediate) => playground.seekTimeline(time, immediate, gamePreviewActive)}
                     />
                   </TabsContent>
 

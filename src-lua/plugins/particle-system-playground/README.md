@@ -1,6 +1,6 @@
 # Particle System Playground Runtime Plugin
 
-This built-in plugin backs Feather's Particle System Playground page. It lets the desktop create scratch particle composites, preview them in the running game, edit registered game-owned composites, and export a Lua module/ZIP.
+This built-in plugin backs Feather's Particle System Playground page. It lets the desktop create scratch particle composites, preview them locally in love.js, optionally show them in the running game on demand, edit registered game-owned composites, and export a Lua module/ZIP.
 
 The feature is inspired by [ReFreezed/HotParticles](https://github.com/ReFreezed/HotParticles), a particle effect editor/exporter for LÖVE. Feather's implementation is clean-room and does not vendor upstream code or assets.
 
@@ -51,19 +51,19 @@ Game composites are not drawn by this plugin. The game remains responsible for d
 
 ## Scratch Composites
 
-Scratch composites are created from the desktop playground. The plugin owns their `love.ParticleSystem` instances, updates them, and draws them in the running game.
+Scratch composites are created from the playground. The browser showcase shows a floating, aspect-locked local love.js preview by default. In the Feather/Tauri app, particle preview is connected-game only for now: the plugin owns `love.ParticleSystem` instances in the connected game only when **Show in Game** is enabled.
 
 Built-in scratch templates include Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, Dust Puff, and Complex Composite. Complex Composite is a five-emitter example with staggered timeline clips for a core pulse, expanding ring, smoke bloom, spark trails, and dust wake.
 
 Composite preview `x`/`y` and preview movement patterns change emitter positions via `ParticleSystem:setPosition(...)`. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.
 
-Scratch preview work is dormant until the desktop Particle Playground page is open and has activated a preview session. Leaving the page, switching sessions, or disabling preview sends an inactive signal so the game stops updating and drawing plugin-owned scratch previews. Only the active scratch composite is updated/drawn; switching composites replaces the runtime preview target instead of keeping older composites alive.
+Connected-game scratch preview work is dormant until **Show in Game** is explicitly enabled. Opening the Particle Playground page in Feather does not draw anything in the attached game. Hiding the game preview, leaving the page, switching sessions, or disabling preview sends an inactive signal so the game stops updating and drawing plugin-owned scratch previews. Only the active scratch composite is updated/drawn; switching composites replaces the runtime preview target instead of keeping older composites alive.
 
 Scratch composites can pause the plugin-owned preview without changing emitter settings or exported code. Individual emitters can also be disabled; disabled emitters remain in the composite metadata but are skipped by preview update/draw, composite emit/reset actions, and generated runtime modules.
 
 ## Timeline Preview
 
-The playground includes a 3 second composite timeline for authoring multi-emitter effects like a small video editor. Open the Timeline tab to edit it. Each emitter appears as a track with a clip that controls when the emitter enters. The selected emitter expands inline to show curated property lanes for common beginner-friendly automation:
+The playground includes a 3 second composite timeline for authoring multi-emitter effects like a small video editor. Use the header **Play** action for a quick preview, or open the Timeline tab to edit clips and keyframes. Each emitter appears as a track with a clip that controls when the emitter enters. The selected emitter expands inline to show curated property lanes for common beginner-friendly automation:
 
 - opacity
 - emission rate
@@ -79,7 +79,7 @@ Stop and Reset Playhead reset playback state, but they do not rewrite the emitte
 
 Emitter property edits and motion presets update the saved base values even while the timeline preview is paused or muted, so playing the timeline after choosing a preset keeps the authored rate, speed, and acceleration instead of capturing the muted preview state.
 
-The desktop sends play, pause, stop, and throttled seek updates to the real LÖVE preview while the Timeline tab keeps its own playhead animation smooth between runtime state updates. Timeline automation applies when playback/seek/editing asks for it, not as idle per-frame work for every saved composite. Seeking resets the preview systems and fast-forwards from `0` to the playhead with capped fixed steps so the canvas matches the authored timeline. Paused timelines mute continuous emission at the playhead so one-shot templates do not keep spawning particles while stopped. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; non-looping timelines stop scheduling at the duration.
+The Timeline tab keeps play, pause, stop, and seek editor-local until **Show in Game** is enabled. In the browser showcase those controls drive the local love.js monitor; in Feather they sync to the connected LÖVE preview only while Show in Game is active. When the game preview is active, timeline controls sync to the connected LÖVE preview while the Timeline tab keeps its own playhead animation smooth between runtime state updates. Timeline automation applies when playback/seek/editing asks for it, not as idle per-frame work for every saved composite. Seeking resets the preview systems and fast-forwards from `0` to the playhead with capped fixed steps so the canvas matches the authored timeline. Paused timelines mute continuous emission at the playhead so one-shot templates do not keep spawning particles while stopped. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; non-looping timelines stop scheduling at the duration.
 
 Game-owned composites support timeline automation best-effort. Feather can adjust `ParticleSystem` values and emit scheduled bursts, but draw-only behavior such as opacity depends on the game drawing the registered systems.
 

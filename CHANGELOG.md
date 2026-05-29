@@ -52,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Particle System Playground timing controls so clip entry time is shown as Emit At and burst counts are shown separately from timing.
 - Particle System Playground timelines now treat clips as emission windows, intersect clip timing with Emitter Lifetime, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
 - Particle System Playground timeline playback now animates the visible playhead smoothly between runtime updates instead of jumping in coarse connected-game intervals.
+- Particle System Playground keeps the local love.js preview in the browser showcase, while the Feather/Tauri app now uses connected-game runtime preview only through the explicit Show in Game toggle.
+- Particle System Playground showcase previews now float over the editor and keep a locked 16:9 love.js canvas aspect ratio.
+- Particle System Playground replaced the header Emit action with a Play action that starts timeline playback.
+- Particle System Playground now colors Show in Game green and Hide in Game red so connected-game preview state is easier to scan.
 - Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
 - Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
 - Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
@@ -78,8 +82,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
 - Fixed the Particle System Playground Timeline loop control so it renders as a stable explicit toggle.
 - Fixed Particle System Playground timeline playback after applying motion presets while paused, so presets no longer capture the muted preview emission rate as the base rate.
+- Fixed Feather Particle System Playground local previews when the app falls back to the static showcase love.js bridge.
+- Fixed Feather Particle System Playground local preview playback so play/pause timeline sync no longer rebuilds particle systems and interrupts continuous emission.
+- Fixed Particle System Playground local preview timelines so Feather keeps advancing local playback while Show in Game is off and love.js previews respect clip/lane timing.
 - Fixed Follow Tail in Logs so newly appended visible rows scroll into view through the virtual log list.
 - Fixed Profiler actions so Start, Stop, Snapshot, and Reset refresh the visible capture table immediately.
+- Fixed Tauri development reloads getting stuck on Vite `504 Outdated Optimize Dep` responses by isolating app/showcase optimizer caches, forcing a fresh Tauri dev optimize pass, and disabling WebView caching for dev modules.
+- Fixed the Particle System Playground app layout so editor content scrolls inside the main pane instead of expanding the whole app window.
 
 ### Tests
 
@@ -114,6 +123,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Lua, showcase, and app e2e coverage for preserving Particle System Playground timeline values when emitters are reordered.
 - Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
 - Expanded showcase and app e2e coverage for smooth Particle System Playground timeline playback.
+- Expanded app and showcase e2e coverage for Particle System Playground showcase-local previews and Feather on-demand connected-game preview activation.
+- Expanded showcase e2e coverage for the floating, aspect-locked Particle System Playground preview.
+- Expanded app and showcase e2e coverage for the Particle System Playground header Play action replacing Emit.
 - Expanded Lua e2e coverage for Particle System Playground timeline playback after applying motion presets while the preview is muted.
 - Added Lua and showcase e2e coverage for the Complex Composite Particle System Playground timeline template.
 - Expanded Lua e2e coverage for paused Particle System Playground timelines and inactive scratch preview throttling.

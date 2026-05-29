@@ -6,6 +6,7 @@ import path from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
 
 export const LOVEJS_REPO = 'https://github.com/2dengine/love.js';
+const LOVEJS_PREVIEW_QUERY = 'g=showcase.love&v=11.5&featherPreview=particle-preview-v2';
 
 export const loveJsContentTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -72,6 +73,8 @@ export function resolveLoveJsVendor({
 }
 
 export async function patchLoveJsPlayer(dir) {
+  const readyBridge =
+    "if (window.parent && window.parent !== window) window.parent.postMessage({ source: 'feather-showcase', type: 'preview:ready' }, '*');";
   const bridge = [
     '',
     '// Feather showcase bridge: store postMessage preview payload for love.js.eval() polling',
@@ -80,14 +83,20 @@ export async function patchLoveJsPlayer(dir) {
     "  if (!e.data || e.data.source !== 'feather-showcase' || e.data.type !== 'preview:update') return;",
     '  window._featherPayload = e.data.payload || null;',
     '});',
+    readyBridge,
     '',
   ].join('\n');
   const candidates = ['player.min.js', 'player.js'].map((file) => path.join(dir, file));
   const target = candidates.find((file) => existsSync(file));
   if (!target) return;
   const existing = await readFile(target, 'utf8');
-  if (existing.includes('_featherPayload')) return;
-  await writeFile(target, existing + bridge);
+  if (!existing.includes('_featherPayload')) {
+    await writeFile(target, existing + bridge);
+    return;
+  }
+  if (!existing.includes('preview:ready')) {
+    await writeFile(target, `${existing}\n${readyBridge}\n`);
+  }
 }
 
 export async function patchLoveJsIndex(dir) {
@@ -97,7 +106,7 @@ export async function patchLoveJsIndex(dir) {
     '<!doctype html>',
     '<html lang="en">',
     '<head><meta charset="utf-8"><title>Feather love.js Preview</title></head>',
-    `<body><canvas id="canvas"></canvas><script src="./${playerScript}?g=showcase.love&v=11.5"></script></body>`,
+    `<body><canvas id="canvas"></canvas><script src="./${playerScript}?${LOVEJS_PREVIEW_QUERY}"></script></body>`,
     '</html>',
     '',
   ].join('\n');
@@ -106,13 +115,13 @@ export async function patchLoveJsIndex(dir) {
   let next = existing
     .replace(/<title>[\s\S]*?<\/title>/i, '<title>Feather love.js Preview</title>')
     .replace(/<base\s+href=["'][^"']*["']\s*\/?>/i, '<base href="./">')
-    .replace(/player(?:\.min)?\.js(?:\?g=[^"']*)?/g, `${playerScript}?g=showcase.love&v=11.5`);
+    .replace(/player(?:\.min)?\.js(?:\?g=[^"']*)?/g, `${playerScript}?${LOVEJS_PREVIEW_QUERY}`);
 
   if (!/<title>/i.test(next)) {
     next = next.replace(/<head[^>]*>/i, (match) => `${match}<title>Feather love.js Preview</title>`);
   }
   if (!/\?g=showcase\.love/.test(next)) {
-    next = next.replace('</body>', `<script src="./${playerScript}?g=showcase.love&v=11.5"></script></body>`);
+    next = next.replace('</body>', `<script src="./${playerScript}?${LOVEJS_PREVIEW_QUERY}"></script></body>`);
   }
   await writeFile(indexPath, next);
 }

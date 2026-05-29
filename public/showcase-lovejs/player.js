@@ -6,6 +6,7 @@
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   let payload = { tool: 'idle' };
+  window._featherPayload = payload;
   let tick = 0;
   let shaderProgram = null;
   let shaderError = null;
@@ -13,6 +14,13 @@
   let quadBuffer = null;
   let quadBufferKey = '';
   let textureProgram = null;
+  let particleProgram = null;
+  let particleBuffer = null;
+  let particlePayloadKey = '';
+  let particleTimelineTime = 0;
+  let particleTimelinePlaying = false;
+  let particleLastScrubVersion = -1;
+  let particleSystems = [];
   let whiteTexture = null;
   let previewTexture = null;
   let previewTextureKey = '';
@@ -38,6 +46,31 @@ varying vec2 v_texCoord;
 uniform sampler2D u_tex;
 void main() {
   gl_FragColor = texture2D(u_tex, v_texCoord);
+}
+`.trim();
+
+  const PARTICLE_VERT_SRC = `
+attribute vec2 a_position;
+attribute float a_size;
+attribute vec4 a_color;
+varying vec4 v_color;
+uniform vec2 u_resolution;
+void main() {
+  vec2 clip = vec2((a_position.x / u_resolution.x) * 2.0 - 1.0, 1.0 - (a_position.y / u_resolution.y) * 2.0);
+  gl_Position = vec4(clip, 0.0, 1.0);
+  gl_PointSize = a_size;
+  v_color = a_color;
+}
+`.trim();
+
+  const PARTICLE_FRAG_SRC = `
+precision mediump float;
+varying vec4 v_color;
+void main() {
+  vec2 delta = gl_PointCoord - vec2(0.5);
+  float dist = length(delta);
+  float alpha = smoothstep(0.5, 0.28, dist);
+  gl_FragColor = vec4(v_color.rgb, v_color.a * alpha);
 }
 `.trim();
 
@@ -263,6 +296,29 @@ void main() {
     return textureProgram;
   }
 
+  function ensureParticleProgram() {
+    if (particleProgram) return particleProgram;
+    try {
+      const vert = compile(gl.VERTEX_SHADER, PARTICLE_VERT_SRC);
+      const frag = compile(gl.FRAGMENT_SHADER, PARTICLE_FRAG_SRC);
+      particleProgram = gl.createProgram();
+      gl.attachShader(particleProgram, vert);
+      gl.attachShader(particleProgram, frag);
+      gl.linkProgram(particleProgram);
+      gl.deleteShader(vert);
+      gl.deleteShader(frag);
+      if (!gl.getProgramParameter(particleProgram, gl.LINK_STATUS)) {
+        const message = gl.getProgramInfoLog(particleProgram) || 'Particle preview link failed';
+        gl.deleteProgram(particleProgram);
+        particleProgram = null;
+        throw new Error(message);
+      }
+    } catch (error) {
+      shaderError = error instanceof Error ? error.message : String(error);
+    }
+    return particleProgram;
+  }
+
   function rgbaFromHex(hex) {
     if (Array.isArray(hex)) {
       const values = hex.map(Number);
@@ -280,6 +336,65 @@ void main() {
 
   function valueArray(value, fallback) {
     return Array.isArray(value) ? value.map(Number) : fallback;
+  }
+
+  function parseCsvNumbers(value, fallback = []) {
+    if (Array.isArray(value)) return value.map(Number).filter(Number.isFinite);
+    const values = String(value || '')
+      .split(',')
+      .map((part) => Number(part.trim()))
+      .filter(Number.isFinite);
+    return values.length > 0 ? values : fallback;
+  }
+
+  function safeNumber(value, fallback) {
+    const next = Number(value);
+    return Number.isFinite(next) ? next : fallback;
+  }
+
+  function interpolate(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function colorStops(value) {
+    const values = parseCsvNumbers(value, [1, 1, 1, 1, 1, 1, 1, 0]);
+    const first = [values[0] ?? 1, values[1] ?? 1, values[2] ?? 1, values[3] ?? 1];
+    const lastIndex = Math.max(0, Math.floor(values.length / 4) - 1) * 4;
+    const last = [
+      values[lastIndex] ?? first[0],
+      values[lastIndex + 1] ?? first[1],
+      values[lastIndex + 2] ?? first[2],
+      values[lastIndex + 3] ?? first[3],
+    ];
+    return { first, last };
+  }
+
+  function sizeStops(value) {
+    const values = parseCsvNumbers(value, [1, 0]);
+    return [values[0] ?? 1, values[Math.max(0, values.length - 1)] ?? values[0] ?? 1];
+  }
+
+  function sortedKeyframes(points) {
+    return Array.isArray(points)
+      ? [...points]
+          .map((point) => ({ time: safeNumber(point?.time, 0), value: safeNumber(point?.value, 0) }))
+          .sort((a, b) => a.time - b.time)
+      : [];
+  }
+
+  function evaluateKeyframes(points, time, fallback) {
+    const keyframes = sortedKeyframes(points);
+    if (keyframes.length === 0) return fallback;
+    if (time <= keyframes[0].time) return keyframes[0].value;
+    for (let i = 0; i < keyframes.length - 1; i += 1) {
+      const current = keyframes[i];
+      const next = keyframes[i + 1];
+      if (time >= current.time && time <= next.time) {
+        const span = Math.max(0.0001, next.time - current.time);
+        return interpolate(current.value, next.value, Math.max(0, Math.min(1, (time - current.time) / span)));
+      }
+    }
+    return keyframes[keyframes.length - 1].value;
   }
 
   function setParameterUniforms(program) {
@@ -374,8 +489,322 @@ void main() {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
+  function particlePayloadSignature(composite) {
+    if (!composite) return '';
+    const systems = Array.isArray(composite.systems) ? composite.systems : [];
+    return JSON.stringify({
+      activeComposite: payload.activeComposite,
+      previewEnabled: composite.previewEnabled !== false,
+      x: composite.x,
+      y: composite.y,
+      movement: composite.movement,
+      timeline: composite.timeline,
+      systems: systems.map((system) => ({
+        index: system.index,
+        enabled: system.enabled,
+        x: system.x,
+        y: system.y,
+        blendMode: system.blendMode,
+        emitAtStart: system.emitAtStart,
+        properties: system.properties,
+      })),
+    });
+  }
+
+  function rebuildParticleSystems(width, height) {
+    const composite = payload.composite || {};
+    const systems = Array.isArray(composite.systems) ? composite.systems : [];
+    particleSystems = systems.map((system) => {
+      const props = system.properties || {};
+      const colors = colorStops(props.colors);
+      const sizes = sizeStops(props.sizes);
+      return {
+        index: safeNumber(system.index, 1),
+        enabled: system.enabled !== false,
+        blendMode: String(system.blendMode || 'alpha'),
+        x: safeNumber(system.x, 0),
+        y: safeNumber(system.y, 0),
+        emitAtStart: Math.max(0, safeNumber(system.emitAtStart, 0)),
+        emissionRate: Math.max(0, safeNumber(props.emissionRate, 80)),
+        particleLifetimeMin: Math.max(0.05, safeNumber(props.particleLifetimeMin, 0.35)),
+        particleLifetimeMax: Math.max(0.05, safeNumber(props.particleLifetimeMax, 1.2)),
+        direction: safeNumber(props.direction, -Math.PI / 2),
+        spread: Math.max(0, safeNumber(props.spread, Math.PI / 3)),
+        speedMin: safeNumber(props.speedMin, 40),
+        speedMax: safeNumber(props.speedMax, 140),
+        accelXMin: safeNumber(props.linearAccelXMin, 0),
+        accelXMax: safeNumber(props.linearAccelXMax, 0),
+        accelYMin: safeNumber(props.linearAccelYMin, 0),
+        accelYMax: safeNumber(props.linearAccelYMax, 0),
+        sizeStart: Math.max(0.05, sizes[0]),
+        sizeEnd: Math.max(0, sizes[1]),
+        colorStart: colors.first,
+        colorEnd: colors.last,
+        opacity: 1,
+        baseEmissionRate: Math.max(0, safeNumber(props.emissionRate, 80)),
+        baseEmitterLifetime: safeNumber(props.emitterLifetime, -1),
+        baseSpeedMin: safeNumber(props.speedMin, 40),
+        baseSpeedMax: safeNumber(props.speedMax, 140),
+        baseSizeStart: Math.max(0.05, sizes[0]),
+        baseSizeEnd: Math.max(0, sizes[1]),
+        baseDirection: safeNumber(props.direction, -Math.PI / 2),
+        baseSpread: Math.max(0, safeNumber(props.spread, Math.PI / 3)),
+        baseX: safeNumber(system.x, 0),
+        baseY: safeNumber(system.y, 0),
+        particles: [],
+        emitAccumulator: 0,
+        lastTimelineTime: 0,
+      };
+    });
+
+    const state = composite.timelineState || {};
+    particleTimelineTime = Math.max(0, safeNumber(state.time, 0));
+    particleTimelinePlaying = state.playing === true;
+    particleLastScrubVersion = safeNumber(state.scrubVersion, -1);
+    if (composite.timeline) emitTimelineBursts(-0.0001, particleTimelineTime, width, height);
+    else {
+      particleSystems.forEach((system) => {
+        emitParticles(system, Math.min(80, Math.max(0, system.emitAtStart)), width, height);
+      });
+    }
+  }
+
+  function ensureParticleSystems(width, height) {
+    const composite = payload.composite;
+    const key = particlePayloadSignature(composite);
+    if (key === particlePayloadKey) return;
+    particlePayloadKey = key;
+    rebuildParticleSystems(width, height);
+  }
+
+  function particleTrackFor(systemIndex) {
+    const timeline = payload.composite?.timeline;
+    const tracks = Array.isArray(timeline?.tracks) ? timeline.tracks : [];
+    return tracks.find((track) => safeNumber(track.systemIndex, -1) === systemIndex);
+  }
+
+  function particleCanEmit(system, time) {
+    const timeline = payload.composite?.timeline;
+    if (!timeline || !Array.isArray(timeline.tracks)) return true;
+    const track = particleTrackFor(system.index);
+    const clips = Array.isArray(track?.clips) ? track.clips : [];
+    return clips.some((clip) => {
+      const start = safeNumber(clip.start, 0);
+      const stop = safeNumber(clip.end, 0);
+      const lifetime = safeNumber(system.baseEmitterLifetime, -1);
+      const lifetimeStop = lifetime < 0 ? stop : Math.min(stop, start + lifetime);
+      return time >= start && time <= lifetimeStop;
+    });
+  }
+
+  function emitTimelineBursts(previous, nextTime, width, height) {
+    const timeline = payload.composite?.timeline;
+    if (!timeline || !Array.isArray(timeline.tracks)) return;
+    particleSystems.forEach((system) => {
+      const track = particleTrackFor(system.index);
+      const clips = Array.isArray(track?.clips) ? track.clips : [];
+      clips.forEach((clip) => {
+        const start = safeNumber(clip.start, 0);
+        if (start > previous && start <= nextTime) {
+          emitParticles(system, Math.max(0, safeNumber(clip.emit, system.emitAtStart)), width, height);
+        }
+      });
+    });
+  }
+
+  function particleOrigin(system, width, height) {
+    const composite = payload.composite || {};
+    const baseX = width * 0.5 + (safeNumber(composite.x, 400) - 400) * (width / 800);
+    const baseY = height * 0.56 + (safeNumber(composite.y, 300) - 300) * (height / 600);
+    return {
+      x: baseX + system.x * (width / 800),
+      y: baseY + system.y * (height / 600),
+    };
+  }
+
+  function applyParticleTimelineAt(time) {
+    const timeline = payload.composite?.timeline;
+    particleSystems.forEach((system) => {
+      system.emissionRate = system.baseEmissionRate;
+      system.speedMin = system.baseSpeedMin;
+      system.speedMax = system.baseSpeedMax;
+      system.sizeStart = system.baseSizeStart;
+      system.sizeEnd = system.baseSizeEnd;
+      system.direction = system.baseDirection;
+      system.spread = system.baseSpread;
+      system.x = system.baseX;
+      system.y = system.baseY;
+      system.opacity = 1;
+      if (!timeline || !Array.isArray(timeline.tracks)) return;
+      const track = particleTrackFor(system.index);
+      const lanes = track?.lanes || {};
+      system.opacity = evaluateKeyframes(lanes.opacity, time, 1);
+      system.emissionRate = Math.max(0, evaluateKeyframes(lanes.emissionRate, time, system.baseEmissionRate));
+      const speedScale = Math.max(0, evaluateKeyframes(lanes.speedScale, time, 1));
+      system.speedMin = system.baseSpeedMin * speedScale;
+      system.speedMax = system.baseSpeedMax * speedScale;
+      const sizeScale = Math.max(0, evaluateKeyframes(lanes.sizeScale, time, 1));
+      system.sizeStart = system.baseSizeStart * sizeScale;
+      system.sizeEnd = system.baseSizeEnd * sizeScale;
+      system.direction = evaluateKeyframes(lanes.direction, time, system.baseDirection);
+      system.spread = Math.max(0, evaluateKeyframes(lanes.spread, time, system.baseSpread));
+      system.x = evaluateKeyframes(lanes.offsetX, time, system.baseX);
+      system.y = evaluateKeyframes(lanes.offsetY, time, system.baseY);
+    });
+  }
+
+  function emitParticles(system, count, width, height) {
+    if (!system.enabled || count <= 0) return;
+    const origin = particleOrigin(system, width, height);
+    const maxCount = 900;
+    for (let i = 0; i < count; i += 1) {
+      const life = interpolate(system.particleLifetimeMin, system.particleLifetimeMax, Math.random());
+      const speed = interpolate(system.speedMin, system.speedMax, Math.random()) * Math.min(width, height) / 520;
+      const angle = system.direction + (Math.random() - 0.5) * system.spread;
+      system.particles.push({
+        age: 0,
+        life,
+        x: origin.x,
+        y: origin.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        ax: interpolate(system.accelXMin, system.accelXMax, Math.random()) * (width / 800),
+        ay: interpolate(system.accelYMin, system.accelYMax, Math.random()) * (height / 600),
+        spin: Math.random() * Math.PI * 2,
+      });
+    }
+    if (system.particles.length > maxCount) {
+      system.particles.splice(0, system.particles.length - maxCount);
+    }
+  }
+
+  function updateParticleSystems(dt, width, height) {
+    const composite = payload.composite || {};
+    if (composite.previewEnabled === false) {
+      particleSystems.forEach((system) => {
+        system.particles.length = 0;
+      });
+      return;
+    }
+
+    const timeline = composite.timeline;
+    const duration = Math.max(0.01, safeNumber(timeline?.duration, 3));
+    const incomingState = composite.timelineState || {};
+    const incomingTime = Math.max(0, safeNumber(incomingState.time, particleTimelineTime));
+    const incomingPlaying = incomingState.playing === true;
+    const wasPlaying = particleTimelinePlaying;
+    const scrubVersion = safeNumber(incomingState.scrubVersion, particleLastScrubVersion);
+    const explicitSeek = scrubVersion !== particleLastScrubVersion && !wasPlaying && !incomingPlaying;
+    particleTimelinePlaying = incomingPlaying;
+    particleLastScrubVersion = scrubVersion;
+
+    if (!particleTimelinePlaying && explicitSeek) {
+      particleTimelineTime = Math.min(duration, incomingTime);
+      particleSystems.forEach((system) => {
+        system.particles.length = 0;
+        system.emitAccumulator = 0;
+      });
+      if (timeline) emitTimelineBursts(-0.0001, particleTimelineTime, width, height);
+      else {
+        particleSystems.forEach((system) => {
+          emitParticles(system, Math.min(60, Math.max(0, system.emitAtStart)), width, height);
+        });
+      }
+    } else if (particleTimelinePlaying) {
+      const previous = particleTimelineTime;
+      particleTimelineTime += dt;
+      if (particleTimelineTime > duration) {
+        if (timeline?.loop) {
+          emitTimelineBursts(previous, duration, width, height);
+          particleTimelineTime %= duration;
+          emitTimelineBursts(0, particleTimelineTime, width, height);
+        } else {
+          emitTimelineBursts(previous, duration, width, height);
+          particleTimelineTime = duration;
+          particleTimelinePlaying = false;
+        }
+      } else {
+        emitTimelineBursts(previous, particleTimelineTime, width, height);
+      }
+    } else {
+      particleTimelineTime = incomingTime;
+    }
+
+    applyParticleTimelineAt(particleTimelineTime);
+
+    particleSystems.forEach((system) => {
+      const shouldEmit = particleTimelinePlaying ? particleCanEmit(system, particleTimelineTime) : !timeline;
+      if (system.enabled && shouldEmit) {
+        system.emitAccumulator += system.emissionRate * dt;
+        const count = Math.min(80, Math.floor(system.emitAccumulator));
+        system.emitAccumulator -= count;
+        emitParticles(system, count, width, height);
+      }
+      system.particles = system.particles.filter((particle) => {
+        particle.age += dt;
+        if (particle.age >= particle.life) return false;
+        particle.vx += particle.ax * dt;
+        particle.vy += particle.ay * dt;
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        return true;
+      });
+    });
+  }
+
+  function drawParticlePreview(width, height, dt) {
+    ensureParticleSystems(width, height);
+    updateParticleSystems(dt, width, height);
+
+    const program = ensureParticleProgram();
+    if (!program) {
+      drawPreviewSurface(width, height);
+      return;
+    }
+
+    gl.useProgram(program);
+    const uResolution = gl.getUniformLocation(program, 'u_resolution');
+    if (uResolution) gl.uniform2f(uResolution, width, height);
+    if (!particleBuffer) particleBuffer = gl.createBuffer();
+    const aPosition = gl.getAttribLocation(program, 'a_position');
+    const aSize = gl.getAttribLocation(program, 'a_size');
+    const aColor = gl.getAttribLocation(program, 'a_color');
+
+    particleSystems.forEach((system) => {
+      if (system.blendMode === 'add') gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      else gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      const data = [];
+      system.particles.forEach((particle) => {
+        const t = Math.max(0, Math.min(1, particle.age / particle.life));
+        const size = interpolate(system.sizeStart, system.sizeEnd, t) * 22;
+        const color = system.colorStart.map((value, index) => interpolate(value, system.colorEnd[index] ?? value, t));
+        data.push(particle.x, particle.y, Math.max(2, size), color[0], color[1], color[2], color[3] * system.opacity);
+      });
+      if (data.length === 0) return;
+      gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+      const stride = 28;
+      if (aPosition >= 0) {
+        gl.enableVertexAttribArray(aPosition);
+        gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, stride, 0);
+      }
+      if (aSize >= 0) {
+        gl.enableVertexAttribArray(aSize);
+        gl.vertexAttribPointer(aSize, 1, gl.FLOAT, false, stride, 8);
+      }
+      if (aColor >= 0) {
+        gl.enableVertexAttribArray(aColor);
+        gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, stride, 12);
+      }
+      gl.drawArrays(gl.POINTS, 0, data.length / 7);
+    });
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  }
+
   function draw() {
-    tick += 16;
+    const previousTick = tick || performance.now();
+    tick = performance.now();
+    const dt = Math.min(0.05, Math.max(0.001, (tick - previousTick) / 1000));
     resize();
     if (!gl) {
       requestAnimationFrame(draw);
@@ -388,6 +817,7 @@ void main() {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     if (payload.tool === 'shader-graph') drawShader(width, height);
+    else if (payload.tool === 'particle-system-playground') drawParticlePreview(width, height, dt);
     else drawPreviewSurface(width, height);
     requestAnimationFrame(draw);
   }
@@ -396,8 +826,11 @@ void main() {
   window.addEventListener('message', (event) => {
     if (event.data?.source !== 'feather-showcase' || event.data?.type !== 'preview:update') return;
     payload = event.data.payload || payload;
+    window._featherPayload = payload;
+    if (payload.tool !== 'particle-system-playground') particlePayloadKey = '';
     shaderError = null;
   });
+  window.parent?.postMessage({ source: 'feather-showcase', type: 'preview:ready' }, '*');
 
   resize();
   draw();

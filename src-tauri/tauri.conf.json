@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "identifier": "com.kyonru.love.feather",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run dev:tauri",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"

@@ -80,7 +80,13 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Emitter Properties' })).toBeVisible();
   await expect(page.getByText('Rate', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Play$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Emit$/ })).toHaveCount(0);
+  await expect(page.getByTestId('love-js-preview-floating')).toBeVisible();
   await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
+  const particlePreviewFrame = await page.getByTestId('love-js-preview-frame').boundingBox();
+  expect(particlePreviewFrame).not.toBeNull();
+  expect(Math.abs(particlePreviewFrame!.width / particlePreviewFrame!.height - 16 / 9)).toBeLessThan(0.04);
 });
 
 test('showcase serves the real love.js shader preview target', async ({ page }) => {
