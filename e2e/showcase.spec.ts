@@ -43,7 +43,10 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /complete developer toolkit/i })).toBeVisible();
 
-  await page.locator('header').getByRole('button', { name: /^shader graph$/i }).click();
+  await page
+    .locator('header')
+    .getByRole('button', { name: /^shader graph$/i })
+    .click();
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
   await expect(page.getByTestId('shader-controls-panel')).toBeVisible();
   await openShaderOutput(page);
@@ -54,20 +57,32 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 300, y: 220 } });
   await expect(page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes')).toBeVisible();
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('time');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^time input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^time input$/i })
+    .click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 1);
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 420, y: 220 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^float input$/i })
+    .click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 2);
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 260, y: 320 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float parameter');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float parameter input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^float parameter input$/i })
+    .click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 3);
   await expect(page.getByText(/extern number u_param_/i)).toBeVisible();
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 380, y: 320 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('color parameter');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^color parameter input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^color parameter input$/i })
+    .click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 4);
   await expect(page.getByText(/extern vec4 u_param_/i)).toBeVisible();
   await page.keyboard.press('Control+C');
@@ -81,7 +96,10 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
     expect(dialog.message()).toContain('Unlink this node?');
     await dialog.accept();
   });
-  await page.getByRole('button', { name: /unlink linked node/i }).first().click();
+  await page
+    .getByRole('button', { name: /unlink linked node/i })
+    .first()
+    .click();
   await expect(page.getByRole('button', { name: /unlink linked node/i })).toHaveCount(1);
 
   const nodesBeforePreset = await page.locator('.react-flow__node').count();
@@ -89,7 +107,10 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   await page.getByRole('option', { name: /texture pass/i }).click();
   await expect.poll(() => page.locator('.react-flow__node').count()).toBeGreaterThan(nodesBeforePreset);
 
-  await page.locator('header').getByRole('button', { name: /particle playground/i }).click();
+  await page
+    .locator('header')
+    .getByRole('button', { name: /particle playground/i })
+    .click();
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Emitter Properties' })).toBeVisible();
   await expect(page.getByText('Rate', { exact: true })).toBeVisible();
@@ -129,8 +150,12 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
   await page.getByTitle('Minimise').click();
 
-  const mainWidth = await page.getByTestId('particle-playground-main').evaluate((element) => element.getBoundingClientRect().width);
-  const panelWidth = await page.getByTestId('particle-timeline-panel').evaluate((element) => element.getBoundingClientRect().width);
+  const mainWidth = await page
+    .getByTestId('particle-playground-main')
+    .evaluate((element) => element.getBoundingClientRect().width);
+  const panelWidth = await page
+    .getByTestId('particle-timeline-panel')
+    .evaluate((element) => element.getBoundingClientRect().width);
   expect(panelWidth).toBeGreaterThan(mainWidth * 0.85);
 
   const timelineScroll = page.getByTestId('particle-timeline-scroll');
@@ -139,9 +164,7 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
 
   const smoothPlayhead = page.getByTestId('particle-timeline-playhead');
   await page.getByTitle('Play timeline').click();
-  await expect
-    .poll(async () => Number(await smoothPlayhead.inputValue()), { timeout: 1500 })
-    .toBeGreaterThan(0.05);
+  await expect.poll(async () => Number(await smoothPlayhead.inputValue()), { timeout: 1500 }).toBeGreaterThan(0.05);
   const animatedTime = Number(await smoothPlayhead.inputValue());
   expect(animatedTime).toBeLessThan(1);
   await page.getByTitle('Pause timeline').click();
@@ -172,7 +195,11 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
 
   const zoomedTrackStripBoxForDrag = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
   expect(zoomedTrackStripBoxForDrag).not.toBeNull();
-  await dragLocatorBy(page, page.getByTestId('particle-timeline-clip-1').first(), zoomedTrackStripBoxForDrag!.width * (0.2 / 3));
+  await dragLocatorBy(
+    page,
+    page.getByTestId('particle-timeline-clip-1').first(),
+    zoomedTrackStripBoxForDrag!.width * (0.2 / 3),
+  );
   await expect(page.getByLabel('Emit at').first()).toHaveValue('0.2');
   await expect(page.getByLabel('Stop at').first()).toHaveValue('2.6');
 
@@ -210,6 +237,9 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await curveSelect.click();
   await page.getByRole('option', { name: 'Out Quad', exact: true }).click();
   await expect(curveSelect).toContainText('Out Quad');
+  const opacityCurve = page.getByTestId('particle-timeline-curve-opacity-1');
+  await expect(opacityCurve).toBeVisible();
+  await expect(opacityCurve.locator('path')).toHaveAttribute('d', /L/);
   const createdKey = page.locator('[title="Opacity 1.20s = 0.55"]').first();
   await expect(createdKey).toBeVisible();
   await page.getByTestId('particle-timeline-keyframe-opacity-1').last().click();
@@ -273,15 +303,24 @@ test('shader graph right panel exposes root shader controls', async ({ page }) =
 
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 260, y: 260 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float parameter');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float parameter input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^float parameter input$/i })
+    .click();
 
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 420, y: 260 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('color parameter');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^color parameter input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^color parameter input$/i })
+    .click();
 
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 580, y: 260 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('texture parameter');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^texture parameter input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^texture parameter input$/i })
+    .click();
 
   const controls = page.getByTestId('shader-controls-panel');
   await expect(controls).toBeVisible();
@@ -295,17 +334,19 @@ test('shader graph right panel exposes root shader controls', async ({ page }) =
   await controls.getByLabel('Color Parameter label').fill('Tint');
   await controls.getByLabel('Tint alpha').fill('0.75');
 
-  await expect.poll(async () => {
-    return page.evaluate(() => {
-      const state = JSON.parse(localStorage.getItem('feather-shader-graph') || '{}')?.state;
-      const strength = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Strength');
-      const tint = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Tint');
-      return {
-        strength: strength?.data?.values?.val,
-        tintAlpha: tint?.data?.values?.val?.[3],
-      };
-    });
-  }).toEqual({ strength: 0.42, tintAlpha: 0.75 });
+  await expect
+    .poll(async () => {
+      return page.evaluate(() => {
+        const state = JSON.parse(localStorage.getItem('feather-shader-graph') || '{}')?.state;
+        const strength = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Strength');
+        const tint = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Tint');
+        return {
+          strength: strength?.data?.values?.val,
+          tintAlpha: tint?.data?.values?.val?.[3],
+        };
+      });
+    })
+    .toEqual({ strength: 0.42, tintAlpha: 0.75 });
 
   await controls.getByTitle('Select parameter node').first().click();
   await expect(page.getByTestId('shader-right-panel-selection')).toBeVisible();
@@ -388,7 +429,10 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
   const nodesBeforeInsert = await page.locator('.react-flow__node').count();
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 320, y: 260 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('blend modes');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^blend modes composite$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^blend modes composite$/i })
+    .click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 1);
 
   const compositionGraph = {
@@ -398,17 +442,54 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
     shaderName: 'composition-basics-flow',
     playgroundTarget: null,
     nodes: [
-      { id: 'texture', type: 'shaderNode', position: { x: 0, y: 0 }, data: { label: 'Sprite Texture', nodeType: 'TextureColor' } },
-      { id: 'luma', type: 'shaderNode', position: { x: 280, y: 0 }, data: { label: 'Brightness Mask', nodeType: 'LumaMask' } },
-      { id: 'gradient', type: 'shaderNode', position: { x: 560, y: 0 }, data: { label: 'Mapped Color', nodeType: 'GradientMap' } },
-      { id: 'mix', type: 'shaderNode', position: { x: 840, y: 0 }, data: { label: 'Mix Into Sprite', nodeType: 'EffectMix' } },
-      { id: 'out', type: 'shaderNode', position: { x: 1120, y: 0 }, data: { label: 'Final Color', nodeType: 'FragmentOutput' } },
+      {
+        id: 'texture',
+        type: 'shaderNode',
+        position: { x: 0, y: 0 },
+        data: { label: 'Sprite Texture', nodeType: 'TextureColor' },
+      },
+      {
+        id: 'luma',
+        type: 'shaderNode',
+        position: { x: 280, y: 0 },
+        data: { label: 'Brightness Mask', nodeType: 'LumaMask' },
+      },
+      {
+        id: 'gradient',
+        type: 'shaderNode',
+        position: { x: 560, y: 0 },
+        data: { label: 'Mapped Color', nodeType: 'GradientMap' },
+      },
+      {
+        id: 'mix',
+        type: 'shaderNode',
+        position: { x: 840, y: 0 },
+        data: { label: 'Mix Into Sprite', nodeType: 'EffectMix' },
+      },
+      {
+        id: 'out',
+        type: 'shaderNode',
+        position: { x: 1120, y: 0 },
+        data: { label: 'Final Color', nodeType: 'FragmentOutput' },
+      },
     ],
     edges: [
       { id: 'texture:out->luma:color', source: 'texture', sourceHandle: 'out', target: 'luma', targetHandle: 'color' },
-      { id: 'luma:mask->gradient:value', source: 'luma', sourceHandle: 'mask', target: 'gradient', targetHandle: 'value' },
+      {
+        id: 'luma:mask->gradient:value',
+        source: 'luma',
+        sourceHandle: 'mask',
+        target: 'gradient',
+        targetHandle: 'value',
+      },
       { id: 'texture:out->mix:base', source: 'texture', sourceHandle: 'out', target: 'mix', targetHandle: 'base' },
-      { id: 'gradient:rgba->mix:effect', source: 'gradient', sourceHandle: 'rgba', target: 'mix', targetHandle: 'effect' },
+      {
+        id: 'gradient:rgba->mix:effect',
+        source: 'gradient',
+        sourceHandle: 'rgba',
+        target: 'mix',
+        targetHandle: 'effect',
+      },
       { id: 'luma:mask->mix:mask', source: 'luma', sourceHandle: 'mask', target: 'mix', targetHandle: 'mask' },
       { id: 'mix:out->out:color', source: 'mix', sourceHandle: 'out', target: 'out', targetHandle: 'color' },
     ],
@@ -418,6 +499,7 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
   await page.locator('input[type="file"]').setInputFiles({
     name: 'composition-basics-flow.feathershgh',
     mimeType: 'application/json',
+    // @ts-expect-error buffer time
     buffer: Buffer.from(JSON.stringify(compositionGraph)),
   });
 
@@ -480,7 +562,10 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
   const nodesBeforeInsert = await page.locator('.react-flow__node').count();
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 320, y: 260 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('billboard uv');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^billboard uv fake 3d$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^billboard uv fake 3d$/i })
+    .click();
   await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeInsert + 1);
 
   const fake3dGraph = {
@@ -490,7 +575,12 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
     shaderName: 'fake-3d-billboard-flow',
     playgroundTarget: null,
     nodes: [
-      { id: 'uv', type: 'shaderNode', position: { x: 0, y: 0 }, data: { label: 'Source UVs', nodeType: 'TextureCoords' } },
+      {
+        id: 'uv',
+        type: 'shaderNode',
+        position: { x: 0, y: 0 },
+        data: { label: 'Source UVs', nodeType: 'TextureCoords' },
+      },
       {
         id: 'billboard',
         type: 'shaderNode',
@@ -501,7 +591,12 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
           values: { tilt: [0.28, -0.18], perspective: 0.45, scale: [0.92, 0.92], pivot: [0.5, 0.5] },
         },
       },
-      { id: 'sample', type: 'shaderNode', position: { x: 560, y: 0 }, data: { label: 'Sample Tilted Sprite', nodeType: 'SpriteTextureSample' } },
+      {
+        id: 'sample',
+        type: 'shaderNode',
+        position: { x: 560, y: 0 },
+        data: { label: 'Sample Tilted Sprite', nodeType: 'SpriteTextureSample' },
+      },
       {
         id: 'shade',
         type: 'shaderNode',
@@ -522,22 +617,80 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
           values: { offset: [0.06, 0.08], softness: 0.16, opacity: 0.36, color: [0, 0, 0, 1] },
         },
       },
-      { id: 'composite', type: 'shaderNode', position: { x: 1120, y: 130 }, data: { label: 'Composite Shadow', nodeType: 'CompositeAlpha', values: { mode: 0 } } },
-      { id: 'out', type: 'shaderNode', position: { x: 1400, y: 150 }, data: { label: 'Final Color', nodeType: 'FragmentOutput' } },
+      {
+        id: 'composite',
+        type: 'shaderNode',
+        position: { x: 1120, y: 130 },
+        data: { label: 'Composite Shadow', nodeType: 'CompositeAlpha', values: { mode: 0 } },
+      },
+      {
+        id: 'out',
+        type: 'shaderNode',
+        position: { x: 1400, y: 150 },
+        data: { label: 'Final Color', nodeType: 'FragmentOutput' },
+      },
     ],
     edges: [
       { id: 'uv:out->billboard:uv', source: 'uv', sourceHandle: 'out', target: 'billboard', targetHandle: 'uv' },
       { id: 'billboard:uv->sample:uv', source: 'billboard', sourceHandle: 'uv', target: 'sample', targetHandle: 'uv' },
-      { id: 'billboard:mask->sample:mask', source: 'billboard', sourceHandle: 'mask', target: 'sample', targetHandle: 'mask' },
-      { id: 'sample:rgba->shade:color', source: 'sample', sourceHandle: 'rgba', target: 'shade', targetHandle: 'color' },
-      { id: 'billboard:depth->shade:depth', source: 'billboard', sourceHandle: 'depth', target: 'shade', targetHandle: 'depth' },
-      { id: 'billboard:mask->shade:mask', source: 'billboard', sourceHandle: 'mask', target: 'shade', targetHandle: 'mask' },
+      {
+        id: 'billboard:mask->sample:mask',
+        source: 'billboard',
+        sourceHandle: 'mask',
+        target: 'sample',
+        targetHandle: 'mask',
+      },
+      {
+        id: 'sample:rgba->shade:color',
+        source: 'sample',
+        sourceHandle: 'rgba',
+        target: 'shade',
+        targetHandle: 'color',
+      },
+      {
+        id: 'billboard:depth->shade:depth',
+        source: 'billboard',
+        sourceHandle: 'depth',
+        target: 'shade',
+        targetHandle: 'depth',
+      },
+      {
+        id: 'billboard:mask->shade:mask',
+        source: 'billboard',
+        sourceHandle: 'mask',
+        target: 'shade',
+        targetHandle: 'mask',
+      },
       { id: 'uv:out->shadow:uv', source: 'uv', sourceHandle: 'out', target: 'shadow', targetHandle: 'uv' },
-      { id: 'billboard:mask->shadow:mask', source: 'billboard', sourceHandle: 'mask', target: 'shadow', targetHandle: 'mask' },
-      { id: 'billboard:depth->shadow:depth', source: 'billboard', sourceHandle: 'depth', target: 'shadow', targetHandle: 'depth' },
+      {
+        id: 'billboard:mask->shadow:mask',
+        source: 'billboard',
+        sourceHandle: 'mask',
+        target: 'shadow',
+        targetHandle: 'mask',
+      },
+      {
+        id: 'billboard:depth->shadow:depth',
+        source: 'billboard',
+        sourceHandle: 'depth',
+        target: 'shadow',
+        targetHandle: 'depth',
+      },
       { id: 'shade:rgba->composite:a', source: 'shade', sourceHandle: 'rgba', target: 'composite', targetHandle: 'a' },
-      { id: 'shadow:rgba->composite:b', source: 'shadow', sourceHandle: 'rgba', target: 'composite', targetHandle: 'b' },
-      { id: 'composite:out->out:color', source: 'composite', sourceHandle: 'out', target: 'out', targetHandle: 'color' },
+      {
+        id: 'shadow:rgba->composite:b',
+        source: 'shadow',
+        sourceHandle: 'rgba',
+        target: 'composite',
+        targetHandle: 'b',
+      },
+      {
+        id: 'composite:out->out:color',
+        source: 'composite',
+        sourceHandle: 'out',
+        target: 'out',
+        targetHandle: 'color',
+      },
     ],
     subgraphs: [],
   };
@@ -545,6 +698,7 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
   await page.locator('input[type="file"]').setInputFiles({
     name: 'fake-3d-billboard-flow.feathershgh',
     mimeType: 'application/json',
+    // @ts-expect-error buffer time
     buffer: Buffer.from(JSON.stringify(fake3dGraph)),
   });
 
@@ -649,6 +803,7 @@ test('shader graph surfaces compiler diagnostics for broken imports', async ({ p
   await page.locator('input[type="file"]').setInputFiles({
     name: 'broken-diagnostics.feathershgh',
     mimeType: 'application/json',
+    // @ts-expect-error buffer time
     buffer: Buffer.from(JSON.stringify(brokenGraph)),
   });
 
@@ -679,19 +834,72 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
     shaderName: 'preview-probe-flow',
     playgroundTarget: null,
     nodes: [
-      { id: 'tex', type: 'shaderNode', position: { x: 0, y: 0 }, data: { label: 'Base Texture', nodeType: 'TextureColor' } },
-      { id: 'probe-a', type: 'shaderNode', position: { x: 260, y: 0 }, data: { label: 'Before Invert', nodeType: 'Preview' } },
-      { id: 'amount', type: 'shaderNode', position: { x: 260, y: 170 }, data: { label: 'Invert Amount', nodeType: 'FloatConstant', values: { val: 1 } } },
-      { id: 'invert', type: 'shaderNode', position: { x: 520, y: 0 }, data: { label: 'Invert Pass', nodeType: 'InvertColor' } },
-      { id: 'probe-b', type: 'shaderNode', position: { x: 790, y: 0 }, data: { label: 'After Invert', nodeType: 'Preview' } },
-      { id: 'out', type: 'shaderNode', position: { x: 1060, y: 0 }, data: { label: 'Final Color', nodeType: 'FragmentOutput' } },
-      { id: 'probe-loose', type: 'shaderNode', position: { x: 520, y: 250 }, data: { label: 'Loose Preview', nodeType: 'Preview' } },
+      {
+        id: 'tex',
+        type: 'shaderNode',
+        position: { x: 0, y: 0 },
+        data: { label: 'Base Texture', nodeType: 'TextureColor' },
+      },
+      {
+        id: 'probe-a',
+        type: 'shaderNode',
+        position: { x: 260, y: 0 },
+        data: { label: 'Before Invert', nodeType: 'Preview' },
+      },
+      {
+        id: 'amount',
+        type: 'shaderNode',
+        position: { x: 260, y: 170 },
+        data: { label: 'Invert Amount', nodeType: 'FloatConstant', values: { val: 1 } },
+      },
+      {
+        id: 'invert',
+        type: 'shaderNode',
+        position: { x: 520, y: 0 },
+        data: { label: 'Invert Pass', nodeType: 'InvertColor' },
+      },
+      {
+        id: 'probe-b',
+        type: 'shaderNode',
+        position: { x: 790, y: 0 },
+        data: { label: 'After Invert', nodeType: 'Preview' },
+      },
+      {
+        id: 'out',
+        type: 'shaderNode',
+        position: { x: 1060, y: 0 },
+        data: { label: 'Final Color', nodeType: 'FragmentOutput' },
+      },
+      {
+        id: 'probe-loose',
+        type: 'shaderNode',
+        position: { x: 520, y: 250 },
+        data: { label: 'Loose Preview', nodeType: 'Preview' },
+      },
     ],
     edges: [
       { id: 'tex:out->probe-a:color', source: 'tex', sourceHandle: 'out', target: 'probe-a', targetHandle: 'color' },
-      { id: 'probe-a:out->invert:color', source: 'probe-a', sourceHandle: 'out', target: 'invert', targetHandle: 'color' },
-      { id: 'amount:out->invert:amount', source: 'amount', sourceHandle: 'out', target: 'invert', targetHandle: 'amount' },
-      { id: 'invert:out->probe-b:color', source: 'invert', sourceHandle: 'out', target: 'probe-b', targetHandle: 'color' },
+      {
+        id: 'probe-a:out->invert:color',
+        source: 'probe-a',
+        sourceHandle: 'out',
+        target: 'invert',
+        targetHandle: 'color',
+      },
+      {
+        id: 'amount:out->invert:amount',
+        source: 'amount',
+        sourceHandle: 'out',
+        target: 'invert',
+        targetHandle: 'amount',
+      },
+      {
+        id: 'invert:out->probe-b:color',
+        source: 'invert',
+        sourceHandle: 'out',
+        target: 'probe-b',
+        targetHandle: 'color',
+      },
       { id: 'probe-b:out->out:color', source: 'probe-b', sourceHandle: 'out', target: 'out', targetHandle: 'color' },
     ],
     subgraphs: [],
@@ -700,6 +908,7 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
   await page.locator('input[type="file"]').setInputFiles({
     name: 'preview-probe-flow.feathershgh',
     mimeType: 'application/json',
+    // @ts-expect-error buffer time
     buffer: Buffer.from(JSON.stringify(graph)),
   });
 
@@ -715,7 +924,9 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
 
   await beforeProbe.click();
   const beforePreviewFrame = beforeProbe.locator('iframe[title="Before Invert love.js preview"]');
-  await expect(beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas')).toBeVisible();
+  await expect(
+    beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas'),
+  ).toBeVisible();
   const beforePreviewFrameBox = await beforePreviewFrame.boundingBox();
   expect(beforePreviewFrameBox).not.toBeNull();
   expect(Math.abs(beforePreviewFrameBox!.width / beforePreviewFrameBox!.height - 16 / 9)).toBeLessThan(0.08);
@@ -731,7 +942,9 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
   await expect(afterProbe.getByTestId('shader-preview-probe').getByText(/select or pin this probe/i)).toBeVisible();
 
   await afterProbe.click();
-  await expect(beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas')).toBeVisible();
+  await expect(
+    beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas'),
+  ).toBeVisible();
   await expect(afterProbe.frameLocator('iframe[title="After Invert love.js preview"]').locator('canvas')).toBeVisible();
   await beforeProbe.getByTitle('Unpin this preview').click();
 

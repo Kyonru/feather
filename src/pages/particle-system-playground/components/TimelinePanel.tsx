@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSettingsStore } from '@/store/settings';
 import {
   PARTICLE_TIMELINE_EASING_LABELS,
+  easeParticleTimelineValue,
   normalizeParticleTimelineEasing,
 } from '../easing';
 import {
@@ -180,6 +181,55 @@ function updateTrack(
 
 function sortedKeyframes(points: ParticleTimelineKeyframe[] = []): ParticleTimelineKeyframe[] {
   return [...points].sort((a, b) => a.time - b.time);
+}
+
+function laneValueRange(points: ParticleTimelineKeyframe[], lane: ParticleTimelineLane): { min: number; max: number } {
+  const values = points.length > 0 ? points.map((point) => point.value) : [PARTICLE_TIMELINE_LANE_DEFAULTS[lane]];
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    min = PARTICLE_TIMELINE_LANE_DEFAULTS[lane];
+    max = min;
+  }
+  if (Math.abs(max - min) < 0.0001) {
+    const padding = Math.max(1, Math.abs(max) * 0.25);
+    min -= padding;
+    max += padding;
+  }
+  return { min, max };
+}
+
+function laneValueToSvgY(value: number, range: { min: number; max: number }): number {
+  return 88 - ((value - range.min) / (range.max - range.min)) * 76;
+}
+
+function laneCurvePath(points: ParticleTimelineKeyframe[], lane: ParticleTimelineLane, duration: number): string {
+  if (points.length === 0 || duration <= 0) return '';
+  const range = laneValueRange(points, lane);
+  const commands: string[] = [];
+
+  for (let index = 0; index < points.length; index += 1) {
+    const point = points[index];
+    const x = timeToPercent(point.time, duration);
+    const y = laneValueToSvgY(point.value, range);
+    commands.push(`${commands.length === 0 ? 'M' : 'L'} ${x.toFixed(3)} ${y.toFixed(3)}`);
+
+    const next = points[index + 1];
+    if (!next) continue;
+    const span = Math.max(0.0001, next.time - point.time);
+    const samples = normalizeParticleTimelineEasing(point.easing) === 'hold' ? 1 : 10;
+    for (let sample = 1; sample <= samples; sample += 1) {
+      const t = sample / samples;
+      const eased = easeParticleTimelineValue(point.easing, t);
+      const sampleTime = point.time + span * t;
+      const sampleValue = point.value + (next.value - point.value) * eased;
+      commands.push(
+        `L ${timeToPercent(sampleTime, duration).toFixed(3)} ${laneValueToSvgY(sampleValue, range).toFixed(3)}`,
+      );
+    }
+  }
+
+  return commands.join(' ');
 }
 
 function timelineTicks(duration: number, zoom: number): Array<{ time: number; label: string }> {
@@ -1019,6 +1069,7 @@ export function TimelinePanel({
                   <div className="border-b bg-muted/10" data-testid={`particle-timeline-lanes-${system.index}`}>
                     {PARTICLE_TIMELINE_LANES.map((lane) => {
                       const points = sortedKeyframes(track.lanes[lane]);
+                      const curvePath = laneCurvePath(points, lane, timeline.duration);
                       const laneSelected =
                         (selectedItem?.type === 'lane' || selectedItem?.type === 'keyframe') &&
                         selectedItem.systemIndex === system.index &&
@@ -1059,6 +1110,26 @@ export function TimelinePanel({
                               <div className="absolute inset-x-2 inset-y-0">
                                 <div className="relative h-full">
                                   <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+                                  {curvePath && (
+                                    <svg
+                                      aria-hidden="true"
+                                      className="pointer-events-none absolute inset-0 size-full overflow-visible"
+                                      data-testid={`particle-timeline-curve-${lane}-${system.index}`}
+                                      preserveAspectRatio="none"
+                                      viewBox="0 0 100 100"
+                                    >
+                                      <path
+                                        d={curvePath}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        vectorEffect="non-scaling-stroke"
+                                        className="text-primary/55"
+                                      />
+                                    </svg>
+                                  )}
                                   {renderPlayhead('bg-primary/50')}
                                   {points.map((point) => {
                                     const selectedKey =
