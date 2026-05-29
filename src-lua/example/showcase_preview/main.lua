@@ -275,21 +275,25 @@ local function drawShaderPreview(w, h)
   local pr, pg, pb, pa = love.graphics.getColor()
   local prevLW = love.graphics.getLineWidth()
 
-  local previewSize = math.min(280, math.max(128, math.min(w, h) * 0.42)) * normalizePreviewZoom(shaderState.zoom)
   local dw = drawable:getWidth()
-  local scale = previewSize / (dw > 0 and dw or 256)
-  local x = (w - previewSize) / 2
-  local y = (h - previewSize) / 2
+  local dh = drawable:getHeight()
+  local previewSize = math.min(280, math.max(128, math.min(w, h) * 0.42)) * normalizePreviewZoom(shaderState.zoom)
+  local aspect = (dw > 0 and dh > 0) and (dw / dh) or 1
+  local drawW = aspect >= 1 and previewSize or previewSize * aspect
+  local drawH = aspect >= 1 and previewSize / aspect or previewSize
+  local scale = drawW / (dw > 0 and dw or 256)
+  local x = (w - drawW) / 2
+  local y = (h - drawH) / 2
 
   love.graphics.push()
   love.graphics.origin()
   love.graphics.setShader()
   love.graphics.setBlendMode("alpha")
   love.graphics.setColor(0.04, 0.05, 0.07, 0.74)
-  love.graphics.rectangle("fill", x - 10, y - 10, previewSize + 20, previewSize + 42, 6, 6)
+  love.graphics.rectangle("fill", x - 10, y - 10, drawW + 20, drawH + 42, 6, 6)
   love.graphics.setColor(1, 1, 1, 0.22)
   love.graphics.setLineWidth(1)
-  love.graphics.rectangle("line", x - 10, y - 10, previewSize + 20, previewSize + 42, 6, 6)
+  love.graphics.rectangle("line", x - 10, y - 10, drawW + 20, drawH + 42, 6, 6)
 
   if shader then
     if love.timer then
@@ -302,7 +306,7 @@ local function drawShaderPreview(w, h)
 
   love.graphics.setShader()
   love.graphics.setColor(1, 1, 1, 0.72)
-  love.graphics.print("Shader Preview: " .. shaderState.shape, x - 4, y + previewSize + 12)
+  love.graphics.print("Shader Preview: " .. shaderState.shape, x - 4, y + drawH + 12)
 
   love.graphics.setBlendMode(prevBlend, prevAlphaMode)
   love.graphics.setShader(prevShader)

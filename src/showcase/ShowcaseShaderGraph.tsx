@@ -85,7 +85,8 @@ export function ShowcaseShaderGraph() {
     baseTexture: { filename: string; dataBase64: string } | null;
     parameters: ShaderParameter[];
     textures: { filename: string; dataBase64: string; uniform: string }[];
-  }>({ shape: 'circle', color: '#ffffff', baseTexture: null, parameters: [], textures: [] });
+    previewZoom: number;
+  }>({ shape: 'circle', color: '#ffffff', baseTexture: null, parameters: [], textures: [], previewZoom: 1 });
 
   const handlePreviewParamsChange = useCallback(
     (params: {
@@ -94,6 +95,7 @@ export function ShowcaseShaderGraph() {
       baseTexture: { filename: string; dataBase64: string } | null;
       parameters: ShaderParameter[];
       textures: { filename: string; dataBase64: string; uniform: string }[];
+      previewZoom: number;
     }) => {
       setPreviewParams(params);
     },
@@ -217,7 +219,7 @@ export function ShowcaseShaderGraph() {
 
   return (
     <ReactFlowProvider>
-      <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="relative flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b px-3 py-2">
           <div>
             <h1 className="text-sm font-semibold">Shader Graph</h1>
@@ -278,18 +280,18 @@ export function ShowcaseShaderGraph() {
         </header>
 
         <ResizablePanelGroup orientation="horizontal" className="h-0 min-h-0 flex-1 overflow-hidden">
-          <ResizablePanel defaultSize="16%" minSize="12%" maxSize="25%" className="flex flex-col border-r">
+          <ResizablePanel defaultSize="16%" minSize="12%" maxSize="25%" className="flex min-h-0 flex-col border-r">
             <div className="border-b px-3 py-2 shrink-0">
               <span className="text-sm font-semibold">Nodes</span>
             </div>
             <NodePalette />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel defaultSize="49%" minSize="30%" className="min-w-0 overflow-hidden">
+          <ResizablePanel defaultSize="49%" minSize="30%" className="min-h-0 min-w-0 overflow-hidden">
             <ShaderCanvas />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel defaultSize="35%" minSize="24%" maxSize="48%" className="flex flex-col border-l">
+          <ResizablePanel defaultSize="35%" minSize="24%" maxSize="48%" className="flex min-h-0 flex-col border-l">
             <ShaderRightPanel standalone onPreviewParamsChange={handlePreviewParamsChange} />
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -307,6 +309,7 @@ export function ShowcaseShaderGraph() {
             baseTexture: previewParams.baseTexture,
             parameters: previewParams.parameters,
             textures: previewParams.textures,
+            previewZoom: previewParams.previewZoom,
           }}
         />
       </div>

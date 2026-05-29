@@ -44,6 +44,7 @@ type PreviewParams = {
   baseTexture: { filename: string; dataBase64: string } | null;
   parameters: ShaderParameter[];
   textures: { filename: string; dataBase64: string; uniform: string }[];
+  previewZoom: number;
 };
 
 const diagnosticStyles: Record<ShaderGraphDiagnostic['severity'], string> = {
@@ -139,6 +140,7 @@ export function CodePreview({
   const [copied, setCopied] = useState(false);
   const previewShape = useShaderGraphStore((s) => s.previewShape);
   const previewColor = useShaderGraphStore((s) => s.previewColor);
+  const previewZoom = useShaderGraphStore((s) => s.previewZoom);
   const baseTexture = useShaderGraphStore((s) => s.previewBaseTexture);
   const setPreviewShape = useShaderGraphStore((s) => s.setPreviewShape);
   const setPreviewColor = useShaderGraphStore((s) => s.setPreviewColor);
@@ -231,8 +233,9 @@ export function CodePreview({
       baseTexture,
       parameters: glsl.parameters ?? [],
       textures: uploadedUniformTextures,
+      previewZoom,
     });
-  }, [previewShape, previewColor, baseTexture, glsl.parameters, standalone, uploadedUniformTextures]);
+  }, [previewShape, previewColor, previewZoom, baseTexture, glsl.parameters, standalone, uploadedUniformTextures]);
 
   useEffect(() => {
     if (!sessionId || !previewEnabled) return;

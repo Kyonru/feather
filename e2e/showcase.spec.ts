@@ -26,6 +26,19 @@ async function dragLocatorToX(page: Page, locator: Locator, x: number) {
   await page.mouse.up();
 }
 
+async function dragPaletteNodeToCanvas(page: Page, nodeName: string, position: { x: number; y: number }) {
+  const source = page.getByTestId('shader-node-palette').getByRole('button', { name: nodeName }).first();
+  const target = page.getByTestId('shader-canvas');
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(sourceBox!.x + sourceBox!.width / 2, sourceBox!.y + sourceBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox!.x + position.x, targetBox!.y + position.y, { steps: 8 });
+  await page.mouse.up();
+}
+
 test('standalone showcase loads the landing page and tools', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /complete developer toolkit/i })).toBeVisible();
@@ -313,7 +326,15 @@ test('shader graph node palette sections collapse and search hidden matches', as
   const complexContent = palette.getByTestId('shader-node-category-content-complex');
 
   await expect(inputContent).toBeVisible();
-  await expect(inputContent.getByRole('button', { name: 'Texture Color' })).toHaveAttribute('draggable', 'true');
+  await expect(inputContent.getByRole('button', { name: 'Texture Color' })).toBeVisible();
+  const nodesBeforeDrag = await page.locator('.react-flow__node').count();
+  await dragPaletteNodeToCanvas(page, 'Texture Color', { x: 360, y: 220 });
+  await expect(page.locator('.react-flow__node')).toHaveCount(nodesBeforeDrag + 1);
+  await expect(page.locator('.react-flow__node').filter({ hasText: 'Texture Color' }).first()).toBeVisible();
+  const canvasBoxAfterDrag = await page.getByTestId('shader-canvas').boundingBox();
+  expect(canvasBoxAfterDrag).not.toBeNull();
+  expect(canvasBoxAfterDrag!.width).toBeGreaterThan(300);
+  expect(canvasBoxAfterDrag!.height).toBeGreaterThan(300);
   await expect(complexToggle).toBeVisible();
   await expect(complexContent).toBeHidden();
 
@@ -689,7 +710,7 @@ test('shader graph preview probes inspect inline rgba flow', async ({ page }) =>
   await expect(beforeProbe.frameLocator('iframe[title="Before Invert love.js preview"]').locator('canvas')).toBeVisible();
   const beforePreviewFrameBox = await beforePreviewFrame.boundingBox();
   expect(beforePreviewFrameBox).not.toBeNull();
-  expect(Math.abs(beforePreviewFrameBox!.width / beforePreviewFrameBox!.height - 18 / 11)).toBeLessThan(0.08);
+  expect(Math.abs(beforePreviewFrameBox!.width / beforePreviewFrameBox!.height - 16 / 9)).toBeLessThan(0.08);
   await expect(beforeProbe.getByText('100%')).toBeVisible();
   await beforeProbe.getByTitle('Zoom preview in').click();
   await expect(beforeProbe.getByText('125%')).toBeVisible();

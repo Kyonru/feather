@@ -10,7 +10,7 @@ import { useShaderGraphStore } from '@/store/shader-graph';
 import type { NodeCategory, NodeType } from '@/types/shader-graph';
 import { cn } from '@/utils/styles';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_TOP_COLORS, NODE_DEFS } from './nodeDefs';
 
 function categorySlug(category: NodeCategory): string {
@@ -18,9 +18,23 @@ function categorySlug(category: NodeCategory): string {
 }
 
 const BOUNDARY_NODE_TYPES = new Set<NodeType>(['SubgraphInput', 'SubgraphOutput']);
+const POINTER_DRAG_THRESHOLD = 4;
+
+type PaletteDragState = {
+  nodeType: NodeType;
+  label: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  dragging: boolean;
+};
 
 export function NodePalette() {
   const [search, setSearch] = useState('');
+  const [dragPreview, setDragPreview] = useState<{ label: string; x: number; y: number } | null>(null);
+  const pointerDragRef = useRef<PaletteDragState | null>(null);
   const { playgroundTarget, setPlaygroundTarget, activeSubgraphId } = useShaderGraphStore();
   const collapsedCategories = useSettingsStore((state) => state.collapsedShaderGraphNodeCategories);
   const toggleCategory = useSettingsStore((state) => state.toggleShaderGraphNodeCategory);
@@ -49,9 +63,67 @@ export function NodePalette() {
     })
     .filter((row) => row.nodes.length > 0);
 
-  function handleDragStart(event: React.DragEvent, nodeType: NodeType) {
-    event.dataTransfer.setData('application/shader-node-type', nodeType);
-    event.dataTransfer.effectAllowed = 'copy';
+  function handlePointerDown(event: ReactPointerEvent<HTMLButtonElement>, nodeType: NodeType) {
+    if (event.button !== 0) return;
+    const label = NODE_DEFS[nodeType].label;
+    pointerDragRef.current = {
+      nodeType,
+      label,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: event.clientX,
+      y: event.clientY,
+      dragging: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = pointerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    const dragging = drag.dragging || Math.hypot(dx, dy) >= POINTER_DRAG_THRESHOLD;
+    pointerDragRef.current = {
+      ...drag,
+      x: event.clientX,
+      y: event.clientY,
+      dragging,
+    };
+    if (dragging) {
+      event.preventDefault();
+      setDragPreview({ label: drag.label, x: event.clientX, y: event.clientY });
+    }
+  }
+
+  function handlePointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = pointerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    pointerDragRef.current = null;
+    setDragPreview(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (!drag.dragging) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    const canvas = target?.closest('[data-testid="shader-canvas"]');
+    if (!canvas) return;
+    window.dispatchEvent(
+      new CustomEvent('shader-graph:palette-node-drop', {
+        detail: { nodeType: drag.nodeType, clientX: event.clientX, clientY: event.clientY },
+      }),
+    );
+  }
+
+  function handlePointerCancel(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = pointerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    pointerDragRef.current = null;
+    setDragPreview(null);
   }
 
   return (
@@ -148,10 +220,14 @@ export function NodePalette() {
                         <button
                           type="button"
                           key={nodeType}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, nodeType)}
+                          draggable={false}
+                          onDragStart={(e) => e.preventDefault()}
+                          onPointerDown={(e) => handlePointerDown(e, nodeType)}
+                          onPointerMove={handlePointerMove}
+                          onPointerUp={handlePointerUp}
+                          onPointerCancel={handlePointerCancel}
                           className={cn(
-                            'cursor-grab rounded border border-l-2 bg-card px-2 py-1 text-xs select-none hover:bg-muted/50 active:cursor-grabbing',
+                            'touch-none cursor-grab rounded border border-l-2 bg-card px-2 py-1 text-xs select-none hover:bg-muted/50 active:cursor-grabbing',
                             colorClass,
                           )}
                         >
@@ -218,6 +294,14 @@ export function NodePalette() {
             )}
           </div>
         </>
+      )}
+      {dragPreview && (
+        <div
+          className="pointer-events-none fixed z-100 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-lg"
+          style={{ left: dragPreview.x + 12, top: dragPreview.y + 12 }}
+        >
+          {dragPreview.label}
+        </div>
       )}
     </div>
   );

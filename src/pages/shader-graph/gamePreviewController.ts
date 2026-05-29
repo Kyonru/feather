@@ -14,6 +14,7 @@ export type ShaderGraphGamePreviewParams = {
   parameters: ShaderParameter[];
   baseTexture?: ShaderTextureUpload | null;
   textures: ShaderPreviewTextureUpload[];
+  previewZoom?: number;
 };
 
 export const shaderGraphGamePreviewController = createShaderGraphGamePreviewController(sendCommand);

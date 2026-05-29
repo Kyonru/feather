@@ -13,6 +13,7 @@ type PreviewParams = {
   baseTexture: { filename: string; dataBase64: string } | null;
   parameters: ShaderParameter[];
   textures: { filename: string; dataBase64: string; uniform: string }[];
+  previewZoom: number;
 };
 
 type Props = {

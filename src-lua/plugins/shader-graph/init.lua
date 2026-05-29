@@ -49,6 +49,7 @@ local function previewInputKey(params)
     vertexSource = params.vertexSource,
     shape = params.shape,
     color = params.color,
+    previewZoom = params.previewZoom,
     baseTexture = params.baseTexture,
     textureUniforms = params.textureUniforms,
     textures = params.textures,
@@ -76,10 +77,20 @@ local function drawableKey(params, shape, color)
   })
 end
 
-local function previewSize()
+local function normalizePreviewZoom(value)
+  value = tonumber(value) or 1
+  if value < 0.4 then
+    return 0.4
+  elseif value > 2.5 then
+    return 2.5
+  end
+  return value
+end
+
+local function previewSize(zoom)
   local width = love.graphics.getWidth()
   local height = love.graphics.getHeight()
-  return math.min(280, math.max(128, math.min(width, height) * 0.42))
+  return math.min(280, math.max(128, math.min(width, height) * 0.42)) * normalizePreviewZoom(zoom)
 end
 
 local function ensurePreviewCanvas(preview, size)
@@ -209,6 +220,7 @@ function ShaderGraphPlugin:_previewShader(params)
     drawable = drawable,
     shape = shape,
     color = color,
+    zoom = normalizePreviewZoom(params.previewZoom),
     baseTexture = type(baseTexture) == "table" and baseTexture.filename or nil,
     textures = textures,
     canvas = self.preview and self.preview.canvas or nil,
@@ -238,23 +250,28 @@ function ShaderGraphPlugin:onDraw()
   local previousLineWidth = love.graphics.getLineWidth()
   local width = love.graphics.getWidth()
   local height = love.graphics.getHeight()
-  local previewExtent = previewSize()
-  local scale = previewExtent / drawable:getWidth()
-  local x = (width - previewExtent) / 2
-  local y = (height - previewExtent) / 2
+  local previewExtent = previewSize(self.preview.zoom)
+  local drawableWidth = drawable:getWidth()
+  local drawableHeight = drawable:getHeight()
+  local aspect = (drawableWidth > 0 and drawableHeight > 0) and (drawableWidth / drawableHeight) or 1
+  local drawW = aspect >= 1 and previewExtent or previewExtent * aspect
+  local drawH = aspect >= 1 and previewExtent / aspect or previewExtent
+  local scale = drawW / (drawableWidth > 0 and drawableWidth or 256)
+  local x = (width - drawW) / 2
+  local y = (height - drawH) / 2
 
   love.graphics.push()
   love.graphics.origin()
   love.graphics.setShader()
   love.graphics.setBlendMode("alpha")
   love.graphics.setColor(0.04, 0.05, 0.07, 0.74)
-  love.graphics.rectangle("fill", x - 10, y - 10, previewExtent + 20, previewExtent + 42, 6, 6)
+  love.graphics.rectangle("fill", x - 10, y - 10, drawW + 20, drawH + 42, 6, 6)
   love.graphics.setColor(1, 1, 1, 0.22)
   love.graphics.setLineWidth(1)
-  love.graphics.rectangle("line", x - 10, y - 10, previewExtent + 20, previewExtent + 42, 6, 6)
+  love.graphics.rectangle("line", x - 10, y - 10, drawW + 20, drawH + 42, 6, 6)
   love.graphics.setColor(1, 1, 1, 0.72)
   local label = self.preview.baseTexture or self.preview.shape
-  love.graphics.print("Shader Preview: " .. label, x - 4, y + previewExtent + 12)
+  love.graphics.print("Shader Preview: " .. label, x - 4, y + drawH + 12)
 
   local now = love.timer and love.timer.getTime() or os.clock()
   local shouldRender = not self.preview.renderedAt or (now - self.preview.renderedAt) >= (self.preview.renderInterval or (1 / 15))
@@ -265,7 +282,7 @@ function ShaderGraphPlugin:onDraw()
   love.graphics.setShader()
   love.graphics.setColor(1, 1, 1, 1)
   if renderedToCanvas and self.preview.canvas then
-    love.graphics.draw(self.preview.canvas, x, y)
+    love.graphics.draw(self.preview.canvas, x, y, 0, drawW / previewExtent, drawH / previewExtent)
   else
     love.graphics.setShader(shader)
     love.graphics.draw(drawable, x, y, 0, scale, scale)

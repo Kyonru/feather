@@ -59,7 +59,7 @@ Runtime validation is still the final compiler check. Driver-specific GLSL error
 
 ### Debug
 
-Use **Preview** as an inline RGBA probe while building effect chains. It accepts a `vec4`, outputs the same `vec4`, and is safe to place between color/effect nodes because production GLSL treats it as a pass-through. The selected Preview node renders the graph up to that point inside the node with the standalone love.js preview; other Preview nodes stay paused so large graphs do not run multiple preview runtimes at once. Use the node's game-preview button to send that same probe shader to a connected LÖVE game; game sends are deduped and throttled to about two updates per second, and the runtime overlay caches shader/drawable work while drawing a capped preview canvas. A disconnected Preview node shows a fallback until its RGBA input is connected.
+Use **Preview** as an inline RGBA probe while building effect chains. It accepts a `vec4`, outputs the same `vec4`, and is safe to place between color/effect nodes because production GLSL treats it as a pass-through. The selected Preview node renders the graph up to that point inside the node with the standalone love.js preview; other Preview nodes stay paused so large graphs do not run multiple preview runtimes at once. Embedded previews use the same 16:9 love.js target as the standalone preview and keep uploaded texture aspect ratios while zooming. Use the node's game-preview button to send that same probe shader to a connected LÖVE game; game sends are deduped and throttled to about two updates per second, and the runtime overlay caches shader/drawable work while drawing a capped preview canvas. A disconnected Preview node shows a fallback until its RGBA input is connected.
 
 ### Showcase development
 

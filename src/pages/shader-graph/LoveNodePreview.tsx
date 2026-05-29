@@ -15,7 +15,8 @@ type Props = {
   pinned: boolean;
 };
 
-const NODE_PREVIEW_ASPECT_CLASS = 'aspect-[18/11] w-full';
+const NODE_PREVIEW_ASPECT_CLASS = 'aspect-video w-full';
+const PREVIEW_ASSET_VERSION = 'shader-node-preview-v3';
 
 function colorFromHex(value: string): [number, number, number, number] {
   const match = value.match(/^#?([0-9a-f]{6})$/i);
@@ -85,7 +86,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
   const loadedRef = useRef(false);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
-  const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/index.html?g=showcase.love&v=11.5`;
+  const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/index.html?g=showcase.love&v=11.5&featherPreview=${PREVIEW_ASSET_VERSION}`;
   const activeSubgraph = activeSubgraphId ? subgraphs.find((subgraph) => subgraph.id === activeSubgraphId) : null;
   const graphNodes = activeSubgraph?.nodes ?? nodes;
   const graphEdges = activeSubgraph?.edges ?? edges;
@@ -177,6 +178,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
         textureUniforms: probe.textures ?? [],
         parameters: probe.parameters ?? [],
         textures,
+        previewZoom,
       });
       setStatus('live');
     } catch (err) {

@@ -24,6 +24,7 @@
   let whiteTexture = null;
   let previewTexture = null;
   let previewTextureKey = '';
+  let previewTextureSize = { width: 256, height: 256 };
   let textureCacheKey = '';
   let textureCache = new Map();
 
@@ -152,10 +153,15 @@ void main() {
 
   function ensureQuadBuffer(width, height) {
     const zoom = Math.max(0.4, Math.min(2.5, Number(payload.previewZoom) || 1));
-    const size = Math.max(32, Math.min(width, height) * 0.62 * zoom);
-    const x = size / width;
-    const y = size / height;
-    const key = `${width}:${height}:${size}`;
+    const maxExtent = Math.max(32, Math.min(width, height) * 0.62 * zoom);
+    const textureWidth = Math.max(1, Number(previewTextureSize.width) || 1);
+    const textureHeight = Math.max(1, Number(previewTextureSize.height) || 1);
+    const textureAspect = textureWidth / textureHeight;
+    const drawWidth = textureAspect >= 1 ? maxExtent : maxExtent * textureAspect;
+    const drawHeight = textureAspect >= 1 ? maxExtent / textureAspect : maxExtent;
+    const x = drawWidth / width;
+    const y = drawHeight / height;
+    const key = `${width}:${height}:${drawWidth}:${drawHeight}`;
     if (!quadBuffer) quadBuffer = gl.createBuffer();
     if (quadBufferKey === key) return quadBuffer;
     quadBufferKey = key;
@@ -252,13 +258,18 @@ void main() {
     if (previewTexture) gl.deleteTexture(previewTexture);
     previewTexture = gl.createTexture();
     previewTextureKey = key;
+    previewTextureSize = { width: 256, height: 256 };
+    quadBufferKey = '';
     configureTexture(previewTexture);
 
     if (base?.dataBase64) {
+      previewTextureSize = { width: 1, height: 1 };
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
       const image = new Image();
       image.onload = () => {
         gl.bindTexture(gl.TEXTURE_2D, previewTexture);
+        previewTextureSize = { width: image.naturalWidth || image.width || 1, height: image.naturalHeight || image.height || 1 };
+        quadBufferKey = '';
         uploadTextureSource(image);
       };
       image.src = `data:image/png;base64,${base.dataBase64}`;

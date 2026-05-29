@@ -82,6 +82,25 @@ const CATEGORY_HEX: Record<string, string> = {
 };
 
 const BOUNDARY_NODE_TYPES = new Set<NodeType>(['SubgraphInput', 'SubgraphOutput']);
+const SHADER_NODE_DRAG_TYPE = 'application/shader-node-type';
+const SHADER_NODE_TEXT_PREFIX = 'feather-shader-node:';
+
+function safeGetDragData(dataTransfer: DataTransfer, type: string): string {
+  try {
+    return dataTransfer.getData(type);
+  } catch {
+    return '';
+  }
+}
+
+function getDraggedNodeType(dataTransfer: DataTransfer): NodeType | null {
+  const customType = safeGetDragData(dataTransfer, SHADER_NODE_DRAG_TYPE);
+  if (customType && NODE_DEFS[customType as NodeType]) return customType as NodeType;
+
+  const text = safeGetDragData(dataTransfer, 'text/plain');
+  const fallbackType = text.startsWith(SHADER_NODE_TEXT_PREFIX) ? text.slice(SHADER_NODE_TEXT_PREFIX.length) : '';
+  return fallbackType && NODE_DEFS[fallbackType as NodeType] ? (fallbackType as NodeType) : null;
+}
 
 function miniMapNodeColor(node: Node<ShaderNodeData>): string {
   const def = getNodeDef(node.data);
@@ -165,6 +184,33 @@ export function ShaderCanvas() {
     [graphEdges, setEdges],
   );
 
+  const addPaletteNodeAt = useCallback(
+    (nodeType: NodeType, clientX: number, clientY: number) => {
+      if (BOUNDARY_NODE_TYPES.has(nodeType) && !activeSubgraphId) {
+        toast.info('Subgraph boundary nodes are only available inside a subgraph.');
+        return;
+      }
+
+      const rf = rfRef.current;
+      const position = rf
+        ? rf.screenToFlowPosition({ x: clientX, y: clientY })
+        : { x: clientX, y: clientY };
+
+      const def = NODE_DEFS[nodeType];
+      const id = `node-${Date.now()}-${Math.round(Math.random() * 100000)}`;
+
+      addNode({
+        id,
+        type: 'shaderNode',
+        position,
+        data: defaultNodeData(nodeType, def.label),
+      });
+      selectNode(id);
+      setRightPanelTab('selection');
+    },
+    [activeSubgraphId, addNode, selectNode, setRightPanelTab],
+  );
+
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
       if (event.shiftKey || event.metaKey || event.ctrlKey) return;
@@ -240,31 +286,23 @@ export function ShaderCanvas() {
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-      const nodeType = event.dataTransfer.getData('application/shader-node-type') as NodeType;
-      if (!nodeType || !NODE_DEFS[nodeType]) return;
-      if (BOUNDARY_NODE_TYPES.has(nodeType) && !activeSubgraphId) {
-        toast.info('Subgraph boundary nodes are only available inside a subgraph.');
-        return;
-      }
-
-      const rf = rfRef.current;
-      const position = rf
-        ? rf.screenToFlowPosition({ x: event.clientX, y: event.clientY })
-        : { x: event.clientX, y: event.clientY };
-
-      const def = NODE_DEFS[nodeType];
-      const id = `node-${Date.now()}-${Math.round(Math.random() * 100000)}`;
-
-      addNode({
-        id,
-        type: 'shaderNode',
-        position,
-        data: defaultNodeData(nodeType, def.label),
-      });
-      selectNode(id);
+      const nodeType = getDraggedNodeType(event.dataTransfer);
+      if (!nodeType) return;
+      addPaletteNodeAt(nodeType, event.clientX, event.clientY);
     },
-    [activeSubgraphId, addNode, selectNode],
+    [addPaletteNodeAt],
   );
+
+  useEffect(() => {
+    const onPaletteNodeDrop = (event: Event) => {
+      const detail = (event as CustomEvent<{ nodeType?: NodeType; clientX?: number; clientY?: number }>).detail;
+      const nodeType = detail?.nodeType;
+      if (!nodeType || !NODE_DEFS[nodeType]) return;
+      addPaletteNodeAt(nodeType, Number(detail.clientX) || 0, Number(detail.clientY) || 0);
+    };
+    window.addEventListener('shader-graph:palette-node-drop', onPaletteNodeDrop);
+    return () => window.removeEventListener('shader-graph:palette-node-drop', onPaletteNodeDrop);
+  }, [addPaletteNodeAt]);
 
   const insertNode = useCallback(
     (nodeType: NodeType, position: { x: number; y: number }) => {

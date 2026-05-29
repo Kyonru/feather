@@ -72,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the Logs toolbar so search takes its own row before filters and actions when horizontal space is tight.
 - Fixed Feather dev Shader Graph node previews by serving the generated love.js preview route with the required isolation headers.
 - Fixed showcase love.js shader previews so node preview zoom is honored by the real LÖVE preview target.
+- Fixed Shader Graph preview probes so embedded love.js previews use the same 16:9 aspect ratio in web and preserve uploaded texture proportions while zooming.
+- Fixed Shader Graph palette dragging in the showcase by replacing native browser drag with a pointer-driven drop path and hardening the standalone layout against 0x0 canvas collapse.
 - Fixed Shader Graph Preview node toolbar actions so pin/zoom/reload clicks no longer re-select the node underneath.
 - Fixed looping Particle System Playground timelines so delayed emitter clips restart their particle system when the clip begins instead of expiring before they can emit.
 - Fixed Particle System Playground timeline clips and keyframes bleeding into the wrong emitter after reordering or deleting emitters.
