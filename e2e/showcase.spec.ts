@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 async function openShaderOutput(page: Page) {
   await page.getByRole('tab', { name: 'Output' }).click();
@@ -6,6 +6,24 @@ async function openShaderOutput(page: Page) {
 
 async function openShaderControls(page: Page) {
   await page.getByRole('tab', { name: 'Controls' }).click();
+}
+
+async function dragLocatorBy(page: Page, locator: Locator, dx: number, dy = 0) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2 + dx, box!.y + box!.height / 2 + dy, { steps: 6 });
+  await page.mouse.up();
+}
+
+async function dragLocatorToX(page: Page, locator: Locator, x: number) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(x, box!.y + box!.height / 2, { steps: 6 });
+  await page.mouse.up();
 }
 
 test('standalone showcase loads the landing page and tools', async ({ page }) => {
@@ -109,12 +127,25 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   expect(clipBox!.x).toBeGreaterThanOrEqual(trackStripBox!.x - 1);
   expect(clipBox!.x + clipBox!.width).toBeLessThanOrEqual(trackStripBox!.x + trackStripBox!.width + 1);
 
+  await dragLocatorToX(
+    page,
+    page.getByTestId('particle-timeline-clip-end-handle-1').first(),
+    trackStripBox!.x + trackStripBox!.width * 0.8,
+  );
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.4');
+
   await page.getByRole('button', { name: 'Zoom In' }).click();
   await page.getByRole('button', { name: 'Zoom In' }).click();
   const zoomedOverflow = await timelineScroll.evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(zoomedOverflow).toBeGreaterThan(20);
+  await expect(page.getByText('150%')).toBeVisible();
 
-  await page.getByLabel('Stop at').first().fill('2.4');
+  const zoomedTrackStripBoxForDrag = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
+  expect(zoomedTrackStripBoxForDrag).not.toBeNull();
+  await dragLocatorBy(page, page.getByTestId('particle-timeline-clip-1').first(), zoomedTrackStripBoxForDrag!.width * (0.2 / 3));
+  await expect(page.getByLabel('Emit at').first()).toHaveValue('0.2');
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.6');
+
   const emissionWindow = page.getByTestId('particle-timeline-emission-window-1').first();
   await expect(emissionWindow).toBeVisible();
   const resizedClipBox = await page.getByTestId('particle-timeline-clip-1').first().boundingBox();
@@ -132,15 +163,32 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   expect(tailBox!.x).toBeGreaterThanOrEqual(zoomedTrackStripBox!.x - 1);
   expect(tailBox!.x + tailBox!.width).toBeLessThanOrEqual(zoomedTrackStripBox!.x + zoomedTrackStripBox!.width + 1);
 
+  await page.getByRole('button', { name: /duplicate clip/i }).click();
+  await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
+  await page.getByRole('button', { name: /delete clip/i }).click();
+  await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(1);
+
+  const playhead = page.getByTestId('particle-timeline-playhead');
+  await playhead.fill('1.2');
+  await playhead.dispatchEvent('change');
+  await expect(page.getByText(/1\.20s \/ 3\.00s/)).toBeVisible();
+
   await page.getByText('Opacity').click();
   await page.getByRole('button', { name: /add key at playhead/i }).click();
   await page.getByLabel('Opacity key value').first().fill('0.55');
+  const createdKey = page.locator('[title="Opacity 1.20s = 0.55"]').first();
+  await expect(createdKey).toBeVisible();
+  await dragLocatorBy(page, createdKey, zoomedTrackStripBox!.width * (0.4 / 3));
+  await expect(page.getByLabel('Opacity key time').first()).toHaveValue('1.6');
 
   await expect(page.getByTestId('particle-timeline-lane-opacity-1').getByText('4 keys')).toBeVisible();
+  await page.getByTestId('particle-timeline-inspector').click({ position: { x: 8, y: 8 } });
+  await page.keyboard.press('Delete');
+  await expect(page.getByTestId('particle-timeline-lane-opacity-1').getByText('3 keys')).toBeVisible();
 
   await page.getByTestId('particle-emitter-row-1').dragTo(page.getByTestId('particle-emitter-row-2'));
   await page.getByTestId('particle-timeline-track-2').click();
-  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.4');
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.6');
   await page.getByTestId('particle-timeline-track-1').click();
   await expect(page.getByLabel('Stop at').first()).toHaveValue('3');
 
@@ -149,10 +197,13 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await page.getByTitle('Pause timeline').click();
   await page.getByTitle('Reset playhead').click();
 
-  const playhead = page.getByTestId('particle-timeline-playhead');
-  await playhead.fill('1.2');
-  await playhead.dispatchEvent('change');
-  await expect(page.getByText(/1\.20s \/ 3\.00s/)).toBeVisible();
+  await page.getByRole('button', { name: /snap on/i }).click();
+  await expect(page.getByRole('button', { name: /snap off/i })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await expect(page.getByText('150%')).toBeVisible();
+  await expect(page.getByRole('button', { name: /snap off/i })).toBeVisible();
 });
 
 test('particle playground creates the complex composite timeline template in the showcase', async ({ page }) => {

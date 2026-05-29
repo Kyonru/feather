@@ -32,6 +32,8 @@ type SettingsStoreState = {
   hiddenMainFeatures: MainFeatureId[];
   pinnedSidebarTools: SidebarToolId[];
   collapsedShaderGraphNodeCategories: NodeCategory[];
+  particleTimelineZoom: number;
+  particleTimelineSnap: boolean;
   showHiddenMainFeaturesInCommandCenter: boolean;
   assetSourceDir: string;
 };
@@ -57,6 +59,8 @@ type SettingsStoreActions = {
   setPinnedSidebarTools: (toolIds: SidebarToolId[]) => void;
   toggleShaderGraphNodeCategory: (category: NodeCategory) => void;
   setCollapsedShaderGraphNodeCategories: (categories: NodeCategory[]) => void;
+  setParticleTimelineZoom: (zoom: number) => void;
+  setParticleTimelineSnap: (snap: boolean) => void;
   setShowHiddenMainFeaturesInCommandCenter: (show: boolean) => void;
   setAssetSourceDir: (dir: string) => void;
   reset: () => void;
@@ -88,6 +92,12 @@ function normalizePinnedSidebarTools(toolIds?: unknown): SidebarToolId[] {
   return SIDEBAR_TOOL_ORDER.filter((toolId) => normalized.includes(toolId));
 }
 
+function normalizeParticleTimelineZoom(zoom?: unknown): number {
+  const value = Number(zoom);
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(4, Math.max(1, Math.round(value * 4) / 4));
+}
+
 const defaultSettings: SettingsStoreState = {
   isLatestVersion: true,
   open: false,
@@ -105,6 +115,8 @@ const defaultSettings: SettingsStoreState = {
   hiddenMainFeatures: [],
   pinnedSidebarTools: [...DEFAULT_PINNED_SIDEBAR_TOOLS],
   collapsedShaderGraphNodeCategories: [...DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES],
+  particleTimelineZoom: 1,
+  particleTimelineSnap: true,
   showHiddenMainFeaturesInCommandCenter: false,
   assetSourceDir: '',
 };
@@ -147,6 +159,9 @@ export const useSettingsStore = create<SettingsStore>()(
             [],
           ),
         }),
+      setParticleTimelineZoom: (particleTimelineZoom: number) =>
+        set({ particleTimelineZoom: normalizeParticleTimelineZoom(particleTimelineZoom) }),
+      setParticleTimelineSnap: (particleTimelineSnap: boolean) => set({ particleTimelineSnap }),
       setShowHiddenMainFeaturesInCommandCenter: (showHiddenMainFeaturesInCommandCenter: boolean) =>
         set({ showHiddenMainFeaturesInCommandCenter }),
       togglePinnedSidebarTool: (toolId: SidebarToolId) =>
@@ -196,6 +211,11 @@ export const useSettingsStore = create<SettingsStore>()(
           collapsedShaderGraphNodeCategories: normalizeShaderGraphNodeCategories(
             persisted?.collapsedShaderGraphNodeCategories,
           ),
+          particleTimelineZoom: normalizeParticleTimelineZoom(persisted?.particleTimelineZoom),
+          particleTimelineSnap:
+            typeof persisted?.particleTimelineSnap === 'boolean'
+              ? persisted.particleTimelineSnap
+              : currentState.particleTimelineSnap,
         };
       },
     },

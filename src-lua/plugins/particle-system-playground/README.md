@@ -63,7 +63,7 @@ Scratch composites can pause the plugin-owned preview without changing emitter s
 
 ## Timeline Preview
 
-The playground includes a 3 second composite timeline for authoring multi-emitter effects like a small video editor. Open the Timeline tab to edit it. Each emitter appears as a track with a clip that controls when the emitter enters. Expanding a track exposes curated property lanes for common beginner-friendly automation:
+The playground includes a 3 second composite timeline for authoring multi-emitter effects like a small video editor. Open the Timeline tab to edit it. Each emitter appears as a track with a clip that controls when the emitter enters. The selected emitter expands inline to show curated property lanes for common beginner-friendly automation:
 
 - opacity
 - emission rate
@@ -73,7 +73,7 @@ The playground includes a 3 second composite timeline for authoring multi-emitte
 - spread
 - offset X/Y
 
-Emitter properties remain the base values. Timeline lanes override or multiply those base values while the preview or exported effect plays. Speed and size lanes are multipliers; emission rate, direction, spread, offsets, and opacity are direct lane values. A clip's **Emit At** time controls when the emitter enters, **Stop At** is the latest time it can create new particles, and **Burst Particles** controls how many particles fire at entry. Finite **Emitter Lifetime** can stop continuous emission earlier than Stop At; `-1` keeps emission alive for the whole clip. The emitter-level **Default Burst** value is used as the clip burst fallback. Existing particles keep living after Stop At or Emitter Lifetime according to Particle Life, and the timeline shows that tail as a non-editable extension after the clip. Reordering or deleting emitters keeps each timeline track attached to its emitter instead of leaving timing values behind on the old slot.
+Emitter properties remain the base values. Timeline lanes override or multiply those base values while the preview or exported effect plays. Speed and size lanes are multipliers; emission rate, direction, spread, offsets, and opacity are direct lane values. A clip's **Emit At** time controls when the emitter enters, **Stop At** is the latest time it can create new particles, and **Burst Particles** controls how many particles fire at entry. Drag a clip body to move the emission window, drag its edges to resize it, and use the precision inspector for exact values. Lane keyframes can be added at the playhead or by double-clicking a lane; drag keyframes left/right to retime them and edit exact values in the inspector. Timeline zoom and snap are remembered as editor preferences. Finite **Emitter Lifetime** can stop continuous emission earlier than Stop At; `-1` keeps emission alive for the whole clip. The emitter-level **Default Burst** value is used as the clip burst fallback. Existing particles keep living after Stop At or Emitter Lifetime according to Particle Life, and the timeline shows that tail as a non-editable extension after the clip. Reordering or deleting emitters keeps each timeline track attached to its emitter instead of leaving timing values behind on the old slot.
 
 Stop and Reset Playhead reset playback state, but they do not rewrite the emitter's base rate or lifetime. When playback starts again, the clip window restores the saved emitter lifetime before starting each clip and then mutes emission outside the clip/lifetime intersection.
 

@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle System Playground project files now save as `.featherparticles` version 2 with timelines, while version 1 imports migrate to a default 3-second timeline.
 - Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping playback.
 - Improved Particle System Playground Timeline layout so the editor fills the available width and clips, playhead, zoom, and keyframe strips align on one timeline scale.
+- Reworked the Particle System Playground Timeline tab with video-editor-style clip dragging, resize handles, inline selected-emitter lanes, draggable keyframe timing, a selection inspector, and remembered zoom/snap preferences.
 - Renamed Particle System Playground timing controls so clip entry time is shown as Emit At and burst counts are shown separately from timing.
 - Particle System Playground timelines now treat clips as emission windows, intersect clip timing with Emitter Lifetime, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
 - Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
@@ -97,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added showcase e2e and focused settings coverage for Shader Graph collapsible node palette defaults, persistence, search, and empty states.
 - Added focused codegen and showcase e2e coverage for the new Shader Graph composition helper nodes.
 - Expanded particle playground e2e coverage for full-width Timeline layout, default overflow behavior, and clip alignment.
+- Expanded showcase and app e2e coverage for Particle System Playground Timeline clip dragging, clip duplication/deletion, keyframe retiming, and persisted zoom/snap controls.
 - Added focused codegen and showcase e2e coverage for the new Shader Graph Fake 3D sprite illusion nodes.
 - Added focused helper, showcase e2e, and app e2e coverage for Shader Graph template preset controls and subgraph boundary nodes.
 - Added showcase and app e2e coverage for the Shader Graph right-panel Controls, Selection, and Output workflow.

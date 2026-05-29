@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const NARROW_VIEWPORT = { width: 900, height: 720 };
 
@@ -8,6 +8,24 @@ async function openShaderOutput(page: Page) {
 
 async function openShaderControls(page: Page) {
   await page.getByRole('tab', { name: 'Controls' }).click();
+}
+
+async function dragLocatorBy(page: Page, locator: Locator, dx: number, dy = 0) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2 + dx, box!.y + box!.height / 2 + dy, { steps: 6 });
+  await page.mouse.up();
+}
+
+async function dragLocatorToX(page: Page, locator: Locator, x: number) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(x, box!.y + box!.height / 2, { steps: 6 });
+  await page.mouse.up();
 }
 
 async function seedNoSession(page: Page) {
@@ -2186,7 +2204,15 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   expect(clipBox!.x).toBeGreaterThanOrEqual(trackStripBox!.x - 1);
   expect(clipBox!.x + clipBox!.width).toBeLessThanOrEqual(trackStripBox!.x + trackStripBox!.width + 1);
 
-  await page.getByLabel('Stop at').first().fill('2.2');
+  await dragLocatorToX(
+    page,
+    page.getByTestId('particle-timeline-clip-end-handle-1').first(),
+    trackStripBox!.x + trackStripBox!.width * (2.2 / 3),
+  );
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.2');
+  await dragLocatorBy(page, page.getByTestId('particle-timeline-clip-1').first(), trackStripBox!.width * (0.2 / 3));
+  await expect(page.getByLabel('Emit at').first()).toHaveValue('0.2');
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.4');
   const emissionWindow = page.getByTestId('particle-timeline-emission-window-1').first();
   await expect(emissionWindow).toBeVisible();
   const resizedClipBox = await page.getByTestId('particle-timeline-clip-1').first().boundingBox();
@@ -2202,14 +2228,23 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   expect(tailBox!.x).toBeGreaterThanOrEqual(trackStripBox!.x - 1);
   expect(tailBox!.x + tailBox!.width).toBeLessThanOrEqual(trackStripBox!.x + trackStripBox!.width + 1);
 
+  await page.getByRole('button', { name: /duplicate clip/i }).click();
+  await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
+  await page.getByRole('button', { name: /delete clip/i }).click();
+  await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(1);
+
   await page.getByText('Opacity').click();
   await page.getByRole('button', { name: /add key at playhead/i }).click();
   await page.getByLabel('Opacity key value').first().fill('0.4');
   await expect(page.getByTestId('particle-timeline-lane-opacity-1').getByText('1 keys')).toBeVisible();
+  const keyframe = page.locator('[title="Opacity 0.00s = 0.4"]').first();
+  await expect(keyframe).toBeVisible();
+  await dragLocatorBy(page, keyframe, trackStripBox!.width * (0.3 / 3));
+  await expect(page.getByLabel('Opacity key time').first()).toHaveValue('0.4');
 
   await page.getByTestId('particle-emitter-row-1').dragTo(page.getByTestId('particle-emitter-row-2'));
   await page.getByTestId('particle-timeline-track-2').click();
-  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.2');
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.4');
   await page.getByTestId('particle-timeline-track-1').click();
   await expect(page.getByLabel('Stop at').first()).toHaveValue('3');
 
