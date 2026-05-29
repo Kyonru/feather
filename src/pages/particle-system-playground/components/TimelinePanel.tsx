@@ -525,6 +525,9 @@ export function TimelinePanel({
     if (!dragRef.current) return;
     event?.stopPropagation();
     if (event) {
+      applyDragClientX(event.clientX);
+    }
+    if (event) {
       try {
         event.currentTarget.releasePointerCapture(event.pointerId);
       } catch {
@@ -542,8 +545,9 @@ export function TimelinePanel({
       event.preventDefault();
       applyDragClientX(event.clientX);
     };
-    const handleDocumentEnd = () => {
+    const handleDocumentEnd = (event: PointerEvent) => {
       if (!dragRef.current) return;
+      applyDragClientX(event.clientX);
       cleanupDocumentDrag();
       dragRef.current = null;
     };
