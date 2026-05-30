@@ -55,6 +55,7 @@ function stripUpload(upload: unknown, fallbackKey: string): unknown {
 
 type StripLovePreviewUploadsOptions = {
   stripBaseTexture?: boolean;
+  stripTextures?: boolean;
 };
 
 export function stripLovePreviewUploads<T extends Record<string, unknown>>(
@@ -62,12 +63,15 @@ export function stripLovePreviewUploads<T extends Record<string, unknown>>(
   options: StripLovePreviewUploadsOptions = {},
 ): T {
   const stripBaseTexture = options.stripBaseTexture ?? true;
+  const stripTextures = options.stripTextures ?? true;
   const next: Record<string, unknown> = {
     ...payload,
     baseTexture: stripBaseTexture ? stripUpload(payload.baseTexture, 'baseTexture') : payload.baseTexture,
   };
   if (Array.isArray(payload.textures)) {
-    next.textures = payload.textures.map((upload, index) => stripUpload(upload, `texture-${index}`));
+    next.textures = stripTextures
+      ? payload.textures.map((upload, index) => stripUpload(upload, `texture-${index}`))
+      : payload.textures;
   }
   return next as T;
 }

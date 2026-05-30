@@ -6,7 +6,7 @@ import path from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
 
 export const LOVEJS_REPO = 'https://github.com/2dengine/love.js';
-const LOVEJS_PREVIEW_QUERY = 'g=showcase.love&v=11.5&featherPreview=preview-bridge-v6';
+const LOVEJS_PREVIEW_QUERY = 'g=showcase.love&v=11.5&featherPreview=preview-bridge-v7';
 
 export const loveJsContentTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -197,6 +197,40 @@ export async function patchLoveJsIndex(dir) {
   await writeFile(indexPath, next);
 }
 
+export async function writeWebglPreviewFallback({ root, outDir } = {}) {
+  const sourceDir = path.join(root, 'public/showcase-lovejs');
+  const sourcePlayer = path.join(sourceDir, 'player.js');
+  const sourceStyle = path.join(sourceDir, 'style.css');
+  const targetPlayer = path.join(outDir, 'webgl-player.js');
+  const targetStyle = path.join(outDir, 'webgl-style.css');
+
+  if (existsSync(sourcePlayer)) {
+    await cp(sourcePlayer, targetPlayer);
+  }
+  if (existsSync(sourceStyle)) {
+    await cp(sourceStyle, targetStyle);
+  }
+
+  await writeFile(
+    path.join(outDir, 'webgl.html'),
+    [
+      '<!doctype html>',
+      '<html lang="en">',
+      '<head>',
+      '  <meta charset="utf-8" />',
+      '  <meta name="viewport" content="width=device-width, initial-scale=1" />',
+      '  <title>Feather WebGL Preview</title>',
+      '  <link rel="stylesheet" href="./webgl-style.css" />',
+      '</head>',
+      '<body>',
+      '  <script src="./webgl-player.js?featherPreview=webgl-preview-v1"></script>',
+      '</body>',
+      '</html>',
+      '',
+    ].join('\n'),
+  );
+}
+
 export async function copyLoveJsVendor({ root, outDir, required = true, fetchIfMissing = true } = {}) {
   const vendorDir = resolveLoveJsVendor({ root, fetchIfMissing, required });
   if (!vendorDir) return null;
@@ -236,6 +270,7 @@ export async function prepareShowcaseLoveJsTarget({ root, outDir, required = tru
   const vendorDir = await copyLoveJsVendor({ root, outDir, required, fetchIfMissing });
   if (!vendorDir) return null;
   await buildShowcaseLove({ root, outDir });
+  await writeWebglPreviewFallback({ root, outDir });
   return vendorDir;
 }
 

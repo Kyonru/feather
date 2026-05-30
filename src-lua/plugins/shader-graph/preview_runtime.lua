@@ -189,11 +189,37 @@ function PreviewRuntime.imageFromUpload(upload, fallbackName)
   if type(upload) ~= "table" then
     return nil, "Texture upload is missing"
   end
-  local raw = PreviewRuntime.decodeBase64(upload.dataBase64)
+  local filename = tostring(upload.filename or fallbackName or "texture.png")
+  local dataBase64 = tostring(upload.dataBase64 or "")
+  if dataBase64 == "" then
+    return nil, "Texture data is not valid base64"
+  end
+
+  if love.data and type(love.data.decode) == "function" then
+    local okDecoded, decoded = pcall(love.data.decode, "data", "base64", dataBase64)
+    if okDecoded and decoded then
+      local okImage, image = pcall(love.graphics.newImage, decoded)
+      if okImage and image then
+        pcall(image.setFilter, image, "nearest", "nearest")
+        return image
+      end
+      if love.image and type(love.image.newImageData) == "function" then
+        local okImageData, imageData = pcall(love.image.newImageData, decoded)
+        if okImageData and imageData then
+          local okFromData, imageFromData = pcall(love.graphics.newImage, imageData)
+          if okFromData and imageFromData then
+            pcall(imageFromData.setFilter, imageFromData, "nearest", "nearest")
+            return imageFromData
+          end
+        end
+      end
+    end
+  end
+
+  local raw = PreviewRuntime.decodeBase64(dataBase64)
   if not raw or raw == "" then
     return nil, "Texture data is not valid base64"
   end
-  local filename = tostring(upload.filename or fallbackName or "texture.png")
   local okData, fileData = pcall(love.filesystem.newFileData, raw, filename)
   if not okData or not fileData then
     return nil, "Could not create texture file data"
@@ -241,9 +267,13 @@ function PreviewRuntime.sendTextureUniforms(shader, uniforms, uploads, options)
     local uniform = type(info) == "table" and tostring(info.uniform or "") or ""
     if uniform ~= "" then
       local image = nil
+      local imageErr = nil
       local upload = byUniform[uniform]
       if upload then
-        image = PreviewRuntime.imageFromUpload(upload, tostring(upload.filename or uniform .. ".png"))
+        image, imageErr = PreviewRuntime.imageFromUpload(upload, tostring(upload.filename or uniform .. ".png"))
+      end
+      if not image and upload and options.fallbackMissing == false and not options.ignoreErrors then
+        return nil, "Could not load texture uniform `" .. uniform .. "`: " .. tostring(imageErr or "missing texture data")
       end
       if not image and options.fallbackMissing ~= false then
         image = PreviewRuntime.makeFallbackTexture(64)

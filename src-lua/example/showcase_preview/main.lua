@@ -5,6 +5,41 @@
 pcall(require, "normalize1")
 pcall(require, "normalize2")
 
+local function ensureLoveJsEval()
+  love.js = love.js or {}
+  if type(love.js.eval) == "function" then
+    return
+  end
+  if type(love.system) ~= "table" then
+    local ok, system = pcall(require, "love.system")
+    if ok then
+      love.system = system
+    end
+  end
+  if type(love.system) ~= "table" or type(love.system.openURL) ~= "function" or type(io) ~= "table" or type(io.read) ~= "function" then
+    return
+  end
+
+  local cache = {}
+  function love.js.eval(cmd)
+    love.system.openURL("javascript:" .. tostring(cmd or ""))
+    for i = 1, 2 ^ 32 do
+      local line = io.read()
+      if not line then
+        break
+      end
+      cache[i] = line
+    end
+    local output = table.concat(cache, "\n")
+    for i = #cache, 1, -1 do
+      cache[i] = nil
+    end
+    return output
+  end
+end
+
+ensureLoveJsEval()
+
 local _loveJs = type(love) == "table" and rawget(love, "js") or nil
 local isLoveJs = type(_loveJs) == "table" and type(rawget(_loveJs, "eval")) == "function"
 local _jsEval = isLoveJs and _loveJs.eval or nil
@@ -262,6 +297,8 @@ end
 local shaderState = {
   shader = nil,
   drawable = nil,
+  textures = nil,
+  error = nil,
   shape = "circle",
   name = "shader graph",
   zoom = 1,
@@ -277,6 +314,22 @@ local function normalizePreviewZoom(value)
   return value
 end
 
+local function publishShaderStatus()
+  if not _jsEval then
+    return
+  end
+  local textureCount = type(shaderState.textures) == "table" and #shaderState.textures or 0
+  local expression = string.format(
+    "window._featherShaderPreviewStatus={tool:'shader-graph',shader:%s,drawable:%s,textureCount:%d,error:%s,name:%s}",
+    shaderState.shader and "true" or "false",
+    shaderState.drawable and "true" or "false",
+    textureCount,
+    jsString(shaderState.error or ""),
+    jsString(shaderState.name or "shader graph")
+  )
+  pcall(_jsEval, expression)
+end
+
 local function applyShaderPayload(payload)
   local pixel = tostring(payload.pixel or "")
   local vertex = tostring(payload.vertex or "")
@@ -284,16 +337,28 @@ local function applyShaderPayload(payload)
   local color = PreviewRuntime.colorFromHex(payload.previewColor or "#ffffff")
   local name = tostring(payload.shaderName or "shader graph")
   local zoom = normalizePreviewZoom(payload.previewZoom)
+  local errorMessage = nil
 
   local shader = nil
   if pixel ~= "" then
-    shader = PreviewRuntime.buildShader(pixel, vertex, true)
+    local pixelError, vertexError
+    shader, pixelError, vertexError = PreviewRuntime.buildShader(pixel, vertex, true)
+    if not shader then
+      errorMessage = pixelError or vertexError or "Shader compile failed"
+    elseif vertexError then
+      errorMessage = vertexError
+    end
   end
 
   local drawable = nil
   local bt = hydrateUpload(payload.baseTexture)
   if type(bt) == "table" and type(bt.dataBase64) == "string" and bt.dataBase64 ~= "" then
-    drawable = PreviewRuntime.imageFromUpload(bt, bt.filename or "preview-texture.png")
+    local image, imageErr = PreviewRuntime.imageFromUpload(bt, bt.filename or "preview-texture.png")
+    if image then
+      drawable = image
+    else
+      errorMessage = imageErr or "Preview texture failed to load"
+    end
   end
 
   if not drawable then
@@ -303,18 +368,26 @@ local function applyShaderPayload(payload)
     end
   end
 
-  PreviewRuntime.sendTextureUniforms(shader, payload.textureUniforms, hydrateUploadList(payload.textures), {
+  local textures, textureErr = PreviewRuntime.sendTextureUniforms(shader, payload.textureUniforms, hydrateUploadList(payload.textures), {
     allowUploadListOnly = true,
     fallbackMissing = false,
-    ignoreErrors = true,
   })
-  PreviewRuntime.sendShaderParameters(shader, payload.parameters, { ignoreErrors = true })
+  if not textures and textureErr then
+    errorMessage = textureErr
+  end
+  local parametersOk, parameterErr = PreviewRuntime.sendShaderParameters(shader, payload.parameters)
+  if not parametersOk and parameterErr then
+    errorMessage = parameterErr
+  end
 
   shaderState.shader = shader
   shaderState.drawable = drawable
+  shaderState.textures = textures or {}
+  shaderState.error = errorMessage
   shaderState.shape = shape
   shaderState.name = name
   shaderState.zoom = zoom
+  publishShaderStatus()
 end
 
 local function drawShaderPreview(w, h)
@@ -370,6 +443,10 @@ local function drawShaderPreview(w, h)
   love.graphics.setShader()
   love.graphics.setColor(1, 1, 1, 0.72)
   love.graphics.print("Shader Preview: " .. shaderState.shape, x - 4, y + drawH + 12)
+  if shaderState.error then
+    love.graphics.setColor(1, 0.35, 0.24, 0.95)
+    love.graphics.printf(shaderState.error, x - 4, y + drawH + 28, drawW + 8, "left")
+  end
 
   love.graphics.setBlendMode(prevBlend, prevAlphaMode)
   love.graphics.setShader(prevShader)
@@ -1016,7 +1093,13 @@ local function pollPayload()
   pollState.tool = tool
   if tool == "shader-graph" then
     particleState.payloadSignature = ""
-    pcall(applyShaderPayload, payload)
+    local okApply, applyErr = pcall(applyShaderPayload, payload)
+    if not okApply then
+      shaderState.error = tostring(applyErr)
+      shaderState.shader = nil
+      shaderState.textures = {}
+      publishShaderStatus()
+    end
   elseif tool == "particle-system-playground" then
     local signature = particlePayloadSignature(payload)
     if signature ~= particleState.payloadSignature then

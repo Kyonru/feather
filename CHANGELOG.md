@@ -80,7 +80,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Shader Graph template codegen so texture-image inputs, including Texture Noise Water's noise slot, emit valid LÖVE `Image` parameters.
 - Fixed Shader Graph connected-game preview so switching away from the Output tab no longer turns off an active runtime preview.
 - Fixed Shader Graph Preview nodes so the selected Preview Texture is sent directly to the embedded love.js iframe instead of falling back to the generated shape when upload-cache hydration is unavailable.
+- Fixed Shader Graph Preview nodes so texture-uniform uploads are also sent directly to the embedded iframe, restoring texture effects when the parent upload cache is unavailable.
 - Fixed Shader Graph Preview nodes so texture-image parameters inside template subgraphs are converted to WebGL sampler uniforms for embedded previews.
+- Fixed real love.js Shader Graph Preview nodes so uploaded texture uniforms are retained by the embedded LÖVE runtime after binding, matching connected-game preview behavior.
+- Fixed Shader Graph Preview nodes so embedded love.js frames wait for the preview-ready handshake before sending texture-heavy payloads.
+- Fixed Shader Graph Preview nodes so embedded node previews use a dedicated WebGL preview target that keeps uploaded source and uniform textures visible even when the generated love.js target cannot poll browser payloads.
+- Fixed standalone Shader Graph texture upload controls so browser showcase previews can load source and uniform textures.
 - Fixed Shader Graph palette dragging in the showcase by replacing native browser drag with a pointer-driven drop path and hardening the standalone layout against 0x0 canvas collapse.
 - Fixed Shader Graph Preview node toolbar actions so pin/zoom/reload clicks no longer re-select the node underneath.
 - Fixed looping Particle System Playground timelines so delayed emitter clips restart their particle system when the clip begins instead of expiring before they can emit.
@@ -114,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
 - Added focused coverage for Shader Graph game-preview throttling and runtime preview caching.
 - Expanded showcase e2e coverage for Shader Graph Preview node aspect ratio.
+- Added app and showcase e2e coverage that verifies texture-heavy Shader Graph Preview nodes receive source/uniform uploads and render textured canvas output.
 - Added app e2e and focused registry coverage for Noctis theme selection, persistence, and fallback behavior.
 - Expanded app e2e coverage for the redesigned Settings modal navigation and connection summary.
 - Added app e2e coverage for opening the redesigned About modal from the sidebar.
@@ -130,6 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused codegen and showcase e2e coverage for the new Shader Graph Fake 3D sprite illusion nodes.
 - Added focused helper, showcase e2e, and app e2e coverage for Shader Graph template preset controls and subgraph boundary nodes.
 - Added showcase and app e2e coverage for the Shader Graph right-panel Controls, Selection, and Output workflow.
+- Added focused bridge coverage plus showcase and app e2e coverage for texture-heavy Shader Graph Preview node uploads.
 - Expanded Lua e2e coverage for looping Particle System Playground timelines with delayed emitter clips.
 - Added Lua e2e coverage for Feel Inspector registration, handler preservation, replay/clear actions, and LOVE adapter summaries.
 - Expanded Lua, showcase, and app e2e coverage for Particle System Playground particle-life tails in timeline loops.

@@ -17,7 +17,7 @@ type Props = {
 };
 
 const NODE_PREVIEW_ASPECT_CLASS = 'aspect-video w-full';
-const PREVIEW_ASSET_VERSION = 'shader-node-preview-v8';
+const PREVIEW_ASSET_VERSION = 'shader-node-preview-v10';
 
 function colorFromHex(value: string): [number, number, number, number] {
   const match = value.match(/^#?([0-9a-f]{6})$/i);
@@ -88,9 +88,10 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
   const togglePinnedPreviewNode = useShaderGraphStore((s) => s.togglePinnedPreviewNode);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadedRef = useRef(false);
+  const payloadRef = useRef<Record<string, unknown>>({ tool: 'idle' });
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
-  const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/index.html?g=showcase.love&v=11.5&featherPreview=${PREVIEW_ASSET_VERSION}`;
+  const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/webgl.html?featherPreview=${PREVIEW_ASSET_VERSION}`;
   const activeSubgraph = activeSubgraphId ? subgraphs.find((subgraph) => subgraph.id === activeSubgraphId) : null;
   const graphNodes = activeSubgraph?.nodes ?? nodes;
   const graphEdges = activeSubgraph?.edges ?? edges;
@@ -115,16 +116,34 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
     previewZoom,
   }), [baseTexture, canPreview, previewColor, previewShape, previewZoom, probe, textures]);
 
-  function sendPayload() {
+  payloadRef.current = payload;
+
+  function sendPayload(nextPayload = payloadRef.current) {
     iframeRef.current?.contentWindow?.postMessage(
-      { source: 'feather-showcase', type: 'preview:update', payload: stripLovePreviewUploads(payload, { stripBaseTexture: false }) },
+      {
+        source: 'feather-showcase',
+        type: 'preview:update',
+        payload: stripLovePreviewUploads(nextPayload, { stripBaseTexture: false, stripTextures: false }),
+      },
       '*',
     );
   }
 
   useEffect(() => {
-    if (loadedRef.current) sendPayload();
+    if (loadedRef.current) sendPayload(payload);
   }, [payload]);
+
+  useEffect(() => {
+    function handlePreviewMessage(event: MessageEvent) {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (event.data?.source !== 'feather-showcase' || event.data?.type !== 'preview:ready') return;
+      loadedRef.current = true;
+      sendPayload();
+    }
+
+    window.addEventListener('message', handlePreviewMessage);
+    return () => window.removeEventListener('message', handlePreviewMessage);
+  }, []);
 
   useEffect(() => {
     if (!sessionId) setStatus('idle');

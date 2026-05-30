@@ -17,10 +17,50 @@ function filename(path: string) {
   return path.split(/[\\/]/).pop() || 'texture.png';
 }
 
+function pickWebTexture(): Promise<ShaderTextureUpload | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/bmp,image/webp,image/tga';
+    input.dataset.testid = 'shader-texture-upload-input';
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    input.style.top = '0';
+    document.body.appendChild(input);
+
+    const cleanup = () => {
+      input.remove();
+    };
+
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (!file) {
+        cleanup();
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        cleanup();
+        const result = typeof reader.result === 'string' ? reader.result : '';
+        const dataBase64 = result.includes(',') ? result.split(',').pop() ?? '' : result;
+        resolve({ filename: file.name || 'texture.png', dataBase64 });
+      };
+      reader.onerror = () => {
+        cleanup();
+        toast.error('Failed to read texture file');
+        resolve(null);
+      };
+      reader.readAsDataURL(file);
+    }, { once: true });
+
+    input.click();
+  });
+}
+
 export async function pickShaderTexture(): Promise<ShaderTextureUpload | null> {
   if (isWeb()) {
-    toast.error('Texture upload is available in the desktop app');
-    return null;
+    return pickWebTexture();
   }
 
   const path = await openFileDialog({
