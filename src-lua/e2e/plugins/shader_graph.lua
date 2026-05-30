@@ -51,9 +51,40 @@ return PluginE2EHelper.createSmokeSuite("shader-graph", {
 
     plugin:onDraw()
     assertTruthy(plugin.preview.canvas, "shader graph preview renders into cached canvas")
+    assertEqual(plugin.preview.renderFps, 60, "shader graph preview uses smooth render cadence for small previews")
     local renderedAt = plugin.preview.renderedAt
     plugin:onDraw()
     assertEqual(plugin.preview.renderedAt, renderedAt, "shader graph preview respects render cap")
+
+    plugin.preview.texturePixels = 1024 * 1024
+    plugin.preview.texturePixelsTotal = plugin.preview.texturePixels
+    plugin.preview.renderedAt = nil
+    plugin:onDraw()
+    assertEqual(plugin.preview.renderFps, 40, "shader graph preview lowers cadence for large preview textures")
+
+    plugin.preview.texturePixels = 2048 * 2048
+    plugin.preview.texturePixelsTotal = plugin.preview.texturePixels
+    plugin.preview.renderedAt = nil
+    plugin:onDraw()
+    assertEqual(plugin.preview.renderFps, 30, "shader graph preview lowers cadence further for very large textures")
+
+    local zoomed = plugin:handleActionRequest({
+      params = {
+        action = "preview-shader",
+        pixelSource = pixelSource,
+        vertexSource = "",
+        shape = "circle",
+        color = { 1, 1, 1, 1 },
+        previewZoom = 2.5,
+        textureUniforms = {},
+        textures = {},
+        parameters = {},
+      },
+    })
+
+    assertEqual(zoomed.status, "ok", "shader graph preview accepts zoomed preview")
+    plugin:onDraw()
+    assertEqual(plugin.preview.renderFps, 24, "shader graph preview lowers cadence for highly zoomed previews")
 
     local cleared = plugin:handleActionRequest({ params = { action = "clear-preview" } })
     assertEqual(cleared.status, "ok", "shader graph preview clears")

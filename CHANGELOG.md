@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph previews in Feather dev and showcase dev now use the same generated love.js target when available so embedded node previews render through the same LÖVE path.
 - Shader Graph Parameter nodes can now be edited from the Controls tab, including labels, defaults, texture uploads, uniform names, connection warnings, and select-node actions.
 - Shader Graph now opens the Selection tab when a node is selected and lets Space toggle the canvas between selection and panning modes.
+- Shader Graph connected-game previews now start runtime canvas refresh at 60 FPS and automatically lower to 40, 30, or 24 FPS for highly zoomed or large-texture previews.
 - Particle System Playground project files now save as `.featherparticles` version 2 with timelines, while version 1 imports migrate to a default 3-second timeline.
 - Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping playback.
 - Improved Particle System Playground Timeline layout so the editor fills the available width and clips, playhead, zoom, and keyframe strips align on one timeline scale.
@@ -174,6 +175,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded theme registry and app e2e coverage for Tokyo Night theme variants.
 - Added app e2e coverage for live runtime suspend/resume, Profiler action refreshes, and Logs Follow Tail behavior.
 - Expanded Lua e2e coverage for suspended-runtime creative preview allowlists, active Particle Playground preview updates, and throttled In-Game Overlay sampling.
+- Expanded Lua e2e coverage for Shader Graph runtime preview render cadence scaling across small, large-texture, and highly zoomed previews.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 

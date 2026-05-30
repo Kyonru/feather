@@ -93,6 +93,58 @@ local function previewSize(zoom)
   return math.min(280, math.max(128, math.min(width, height) * 0.42)) * normalizePreviewZoom(zoom)
 end
 
+local function texturePixels(image)
+  if not image or type(image.getWidth) ~= "function" or type(image.getHeight) ~= "function" then
+    return 0
+  end
+  local width = tonumber(image:getWidth()) or 0
+  local height = tonumber(image:getHeight()) or 0
+  return math.max(0, width) * math.max(0, height)
+end
+
+local function texturePressure(drawable, textures)
+  local maxPixels = texturePixels(drawable)
+  local totalPixels = maxPixels
+  if type(textures) == "table" then
+    for _, texture in ipairs(textures) do
+      local pixels = texturePixels(texture)
+      totalPixels = totalPixels + pixels
+      if pixels > maxPixels then
+        maxPixels = pixels
+      end
+    end
+  end
+  return maxPixels, totalPixels
+end
+
+local function previewRenderCadence(previewExtent, zoom, texturePixelsMax, texturePixelsTotal)
+  local canvasPixels = previewExtent * previewExtent
+  local fps = 60
+  zoom = normalizePreviewZoom(zoom)
+  texturePixelsMax = texturePixelsMax or 0
+  texturePixelsTotal = texturePixelsTotal or texturePixelsMax
+
+  if canvasPixels >= 600000 or texturePixelsMax >= 4096 * 4096 or texturePixelsTotal >= 8192 * 8192 or zoom >= 2.35 then
+    fps = 24
+  elseif
+    canvasPixels >= 300000
+    or texturePixelsMax >= 2048 * 2048
+    or texturePixelsTotal >= 4096 * 4096
+    or zoom >= 1.9
+  then
+    fps = 30
+  elseif
+    canvasPixels >= 150000
+    or texturePixelsMax >= 1024 * 1024
+    or texturePixelsTotal >= 2048 * 2048
+    or zoom >= 1.45
+  then
+    fps = 40
+  end
+
+  return 1 / fps, fps
+end
+
 local function ensurePreviewCanvas(preview, size)
   size = math.max(1, math.floor(size))
   if preview.canvas and preview.canvasSize == size then
@@ -214,6 +266,8 @@ function ShaderGraphPlugin:_previewShader(params)
     cache.parametersKey = nextParametersKey
   end
 
+  local texturePixelsMax, texturePixelsTotal = texturePressure(drawable, textures)
+
   self.preview = {
     inputKey = inputKey,
     shader = shader,
@@ -223,10 +277,13 @@ function ShaderGraphPlugin:_previewShader(params)
     zoom = normalizePreviewZoom(params.previewZoom),
     baseTexture = type(baseTexture) == "table" and baseTexture.filename or nil,
     textures = textures,
+    texturePixels = texturePixelsMax,
+    texturePixelsTotal = texturePixelsTotal,
     canvas = self.preview and self.preview.canvas or nil,
     canvasSize = self.preview and self.preview.canvasSize or nil,
     renderedAt = nil,
-    renderInterval = 1 / 15,
+    renderInterval = 1 / 60,
+    renderFps = 60,
     updatedAt = love.timer and love.timer.getTime() or os.clock(),
   }
 
@@ -274,7 +331,11 @@ function ShaderGraphPlugin:onDraw()
   love.graphics.print("Shader Preview: " .. label, x - 4, y + drawH + 12)
 
   local now = love.timer and love.timer.getTime() or os.clock()
-  local shouldRender = not self.preview.renderedAt or (now - self.preview.renderedAt) >= (self.preview.renderInterval or (1 / 15))
+  local renderInterval, renderFps =
+    previewRenderCadence(previewExtent, self.preview.zoom, self.preview.texturePixels, self.preview.texturePixelsTotal)
+  self.preview.renderInterval = renderInterval
+  self.preview.renderFps = renderFps
+  local shouldRender = not self.preview.renderedAt or (now - self.preview.renderedAt) >= renderInterval
   local renderedToCanvas = self.preview.canvas and not shouldRender
   if shouldRender then
     renderedToCanvas = renderPreviewCanvas(self.preview, previewExtent)
