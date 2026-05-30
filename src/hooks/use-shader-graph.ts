@@ -31,6 +31,9 @@ type CompileResponse = {
 export function useShaderGraph() {
   const store = useShaderGraphStore();
   const sessionId = useSessionStore((s) => s.sessionId);
+  const runtimeSuspended = useSessionStore((s) =>
+    sessionId ? s.sessions[sessionId]?.runtimeSuspended === true : false,
+  );
 
   const compileQuery = useQuery<CompileResponse>({
     queryKey: sessionQueryKey.pluginAction(sessionId ?? '', SHADER_GRAPH_PLUGIN, 'compile-shader'),
@@ -53,7 +56,7 @@ export function useShaderGraph() {
   const hasBlockingGraphDiagnostics = hasBlockingDiagnostics(diagnostics);
 
   const validateShader = useCallback(async () => {
-    if (!sessionId) return;
+    if (!sessionId || runtimeSuspended) return;
     const glsl = generateAndStore();
     const nextDiagnostics = diagnoseShaderGraph({
       nodes: store.nodes,
@@ -80,11 +83,11 @@ export function useShaderGraph() {
       store.setValidationStatus('error');
       store.setValidationErrors({ pixelError: 'Failed to reach game process' });
     }
-  }, [generateAndStore, sessionId, store]);
+  }, [generateAndStore, runtimeSuspended, sessionId, store]);
 
   const applyToPlayground = useCallback(async (textures: ShaderPreviewTextureUpload[] = []) => {
     const target = store.playgroundTarget;
-    if (!target || !sessionId) return;
+    if (!target || !sessionId || runtimeSuspended) return;
     const glsl = generateAndStore();
     const shaderSource = glsl.vertex ? `${glsl.pixel}\n${glsl.vertex}` : glsl.pixel;
     await sendCommand(sessionId, {
@@ -100,7 +103,7 @@ export function useShaderGraph() {
         parameters: glsl.parameters ?? [],
       },
     });
-  }, [generateAndStore, sessionId, store]);
+  }, [generateAndStore, runtimeSuspended, sessionId, store]);
 
   const sendShaderPreview = useCallback(
     async (
@@ -109,7 +112,7 @@ export function useShaderGraph() {
       color: ShaderPreviewColor,
       options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[]; parameters?: ShaderPreviewParameter[] } = {},
     ) => {
-      if (!sessionId) return;
+      if (!sessionId || runtimeSuspended) return;
       await shaderGraphGamePreviewController.preview(sessionId, {
         pixelSource: glsl.pixel,
         vertexSource: glsl.vertex ?? '',
@@ -121,7 +124,7 @@ export function useShaderGraph() {
         textures: options.textures ?? [],
       });
     },
-    [sessionId],
+    [runtimeSuspended, sessionId],
   );
 
   const previewShader = useCallback(
@@ -130,11 +133,11 @@ export function useShaderGraph() {
       color: ShaderPreviewColor,
       options: { baseTexture?: ShaderPreviewTextureUpload | null; textures?: ShaderPreviewTextureUpload[]; parameters?: ShaderPreviewParameter[] } = {},
     ) => {
-      if (!sessionId) return;
+      if (!sessionId || runtimeSuspended) return;
       const glsl = generateAndStore();
       await sendShaderPreview(glsl, shape, color, options);
     },
-    [generateAndStore, sendShaderPreview, sessionId],
+    [generateAndStore, runtimeSuspended, sendShaderPreview, sessionId],
   );
 
   const clearPreview = useCallback(async () => {
@@ -171,6 +174,7 @@ export function useShaderGraph() {
     ...store,
     diagnostics,
     hasBlockingGraphDiagnostics,
+    runtimeSuspended,
     generateAndStore,
     validateShader,
     applyToPlayground,

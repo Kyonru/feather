@@ -348,6 +348,35 @@ function FeatherPluginManager:update(dt, feather)
   end
 end
 
+function FeatherPluginManager:updateSuspended(dt, feather)
+  for _, plugin in ipairs(self.plugins) do
+    if plugin.instance and not plugin.disabled and type(plugin.instance.onSuspendedUpdate) == "function" then
+      local ok, err = pcall(plugin.instance.onSuspendedUpdate, plugin.instance, dt, feather)
+      if not ok then
+        plugin.errorCount = (plugin.errorCount or 0) + 1
+        self.logger:log({
+          type = "error",
+          str = "[Plugin "
+            .. plugin.identifier
+            .. "] suspended update error ("
+            .. plugin.errorCount
+            .. "): "
+            .. tostring(err),
+        })
+        if plugin.errorCount >= 10 then
+          plugin.disabled = true
+          self.logger:log({
+            type = "error",
+            str = "[Plugin " .. plugin.identifier .. "] disabled after 10 consecutive errors",
+          })
+        end
+      else
+        plugin.errorCount = 0
+      end
+    end
+  end
+end
+
 function FeatherPluginManager:onerror(msg, feather)
   for _, plugin in ipairs(self.plugins) do
     if plugin.instance then

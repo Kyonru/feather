@@ -483,6 +483,44 @@ function Feather:__isAppAuthorized(msg)
   return msg and msg.appId == self.appId
 end
 
+function Feather:__isSuspendedCommandAllowed(msg)
+  if not msg or not msg.type then
+    return false
+  end
+  if msg.type == "cmd:runtime" then
+    return true
+  end
+  if msg.type ~= "cmd:plugin:action" then
+    return false
+  end
+
+  local plugin = tostring(msg.plugin or "")
+  local action = tostring(msg.action or "")
+  local params = msg.params or {}
+
+  if plugin == "shader-graph" and action == "clear-preview" then
+    return true
+  end
+  if plugin == "particle-system-playground" and action == "runtime-preview" then
+    local active = params.active
+    return active == false or active == "false" or active == 0 or active == "0"
+  end
+  return false
+end
+
+function Feather:__sendSuspendedCommandRejected(msg)
+  if msg and msg.type == "cmd:plugin:action" then
+    self:__sendWs(json.encode({
+      type = "plugin:action:response",
+      session = self.sessionId,
+      plugin = msg.plugin,
+      action = msg.action,
+      status = "error",
+      message = "Feather runtime is suspended. Resume Feather to sync edits.",
+    }))
+  end
+end
+
 --- Dispatch an incoming desktop → game command message.
 ---@param msg table Decoded JSON command
 function Feather:__handleCommand(msg)
@@ -532,7 +570,15 @@ function Feather:__handleCommand(msg)
       session = self.sessionId,
       data = { suspended = self.runtimeSuspended },
     }))
-  elseif msg.type == "cmd:config" and msg.data then
+    return
+  end
+
+  if self.runtimeSuspended and not self:__isSuspendedCommandAllowed(msg) then
+    self:__sendSuspendedCommandRejected(msg)
+    return
+  end
+
+  if msg.type == "cmd:config" and msg.data then
     self:__setConfig(msg.data)
   elseif msg.type == "cmd:log" and msg.action == "clear" then
     self.featherLogger:clear()
@@ -579,7 +625,9 @@ function Feather:__handleCommand(msg)
       self:__sendWs(json.encode(response))
     end
     -- Re-send config so desktop picks up dynamic label changes
-    self:__sendHello()
+    if not self.runtimeSuspended then
+      self:__sendHello()
+    end
   elseif msg.type == "cmd:plugin:action:cancel" and msg.plugin then
     local path = msg.plugin:find("^/plugins/") and msg.plugin or ("/plugins/" .. msg.plugin)
     local request = { method = "DELETE", path = path, params = msg.params or {}, headers = {} }
@@ -1006,8 +1054,10 @@ function Feather:update(dt)
     return
   end
 
-  -- Keep suspended runtimes cheap: only pump the websocket so the desktop can resume.
-  if not self.runtimeSuspended then
+  -- Keep suspended runtimes cheap while allowing explicitly enabled overlays to animate.
+  if self.runtimeSuspended then
+    self.pluginManager:updateSuspended(dt, self)
+  else
     self._callbackHookElapsed = (self._callbackHookElapsed or 0) + (dt or 0)
     if self._callbackHookElapsed >= (self.callbackHookInterval or 0.25) then
       self._callbackHookElapsed = 0

@@ -1683,6 +1683,52 @@ local function computeMovementOffset(movement, dt)
   return 0, 0
 end
 
+local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEditorTimelines)
+  if not entry or entry.kind ~= "scratch" then
+    return false
+  end
+
+  local previewActive = scratchPreviewRuntimeActive(plugin, name, entry)
+  local timelineWasPlaying = entry.timelineState and safeBoolean(entry.timelineState.playing, false)
+  if not previewActive and not (includeEditorTimelines and timelineWasPlaying) then
+    return false
+  end
+
+  local offsetX = safeNumber(entry.offsetX, 0)
+  local offsetY = safeNumber(entry.offsetY, 0)
+  if previewActive then
+    offsetX, offsetY = computeMovementOffset(entry.movement, dt)
+    entry.offsetX, entry.offsetY = offsetX, offsetY
+  end
+  local x = (entry.x or DEFAULT_X) + offsetX
+  local y = (entry.y or DEFAULT_Y) + offsetY
+  for index, system in ipairs(entry.systems or {}) do
+    if system.system and isSystemEnabled(system, plugin:_meta(name, index)) then
+      pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
+    end
+  end
+
+  if entry.timeline and (timelineWasPlaying or previewActive) then
+    advanceTimeline(plugin, name, dt)
+  end
+
+  local timelineStillPlaying = entry.timelineState and safeBoolean(entry.timelineState.playing, false)
+  if timelineStillPlaying or previewActive or includeEditorTimelines then
+    offsetX = safeNumber(entry.offsetX, 0)
+    offsetY = safeNumber(entry.offsetY, 0)
+    x = (entry.x or DEFAULT_X) + offsetX
+    y = (entry.y or DEFAULT_Y) + offsetY
+    for index, system in ipairs(entry.systems or {}) do
+      if system.system and isSystemEnabled(system, plugin:_meta(name, index)) then
+        pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
+        pcall(system.system.update, system.system, dt)
+      end
+    end
+  end
+
+  return timelineStillPlaying
+end
+
 function ParticleSystemPlaygroundPlugin:init(config)
   Base.init(self, config)
   self.composites = {}
@@ -1886,46 +1932,24 @@ function ParticleSystemPlaygroundPlugin:update(dt)
   local timelineRuntimeActive = false
   for _, name in ipairs(self.compositeOrder) do
     local entry = self.composites[name]
-    local timelineWasPlaying = entry and entry.timelineState and safeBoolean(entry.timelineState.playing, false)
-    local previewActive = scratchPreviewRuntimeActive(self, name, entry)
-    local scratchUpdated = false
-    if entry and entry.kind == "scratch" and (previewActive or timelineWasPlaying) then
-      local offsetX = safeNumber(entry.offsetX, 0)
-      local offsetY = safeNumber(entry.offsetY, 0)
-      if previewActive then
-        offsetX, offsetY = computeMovementOffset(entry.movement, dt)
-        entry.offsetX, entry.offsetY = offsetX, offsetY
-      end
-      local x = (entry.x or DEFAULT_X) + offsetX
-      local y = (entry.y or DEFAULT_Y) + offsetY
-      for index, system in ipairs(entry.systems or {}) do
-        if system.system and isSystemEnabled(system, self:_meta(name, index)) then
-          pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
-        end
-      end
-      scratchUpdated = true
-    end
-    if entry and entry.timeline and (timelineWasPlaying or previewActive) then
-      advanceTimeline(self, name, dt)
-      if entry.timelineState and safeBoolean(entry.timelineState.playing, false) then
-        timelineRuntimeActive = true
-      end
-    end
-    local timelineStillPlaying = entry and entry.timelineState and safeBoolean(entry.timelineState.playing, false)
-    if entry and entry.kind == "scratch" and (scratchUpdated or timelineStillPlaying) then
-      local offsetX = safeNumber(entry.offsetX, 0)
-      local offsetY = safeNumber(entry.offsetY, 0)
-      local x = (entry.x or DEFAULT_X) + offsetX
-      local y = (entry.y or DEFAULT_Y) + offsetY
-      for index, system in ipairs(entry.systems or {}) do
-        if system.system and isSystemEnabled(system, self:_meta(name, index)) then
-          pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
-          pcall(system.system.update, system.system, dt)
-        end
-      end
+    if updateScratchCompositeRuntime(self, name, entry, dt, true) then
+      timelineRuntimeActive = true
     end
   end
   self.timelineRuntimeActive = timelineRuntimeActive
+end
+
+function ParticleSystemPlaygroundPlugin:onSuspendedUpdate(dt)
+  if not self.previewSessionActive then
+    return
+  end
+  local name = self.previewComposite
+  local entry = name and self.composites[name]
+  if not scratchPreviewRuntimeActive(self, name, entry) then
+    self.timelineRuntimeActive = false
+    return
+  end
+  self.timelineRuntimeActive = updateScratchCompositeRuntime(self, name, entry, dt, false)
 end
 
 function ParticleSystemPlaygroundPlugin:onDraw()

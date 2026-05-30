@@ -7,8 +7,37 @@ end
 return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
   run = function(context)
     local plugin = context.pluginRecord.instance
+    local feather = context.feather
     local assertEqual = context.assertEqual
     local assertTruthy = context.assertTruthy
+
+    assertTruthy(
+      feather:__isSuspendedCommandAllowed({
+        type = "cmd:plugin:action",
+        plugin = "particle-system-playground",
+        action = "runtime-preview",
+        params = { active = false },
+      }),
+      "particle playground runtime preview clear is allowed while Feather is suspended"
+    )
+    assertTruthy(
+      feather:__isSuspendedCommandAllowed({
+        type = "cmd:plugin:action",
+        plugin = "shader-graph",
+        action = "clear-preview",
+        params = {},
+      }),
+      "shader graph clear preview is allowed while Feather is suspended"
+    )
+    assertTruthy(
+      not feather:__isSuspendedCommandAllowed({
+        type = "cmd:plugin:action",
+        plugin = "particle-system-playground",
+        action = "runtime-preview",
+        params = { active = true },
+      }),
+      "particle playground runtime preview start is blocked while Feather is suspended"
+    )
 
     plugin:handleActionRequest({
       params = {
@@ -248,6 +277,67 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     local stoppedX, stoppedY = system1:getPosition()
     assertEqual(stoppedX, resumedX, "particle playground runtime preview inactive stops scratch updates")
     assertEqual(stoppedY, resumedY, "particle playground runtime preview inactive stops scratch y updates")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Suspended Preview",
+        template = "fire",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Suspended Preview",
+        previewEnabled = true,
+        compositeX = 211,
+        compositeY = 322,
+        systemIndex = 1,
+        emitAtStart = 6,
+        particleLifetimeMin = 1,
+        particleLifetimeMax = 1,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Suspended Preview",
+        active = true,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Suspended Preview",
+        command = "play",
+      },
+    })
+    local suspendedSystem = plugin:_getSystemEntry("Suspended Preview", 1).system
+    feather.runtimeSuspended = true
+    feather.pluginManager:updateSuspended(0.1, feather)
+    local suspendedX, suspendedY = suspendedSystem:getPosition()
+    assertEqual(suspendedX, 211, "particle active preview updates x from the suspended runtime lane")
+    assertEqual(suspendedY, 322, "particle active preview updates y from the suspended runtime lane")
+    assertTruthy(suspendedSystem:getCount() > 0, "particle active preview keeps emitting while Feather is suspended")
+    assertTruthy(
+      plugin.composites["Suspended Preview"].timelineState.time > 0,
+      "particle active preview timeline advances while Feather is suspended"
+    )
+
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Suspended Preview",
+        active = false,
+      },
+    })
+    local suspendedCount = suspendedSystem:getCount()
+    feather.pluginManager:updateSuspended(0.1, feather)
+    assertEqual(
+      suspendedSystem:getCount(),
+      suspendedCount,
+      "particle inactive preview does no suspended-lane particle update work"
+    )
+    feather.runtimeSuspended = false
 
     plugin:handleParamsUpdate({
       params = {

@@ -205,6 +205,7 @@ export function ShaderOutputDock({
     textureUploads,
     diagnostics,
     hasBlockingGraphDiagnostics,
+    runtimeSuspended,
     selectNode,
     generateAndStore,
     validateShader,
@@ -244,7 +245,9 @@ export function ShaderOutputDock({
     [textureUniforms, textureUploads],
   );
   const hasMissingTextureUploads = textureUniforms.some((texture) => !textureUploads[texture.nodeId]);
-  const applyDisabledReason = hasBlockingGraphDiagnostics
+  const applyDisabledReason = runtimeSuspended
+    ? 'Resume Feather runtime before validating or applying shader edits'
+    : hasBlockingGraphDiagnostics
     ? 'Fix blocking graph diagnostics before applying this shader'
     : hasMissingTextureUploads
       ? 'Upload each texture uniform in the node inspector before applying this shader. Preview Texture only changes the source sprite.'
@@ -253,6 +256,7 @@ export function ShaderOutputDock({
 
   async function handlePreviewToggle() {
     if (!previewAvailable || hasBlockingGraphDiagnostics) return;
+    if (runtimeSuspended && !previewEnabled) return;
     if (previewEnabled) {
       if (sessionId) await clearPreview();
       setPreviewEnabled(false);
@@ -306,6 +310,10 @@ export function ShaderOutputDock({
 
   useEffect(() => {
     if (!sessionId || !previewEnabled) return;
+    if (runtimeSuspended) {
+      shaderGraphGamePreviewController.reset();
+      return;
+    }
     const nextGlsl = codegen(debouncedNodes, debouncedEdges, subgraphs);
     void sendShaderPreviewRef.current(nextGlsl, debouncedPreviewShape, colorFromHex(debouncedPreviewColor), {
       baseTexture,
@@ -318,6 +326,7 @@ export function ShaderOutputDock({
     debouncedPreviewColor,
     debouncedPreviewShape,
     previewEnabled,
+    runtimeSuspended,
     sessionId,
     subgraphs,
     uploadedUniformTextures,
@@ -380,7 +389,8 @@ export function ShaderOutputDock({
           size="sm"
           variant="outline"
           className="h-7 text-xs flex-1"
-          disabled={!sessionId || validationStatus === 'validating'}
+          disabled={!sessionId || runtimeSuspended || validationStatus === 'validating'}
+          title={runtimeSuspended ? 'Resume Feather runtime before validating shader edits' : undefined}
           onClick={() => validateShader()}
         >
           Validate
@@ -388,7 +398,7 @@ export function ShaderOutputDock({
         <Button
           size="sm"
           className="h-7 text-xs flex-1"
-          disabled={!sessionId || !playgroundTarget || hasMissingTextureUploads || hasBlockingGraphDiagnostics}
+          disabled={!sessionId || runtimeSuspended || !playgroundTarget || hasMissingTextureUploads || hasBlockingGraphDiagnostics}
           title={applyDisabledReason}
           onClick={() => applyToPlayground(uploadedUniformTextures)}
         >
@@ -425,11 +435,15 @@ export function ShaderOutputDock({
           size="sm"
           variant={previewEnabled ? 'default' : 'outline'}
           className="h-7 text-xs px-2 min-w-24"
-          disabled={!previewAvailable || hasBlockingGraphDiagnostics}
+          disabled={!previewAvailable || hasBlockingGraphDiagnostics || (runtimeSuspended && !previewEnabled)}
           onClick={() => void handlePreviewToggle()}
           title={
             hasBlockingGraphDiagnostics
               ? 'Fix blocking graph diagnostics before previewing this shader'
+              : runtimeSuspended && !previewEnabled
+                ? 'Resume Feather runtime before starting an in-game shader preview'
+                : runtimeSuspended && previewEnabled
+                  ? 'Hide the running in-game shader preview while Feather is suspended'
               : standalone
                 ? 'Toggle shader preview in the isolated preview frame'
                 : 'Toggle shader preview on a temporary shape in the running game'
@@ -439,6 +453,12 @@ export function ShaderOutputDock({
           {previewEnabled ? 'Preview Off' : 'Preview On'}
         </Button>
       </div>
+
+      {runtimeSuspended && previewEnabled && (
+        <div className="border-t px-3 py-2 text-[10px] text-amber-700 dark:text-amber-300">
+          Running from the last shader payload. Resume Feather to sync edits.
+        </div>
+      )}
 
       <div className="border-t px-3 py-2 grid gap-2">
         <div className="flex items-center justify-between gap-2">

@@ -216,10 +216,14 @@ function valueForParam(
 
 export function useParticleSystemPlayground() {
   const sessionId = useSessionStore((state) => state.sessionId);
+  const runtimeSuspended = useSessionStore((state) =>
+    sessionId ? state.sessions[sessionId]?.runtimeSuspended === true : false,
+  );
   const plugin = useConfigStore((state) => state.config?.plugins?.[PLUGIN_ID]);
   const queryClient = useQueryClient();
   const pendingParams = useRef<ScopedParamBatches>({});
   const pendingTimelineSeek = useRef<{ composite: string; time: number } | null>(null);
+  const pendingTimelineUpdate = useRef<{ composite: string; timeline: ParticleTimeline } | null>(null);
   const [optimisticParams, setOptimisticParams] = useState<ScopedParamBatches>({});
   const [localTimelineStates, setLocalTimelineStates] = useState<TimelineStateByComposite>({});
 
@@ -301,6 +305,7 @@ export function useParticleSystemPlayground() {
     () =>
       // Particle property edits can fire quickly from text fields and gizmos; keep runtime updates debounced.
       debounce(() => {
+        if (runtimeSuspended) return;
         const batches = pendingParams.current;
         pendingParams.current = {};
         for (const params of Object.values(batches)) {
@@ -308,8 +313,12 @@ export function useParticleSystemPlayground() {
           send({ type: 'cmd:plugin:params', plugin: PLUGIN_ID, params });
         }
       }, 150),
-    [send],
+    [runtimeSuspended, send],
   );
+
+  useEffect(() => {
+    if (!runtimeSuspended) flushParams();
+  }, [flushParams, runtimeSuspended]);
 
   const updateParam = useCallback(
     (key: string, value: ParamValue) => {
@@ -347,6 +356,8 @@ export function useParticleSystemPlayground() {
 
   const sendAction = useCallback(
     (action: string, extra: ActionParams = {}) => {
+      const allowedWhileSuspended = action === 'runtime-preview' && extra.active === false;
+      if (runtimeSuspended && !allowedWhileSuspended) return Promise.resolve();
       return send({
         type: 'cmd:plugin:action',
         plugin: PLUGIN_ID,
@@ -358,11 +369,12 @@ export function useParticleSystemPlayground() {
         },
       });
     },
-    [data.activeComposite, data.activeSystem, send],
+    [data.activeComposite, data.activeSystem, runtimeSuspended, send],
   );
 
   const setRuntimePreviewActive = useCallback(
     (active: boolean, composite?: string | null) => {
+      if (runtimeSuspended && active) return Promise.resolve();
       return send({
         type: 'cmd:plugin:action',
         plugin: PLUGIN_ID,
@@ -374,8 +386,19 @@ export function useParticleSystemPlayground() {
         },
       });
     },
-    [data.activeComposite, data.activeSystem, send],
+    [data.activeComposite, data.activeSystem, runtimeSuspended, send],
   );
+
+  useEffect(() => {
+    if (runtimeSuspended) return;
+    const pending = pendingTimelineUpdate.current;
+    if (!pending) return;
+    pendingTimelineUpdate.current = null;
+    void sendAction('set-timeline', {
+      composite: pending.composite,
+      timeline: pending.timeline,
+    });
+  }, [runtimeSuspended, sendAction]);
 
   const setTextureFromUpload = useCallback(
     (filename: string, dataBase64: string) => {
@@ -486,6 +509,7 @@ export function useParticleSystemPlayground() {
     plugin,
     available: !!plugin,
     enabled: !!plugin && !plugin.disabled && !plugin.incompatible,
+    runtimeSuspended,
     data,
     composites: data.composites,
     activeComposite: data.activeComposite,
@@ -547,6 +571,13 @@ export function useParticleSystemPlayground() {
     },
     updateTimeline: (timeline: ParticleTimeline) => {
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => updateTimelineDraft(current, timeline));
+      if (runtimeSuspended) {
+        pendingTimelineUpdate.current = {
+          composite: data.activeComposite ?? '',
+          timeline,
+        };
+        return;
+      }
       refreshAfterAction('set-timeline', { timeline });
     },
     playTimeline: (sendRuntime = true) => {

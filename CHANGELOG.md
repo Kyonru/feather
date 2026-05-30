@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle System Playground Lua exports now play authored timeline bursts exactly instead of applying a payload-level amount scale.
 - Particle System Playground Lua exports now expose `setLoop` and `isLooping`, and `play({ loop = ... })` can override the saved timeline loop setting per playback.
 - Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
+- Feather runtime suspend now keeps explicitly active Shader Graph and Particle Playground in-game previews animating from their last payload, and lets the In-Game Overlay keep sampling/drawing while other runtime work stays paused.
 - Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
 - Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
 - Runtime Snapshot is now opt-in, disabled by default, and uses a low-frequency live push interval when enabled.
@@ -171,6 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.
 - Expanded theme registry and app e2e coverage for Tokyo Night theme variants.
 - Added app e2e coverage for live runtime suspend/resume, Profiler action refreshes, and Logs Follow Tail behavior.
+- Expanded Lua e2e coverage for suspended-runtime creative preview allowlists, active Particle Playground preview updates, and In-Game Overlay sampling.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 

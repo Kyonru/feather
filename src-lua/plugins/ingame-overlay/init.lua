@@ -25,6 +25,10 @@ function IngameOverlayPlugin:update(dt)
   self.overlay.update(dt)
 end
 
+function IngameOverlayPlugin:onSuspendedUpdate(dt)
+  self.overlay.update(dt)
+end
+
 function IngameOverlayPlugin:onDraw()
   self.overlay.draw()
 end

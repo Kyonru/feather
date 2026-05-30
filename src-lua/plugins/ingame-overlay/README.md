@@ -5,6 +5,11 @@ Opt-in LÖVE performance overlay rendered through Feather plugin hooks. This plu
 The overlay draws after the game by using the plugin manager's `onDraw` callback,
 so your game does not need to call a draw function manually.
 
+When Feather runtime work is suspended from the session bar, the overlay keeps updating
+and drawing inside the game. Normal Feather telemetry/plugin sampling stays paused, but
+the overlay can continue showing its last local performance samples and still respond to
+its in-game toggle controls because it runs through the suspended overlay lane.
+
 ## Enable
 
 ```lua
@@ -41,6 +46,5 @@ pluginOptions = {
 | `sampleSize` | `number` | `60` | Number of samples used for moving averages. |
 | `touchCornerSize` | `number` | `80` | Top-right touch activation area size in pixels. |
 | `doubleTapThreshold` | `number` | `0.5` | Maximum seconds between taps for a double-tap. |
-
 
 

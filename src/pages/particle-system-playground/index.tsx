@@ -51,6 +51,7 @@ export default function ParticleSystemPlaygroundPage({
   const isGameComposite = composite?.compositeType === 'game';
   const projectInputRef = useRef<HTMLInputElement>(null);
   const [gamePreviewActive, setGamePreviewActive] = useState(false);
+  const sendRuntimeTimeline = gamePreviewActive && !playground.runtimeSuspended;
   const [viewportHeight, setViewportHeight] = useState(() =>
     typeof window === 'undefined' ? 0 : window.innerHeight,
   );
@@ -207,7 +208,7 @@ export default function ParticleSystemPlaygroundPage({
                     variant="outline"
                     className="h-8 gap-2 text-xs"
                     title="Play particle timeline"
-                    onClick={() => playground.playTimeline(gamePreviewActive)}
+                    onClick={() => playground.playTimeline(sendRuntimeTimeline)}
                   >
                     <PlayIcon className="size-4" />
                     Play
@@ -285,10 +286,10 @@ export default function ParticleSystemPlaygroundPage({
                       isGameComposite={isGameComposite}
                       onSelectSystem={playground.selectSystem}
                       onTimelineChange={playground.updateTimeline}
-                      onPlay={() => playground.playTimeline(gamePreviewActive)}
-                      onPause={(time) => playground.pauseTimeline(time, gamePreviewActive)}
-                      onStop={() => playground.stopTimeline(gamePreviewActive)}
-                      onSeek={(time, immediate) => playground.seekTimeline(time, immediate, gamePreviewActive)}
+                      onPlay={() => playground.playTimeline(sendRuntimeTimeline)}
+                      onPause={(time) => playground.pauseTimeline(time, sendRuntimeTimeline)}
+                      onStop={() => playground.stopTimeline(sendRuntimeTimeline)}
+                      onSeek={(time, immediate) => playground.seekTimeline(time, immediate, sendRuntimeTimeline)}
                     />
                   </TabsContent>
 

@@ -310,6 +310,7 @@ export function useLocalParticlePlayground() {
     plugin: { id: 'particle-system-playground', disabled: false, incompatible: false },
     available: true,
     enabled: true,
+    runtimeSuspended: false,
     data,
     composites: data.composites,
     activeComposite: data.activeComposite,

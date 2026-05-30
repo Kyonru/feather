@@ -50,10 +50,14 @@ export function ParticlePreviewMonitor({
   onGamePreviewActiveChange,
 }: Props) {
   const sessionId = useSessionStore((state) => state.sessionId);
+  const runtimeSuspended = useSessionStore((state) =>
+    sessionId ? state.sessions[sessionId]?.runtimeSuspended === true : false,
+  );
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const setRuntimePreviewActiveRef = useRef(playground.setRuntimePreviewActive);
   const activeGameCompositeRef = useRef<string | null>(null);
+  const runtimeSuspendedRef = useRef(runtimeSuspended);
   const previewEnabled = playground.composite?.previewEnabled !== false;
   const disabledReason = gamePreviewDisabledReason(
     sessionId,
@@ -61,7 +65,11 @@ export function ParticlePreviewMonitor({
     playground.composite,
     isGameComposite,
   );
-  const canShowInGame = !standalone && !disabledReason;
+  const suspendedStartReason = runtimeSuspended && !gamePreviewActive
+    ? 'Resume Feather runtime before starting an in-game preview'
+    : undefined;
+  const effectiveDisabledReason = disabledReason ?? suspendedStartReason;
+  const canShowInGame = !standalone && !effectiveDisabledReason;
 
   useEffect(() => {
     setRuntimePreviewActiveRef.current = playground.setRuntimePreviewActive;
@@ -101,10 +109,37 @@ export function ParticlePreviewMonitor({
       void clearGamePreview();
       return;
     }
+    if (runtimeSuspended) return;
     if (activeGameCompositeRef.current === playground.activeComposite) return;
     activeGameCompositeRef.current = playground.activeComposite;
     void setRuntimePreviewActiveRef.current(true, playground.activeComposite);
-  }, [canShowInGame, clearGamePreview, gamePreviewActive, playground.activeComposite, standalone]);
+  }, [canShowInGame, clearGamePreview, gamePreviewActive, playground.activeComposite, runtimeSuspended, standalone]);
+
+  useEffect(() => {
+    const wasSuspended = runtimeSuspendedRef.current;
+    runtimeSuspendedRef.current = runtimeSuspended;
+    if (!wasSuspended || runtimeSuspended || standalone || !gamePreviewActive || !canShowInGame || !playground.activeComposite) {
+      return;
+    }
+
+    const composite = playground.activeComposite;
+    activeGameCompositeRef.current = composite;
+    setStatus('sending');
+    void setRuntimePreviewActiveRef.current(true, composite)
+      .then(() => {
+        const timelineState = playground.composite?.timelineState;
+        if (timelineState) {
+          playground.seekTimeline(timelineState.time ?? 0, true, true);
+          if (timelineState.playing) playground.playTimeline(true);
+        }
+        setError(null);
+        setStatus('live');
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to resume the connected-game preview.');
+        setStatus('error');
+      });
+  }, [canShowInGame, gamePreviewActive, playground, runtimeSuspended, standalone]);
 
   const payload = useMemo(
     () => ({
@@ -161,7 +196,7 @@ export function ParticlePreviewMonitor({
           : 'h-7 gap-1.5 border-emerald-500/60 text-xs text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:border-emerald-400/50 dark:text-emerald-300 dark:hover:bg-emerald-400/10 dark:hover:text-emerald-200'
       }
       disabled={status === 'sending' || (!gamePreviewActive && !canShowInGame)}
-      title={gamePreviewActive ? 'Hide the particle preview in the connected game' : disabledReason}
+      title={gamePreviewActive ? 'Hide the particle preview in the connected game' : effectiveDisabledReason}
       onClick={() => void toggleGamePreview()}
     >
       {gamePreviewActive ? <MonitorOffIcon className="size-3.5" /> : <MonitorPlayIcon className="size-3.5" />}
@@ -172,10 +207,12 @@ export function ParticlePreviewMonitor({
   if (!standalone) {
     const runtimeMessage = isGameComposite
       ? 'This composite is owned and drawn by the connected game.'
-      : gamePreviewActive
+      : gamePreviewActive && runtimeSuspended
+        ? 'Running from the last particle payload. Resume Feather to sync edits.'
+        : gamePreviewActive
         ? 'Runtime preview is live in the connected game. Timeline and emitter edits sync while it stays enabled.'
         : 'Tauri uses the connected LÖVE runtime for particle preview right now. Nothing is drawn in the game until you choose Show in Game.';
-    const statusMessage = error ?? disabledReason ?? runtimeMessage;
+    const statusMessage = error ?? effectiveDisabledReason ?? runtimeMessage;
 
     return (
       <section className="grid min-w-0 gap-3 rounded-md border bg-card p-3" data-testid="particle-preview-monitor">
