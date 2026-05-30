@@ -12,6 +12,20 @@ local function findRow(state, name)
   return nil
 end
 
+local function lastMessageOfType(messages, messageType)
+  for index = #messages, 1, -1 do
+    if messages[index].type == messageType then
+      return messages[index]
+    end
+  end
+  return nil
+end
+
+local function currentSourceFile(debugger, fn)
+  local info = debug.getinfo(fn, "S")
+  return debugger:_normalizeFile(info.source or info.short_src or "")
+end
+
 function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   local feather = PluginE2EHelper.createFeather({
     sessionName = "Core Profiler E2E",
@@ -115,6 +129,99 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   assertEqual(#state.data, 0, "profiler reset clears samples")
   assertEqual(#state.snapshots, 0, "profiler reset clears snapshots")
   feather:finish()
+
+  local probeFeather = PluginE2EHelper.createFeather({
+    sessionName = "Debugger Profiler Probe E2E",
+    deviceId = "debugger-profiler-probe-e2e",
+    plugins = {},
+  })
+  local probeProfiler = probeFeather.profiler
+  local probeMessages = {}
+  probeFeather.__connState = "connected"
+  probeFeather.__sendWs = function(_, payload)
+    local message = json.decode(payload)
+    probeMessages[#probeMessages + 1] = message
+    if message.type == "debugger:paused" then
+      probeFeather.featherDebugger:resume(nil)
+    end
+  end
+
+  local startLine
+  local stopLine
+  local snapshotLine
+  local combinedLine
+
+  local function startProbeTarget()
+    local value = 1
+    return value
+  end
+  startLine = debug.getinfo(startProbeTarget, "S").linedefined + 1
+
+  local function stopProbeTarget()
+    local value = 2
+    return value
+  end
+  stopLine = debug.getinfo(stopProbeTarget, "S").linedefined + 1
+
+  local function snapshotProbeTarget()
+    local value = 3
+    return value
+  end
+  snapshotLine = debug.getinfo(snapshotProbeTarget, "S").linedefined + 1
+
+  local function combinedProbeTarget()
+    local value = 4
+    return value
+  end
+  combinedLine = debug.getinfo(combinedProbeTarget, "S").linedefined + 1
+
+  local probeFile = currentSourceFile(probeFeather.featherDebugger, startProbeTarget)
+  local probeWork = probeProfiler:wrap("probe.work", function()
+    return true
+  end)
+
+  probeFeather:__handleCommand({ type = "cmd:debugger:enable" })
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = {
+      probes = {
+        { file = probeFile, line = startLine, kind = "start" },
+        { file = probeFile, line = stopLine, kind = "stop" },
+        { file = probeFile, line = snapshotLine, kind = "snapshot", label = "Probe Snapshot" },
+        { file = "", line = -1, kind = "start" },
+        { file = probeFile, line = combinedLine, kind = "invalid" },
+      },
+    },
+  })
+  assertEqual(probeFeather.featherDebugger:statusBody().profilerProbeCount, 3, "debugger accepts valid profiler probes")
+  assertEqual(#probeFeather.featherDebugger:statusBody().rejectedProfilerProbes, 2, "debugger rejects invalid profiler probes")
+
+  startProbeTarget()
+  assertEqual(probeProfiler.recording, true, "debugger start probe starts profiler recording without pausing")
+  assertEqual(lastMessageOfType(probeMessages, "profiler").data.recording, true, "debugger start probe pushes profiler state")
+  probeWork()
+  stopProbeTarget()
+  assertEqual(probeProfiler.recording, false, "debugger stop probe stops profiler recording")
+  assertEqual(findRow(probeProfiler:getState(), "probe.work").calls, 1, "debugger probe capture records wrapped work")
+  assertEqual(lastMessageOfType(probeMessages, "profiler").data.recording, false, "debugger stop probe pushes profiler state")
+
+  snapshotProbeTarget()
+  assertEqual(probeProfiler:getState().snapshots[1].label, "Probe Snapshot", "debugger snapshot probe stores named snapshot")
+  assertEqual(lastMessageOfType(probeMessages, "profiler").data.snapshots[1].label, "Probe Snapshot", "debugger snapshot probe pushes profiler state")
+
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_breakpoints",
+    data = { breakpoints = { { file = probeFile, line = combinedLine } } },
+  })
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = { { file = probeFile, line = combinedLine, kind = "start" } } },
+  })
+  combinedProbeTarget()
+  assertEqual(probeProfiler.recording, true, "debugger profiler probe still runs on a breakpoint line")
+  assertTruthy(lastMessageOfType(probeMessages, "debugger:paused") ~= nil, "breakpoint still pauses on a profiler probe line")
+  probeFeather.featherDebugger:disable()
+  probeFeather:finish()
 
   local legacy = PluginE2EHelper.createFeather({
     sessionName = "Legacy Profiler Plugin E2E",

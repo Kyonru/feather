@@ -1,6 +1,6 @@
 import { sendCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
-import { useDebuggerStore, type Breakpoint } from '@/store/debugger';
+import { useDebuggerStore, type Breakpoint, type ProfilerProbe, type ProfilerProbeKind } from '@/store/debugger';
 
 const sendCmd = (sessionId: string, type: string, data?: unknown) =>
   sendCommand(sessionId, { type, ...(data !== undefined && { data }) }).catch(() => {});
@@ -12,9 +12,24 @@ const syncBreakpoints = (sessionId: string, breakpoints: Breakpoint[]) =>
       .map(({ file, line, condition }) => ({ file, line, condition })),
   });
 
+const syncProfilerProbes = (sessionId: string, probes: ProfilerProbe[]) =>
+  sendCmd(sessionId, 'cmd:debugger:set_profiler_probes', {
+    probes: probes
+      .filter((probe) => probe.enabled)
+      .map(({ file, line, kind, label }) => ({ file, line, kind, label })),
+  });
+
+function nextProbeKind(current: ProfilerProbeKind | undefined): ProfilerProbeKind | null {
+  if (!current) return 'start';
+  if (current === 'start') return 'stop';
+  if (current === 'stop') return 'snapshot';
+  return null;
+}
+
 export const useDebugger = () => {
   const sessionId = useSessionStore((state) => state.sessionId);
   const breakpoints = useDebuggerStore((state) => state.breakpoints);
+  const profilerProbes = useDebuggerStore((state) => state.profilerProbes);
   const pausedState = useDebuggerStore((state) => state.pausedState);
   const enabledMap = useDebuggerStore((state) => state.enabled);
   const pauseOnErrorMap = useDebuggerStore((state) => state.pauseOnError);
@@ -25,6 +40,7 @@ export const useDebugger = () => {
   const toggleBreakpointStore = useDebuggerStore((state) => state.toggleBreakpoint);
   const setConditionStore = useDebuggerStore((state) => state.setCondition);
   const clearBreakpoints = useDebuggerStore((state) => state.clearBreakpoints);
+  const setProfilerProbesStore = useDebuggerStore((state) => state.setProfilerProbes);
   const setEnabled = useDebuggerStore((state) => state.setEnabled);
   const setPauseOnErrorStore = useDebuggerStore((state) => state.setPauseOnError);
 
@@ -42,6 +58,7 @@ export const useDebugger = () => {
     if (next) {
       sendCmd(sessionId, 'cmd:debugger:set_options', { pauseOnError });
       syncBreakpoints(sessionId, breakpoints);
+      syncProfilerProbes(sessionId, profilerProbes);
     }
   };
 
@@ -84,6 +101,36 @@ export const useDebugger = () => {
     if (sessionId && isEnabled) syncBreakpoints(sessionId, []);
   };
 
+  const setProfilerProbe = (file: string, line: number, kind: ProfilerProbeKind, label?: string) => {
+    const next = [
+      ...profilerProbes.filter((probe) => !(probe.file === file && probe.line === line)),
+      { file, line, kind, label, enabled: true },
+    ];
+    setProfilerProbesStore(next);
+    if (sessionId && isEnabled) syncProfilerProbes(sessionId, next);
+  };
+
+  const removeProfilerProbe = (file: string, line: number) => {
+    const next = profilerProbes.filter((probe) => !(probe.file === file && probe.line === line));
+    setProfilerProbesStore(next);
+    if (sessionId && isEnabled) syncProfilerProbes(sessionId, next);
+  };
+
+  const cycleProfilerProbe = (file: string, line: number) => {
+    const existing = profilerProbes.find((probe) => probe.file === file && probe.line === line);
+    const nextKind = nextProbeKind(existing?.kind);
+    if (!nextKind) {
+      removeProfilerProbe(file, line);
+      return;
+    }
+    setProfilerProbe(file, line, nextKind, existing?.label);
+  };
+
+  const clearProbes = () => {
+    setProfilerProbesStore([]);
+    if (sessionId && isEnabled) syncProfilerProbes(sessionId, []);
+  };
+
   const setPauseOnError = (enabled: boolean) => {
     if (!sessionId) return;
     setPauseOnErrorStore(sessionId, enabled);
@@ -97,6 +144,7 @@ export const useDebugger = () => {
 
   return {
     breakpoints,
+    profilerProbes,
     currentPaused,
     isEnabled,
     pauseOnError,
@@ -109,6 +157,10 @@ export const useDebugger = () => {
     toggleBreakpoint: toggleBp,
     clearBreakpoints: clearBps,
     setCondition,
+    setProfilerProbe,
+    removeProfilerProbe,
+    cycleProfilerProbe,
+    clearProfilerProbes: clearProbes,
     setPauseOnError,
     inspectFrame,
     continue: () => sessionId && sendCmd(sessionId, 'cmd:debugger:continue'),

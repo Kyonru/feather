@@ -18,6 +18,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { LuaCodeInput } from '@/components/ui/lua-code-input';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { isWeb } from '@/utils/platform';
 import { cn } from '@/utils/styles';
 import {
@@ -45,6 +52,7 @@ import {
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useLanguage } from '@/hooks/use-config';
 import { useSyntaxTheme } from '@/hooks/use-theme';
+import type { ProfilerProbe, ProfilerProbeKind } from '@/store/debugger';
 
 interface FileEntry {
   name: string;
@@ -183,6 +191,24 @@ function isEditableTarget(target: EventTarget | null) {
   return target.closest('input, textarea, select, [contenteditable="true"]') !== null;
 }
 
+const profilerProbeLabels: Record<ProfilerProbeKind, string> = {
+  start: 'Start profiling here',
+  stop: 'Stop profiling here',
+  snapshot: 'Snapshot here',
+};
+
+const profilerProbeTone: Record<ProfilerProbeKind, string> = {
+  start: 'text-emerald-500',
+  stop: 'text-rose-500',
+  snapshot: 'text-amber-500',
+};
+
+function ProfilerProbeIcon({ kind }: { kind: ProfilerProbeKind }) {
+  if (kind === 'start') return <PlayIcon className="size-3" />;
+  if (kind === 'stop') return <PauseIcon className="size-3" />;
+  return <ClockIcon className="size-3" />;
+}
+
 function SourceView({
   content,
   currentLine,
@@ -190,8 +216,12 @@ function SourceView({
   breakpointLines,
   conditionalLines,
   conditionErrors,
+  profilerProbes,
   onToggleBreakpoint,
   onRightClickBreakpoint,
+  onCycleProfilerProbe,
+  onSetProfilerProbe,
+  onRemoveProfilerProbe,
 }: {
   content: string | null;
   currentLine: number | null;
@@ -199,8 +229,12 @@ function SourceView({
   breakpointLines: Set<number>;
   conditionalLines: Set<number>;
   conditionErrors: Map<number, string>;
+  profilerProbes: Map<number, ProfilerProbe>;
   onToggleBreakpoint: (line: number) => void;
   onRightClickBreakpoint: (line: number, e: React.MouseEvent) => void;
+  onCycleProfilerProbe: (line: number) => void;
+  onSetProfilerProbe: (line: number, kind: ProfilerProbeKind) => void;
+  onRemoveProfilerProbe: (line: number) => void;
 }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollTargetRef = useRef<HTMLDivElement>(null);
@@ -363,6 +397,7 @@ function SourceView({
             const hasBp = breakpointLines.has(lineNum);
             const conditionError = conditionErrors.get(lineNum);
             const hasConditionError = !!conditionError;
+            const profilerProbe = profilerProbes.get(lineNum);
 
             let lineRef: React.Ref<HTMLDivElement> | undefined;
             if (lineNum === activeScrollLine) lineRef = scrollTargetRef;
@@ -423,6 +458,53 @@ function SourceView({
                     )}
                   </button>
                 </div>
+                {/* Profiler probe gutter */}
+                <ContextMenu>
+                  <ContextMenuTrigger asChild>
+                    <div className="flex w-6 shrink-0 items-center justify-center self-stretch">
+                      <button
+                        data-testid={`debugger-profiler-probe-button-${lineNum}`}
+                        className="flex size-5 items-center justify-center rounded-sm hover:bg-accent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCycleProfilerProbe(lineNum);
+                        }}
+                        title={profilerProbe ? profilerProbeLabels[profilerProbe.kind] : 'Add profiler probe'}
+                        aria-label={`${profilerProbe ? 'Change' : 'Add'} profiler probe on line ${lineNum}`}
+                      >
+                        {profilerProbe ? (
+                          <span className={cn('flex items-center justify-center', profilerProbeTone[profilerProbe.kind])}>
+                            <ProfilerProbeIcon kind={profilerProbe.kind} />
+                          </span>
+                        ) : (
+                          <ClockIcon className="size-3 text-sky-400 opacity-0 group-hover:opacity-50" />
+                        )}
+                      </button>
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-48">
+                    <ContextMenuItem onSelect={() => onSetProfilerProbe(lineNum, 'start')}>
+                      <PlayIcon className="size-3.5 text-emerald-500" />
+                      Start profiling here
+                    </ContextMenuItem>
+                    <ContextMenuItem onSelect={() => onSetProfilerProbe(lineNum, 'stop')}>
+                      <PauseIcon className="size-3.5 text-rose-500" />
+                      Stop profiling here
+                    </ContextMenuItem>
+                    <ContextMenuItem onSelect={() => onSetProfilerProbe(lineNum, 'snapshot')}>
+                      <ClockIcon className="size-3.5 text-amber-500" />
+                      Snapshot here
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      disabled={!profilerProbe}
+                      variant="destructive"
+                      onSelect={() => onRemoveProfilerProbe(lineNum)}
+                    >
+                      Remove probe
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
                 {/* Line number */}
                 <span
                   className={cn(
@@ -784,9 +866,21 @@ export default function DebuggerPage() {
   }, [dbg]);
 
   const breakpointFiles = new Set(dbg.breakpoints.map((b) => b.file));
+  const profilerProbeFiles = new Set(dbg.profilerProbes.filter((probe) => probe.enabled).map((probe) => probe.file));
+  const sourceMarkerFiles = new Set([...breakpointFiles, ...profilerProbeFiles]);
   const breakpointLines = new Set(
     dbg.breakpoints.filter((b) => b.file === selectedFile && b.enabled).map((b) => b.line),
   );
+  const profilerProbesByLine = useMemo(() => {
+    const probes = new Map<number, ProfilerProbe>();
+    if (!selectedFile) return probes;
+    for (const probe of dbg.profilerProbes) {
+      if (probe.file === selectedFile && probe.enabled) {
+        probes.set(probe.line, probe);
+      }
+    }
+    return probes;
+  }, [dbg.profilerProbes, selectedFile]);
   const conditionalLines = new Set(
     dbg.breakpoints.filter((b) => b.file === selectedFile && b.enabled && !!b.condition).map((b) => b.line),
   );
@@ -1123,7 +1217,7 @@ export default function DebuggerPage() {
                 <FileTree
                   rootPath={rootPath}
                   selectedFile={selectedFile}
-                  breakpointFiles={breakpointFiles}
+                  breakpointFiles={sourceMarkerFiles}
                   onSelectFile={setSelectedFile}
                 />
               ) : (
@@ -1167,6 +1261,12 @@ export default function DebuggerPage() {
                     {breakpointLines.size > 0 && (
                       <Badge variant="secondary" className="font-mono text-xs">
                         {breakpointLines.size} bp
+                      </Badge>
+                    )}
+                    {profilerProbesByLine.size > 0 && (
+                      <Badge variant="outline" className="gap-1 font-mono text-xs">
+                        <ClockIcon className="size-3 text-sky-500" />
+                        {profilerProbesByLine.size} probe{profilerProbesByLine.size === 1 ? '' : 's'}
                       </Badge>
                     )}
                     {selectedConditionErrors.length > 0 && (
@@ -1234,6 +1334,7 @@ export default function DebuggerPage() {
                   breakpointLines={breakpointLines}
                   conditionalLines={conditionalLines}
                   conditionErrors={conditionErrors}
+                  profilerProbes={profilerProbesByLine}
                   onToggleBreakpoint={(line) => {
                     if (breakpointLines.has(line)) {
                       dbg.removeBreakpoint(selectedFile, line);
@@ -1244,6 +1345,15 @@ export default function DebuggerPage() {
                   onRightClickBreakpoint={(line) => {
                     const bp = dbg.breakpoints.find((b) => b.file === selectedFile && b.line === line);
                     setConditionDialog({ file: selectedFile, line, value: bp?.condition ?? '' });
+                  }}
+                  onCycleProfilerProbe={(line) => {
+                    dbg.cycleProfilerProbe(selectedFile, line);
+                  }}
+                  onSetProfilerProbe={(line, kind) => {
+                    dbg.setProfilerProbe(selectedFile, line, kind);
+                  }}
+                  onRemoveProfilerProbe={(line) => {
+                    dbg.removeProfilerProbe(selectedFile, line);
                   }}
                 />
               </>

@@ -774,6 +774,8 @@ function Feather:__handleCommand(msg)
     self.featherDebugger:setOptions(msg.data)
   elseif msg.type == "cmd:debugger:set_breakpoints" and msg.data then
     self.featherDebugger:setBreakpoints(msg.data.breakpoints or {})
+  elseif msg.type == "cmd:debugger:set_profiler_probes" and msg.data then
+    self.featherDebugger:setProfilerProbes(msg.data.probes or {})
   elseif msg.type == "cmd:debugger:inspect_frame" and msg.data then
     self.featherDebugger:inspectFrame(msg.data.index or 0)
   elseif msg.type == "cmd:debugger:continue" then

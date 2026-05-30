@@ -518,6 +518,20 @@ export const useWsConnection = () => {
                   data: { breakpoints: stored.map(({ file, line, condition }) => ({ file, line, condition })) },
                 }).catch(() => {});
               }
+              const storedProfilerProbes = debuggerState.profilerProbes.filter((probe) => probe.enabled);
+              if (storedProfilerProbes.length > 0) {
+                sendCommand(sessionId, {
+                  type: 'cmd:debugger:set_profiler_probes',
+                  data: {
+                    probes: storedProfilerProbes.map(({ file, line, kind, label }) => ({
+                      file,
+                      line,
+                      kind,
+                      label,
+                    })),
+                  },
+                }).catch(() => {});
+              }
             }
 
             addSession({

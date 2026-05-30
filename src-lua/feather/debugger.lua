@@ -9,6 +9,7 @@ local _SELF_SRC = debug.getinfo(1, "S").source
 ---@field enabled boolean
 ---@field paused boolean
 ---@field breakpoints table  { [normalizedFile] = { [line] = { condition? } } }
+---@field profilerProbes table  { [normalizedFile] = { [line] = { kind, label? } } }
 ---@field pauseOnError boolean
 ---@field _stepMode string|nil  "over" | "into" | "out" | nil
 ---@field _stepDepth number
@@ -20,8 +21,11 @@ function FeatherDebugger:init(feather)
   self.enabled = false
   self.paused = false
   self.breakpoints = {}
+  self.profilerProbes = {}
   self.normalizedBreakpoints = {}
+  self.normalizedProfilerProbes = {}
   self.rejectedBreakpoints = {}
+  self.rejectedProfilerProbes = {}
   self.breakpointErrors = {}
   self.pauseOnError = false
   self.pauseId = 0
@@ -44,6 +48,10 @@ function FeatherDebugger:disable()
   self.paused = false
   debug.sethook()
   self:sendStatus()
+end
+
+local function isProfilerProbeKind(kind)
+  return kind == "start" or kind == "stop" or kind == "snapshot"
 end
 
 --- Replace all breakpoints from a list sent by the desktop.
@@ -80,6 +88,46 @@ function FeatherDebugger:setBreakpoints(bps)
   self:sendStatus()
 end
 
+--- Replace all profiler probes from a list sent by the desktop.
+---@param probes table  array of { file, line, kind, label? }
+function FeatherDebugger:setProfilerProbes(probes)
+  self.profilerProbes = {}
+  self.normalizedProfilerProbes = {}
+  self.rejectedProfilerProbes = {}
+  print("[Feather:debugger] setProfilerProbes: " .. #probes .. " probe(s)")
+  for _, probe in ipairs(probes) do
+    local file = self:_normalizeFile(probe.file)
+    local line = tonumber(probe.line) and math.floor(probe.line) or nil
+    local kind = tostring(probe.kind or "")
+    if not file or file == "" or not line or line < 1 or not isProfilerProbeKind(kind) then
+      self.rejectedProfilerProbes[#self.rejectedProfilerProbes + 1] = {
+        file = probe.file,
+        line = probe.line,
+        kind = probe.kind,
+        label = probe.label,
+        reason = "invalid profiler probe",
+      }
+    else
+      if not self.profilerProbes[file] then
+        self.profilerProbes[file] = {}
+      end
+      local normalized = {
+        file = file,
+        line = line,
+        kind = kind,
+        label = probe.label,
+      }
+      self.profilerProbes[file][line] = {
+        kind = kind,
+        label = probe.label,
+      }
+      self.normalizedProfilerProbes[#self.normalizedProfilerProbes + 1] = normalized
+      print("[Feather:debugger]   profiler " .. kind .. " " .. file .. ":" .. line)
+    end
+  end
+  self:sendStatus()
+end
+
 function FeatherDebugger:setOptions(options)
   options = options or {}
   if options.pauseOnError ~= nil then
@@ -98,6 +146,9 @@ function FeatherDebugger:statusBody()
     breakpoints = self.normalizedBreakpoints,
     rejectedBreakpoints = self.rejectedBreakpoints,
     breakpointErrors = self.breakpointErrors,
+    profilerProbeCount = #self.normalizedProfilerProbes,
+    profilerProbes = self.normalizedProfilerProbes,
+    rejectedProfilerProbes = self.rejectedProfilerProbes,
   }
 end
 
@@ -400,6 +451,33 @@ function FeatherDebugger:_getStack()
   return stack
 end
 
+function FeatherDebugger:_runProfilerProbe(src, line)
+  local fileProbes = self.profilerProbes[src]
+  local probe = fileProbes and fileProbes[line]
+  if not probe then
+    return
+  end
+
+  local profiler = self.feather and self.feather.profiler
+  if not profiler then
+    return
+  end
+
+  if probe.kind == "start" then
+    profiler:start()
+  elseif probe.kind == "stop" then
+    profiler:stop()
+  elseif probe.kind == "snapshot" then
+    profiler:snapshot(probe.label or "Debugger probe")
+  else
+    return
+  end
+
+  if self.feather.__pushProfiler then
+    self.feather:__pushProfiler(true)
+  end
+end
+
 function FeatherDebugger:_installHook()
   local selfRef = self
   local _seenFiles = {} -- print each unique file once so the console isn't flooded
@@ -423,6 +501,8 @@ function FeatherDebugger:_installHook()
     end
     local shouldPause = false
     local reason = "breakpoint"
+
+    selfRef:_runProfilerProbe(src, line)
 
     -- Check static breakpoints
     local fileBps = selfRef.breakpoints[src]

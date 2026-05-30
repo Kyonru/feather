@@ -327,6 +327,28 @@ async function seedTauriConnectedGame(page: Page) {
         callbacks.delete(id);
       },
       invoke(cmd: string, args: Record<string, unknown> = {}) {
+        const sourceFiles = ((window as unknown as { __FEATHER_E2E_SOURCE_FILES__?: Record<string, string> })
+          .__FEATHER_E2E_SOURCE_FILES__) ?? {};
+        if (cmd === 'plugin:fs|read_text_file' || cmd === 'read_text_file') {
+          const path = String(args.path ?? '');
+          const source = sourceFiles[path];
+          return Promise.resolve(source === undefined ? null : Array.from(new TextEncoder().encode(source)));
+        }
+        if (cmd === 'plugin:fs|read_dir' || cmd === 'read_dir') {
+          const path = String(args.path ?? '').replace(/\/$/, '');
+          const children = new Map<string, { name: string; isFile: boolean; isDirectory: boolean }>();
+          for (const filePath of Object.keys(sourceFiles)) {
+            const normalized = filePath.replace(/\/$/, '');
+            const relative = normalized.startsWith(`${path}/`) ? normalized.slice(path.length + 1) : '';
+            if (!relative || relative.includes('/')) {
+              const directory = relative.split('/')[0];
+              if (directory) children.set(directory, { name: directory, isFile: false, isDirectory: true });
+              continue;
+            }
+            children.set(relative, { name: relative, isFile: true, isDirectory: false });
+          }
+          return Promise.resolve([...children.values()]);
+        }
         if (cmd === 'set_app_id') return Promise.resolve();
         if (cmd === 'get_active_sessions') return Promise.resolve([...activeSessions]);
         if (cmd === 'send_command') {
@@ -1313,6 +1335,66 @@ async function seedDebuggerSession(page: Page) {
         version: 0,
       }),
     );
+  });
+}
+
+async function seedDebuggerProbeSession(page: Page) {
+  await seedTauriConnectedGame(page);
+  await page.addInitScript(() => {
+    (globalThis as unknown as { isTauri?: boolean }).isTauri = true;
+    (window as unknown as { __FEATHER_E2E_SOURCE_FILES__?: Record<string, string> }).__FEATHER_E2E_SOURCE_FILES__ = {
+      '/tmp/cli-example/main.lua': [
+        'local player = { x = 0 }',
+        '',
+        'function love.update(dt)',
+        '  player.x = player.x + dt',
+        '  if player.x > 10 then',
+        '    player.x = 0',
+        '  end',
+        'end',
+      ].join('\n'),
+    };
+    if (!localStorage.getItem('feather-debugger')) {
+      localStorage.setItem(
+        'feather-debugger',
+        JSON.stringify({
+          state: {
+            breakpoints: [],
+            profilerProbes: [{ file: 'main.lua', line: 4, kind: 'start', enabled: true }],
+            defaultEnabled: true,
+            rootPaths: {},
+            pausedState: {
+              'live-game-session': {
+                pauseId: 9,
+                file: 'main.lua',
+                line: 4,
+                reason: 'breakpoint',
+                stack: [{ index: 0, file: 'main.lua', line: 4, name: 'love.update', what: 'Lua' }],
+                locals: {},
+                upvalues: {},
+              },
+            },
+            enabled: { 'live-game-session': true },
+            pauseOnError: { 'live-game-session': false },
+            status: {
+              'live-game-session': {
+                enabled: true,
+                paused: true,
+                pauseOnError: false,
+                sourceRoot: '/tmp/cli-example',
+                breakpointCount: 0,
+                profilerProbeCount: 1,
+                rejectedBreakpoints: [],
+                rejectedProfilerProbes: [],
+                breakpointErrors: [],
+              },
+            },
+            breakpointErrors: { 'live-game-session': [] },
+          },
+          version: 0,
+        }),
+      );
+    }
   });
 }
 
@@ -2719,6 +2801,78 @@ test('debugger renders stable single-row header and three panels', async ({ page
   expect(narrowSourceBox!.height).toBeGreaterThan(250);
 
   await page.screenshot({ path: 'test-results/debugger-layout-narrow.png', fullPage: true });
+});
+
+test('debugger profiler probes sync and cycle from the gutter', async ({ page }) => {
+  await seedDebuggerProbeSession(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/debugger');
+
+  await page.getByRole('button', { name: /CLI Example/ }).click();
+  const sourcePanel = page.getByTestId('debugger-source-panel');
+  await expect(sourcePanel.getByText('1 probe')).toBeVisible();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const commands = (window as unknown as {
+          __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }> };
+        }).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const command = commands.find((item) => item.message?.type === 'cmd:debugger:set_profiler_probes');
+        return command?.message?.data?.probes;
+      }),
+    )
+    .toEqual([{ file: 'main.lua', line: 4, kind: 'start' }]);
+
+  const lineFiveProbe = page.getByTestId('debugger-profiler-probe-button-5');
+  await lineFiveProbe.click();
+  await expect(lineFiveProbe).toHaveAttribute('title', 'Start profiling here');
+  await expect(sourcePanel.getByText('2 probes')).toBeVisible();
+
+  await lineFiveProbe.click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Snapshot here' }).click();
+  await expect(lineFiveProbe).toHaveAttribute('title', 'Snapshot here');
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const commands = (window as unknown as {
+          __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }> };
+        }).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const probeCommands = commands.filter((item) => item.message?.type === 'cmd:debugger:set_profiler_probes');
+        return probeCommands.at(-1)?.message?.data?.probes;
+      }),
+    )
+    .toEqual([
+      { file: 'main.lua', line: 4, kind: 'start' },
+      { file: 'main.lua', line: 5, kind: 'snapshot' },
+    ]);
+
+  await lineFiveProbe.click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Remove probe' }).click();
+  await expect(lineFiveProbe).toHaveAttribute('title', 'Add profiler probe');
+  await expect(sourcePanel.getByText('1 probe')).toBeVisible();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const commands = (window as unknown as {
+          __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }> };
+        }).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const probeCommands = commands.filter((item) => item.message?.type === 'cmd:debugger:set_profiler_probes');
+        return probeCommands.at(-1)?.message?.data?.probes;
+      }),
+    )
+    .toEqual([{ file: 'main.lua', line: 4, kind: 'start' }]);
+
+  await lineFiveProbe.click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Snapshot here' }).click();
+  await expect(lineFiveProbe).toHaveAttribute('title', 'Snapshot here');
+
+  await page.reload();
+  await page.getByRole('button', { name: /CLI Example/ }).click();
+  await page.getByRole('button', { name: 'main.lua' }).click();
+  await expect(page.getByTestId('debugger-profiler-probe-button-5')).toHaveAttribute('title', 'Snapshot here');
 });
 
 test('console renders transcript actions, snippets, and history search', async ({ page }) => {

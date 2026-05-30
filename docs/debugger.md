@@ -60,6 +60,18 @@ Breakpoints are shown as red dots in the gutter. They persist across desktop res
 
 The toolbar shows how many enabled breakpoints the game accepted after path normalization. If a breakpoint path or line cannot be synced, Feather keeps the local breakpoint but reports it in the debugger status instead of failing silently.
 
+### Profiler probes
+
+Use the stopwatch gutter beside the breakpoint gutter to mark source lines that control the core profiler without pausing the game:
+
+- Click an empty stopwatch slot to cycle `Start -> Stop -> Snapshot -> Empty`.
+- Right-click the stopwatch slot to choose **Start profiling here**, **Stop profiling here**, **Snapshot here**, or **Remove probe** directly.
+- Snapshot probes use the saved label when present, otherwise they create a snapshot named `Debugger probe`.
+
+Profiler probes persist with debugger state and sync to the active session whenever the debugger is enabled. They run inside the same debugger line hook as breakpoints, so Feather does not install a second `debug.sethook` path. When a probe and breakpoint share a line, the probe action runs first and the breakpoint still pauses normally.
+
+Probe captures appear in **Performance -> Profiler**. Use them for line-triggered capture windows around instrumented code, then inspect, diff, snapshot, or export the profiler rows from the Performance page.
+
 ### Conditional breakpoints
 
 Right-click a breakpoint (or use the condition field) to add a Lua expression. The game only pauses when the expression evaluates to truthy:
@@ -177,6 +189,8 @@ Lua's `debug.sethook` line hook fires on every executed line. When a breakpoint 
 
 > [!NOTE]
 > `debug.sethook` adds a small overhead to every executed Lua line. It is noticeable in CPU-heavy games. Enable the debugger only during active debugging sessions and disable it from the desktop when not in use.
+
+Profiler probes also use this line hook. They are intentionally line-triggered start/stop/snapshot markers, not call/return hook profiling; heavier profile.lua-style call counting is deferred so the debugger remains the only hook owner.
 
 ---
 

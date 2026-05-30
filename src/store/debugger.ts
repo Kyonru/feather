@@ -8,10 +8,22 @@ export interface Breakpoint {
   enabled: boolean;
 }
 
+export type ProfilerProbeKind = 'start' | 'stop' | 'snapshot';
+
+export interface ProfilerProbe {
+  file: string;
+  line: number;
+  kind: ProfilerProbeKind;
+  enabled: boolean;
+  label?: string;
+}
+
 export interface BreakpointIssue {
   file?: string;
   line?: number;
   condition?: string;
+  kind?: string;
+  label?: string;
   reason?: string;
   error?: string;
 }
@@ -47,11 +59,15 @@ export interface DebuggerStatus {
   breakpoints?: Array<{ file: string; line: number; condition?: string }>;
   rejectedBreakpoints?: BreakpointIssue[];
   breakpointErrors?: BreakpointIssue[];
+  profilerProbeCount?: number;
+  profilerProbes?: Array<{ file: string; line: number; kind: ProfilerProbeKind; label?: string }>;
+  rejectedProfilerProbes?: BreakpointIssue[];
 }
 
 interface DebuggerStore {
   // Persisted: survive restarts
   breakpoints: Breakpoint[];
+  profilerProbes: ProfilerProbe[];
   defaultEnabled: boolean; // remembered across sessions
   rootPaths: Record<string, string>; // per-session manual root paths
   // Per-session transient state (not persisted)
@@ -66,6 +82,10 @@ interface DebuggerStore {
   toggleBreakpoint: (file: string, line: number) => void;
   setCondition: (file: string, line: number, condition: string | undefined) => void;
   clearBreakpoints: () => void;
+  setProfilerProbes: (probes: ProfilerProbe[]) => void;
+  setProfilerProbe: (probe: Omit<ProfilerProbe, 'enabled'> & { enabled?: boolean }) => void;
+  removeProfilerProbe: (file: string, line: number) => void;
+  clearProfilerProbes: () => void;
   setPausedState: (sessionId: string, state: PausedState | null) => void;
   setEnabled: (sessionId: string, enabled: boolean) => void;
   setPauseOnError: (sessionId: string, enabled: boolean) => void;
@@ -76,10 +96,42 @@ interface DebuggerStore {
   clearRootPath: (sessionId: string) => void;
 }
 
+const PROFILER_PROBE_KINDS = new Set<ProfilerProbeKind>(['start', 'stop', 'snapshot']);
+
+function isProfilerProbeKind(value: unknown): value is ProfilerProbeKind {
+  return typeof value === 'string' && PROFILER_PROBE_KINDS.has(value as ProfilerProbeKind);
+}
+
+function normalizeProfilerProbe(probe: Partial<ProfilerProbe>): ProfilerProbe | null {
+  const line = Number(probe.line);
+  if (typeof probe.file !== 'string' || probe.file.trim() === '' || !Number.isFinite(line)) return null;
+  if (!isProfilerProbeKind(probe.kind)) return null;
+  const label = typeof probe.label === 'string' && probe.label.trim() ? probe.label.trim() : undefined;
+  return {
+    file: probe.file,
+    line: Math.floor(line),
+    kind: probe.kind,
+    enabled: probe.enabled !== false,
+    ...(label && { label }),
+  };
+}
+
+function normalizeProfilerProbes(probes: ProfilerProbe[]) {
+  return probes.reduce<ProfilerProbe[]>((acc, probe) => {
+    const normalized = normalizeProfilerProbe(probe);
+    if (!normalized || normalized.line < 1) return acc;
+    const existingIndex = acc.findIndex((item) => item.file === normalized.file && item.line === normalized.line);
+    if (existingIndex >= 0) acc[existingIndex] = normalized;
+    else acc.push(normalized);
+    return acc;
+  }, []);
+}
+
 export const useDebuggerStore = create<DebuggerStore>()(
   persist(
     (set) => ({
       breakpoints: [],
+      profilerProbes: [],
       defaultEnabled: false,
       rootPaths: {},
       pausedState: {},
@@ -115,6 +167,28 @@ export const useDebuggerStore = create<DebuggerStore>()(
         })),
 
       clearBreakpoints: () => set({ breakpoints: [] }),
+
+      setProfilerProbes: (probes) => set({ profilerProbes: normalizeProfilerProbes(probes) }),
+
+      setProfilerProbe: (probe) =>
+        set((state) => {
+          const normalized = normalizeProfilerProbe({
+            ...probe,
+            enabled: probe.enabled ?? true,
+          });
+          if (!normalized || normalized.line < 1) return state;
+          const next = state.profilerProbes.filter(
+            (item) => !(item.file === normalized.file && item.line === normalized.line),
+          );
+          return { profilerProbes: normalizeProfilerProbes([...next, normalized]) };
+        }),
+
+      removeProfilerProbe: (file, line) =>
+        set((state) => ({
+          profilerProbes: state.profilerProbes.filter((probe) => !(probe.file === file && probe.line === line)),
+        })),
+
+      clearProfilerProbes: () => set({ profilerProbes: [] }),
 
       setPausedState: (sessionId, state) =>
         set((s) => ({ pausedState: { ...s.pausedState, [sessionId]: state } })),
@@ -178,9 +252,20 @@ export const useDebuggerStore = create<DebuggerStore>()(
       name: 'feather-debugger',
       partialize: (state) => ({
         breakpoints: state.breakpoints,
+        profilerProbes: state.profilerProbes,
         defaultEnabled: state.defaultEnabled,
         rootPaths: state.rootPaths,
       }),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<DebuggerStore> | undefined;
+        return {
+          ...currentState,
+          ...persisted,
+          profilerProbes: Array.isArray(persisted?.profilerProbes)
+            ? normalizeProfilerProbes(persisted.profilerProbes)
+            : currentState.profilerProbes,
+        };
+      },
     },
   ),
 );

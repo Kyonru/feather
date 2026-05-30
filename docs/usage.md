@@ -151,6 +151,8 @@ DEBUGGER.profiler:finish("physics.step")
 
 The profiler uses explicit instrumentation only. The desktop can start/stop captures, group rows by name prefix, hide one-call entries, filter rows, sort by percent/total/average/max/calls, save before/after snapshots, compare diffs, and export JSON.
 
+Debugger profiler probes let you control those captures from source lines. Add stopwatch markers in the **Debugger** gutter to start, stop, or snapshot the core profiler without pausing execution; the results stream into **Performance -> Profiler**.
+
 ---
 
 ## Console / REPL
@@ -193,6 +195,8 @@ return {
 ```
 
 Click any line number in the source view to add a breakpoint. While paused, use **Continue**, **Step Over**, **Step Into**, and **Step Out** to navigate execution.
+
+Use the stopwatch gutter beside line numbers for profiler probes. They trigger profiler start, stop, or snapshot actions on line hits while breakpoints keep their normal pause behavior.
 
 → [Full Debugger documentation](debugger.md)
 
