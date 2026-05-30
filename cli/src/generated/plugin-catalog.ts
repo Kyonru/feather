@@ -240,16 +240,6 @@ export const pluginCatalog = [
     "disabled": true
   },
   {
-    "id": "profiler",
-    "sourceDir": "profiler",
-    "name": "Profiler",
-    "description": "Function-level CPU profiling with start/stop",
-    "version": "1.0.0",
-    "capabilities": [],
-    "optIn": false,
-    "disabled": true
-  },
-  {
     "id": "runtime-snapshot",
     "sourceDir": "runtime-snapshot",
     "name": "Runtime Snapshot",

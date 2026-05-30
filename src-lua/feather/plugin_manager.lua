@@ -149,107 +149,117 @@ function FeatherPluginManager:init(feather, logger, observer)
 
   for i = 1, #feather.plugins do
     local plugin = feather.plugins[i]
-    local compatibility = normalizeApiCompatibility(plugin.compatibility or plugin.api)
-    compatibility.minApi = compatibility.minApi or plugin.minApi
-    compatibility.maxApi = compatibility.maxApi or plugin.maxApi
-    compatibility.currentApi = feather.version
-    local pluginRecord = {
-      instance = nil,
-      identifier = plugin.identifier,
-      disabled = plugin.disabled or false,
-      incompatible = false,
-      incompatibilityReason = nil,
-      capabilities = plugin.capabilities or {},
-      compatibility = compatibility,
-      name = plugin.name,
-      version = plugin.version,
-      callbackDisposers = {},
-    }
-
-    if not isCallable(plugin.plugin) then
-      pluginRecord.disabled = true
-      table.insert(self.plugins, pluginRecord)
+    if plugin.identifier == "profiler" then
+      feather._legacyProfilerPluginWarning = true
       self.logger:log({
         type = "warn",
-        str = "Plugin <"
-          .. tostring(plugin.identifier)
-          .. "> is disabled: expected a callable plugin module, got "
-          .. type(plugin.plugin)
-          .. ".",
+        str = "[Profiler] The profiler plugin was removed. Use DEBUGGER.profiler and the Performance > Profiler tab instead.",
       })
-    elseif not isApiCompatible(compatibility, feather.version) then
-      local message = describeApiCompatibility(compatibility, feather.version)
-      pluginRecord.disabled = true
-      pluginRecord.incompatible = true
-      pluginRecord.incompatibilityReason = message
-      table.insert(self.plugins, pluginRecord)
-      self.logger:log({
-        type = "error",
-        str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. message,
-      })
-    else
-      local ok, pluginInstance = xpcall(plugin.plugin, function(err)
-        return type(err) == "string" and debug.traceback(err, 2) or debug.traceback(tostring(err), 2)
-      end, {
-        options = plugin.options,
-        feather = feather,
-        logger = logger,
-        observer = observer,
-        callbacks = self:createCallbackRegistrar(pluginRecord),
-        api = compatibility.api,
-        minApi = compatibility.minApi,
-        maxApi = compatibility.maxApi,
-      })
+    end
 
-      if ok then
-        local supported = true
-        if pluginInstance and pluginInstance.isSupported then
-          supported = pluginInstance:isSupported(feather.version)
-        end
-        pluginRecord.instance = pluginInstance
-        pluginRecord.disabled = plugin.disabled or not supported or false
-        pluginRecord.incompatible = not supported
-        pluginRecord.incompatibilityReason = not supported and describeApiCompatibility(compatibility, feather.version)
-          or nil
+    if plugin.identifier ~= "profiler" then
+      local compatibility = normalizeApiCompatibility(plugin.compatibility or plugin.api)
+      compatibility.minApi = compatibility.minApi or plugin.minApi
+      compatibility.maxApi = compatibility.maxApi or plugin.maxApi
+      compatibility.currentApi = feather.version
+      local pluginRecord = {
+        instance = nil,
+        identifier = plugin.identifier,
+        disabled = plugin.disabled or false,
+        incompatible = false,
+        incompatibilityReason = nil,
+        capabilities = plugin.capabilities or {},
+        compatibility = compatibility,
+        name = plugin.name,
+        version = plugin.version,
+        callbackDisposers = {},
+      }
+
+      if not isCallable(plugin.plugin) then
+        pluginRecord.disabled = true
         table.insert(self.plugins, pluginRecord)
+        self.logger:log({
+          type = "warn",
+          str = "Plugin <"
+            .. tostring(plugin.identifier)
+            .. "> is disabled: expected a callable plugin module, got "
+            .. type(plugin.plugin)
+            .. ".",
+        })
+      elseif not isApiCompatible(compatibility, feather.version) then
+        local message = describeApiCompatibility(compatibility, feather.version)
+        pluginRecord.disabled = true
+        pluginRecord.incompatible = true
+        pluginRecord.incompatibilityReason = message
+        table.insert(self.plugins, pluginRecord)
+        self.logger:log({
+          type = "error",
+          str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. message,
+        })
+      else
+        local ok, pluginInstance = xpcall(plugin.plugin, function(err)
+          return type(err) == "string" and debug.traceback(err, 2) or debug.traceback(tostring(err), 2)
+        end, {
+          options = plugin.options,
+          feather = feather,
+          logger = logger,
+          observer = observer,
+          callbacks = self:createCallbackRegistrar(pluginRecord),
+          api = compatibility.api,
+          minApi = compatibility.minApi,
+          maxApi = compatibility.maxApi,
+        })
 
-        if supported then
-          self:registerPluginCallbacks(pluginRecord)
-        else
-          self:disposePluginCallbacks(pluginRecord)
-        end
+        if ok then
+          local supported = true
+          if pluginInstance and pluginInstance.isSupported then
+            supported = pluginInstance:isSupported(feather.version)
+          end
+          pluginRecord.instance = pluginInstance
+          pluginRecord.disabled = plugin.disabled or not supported or false
+          pluginRecord.incompatible = not supported
+          pluginRecord.incompatibilityReason = not supported and describeApiCompatibility(compatibility, feather.version)
+            or nil
+          table.insert(self.plugins, pluginRecord)
 
-        if not supported then
-          self.logger:log({
-            type = "error",
-            str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. describeApiCompatibility(
-              compatibility,
-              feather.version
-            ),
-          })
-        end
+          if supported then
+            self:registerPluginCallbacks(pluginRecord)
+          else
+            self:disposePluginCallbacks(pluginRecord)
+          end
 
-        -- Warn if an enabled plugin requests a capability not in the user's allowlist.
-        -- Disabled plugins are inert until explicitly enabled, so reporting them here
-        -- makes startup look scarier than it is.
-        if not pluginRecord.disabled and allowedPerms and allowedPerms ~= "all" then
-          for _, perm in ipairs(plugin.capabilities or {}) do
-            if not allowedPerms[perm] then
-              self.logger:log({
-                type = "warn",
-                str = "[Plugin "
-                  .. plugin.identifier
-                  .. "] requests capability '"
-                  .. perm
-                  .. "' which is not in the allowlist",
-              })
+          if not supported then
+            self.logger:log({
+              type = "error",
+              str = "Plugin <" .. plugin.identifier .. "> is not compatible: " .. describeApiCompatibility(
+                compatibility,
+                feather.version
+              ),
+            })
+          end
+
+          -- Warn if an enabled plugin requests a capability not in the user's allowlist.
+          -- Disabled plugins are inert until explicitly enabled, so reporting them here
+          -- makes startup look scarier than it is.
+          if not pluginRecord.disabled and allowedPerms and allowedPerms ~= "all" then
+            for _, perm in ipairs(plugin.capabilities or {}) do
+              if not allowedPerms[perm] then
+                self.logger:log({
+                  type = "warn",
+                  str = "[Plugin "
+                    .. plugin.identifier
+                    .. "] requests capability '"
+                    .. perm
+                    .. "' which is not in the allowlist",
+                })
+              end
             end
           end
+        else
+          self:disposePluginCallbacks(pluginRecord)
+          -- pluginInstance is the formatted error+traceback string from the xpcall handler
+          self.logger:log({ type = "error", str = tostring(pluginInstance) })
         end
-      else
-        self:disposePluginCallbacks(pluginRecord)
-        -- pluginInstance is the formatted error+traceback string from the xpcall handler
-        self.logger:log({ type = "error", str = tostring(pluginInstance) })
       end
     end
   end

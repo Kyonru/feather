@@ -106,7 +106,6 @@ local pluginSpecs = {
   },
   {
     id = "profiler",
-    modulePath = "plugins.profiler",
     suiteModulePath = "e2e.plugins.profiler",
   },
   {

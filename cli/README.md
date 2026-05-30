@@ -75,7 +75,7 @@ Create a new Love2D project from a supported template and configure it for Feath
 feather create awesome
 feather create awesome --yes
 feather create awesome --main --yes
-feather create awesome --ref 0.1.2 --plugins screenshots,profiler
+feather create awesome --ref 0.1.2 --plugins screenshots,console
 feather create awesome --packages anim8,bump --vendor-targets web,android
 ```
 
@@ -118,7 +118,7 @@ Create Feather project configuration. For normal development, use CLI mode and l
 feather init                                      # configure current directory for feather run
 feather init path/to/my-game                      # configure a specific directory
 feather init --no-plugins                         # feather core only, no plugins
-feather init --plugins screenshots,profiler
+feather init --plugins screenshots,console
 feather init --plugins hot-reload --hot-reload-allow game.player,game.systems.combat
 feather init --session-name "My Game" --app-id feather-app-...
 feather init --remote --branch v0.7.0             # use a specific runtime release
@@ -837,7 +837,7 @@ feather plugin list
 Installed plugins (12)
 
   screenshots              1.0.0    Capture screenshots and record GIFs
-  profiler                 1.0.0    Function-level CPU profiling
+  console                  1.0.0    Remote Lua console
   entity-inspector         1.0.0    ECS entity browser
   ...
 ```
@@ -883,7 +883,7 @@ Update a plugin, or all installed plugins if no ID is given.
 ```bash
 feather plugin update              # interactive picker for installed plugins
 feather plugin update -y           # update all installed plugins
-feather plugin update profiler     # update a specific plugin
+feather plugin update console      # update a specific plugin
 feather plugin update --remote --branch main
 ```
 
@@ -906,7 +906,7 @@ Add or remove plugins from the `include`/`exclude` lists and keep the `capabilit
 ```bash
 feather config plugins --include console,input-replay
 feather config plugins --exclude hump.signal
-feather config plugins --include profiler --exclude runtime-snapshot --dir path/to/my-game
+feather config plugins --include console --exclude runtime-snapshot --dir path/to/my-game
 ```
 
 **Options:**

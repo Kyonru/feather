@@ -22,7 +22,7 @@ If you work in VS Code, the [VS Code extension](vscode-extension.md) exposes the
 CLI init creates a `feather.config.lua` with `debug = true`, automatic error capture enabled, and the default creative plugins `particle-system-playground` and `shader-graph` included. Add or remove plugins with:
 
 ```bash
-feather config plugins --include profiler,input-replay --dir path/to/my-game
+feather config plugins --include input-replay --dir path/to/my-game
 feather config plugins --exclude shader-graph --dir path/to/my-game
 ```
 
@@ -138,13 +138,18 @@ Live session logs are also cached locally in the desktop app. Reopening Feather 
 
 The **Performance** page has a **Health** tab for live FPS, frame-time, memory, disk, draw-call, canvas-switch, shader-switch, and texture-memory charts. Use pause/follow when a hitch happens, inspect recent spikes, then export the visible JSON window if you need to compare runs.
 
-Enable the `profiler` plugin to use the **Performance → Profiler** tab for instrumented hot paths:
+Use the core profiler in the **Performance → Profiler** tab for instrumented hot paths. It is available in every debug session and stays idle until you press **Start** or call `DEBUGGER.profiler:start()`:
 
-```bash
-feather config plugins --include profiler --dir path/to/my-game
+```lua
+local updateWorld = DEBUGGER.profiler:wrap("World:update", updateWorld)
+
+DEBUGGER.profiler:start()
+DEBUGGER.profiler:begin("physics.step")
+-- work
+DEBUGGER.profiler:finish("physics.step")
 ```
 
-The profiler still uses explicit instrumentation via `profiler:wrap(name, fn)`, or scoped samples with `profiler:begin(name)` and `profiler:finish(name)`. The desktop can start/stop captures, group rows by name prefix, hide one-call entries, filter rows, sort by percent/total/average/max/calls, save before/after snapshots, compare diffs, and export JSON.
+The profiler uses explicit instrumentation only. The desktop can start/stop captures, group rows by name prefix, hide one-call entries, filter rows, sort by percent/total/average/max/calls, save before/after snapshots, compare diffs, and export JSON.
 
 ---
 

@@ -18,7 +18,7 @@ A new session tab appears in the Feather desktop app automatically. No `require`
 `feather init` defaults to CLI-managed mode. It creates `feather.config.lua` with development defaults, enables error capture, and includes `particle-system-playground` plus `shader-graph`. Other plugins can be enabled later:
 
 ```bash
-feather config plugins --include profiler,input-replay --dir path/to/my-game
+feather config plugins --include input-replay --dir path/to/my-game
 ```
 
 Hot Reload is development-only remote code execution, so it uses a separate allowlist command:
@@ -232,10 +232,10 @@ Add plugins to an existing installation without re-running the full installer:
 bash install-plugin.sh screenshots
 
 # Install several at once
-bash install-plugin.sh screenshots profiler console
+bash install-plugin.sh screenshots console
 
 # Pipe directly from GitHub
-curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-plugin.sh | bash -s -- screenshots profiler
+curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-plugin.sh | bash -s -- screenshots console
 ```
 
 Run without arguments to see the full list of available plugins:
@@ -248,6 +248,6 @@ After installing, register the plugins in your manual setup:
 
 ```lua
 require("feather.auto").setup({
-  include = { "screenshots", "profiler" },
+  include = { "screenshots", "console" },
 })
 ```

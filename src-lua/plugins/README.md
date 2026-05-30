@@ -127,7 +127,7 @@ return {
 CLI-managed projects use `feather.config.lua` as the source of truth for plugin selection. Use the CLI helpers to edit that list and keep capabilities in sync:
 
 ```bash
-feather config plugins --include profiler,input-replay
+feather config plugins --include input-replay
 feather config plugins --exclude shader-graph
 ```
 

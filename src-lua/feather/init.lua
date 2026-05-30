@@ -14,6 +14,7 @@ local FeatherPluginManager = require(FEATHER_PATH .. ".plugin_manager")
 local FeatherLogger = require(FEATHER_PATH .. ".core.logger")
 local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
 local FeatherPerformance = require(FEATHER_PATH .. ".core.performance")
+local FeatherProfiler = require(FEATHER_PATH .. ".core.profiler")
 local FeatherAssets = require(FEATHER_PATH .. ".core.assets")
 local FeatherDebugOverlay = require(FEATHER_PATH .. ".core.debug_overlay")
 local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
@@ -86,6 +87,7 @@ local CALLBACK_NAMES = {
 ---@field protected __errorTraceback fun(self: Feather, msg: string): string
 ---@field protected __handleCommand fun(self: Feather, msg: table)
 ---@field protected __pushPerformance fun(self: Feather, dt: number)
+---@field protected __pushProfiler fun(self: Feather, force?: boolean)
 ---@field protected __pushObservers fun(self: Feather)
 ---@field protected __pushAssets fun(self: Feather)
 ---@field attachBinary fun(self: Feather, mime: string, bytes: string): table
@@ -99,6 +101,7 @@ local CALLBACK_NAMES = {
 ---@field replay fun(self: Feather, name: string, state: table, opts?: table): boolean|nil
 ---@field replayRegister fun(self: Feather, name: string, captureFn?: function, restoreFn?: function, opts?: table): boolean|nil
 ---@field ui table Declarative UI node builders for plugins
+---@field profiler FeatherProfiler Core explicit profiler service
 local Feather = Class({})
 
 local customErrorHandler = errorhandler
@@ -138,6 +141,7 @@ local customErrorHandler = errorhandler
 ---@field binaryTextThreshold? number  Observer/time-travel strings longer than this are sent as binary text (default 4096)
 ---@field hotReload? table  Top-level hot reload options. Prefer debugger.hotReload for new configs.
 ---@field debugOverlay? table|boolean  Small in-game debugger status badge (default enabled in debug builds)
+---@field profilerPushInterval? number  Core profiler live push cadence while recording (default 0.25s)
 --- Feather constructor
 ---@param config FeatherConfig
 function Feather:init(config)
@@ -152,6 +156,7 @@ function Feather:init(config)
   self.maxTempLogs = conf.maxTempLogs or 200
   self.updateInterval = conf.updateInterval or 0.1
   self.sampleRate = conf.sampleRate or 1
+  self.profilerPushInterval = conf.profilerPushInterval or 0.25
   self.pluginPushBatchSize = conf.pluginPushBatchSize or 2
   self.gcStepAmount = conf.gcStepAmount or 40
   self.callbackHookInterval = conf.callbackHookInterval or 0.25
@@ -239,11 +244,18 @@ function Feather:init(config)
 
   ---@type FeatherLogger
   self.featherLogger = FeatherLogger(self)
+  if conf._legacyProfilerPluginRequested then
+    self.featherLogger:log({
+      type = "warn",
+      str = "[Profiler] The profiler plugin was removed. Use DEBUGGER.profiler and Performance > Profiler instead.",
+    })
+  end
 
   ---@type FeatherObserver
   self.featherObserver = FeatherObserver(self)
 
   self.performance = FeatherPerformance()
+  self.profiler = FeatherProfiler({ pushInterval = self.profilerPushInterval })
   self.hotReloader = nil
 
   if self.autoRegisterErrorHandler then
@@ -490,6 +502,10 @@ function Feather:__isSuspendedCommandAllowed(msg)
   if msg.type == "cmd:runtime" then
     return true
   end
+  if msg.type == "cmd:profiler" then
+    local action = tostring(msg.action or "")
+    return action == "stop" or action == "reset" or action == "refresh"
+  end
   if msg.type ~= "cmd:plugin:action" then
     return false
   end
@@ -509,6 +525,15 @@ function Feather:__isSuspendedCommandAllowed(msg)
 end
 
 function Feather:__sendSuspendedCommandRejected(msg)
+  if msg and msg.type == "cmd:profiler" then
+    self:__sendWs(json.encode({
+      type = "profiler:error",
+      session = self.sessionId,
+      action = msg.action,
+      data = { message = "Feather runtime is suspended. Resume Feather to start profiling." },
+    }))
+    return
+  end
   if msg and msg.type == "cmd:plugin:action" then
     self:__sendWs(json.encode({
       type = "plugin:action:response",
@@ -562,6 +587,10 @@ function Feather:__handleCommand(msg)
       suspended = false
     end
     self.runtimeSuspended = suspended
+    if suspended and self.profiler then
+      self.profiler:stop()
+      self:__pushProfiler(true)
+    end
     if not suspended then
       self:__sendHello()
     end
@@ -584,6 +613,18 @@ function Feather:__handleCommand(msg)
     self.featherLogger:clear()
   elseif msg.type == "cmd:log" and msg.action == "toggle-screenshots" then
     self:toggleScreenshots(not self.featherLogger.captureScreenshot)
+  elseif msg.type == "cmd:profiler" then
+    local state, err = self.profiler:handleCommand(msg.action, msg.params or {})
+    if state then
+      self:__pushProfiler(true)
+    else
+      self:__sendWs(json.encode({
+        type = "profiler:error",
+        session = self.sessionId,
+        action = msg.action,
+        data = { message = tostring(err or "Profiler command failed") },
+      }))
+    end
   elseif msg.type == "cmd:plugin:action" and msg.plugin then
     local params = msg.params or {}
     params.action = msg.action
@@ -874,6 +915,24 @@ function Feather:__pushPerformance(dt)
   }))
 end
 
+--- Push profiler state when it is dirty or recording.
+---@param force boolean|nil
+function Feather:__pushProfiler(force)
+  if not self.profiler then
+    return
+  end
+  local now = love and love.timer and love.timer.getTime and love.timer.getTime() or os.clock()
+  if not force and not self.profiler:shouldPush(now) then
+    return
+  end
+  self:__sendWs(json.encode({
+    type = "profiler",
+    session = self.sessionId,
+    data = self.profiler:getState(),
+  }))
+  self.profiler:markPushed(now)
+end
+
 --- Push current observer values to the desktop.
 function Feather:__pushObservers()
   local values = self.featherObserver:getResponseBody(self)
@@ -925,7 +984,7 @@ function Feather:__queueSampleTasks(dt)
     return
   end
 
-  self._scheduledSampleTasks = { "performance", "observers", "assets", "plugins", "gc" }
+  self._scheduledSampleTasks = { "performance", "profiler", "observers", "assets", "plugins", "gc" }
   self._pluginPushIndex = 1
 end
 
@@ -938,6 +997,9 @@ function Feather:__runNextSampleTask()
   local task = tasks[1]
   if task == "performance" then
     self:__pushPerformance(self._lastSampleDt or 0)
+    table.remove(tasks, 1)
+  elseif task == "profiler" then
+    self:__pushProfiler(false)
     table.remove(tasks, 1)
   elseif task == "observers" then
     self:__pushObservers()

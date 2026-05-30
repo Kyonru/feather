@@ -5,7 +5,6 @@ local HumpSignalPlugin = require("plugins.hump.signal")
 local LuaStateMachinePlugin = require("plugins.lua-state-machine")
 local ScreenshotPlugin = require("plugins.screenshots")
 local ConsolePlugin = require("plugins.console")
-local ProfilerPlugin = require("plugins.profiler")
 local EntityInspectorPlugin = require("plugins.entity-inspector")
 local InputReplayPlugin = require("plugins.input-replay")
 local ConfigTweakerPlugin = require("plugins.config-tweaker")
@@ -288,7 +287,6 @@ DEBUGGER = FeatherDebugger({
     FeatherPluginManager.createPlugin(ConsolePlugin, "console", {
       evalEnabled = true,
     }),
-    FeatherPluginManager.createPlugin(ProfilerPlugin, "profiler", {}),
     FeatherPluginManager.createPlugin(EntityInspectorPlugin, "entity-inspector", {
       sources = {
         {
@@ -410,11 +408,10 @@ local time = 0
 local Game = require("example.demo.tetris")
 
 -- Wrap demo functions with the profiler
-local profiler = DEBUGGER.pluginManager:getPlugin("profiler")
-if profiler then
-  Game.update = profiler.instance:wrap("Game.update", Game.update)
-  Game.draw = profiler.instance:wrap("Game.draw", Game.draw)
-  Game.load = profiler.instance:wrap("Game.load", Game.load)
+if DEBUGGER.profiler then
+  Game.update = DEBUGGER.profiler:wrap("Game.update", Game.update)
+  Game.draw = DEBUGGER.profiler:wrap("Game.draw", Game.draw)
+  Game.load = DEBUGGER.profiler:wrap("Game.load", Game.load)
 end
 
 -- Demo: track tables for the memory snapshot plugin

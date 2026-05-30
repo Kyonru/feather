@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
 - Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
 - Runtime Snapshot is now opt-in, disabled by default, and uses a low-frequency live push interval when enabled.
+- Profiler is now a core Feather runtime service available as `DEBUGGER.profiler`, with the old profiler plugin path removed and captures idle by default until explicitly started.
 
 ### Fixed
 
@@ -158,6 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
 - Expanded showcase and app e2e coverage for smooth Particle System Playground timeline playback.
 - Added focused, Lua, showcase, and app e2e coverage for Particle System Playground timeline easing curves and track curve rendering.
+- Added Lua and app e2e coverage for the core Profiler runtime, dedicated protocol messages, and migration away from the old profiler plugin.
 - Expanded app and showcase e2e coverage for Particle System Playground showcase-local previews and Feather on-demand connected-game preview activation.
 - Expanded showcase e2e coverage for the floating, aspect-locked Particle System Playground preview.
 - Expanded app and showcase e2e coverage for the Particle System Playground header Play action replacing Emit.

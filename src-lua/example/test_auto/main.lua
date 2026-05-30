@@ -23,7 +23,6 @@ function love.load()
   -- Verify a core set of plugins are registered
   local expected = {
     "screenshots",
-    "profiler",
     "bookmark",
     "memory-snapshot",
     "network-inspector",
@@ -37,6 +36,7 @@ function love.load()
     "particle-system-playground",
     "runtime-snapshot",
   }
+  assert(DEBUGGER.profiler, "core profiler not found on DEBUGGER")
   local missing = {}
   for _, id in ipairs(expected) do
     if not registered[id] then

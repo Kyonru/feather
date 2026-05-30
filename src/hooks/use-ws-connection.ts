@@ -10,6 +10,7 @@ import { PENDING_SESSION_NAME, useSessionStore } from '@/store/session';
 import { useSettingsStore } from '@/store/settings';
 import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
+import type { ProfilerState } from './use-profiler';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
 import type { AssetCatalog } from './use-assets';
 import type { HotReloadState } from './use-hot-reload';
@@ -40,6 +41,7 @@ export const sessionQueryKey = {
   config: (sessionId: string) => [sessionId, 'config'],
   logs: (sessionId: string) => [sessionId, 'logs'],
   performance: (sessionId: string) => [sessionId, 'performance'],
+  profiler: (sessionId: string) => [sessionId, 'profiler'],
   observers: (sessionId: string) => [sessionId, 'observers'],
   assets: (sessionId: string) => [sessionId, 'assets'],
   plugin: (sessionId: string, pluginId: string) => [sessionId, 'plugin', pluginId],
@@ -562,6 +564,17 @@ export const useWsConnection = () => {
               ...(prev ?? []),
               metric,
             ]);
+            break;
+          }
+
+          case 'profiler': {
+            queryClient.setQueryData<ProfilerState>(sessionQueryKey.profiler(sessionId), data as ProfilerState);
+            break;
+          }
+
+          case 'profiler:error': {
+            const payload = data as { message?: string };
+            toast.error(`Profiler action failed: ${payload?.message || 'Unknown error'}`);
             break;
           }
 

@@ -188,6 +188,10 @@ function auto.setup(config)
     for _, id in ipairs(config.include) do
       include[id] = true
     end
+    if include.profiler then
+      config._legacyProfilerPluginRequested = true
+      include.profiler = nil
+    end
     config.include = nil
   end
 

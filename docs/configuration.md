@@ -65,7 +65,7 @@ return {
 Those default plugins are normal bundled plugins, not special cases. Other plugins are enabled by adding their IDs to `include`, either manually or with the CLI:
 
 ```bash
-feather config plugins --include profiler,input-replay
+feather config plugins --include input-replay
 feather config plugins --exclude shader-graph
 ```
 

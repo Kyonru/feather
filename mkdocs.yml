@@ -39,6 +39,7 @@ nav:
   - Hot Reload: hot-reload.md
   - Console: console.md
   - Assets: assets.md
+  - Profiler: profiler.md
   - Particle System Playground: particle-system-playground.md
   - Shader Graph: shader-graph.md
   - Standalone Showcase: standalone-showcase.md
@@ -65,7 +66,6 @@ nav:
       - Network Inspector: plugins/network-inspector.md
       - Particle Editor: plugins/particle-editor.md
       - Physics Debug: plugins/physics-debug.md
-      - Profiler: plugins/profiler.md
       - Runtime Snapshot: plugins/runtime-snapshot.md
       - Screenshots: plugins/screenshots.md
       - Timer Inspector: plugins/timer-inspector.md

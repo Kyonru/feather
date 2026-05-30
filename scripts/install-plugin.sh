@@ -2,8 +2,8 @@
 # Feather Plugin Installer — install specific Feather plugins on demand.
 #
 # Usage:
-#   bash install-plugin.sh screenshots profiler console
-#   curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-plugin.sh | bash -s -- screenshots profiler
+#   bash install-plugin.sh screenshots console
+#   curl -sSf https://raw.githubusercontent.com/Kyonru/feather/main/scripts/install-plugin.sh | bash -s -- screenshots console
 #
 # Options (via env vars):
 #   FEATHER_DIR=feather         Install directory (default: feather)
@@ -84,7 +84,7 @@ if [ "$#" -eq 0 ]; then
   done
   echo ""
   info "Example:"
-  printf "  ${GREEN}bash install-plugin.sh screenshots profiler console${NC}\n"
+  printf "  ${GREEN}bash install-plugin.sh screenshots console${NC}\n"
   echo ""
   exit 0
 fi

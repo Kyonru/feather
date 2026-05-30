@@ -120,8 +120,9 @@ test('build android: embeds Feather debugger runtime and raw config in dev love 
   assert.equal(entries.has('main.lua'), true);
   assert.equal(entries.has('.feather-main.lua'), true);
   assert.equal(entries.has('feather/auto.lua'), true);
+  assert.equal(entries.has('feather/core/profiler.lua'), true);
   assert.equal(entries.has('feather/core/debug_overlay.lua'), true);
-  assert.equal(entries.has('plugins/profiler/manifest.lua'), true);
+  assert.equal(entries.has('plugins/profiler/manifest.lua'), false);
   assert.match(entries.get('main.lua').toString('utf8'), /require\("feather\.auto"\)/);
   assert.match(entries.get('feather.config.lua').toString('utf8'), /debugOverlay\s*=\s*\{/);
   assert.match(entries.get('feather.config.lua').toString('utf8'), /visible\s*=\s*false/);

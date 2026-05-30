@@ -49,7 +49,7 @@ Feather is injected by the CLI for dev runs and debug builds, so your game code 
 By default, CLI init enables error capture and includes the creative plugins `particle-system-playground` and `shader-graph`. Other plugins are controlled through `feather.config.lua`:
 
 ```bash
-feather config plugins --include profiler,input-replay --dir path/to/my-game
+feather config plugins --include input-replay --dir path/to/my-game
 feather config hot-reload --allow game.player --dir path/to/my-game
 ```
 

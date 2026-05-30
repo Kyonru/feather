@@ -272,11 +272,6 @@ async function seedTauriConnectedGame(page: Page) {
             type: 'feather:hello',
             data: {
               plugins: {
-                profiler: {
-                  tabName: 'Profiler',
-                  icon: 'gauge',
-                  capabilities: [],
-                },
                 'particle-system-playground': {
                   tabName: 'Particles Playground',
                   icon: 'sparkles',
@@ -510,9 +505,13 @@ async function seedCommandCenterConfig(page: Page) {
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
     client?.setQueryData(['demo', 'config'], {
       plugins: {
-        profiler: {
-          tabName: 'Profiler',
-          icon: 'gauge',
+        console: {
+          tabName: 'Console',
+          icon: 'terminal',
+        },
+        'feel-inspector': {
+          tabName: 'Feel Inspector',
+          icon: 'activity',
         },
         'disabled-tool': {
           tabName: 'Disabled Tool',
@@ -552,9 +551,9 @@ async function seedPartialSessionConfig(page: Page) {
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
     client?.setQueryData(['demo', 'config'], {
       plugins: {
-        profiler: {
-          tabName: 'Profiler',
-          icon: 'gauge',
+        console: {
+          tabName: 'Console',
+          icon: 'terminal',
           disabled: true,
         },
         'old-plugin': {
@@ -587,9 +586,9 @@ async function seedHealthySessionConfig(page: Page) {
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
     client?.setQueryData(['demo', 'config'], {
       plugins: {
-        profiler: {
-          tabName: 'Profiler',
-          icon: 'gauge',
+        'shader-graph': {
+          tabName: 'Shader Graph',
+          icon: 'sparkles',
           capabilities: [],
         },
       },
@@ -790,9 +789,9 @@ async function seedDisabledProfilerConfig(page: Page) {
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
     client?.setQueryData(['demo', 'config'], {
       plugins: {
-        profiler: {
-          tabName: 'Profiler',
-          icon: 'gauge',
+        console: {
+          tabName: 'Console',
+          icon: 'terminal',
           disabled: true,
         },
       },
@@ -896,9 +895,9 @@ async function seedNoisySessionHubConfig(page: Page) {
           icon: 'refresh-cw',
           capabilities: ['filesystem'],
         },
-        profiler: {
-          tabName: 'Profiler',
-          icon: 'gauge',
+        screenshots: {
+          tabName: 'Screenshots',
+          icon: 'camera',
           disabled: true,
           capabilities: [],
         },
@@ -1623,7 +1622,7 @@ test('session health hub summarizes a healthy active session', async ({ page }) 
   await expect(hub.getByText('1 on')).toBeVisible();
   await expect(page.getByText('No urgent session issues detected.', { exact: true })).toBeVisible();
   await expect(page.getByText('Keep debugging')).toBeVisible();
-  await expect(page.getByTestId('session-plugin-profiler')).toBeVisible();
+  await expect(page.getByTestId('session-plugin-shader-graph')).toBeVisible();
   await expectNoBrokenText(page);
 });
 
@@ -1639,7 +1638,7 @@ test('session health hub tolerates partial config and degraded plugin state', as
   await expect(page.getByText('Recommended Next Actions')).toBeVisible();
   await expect(page.getByText('Disabled 1')).toBeVisible();
   await expect(page.getByText('Incompatible 1')).toBeVisible();
-  await expect(page.getByTestId('session-plugin-profiler')).toBeVisible();
+  await expect(page.getByTestId('session-plugin-console')).toBeVisible();
   await expectNoBrokenText(page);
   await expectNarrowStable(page, 'session-health-partial-narrow.png', ['Recommended Next Actions', 'Plugins']);
 });
@@ -1787,7 +1786,7 @@ test('performance health surfaces actionable verdicts and safe metrics', async (
   await page.screenshot({ path: 'test-results/performance-health-narrow.png', fullPage: true });
 });
 
-test('performance and profiler degraded matrix handles partial samples and missing plugin', async ({ page }) => {
+test('performance and core profiler degraded matrix handles partial samples', async ({ page }) => {
   await seedSession(page);
   await page.setViewportSize({ width: 1180, height: 760 });
   await page.goto('/performance');
@@ -1800,24 +1799,21 @@ test('performance and profiler degraded matrix handles partial samples and missi
   await expectNoBrokenText(page);
 
   await page.getByRole('tab', { name: 'Profiler' }).click();
-  await expect(page.getByText('The profiler plugin is not available in this session.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start' })).toBeVisible();
+  await expect(page.getByText('No profiler samples collected yet')).toBeVisible();
   await expectNoBrokenText(page);
-  await page.goto('/plugins/profiler');
-  await page.getByRole('button', { name: /Demo Session/ }).click();
-  await expect(page.getByText('Plugin not available')).toBeVisible();
-  await expectNoBrokenText(page);
-  await expectNarrowStable(page, 'performance-profiler-missing-narrow.png', ['Plugin not available']);
+  await expectNarrowStable(page, 'performance-profiler-empty-narrow.png', ['No profiler samples collected yet']);
 });
 
-test('profiler disabled state stays readable', async ({ page }) => {
+test('core profiler ignores legacy disabled plugin config', async ({ page }) => {
   await seedSession(page);
   await page.goto('/performance');
   await seedDisabledProfilerConfig(page);
   await page.getByRole('button', { name: /Demo Session/ }).click();
   await page.getByRole('tab', { name: 'Profiler' }).click();
 
-  await expect(page.getByText('The profiler plugin is disabled.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open profiler plugin' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start' })).toBeVisible();
+  await expect(page.getByText('No profiler samples collected yet')).toBeVisible();
   await expectNoBrokenText(page);
 });
 
@@ -1845,9 +1841,8 @@ test('profiler filters wrap without horizontal overflow', async ({ page }) => {
       maxTimeRaw: 0.0011,
       maxTime: '1.1 ms',
     };
-    client?.setQueryData(['demo', 'plugin', 'profiler'], {
-      type: 'table',
-      columns: [],
+    client?.setQueryData(['demo', 'profiler'], {
+      type: 'profiler',
       data: [
         frameRow,
         {
@@ -1858,7 +1853,6 @@ test('profiler filters wrap without horizontal overflow', async ({ page }) => {
           calls: 44,
         },
       ],
-      loading: false,
       recording: true,
       captureElapsed: 3.2,
       totalCapturedTime: 0.054,
@@ -1919,10 +1913,8 @@ test('profiler action responses refresh visible capture data', async ({ page }) 
       page.evaluate(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
-          (item: { message?: { type?: string; plugin?: string; action?: string } }) =>
-            item.message?.type === 'cmd:plugin:action' &&
-            item.message.plugin === 'profiler' &&
-            item.message.action === 'stop',
+          (item: { message?: { type?: string; action?: string } }) =>
+            item.message?.type === 'cmd:profiler' && item.message.action === 'stop',
         ).length;
       }),
     )
@@ -1931,13 +1923,9 @@ test('profiler action responses refresh visible capture data', async ({ page }) 
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__FEATHER_E2E_TAURI__.emitMessage('live-game-session', {
-      type: 'plugin:action:response',
-      plugin: 'profiler',
-      action: 'stop',
-      status: 'success',
+      type: 'profiler',
       data: {
-        type: 'table',
-        columns: [],
+        type: 'profiler',
         data: [
           {
             name: 'game.update',
@@ -1955,7 +1943,6 @@ test('profiler action responses refresh visible capture data', async ({ page }) 
             maxTime: '0.090 ms',
           },
         ],
-        loading: false,
         recording: false,
         captureElapsed: 1.2,
         totalCapturedTime: 0.004,
@@ -2836,10 +2823,10 @@ test('command center discovers hidden features, plugins, snippets, and safe acti
   await expect(page).toHaveURL(/\/assets$/);
 
   await pressCommandCenterShortcut(page);
-  await page.getByLabel('Command Center search').fill('profiler');
-  await expect(page.getByTestId('command-center-row').filter({ hasText: '/plugins/profiler' }).first()).toBeVisible();
+  await page.getByLabel('Command Center search').fill('feel inspector');
+  await expect(page.getByTestId('command-center-row').filter({ hasText: '/plugins/feel-inspector' }).first()).toBeVisible();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/plugins\/profiler$/);
+  await expect(page).toHaveURL(/\/plugins\/feel-inspector$/);
 
   await pressCommandCenterShortcut(page);
   await page.getByLabel('Command Center search').fill('player health');

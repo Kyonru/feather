@@ -6,6 +6,7 @@ core:feather/core/debug_overlay.lua
 core:feather/core/logger.lua
 core:feather/core/observer.lua
 core:feather/core/performance.lua
+core:feather/core/profiler.lua
 core:feather/debugger.lua
 core:feather/error_handler.lua
 core:feather/init.lua
@@ -62,8 +63,6 @@ plugin:particle-system-playground:manifest.lua
 plugin:particle-system-playground:timeline_runtime.lua
 plugin:physics-debug:init.lua
 plugin:physics-debug:manifest.lua
-plugin:profiler:init.lua
-plugin:profiler:manifest.lua
 plugin:runtime-snapshot:init.lua
 plugin:runtime-snapshot:manifest.lua
 plugin:screenshots:init.lua
