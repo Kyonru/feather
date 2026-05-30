@@ -209,6 +209,7 @@ export const NODE_TYPES = [
   'LumaMask',
   'MaskRange',
   'ColorKeyMask',
+  'PaletteSwap',
   'GradientMap',
   'MaskCombine',
   'BlendModes',

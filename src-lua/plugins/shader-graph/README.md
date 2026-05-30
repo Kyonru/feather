@@ -202,6 +202,7 @@ Composite nodes combine colors and masks so beginners can layer effects without 
 - `Luma Mask`: turns perceived brightness into a soft mask.
 - `Mask Range`: isolates a scalar range with soft edges.
 - `Color Key Mask`: selects pixels close to a target color with tolerance/softness controls, returning both a mask and masked RGBA.
+- `Palette Swap`: remaps one to three source colors to replacement colors using pair count, tolerance, softness, and strength controls, returning swapped RGBA and a match mask.
 - `Gradient Map`: maps a mask/noise value between two colors.
 - `Mask Combine`: outputs common mask combinations such as multiply, add, max, min, and subtract.
 - `Blend Modes`: outputs normal, multiply, screen, overlay, add, and difference blends from the same inputs.

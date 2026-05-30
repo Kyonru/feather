@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
 import test from 'node:test';
 import { codegen } from '../../src/pages/shader-graph/codegen.ts';
 
@@ -53,6 +54,7 @@ test('composition helper nodes emit expected GLSL outputs', () => {
     { type: 'LumaMask', graph: graphForFloatNode('LumaMask', 'mask'), snippets: ['dot(', 'float v_lumamask_mask'] },
     { type: 'MaskRange', graph: graphForFloatNode('MaskRange', 'mask'), snippets: ['float v_maskrange_mask_min', 'float v_maskrange_mask'] },
     { type: 'ColorKeyMask', graph: graphForVec4Node('ColorKeyMask', 'rgba'), snippets: ['distance(', 'float v_colorkeymask_mask', 'vec4 v_colorkeymask_rgba'] },
+    { type: 'PaletteSwap', graph: graphForVec4Node('PaletteSwap', 'rgba'), snippets: ['float v_paletteswap_mask_pairs', 'float v_paletteswap_mask_a', 'vec4 v_paletteswap_rgba', 'float v_paletteswap_mask'] },
     { type: 'GradientMap', graph: graphForVec4Node('GradientMap', 'rgba'), snippets: ['vec4 v_gradientmap_rgba'] },
     { type: 'MaskCombine', graph: graphForFloatNode('MaskCombine', 'multiply'), snippets: ['float v_maskcombine_multiply', 'float v_maskcombine_subtract'] },
     { type: 'BlendModes', graph: graphForVec4Node('BlendModes', 'normal'), snippets: ['vec4 v_blendmodes_normal', 'vec4 v_blendmodes_difference'] },

@@ -40,7 +40,11 @@ async function dragPaletteNodeToCanvas(page: Page, nodeName: string, position: {
   await page.mouse.up();
 }
 
-async function uploadShaderPreviewTexture(page: Page, trigger: Locator, file: { name: string; mimeType: string; buffer: Buffer }) {
+async function uploadShaderPreviewTexture(
+  page: Page,
+  trigger: Locator,
+  file: { name: string; mimeType: string; buffer: Buffer },
+) {
   const fileChooserPromise = page.waitForEvent('filechooser', { timeout: 1000 }).catch(() => null);
   await trigger.click({ force: true });
   const fileChooser = await fileChooserPromise;
@@ -61,108 +65,155 @@ async function expectTextureProbePayload(page: Page) {
   const frameHandle = await iframe.elementHandle();
   const frame = await frameHandle?.contentFrame();
   expect(frame).not.toBeNull();
-  await expect.poll(async () => frame!.evaluate(() => {
-    type UploadLike = { dataBase64?: string; dataKey?: string };
-    type PayloadLike = {
-      tool?: unknown;
-      pixel?: string;
-      baseTexture?: UploadLike;
-      textures?: UploadLike[];
-      textureUniforms?: unknown[];
-    };
-    type StatusLike = { textureCount?: number; error?: string };
-    const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
-    const status = (window as Window & { _featherShaderPreviewStatus?: StatusLike })._featherShaderPreviewStatus;
-    return {
-      tool: payload?.tool,
-      hasPixel: typeof payload?.pixel === 'string' && payload.pixel.includes('noiseTexture') && payload.pixel.includes('maskTexture'),
-      hasBaseTexture: Boolean(payload?.baseTexture?.dataBase64 || payload?.baseTexture?.dataKey),
-      baseTextureBytes: payload?.baseTexture?.dataBase64?.length
-        || (payload?.baseTexture?.dataKey && (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache?.[payload.baseTexture.dataKey]?.length)
-        || (payload?.baseTexture?.dataKey && (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> }).__featherPreviewUploadCache?.[payload.baseTexture.dataKey]?.length)
-        || 0,
-      textureCount: Array.isArray(payload?.textures)
-        ? payload.textures.filter((texture) => texture?.dataBase64 || texture?.dataKey).length
-        : 0,
-      textureBytes: Array.isArray(payload?.textures)
-        ? payload.textures.map((texture) => texture?.dataBase64?.length
-          || (texture?.dataKey && (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache?.[texture.dataKey]?.length)
-          || (texture?.dataKey && (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> }).__featherPreviewUploadCache?.[texture.dataKey]?.length)
-          || 0)
-        : [],
-      uniformCount: Array.isArray(payload?.textureUniforms) ? payload.textureUniforms.length : 0,
-      runtimeTextureCount: typeof status?.textureCount === 'number' ? status.textureCount : 2,
-      runtimeError: status?.error ?? '',
-    };
-  }), { timeout: 10_000 }).toMatchObject({
-    tool: 'shader-graph',
-    hasPixel: true,
-    hasBaseTexture: true,
-    baseTextureBytes: expect.any(Number),
-    textureCount: 2,
-    textureBytes: [expect.any(Number), expect.any(Number)],
-    uniformCount: 2,
-    runtimeTextureCount: 2,
-    runtimeError: '',
-  });
+  await expect
+    .poll(
+      async () =>
+        frame!.evaluate(() => {
+          type UploadLike = { dataBase64?: string; dataKey?: string };
+          type PayloadLike = {
+            tool?: unknown;
+            pixel?: string;
+            baseTexture?: UploadLike;
+            textures?: UploadLike[];
+            textureUniforms?: unknown[];
+          };
+          type StatusLike = { textureCount?: number; error?: string };
+          const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
+          const status = (window as Window & { _featherShaderPreviewStatus?: StatusLike })._featherShaderPreviewStatus;
+          return {
+            tool: payload?.tool,
+            hasPixel:
+              typeof payload?.pixel === 'string' &&
+              payload.pixel.includes('noiseTexture') &&
+              payload.pixel.includes('maskTexture'),
+            hasBaseTexture: Boolean(payload?.baseTexture?.dataBase64 || payload?.baseTexture?.dataKey),
+            baseTextureBytes:
+              payload?.baseTexture?.dataBase64?.length ||
+              (payload?.baseTexture?.dataKey &&
+                (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache?.[
+                  payload.baseTexture.dataKey
+                ]?.length) ||
+              (payload?.baseTexture?.dataKey &&
+                (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> })
+                  .__featherPreviewUploadCache?.[payload.baseTexture.dataKey]?.length) ||
+              0,
+            textureCount: Array.isArray(payload?.textures)
+              ? payload.textures.filter((texture) => texture?.dataBase64 || texture?.dataKey).length
+              : 0,
+            textureBytes: Array.isArray(payload?.textures)
+              ? payload.textures.map(
+                  (texture) =>
+                    texture?.dataBase64?.length ||
+                    (texture?.dataKey &&
+                      (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache?.[
+                        texture.dataKey
+                      ]?.length) ||
+                    (texture?.dataKey &&
+                      (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> })
+                        .__featherPreviewUploadCache?.[texture.dataKey]?.length) ||
+                    0,
+                )
+              : [],
+            uniformCount: Array.isArray(payload?.textureUniforms) ? payload.textureUniforms.length : 0,
+            runtimeTextureCount: typeof status?.textureCount === 'number' ? status.textureCount : 2,
+            runtimeError: status?.error ?? '',
+          };
+        }),
+      { timeout: 10_000 },
+    )
+    .toMatchObject({
+      tool: 'shader-graph',
+      hasPixel: true,
+      hasBaseTexture: true,
+      baseTextureBytes: expect.any(Number),
+      textureCount: 2,
+      textureBytes: [expect.any(Number), expect.any(Number)],
+      uniformCount: 2,
+      runtimeTextureCount: 2,
+      runtimeError: '',
+    });
   const payloadStats = await frame!.evaluate(() => {
     type UploadLike = { dataBase64?: string; dataKey?: string };
     type PayloadLike = { baseTexture?: UploadLike; textures?: UploadLike[] };
     const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
     const iframeCache = (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache;
-    const parentCache = (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> }).__featherPreviewUploadCache;
+    const parentCache = (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> })
+      .__featherPreviewUploadCache;
     return {
-      baseTextureBytes: payload?.baseTexture?.dataBase64?.length
-        || (payload?.baseTexture?.dataKey && iframeCache?.[payload.baseTexture.dataKey]?.length)
-        || (payload?.baseTexture?.dataKey && parentCache?.[payload.baseTexture.dataKey]?.length)
-        || 0,
+      baseTextureBytes:
+        payload?.baseTexture?.dataBase64?.length ||
+        (payload?.baseTexture?.dataKey && iframeCache?.[payload.baseTexture.dataKey]?.length) ||
+        (payload?.baseTexture?.dataKey && parentCache?.[payload.baseTexture.dataKey]?.length) ||
+        0,
       textureBytes: Array.isArray(payload?.textures)
-        ? payload.textures.map((texture) => texture?.dataBase64?.length || (texture?.dataKey && iframeCache?.[texture.dataKey]?.length) || (texture?.dataKey && parentCache?.[texture.dataKey]?.length) || 0)
+        ? payload.textures.map(
+            (texture) =>
+              texture?.dataBase64?.length ||
+              (texture?.dataKey && iframeCache?.[texture.dataKey]?.length) ||
+              (texture?.dataKey && parentCache?.[texture.dataKey]?.length) ||
+              0,
+          )
         : [],
     };
   });
   expect(payloadStats.baseTextureBytes).toBeGreaterThan(0);
   expect(payloadStats.textureBytes.every((length) => length > 0)).toBe(true);
-  await expect.poll(async () => frame!.evaluate(async () => {
-    const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
-    if (!canvas || canvas.width === 0 || canvas.height === 0) return { colorBuckets: 0, texturedBuckets: 0 };
-    const image = new Image();
-    const loaded = new Promise<HTMLImageElement>((resolve, reject) => {
-      image.onload = () => resolve(image);
-      image.onerror = reject;
+  await expect
+    .poll(
+      async () =>
+        frame!.evaluate(async () => {
+          const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+          if (!canvas || canvas.width === 0 || canvas.height === 0) return { colorBuckets: 0, texturedBuckets: 0 };
+          const image = new Image();
+          const loaded = new Promise<HTMLImageElement>((resolve, reject) => {
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+          });
+          image.src = canvas.toDataURL('image/png');
+          await loaded;
+          const sampleCanvas = document.createElement('canvas');
+          const width = Math.min(canvas.width, 96);
+          const height = Math.min(canvas.height, 96);
+          sampleCanvas.width = width;
+          sampleCanvas.height = height;
+          const context = sampleCanvas.getContext('2d');
+          if (!context) return { colorBuckets: 0, texturedBuckets: 0 };
+          context.drawImage(
+            image,
+            Math.max(0, Math.floor((canvas.width - width) / 2)),
+            Math.max(0, Math.floor((canvas.height - height) / 2)),
+            width,
+            height,
+            0,
+            0,
+            width,
+            height,
+          );
+          const pixels = context.getImageData(0, 0, width, height).data;
+          const buckets = new Set<string>();
+          const textured = new Set<string>();
+          for (let index = 0; index < pixels.length; index += 4) {
+            const r = pixels[index];
+            const g = pixels[index + 1];
+            const b = pixels[index + 2];
+            if (r + g + b < 48) continue;
+            const bucket = `${r >> 4}:${g >> 4}:${b >> 4}`;
+            buckets.add(bucket);
+            if (Math.abs(r - g) > 16 || Math.abs(g - b) > 16 || Math.abs(r - b) > 16) textured.add(bucket);
+          }
+          return {
+            colorBuckets: buckets.size,
+            texturedBuckets: textured.size,
+            textureVisible: buckets.size > 6 && textured.size > 4,
+          };
+        }),
+      { timeout: 10_000 },
+    )
+    .toMatchObject({
+      colorBuckets: expect.any(Number),
+      texturedBuckets: expect.any(Number),
+      textureVisible: true,
     });
-    image.src = canvas.toDataURL('image/png');
-    await loaded;
-    const sampleCanvas = document.createElement('canvas');
-    const width = Math.min(canvas.width, 96);
-    const height = Math.min(canvas.height, 96);
-    sampleCanvas.width = width;
-    sampleCanvas.height = height;
-    const context = sampleCanvas.getContext('2d');
-    if (!context) return { colorBuckets: 0, texturedBuckets: 0 };
-    context.drawImage(image, Math.max(0, Math.floor((canvas.width - width) / 2)), Math.max(0, Math.floor((canvas.height - height) / 2)), width, height, 0, 0, width, height);
-    const pixels = context.getImageData(0, 0, width, height).data;
-    const buckets = new Set<string>();
-    const textured = new Set<string>();
-    for (let index = 0; index < pixels.length; index += 4) {
-      const r = pixels[index];
-      const g = pixels[index + 1];
-      const b = pixels[index + 2];
-      if (r + g + b < 48) continue;
-      const bucket = `${r >> 4}:${g >> 4}:${b >> 4}`;
-      buckets.add(bucket);
-      if (Math.abs(r - g) > 16 || Math.abs(g - b) > 16 || Math.abs(r - b) > 16) textured.add(bucket);
-    }
-    return {
-      colorBuckets: buckets.size,
-      texturedBuckets: textured.size,
-      textureVisible: buckets.size > 6 && textured.size > 4,
-    };
-  }), { timeout: 10_000 }).toMatchObject({
-    colorBuckets: expect.any(Number),
-    texturedBuckets: expect.any(Number),
-    textureVisible: true,
-  });
 }
 
 test('standalone showcase loads the landing page and tools', async ({ page }) => {
@@ -550,6 +601,9 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
   await palette.getByLabel('Search shader nodes').fill('gradient');
   await expect(palette.getByRole('button', { name: 'Gradient Map' })).toBeVisible();
 
+  await palette.getByLabel('Search shader nodes').fill('palette');
+  await expect(palette.getByRole('button', { name: 'Palette Swap' })).toBeVisible();
+
   await palette.getByLabel('Search shader nodes').fill('blend');
   await expect(palette.getByRole('button', { name: 'Blend Modes' })).toBeVisible();
 
@@ -591,7 +645,11 @@ test('shader graph composition nodes support beginner effect flows', async ({ pa
         id: 'key',
         type: 'shaderNode',
         position: { x: 560, y: 220 },
-        data: { label: 'Red Key Mask', nodeType: 'ColorKeyMask', values: { targetColor: [1, 0, 0, 1], tolerance: 0.18, softness: 0.04 } },
+        data: {
+          label: 'Red Key Mask',
+          nodeType: 'ColorKeyMask',
+          values: { targetColor: [1, 0, 0, 1], tolerance: 0.18, softness: 0.04 },
+        },
       },
       {
         id: 'mix',
@@ -1107,13 +1165,21 @@ test('shader graph preview probes render texture-heavy uploads in the showcase',
   const noiseNode = page.locator('.react-flow__node').filter({ hasText: 'Noise Texture' });
   await noiseNode.click();
   await page.getByRole('tab', { name: 'Selection' }).click();
-  await uploadShaderPreviewTexture(page, page.getByTestId('shader-right-panel-selection').getByTitle('Upload texture file'), files.noise);
+  await uploadShaderPreviewTexture(
+    page,
+    page.getByTestId('shader-right-panel-selection').getByTitle('Upload texture file'),
+    files.noise,
+  );
   await expect(page.getByTestId('shader-right-panel-selection').getByText('simplex-noise-64.png')).toBeVisible();
 
   const maskNode = page.locator('.react-flow__node').filter({ hasText: 'Mask Texture' });
   await maskNode.click();
   await page.getByRole('tab', { name: 'Selection' }).click();
-  await uploadShaderPreviewTexture(page, page.getByTestId('shader-right-panel-selection').getByTitle('Upload texture file'), files.mask);
+  await uploadShaderPreviewTexture(
+    page,
+    page.getByTestId('shader-right-panel-selection').getByTitle('Upload texture file'),
+    files.mask,
+  );
   await expect(page.getByTestId('shader-right-panel-selection').getByText('3-mask.png')).toBeVisible();
 
   const probe = page.locator('.react-flow__node').filter({ hasText: 'Texture Probe' });

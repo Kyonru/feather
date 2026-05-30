@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Tokyo Night Light, Tokyo Night, and Tokyo Night Storm as optional app themes with matching syntax highlighting.
 - Added Microsoft Visual Studio C/C++ Light, Dark, 2017 Light, and 2017 Dark as optional app themes with matching syntax highlighting.
 - Added pinned sidebar Favorites for common tools, with Settings controls and quick star actions for pinning tools from the sidebar.
-- Added Shader Graph composition helper nodes for effect mixing, alpha/luma/range/color-key masks, gradient maps, mask combining, blend modes, and color ramps.
+- Added Shader Graph composition helper nodes for effect mixing, alpha/luma/range/color-key masks, palette swaps, gradient maps, mask combining, blend modes, and color ramps.
 - Added Shader Graph Fake 3D nodes for billboard UVs, parallax UVs, sprite texture sampling, depth shading, card shadows, and packed atlas sprite stacks.
 - Added Shader Graph template subgraphs for presets, with explicit Subgraph Input/Output boundary nodes and public Template Controls for common effect knobs and texture slots.
 - Added Shader Graph right-panel tabs with a Controls view that collects Template Controls and root Parameter nodes before the Selection inspector and Output panel.
