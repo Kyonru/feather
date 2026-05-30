@@ -523,11 +523,12 @@ export const useWsConnection = () => {
                 sendCommand(sessionId, {
                   type: 'cmd:debugger:set_profiler_probes',
                   data: {
-                    probes: storedProfilerProbes.map(({ file, line, kind, label }) => ({
+                    probes: storedProfilerProbes.map(({ file, line, kind, label, target }) => ({
                       file,
                       line,
                       kind,
                       label,
+                      target,
                     })),
                   },
                 }).catch(() => {});

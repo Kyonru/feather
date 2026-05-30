@@ -65,12 +65,16 @@ The toolbar shows how many enabled breakpoints the game accepted after path norm
 Use the stopwatch gutter beside the breakpoint gutter to mark source lines that control the core profiler without pausing the game:
 
 - Click an empty stopwatch slot to cycle `Start -> Stop -> Snapshot -> Empty`.
-- Right-click the stopwatch slot to choose **Start profiling here**, **Stop profiling here**, **Snapshot here**, or **Remove probe** directly.
+- Right-click the stopwatch slot to choose **Start profiling here**, **Stop profiling here**, **Snapshot here**, **Profile function here**, or **Remove probe** directly.
 - Snapshot probes use the saved label when present, otherwise they create a snapshot named `Debugger probe`.
+- **Profile function here** installs a `DEBUGGER.profiler:wrap(...)` wrapper for supported global/table functions such as `love.update`, `Game.update`, `Player:update`, or `Game.update = function(...)`. It does not start recording by itself.
 
 Profiler probes persist with debugger state and sync to the active session whenever the debugger is enabled. They run inside the same debugger line hook as breakpoints, so Feather does not install a second `debug.sethook` path. When a probe and breakpoint share a line, the probe action runs first and the breakpoint still pauses normally.
 
 Probe captures appear in **Performance -> Profiler**. Use them for line-triggered capture windows around instrumented code, then inspect, diff, snapshot, or export the profiler rows from the Performance page.
+
+> [!NOTE]
+> Automatic function profiling only supports functions Feather can resolve from `_G` through table fields. Local functions, closures, and module-private returned tables still need manual instrumentation.
 
 ### Conditional breakpoints
 

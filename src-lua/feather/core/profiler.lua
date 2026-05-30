@@ -28,6 +28,7 @@ local DEFAULT_PUSH_INTERVAL = 0.25
 ---@field entries table<string, FeatherProfilerEntry>
 ---@field order string[]
 ---@field wrappers table<string, function>
+---@field targetWrappers table<string, table>
 ---@field snapshots table[]
 ---@field recording boolean
 ---@field captureStartedAt number
@@ -39,6 +40,8 @@ local FeatherProfiler = Class({
     self.entries = {}
     self.order = {}
     self.wrappers = {}
+    self.targetWrappers = {}
+    self.feather = config.feather
     self.snapshots = {}
     self.recording = false
     self.captureStartedAt = gettime()
@@ -112,21 +115,10 @@ function FeatherProfiler:_recordEntry(entry, elapsed)
   self:_markDirty()
 end
 
---- Wrap a function for explicit profiling.
----@param name string
----@param fn function
----@return function
-function FeatherProfiler:wrap(name, fn)
-  if type(fn) ~= "function" then
-    error("DEBUGGER.profiler:wrap(name, fn) expected fn to be a function", 2)
-  end
-  if self.wrappers[name] then
-    return self.wrappers[name]
-  end
-
+function FeatherProfiler:_makeWrapper(name, fn)
   local entry = self:_ensureEntry(name)
 
-  local wrapped = function(...)
+  return function(...)
     if not self.recording then
       return fn(...)
     end
@@ -153,9 +145,269 @@ function FeatherProfiler:wrap(name, fn)
     end
     return unpackResults(results)
   end
+end
 
+--- Wrap a function for explicit profiling.
+---@param name string
+---@param fn function
+---@return function
+function FeatherProfiler:wrap(name, fn)
+  if type(fn) ~= "function" then
+    error("DEBUGGER.profiler:wrap(name, fn) expected fn to be a function", 2)
+  end
+  if self.wrappers[name] then
+    return self.wrappers[name]
+  end
+
+  local wrapped = self:_makeWrapper(name, fn)
   self.wrappers[name] = wrapped
   return wrapped
+end
+
+local function parseTarget(target)
+  if type(target) ~= "string" then
+    return nil, "invalid target"
+  end
+  target = target:gsub(":", "."):gsub("^%s+", ""):gsub("%s+$", "")
+  if target == "" or target:find("[^%w_%.]") then
+    return nil, "invalid target"
+  end
+
+  local parts = {}
+  for part in target:gmatch("[^%.]+") do
+    if not part:match("^[A-Za-z_][A-Za-z0-9_]*$") then
+      return nil, "invalid target"
+    end
+    parts[#parts + 1] = part
+  end
+  if #parts < 2 then
+    return nil, "invalid target"
+  end
+  return target, parts
+end
+
+function FeatherProfiler:_resolveTarget(target)
+  local normalized, partsOrReason = parseTarget(target)
+  if not normalized then
+    return nil, nil, nil, partsOrReason
+  end
+
+  local parts = partsOrReason
+  local current
+  local startIndex
+  if parts[1] == "_G" then
+    current = _G
+    startIndex = 2
+  else
+    current = _G[parts[1]]
+    startIndex = 2
+  end
+
+  for index = startIndex, #parts - 1 do
+    if type(current) ~= "table" then
+      return nil, nil, normalized, "target parent not table"
+    end
+    current = current[parts[index]]
+  end
+
+  if type(current) ~= "table" then
+    return nil, nil, normalized, "target parent not table"
+  end
+  return current, parts[#parts], normalized
+end
+
+local function loveCallbackNameFromTarget(target)
+  if type(target) ~= "string" then
+    return nil
+  end
+  return target:match("^love%.([A-Za-z_][A-Za-z0-9_]*)$")
+end
+
+function FeatherProfiler:_managedLoveCallback(name)
+  local feather = self.feather
+  local pluginManager = feather and feather.pluginManager
+  if not pluginManager or not pluginManager._loveCallbackWrappers then
+    return nil
+  end
+
+  local callbackWrapper = pluginManager._loveCallbackWrappers[name]
+  if not callbackWrapper or not love then
+    return nil
+  end
+
+  return pluginManager, callbackWrapper
+end
+
+function FeatherProfiler:_wrapManagedLoveCallback(target, callbackName, label)
+  local pluginManager, callbackWrapper = self:_managedLoveCallback(callbackName)
+  if not pluginManager then
+    return false, "target missing", target
+  end
+
+  pluginManager._loveCallbackOriginals = pluginManager._loveCallbackOriginals or {}
+
+  local currentLoveCallback = love[callbackName]
+  if currentLoveCallback ~= callbackWrapper then
+    if type(currentLoveCallback) ~= "function" then
+      return false, currentLoveCallback == nil and "target missing" or "target not function", target
+    end
+    pluginManager._loveCallbackOriginals[callbackName] = currentLoveCallback
+    love[callbackName] = callbackWrapper
+  end
+
+  local current = pluginManager._loveCallbackOriginals[callbackName]
+  local existing = self.targetWrappers[target]
+  if existing and existing.mode == "love-callback" and current == existing.wrapper then
+    return true, nil, target
+  end
+  if type(current) ~= "function" then
+    return false, current == nil and "target missing" or "target not function", target
+  end
+
+  local name = tostring(label or target)
+  local wrapper = self:_makeWrapper(name, current)
+  pluginManager._loveCallbackOriginals[callbackName] = wrapper
+  love[callbackName] = callbackWrapper
+  self.targetWrappers[target] = {
+    target = target,
+    label = name,
+    original = current,
+    wrapper = wrapper,
+    mode = "love-callback",
+    callbackName = callbackName,
+    callbackWrapper = callbackWrapper,
+  }
+  self:_markDirty()
+  return true, nil, target
+end
+
+function FeatherProfiler:wrapTarget(target, label)
+  local normalizedTarget, parseResult = parseTarget(target)
+  if not normalizedTarget then
+    return false, parseResult or "invalid target", target
+  end
+
+  local callbackName = loveCallbackNameFromTarget(normalizedTarget)
+  if callbackName and self:_managedLoveCallback(callbackName) then
+    return self:_wrapManagedLoveCallback(normalizedTarget, callbackName, label)
+  end
+
+  local parent, key, normalized, err = self:_resolveTarget(normalizedTarget)
+  if not parent then
+    return false, err or "invalid target", target
+  end
+
+  local current = parent[key]
+  local existing = self.targetWrappers[normalized]
+  if existing and current == existing.wrapper then
+    return true, nil, normalized
+  end
+  if type(current) ~= "function" then
+    return false, current == nil and "target missing" or "target not function", normalized
+  end
+
+  local name = tostring(label or normalized)
+  local wrapper = self:_makeWrapper(name, current)
+  parent[key] = wrapper
+  self.targetWrappers[normalized] = {
+    target = normalized,
+    label = name,
+    original = current,
+    wrapper = wrapper,
+  }
+  self:_markDirty()
+  return true, nil, normalized
+end
+
+function FeatherProfiler:unwrapTarget(target)
+  local normalized = parseTarget(target)
+  if not normalized then
+    return false
+  end
+
+  local existing = self.targetWrappers[normalized]
+  if not existing then
+    return false
+  end
+
+  if existing.mode == "love-callback" then
+    local pluginManager = self.feather and self.feather.pluginManager
+    if
+      pluginManager
+      and pluginManager._loveCallbackOriginals
+      and pluginManager._loveCallbackOriginals[existing.callbackName] == existing.wrapper
+    then
+      pluginManager._loveCallbackOriginals[existing.callbackName] = existing.original
+    end
+    if love and love[existing.callbackName] == existing.wrapper then
+      love[existing.callbackName] = existing.original
+    end
+    self.targetWrappers[normalized] = nil
+    self:_markDirty()
+    return true
+  end
+
+  local parent, key = self:_resolveTarget(normalized)
+  if parent and parent[key] == existing.wrapper then
+    parent[key] = existing.original
+  end
+  self.targetWrappers[normalized] = nil
+  self:_markDirty()
+  return true
+end
+
+function FeatherProfiler:reconcileWrappedTargets(targets)
+  targets = targets or {}
+  local desired = {}
+  local ordered = {}
+  local errors = {}
+  for _, targetInfo in ipairs(targets) do
+    local target = targetInfo and targetInfo.target
+    local normalized, reason = parseTarget(target)
+    if normalized and not desired[normalized] then
+      ordered[#ordered + 1] = normalized
+    end
+    if normalized then
+      desired[normalized] = {
+        target = normalized,
+        label = targetInfo.label,
+        file = targetInfo.file,
+        line = targetInfo.line,
+        kind = targetInfo.kind,
+      }
+    else
+      errors[#errors + 1] = {
+        target = tostring(target or ""),
+        file = targetInfo and targetInfo.file,
+        line = targetInfo and targetInfo.line,
+        kind = "wrap",
+        label = targetInfo and targetInfo.label,
+        reason = reason or "invalid target",
+      }
+    end
+  end
+
+  for target in pairs(self.targetWrappers) do
+    if not desired[target] then
+      self:unwrapTarget(target)
+    end
+  end
+
+  for _, target in ipairs(ordered) do
+    local targetInfo = desired[target]
+    local ok, err, normalized = self:wrapTarget(target, targetInfo.label)
+    if not ok then
+      errors[#errors + 1] = {
+        target = normalized or target,
+        file = targetInfo.file,
+        line = targetInfo.line,
+        kind = "wrap",
+        label = targetInfo.label,
+        reason = err or "target could not be wrapped",
+      }
+    end
+  end
+  return errors
 end
 
 ---@param name string

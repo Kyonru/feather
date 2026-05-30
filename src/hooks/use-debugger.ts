@@ -16,7 +16,7 @@ const syncProfilerProbes = (sessionId: string, probes: ProfilerProbe[]) =>
   sendCmd(sessionId, 'cmd:debugger:set_profiler_probes', {
     probes: probes
       .filter((probe) => probe.enabled)
-      .map(({ file, line, kind, label }) => ({ file, line, kind, label })),
+      .map(({ file, line, kind, label, target }) => ({ file, line, kind, label, target })),
   });
 
 function nextProbeKind(current: ProfilerProbeKind | undefined): ProfilerProbeKind | null {
@@ -101,10 +101,15 @@ export const useDebugger = () => {
     if (sessionId && isEnabled) syncBreakpoints(sessionId, []);
   };
 
-  const setProfilerProbe = (file: string, line: number, kind: ProfilerProbeKind, label?: string) => {
+  const setProfilerProbe = (
+    file: string,
+    line: number,
+    kind: ProfilerProbeKind,
+    options: { label?: string; target?: string } = {},
+  ) => {
     const next = [
       ...profilerProbes.filter((probe) => !(probe.file === file && probe.line === line)),
-      { file, line, kind, label, enabled: true },
+      { file, line, kind, label: options.label, target: options.target, enabled: true },
     ];
     setProfilerProbesStore(next);
     if (sessionId && isEnabled) syncProfilerProbes(sessionId, next);
@@ -123,7 +128,7 @@ export const useDebugger = () => {
       removeProfilerProbe(file, line);
       return;
     }
-    setProfilerProbe(file, line, nextKind, existing?.label);
+    setProfilerProbe(file, line, nextKind, { label: existing?.label });
   };
 
   const clearProbes = () => {

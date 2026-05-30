@@ -2824,10 +2824,35 @@ test('debugger profiler probes sync and cycle from the gutter', async ({ page })
     )
     .toEqual([{ file: 'main.lua', line: 4, kind: 'start' }]);
 
+  const lineThreeProbe = page.getByTestId('debugger-profiler-probe-button-3');
+  await lineThreeProbe.click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Profile function here' }).click();
+  await expect(lineThreeProbe).toHaveAttribute('title', 'Profile function here');
+  await expect(sourcePanel.getByText('2 probes')).toBeVisible();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const commands = (window as unknown as {
+          __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }> };
+        }).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const probeCommands = commands.filter((item) => item.message?.type === 'cmd:debugger:set_profiler_probes');
+        return probeCommands.at(-1)?.message?.data?.probes;
+      }),
+    )
+    .toEqual([
+      { file: 'main.lua', line: 4, kind: 'start' },
+      { file: 'main.lua', line: 3, kind: 'wrap', label: 'love.update', target: 'love.update' },
+    ]);
+
+  await page.getByTestId('debugger-profiler-probe-button-1').click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Profile function here' }).click();
+  await expect(page.getByText('Only global/table functions can be profiled automatically.')).toBeVisible();
+
   const lineFiveProbe = page.getByTestId('debugger-profiler-probe-button-5');
   await lineFiveProbe.click();
   await expect(lineFiveProbe).toHaveAttribute('title', 'Start profiling here');
-  await expect(sourcePanel.getByText('2 probes')).toBeVisible();
+  await expect(sourcePanel.getByText('3 probes')).toBeVisible();
 
   await lineFiveProbe.click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Snapshot here' }).click();
@@ -2845,13 +2870,14 @@ test('debugger profiler probes sync and cycle from the gutter', async ({ page })
     )
     .toEqual([
       { file: 'main.lua', line: 4, kind: 'start' },
+      { file: 'main.lua', line: 3, kind: 'wrap', label: 'love.update', target: 'love.update' },
       { file: 'main.lua', line: 5, kind: 'snapshot' },
     ]);
 
   await lineFiveProbe.click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Remove probe' }).click();
   await expect(lineFiveProbe).toHaveAttribute('title', 'Add profiler probe');
-  await expect(sourcePanel.getByText('1 probe')).toBeVisible();
+  await expect(sourcePanel.getByText('2 probes')).toBeVisible();
 
   await expect
     .poll(async () =>
@@ -2863,7 +2889,10 @@ test('debugger profiler probes sync and cycle from the gutter', async ({ page })
         return probeCommands.at(-1)?.message?.data?.probes;
       }),
     )
-    .toEqual([{ file: 'main.lua', line: 4, kind: 'start' }]);
+    .toEqual([
+      { file: 'main.lua', line: 4, kind: 'start' },
+      { file: 'main.lua', line: 3, kind: 'wrap', label: 'love.update', target: 'love.update' },
+    ]);
 
   await lineFiveProbe.click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Snapshot here' }).click();

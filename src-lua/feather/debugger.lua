@@ -51,7 +51,7 @@ function FeatherDebugger:disable()
 end
 
 local function isProfilerProbeKind(kind)
-  return kind == "start" or kind == "stop" or kind == "snapshot"
+  return kind == "start" or kind == "stop" or kind == "snapshot" or kind == "wrap"
 end
 
 --- Replace all breakpoints from a list sent by the desktop.
@@ -89,40 +89,84 @@ function FeatherDebugger:setBreakpoints(bps)
 end
 
 --- Replace all profiler probes from a list sent by the desktop.
----@param probes table  array of { file, line, kind, label? }
+---@param probes table  array of { file, line, kind, label?, target? }
 function FeatherDebugger:setProfilerProbes(probes)
   self.profilerProbes = {}
   self.normalizedProfilerProbes = {}
   self.rejectedProfilerProbes = {}
+  local wrapCandidates = {}
   print("[Feather:debugger] setProfilerProbes: " .. #probes .. " probe(s)")
   for _, probe in ipairs(probes) do
     local file = self:_normalizeFile(probe.file)
     local line = tonumber(probe.line) and math.floor(probe.line) or nil
     local kind = tostring(probe.kind or "")
+    local target = type(probe.target) == "string" and probe.target:gsub(":", "."):gsub("^%s+", ""):gsub("%s+$", "") or nil
     if not file or file == "" or not line or line < 1 or not isProfilerProbeKind(kind) then
       self.rejectedProfilerProbes[#self.rejectedProfilerProbes + 1] = {
         file = probe.file,
         line = probe.line,
         kind = probe.kind,
         label = probe.label,
+        target = probe.target,
         reason = "invalid profiler probe",
       }
+    elseif kind == "wrap" and (not target or target == "") then
+      self.rejectedProfilerProbes[#self.rejectedProfilerProbes + 1] = {
+        file = probe.file,
+        line = probe.line,
+        kind = probe.kind,
+        label = probe.label,
+        target = probe.target,
+        reason = "invalid target",
+      }
     else
-      if not self.profilerProbes[file] then
-        self.profilerProbes[file] = {}
-      end
       local normalized = {
         file = file,
         line = line,
         kind = kind,
         label = probe.label,
+        target = target,
       }
-      self.profilerProbes[file][line] = {
-        kind = kind,
-        label = probe.label,
+      if kind == "wrap" then
+        wrapCandidates[#wrapCandidates + 1] = normalized
+      else
+        if not self.profilerProbes[file] then
+          self.profilerProbes[file] = {}
+        end
+        self.profilerProbes[file][line] = {
+          kind = kind,
+          label = probe.label,
+        }
+        self.normalizedProfilerProbes[#self.normalizedProfilerProbes + 1] = normalized
+        print("[Feather:debugger]   profiler " .. kind .. " " .. file .. ":" .. line)
+      end
+    end
+  end
+
+  local wrapErrorsByTarget = {}
+  if self.feather and self.feather.profiler then
+    for _, errorInfo in ipairs(self.feather.profiler:reconcileWrappedTargets(wrapCandidates)) do
+      wrapErrorsByTarget[errorInfo.target] = errorInfo
+      self.rejectedProfilerProbes[#self.rejectedProfilerProbes + 1] = errorInfo
+    end
+  elseif #wrapCandidates > 0 then
+    for _, candidate in ipairs(wrapCandidates) do
+      wrapErrorsByTarget[candidate.target] = {
+        file = candidate.file,
+        line = candidate.line,
+        kind = candidate.kind,
+        label = candidate.label,
+        target = candidate.target,
+        reason = "profiler unavailable",
       }
-      self.normalizedProfilerProbes[#self.normalizedProfilerProbes + 1] = normalized
-      print("[Feather:debugger]   profiler " .. kind .. " " .. file .. ":" .. line)
+      self.rejectedProfilerProbes[#self.rejectedProfilerProbes + 1] = wrapErrorsByTarget[candidate.target]
+    end
+  end
+
+  for _, candidate in ipairs(wrapCandidates) do
+    if not wrapErrorsByTarget[candidate.target] then
+      self.normalizedProfilerProbes[#self.normalizedProfilerProbes + 1] = candidate
+      print("[Feather:debugger]   profiler wrap " .. candidate.target .. " from " .. candidate.file .. ":" .. candidate.line)
     end
   end
   self:sendStatus()

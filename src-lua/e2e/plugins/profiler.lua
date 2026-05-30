@@ -209,6 +209,122 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   assertEqual(probeProfiler:getState().snapshots[1].label, "Probe Snapshot", "debugger snapshot probe stores named snapshot")
   assertEqual(lastMessageOfType(probeMessages, "profiler").data.snapshots[1].label, "Probe Snapshot", "debugger snapshot probe pushes profiler state")
 
+  local originalLoveUpdate = love.update
+  love.update = function(dt)
+    return dt
+  end
+  local loveUpdateBeforeWrap = love.update
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = { { file = probeFile, line = startLine, kind = "wrap", target = "love.update" } } },
+  })
+  assertEqual(probeFeather.featherDebugger:statusBody().profilerProbeCount, 1, "debugger accepts a valid wrap probe")
+  assertTruthy(love.update ~= loveUpdateBeforeWrap, "debugger wrap probe replaces love.update on sync")
+  love.update(0.1)
+  assertTruthy(findRow(probeProfiler:getState(), "love.update") == nil, "wrapped target records no samples while stopped")
+  probeProfiler:start()
+  love.update(0.2)
+  probeProfiler:stop()
+  assertEqual(findRow(probeProfiler:getState(), "love.update").calls, 1, "wrapped target records while profiler runs")
+
+  local wrappedLoveUpdate = love.update
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = { { file = probeFile, line = startLine, kind = "wrap", target = "love.update" } } },
+  })
+  assertEqual(love.update, wrappedLoveUpdate, "wrap probe sync is idempotent when target is already wrapped")
+
+  local replacementRan = false
+  local replacementLoveUpdate = function(dt)
+    replacementRan = true
+    return dt
+  end
+  love.update = replacementLoveUpdate
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = { { file = probeFile, line = startLine, kind = "wrap", target = "love.update" } } },
+  })
+  assertTruthy(love.update ~= replacementLoveUpdate, "wrap probe rewraps replaced functions")
+  assertTruthy(love.update ~= wrappedLoveUpdate, "wrap probe creates a fresh wrapper for replaced functions")
+  probeProfiler:reset()
+  probeProfiler:start()
+  love.update(0.3)
+  probeProfiler:stop()
+  assertTruthy(replacementRan, "rewrapped target still calls replacement function")
+  assertEqual(findRow(probeProfiler:getState(), "love.update").calls, 1, "rewrapped target records replacement calls")
+
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = {} },
+  })
+  assertEqual(love.update, replacementLoveUpdate, "removing wrap probe restores the wrapped target")
+  love.update = originalLoveUpdate
+
+  local originalLoveKeypressed = love.keypressed
+  local keypressedRan = 0
+  love.keypressed = function(key)
+    if key == "space" then
+      keypressedRan = keypressedRan + 1
+    end
+  end
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = { { file = probeFile, line = startLine, kind = "wrap", target = "love.keypressed" } } },
+  })
+  probeFeather.pluginManager:hookLoveCallbacks()
+  probeProfiler:reset()
+  probeProfiler:start()
+  love.keypressed("space")
+  probeProfiler:stop()
+  assertEqual(keypressedRan, 1, "managed love callback wrap preserves keypressed game logic after rehook")
+  assertEqual(findRow(probeProfiler:getState(), "love.keypressed").calls, 1, "managed love callback wrap records after rehook")
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = {} },
+  })
+  love.keypressed = originalLoveKeypressed
+
+  _G.FeatherProfilerProbeTarget = {
+    count = 0,
+    update = function(value)
+      _G.FeatherProfilerProbeTarget.count = _G.FeatherProfilerProbeTarget.count + 1
+      return value + 1
+    end,
+  }
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = {
+      probes = {
+        {
+          file = probeFile,
+          line = startLine,
+          kind = "wrap",
+          target = "FeatherProfilerProbeTarget.update",
+          label = "Target.update",
+        },
+      },
+    },
+  })
+  probeProfiler:reset()
+  probeProfiler:start()
+  local targetResult = _G.FeatherProfilerProbeTarget.update(4)
+  probeProfiler:stop()
+  assertEqual(targetResult, 5, "wrapped table target preserves return value")
+  assertEqual(_G.FeatherProfilerProbeTarget.count, 1, "wrapped table target preserves side effects")
+  assertEqual(findRow(probeProfiler:getState(), "Target.update").calls, 1, "wrapped table target uses custom label")
+
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = {
+      probes = {
+        { file = probeFile, line = startLine, kind = "wrap", target = "FeatherProfilerMissing.update" },
+      },
+    },
+  })
+  assertEqual(probeFeather.featherDebugger:statusBody().profilerProbeCount, 0, "missing wrap target is not accepted")
+  assertEqual(#probeFeather.featherDebugger:statusBody().rejectedProfilerProbes, 1, "missing wrap target is reported")
+  _G.FeatherProfilerProbeTarget = nil
+
   probeFeather:__handleCommand({
     type = "cmd:debugger:set_breakpoints",
     data = { breakpoints = { { file = probeFile, line = combinedLine } } },

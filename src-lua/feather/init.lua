@@ -255,7 +255,7 @@ function Feather:init(config)
   self.featherObserver = FeatherObserver(self)
 
   self.performance = FeatherPerformance()
-  self.profiler = FeatherProfiler({ pushInterval = self.profilerPushInterval })
+  self.profiler = FeatherProfiler({ pushInterval = self.profilerPushInterval, feather = self })
   self.hotReloader = nil
 
   if self.autoRegisterErrorHandler then

@@ -8,7 +8,7 @@ export interface Breakpoint {
   enabled: boolean;
 }
 
-export type ProfilerProbeKind = 'start' | 'stop' | 'snapshot';
+export type ProfilerProbeKind = 'start' | 'stop' | 'snapshot' | 'wrap';
 
 export interface ProfilerProbe {
   file: string;
@@ -16,6 +16,7 @@ export interface ProfilerProbe {
   kind: ProfilerProbeKind;
   enabled: boolean;
   label?: string;
+  target?: string;
 }
 
 export interface BreakpointIssue {
@@ -24,6 +25,7 @@ export interface BreakpointIssue {
   condition?: string;
   kind?: string;
   label?: string;
+  target?: string;
   reason?: string;
   error?: string;
 }
@@ -60,7 +62,7 @@ export interface DebuggerStatus {
   rejectedBreakpoints?: BreakpointIssue[];
   breakpointErrors?: BreakpointIssue[];
   profilerProbeCount?: number;
-  profilerProbes?: Array<{ file: string; line: number; kind: ProfilerProbeKind; label?: string }>;
+  profilerProbes?: Array<{ file: string; line: number; kind: ProfilerProbeKind; label?: string; target?: string }>;
   rejectedProfilerProbes?: BreakpointIssue[];
 }
 
@@ -96,7 +98,7 @@ interface DebuggerStore {
   clearRootPath: (sessionId: string) => void;
 }
 
-const PROFILER_PROBE_KINDS = new Set<ProfilerProbeKind>(['start', 'stop', 'snapshot']);
+const PROFILER_PROBE_KINDS = new Set<ProfilerProbeKind>(['start', 'stop', 'snapshot', 'wrap']);
 
 function isProfilerProbeKind(value: unknown): value is ProfilerProbeKind {
   return typeof value === 'string' && PROFILER_PROBE_KINDS.has(value as ProfilerProbeKind);
@@ -107,12 +109,15 @@ function normalizeProfilerProbe(probe: Partial<ProfilerProbe>): ProfilerProbe | 
   if (typeof probe.file !== 'string' || probe.file.trim() === '' || !Number.isFinite(line)) return null;
   if (!isProfilerProbeKind(probe.kind)) return null;
   const label = typeof probe.label === 'string' && probe.label.trim() ? probe.label.trim() : undefined;
+  const target = typeof probe.target === 'string' && probe.target.trim() ? probe.target.trim() : undefined;
+  if (probe.kind === 'wrap' && !target) return null;
   return {
     file: probe.file,
     line: Math.floor(line),
     kind: probe.kind,
     enabled: probe.enabled !== false,
     ...(label && { label }),
+    ...(target && { target }),
   };
 }
 

@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a session-tab suspend/resume control that temporarily pauses Feather runtime work in a connected game while keeping the command socket available.
 - Added an opt-in Feel Inspector plugin for feel.lua sequences, active plays, targets, recent events, and LOVE adapter state.
 - Added Debugger Profiler Probes so source gutter markers can start, stop, or snapshot the core profiler without adding a second Lua debug hook.
+- Added Debugger Profile Function probes that automatically wrap supported global/table functions for core Profiler captures.
 
 ### Changed
 
@@ -77,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed live session logs disappearing after reopening Feather or restarting a CLI-launched game by restoring recent log history from a bounded local cache.
 - Fixed local log-history persistence so storage quota pressure no longer interrupts Particle Playground timeline editing.
 - Fixed the Settings modal close button so it no longer overlaps the version badge in the header.
+- Fixed Debugger Profile Function probes on `love.*` callbacks so profiling `love.keypressed`, `love.update`, and other managed callbacks preserves the game's original callback logic after Feather rehooks callbacks.
 - Fixed the Performance Profiler filter row so controls wrap instead of overflowing at medium desktop widths.
 - Fixed the Logs toolbar so search takes its own row before filters and actions when horizontal space is tight.
 - Fixed Feather dev Shader Graph node previews by serving the generated love.js preview route with the required isolation headers.
@@ -180,6 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Lua e2e coverage for suspended-runtime creative preview allowlists, active Particle Playground preview updates, and throttled In-Game Overlay sampling.
 - Expanded Lua e2e coverage for Shader Graph runtime preview render cadence scaling across small, large-texture, and highly zoomed previews.
 - Added Lua and app e2e coverage for Debugger Profiler Probes syncing to the runtime and triggering core profiler captures from source lines.
+- Expanded Lua and app e2e coverage for Debugger Profile Function probes, including automatic wrapping, unsupported lines, persistence, and removal.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 

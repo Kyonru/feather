@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
+import { toast } from 'sonner';
 import { useDebugger } from '@/hooks/use-debugger';
 import { pathToLuaModule, useHotReload } from '@/hooks/use-hot-reload';
 import { usePluginControl } from '@/hooks/use-plugin-control';
@@ -48,6 +49,7 @@ import {
   RefreshCwIcon,
   RotateCcwIcon,
   AlertTriangleIcon,
+  GaugeIcon,
 } from 'lucide-react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useLanguage } from '@/hooks/use-config';
@@ -195,18 +197,35 @@ const profilerProbeLabels: Record<ProfilerProbeKind, string> = {
   start: 'Start profiling here',
   stop: 'Stop profiling here',
   snapshot: 'Snapshot here',
+  wrap: 'Profile function here',
 };
 
 const profilerProbeTone: Record<ProfilerProbeKind, string> = {
   start: 'text-emerald-500',
   stop: 'text-rose-500',
   snapshot: 'text-amber-500',
+  wrap: 'text-violet-500',
 };
 
 function ProfilerProbeIcon({ kind }: { kind: ProfilerProbeKind }) {
   if (kind === 'start') return <PlayIcon className="size-3" />;
   if (kind === 'stop') return <PauseIcon className="size-3" />;
+  if (kind === 'wrap') return <GaugeIcon className="size-3" />;
   return <ClockIcon className="size-3" />;
+}
+
+const luaIdentifier = String.raw`[A-Za-z_][A-Za-z0-9_]*`;
+const luaFunctionPath = String.raw`${luaIdentifier}(?:[.:]${luaIdentifier})+`;
+
+function inferProfilerWrapTarget(line: string) {
+  const declaration = line.match(new RegExp(String.raw`^\s*function\s+(${luaFunctionPath})\s*\(`));
+  const assignment = line.match(new RegExp(String.raw`^\s*(${luaIdentifier}(?:\.${luaIdentifier})+)\s*=\s*function\s*\(`));
+  const label = declaration?.[1] ?? assignment?.[1];
+  if (!label) return null;
+  return {
+    label,
+    target: label.replace(/:/g, '.'),
+  };
 }
 
 function SourceView({
@@ -233,7 +252,7 @@ function SourceView({
   onToggleBreakpoint: (line: number) => void;
   onRightClickBreakpoint: (line: number, e: React.MouseEvent) => void;
   onCycleProfilerProbe: (line: number) => void;
-  onSetProfilerProbe: (line: number, kind: ProfilerProbeKind) => void;
+  onSetProfilerProbe: (line: number, kind: ProfilerProbeKind, options?: { label?: string; target?: string }) => void;
   onRemoveProfilerProbe: (line: number) => void;
 }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -316,6 +335,14 @@ function SourceView({
   const lines = content.split('\n');
   const goNext = () => setMatchIndex((i) => i + 1);
   const goPrev = () => setMatchIndex((i) => i - 1);
+  const setWrapProbe = (lineNumber: number, line: string) => {
+    const target = inferProfilerWrapTarget(line);
+    if (!target) {
+      toast.error('Only global/table functions can be profiled automatically.');
+      return;
+    }
+    onSetProfilerProbe(lineNumber, 'wrap', target);
+  };
 
   return (
     <div ref={scrollAreaRef} className="relative h-0 flex-1">
@@ -494,6 +521,10 @@ function SourceView({
                     <ContextMenuItem onSelect={() => onSetProfilerProbe(lineNum, 'snapshot')}>
                       <ClockIcon className="size-3.5 text-amber-500" />
                       Snapshot here
+                    </ContextMenuItem>
+                    <ContextMenuItem onSelect={() => setWrapProbe(lineNum, line)}>
+                      <GaugeIcon className="size-3.5 text-violet-500" />
+                      Profile function here
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem
@@ -1349,8 +1380,8 @@ export default function DebuggerPage() {
                   onCycleProfilerProbe={(line) => {
                     dbg.cycleProfilerProbe(selectedFile, line);
                   }}
-                  onSetProfilerProbe={(line, kind) => {
-                    dbg.setProfilerProbe(selectedFile, line, kind);
+                  onSetProfilerProbe={(line, kind, options) => {
+                    dbg.setProfilerProbe(selectedFile, line, kind, options);
                   }}
                   onRemoveProfilerProbe={(line) => {
                     dbg.removeProfilerProbe(selectedFile, line);
