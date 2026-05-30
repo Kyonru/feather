@@ -100,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Particle Playground and Shader Graph connected-game preview work lingering after leaving the page or switching sessions.
 - Fixed connected Lua games stuttering on the default one-second sample cadence when several live payloads were pushed together.
 - Fixed Runtime Snapshot contributing to idle connected-game stutters through default live dashboard pushes.
+- Fixed In-Game Overlay performance by caching its font/layout and throttling expensive graphics, GC, and particle metric sampling instead of doing that work every frame.
 - Fixed Particle System Playground connected-game preview performance by muting paused timeline emission and updating only the selected scratch composite.
 - Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
 - Fixed the Particle System Playground Timeline loop control so it renders as a stable explicit toggle.
@@ -172,7 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.
 - Expanded theme registry and app e2e coverage for Tokyo Night theme variants.
 - Added app e2e coverage for live runtime suspend/resume, Profiler action refreshes, and Logs Follow Tail behavior.
-- Expanded Lua e2e coverage for suspended-runtime creative preview allowlists, active Particle Playground preview updates, and In-Game Overlay sampling.
+- Expanded Lua e2e coverage for suspended-runtime creative preview allowlists, active Particle Playground preview updates, and throttled In-Game Overlay sampling.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 

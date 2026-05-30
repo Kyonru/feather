@@ -9,6 +9,7 @@ return {
   opts = {
     visible = false,
     sampleSize = 60,
+    sampleInterval = 0.1,
     touchCornerSize = 80,
     doubleTapThreshold = 0.5,
   },

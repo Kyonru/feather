@@ -12,6 +12,7 @@ local IngameOverlayPlugin = Class({
     Base.init(self, config)
     self.overlay = overlayStats
     self.overlay.sampleSize = self.options.sampleSize or self.overlay.sampleSize
+    self.overlay.sampleInterval = self.options.sampleInterval or self.overlay.sampleInterval
     self.overlay.touch.cornerSize = self.options.touchCornerSize or self.overlay.touch.cornerSize
     self.overlay.touch.doubleTapThreshold = self.options.doubleTapThreshold or self.overlay.touch.doubleTapThreshold
     self.overlay.load()
@@ -26,6 +27,9 @@ function IngameOverlayPlugin:update(dt)
 end
 
 function IngameOverlayPlugin:onSuspendedUpdate(dt)
+  if not self.overlay.isActive then
+    return
+  end
   self.overlay.update(dt)
 end
 
