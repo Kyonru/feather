@@ -3,7 +3,7 @@
 
 return {
   sessionName = "CLI Example",
-  include = { "screenshots", "profiler", "console", "particle-system-playground" },
+  include = { "screenshots", "profiler", "console", "particle-system-playground", "ingame-overlay" },
   capabilities = { "draw", "filesystem", "particle-system-playground" },
   exclude = { "hump.signal", "lua-state-machine", "animation-inspector" },
   sampleRate = 1,

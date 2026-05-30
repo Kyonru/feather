@@ -75,7 +75,7 @@ function love.keypressed(key)
   if key == "space" then
     state.score = state.score + 10
     addLog("scored! total = " .. state.score)
-    particle.play({
+    particle.emit({
       x = 320,
       y = 200,
       r = 0,

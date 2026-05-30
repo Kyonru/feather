@@ -109,6 +109,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Particle System Playground local preview timelines so Feather keeps advancing local playback while Show in Game is off and love.js previews respect clip/lane timing.
 - Fixed Particle System Playground Lua exports so paused or scrubbed timeline state no longer mutates the exported base emitter settings.
 - Fixed Particle System Playground Lua exports so keyframe easing names are preserved and exported playback uses the same shared timeline evaluator as the plugin preview.
+- Fixed Particle System Playground Lua exports so repeated `play`/`emit` calls use pooled independent timeline instances and can overlap without resetting earlier effects.
+- Fixed Particle System Playground Lua exports so `play({ loop = false })` and `emit({ loop = false })` override looping timelines instead of falling back to the saved loop setting.
 - Fixed Follow Tail in Logs so newly appended visible rows scroll into view through the virtual log list.
 - Fixed Profiler actions so Start, Stop, Snapshot, and Reset refresh the visible capture table immediately.
 - Fixed Tauri development reloads getting stuck on Vite `504 Outdated Optimize Dep` responses by isolating app/showcase optimizer caches, forcing a fresh Tauri dev optimize pass, and disabling WebView caching for dev modules.
