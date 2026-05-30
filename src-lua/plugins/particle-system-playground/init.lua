@@ -2,8 +2,11 @@ local Class = require(FEATHER_PATH .. ".lib.class")
 local Base = require(FEATHER_PATH .. ".core.base")
 local base64 = require(FEATHER_PATH .. ".lib.base64")
 local json = require(FEATHER_PATH .. ".lib.json")
+local TimelineRuntimeBundle = require("plugins.particle-system-playground.timeline_runtime")
 
 local ParticleSystemPlaygroundPlugin = Class({ __includes = Base })
+local TimelineRuntime = TimelineRuntimeBundle.runtime
+local TIMELINE_RUNTIME_SOURCE = TimelineRuntimeBundle.source
 
 local DEFAULT_BUFFER_SIZE = 1000
 local DEFAULT_X = 400
@@ -883,6 +886,18 @@ local function snapshotPS(ps)
   return snapshot
 end
 
+local function snapshotSystemProperties(sys)
+  local snapshot = snapshotPS(sys and sys.system)
+  if type(sys and sys._timelineBase) == "table" then
+    for key, value in pairs(sys._timelineBase) do
+      if key ~= "count" then
+        snapshot[key] = value
+      end
+    end
+  end
+  return snapshot
+end
+
 local function parseNumberList(value)
   local values = {}
   for raw in tostring(value or ""):gmatch("[^,]+") do
@@ -1197,122 +1212,6 @@ local function remapSystemIndexAfterReorder(activeIndex, fromIndex, toIndex)
   return activeIndex
 end
 
-local function easeOutBounce(t)
-  local n1 = 7.5625
-  local d1 = 2.75
-  if t < 1 / d1 then
-    return n1 * t * t
-  elseif t < 2 / d1 then
-    t = t - 1.5 / d1
-    return n1 * t * t + 0.75
-  elseif t < 2.5 / d1 then
-    t = t - 2.25 / d1
-    return n1 * t * t + 0.9375
-  end
-  t = t - 2.625 / d1
-  return n1 * t * t + 0.984375
-end
-
-local function easeTimelineValue(easing, t)
-  easing = normalizeTimelineEasing(easing)
-  t = math.max(0, math.min(1, t))
-  local c1 = 1.70158
-  local c2 = c1 * 1.525
-  local c3 = c1 + 1
-  local c4 = (2 * math.pi) / 3
-  local c5 = (2 * math.pi) / 4.5
-  if easing == "hold" then return 0 end
-  if easing == "inSine" then return 1 - math.cos((t * math.pi) / 2) end
-  if easing == "outSine" then return math.sin((t * math.pi) / 2) end
-  if easing == "inOutSine" then return -(math.cos(math.pi * t) - 1) / 2 end
-  if easing == "inQuad" then return t * t end
-  if easing == "outQuad" then return 1 - (1 - t) * (1 - t) end
-  if easing == "inOutQuad" then return t < 0.5 and 2 * t * t or 1 - ((-2 * t + 2) ^ 2) / 2 end
-  if easing == "inCubic" then return t * t * t end
-  if easing == "outCubic" then return 1 - ((1 - t) ^ 3) end
-  if easing == "inOutCubic" then return t < 0.5 and 4 * t * t * t or 1 - ((-2 * t + 2) ^ 3) / 2 end
-  if easing == "inQuart" then return t * t * t * t end
-  if easing == "outQuart" then return 1 - ((1 - t) ^ 4) end
-  if easing == "inOutQuart" then return t < 0.5 and 8 * t * t * t * t or 1 - ((-2 * t + 2) ^ 4) / 2 end
-  if easing == "inExpo" then return t == 0 and 0 or 2 ^ (10 * t - 10) end
-  if easing == "outExpo" then return t == 1 and 1 or 1 - 2 ^ (-10 * t) end
-  if easing == "inOutExpo" then
-    if t == 0 or t == 1 then return t end
-    return t < 0.5 and (2 ^ (20 * t - 10)) / 2 or (2 - 2 ^ (-20 * t + 10)) / 2
-  end
-  if easing == "inBack" then return c3 * t * t * t - c1 * t * t end
-  if easing == "outBack" then return 1 + c3 * ((t - 1) ^ 3) + c1 * ((t - 1) ^ 2) end
-  if easing == "inOutBack" then
-    return t < 0.5
-      and (((2 * t) ^ 2) * ((c2 + 1) * 2 * t - c2)) / 2
-      or (((2 * t - 2) ^ 2) * ((c2 + 1) * (2 * t - 2) + c2) + 2) / 2
-  end
-  if easing == "inElastic" then
-    if t == 0 or t == 1 then return t end
-    return -(2 ^ (10 * t - 10)) * math.sin((t * 10 - 10.75) * c4)
-  end
-  if easing == "outElastic" then
-    if t == 0 or t == 1 then return t end
-    return (2 ^ (-10 * t)) * math.sin((t * 10 - 0.75) * c4) + 1
-  end
-  if easing == "inOutElastic" then
-    if t == 0 or t == 1 then return t end
-    return t < 0.5
-      and -((2 ^ (20 * t - 10)) * math.sin((20 * t - 11.125) * c5)) / 2
-      or ((2 ^ (-20 * t + 10)) * math.sin((20 * t - 11.125) * c5)) / 2 + 1
-  end
-  if easing == "inBounce" then return 1 - easeOutBounce(1 - t) end
-  if easing == "outBounce" then return easeOutBounce(t) end
-  if easing == "inOutBounce" then
-    return t < 0.5 and (1 - easeOutBounce(1 - 2 * t)) / 2 or (1 + easeOutBounce(2 * t - 1)) / 2
-  end
-  return t
-end
-
-local function evaluateKeyframes(points, time, fallback)
-  if type(points) ~= "table" or #points == 0 then
-    return fallback
-  end
-  if time <= safeNumber(points[1].time, 0) then
-    return safeNumber(points[1].value, fallback)
-  end
-  for i = 1, #points - 1 do
-    local a = points[i]
-    local b = points[i + 1]
-    local at = safeNumber(a.time, 0)
-    local bt = safeNumber(b.time, at)
-    if time >= at and time <= bt then
-      local span = math.max(0.0001, bt - at)
-      local t = math.max(0, math.min(1, (time - at) / span))
-      local eased = easeTimelineValue(a.easing, t)
-      return safeNumber(a.value, fallback) + (safeNumber(b.value, fallback) - safeNumber(a.value, fallback)) * eased
-    end
-  end
-  return safeNumber(points[#points].value, fallback)
-end
-
-local function clipAllowsEmission(clip, time, emitterLifetime)
-  local startTime = safeNumber(clip and clip.start, 0)
-  local endTime = safeNumber(clip and clip["end"], 0)
-  if time < startTime or time > endTime then
-    return false
-  end
-  local lifetime = safeNumber(emitterLifetime, -1)
-  if lifetime < 0 then
-    return true
-  end
-  return time <= startTime + lifetime
-end
-
-local function trackAllowsEmission(track, time, emitterLifetime)
-  for _, clip in ipairs(track and track.clips or {}) do
-    if clipAllowsEmission(clip, time, emitterLifetime) then
-      return true
-    end
-  end
-  return false
-end
-
 local function captureTimelineBase(sys)
   if sys and sys.system then
     sys._timelineBase = snapshotPS(sys.system)
@@ -1327,41 +1226,10 @@ local function applyTimelineToSystem(sys, track, time, allowEmission)
     captureTimelineBase(sys)
   end
   local base = sys._timelineBase or {}
-  local lanes = track and track.lanes or {}
-  local active = trackAllowsEmission(track, time, safeNumber(base.emitterLifetime, -1))
-
-  local emissionRate = evaluateKeyframes(lanes.emissionRate, time, safeNumber(base.emissionRate, 0))
-  if not active or not allowEmission then
-    emissionRate = 0
-  end
-  pcall(sys.system.setEmissionRate, sys.system, emissionRate)
-
-  local speedScale = evaluateKeyframes(lanes.speedScale, time, 1)
-  pcall(
-    sys.system.setSpeed,
-    sys.system,
-    safeNumber(base.speedMin, 0) * speedScale,
-    safeNumber(base.speedMax, 0) * speedScale
-  )
-
-  local sizeScale = evaluateKeyframes(lanes.sizeScale, time, 1)
-  local sizes = parseNumberList(base.sizes)
-  if #sizes > 0 then
-    for i, value in ipairs(sizes) do
-      sizes[i] = value * sizeScale
-    end
-    pcall(sys.system.setSizes, sys.system, unpack(sizes))
-  end
-
-  pcall(sys.system.setDirection, sys.system, evaluateKeyframes(lanes.direction, time, safeNumber(base.direction, 0)))
-  pcall(sys.system.setSpread, sys.system, evaluateKeyframes(lanes.spread, time, safeNumber(base.spread, 0)))
-  pcall(
-    sys.system.setOffset,
-    sys.system,
-    evaluateKeyframes(lanes.offsetX, time, safeNumber(base.offsetX, 0)),
-    evaluateKeyframes(lanes.offsetY, time, safeNumber(base.offsetY, 0))
-  )
-  sys._timelineOpacity = evaluateKeyframes(lanes.opacity, time, 1)
+  TimelineRuntime.applyTimelineToEmitter(sys, track, time, allowEmission == true, {
+    base = base,
+    opacityField = "_timelineOpacity",
+  })
 end
 
 local function resetTimelineSystems(plugin, name)
@@ -2111,7 +1979,6 @@ function ParticleSystemPlaygroundPlugin:handleRequest()
     for i = 1, self:_systemCount(active) do
       local sys = self:_getSystemEntry(active, i) or {}
       local meta = self:_meta(active, i)
-      local ps = sys.system
       systems[#systems + 1] = {
         index = i,
         title = safeString(meta.title or sys.title, "Emitter " .. tostring(i)),
@@ -2138,7 +2005,7 @@ function ParticleSystemPlaygroundPlugin:handleRequest()
         )
             and true
           or false,
-        properties = snapshotPS(ps),
+        properties = snapshotSystemProperties(sys),
       }
     end
     data = {
@@ -2744,7 +2611,14 @@ local function luaTimelineTable(timeline)
     lines[#lines + 1] = "      systemIndex = " .. tostring(math.max(1, math.floor(safeNumber(track.systemIndex, 1)))) .. ","
     lines[#lines + 1] = "      clips = {"
     for _, clip in ipairs(track.clips or {}) do
-      lines[#lines + 1] = "        { start = " .. fmt(clip.start) .. ", [\"end\"] = " .. fmt(clip["end"]) .. ", emit = " .. tostring(math.floor(safeNumber(clip.emit, 0))) .. " },"
+      local parts = {
+        "start = " .. fmt(clip.start),
+        "[\"end\"] = " .. fmt(clip["end"]),
+      }
+      if clip.emit ~= nil then
+        parts[#parts + 1] = "emit = " .. tostring(math.floor(safeNumber(clip.emit, 0)))
+      end
+      lines[#lines + 1] = "        { " .. table.concat(parts, ", ") .. " },"
     end
     lines[#lines + 1] = "      },"
     lines[#lines + 1] = "      lanes = {"
@@ -2753,7 +2627,13 @@ local function luaTimelineTable(timeline)
       if type(points) == "table" and #points > 0 then
         lines[#lines + 1] = "        " .. lane .. " = {"
         for _, point in ipairs(points) do
-          lines[#lines + 1] = "          { time = " .. fmt(point.time) .. ", value = " .. fmt(point.value) .. " },"
+          lines[#lines + 1] = "          { time = "
+            .. fmt(point.time)
+            .. ", value = "
+            .. fmt(point.value)
+            .. ", easing = "
+            .. quote(normalizeTimelineEasing(point.easing))
+            .. " },"
         end
         lines[#lines + 1] = "        },"
       end
@@ -2764,6 +2644,17 @@ local function luaTimelineTable(timeline)
   lines[#lines + 1] = "  },"
   lines[#lines + 1] = "}"
   return table.concat(lines, "\n")
+end
+
+local function appendIndentedSource(lines, source, indent)
+  indent = indent or ""
+  source = tostring(source or "")
+  if source:sub(-1) ~= "\n" then
+    source = source .. "\n"
+  end
+  for line in source:gmatch("([^\n]*)\n") do
+    lines[#lines + 1] = indent .. line
+  end
 end
 
 function ParticleSystemPlaygroundPlugin:_projectForComposite(name)
@@ -2795,7 +2686,7 @@ function ParticleSystemPlaygroundPlugin:_projectForComposite(name)
       shaderPath = asset.shaderPath,
       shaderFilename = asset.shaderSource ~= "" and asset.shaderFilename or "",
       shaderSource = asset.shaderSource,
-      properties = snapshotPS(sys.system),
+      properties = snapshotSystemProperties(sys),
     }
   end
 
@@ -2992,16 +2883,16 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     "local LG = love.graphics",
     "",
     "---@class ParticlePayload",
-    "---@field x number",
-    "---@field y number",
-    "---@field r number",
-    "---@field amount integer",
+    "---@field x? number",
+    "---@field y? number",
+    "---@field r? number",
+    "---@field loop? boolean",
     "---@field systemIndex? integer",
     "",
     "local systems = {}",
     "local particles = { x = " .. fmt(entry.x or 0) .. ", y = " .. fmt(entry.y or 0) .. ", systems = systems }",
     "local timeline = " .. luaTimelineTable(timeline),
-    "local timelineState = { time = 0, playing = false }",
+    "local timelineState = { time = 0, playing = false, loop = nil, directionOffset = 0 }",
     "local release",
     "",
   }
@@ -3055,6 +2946,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     local sys = self:_getSystemEntry(name, i)
     if sys and sys.system then
       local ps = sys.system
+      local properties = snapshotSystemProperties(sys)
       local asset = self:_assetInfo(name, i, sys)
       local imageKey = self:_textureLoadPath(asset)
       local imageVar = imageVars[imageKey]
@@ -3064,10 +2956,13 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
         .. " = LG.newParticleSystem("
         .. imageVar
         .. ", "
-        .. tostring(ps:getBufferSize())
+        .. tostring(math.max(1, math.floor(safeNumber(properties.bufferSize, ps:getBufferSize()))))
         .. ")"
 
-      local colors = { ps:getColors() }
+      local colors = parseNumberList(properties.colors)
+      if #colors == 0 then
+        colors = { ps:getColors() }
+      end
       if #colors > 0 then
         local parts = {}
         for _, value in ipairs(colors) do
@@ -3092,12 +2987,41 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
       local spinMin, spinMax = ps:getSpin()
       local tangentMin, tangentMax = ps:getTangentialAcceleration()
       local offsetX, offsetY = ps:getOffset()
-      local sizes = {}
-      for _, value in ipairs({ ps:getSizes() }) do
-        sizes[#sizes + 1] = fmt(value)
+      dist = safeString(properties.emissionAreaDist, dist)
+      dx = safeNumber(properties.emissionAreaDx, dx)
+      dy = safeNumber(properties.emissionAreaDy, dy)
+      angle = safeNumber(properties.emissionAreaAngle, angle)
+      rel = safeBoolean(properties.emissionAreaRelative, rel)
+      xmin = safeNumber(properties.linearAccelXMin, xmin)
+      ymin = safeNumber(properties.linearAccelYMin, ymin)
+      xmax = safeNumber(properties.linearAccelXMax, xmax)
+      ymax = safeNumber(properties.linearAccelYMax, ymax)
+      dampMin = safeNumber(properties.linearDampingMin, dampMin)
+      dampMax = safeNumber(properties.linearDampingMax, dampMax)
+      lifeMin = safeNumber(properties.particleLifetimeMin, lifeMin)
+      lifeMax = safeNumber(properties.particleLifetimeMax, lifeMax)
+      radialMin = safeNumber(properties.radialAccelMin, radialMin)
+      radialMax = safeNumber(properties.radialAccelMax, radialMax)
+      rotMin = safeNumber(properties.rotationMin, rotMin)
+      rotMax = safeNumber(properties.rotationMax, rotMax)
+      speedMin = safeNumber(properties.speedMin, speedMin)
+      speedMax = safeNumber(properties.speedMax, speedMax)
+      spinMin = safeNumber(properties.spinMin, spinMin)
+      spinMax = safeNumber(properties.spinMax, spinMax)
+      tangentMin = safeNumber(properties.tangentialAccelMin, tangentMin)
+      tangentMax = safeNumber(properties.tangentialAccelMax, tangentMax)
+      offsetX = safeNumber(properties.offsetX, offsetX)
+      offsetY = safeNumber(properties.offsetY, offsetY)
+      local sizes = parseNumberList(properties.sizes)
+      if #sizes == 0 then
+        sizes = { ps:getSizes() }
+      end
+      local sizeParts = {}
+      for _, value in ipairs(sizes) do
+        sizeParts[#sizeParts + 1] = fmt(value)
       end
 
-      lines[#lines + 1] = "  " .. psVar .. ":setDirection(" .. fmt(ps:getDirection()) .. ")"
+      lines[#lines + 1] = "  " .. psVar .. ":setDirection(" .. fmt(safeNumber(properties.direction, ps:getDirection())) .. ")"
       lines[#lines + 1] = "  " .. psVar
         .. ":setEmissionArea("
         .. quote(dist)
@@ -3110,9 +3034,9 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
         .. ", "
         .. tostring(rel)
         .. ")"
-      lines[#lines + 1] = "  " .. psVar .. ":setEmissionRate(" .. fmt(ps:getEmissionRate()) .. ")"
-      lines[#lines + 1] = "  " .. psVar .. ":setEmitterLifetime(" .. fmt(ps:getEmitterLifetime()) .. ")"
-      lines[#lines + 1] = "  " .. psVar .. ":setInsertMode(" .. quote(ps:getInsertMode()) .. ")"
+      lines[#lines + 1] = "  " .. psVar .. ":setEmissionRate(" .. fmt(safeNumber(properties.emissionRate, ps:getEmissionRate())) .. ")"
+      lines[#lines + 1] = "  " .. psVar .. ":setEmitterLifetime(" .. fmt(safeNumber(properties.emitterLifetime, ps:getEmitterLifetime())) .. ")"
+      lines[#lines + 1] = "  " .. psVar .. ":setInsertMode(" .. quote(safeString(properties.insertMode, ps:getInsertMode())) .. ")"
       lines[#lines + 1] = "  " .. psVar
         .. ":setLinearAcceleration("
         .. table.concat({ fmt(xmin), fmt(ymin), fmt(xmax), fmt(ymax) }, ", ")
@@ -3121,16 +3045,16 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
       lines[#lines + 1] = "  " .. psVar .. ":setOffset(" .. fmt(offsetX) .. ", " .. fmt(offsetY) .. ")"
       lines[#lines + 1] = "  " .. psVar .. ":setParticleLifetime(" .. fmt(lifeMin) .. ", " .. fmt(lifeMax) .. ")"
       lines[#lines + 1] = "  " .. psVar .. ":setRadialAcceleration(" .. fmt(radialMin) .. ", " .. fmt(radialMax) .. ")"
-      lines[#lines + 1] = "  " .. psVar .. ":setRelativeRotation(" .. tostring(ps:hasRelativeRotation()) .. ")"
+      lines[#lines + 1] = "  " .. psVar .. ":setRelativeRotation(" .. tostring(safeBoolean(properties.relativeRotation, ps:hasRelativeRotation())) .. ")"
       lines[#lines + 1] = "  " .. psVar .. ":setRotation(" .. fmt(rotMin) .. ", " .. fmt(rotMax) .. ")"
-      if #sizes > 0 then
-        lines[#lines + 1] = "  " .. psVar .. ":setSizes(" .. table.concat(sizes, ", ") .. ")"
+      if #sizeParts > 0 then
+        lines[#lines + 1] = "  " .. psVar .. ":setSizes(" .. table.concat(sizeParts, ", ") .. ")"
       end
-      lines[#lines + 1] = "  " .. psVar .. ":setSizeVariation(" .. fmt(ps:getSizeVariation()) .. ")"
+      lines[#lines + 1] = "  " .. psVar .. ":setSizeVariation(" .. fmt(safeNumber(properties.sizeVariation, ps:getSizeVariation())) .. ")"
       lines[#lines + 1] = "  " .. psVar .. ":setSpeed(" .. fmt(speedMin) .. ", " .. fmt(speedMax) .. ")"
       lines[#lines + 1] = "  " .. psVar .. ":setSpin(" .. fmt(spinMin) .. ", " .. fmt(spinMax) .. ")"
-      lines[#lines + 1] = "  " .. psVar .. ":setSpinVariation(" .. fmt(ps:getSpinVariation()) .. ")"
-      lines[#lines + 1] = "  " .. psVar .. ":setSpread(" .. fmt(ps:getSpread()) .. ")"
+      lines[#lines + 1] = "  " .. psVar .. ":setSpinVariation(" .. fmt(safeNumber(properties.spinVariation, ps:getSpinVariation())) .. ")"
+      lines[#lines + 1] = "  " .. psVar .. ":setSpread(" .. fmt(safeNumber(properties.spread, ps:getSpread())) .. ")"
       lines[#lines + 1] = "  " .. psVar .. ":setTangentialAcceleration(" .. fmt(tangentMin) .. ", " .. fmt(tangentMax) .. ")"
       lines[#lines + 1] = "  " .. psVar .. ":setPosition(particles.x + " .. fmt(sys.x or 0) .. ", particles.y + " .. fmt(sys.y or 0) .. ")"
 
@@ -3166,19 +3090,19 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
         .. ", y = "
         .. fmt(sys.y or 0)
         .. ", opacity = 1, base = { emissionRate = "
-        .. fmt(ps:getEmissionRate())
+        .. fmt(safeNumber(properties.emissionRate, ps:getEmissionRate()))
         .. ", emitterLifetime = "
-        .. fmt(ps:getEmitterLifetime())
+        .. fmt(safeNumber(properties.emitterLifetime, ps:getEmitterLifetime()))
         .. ", speedMin = "
         .. fmt(speedMin)
         .. ", speedMax = "
         .. fmt(speedMax)
         .. ", sizes = { "
-        .. table.concat(sizes, ", ")
+        .. table.concat(sizeParts, ", ")
         .. " }, direction = "
-        .. fmt(ps:getDirection())
+        .. fmt(safeNumber(properties.direction, ps:getDirection()))
         .. ", spread = "
-        .. fmt(ps:getSpread())
+        .. fmt(safeNumber(properties.spread, ps:getSpread()))
         .. ", offsetX = "
         .. fmt(offsetX)
         .. ", offsetY = "
@@ -3198,112 +3122,37 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return particles"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function easeOutBounce(t)"
-  lines[#lines + 1] = "  local n1, d1 = 7.5625, 2.75"
-  lines[#lines + 1] = "  if t < 1 / d1 then return n1 * t * t end"
-  lines[#lines + 1] = "  if t < 2 / d1 then t = t - 1.5 / d1; return n1 * t * t + 0.75 end"
-  lines[#lines + 1] = "  if t < 2.5 / d1 then t = t - 2.25 / d1; return n1 * t * t + 0.9375 end"
-  lines[#lines + 1] = "  t = t - 2.625 / d1"
-  lines[#lines + 1] = "  return n1 * t * t + 0.984375"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function easeTimeline(easing, t)"
-  lines[#lines + 1] = "  t = math.max(0, math.min(1, t))"
-  lines[#lines + 1] = "  local c1, c3 = 1.70158, 2.70158"
-  lines[#lines + 1] = "  local c2, c4, c5 = c1 * 1.525, (2 * math.pi) / 3, (2 * math.pi) / 4.5"
-  lines[#lines + 1] = "  if easing == \"hold\" then return 0 end"
-  lines[#lines + 1] = "  if easing == \"inSine\" then return 1 - math.cos((t * math.pi) / 2) end"
-  lines[#lines + 1] = "  if easing == \"outSine\" then return math.sin((t * math.pi) / 2) end"
-  lines[#lines + 1] = "  if easing == \"inOutSine\" then return -(math.cos(math.pi * t) - 1) / 2 end"
-  lines[#lines + 1] = "  if easing == \"inQuad\" then return t * t end"
-  lines[#lines + 1] = "  if easing == \"outQuad\" then return 1 - (1 - t) * (1 - t) end"
-  lines[#lines + 1] = "  if easing == \"inOutQuad\" then return t < 0.5 and 2 * t * t or 1 - ((-2 * t + 2) ^ 2) / 2 end"
-  lines[#lines + 1] = "  if easing == \"inCubic\" then return t * t * t end"
-  lines[#lines + 1] = "  if easing == \"outCubic\" then return 1 - ((1 - t) ^ 3) end"
-  lines[#lines + 1] = "  if easing == \"inOutCubic\" then return t < 0.5 and 4 * t * t * t or 1 - ((-2 * t + 2) ^ 3) / 2 end"
-  lines[#lines + 1] = "  if easing == \"inQuart\" then return t * t * t * t end"
-  lines[#lines + 1] = "  if easing == \"outQuart\" then return 1 - ((1 - t) ^ 4) end"
-  lines[#lines + 1] = "  if easing == \"inOutQuart\" then return t < 0.5 and 8 * t * t * t * t or 1 - ((-2 * t + 2) ^ 4) / 2 end"
-  lines[#lines + 1] = "  if easing == \"inExpo\" then return t == 0 and 0 or 2 ^ (10 * t - 10) end"
-  lines[#lines + 1] = "  if easing == \"outExpo\" then return t == 1 and 1 or 1 - 2 ^ (-10 * t) end"
-  lines[#lines + 1] = "  if easing == \"inOutExpo\" then if t == 0 or t == 1 then return t end; return t < 0.5 and (2 ^ (20 * t - 10)) / 2 or (2 - 2 ^ (-20 * t + 10)) / 2 end"
-  lines[#lines + 1] = "  if easing == \"inBack\" then return c3 * t * t * t - c1 * t * t end"
-  lines[#lines + 1] = "  if easing == \"outBack\" then return 1 + c3 * ((t - 1) ^ 3) + c1 * ((t - 1) ^ 2) end"
-  lines[#lines + 1] = "  if easing == \"inOutBack\" then return t < 0.5 and (((2 * t) ^ 2) * ((c2 + 1) * 2 * t - c2)) / 2 or (((2 * t - 2) ^ 2) * ((c2 + 1) * (2 * t - 2) + c2) + 2) / 2 end"
-  lines[#lines + 1] = "  if easing == \"inElastic\" then if t == 0 or t == 1 then return t end; return -(2 ^ (10 * t - 10)) * math.sin((t * 10 - 10.75) * c4) end"
-  lines[#lines + 1] = "  if easing == \"outElastic\" then if t == 0 or t == 1 then return t end; return (2 ^ (-10 * t)) * math.sin((t * 10 - 0.75) * c4) + 1 end"
-  lines[#lines + 1] = "  if easing == \"inOutElastic\" then if t == 0 or t == 1 then return t end; return t < 0.5 and -((2 ^ (20 * t - 10)) * math.sin((20 * t - 11.125) * c5)) / 2 or ((2 ^ (-20 * t + 10)) * math.sin((20 * t - 11.125) * c5)) / 2 + 1 end"
-  lines[#lines + 1] = "  if easing == \"inBounce\" then return 1 - easeOutBounce(1 - t) end"
-  lines[#lines + 1] = "  if easing == \"outBounce\" then return easeOutBounce(t) end"
-  lines[#lines + 1] = "  if easing == \"inOutBounce\" then return t < 0.5 and (1 - easeOutBounce(1 - 2 * t)) / 2 or (1 + easeOutBounce(2 * t - 1)) / 2 end"
-  lines[#lines + 1] = "  return t"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function evalTimeline(points, time, fallback)"
-  lines[#lines + 1] = "  if type(points) ~= \"table\" or #points == 0 then return fallback end"
-  lines[#lines + 1] = "  if time <= (points[1].time or 0) then return tonumber(points[1].value) or fallback end"
-  lines[#lines + 1] = "  for i = 1, #points - 1 do"
-  lines[#lines + 1] = "    local a, b = points[i], points[i + 1]"
-  lines[#lines + 1] = "    local at, bt = tonumber(a.time) or 0, tonumber(b.time) or 0"
-  lines[#lines + 1] = "    if time >= at and time <= bt then"
-  lines[#lines + 1] = "      local span = math.max(0.0001, bt - at)"
-  lines[#lines + 1] = "      local t = math.max(0, math.min(1, (time - at) / span))"
-  lines[#lines + 1] = "      local av, bv = tonumber(a.value) or fallback, tonumber(b.value) or fallback"
-  lines[#lines + 1] = "      return av + (bv - av) * easeTimeline(a.easing, t)"
-  lines[#lines + 1] = "    end"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return tonumber(points[#points].value) or fallback"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function clipAllowsEmission(clip, time, emitterLifetime)"
-  lines[#lines + 1] = "  local start = tonumber(clip.start) or 0"
-  lines[#lines + 1] = "  local stop = tonumber(clip[\"end\"]) or 0"
-  lines[#lines + 1] = "  if time < start or time > stop then return false end"
-  lines[#lines + 1] = "  local lifetime = tonumber(emitterLifetime) or -1"
-  lines[#lines + 1] = "  if lifetime < 0 then return true end"
-  lines[#lines + 1] = "  return time <= start + lifetime"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function trackAllowsEmission(track, time, emitterLifetime)"
-  lines[#lines + 1] = "  for _, clip in ipairs(track.clips or {}) do"
-  lines[#lines + 1] = "    if clipAllowsEmission(clip, time, emitterLifetime) then return true end"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return false"
-  lines[#lines + 1] = "end"
+  lines[#lines + 1] = "local TimelineRuntime = (function()"
+  appendIndentedSource(lines, TIMELINE_RUNTIME_SOURCE, "  ")
+  lines[#lines + 1] = "end)()"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function applyTimeline(time, allowEmission)"
   lines[#lines + 1] = "  for index, track in ipairs(timeline.tracks or {}) do"
   lines[#lines + 1] = "    local emitter = systems[index]"
   lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system then"
-  lines[#lines + 1] = "      local base = emitter.base or {}"
-  lines[#lines + 1] = "      local lanes = track.lanes or {}"
-  lines[#lines + 1] = "      local rate = evalTimeline(lanes.emissionRate, time, base.emissionRate or 0)"
-  lines[#lines + 1] = "      if not allowEmission or not trackAllowsEmission(track, time, base.emitterLifetime or -1) then rate = 0 end"
-  lines[#lines + 1] = "      emitter.system:setEmissionRate(rate)"
-  lines[#lines + 1] = "      local speedScale = evalTimeline(lanes.speedScale, time, 1)"
-  lines[#lines + 1] = "      emitter.system:setSpeed((base.speedMin or 0) * speedScale, (base.speedMax or 0) * speedScale)"
-  lines[#lines + 1] = "      local sizeScale = evalTimeline(lanes.sizeScale, time, 1)"
-  lines[#lines + 1] = "      if type(base.sizes) == \"table\" and #base.sizes > 0 then"
-  lines[#lines + 1] = "        local sizes = {}"
-  lines[#lines + 1] = "        for i, value in ipairs(base.sizes) do sizes[i] = value * sizeScale end"
-  lines[#lines + 1] = "        emitter.system:setSizes(unpack(sizes))"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      emitter.system:setDirection(evalTimeline(lanes.direction, time, base.direction or 0))"
-  lines[#lines + 1] = "      emitter.system:setSpread(evalTimeline(lanes.spread, time, base.spread or 0))"
-  lines[#lines + 1] = "      emitter.system:setOffset(evalTimeline(lanes.offsetX, time, base.offsetX or 0), evalTimeline(lanes.offsetY, time, base.offsetY or 0))"
-  lines[#lines + 1] = "      emitter.opacity = evalTimeline(lanes.opacity, time, 1)"
+  lines[#lines + 1] = "      TimelineRuntime.applyTimelineToEmitter(emitter, track, time, allowEmission == true, {"
+  lines[#lines + 1] = "        base = emitter.base or {},"
+  lines[#lines + 1] = "        directionOffset = timelineState.directionOffset or 0,"
+  lines[#lines + 1] = "        opacityField = \"opacity\","
+  lines[#lines + 1] = "      })"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function emitTimelineStarts(previousTime, nextTime, amount)"
+  lines[#lines + 1] = "local function clipBurstCount(clip, emitter)"
+  lines[#lines + 1] = "  local base = tonumber(clip.emit)"
+  lines[#lines + 1] = "  if base == nil then base = tonumber(emitter.emitAtStart) end"
+  lines[#lines + 1] = "  return math.max(0, math.floor(base or 0))"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function emitTimelineStarts(previousTime, nextTime)"
   lines[#lines + 1] = "  for index, track in ipairs(timeline.tracks or {}) do"
   lines[#lines + 1] = "    local emitter = systems[index]"
   lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system then"
   lines[#lines + 1] = "      for _, clip in ipairs(track.clips or {}) do"
   lines[#lines + 1] = "        local start = tonumber(clip.start) or 0"
   lines[#lines + 1] = "        if previousTime <= start and nextTime >= start then"
-  lines[#lines + 1] = "          local count = math.max(0, math.floor(tonumber(clip.emit) or tonumber(amount) or emitter.emitAtStart or 0))"
+  lines[#lines + 1] = "          local count = clipBurstCount(clip, emitter)"
   lines[#lines + 1] = "          emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "          emitter.system:start()"
   lines[#lines + 1] = "          if count > 0 then emitter.system:emit(count) end"
@@ -3313,7 +3162,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function emitTimelineStartsForAdvance(previousTime, elapsed, amount)"
+  lines[#lines + 1] = "local function emitTimelineStartsForAdvance(previousTime, elapsed)"
   lines[#lines + 1] = "  if elapsed <= 0 then return previousTime end"
   lines[#lines + 1] = "  local cursor = previousTime"
   lines[#lines + 1] = "  local remaining = elapsed"
@@ -3324,13 +3173,27 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    if room <= 0 then cursor = 0; room = timeline.duration end"
   lines[#lines + 1] = "    local segment = math.min(remaining, room)"
   lines[#lines + 1] = "    local nextCursor = cursor + segment"
-  lines[#lines + 1] = "    if segment > 0 then emitTimelineStarts(cursor, nextCursor, amount) end"
+  lines[#lines + 1] = "    if segment > 0 then emitTimelineStarts(cursor, nextCursor) end"
   lines[#lines + 1] = "    remaining = remaining - segment"
   lines[#lines + 1] = "    cursor = nextCursor"
   lines[#lines + 1] = "    if remaining > 0 and cursor >= timeline.duration then cursor = 0 end"
   lines[#lines + 1] = "    guard = guard + 1"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  return cursor >= timeline.duration and 0 or cursor"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function timelineShouldLoop()"
+  lines[#lines + 1] = "  if timelineState.loop ~= nil then return timelineState.loop == true end"
+  lines[#lines + 1] = "  return timeline.loop == true"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function setLoop(loop)"
+  lines[#lines + 1] = "  if type(loop) == \"boolean\" then"
+  lines[#lines + 1] = "    timelineState.loop = loop"
+  lines[#lines + 1] = "  else"
+  lines[#lines + 1] = "    timelineState.loop = nil"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return timelineShouldLoop()"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function resetTimeline()"
@@ -3348,7 +3211,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    local previous = timelineState.time"
   lines[#lines + 1] = "    local nextTime = previous + dt"
   lines[#lines + 1] = "    if nextTime > timeline.duration then"
-  lines[#lines + 1] = "      if timeline.loop then"
+  lines[#lines + 1] = "      if timelineShouldLoop() then"
   lines[#lines + 1] = "        nextTime = emitTimelineStartsForAdvance(previous, dt)"
   lines[#lines + 1] = "      else"
   lines[#lines + 1] = "        emitTimelineStarts(previous, timeline.duration)"
@@ -3390,17 +3253,16 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  LG.setColor(r, g, b, a)"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "---Emit particles."
+  lines[#lines + 1] = "---Play the authored particle timeline."
   lines[#lines + 1] = "---@param payload ParticlePayload"
-  lines[#lines + 1] = "local function emit(payload)"
+  lines[#lines + 1] = "local function play(payload)"
   lines[#lines + 1] = "  if type(payload) ~= \"table\" then"
-  lines[#lines + 1] = "    return false"
+  lines[#lines + 1] = "    payload = {}"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "  local x = tonumber(payload.x) or particles.x"
   lines[#lines + 1] = "  local y = tonumber(payload.y) or particles.y"
   lines[#lines + 1] = "  local r = tonumber(payload.r) or 0"
-  lines[#lines + 1] = "  local amount = math.max(1, math.floor(tonumber(payload.amount) or 1))"
   lines[#lines + 1] = "  local index = tonumber(payload.systemIndex)"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "  for i, emitter in ipairs(systems) do"
@@ -3409,15 +3271,36 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "      emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "      emitter.system:start()"
   lines[#lines + 1] = "      emitter.system:setPosition(x + (emitter.x or 0), y + (emitter.y or 0))"
-  lines[#lines + 1] = "      emitter.system:setDirection(r)"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  timelineState.time = 0"
   lines[#lines + 1] = "  timelineState.playing = true"
+  lines[#lines + 1] = "  timelineState.directionOffset = r"
+  lines[#lines + 1] = "  setLoop(payload.loop)"
   lines[#lines + 1] = "  applyTimeline(0, true)"
-  lines[#lines + 1] = "  emitTimelineStarts(0, 0, amount)"
+  lines[#lines + 1] = "  emitTimelineStarts(0, 0)"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "  return true"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function pause()"
+  lines[#lines + 1] = "  timelineState.playing = false"
+  lines[#lines + 1] = "  applyTimeline(timelineState.time, false)"
+  lines[#lines + 1] = "  return true"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function stop(resetParticles)"
+  lines[#lines + 1] = "  timelineState.time = 0"
+  lines[#lines + 1] = "  timelineState.playing = false"
+  lines[#lines + 1] = "  timelineState.loop = nil"
+  lines[#lines + 1] = "  timelineState.directionOffset = 0"
+  lines[#lines + 1] = "  if resetParticles ~= false then resetTimeline() end"
+  lines[#lines + 1] = "  applyTimeline(0, false)"
+  lines[#lines + 1] = "  return true"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function emit(payload)"
+  lines[#lines + 1] = "  return play(payload)"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "release = function()"
@@ -3434,6 +3317,11 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  init = init,"
   lines[#lines + 1] = "  draw = draw,"
   lines[#lines + 1] = "  update = update,"
+  lines[#lines + 1] = "  play = play,"
+  lines[#lines + 1] = "  pause = pause,"
+  lines[#lines + 1] = "  stop = stop,"
+  lines[#lines + 1] = "  setLoop = setLoop,"
+  lines[#lines + 1] = "  isLooping = timelineShouldLoop,"
   lines[#lines + 1] = "  emit = emit,"
   lines[#lines + 1] = "  release = release,"
   lines[#lines + 1] = "}"

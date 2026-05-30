@@ -59,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle System Playground showcase previews now float over the editor and keep a locked 16:9 love.js canvas aspect ratio.
 - Particle System Playground replaced the header Emit action with a Play action that starts timeline playback.
 - Particle System Playground now colors Show in Game green and Hide in Game red so connected-game preview state is easier to scan.
+- Particle System Playground Lua exports now include `play`, `pause`, and `stop` methods, with `emit` kept as a compatibility alias for timeline playback payloads.
+- Particle System Playground Lua exports now play authored timeline bursts exactly instead of applying a payload-level amount scale.
+- Particle System Playground Lua exports now expose `setLoop` and `isLooping`, and `play({ loop = ... })` can override the saved timeline loop setting per playback.
 - Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
 - Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
 - Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
@@ -68,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed log type badges so their text and icons keep readable contrast across light, dark, and Noctis themes.
 - Fixed live session logs disappearing after reopening Feather or restarting a CLI-launched game by restoring recent log history from a bounded local cache.
+- Fixed local log-history persistence so storage quota pressure no longer interrupts Particle Playground timeline editing.
 - Fixed the Settings modal close button so it no longer overlaps the version badge in the header.
 - Fixed the Performance Profiler filter row so controls wrap instead of overflowing at medium desktop widths.
 - Fixed the Logs toolbar so search takes its own row before filters and actions when horizontal space is tight.
@@ -103,9 +107,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Feather Particle System Playground local previews when the app falls back to the static showcase love.js bridge.
 - Fixed Feather Particle System Playground local preview playback so play/pause timeline sync no longer rebuilds particle systems and interrupts continuous emission.
 - Fixed Particle System Playground local preview timelines so Feather keeps advancing local playback while Show in Game is off and love.js previews respect clip/lane timing.
+- Fixed Particle System Playground Lua exports so paused or scrubbed timeline state no longer mutates the exported base emitter settings.
+- Fixed Particle System Playground Lua exports so keyframe easing names are preserved and exported playback uses the same shared timeline evaluator as the plugin preview.
 - Fixed Follow Tail in Logs so newly appended visible rows scroll into view through the virtual log list.
 - Fixed Profiler actions so Start, Stop, Snapshot, and Reset refresh the visible capture table immediately.
 - Fixed Tauri development reloads getting stuck on Vite `504 Outdated Optimize Dep` responses by isolating app/showcase optimizer caches, forcing a fresh Tauri dev optimize pass, and disabling WebView caching for dev modules.
+- Fixed Tauri dev CSP headers so Feather can use Tauri IPC for event listeners and commands while love.js preview isolation headers are enabled.
 - Fixed the Particle System Playground app layout so editor content scrolls inside the main pane instead of expanding the whole app window.
 
 ### Tests
@@ -138,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added showcase and app e2e coverage for the Shader Graph right-panel Controls, Selection, and Output workflow.
 - Added focused bridge coverage plus showcase and app e2e coverage for texture-heavy Shader Graph Preview node uploads.
 - Expanded Lua e2e coverage for looping Particle System Playground timelines with delayed emitter clips.
+- Expanded Lua e2e coverage for Particle System Playground export playback APIs and authored timeline burst handling.
 - Added Lua e2e coverage for Feel Inspector registration, handler preservation, replay/clear actions, and LOVE adapter summaries.
 - Expanded Lua, showcase, and app e2e coverage for Particle System Playground particle-life tails in timeline loops.
 - Expanded Lua, showcase, and app e2e coverage for Particle System Playground Emitter Lifetime and timeline clip intersections.

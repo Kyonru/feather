@@ -7,6 +7,9 @@ export const LOG_HISTORY_STORAGE_KEY = 'feather-log-history-v1';
 export const MAX_LOG_HISTORY_ENTRIES = 1000;
 export const LOG_HISTORY_PERSIST_DEBOUNCE_MS = 500;
 const MAX_LOG_HISTORY_BUCKETS = 16;
+const QUOTA_RETRY_LOG_HISTORY_BUCKETS = 6;
+const QUOTA_RETRY_LOG_HISTORY_ENTRIES = 200;
+const MAX_LOG_HISTORY_TEXT_CHARS = 12000;
 
 type DebouncedStorageTimers = {
   setTimer: (callback: () => void, delayMs: number) => ReturnType<typeof globalThis.setTimeout>;
@@ -66,7 +69,7 @@ export function createDebouncedStorage(
     const writes = Array.from(pending.entries());
     pending.clear();
     for (const [key, value] of writes) {
-      storage.setItem(key, value);
+      writeStorageItem(storage, key, value);
     }
   }
 
@@ -153,10 +156,118 @@ function canPersistSession(sessionId: string): boolean {
 }
 
 export function sanitizeLogForHistory(log: Log): Log {
-  if (!log.screenshot) return log;
   const rest = { ...log };
-  delete rest.screenshot;
+  if (typeof rest.str === 'string') rest.str = truncateHistoryText(rest.str);
+  if (typeof rest.trace === 'string') rest.trace = truncateHistoryText(rest.trace);
+  if (rest.screenshot) delete rest.screenshot;
   return rest;
+}
+
+function truncateHistoryText(value: string): string {
+  if (value.length <= MAX_LOG_HISTORY_TEXT_CHARS) return value;
+  return `${value.slice(0, MAX_LOG_HISTORY_TEXT_CHARS)}\n... truncated for local log history`;
+}
+
+export function isStorageQuotaError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: number; name?: string; message?: string };
+  return (
+    candidate.code === 22 ||
+    candidate.code === 1014 ||
+    candidate.name === 'QuotaExceededError' ||
+    candidate.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    /quota/i.test(candidate.message ?? '')
+  );
+}
+
+function compactBucketsForQuota(buckets: unknown): Record<string, LogHistoryBucket> | undefined {
+  if (!buckets || typeof buckets !== 'object' || Array.isArray(buckets)) return undefined;
+
+  return Object.fromEntries(
+    Object.entries(buckets as Record<string, Partial<LogHistoryBucket>>)
+      .sort(([, a], [, b]) => Number(b.updatedAt ?? 0) - Number(a.updatedAt ?? 0))
+      .slice(0, QUOTA_RETRY_LOG_HISTORY_BUCKETS)
+      .map(([key, bucket]) => [
+        key,
+        {
+          logs: Array.isArray(bucket.logs)
+            ? bucket.logs.slice(-QUOTA_RETRY_LOG_HISTORY_ENTRIES).map((entry) => sanitizeLogForHistory(entry as Log))
+            : [],
+          label: typeof bucket.label === 'string' ? bucket.label : undefined,
+          updatedAt: Number(bucket.updatedAt) || Date.now(),
+        },
+      ]),
+  );
+}
+
+function compactPersistedLogHistoryForQuota(value: string): string | null {
+  try {
+    const parsed = JSON.parse(value) as {
+      state?: {
+        logsBySession?: unknown;
+        logsByHistoryKey?: unknown;
+        sessionHistoryKeys?: unknown;
+      };
+      [key: string]: unknown;
+    };
+    if (!parsed.state || typeof parsed.state !== 'object') return null;
+
+    const logsBySession = compactBucketsForQuota(parsed.state.logsBySession);
+    const logsByHistoryKey = compactBucketsForQuota(parsed.state.logsByHistoryKey);
+    if (!logsBySession && !logsByHistoryKey) return null;
+
+    return JSON.stringify({
+      ...parsed,
+      state: {
+        ...parsed.state,
+        ...(logsBySession ? { logsBySession } : {}),
+        ...(logsByHistoryKey ? { logsByHistoryKey } : {}),
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
+export function compactStoredLogHistory(storage: Storage = globalThis.localStorage): boolean {
+  try {
+    const current = storage.getItem(LOG_HISTORY_STORAGE_KEY);
+    if (!current) return false;
+    const compacted = compactPersistedLogHistoryForQuota(current);
+    if (!compacted || compacted.length >= current.length) return false;
+    storage.removeItem(LOG_HISTORY_STORAGE_KEY);
+    storage.setItem(LOG_HISTORY_STORAGE_KEY, compacted);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function writeStorageItem(storage: Storage, key: string, value: string): void {
+  try {
+    storage.setItem(key, value);
+    return;
+  } catch (error) {
+    if (!isStorageQuotaError(error)) {
+      console.warn('[Feather] Could not persist log history:', error);
+      return;
+    }
+
+    const compacted = compactPersistedLogHistoryForQuota(value);
+    if (compacted && compacted.length < value.length) {
+      try {
+        storage.removeItem(key);
+        storage.setItem(key, compacted);
+        console.warn('[Feather] Local log history hit storage quota; saved a compact recent history instead.');
+        return;
+      } catch (retryError) {
+        console.warn('[Feather] Could not persist compacted log history:', retryError);
+        return;
+      }
+    }
+
+    console.warn('[Feather] Local log history hit storage quota and was skipped for this update.');
+  }
 }
 
 function capLogs(logs: Log[]): Log[] {

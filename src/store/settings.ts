@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import {
   DEFAULT_PINNED_SIDEBAR_TOOLS,
   SIDEBAR_TOOL_ORDER,
   type MainFeatureId,
   type SidebarToolId,
 } from '@/constants/main-features';
+import { compactStoredLogHistory, isStorageQuotaError } from './log-history';
 import {
   DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES,
   normalizeShaderGraphNodeCategories,
@@ -121,6 +122,30 @@ const defaultSettings: SettingsStoreState = {
   assetSourceDir: '',
 };
 
+function createSettingsStorage(): StateStorage {
+  const storage = globalThis.localStorage;
+  return {
+    getItem: (name) => storage.getItem(name),
+    removeItem: (name) => storage.removeItem(name),
+    setItem: (name, value) => {
+      try {
+        storage.setItem(name, value);
+      } catch (error) {
+        if (isStorageQuotaError(error) && compactStoredLogHistory(storage)) {
+          try {
+            storage.setItem(name, value);
+            return;
+          } catch (retryError) {
+            console.warn('[Feather] Could not persist settings after compacting log history:', retryError);
+            return;
+          }
+        }
+        console.warn('[Feather] Could not persist settings:', error);
+      }
+    },
+  };
+}
+
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
@@ -200,6 +225,7 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'settings-storage',
+      storage: createJSONStorage(createSettingsStorage),
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<SettingsStore> | undefined;
 

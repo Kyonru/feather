@@ -13,6 +13,8 @@
 --   5. Press arrow keys → values change and observers update.
 --   6. Press Space → a log line appears in the Logs tab.
 
+local particle = require("explosion")
+
 local state = {
   x = 320,
   y = 200,
@@ -35,6 +37,7 @@ end
 function love.load()
   love.graphics.setFont(love.graphics.newFont(14))
   addLog("game loaded (no feather require in this file)")
+  particle.init()
 end
 
 function love.update(dt)
@@ -56,6 +59,8 @@ function love.update(dt)
   state.x = math.max(BOX_SIZE / 2, math.min(love.graphics.getWidth() - BOX_SIZE / 2, state.x))
   state.y = math.max(BOX_SIZE / 2, math.min(love.graphics.getHeight() - BOX_SIZE / 2, state.y))
 
+  particle.update(dt)
+
   -- Push observers if DEBUGGER was injected by the CLI
   if DEBUGGER then
     DEBUGGER:observe("x", math.floor(state.x))
@@ -70,6 +75,12 @@ function love.keypressed(key)
   if key == "space" then
     state.score = state.score + 10
     addLog("scored! total = " .. state.score)
+    particle.play({
+      x = 320,
+      y = 200,
+      r = 0,
+      loop = false,
+    })
   elseif key == "r" then
     state.x, state.y = 320, 200
     state.score = 0
@@ -105,4 +116,6 @@ function love.draw()
   for i, line in ipairs(LOG_LINES) do
     love.graphics.print(line, 10, love.graphics.getHeight() - 20 * i - 10)
   end
+
+  particle.draw()
 end

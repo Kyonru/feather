@@ -15,6 +15,12 @@ function createMemoryStorage(): Storage {
   };
 }
 
+function quotaExceededError(): Error {
+  const error = new Error('quota exceeded');
+  error.name = 'QuotaExceededError';
+  return error;
+}
+
 Object.defineProperty(globalThis, 'localStorage', {
   configurable: true,
   value: createMemoryStorage(),
@@ -147,4 +153,55 @@ test('debounced log history storage coalesces localStorage writes', () => {
   pendingFlush?.();
 
   assert.equal(backing.getItem('history'), 'second');
+});
+
+test('debounced log history storage compacts persisted logs when quota is exceeded', () => {
+  const backing = createMemoryStorage();
+  let setAttempts = 0;
+  let pendingFlush: (() => void) | null = null;
+  const storage = createDebouncedStorage(
+    {
+      ...backing,
+      setItem: (key, value) => {
+        setAttempts += 1;
+        if (setAttempts === 1) throw quotaExceededError();
+        backing.setItem(key, value);
+      },
+    },
+    100,
+    {
+      setTimer: (callback) => {
+        pendingFlush = callback;
+        return 1 as unknown as ReturnType<typeof globalThis.setTimeout>;
+      },
+      clearTimer: () => {},
+    },
+  );
+
+  const bucket = {
+    logs: Array.from({ length: 250 }, (_, index) => ({
+      ...log(String(index), `log ${index}`, index),
+      trace: index === 249 ? 'x'.repeat(20000) : '',
+    })),
+    label: 'Noisy',
+    updatedAt: 100,
+  };
+  const raw = JSON.stringify({
+    state: {
+      logsBySession: { session: bucket },
+      logsByHistoryKey: { stable: bucket },
+      sessionHistoryKeys: { session: ['stable'] },
+    },
+    version: 0,
+  });
+
+  storage.setItem('history', raw);
+  assert.doesNotThrow(() => pendingFlush?.());
+
+  const persisted = backing.getItem('history');
+  assert.ok(persisted);
+  assert.ok(persisted.length < raw.length);
+  const parsed = JSON.parse(persisted);
+  assert.equal(parsed.state.logsBySession.session.logs.length, 200);
+  assert.ok(parsed.state.logsBySession.session.logs.at(-1).trace.length < 13000);
 });

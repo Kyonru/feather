@@ -45,15 +45,34 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "local function init()"), "particle playground export includes init lifecycle")
     assertTruthy(contains(code, "local function update(dt)"), "particle playground export includes update lifecycle")
     assertTruthy(contains(code, "local function draw()"), "particle playground export includes draw lifecycle")
+    assertTruthy(contains(code, "local function play(payload)"), "particle playground export includes payload play lifecycle")
     assertTruthy(contains(code, "local function emit(payload)"), "particle playground export includes payload emit lifecycle")
+    assertTruthy(contains(code, "local function pause()"), "particle playground export includes pause lifecycle")
+    assertTruthy(contains(code, "local function stop(resetParticles)"), "particle playground export includes stop lifecycle")
+    assertTruthy(contains(code, "local function setLoop(loop)"), "particle playground export includes loop override helper")
     assertTruthy(contains(code, "release = function()"), "particle playground export includes release lifecycle")
     assertTruthy(contains(code, "local timeline = {"), "particle playground export includes timeline data")
-    assertTruthy(contains(code, "local timelineState = { time = 0, playing = false }"), "particle playground export includes timeline state")
+    assertTruthy(contains(code, "easing = "), "particle playground export preserves keyframe easing names")
+    assertTruthy(
+      contains(code, "local timelineState = { time = 0, playing = false, loop = nil, directionOffset = 0 }"),
+      "particle playground export includes timeline play state"
+    )
     assertTruthy(contains(code, "local function applyTimeline(time, allowEmission)"), "particle playground export includes timeline evaluator")
-    assertTruthy(contains(code, "local function easeTimeline"), "particle playground export includes easing evaluator")
-    assertTruthy(contains(code, "local function clipAllowsEmission"), "particle playground export includes lifetime-aware clip emission")
-    assertTruthy(contains(code, "not allowEmission or not trackAllowsEmission"), "particle playground export mutes paused timeline emission")
+    assertTruthy(contains(code, "local TimelineRuntime = (function()"), "particle playground export embeds shared timeline runtime")
+    assertTruthy(contains(code, "function Runtime.easeTimelineValue"), "particle playground export includes shared easing evaluator")
+    assertTruthy(contains(code, "function Runtime.clipAllowsEmission"), "particle playground export includes lifetime-aware clip emission")
+    assertTruthy(contains(code, "local function clipBurstCount"), "particle playground export includes authored clip bursts")
+    assertTruthy(contains(code, "TimelineRuntime.applyTimelineToEmitter"), "particle playground export applies timeline through shared runtime")
     assertTruthy(contains(code, "local function emitTimelineStartsForAdvance"), "particle playground export preserves timeline tails across loop wraps")
+    assertTruthy(contains(code, "timelineShouldLoop()"), "particle playground export supports per-play loop overrides")
+    assertTruthy(contains(code, "setLoop(payload.loop)"), "particle playground export applies play payload loop overrides")
+    assertTruthy(not contains(code, "timelineState.amount"), "particle playground export does not scale authored timeline bursts from payload")
+    assertTruthy(not contains(code, "payload.amount"), "particle playground export payload does not define timeline intensity")
+    assertTruthy(contains(code, "timelineState.directionOffset = r"), "particle playground export supports payload direction offset")
+    assertTruthy(not contains(code, "emitter.system:setDirection(r)"), "particle playground export does not overwrite authored emitter directions")
+    assertTruthy(contains(code, "return play(payload)"), "particle playground export keeps emit as a play alias")
+    assertTruthy(contains(code, "setLoop = setLoop"), "particle playground export exposes loop override helper")
+    assertTruthy(contains(code, "isLooping = timelineShouldLoop"), "particle playground export exposes resolved loop state")
     assertTruthy(contains(code, "emitter.system:start()"), "particle playground export restarts delayed timeline clips")
     assertTruthy(contains(code, "base.emitterLifetime"), "particle playground export preserves emitter lifetime during timeline playback")
     assertTruthy(
@@ -76,6 +95,56 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     )
     assertTruthy(contains(code, ":setParticleLifetime("), "particle playground export includes particle setters")
     assertTruthy(not contains(code, "particles[1] = {system = "), "particle playground export avoids old table-only shape")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Export Timeline Base",
+        template = "fire",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Export Timeline Base",
+        timeline = {
+          duration = 1,
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "clip", start = 0, ["end"] = 1, emit = 0 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Export Timeline Base",
+        command = "seek",
+        time = 0.5,
+      },
+    })
+    local mutedSystem = plugin:_getSystemEntry("Export Timeline Base", 1).system
+    assertEqual(mutedSystem:getEmissionRate(), 0, "particle timeline seek mutes the live system before export")
+    local mutedResult = plugin:handleActionRequest({
+      params = {
+        action = "export-code",
+        composite = "Export Timeline Base",
+      },
+    })
+    local mutedCode = mutedResult and mutedResult.exportCode or ""
+    assertTruthy(
+      contains(mutedCode, ":setEmissionRate(100)"),
+      "particle playground export uses saved base emission rate instead of muted timeline state"
+    )
+    assertTruthy(
+      contains(mutedCode, "base = { emissionRate = 100"),
+      "particle playground export base metadata uses saved timeline base rate"
+    )
 
     plugin:handleActionRequest({
       params = {

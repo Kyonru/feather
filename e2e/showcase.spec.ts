@@ -43,6 +43,7 @@ async function dragPaletteNodeToCanvas(page: Page, nodeName: string, position: {
 async function uploadShaderPreviewTexture(
   page: Page,
   trigger: Locator,
+  // @ts-expect-error buffer
   file: { name: string; mimeType: string; buffer: Buffer },
 ) {
   const fileChooserPromise = page.waitForEvent('filechooser', { timeout: 1000 }).catch(() => null);

@@ -5,7 +5,7 @@ message_file="$1"
 subject="$(sed -n '1p' "$message_file")"
 
 case "$subject" in
-  ci:*|cli:*|package:*|plugin:*|app:*|lua:*|tauri:*|feather:*|shadergraph:*|docs:*|vscode-extension:*)
+  ci:*|cli:*|package:*|plugin:*|app:*|lua:*|tauri:*|feather:*|shadergraph:*|docs:*|vscode-extension:*|particles:*)
     exit 0
     ;;
 esac
@@ -23,6 +23,7 @@ Commit message must start with one of:
   tauri:
   feather:
   shadergraph:
+  particles:
   docs:
   vscode-extension:
 
@@ -34,6 +35,7 @@ Examples:
   tauri: update file permissions
   feather: update repo structure
   shadergraph: updates to the shader graph
+  particles: Particles system
   docs: add contribution guidelines
   vscode-extension: update extension manifest
 EOF

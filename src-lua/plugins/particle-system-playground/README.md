@@ -168,17 +168,19 @@ function love.draw()
   particleEffect.draw()
 end
 
-particleEffect.emit({
+particleEffect.play({
   x = 400,
   y = 300,
   r = 0,
-  amount = 24,
+  loop = false,
 })
 ```
 
-Generated modules return `{ init, update, draw, emit, release }`. `init()` creates all exported emitters, applies their ParticleSystem settings, runs any kick-start steps, emits configured startup bursts, embeds the saved timeline, and returns a `particles` table with composite position and emitter metadata.
+Generated modules return `{ init, update, draw, play, pause, stop, setLoop, isLooping, emit, release }`. `init()` creates all exported emitters, applies their ParticleSystem settings, runs any kick-start steps, emits configured startup bursts, embeds the saved timeline, and returns a `particles` table with composite position and emitter metadata.
 
-`emit(payload)` expects a `ParticlePayload` table with `x`, `y`, `r`, and `amount`. It resets/restarts enabled exported emitters, resets timeline time to `0`, and starts scheduled clips/bursts. `update(dt)` advances timeline playback and particle systems. Non-looping exports stop scheduling at the timeline duration; looping exports wrap and restart emitter lifetimes each cycle without clearing existing particle-life tails. Disabled emitters stay in the exported metadata and are skipped by `update`, `draw`, and `emit`.
+`play(payload)` expects a `ParticlePayload` table with optional `x`, `y`, `r`, `loop`, and `systemIndex`. It resets/restarts enabled exported emitters, resets timeline time to `0`, and starts the authored timeline exactly as it plays in the editor. Clip burst counts and continuous emission are controlled by the saved timeline and emitter properties, not by the payload. `r` is an optional direction offset added to authored emitter/timeline directions; omit it or pass `0` to match the editor. `loop` overrides the exported timeline loop setting for that play call; omit it to use the saved timeline default. `setLoop(true)` and `setLoop(false)` change the active override while playback is running, `setLoop(nil)` clears it back to the saved default, and `isLooping()` returns the resolved current loop state. `emit(payload)` remains as a compatibility alias for `play(payload)`. `pause()` stops timeline advancement without clearing particles, and `stop(resetParticles)` resets the playhead and optionally clears live particles. `update(dt)` advances timeline playback and particle systems. Non-looping exports stop scheduling at the timeline duration; looping exports wrap and restart emitter lifetimes each cycle without clearing existing particle-life tails. Disabled emitters stay in the exported metadata and are skipped by `update`, `draw`, and `play`.
+
+Timeline easing and lane application are exported from the same shared Lua timeline runtime used by the plugin preview path. Scale-style lanes clamp negative overshoot to `0`, and opacity clamps to `0..1`, so elastic/back curves remain expressive without producing invalid particle sizes or alpha.
 
 ZIP export returns `init.lua` and any available texture assets. Shader source is embedded in `init.lua` as Lua strings so generated modules do not need to read `.glsl` files at runtime. Imported texture bytes are preserved for ZIP output. Game-path texture assets are read through `love.filesystem.read` when possible.
 
