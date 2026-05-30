@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an opt-in Feel Inspector plugin for feel.lua sequences, active plays, targets, recent events, and LOVE adapter state.
 - Added Debugger Profiler Probes so source gutter markers can start, stop, or snapshot the core profiler without adding a second Lua debug hook.
 - Added Debugger Profile Function probes that automatically wrap supported global/table functions for core Profiler captures.
+- Added exact Profiler invocation samples and a Run Comparison drawer for comparing individual executions against A/B, previous, first, best, or median baselines.
 
 ### Changed
 
@@ -71,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
 - Runtime Snapshot is now opt-in, disabled by default, and uses a low-frequency live push interval when enabled.
 - Profiler is now a core Feather runtime service available as `DEBUGGER.profiler`, with the old profiler plugin path removed and captures idle by default until explicitly started.
+- Reworked the Profiler tab into a capture workspace with Record/Finish capture controls, named snapshots, and hotspot bars for the highest-cost instrumented functions.
+- Profiler command and debugger-probe state uploads are now deferred onto Feather's runtime update lane so stop/snapshot probes do not serialize large captures inside the profiled call.
+- Profiler run strips are now zoomable and horizontally scroll inside the Run Comparison drawer instead of widening the drawer content.
 
 ### Fixed
 
@@ -143,6 +147,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused log-history coverage and app e2e coverage for restoring saved session logs.
 - Added focused and app e2e reconnect coverage for remembered sessions, pending config handshakes, and persisted session state.
 - Added app e2e coverage for Performance Profiler filter controls at constrained desktop widths.
+- Expanded app e2e coverage for the Profiler capture workspace, including Record/Finish capture, named snapshots, hotspot focus, and constrained-width controls.
+- Expanded Lua and app e2e coverage for exact Profiler invocation samples, sample caps, debugger wrap samples, and run comparison drawer behavior.
 - Added app e2e coverage for the constrained-width Logs toolbar layout.
 - Added app e2e coverage for grouped sidebar navigation, pinned tool persistence, Settings pin controls, and hidden pinned tools.
 - Added showcase e2e and focused settings coverage for Shader Graph collapsible node palette defaults, persistence, search, and empty states.

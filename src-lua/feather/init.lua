@@ -589,7 +589,7 @@ function Feather:__handleCommand(msg)
     self.runtimeSuspended = suspended
     if suspended and self.profiler then
       self.profiler:stop()
-      self:__pushProfiler(true)
+      self:__scheduleProfilerPush(true)
     end
     if not suspended then
       self:__sendHello()
@@ -614,9 +614,9 @@ function Feather:__handleCommand(msg)
   elseif msg.type == "cmd:log" and msg.action == "toggle-screenshots" then
     self:toggleScreenshots(not self.featherLogger.captureScreenshot)
   elseif msg.type == "cmd:profiler" then
-    local state, err = self.profiler:handleCommand(msg.action, msg.params or {})
-    if state then
-      self:__pushProfiler(true)
+    local ok, err = self.profiler:handleCommand(msg.action, msg.params or {})
+    if ok then
+      self:__scheduleProfilerPush(true)
     else
       self:__sendWs(json.encode({
         type = "profiler:error",
@@ -917,22 +917,50 @@ function Feather:__pushPerformance(dt)
   }))
 end
 
---- Push profiler state when it is dirty or recording.
+function Feather:__profilerPushNow()
+  return love and love.timer and love.timer.getTime and love.timer.getTime() or os.clock()
+end
+
+--- Schedule profiler state for a later runtime update.
 ---@param force boolean|nil
-function Feather:__pushProfiler(force)
+function Feather:__scheduleProfilerPush(force)
   if not self.profiler then
     return
   end
-  local now = love and love.timer and love.timer.getTime and love.timer.getTime() or os.clock()
-  if not force and not self.profiler:shouldPush(now) then
-    return
+
+  self._profilerPushQueued = true
+  self._profilerPushForce = self._profilerPushForce or force == true
+  self._profilerPushDueAt = self._profilerPushDueAt or (self:__profilerPushNow() + 0.05)
+end
+
+--- Push profiler state when it is dirty or recording.
+---@param force boolean|nil
+function Feather:__pushProfiler(force)
+  return self:__flushProfilerPush(force)
+end
+
+function Feather:__flushProfilerPush(force)
+  if not self.profiler then
+    return false
+  end
+  local now = self:__profilerPushNow()
+  local forcePush = force == true or self._profilerPushForce == true
+  if self._profilerPushQueued and not forcePush and self._profilerPushDueAt and now < self._profilerPushDueAt then
+    return false
+  end
+  if not forcePush and not self.profiler:shouldPush(now) then
+    return false
   end
   self:__sendWs(json.encode({
     type = "profiler",
     session = self.sessionId,
     data = self.profiler:getState(),
   }))
+  self._profilerPushQueued = false
+  self._profilerPushForce = false
+  self._profilerPushDueAt = nil
   self.profiler:markPushed(now)
+  return true
 end
 
 --- Push current observer values to the desktop.
@@ -1170,6 +1198,10 @@ function Feather:update(dt)
   end
 
   -- Push-based data delivery: only after handshake is complete
+  if self.wsConnected and self.__connState == "connected" and self._profilerPushQueued then
+    self:__flushProfilerPush(false)
+  end
+
   if self.runtimeSuspended then
     return
   end

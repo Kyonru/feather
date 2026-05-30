@@ -138,7 +138,7 @@ Live session logs are also cached locally in the desktop app. Reopening Feather 
 
 The **Performance** page has a **Health** tab for live FPS, frame-time, memory, disk, draw-call, canvas-switch, shader-switch, and texture-memory charts. Use pause/follow when a hitch happens, inspect recent spikes, then export the visible JSON window if you need to compare runs.
 
-Use the core profiler in the **Performance → Profiler** tab for instrumented hot paths. It is available in every debug session and stays idle until you press **Start** or call `DEBUGGER.profiler:start()`:
+Use the core profiler in the **Performance → Profiler** tab for instrumented hot paths. It is available in every debug session and stays idle until you press **Record Capture** or call `DEBUGGER.profiler:start()`:
 
 ```lua
 local updateWorld = DEBUGGER.profiler:wrap("World:update", updateWorld)
@@ -149,7 +149,7 @@ DEBUGGER.profiler:begin("physics.step")
 DEBUGGER.profiler:finish("physics.step")
 ```
 
-The profiler uses explicit instrumentation only. The desktop can start/stop captures, group rows by name prefix, hide one-call entries, filter rows, sort by percent/total/average/max/calls, save before/after snapshots, compare diffs, and export JSON.
+The profiler uses explicit instrumentation only. The desktop capture workspace can record/finish captures, show top hotspots, open a per-function run comparison drawer with a zoomable run strip, group rows by name prefix, hide one-call entries, filter rows, sort by percent/total/average/max/calls, save named snapshots, compare aggregate diffs, and export JSON. Capture uploads are deferred onto Feather's runtime update lane so stop/snapshot probes do not serialize large profiler payloads inside the measured function.
 
 Debugger profiler probes let you control those captures from source lines. Add stopwatch markers in the **Debugger** gutter to start, stop, or snapshot the core profiler without pausing execution, or use **Profile function here** on supported global/table function lines to install a `wrap` automatically; the results stream into **Performance -> Profiler**.
 

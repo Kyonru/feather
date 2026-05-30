@@ -19,6 +19,15 @@ export type ProfilerRow = {
   avgTime?: string;
   minTime?: string;
   maxTime?: string;
+  samples?: ProfilerInvocationSample[];
+};
+
+export type ProfilerInvocationSample = {
+  id: number;
+  index: number;
+  startedAt: number;
+  endedAt: number;
+  durationRaw: number;
 };
 
 export type ProfilerSnapshot = {

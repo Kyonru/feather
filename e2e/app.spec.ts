@@ -1881,8 +1881,9 @@ test('performance and core profiler degraded matrix handles partial samples', as
   await expectNoBrokenText(page);
 
   await page.getByRole('tab', { name: 'Profiler' }).click();
-  await expect(page.getByRole('button', { name: 'Start' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Record Capture' })).toBeVisible();
   await expect(page.getByText('No profiler samples collected yet')).toBeVisible();
+  await expect(page.getByText('No hotspots yet')).toBeVisible();
   await expectNoBrokenText(page);
   await expectNarrowStable(page, 'performance-profiler-empty-narrow.png', ['No profiler samples collected yet']);
 });
@@ -1894,7 +1895,7 @@ test('core profiler ignores legacy disabled plugin config', async ({ page }) => 
   await page.getByRole('button', { name: /Demo Session/ }).click();
   await page.getByRole('tab', { name: 'Profiler' }).click();
 
-  await expect(page.getByRole('button', { name: 'Start' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Record Capture' })).toBeVisible();
   await expect(page.getByText('No profiler samples collected yet')).toBeVisible();
   await expectNoBrokenText(page);
 });
@@ -1945,6 +1946,16 @@ test('profiler filters wrap without horizontal overflow', async ({ page }) => {
   await page.getByRole('tab', { name: 'Profiler' }).click();
   const filters = page.locator('#filters-container-row');
 
+  await expect(page.getByTestId('profiler-capture-workspace')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Finish Capture' })).toBeVisible();
+  await expect(page.getByTestId('profiler-hotspots')).toBeVisible();
+  await expect(page.getByTestId('profiler-hotspot-game.update')).toBeVisible();
+  await page.getByTestId('profiler-hotspot-effects.shader.pass').click();
+  await expect(page.getByTestId('profiler-run-comparison-drawer')).toBeVisible();
+  await expect(page.getByPlaceholder('Search functions...')).toHaveValue('effects.shader.pass');
+  await expect(page.getByRole('cell', { name: 'game.update' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.getByPlaceholder('Search functions...').fill('');
   await expect(filters).toBeVisible();
   await expect(page.getByPlaceholder('Search functions...')).toBeVisible();
   await expect(page.getByLabel('Profiler group filter')).toBeVisible();
@@ -1974,11 +1985,114 @@ test('profiler filters wrap without horizontal overflow', async ({ page }) => {
   expect(controlMetrics.every(({ top }) => top >= 0)).toBe(true);
   const controlHeights = controlMetrics.map(({ height }) => height);
   expect(Math.max(...controlHeights) - Math.min(...controlHeights)).toBeLessThanOrEqual(2);
-  const firstRowTops = controlMetrics.slice(0, 4).map(({ top }) => top);
-  const secondRowTops = controlMetrics.slice(4).map(({ top }) => top);
-  expect(Math.max(...firstRowTops) - Math.min(...firstRowTops)).toBeLessThanOrEqual(1);
+  expect(controlMetrics[0].top).toBeLessThan(controlMetrics[1].top);
+  const secondRowTops = controlMetrics.slice(1, 5).map(({ top }) => top);
+  const thirdRowTops = controlMetrics.slice(5).map(({ top }) => top);
   expect(Math.max(...secondRowTops) - Math.min(...secondRowTops)).toBeLessThanOrEqual(1);
+  expect(Math.max(...thirdRowTops) - Math.min(...thirdRowTops)).toBeLessThanOrEqual(1);
   await expectNoBrokenText(page);
+});
+
+test('profiler run comparison drawer compares exact function executions', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/performance');
+  await seedHealthySessionConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    const samples = [
+      { id: 1, index: 1, startedAt: 0, endedAt: 0.0018, durationRaw: 0.0018 },
+      { id: 2, index: 2, startedAt: 0.01, endedAt: 0.0111, durationRaw: 0.0011 },
+      { id: 3, index: 3, startedAt: 0.02, endedAt: 0.0242, durationRaw: 0.0042 },
+      ...Array.from({ length: 45 }, (_, index) => {
+        const run = index + 4;
+        const startedAt = run * 0.01;
+        const durationRaw = 0.0015 + run * 0.00001;
+        return { id: run, index: run, startedAt, endedAt: startedAt + durationRaw, durationRaw };
+      }),
+    ];
+    const row = {
+      name: 'love.keypressed',
+      group: 'love',
+      percent: 72,
+      callsPerSecond: 12,
+      calls: 3,
+      totalTimeRaw: 0.0071,
+      totalTime: '7.100 ms',
+      avgTimeRaw: 0.002366,
+      avgTime: '2.366 ms',
+      minTimeRaw: 0.0011,
+      minTime: '1.100 ms',
+      maxTimeRaw: 0.0042,
+      maxTime: '4.200 ms',
+      samples,
+    };
+    client?.setQueryData(['demo', 'profiler'], {
+      type: 'profiler',
+      data: [
+        row,
+        {
+          name: 'aggregate.only',
+          group: 'debug',
+          percent: 28,
+          callsPerSecond: 4,
+          calls: 2,
+          totalTimeRaw: 0.002,
+          totalTime: '2.000 ms',
+          avgTimeRaw: 0.001,
+          avgTime: '1.000 ms',
+          minTimeRaw: 0.0008,
+          minTime: '0.800 ms',
+          maxTimeRaw: 0.0012,
+          maxTime: '1.200 ms',
+        },
+      ],
+      recording: false,
+      captureElapsed: 1.5,
+      totalCapturedTime: 0.0091,
+      snapshots: [],
+    });
+  });
+
+  await page.getByRole('tab', { name: 'Profiler' }).click();
+  await page.getByTestId('profiler-hotspot-love.keypressed').click();
+  await expect(page.getByTestId('profiler-run-comparison-drawer')).toBeVisible();
+  await expect(page.getByTestId('profiler-run-comparison-drawer').getByRole('heading', { name: 'love.keypressed' })).toBeVisible();
+  const runStrip = page.getByTestId('profiler-run-strip-scroll');
+  await expect(runStrip).toBeVisible();
+  await expect.poll(() => runStrip.evaluate((element) => element.scrollWidth > element.clientWidth + 20)).toBe(true);
+  const initialRunStripWidth = await runStrip.evaluate((element) => element.scrollWidth);
+  await page.getByLabel('Zoom in run strip').click();
+  await expect.poll(() => runStrip.evaluate((element) => element.scrollWidth)).toBeGreaterThan(initialRunStripWidth);
+  await expect
+    .poll(async () =>
+      runStrip.evaluate((element) => {
+        element.scrollLeft = element.scrollWidth;
+        return element.scrollLeft;
+      }),
+    )
+    .toBeGreaterThan(0);
+  await page.getByTestId('profiler-run-sample-1').click();
+  await page.getByTestId('profiler-run-sample-3').click();
+  await expect(page.getByTestId('profiler-run-comparison-summary')).toContainText('Run 1 -> Run 3');
+  await expect(page.getByTestId('profiler-run-comparison-summary')).toContainText('Delta +2.400 ms');
+  await expect(page.getByTestId('profiler-run-comparison-summary')).toContainText('+133.3%');
+  await expect(page.getByTestId('profiler-run-comparison-summary')).toContainText('2.33x slower');
+
+  await page.getByLabel('Profiler run baseline').click();
+  await page.getByRole('option', { name: 'Median' }).click();
+  await expect(page.getByTestId('profiler-run-comparison-summary')).toContainText('Median -> Run 3');
+  await page.getByLabel('Profiler run baseline').click();
+  await page.getByRole('option', { name: 'Best' }).click();
+  await expect(page.getByTestId('profiler-run-comparison-summary')).toContainText('Run 2 -> Run 3');
+  await page.keyboard.press('Escape');
+  await page.getByPlaceholder('Search functions...').fill('');
+
+  await page.getByTestId('profiler-row-aggregate.only').click();
+  await expect(page.getByTestId('profiler-run-comparison-drawer')).toBeVisible();
+  await expect(page.getByText('Aggregate-only profiler row')).toBeVisible();
 });
 
 test('profiler action responses refresh visible capture data', async ({ page }) => {
@@ -1988,7 +2102,35 @@ test('profiler action responses refresh visible capture data', async ({ page }) 
   await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
 
   await page.getByRole('tab', { name: 'Profiler' }).click();
-  await page.getByRole('button', { name: 'Stop' }).click();
+  await page.getByRole('button', { name: 'Record Capture' }).click();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+          (item: { message?: { type?: string; action?: string } }) =>
+            item.message?.type === 'cmd:profiler' && item.message.action === 'start',
+        ).length;
+      }),
+    )
+    .toBeGreaterThan(0);
+
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_E2E_TAURI__.emitMessage('live-game-session', {
+      type: 'profiler',
+      data: {
+        type: 'profiler',
+        data: [],
+        recording: true,
+        captureElapsed: 0.3,
+        totalCapturedTime: 0,
+        snapshots: [],
+      },
+    });
+  });
+  await page.getByRole('button', { name: 'Finish Capture' }).click();
 
   await expect
     .poll(async () =>
@@ -2033,8 +2175,58 @@ test('profiler action responses refresh visible capture data', async ({ page }) 
     });
   });
 
-  await expect(page.getByText('Stopped')).toBeVisible();
-  await expect(page.getByText('game.update')).toBeVisible();
+  await page.getByRole('button', { name: 'Save Snapshot' }).click();
+  await expect(page.getByRole('dialog', { name: 'Save Profiler Snapshot' })).toBeVisible();
+  await page.getByLabel('Snapshot label').fill('Regression capture');
+  await page.getByRole('dialog', { name: 'Save Profiler Snapshot' }).getByRole('button', { name: 'Save Snapshot' }).click();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? [])
+          .filter(
+            (item: { message?: { type?: string; action?: string; params?: { label?: string } } }) =>
+              item.message?.type === 'cmd:profiler' && item.message.action === 'snapshot',
+          )
+          .at(-1)?.message?.params?.label;
+      }),
+    )
+    .toBe('Regression capture');
+
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_E2E_TAURI__.emitMessage('live-game-session', {
+      type: 'profiler',
+      data: {
+        type: 'profiler',
+        data: [
+          {
+            name: 'game.update',
+            group: 'game',
+            percent: 100,
+            callsPerSecond: 60,
+            calls: 120,
+            totalTimeRaw: 0.004,
+            totalTime: '4.000 ms',
+            avgTimeRaw: 0.000033,
+            avgTime: '0.033 ms',
+            minTimeRaw: 0.00002,
+            minTime: '0.020 ms',
+            maxTimeRaw: 0.00009,
+            maxTime: '0.090 ms',
+          },
+        ],
+        recording: false,
+        captureElapsed: 1.2,
+        totalCapturedTime: 0.004,
+        snapshots: [],
+      },
+    });
+  });
+
+  await expect(page.getByText('Capture stopped')).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'game.update' })).toBeVisible();
   await expect(page.getByRole('cell', { name: '4.000 ms' })).toBeVisible();
   await expectNoBrokenText(page);
 });

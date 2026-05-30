@@ -13,6 +13,8 @@ do
 end
 
 local DEFAULT_PUSH_INTERVAL = 0.25
+local DEFAULT_MAX_SAMPLES_PER_ENTRY = 256
+local DEFAULT_MAX_SAMPLES_TOTAL = 5000
 
 ---@class FeatherProfilerEntry
 ---@field name string
@@ -23,6 +25,7 @@ local DEFAULT_PUSH_INTERVAL = 0.25
 ---@field maxTime number
 ---@field depth number
 ---@field activeStart number|nil
+---@field samples table[]
 
 ---@class FeatherProfiler
 ---@field entries table<string, FeatherProfilerEntry>
@@ -34,6 +37,8 @@ local DEFAULT_PUSH_INTERVAL = 0.25
 ---@field captureStartedAt number
 ---@field captureElapsed number
 ---@field pushInterval number
+---@field maxSamplesPerEntry number
+---@field maxSamplesTotal number
 local FeatherProfiler = Class({
   init = function(self, config)
     config = config or {}
@@ -47,6 +52,10 @@ local FeatherProfiler = Class({
     self.captureStartedAt = gettime()
     self.captureElapsed = 0
     self.pushInterval = config.pushInterval or DEFAULT_PUSH_INTERVAL
+    self.maxSamplesPerEntry = config.maxSamplesPerEntry or DEFAULT_MAX_SAMPLES_PER_ENTRY
+    self.maxSamplesTotal = config.maxSamplesTotal or DEFAULT_MAX_SAMPLES_TOTAL
+    self.sampleSequence = 0
+    self.sampleTotal = 0
     self._dirty = true
     self._lastPushAt = 0
   end,
@@ -93,17 +102,70 @@ function FeatherProfiler:_ensureEntry(name)
       maxTime = 0,
       depth = 0,
       activeStart = nil,
+      samples = {},
     }
     self.order[#self.order + 1] = name
   end
   return self.entries[name]
 end
 
-function FeatherProfiler:_recordEntry(entry, elapsed)
+function FeatherProfiler:_removeOldestSample()
+  local oldestEntry
+  local oldestIndex
+  local oldestId
+  for _, entry in pairs(self.entries) do
+    local sample = entry.samples and entry.samples[1]
+    if sample and (not oldestId or sample.id < oldestId) then
+      oldestEntry = entry
+      oldestIndex = 1
+      oldestId = sample.id
+    end
+  end
+
+  if oldestEntry and oldestIndex then
+    table.remove(oldestEntry.samples, oldestIndex)
+    self.sampleTotal = math.max(0, (self.sampleTotal or 0) - 1)
+    return true
+  end
+  return false
+end
+
+function FeatherProfiler:_appendSample(entry, index, elapsed, startedAt, endedAt)
+  if self.maxSamplesPerEntry <= 0 or self.maxSamplesTotal <= 0 then
+    return
+  end
+
+  entry.samples = entry.samples or {}
+  while #entry.samples >= self.maxSamplesPerEntry do
+    table.remove(entry.samples, 1)
+    self.sampleTotal = math.max(0, (self.sampleTotal or 0) - 1)
+  end
+
+  self.sampleSequence = (self.sampleSequence or 0) + 1
+  entry.samples[#entry.samples + 1] = {
+    id = self.sampleSequence,
+    index = index,
+    startedAt = startedAt,
+    endedAt = endedAt,
+    durationRaw = elapsed,
+  }
+  self.sampleTotal = (self.sampleTotal or 0) + 1
+
+  while self.sampleTotal > self.maxSamplesTotal do
+    if not self:_removeOldestSample() then
+      break
+    end
+  end
+end
+
+function FeatherProfiler:_recordEntry(entry, elapsed, startedAt, endedAt)
   if not self.recording then
     return
   end
 
+  endedAt = endedAt or gettime()
+  startedAt = startedAt or (endedAt - elapsed)
+  local callIndex = entry.calls + 1
   entry.calls = entry.calls + 1
   entry.totalTime = entry.totalTime + elapsed
   if elapsed < entry.minTime then
@@ -112,6 +174,7 @@ function FeatherProfiler:_recordEntry(entry, elapsed)
   if elapsed > entry.maxTime then
     entry.maxTime = elapsed
   end
+  self:_appendSample(entry, callIndex, elapsed, startedAt, endedAt)
   self:_markDirty()
 end
 
@@ -135,9 +198,11 @@ function FeatherProfiler:_makeWrapper(name, fn)
 
     entry.depth = entry.depth - 1
     if entry.depth == 0 and entry.activeStart then
-      local elapsed = gettime() - entry.activeStart
+      local startedAt = entry.activeStart
+      local endedAt = gettime()
+      local elapsed = endedAt - startedAt
       entry.activeStart = nil
-      self:_recordEntry(entry, elapsed)
+      self:_recordEntry(entry, elapsed, startedAt, endedAt)
     end
 
     if not ok then
@@ -247,18 +312,34 @@ function FeatherProfiler:_wrapManagedLoveCallback(target, callbackName, label)
   pluginManager._loveCallbackOriginals = pluginManager._loveCallbackOriginals or {}
 
   local currentLoveCallback = love[callbackName]
+  local existing = self.targetWrappers[target]
   if currentLoveCallback ~= callbackWrapper then
-    if type(currentLoveCallback) ~= "function" then
-      return false, currentLoveCallback == nil and "target missing" or "target not function", target
+    local isFeatherDrawWrapper = callbackName == "draw"
+      and self.feather
+      and self.feather.assets
+      and self.feather.assets.isDrawWrapper
+      and self.feather.assets:isDrawWrapper(currentLoveCallback)
+    if isFeatherDrawWrapper and pluginManager._loveCallbackOriginals[callbackName] ~= nil then
+      love[callbackName] = callbackWrapper
+    else
+      if type(currentLoveCallback) ~= "function" then
+        return false, currentLoveCallback == nil and "target missing" or "target not function", target
+      end
+      pluginManager._loveCallbackOriginals[callbackName] = currentLoveCallback
+      love[callbackName] = callbackWrapper
     end
-    pluginManager._loveCallbackOriginals[callbackName] = currentLoveCallback
-    love[callbackName] = callbackWrapper
   end
 
   local current = pluginManager._loveCallbackOriginals[callbackName]
-  local existing = self.targetWrappers[target]
   if existing and existing.mode == "love-callback" and current == existing.wrapper then
     return true, nil, target
+  end
+  if current == callbackWrapper then
+    if existing and existing.mode == "love-callback" and type(existing.original) == "function" then
+      current = existing.original
+    else
+      return false, "target is Feather callback dispatcher", target
+    end
   end
   if type(current) ~= "function" then
     return false, current == nil and "target missing" or "target not function", target
@@ -437,9 +518,11 @@ function FeatherProfiler:finish(name)
 
   entry.depth = entry.depth - 1
   if entry.depth == 0 and entry.activeStart then
-    local elapsed = gettime() - entry.activeStart
+    local startedAt = entry.activeStart
+    local endedAt = gettime()
+    local elapsed = endedAt - startedAt
     entry.activeStart = nil
-    self:_recordEntry(entry, elapsed)
+    self:_recordEntry(entry, elapsed, startedAt, endedAt)
   end
   return true
 end
@@ -460,7 +543,7 @@ function FeatherProfiler:stop()
   local now = gettime()
   for _, entry in pairs(self.entries) do
     if entry.depth > 0 and entry.activeStart then
-      self:_recordEntry(entry, math.max(0, now - entry.activeStart))
+      self:_recordEntry(entry, math.max(0, now - entry.activeStart), entry.activeStart, now)
       entry.activeStart = nil
     end
     entry.depth = 0
@@ -478,8 +561,11 @@ function FeatherProfiler:reset()
     entry.maxTime = 0
     entry.depth = 0
     entry.activeStart = nil
+    entry.samples = {}
   end
   self.snapshots = {}
+  self.sampleSequence = 0
+  self.sampleTotal = 0
   self.captureElapsed = 0
   self.captureStartedAt = gettime()
   self:_markDirty()
@@ -509,6 +595,19 @@ function FeatherProfiler:_buildRows()
     local entry = self.entries[name]
     if entry and entry.calls > 0 then
       local avgTime = entry.totalTime / entry.calls
+      local samples
+      if entry.samples and #entry.samples > 0 then
+        samples = {}
+        for index, sample in ipairs(entry.samples) do
+          samples[index] = {
+            id = sample.id,
+            index = sample.index,
+            startedAt = sample.startedAt,
+            endedAt = sample.endedAt,
+            durationRaw = sample.durationRaw,
+          }
+        end
+      end
       rows[#rows + 1] = {
         name = entry.name,
         group = entry.group or groupForName(entry.name),
@@ -523,6 +622,7 @@ function FeatherProfiler:_buildRows()
         maxTime = formatTime(entry.maxTime),
         percent = totalCapturedTime > 0 and (entry.totalTime / totalCapturedTime) * 100 or 0,
         callsPerSecond = captureDuration > 0 and entry.calls / captureDuration or 0,
+        samples = samples,
       }
     end
   end
@@ -599,7 +699,7 @@ function FeatherProfiler:handleCommand(action, params)
   elseif action ~= "refresh" then
     return nil, "Unknown profiler action: " .. tostring(action)
   end
-  return self:getState()
+  return true
 end
 
 function FeatherProfiler:shouldPush(now)

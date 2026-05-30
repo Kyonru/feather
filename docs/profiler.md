@@ -13,14 +13,18 @@ DEBUGGER.profiler:finish("physics.step")
 
 Use `wrap(name, fn)` for functions you want to measure repeatedly, or pair `begin(name)` and `finish(name)` around scoped work. Names are grouped by their first `.` or `:` prefix, so `World:update` appears in the `World` group.
 
-The desktop Profiler tab can start, stop, reset, snapshot, diff, filter, sort, and export captures. While stopped, wrapped functions call through normally without collecting timings.
+The desktop Profiler tab is organized around capture sessions. Use **Record Capture** to start collecting instrumented samples, **Finish Capture** to freeze the run, and **Record New Capture** to reset and start fresh. The capture header summarizes elapsed time, total measured work, sample count, and the hottest function.
+
+The **Hotspots** panel highlights the top functions by captured time before you dive into the table. Click a hotspot to focus the result list, save named snapshots for before/after comparisons, then use the diff selector, filters, sorting, and JSON export for deeper analysis. While stopped, wrapped functions call through normally without collecting timings. Large profiler payloads are deferred onto Feather's runtime update lane, so stop and snapshot actions do not serialize the capture inside the profiled function or debugger line hook.
+
+Click a hotspot or table row to open the **Run Comparison** drawer for that function. Feather keeps a bounded history of exact invocation samples for the current capture, so you can compare two runs directly, compare a run against the previous/first/best/median baseline, and see delta, percent change, ratio, and median distance. The run strip has its own zoom and horizontal scroll controls so long captures stay inspectable without widening the drawer. Snapshot diffs remain aggregate-only; detailed run strips apply to the current capture until you reset or start a new capture.
 
 ## Debugger probes
 
 The Debugger source view can start, stop, or snapshot the profiler from specific source lines. Use the stopwatch gutter beside breakpoints to add a probe:
 
 - **Start profiling here** starts `DEBUGGER.profiler`.
-- **Stop profiling here** stops it and pushes the latest profiler state.
+- **Stop profiling here** stops it and schedules the latest profiler state for upload.
 - **Snapshot here** records a named snapshot without pausing execution.
 - **Profile function here** installs a wrapper for supported global/table functions, equivalent to assigning `target = DEBUGGER.profiler:wrap(label, target)`.
 

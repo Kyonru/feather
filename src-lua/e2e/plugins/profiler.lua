@@ -21,6 +21,19 @@ local function lastMessageOfType(messages, messageType)
   return nil
 end
 
+local function countSamples(state)
+  local total = 0
+  for _, row in ipairs(state.data or {}) do
+    total = total + #(row.samples or {})
+  end
+  return total
+end
+
+local function flushDeferredProfiler(feather)
+  feather._profilerPushDueAt = 0
+  feather:__flushProfilerPush(false)
+end
+
 local function currentSourceFile(debugger, fn)
   local info = debug.getinfo(fn, "S")
   return debugger:_normalizeFile(info.source or info.short_src or "")
@@ -65,6 +78,12 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   assertTruthy(type(row.maxTimeRaw) == "number", "profiler row includes raw maximum time")
   assertTruthy(type(row.percent) == "number", "profiler row includes percent of captured time")
   assertTruthy(type(row.callsPerSecond) == "number", "profiler row includes calls per second")
+  assertEqual(#(row.samples or {}), 1, "profiler row includes exact invocation samples")
+  assertEqual(row.samples[1].index, 1, "profiler sample includes per-function run index")
+  assertTruthy(type(row.samples[1].id) == "number", "profiler sample includes stable id")
+  assertTruthy(type(row.samples[1].startedAt) == "number", "profiler sample includes start time")
+  assertTruthy(type(row.samples[1].endedAt) == "number", "profiler sample includes end time")
+  assertTruthy(type(row.samples[1].durationRaw) == "number", "profiler sample includes raw duration")
   assertTruthy(type(state.captureElapsed) == "number", "profiler response includes capture elapsed")
   assertTruthy(type(state.totalCapturedTime) == "number", "profiler response includes total captured time")
 
@@ -79,12 +98,55 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   local scopedRow = findRow(state, "physics.step")
   assertTruthy(scopedRow, "profiler begin/finish records scoped samples")
   assertEqual(scopedRow.group, "physics", "profiler scoped samples include prefix group")
+  assertEqual(#(scopedRow.samples or {}), 1, "profiler begin/finish records exact invocation samples")
+
+  local recursive
+  recursive = profiler:wrap("test.recursive", function(depth)
+    if depth > 0 then
+      return recursive(depth - 1) + 1
+    end
+    return 1
+  end)
+  assertEqual(recursive(3), 4, "recursive profiled wrapper returns original result")
+  state = profiler:getState()
+  local recursiveRow = findRow(state, "test.recursive")
+  assertEqual(recursiveRow.calls, 1, "recursive wrapped calls record only the outermost sample")
+  assertEqual(#(recursiveRow.samples or {}), 1, "recursive wrapped calls keep one exact invocation sample")
+
+  profiler:reset()
+  profiler.maxSamplesPerEntry = 2
+  profiler.maxSamplesTotal = 3
+  local capA = profiler:wrap("cap.a", function()
+    return true
+  end)
+  local capB = profiler:wrap("cap.b", function()
+    return true
+  end)
+  profiler:start()
+  capA()
+  capA()
+  capA()
+  capA()
+  capB()
+  capB()
+  profiler:stop()
+  state = profiler:getState()
+  assertTruthy(#(findRow(state, "cap.a").samples or {}) <= 2, "profiler enforces per-function sample cap")
+  assertTruthy(countSamples(state) <= 3, "profiler enforces global sample cap")
+  profiler.maxSamplesPerEntry = 256
+  profiler.maxSamplesTotal = 5000
+  profiler:reset()
+  profiler:start()
+  wrapped(20)
+  profiler:begin("physics.step")
+  profiler:finish("physics.step")
 
   profiler:snapshot("Before")
   state = profiler:getState()
   assertTruthy(#state.snapshots >= 1, "profiler response includes snapshot history")
   assertEqual(state.snapshots[1].label, "Before", "profiler snapshot stores named snapshot")
   assertTruthy(state.snapshots[1].rows["test.work"] ~= nil, "profiler snapshot stores rows by name")
+  assertTruthy(state.snapshots[1].rows["test.work"].samples == nil, "profiler snapshots stay aggregate-only")
 
   local unsafe = profiler:wrap("test.crash", function()
     error("profiled failure")
@@ -98,6 +160,7 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   wrapped(30)
   state = profiler:getState()
   assertEqual(findRow(state, "test.work").calls, 1, "profiler stop prevents new samples")
+  assertEqual(#(findRow(state, "test.work").samples or {}), 1, "profiler stop preserves existing exact samples")
 
   local commandMessages = {}
   feather.__connState = "connected"
@@ -108,6 +171,8 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   assertEqual(profiler.recording, true, "cmd:profiler start records through core command")
   wrapped(40)
   feather:__handleCommand({ type = "cmd:profiler", action = "snapshot", params = { label = "After" } })
+  assertEqual(#commandMessages, 0, "profiler command defers state upload")
+  flushDeferredProfiler(feather)
   assertEqual(commandMessages[#commandMessages].type, "profiler", "profiler commands respond with core profiler state")
   for _, message in ipairs(commandMessages) do
     assertTruthy(message.type ~= "feather:hello", "profiler command does not resend config")
@@ -115,12 +180,14 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   end
   feather:__handleCommand({ type = "cmd:runtime", action = "suspend" })
   assertEqual(profiler.recording, false, "runtime suspension stops profiler recording")
-  assertEqual(commandMessages[#commandMessages - 1].type, "profiler", "runtime suspension pushes stopped profiler state")
   assertEqual(commandMessages[#commandMessages].type, "runtime:suspended", "runtime suspension still sends runtime status")
+  flushDeferredProfiler(feather)
+  assertEqual(commandMessages[#commandMessages].type, "profiler", "runtime suspension defers stopped profiler state")
   feather:__handleCommand({ type = "cmd:profiler", action = "start" })
   assertEqual(profiler.recording, false, "suspended runtime rejects profiler start")
   assertEqual(commandMessages[#commandMessages].type, "profiler:error", "suspended profiler start uses profiler error response")
   feather:__handleCommand({ type = "cmd:profiler", action = "reset" })
+  flushDeferredProfiler(feather)
   assertEqual(commandMessages[#commandMessages].type, "profiler", "suspended runtime allows profiler reset")
   feather.runtimeSuspended = false
 
@@ -196,17 +263,22 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   assertEqual(probeFeather.featherDebugger:statusBody().profilerProbeCount, 3, "debugger accepts valid profiler probes")
   assertEqual(#probeFeather.featherDebugger:statusBody().rejectedProfilerProbes, 2, "debugger rejects invalid profiler probes")
 
+  local beforeProbeMessages = #probeMessages
   startProbeTarget()
   assertEqual(probeProfiler.recording, true, "debugger start probe starts profiler recording without pausing")
+  assertEqual(#probeMessages, beforeProbeMessages, "debugger start probe defers profiler state upload")
+  flushDeferredProfiler(probeFeather)
   assertEqual(lastMessageOfType(probeMessages, "profiler").data.recording, true, "debugger start probe pushes profiler state")
   probeWork()
   stopProbeTarget()
   assertEqual(probeProfiler.recording, false, "debugger stop probe stops profiler recording")
   assertEqual(findRow(probeProfiler:getState(), "probe.work").calls, 1, "debugger probe capture records wrapped work")
+  flushDeferredProfiler(probeFeather)
   assertEqual(lastMessageOfType(probeMessages, "profiler").data.recording, false, "debugger stop probe pushes profiler state")
 
   snapshotProbeTarget()
   assertEqual(probeProfiler:getState().snapshots[1].label, "Probe Snapshot", "debugger snapshot probe stores named snapshot")
+  flushDeferredProfiler(probeFeather)
   assertEqual(lastMessageOfType(probeMessages, "profiler").data.snapshots[1].label, "Probe Snapshot", "debugger snapshot probe pushes profiler state")
 
   local originalLoveUpdate = love.update
@@ -226,6 +298,7 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
   love.update(0.2)
   probeProfiler:stop()
   assertEqual(findRow(probeProfiler:getState(), "love.update").calls, 1, "wrapped target records while profiler runs")
+  assertEqual(#(findRow(probeProfiler:getState(), "love.update").samples or {}), 1, "debugger wrap probes record exact invocation samples")
 
   local wrappedLoveUpdate = love.update
   probeFeather:__handleCommand({
@@ -282,7 +355,74 @@ function ProfilerCoreE2E.run(assertEqual, assertTruthy)
     type = "cmd:debugger:set_profiler_probes",
     data = { probes = {} },
   })
+
+  keypressedRan = 0
+  love.keypressed = function(key)
+    if key == "enter" then
+      keypressedRan = keypressedRan + 1
+    end
+  end
+  probeFeather.pluginManager:hookLoveCallbacks()
+  local featherKeypressedDispatcher = love.keypressed
+  probeFeather.pluginManager._loveCallbackOriginals.keypressed = featherKeypressedDispatcher
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = { { file = probeFile, line = startLine, kind = "wrap", target = "love.keypressed" } } },
+  })
+  assertEqual(
+    probeFeather.featherDebugger:statusBody().profilerProbeCount,
+    0,
+    "managed love callback wrap refuses to profile Feather dispatcher as original logic"
+  )
+  love.keypressed = function(key)
+    if key == "enter" then
+      keypressedRan = keypressedRan + 1
+    end
+  end
+  probeFeather.pluginManager:hookLoveCallbacks()
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = { { file = probeFile, line = startLine, kind = "wrap", target = "love.keypressed" } } },
+  })
+  probeProfiler:reset()
+  probeProfiler:start()
+  love.keypressed("enter")
+  probeProfiler:stop()
+  assertEqual(keypressedRan, 1, "managed love callback wrap recovers after dispatcher-only rejection")
+  assertEqual(findRow(probeProfiler:getState(), "love.keypressed").calls, 1, "managed love callback wrap records recovered original logic")
+  probeFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = {} },
+  })
   love.keypressed = originalLoveKeypressed
+
+  local originalLoveDraw = love.draw
+  local drawRan = 0
+  love.draw = function()
+    drawRan = drawRan + 1
+  end
+  local drawFeather = PluginE2EHelper.createFeather({
+    sessionName = "Debugger Profiler Draw Probe E2E",
+    deviceId = "debugger-profiler-draw-probe-e2e",
+    assetPreview = true,
+    plugins = {},
+  })
+  drawFeather.__connState = "connected"
+  local drawProfiler = drawFeather.profiler
+  drawFeather.assets:update(1)
+  assertTruthy(drawFeather.assets:isDrawWrapper(love.draw), "asset preview draw wrapper can sit above Feather dispatcher")
+  drawFeather:__handleCommand({
+    type = "cmd:debugger:set_profiler_probes",
+    data = { probes = { { file = probeFile, line = startLine, kind = "wrap", target = "love.draw" } } },
+  })
+  assertEqual(drawFeather.featherDebugger:statusBody().profilerProbeCount, 1, "debugger accepts love.draw wrap probe with asset preview")
+  drawProfiler:start()
+  love.draw()
+  drawProfiler:stop()
+  assertEqual(drawRan, 1, "managed love.draw wrap preserves game draw logic when asset preview rehooked first")
+  assertEqual(findRow(drawProfiler:getState(), "love.draw").calls, 1, "managed love.draw wrap records when asset preview rehooked first")
+  drawFeather:finish()
+  love.draw = originalLoveDraw
 
   _G.FeatherProfilerProbeTarget = {
     count = 0,

@@ -517,8 +517,8 @@ function FeatherDebugger:_runProfilerProbe(src, line)
     return
   end
 
-  if self.feather.__pushProfiler then
-    self.feather:__pushProfiler(true)
+  if self.feather.__scheduleProfilerPush then
+    self.feather:__scheduleProfilerPush(true)
   end
 end
 
