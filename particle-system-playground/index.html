@@ -507,6 +507,141 @@
   
   
     <li class="md-nav__item">
+      <a href="../session/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../debugger/" class="md-nav__link">
         
   
@@ -920,10 +1055,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_22" >
         
           
-          <label class="md-nav__link" for="__nav_17" id="__nav_17_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_22" id="__nav_22_label" tabindex="0">
             
   
   
@@ -941,8 +1076,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_17">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_22">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1491,34 +1626,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/profiler/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Profiler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../plugins/runtime-snapshot/" class="md-nav__link">
         
   
@@ -1779,6 +1886,7 @@
 <p>Built-in scratch templates include Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, Dust Puff, and Complex Composite. Complex Composite is a five-emitter example with staggered timeline clips for a core pulse, expanding ring, smoke bloom, spark trails, and dust wake.</p>
 <p>Composite preview <code>x</code>/<code>y</code> and preview movement patterns change emitter positions via <code>ParticleSystem:setPosition(...)</code>. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.</p>
 <p>Connected-game scratch preview work is dormant until <strong>Show in Game</strong> is explicitly enabled. Opening the Particle Playground page in Feather does not draw anything in the attached game. Hiding the game preview, leaving the page, switching sessions, or disabling preview sends an inactive signal so the game stops updating and drawing plugin-owned scratch previews. Only the active scratch composite is updated/drawn; switching composites replaces the runtime preview target instead of keeping older composites alive.</p>
+<p>If Feather runtime work is suspended from the session bar while <strong>Show in Game</strong> is already active, the in-game overlay keeps animating from the last payload the game received. Edits in Feather stay local until the runtime is resumed, and <strong>Hide in Game</strong> remains available so the overlay can be cleared without re-enabling the rest of Feather's sampling work. Starting a new connected-game preview while suspended is disabled.</p>
 <p>Scratch composites can pause the plugin-owned preview without changing emitter settings or exported code. Individual emitters can also be disabled; disabled emitters remain in the composite metadata but are skipped by preview update/draw, composite emit/reset actions, and generated runtime modules.</p>
 <h2 id="timeline-preview">Timeline Preview<a class="headerlink" href="#timeline-preview" title="Permanent link">&para;</a></h2>
 <p>The playground includes a 3 second composite timeline for authoring multi-emitter effects like a small video editor. Use the header <strong>Play</strong> action for a quick preview, or open the Timeline tab to edit clips and keyframes. Each emitter appears as a track with a clip that controls when the emitter enters. The selected emitter expands inline to show curated property lanes for common beginner-friendly automation:</p>
@@ -1791,10 +1899,10 @@
 <li>spread</li>
 <li>offset X/Y</li>
 </ul>
-<p>Emitter properties remain the base values. Timeline lanes override or multiply those base values while the preview or exported effect plays. Speed and size lanes are multipliers; emission rate, direction, spread, offsets, and opacity are direct lane values. A clip's <strong>Emit At</strong> time controls when the emitter enters, <strong>Stop At</strong> is the latest time it can create new particles, and <strong>Burst Particles</strong> controls how many particles fire at entry. Drag a clip body to move the emission window, drag its edges to resize it, and use the precision inspector for exact values. Lane keyframes can be added at the playhead or by double-clicking a lane; drag keyframes left/right to retime them and edit exact values in the inspector. Timeline zoom and snap are remembered as editor preferences. Finite <strong>Emitter Lifetime</strong> can stop continuous emission earlier than Stop At; <code>-1</code> keeps emission alive for the whole clip. The emitter-level <strong>Default Burst</strong> value is used as the clip burst fallback. Existing particles keep living after Stop At or Emitter Lifetime according to Particle Life, and the timeline shows that tail as a non-editable extension after the clip. Reordering or deleting emitters keeps each timeline track attached to its emitter instead of leaving timing values behind on the old slot.</p>
+<p>Emitter properties remain the base values. Timeline lanes override or multiply those base values while the preview or exported effect plays. Speed and size lanes are multipliers; emission rate, direction, spread, offsets, and opacity are direct lane values. A clip's <strong>Emit At</strong> time controls when the emitter enters, <strong>Stop At</strong> is the latest time it can create new particles, and <strong>Burst Particles</strong> controls how many particles fire at entry. Drag a clip body to move the emission window, drag its edges to resize it, and use the precision inspector for exact values. Lane keyframes can be added at the playhead or by double-clicking a lane; drag keyframes left/right to retime them and edit exact values in the inspector. Each expanded lane draws a small curve through its keyframes so changes over time are visible on the track. The selected keyframe's <strong>Curve to next key</strong> controls the outgoing segment to the following keyframe, with linear, hold, sine, quad, cubic, quart, expo, back, elastic, and bounce presets. The final key in a lane has no outgoing segment, so its curve selector is inactive. Timeline zoom and snap are remembered as editor preferences. Finite <strong>Emitter Lifetime</strong> can stop continuous emission earlier than Stop At; <code>-1</code> keeps emission alive for the whole clip. The emitter-level <strong>Default Burst</strong> value is used as the clip burst fallback. Existing particles keep living after Stop At or Emitter Lifetime according to Particle Life, and the timeline shows that tail as a non-editable extension after the clip. Reordering or deleting emitters keeps each timeline track attached to its emitter instead of leaving timing values behind on the old slot.</p>
 <p>Stop and Reset Playhead reset playback state, but they do not rewrite the emitter's base rate or lifetime. When playback starts again, the clip window restores the saved emitter lifetime before starting each clip and then mutes emission outside the clip/lifetime intersection.</p>
 <p>Emitter property edits and motion presets update the saved base values even while the timeline preview is paused or muted, so playing the timeline after choosing a preset keeps the authored rate, speed, and acceleration instead of capturing the muted preview state.</p>
-<p>The Timeline tab keeps play, pause, stop, and seek editor-local until <strong>Show in Game</strong> is enabled. In the browser showcase those controls drive the local love.js monitor; in Feather they sync to the connected LÖVE preview only while Show in Game is active. When the game preview is active, timeline controls sync to the connected LÖVE preview while the Timeline tab keeps its own playhead animation smooth between runtime state updates. Timeline automation applies when playback/seek/editing asks for it, not as idle per-frame work for every saved composite. Seeking resets the preview systems and fast-forwards from <code>0</code> to the playhead with capped fixed steps so the canvas matches the authored timeline. Paused timelines mute continuous emission at the playhead so one-shot templates do not keep spawning particles while stopped. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; non-looping timelines stop scheduling at the duration.</p>
+<p>The Timeline tab keeps play, pause, stop, and seek editor-local until <strong>Show in Game</strong> is enabled. In the browser showcase those controls drive the local love.js monitor; in Feather they sync to the connected LÖVE preview only while Show in Game is active and the runtime is not suspended. When the game preview is active, timeline controls sync to the connected LÖVE preview while the Timeline tab keeps its own playhead animation smooth between runtime state updates. Timeline automation applies when playback/seek/editing asks for it, not as idle per-frame work for every saved composite. Seeking resets the preview systems and fast-forwards from <code>0</code> to the playhead with capped fixed steps so the canvas matches the authored timeline. Paused timelines mute continuous emission at the playhead so one-shot templates do not keep spawning particles while stopped. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; non-looping timelines stop scheduling at the duration.</p>
 <p>Game-owned composites support timeline automation best-effort. Feather can adjust <code>ParticleSystem</code> values and emit scheduled bursts, but draw-only behavior such as opacity depends on the game drawing the registered systems.</p>
 <p>Supported preview movement patterns:</p>
 <ul>
@@ -1930,15 +2038,16 @@
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="nv">particleEffect</span><span class="p">.</span><span class="nf">draw</span><span class="p">()</span>
 <a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="kr">end</span>
 <a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nv">particleEffect</span><span class="p">.</span><span class="nf">emit</span><span class="p">({</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nv">particleEffect</span><span class="p">.</span><span class="nf">play</span><span class="p">({</span>
 <a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
 <a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
 <a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">  </span><span class="nv">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">  </span><span class="nv">amount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">24</span><span class="p">,</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">  </span><span class="nv">loop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="p">})</span>
 </code></pre></div>
-<p>Generated modules return <code>{ init, update, draw, emit, release }</code>. <code>init()</code> creates all exported emitters, applies their ParticleSystem settings, runs any kick-start steps, emits configured startup bursts, embeds the saved timeline, and returns a <code>particles</code> table with composite position and emitter metadata.</p>
-<p><code>emit(payload)</code> expects a <code>ParticlePayload</code> table with <code>x</code>, <code>y</code>, <code>r</code>, and <code>amount</code>. It resets/restarts enabled exported emitters, resets timeline time to <code>0</code>, and starts scheduled clips/bursts. <code>update(dt)</code> advances timeline playback and particle systems. Non-looping exports stop scheduling at the timeline duration; looping exports wrap and restart emitter lifetimes each cycle without clearing existing particle-life tails. Disabled emitters stay in the exported metadata and are skipped by <code>update</code>, <code>draw</code>, and <code>emit</code>.</p>
+<p>Generated modules return <code>{ init, update, draw, play, pause, stop, setLoop, isLooping, emit, release }</code>. <code>init()</code> prepares shared assets, prewarms one pooled playback instance, embeds the saved timeline, and returns a <code>particles</code> table with composite position, a compatibility <code>systems</code> alias for the prewarmed/latest playback instance, and active <code>instances</code>.</p>
+<p><code>play(payload)</code> expects a <code>ParticlePayload</code> table with optional <code>x</code>, <code>y</code>, <code>r</code>, <code>loop</code>, and <code>systemIndex</code>. Each call checks out an independent pooled timeline instance, so multiple calls can overlap like separate explosion or hit effects without resetting earlier particles. Texture and shader assets stay shared, and finished one-shot instances are recycled for later plays. Clip burst counts and continuous emission are controlled by the saved timeline and emitter properties, not by the payload. <code>r</code> is an optional direction offset added to authored emitter/timeline directions; omit it or pass <code>0</code> to match the editor. <code>loop</code> overrides the exported timeline loop setting for that play call; omit it to use the saved timeline default. <code>setLoop(true)</code> and <code>setLoop(false)</code> change the active override while playback is running, <code>setLoop(nil)</code> clears it back to the saved default, and <code>isLooping()</code> returns the resolved current loop state. <code>emit(payload)</code> remains as a compatibility alias for <code>play(payload)</code>. <code>pause()</code> stops timeline advancement without clearing particles, and <code>stop(resetParticles)</code> resets the playhead and optionally clears live particles. <code>update(dt)</code> advances all active timeline instances and particle systems. Non-looping exports stop scheduling at the timeline duration; looping exports wrap and restart emitter lifetimes each cycle without clearing existing particle-life tails. Disabled emitters stay in the exported metadata and are skipped by <code>update</code>, <code>draw</code>, and <code>play</code>.</p>
+<p>Timeline easing and lane application are exported from the same shared Lua timeline runtime used by the plugin preview path. Scale-style lanes clamp negative overshoot to <code>0</code>, and opacity clamps to <code>0..1</code>, so elastic/back curves remain expressive without producing invalid particle sizes or alpha.</p>
 <p>ZIP export returns <code>init.lua</code> and any available texture assets. Shader source is embedded in <code>init.lua</code> as Lua strings so generated modules do not need to read <code>.glsl</code> files at runtime. Imported texture bytes are preserved for ZIP output. Game-path texture assets are read through <code>love.filesystem.read</code> when possible.</p>
 <h2 id="shaders">Shaders<a class="headerlink" href="#shaders" title="Permanent link">&para;</a></h2>
 <p>The desktop editor includes built-in particle shader presets such as glow, smoke, sparkle, dissolve, ring, and energy effects. Presets are plain LÖVE pixel shader source and can be edited before applying.</p>

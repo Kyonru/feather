@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://kyonru.github.io/feather/plugins/coroutine-monitor/">
+        <link rel="canonical" href="https://kyonru.github.io/feather/profiler/">
       
       
-        <link rel="prev" href="../config-tweaker/">
+        <link rel="prev" href="../performance/">
       
       
-        <link rel="next" href="../entity-inspector/">
+        <link rel="next" href="../debugger/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Coroutine Monitor - Feather</title>
+        <title>Profiler - Feather</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#coroutine-monitor-plugin" class="md-skip">
+        <a href="#core-profiler" class="md-skip">
           Skip to content
         </a>
       
@@ -94,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Feather" class="md-header__button md-logo" aria-label="Feather" data-md-component="logo">
+    <a href=".." title="Feather" class="md-header__button md-logo" aria-label="Feather" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Coroutine Monitor
+              Profiler
             
           </span>
         </div>
@@ -232,7 +232,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Feather" class="md-nav__button md-logo" aria-label="Feather" data-md-component="logo">
+    <a href=".." title="Feather" class="md-nav__button md-logo" aria-label="Feather" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -289,7 +289,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -363,7 +363,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../cli/" class="md-nav__link">
+      <a href="../cli/" class="md-nav__link">
         
   
   
@@ -391,7 +391,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../packages/" class="md-nav__link">
+      <a href="../packages/" class="md-nav__link">
         
   
   
@@ -426,7 +426,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../vscode-extension/" class="md-nav__link">
+      <a href="../vscode-extension/" class="md-nav__link">
         
   
   
@@ -453,7 +453,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/" class="md-nav__link">
+      <a href="../usage/" class="md-nav__link">
         
   
   
@@ -480,7 +480,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../configuration/" class="md-nav__link">
+      <a href="../configuration/" class="md-nav__link">
         
   
   
@@ -507,7 +507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../session/" class="md-nav__link">
+      <a href="../session/" class="md-nav__link">
         
   
   
@@ -534,7 +534,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../logs/" class="md-nav__link">
+      <a href="../logs/" class="md-nav__link">
         
   
   
@@ -561,7 +561,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../observability/" class="md-nav__link">
+      <a href="../observability/" class="md-nav__link">
         
   
   
@@ -588,7 +588,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../performance/" class="md-nav__link">
+      <a href="../performance/" class="md-nav__link">
         
   
   
@@ -612,10 +612,37 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../profiler/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -631,6 +658,37 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#debugger-probes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debugger probes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -642,7 +700,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../debugger/" class="md-nav__link">
+      <a href="../debugger/" class="md-nav__link">
         
   
   
@@ -669,7 +727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../hot-reload/" class="md-nav__link">
+      <a href="../hot-reload/" class="md-nav__link">
         
   
   
@@ -696,7 +754,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../console/" class="md-nav__link">
+      <a href="../console/" class="md-nav__link">
         
   
   
@@ -723,7 +781,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../assets/" class="md-nav__link">
+      <a href="../assets/" class="md-nav__link">
         
   
   
@@ -750,7 +808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../particle-system-playground/" class="md-nav__link">
+      <a href="../particle-system-playground/" class="md-nav__link">
         
   
   
@@ -777,7 +835,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../shader-graph/" class="md-nav__link">
+      <a href="../shader-graph/" class="md-nav__link">
         
   
   
@@ -804,7 +862,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../standalone-showcase/" class="md-nav__link">
+      <a href="../standalone-showcase/" class="md-nav__link">
         
   
   
@@ -831,7 +889,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../time-travel/" class="md-nav__link">
+      <a href="../time-travel/" class="md-nav__link">
         
   
   
@@ -858,7 +916,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../session-replay/" class="md-nav__link">
+      <a href="../session-replay/" class="md-nav__link">
         
   
   
@@ -885,7 +943,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../recommendations/" class="md-nav__link">
+      <a href="../recommendations/" class="md-nav__link">
         
   
   
@@ -909,20 +967,18 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_22" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_22" >
         
           
           <label class="md-nav__link" for="__nav_22" id="__nav_22_label" tabindex="0">
@@ -943,7 +999,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_22_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_22_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_22">
             <span class="md-nav__icon md-icon"></span>
             
@@ -961,7 +1017,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../plugins/" class="md-nav__link">
         
   
   
@@ -989,7 +1045,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins-ui/" class="md-nav__link">
+      <a href="../plugins-ui/" class="md-nav__link">
         
   
   
@@ -1017,7 +1073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../animation-inspector/" class="md-nav__link">
+      <a href="../plugins/animation-inspector/" class="md-nav__link">
         
   
   
@@ -1045,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../audio-debug/" class="md-nav__link">
+      <a href="../plugins/audio-debug/" class="md-nav__link">
         
   
   
@@ -1073,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../bookmark/" class="md-nav__link">
+      <a href="../plugins/bookmark/" class="md-nav__link">
         
   
   
@@ -1101,7 +1157,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../collision-debug/" class="md-nav__link">
+      <a href="../plugins/collision-debug/" class="md-nav__link">
         
   
   
@@ -1129,7 +1185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../config-tweaker/" class="md-nav__link">
+      <a href="../plugins/config-tweaker/" class="md-nav__link">
         
   
   
@@ -1154,37 +1210,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Coroutine Monitor
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../plugins/coroutine-monitor/" class="md-nav__link">
         
   
   
@@ -1200,159 +1229,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Features
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Usage
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Usage">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#with-autolua-zero-config" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        With auto.lua (zero-config)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#manual-registration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Manual registration
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#labeling-coroutines" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Labeling coroutines
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#desktop-ui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Desktop UI
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Desktop UI">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#table-columns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Table columns
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#actions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Actions
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cards" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cards
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#debugging-scenarios" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Debugging scenarios
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1365,7 +1241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../entity-inspector/" class="md-nav__link">
+      <a href="../plugins/entity-inspector/" class="md-nav__link">
         
   
   
@@ -1393,7 +1269,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../feel-inspector/" class="md-nav__link">
+      <a href="../plugins/feel-inspector/" class="md-nav__link">
         
   
   
@@ -1421,7 +1297,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../filesystem/" class="md-nav__link">
+      <a href="../plugins/filesystem/" class="md-nav__link">
         
   
   
@@ -1449,7 +1325,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../hump-signal/" class="md-nav__link">
+      <a href="../plugins/hump-signal/" class="md-nav__link">
         
   
   
@@ -1477,7 +1353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ingame-overlay/" class="md-nav__link">
+      <a href="../plugins/ingame-overlay/" class="md-nav__link">
         
   
   
@@ -1505,7 +1381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../input-replay/" class="md-nav__link">
+      <a href="../plugins/input-replay/" class="md-nav__link">
         
   
   
@@ -1533,7 +1409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../lua-state-machine/" class="md-nav__link">
+      <a href="../plugins/lua-state-machine/" class="md-nav__link">
         
   
   
@@ -1561,7 +1437,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../memory-snapshot/" class="md-nav__link">
+      <a href="../plugins/memory-snapshot/" class="md-nav__link">
         
   
   
@@ -1589,7 +1465,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../network-inspector/" class="md-nav__link">
+      <a href="../plugins/network-inspector/" class="md-nav__link">
         
   
   
@@ -1617,7 +1493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../particle-editor/" class="md-nav__link">
+      <a href="../plugins/particle-editor/" class="md-nav__link">
         
   
   
@@ -1645,7 +1521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../physics-debug/" class="md-nav__link">
+      <a href="../plugins/physics-debug/" class="md-nav__link">
         
   
   
@@ -1673,7 +1549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../runtime-snapshot/" class="md-nav__link">
+      <a href="../plugins/runtime-snapshot/" class="md-nav__link">
         
   
   
@@ -1701,7 +1577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../screenshots/" class="md-nav__link">
+      <a href="../plugins/screenshots/" class="md-nav__link">
         
   
   
@@ -1729,7 +1605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../timer-inspector/" class="md-nav__link">
+      <a href="../plugins/timer-inspector/" class="md-nav__link">
         
   
   
@@ -1784,132 +1660,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#debugger-probes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Usage
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Usage">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#with-autolua-zero-config" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        With auto.lua (zero-config)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#manual-registration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Manual registration
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#labeling-coroutines" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Labeling coroutines
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#desktop-ui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Desktop UI
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Desktop UI">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#table-columns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Table columns
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#actions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Actions
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cards" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cards
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#debugging-scenarios" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Debugging scenarios
+        Debugger probes
       
     </span>
   </a>
@@ -1936,119 +1690,29 @@
   
 
 
-<h1 id="coroutine-monitor-plugin">Coroutine Monitor Plugin<a class="headerlink" href="#coroutine-monitor-plugin" title="Permanent link">&para;</a></h1>
-<p>Track active coroutines, their status, and yield frequency — useful for debugging cutscenes, async loading, sequenced events, and any coroutine-based game logic.</p>
-<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Auto-hooking</strong> — Hooks <code>coroutine.create</code>, <code>coroutine.wrap</code>, and <code>coroutine.resume</code> to automatically discover and track all coroutines</li>
-<li><strong>Status tracking</strong> — Shows running, suspended, normal, and dead states in real-time</li>
-<li><strong>Yield counting</strong> — Total yields per coroutine and yields-per-frame for spotting hot coroutines</li>
-<li><strong>Summary cards</strong> — At-a-glance counts: tracked, active, suspended, running, dead</li>
-<li><strong>Lifetime stats</strong> — Total created and total dead across the session</li>
-<li><strong>Manual registration</strong> — <code>addCoroutine(co, label)</code> for coroutines created before the plugin loads</li>
-</ul>
-<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
-<h3 id="with-autolua-zero-config">With auto.lua (zero-config)<a class="headerlink" href="#with-autolua-zero-config" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.auto&quot;</span><span class="p">)</span>
+<h1 id="core-profiler">Core Profiler<a class="headerlink" href="#core-profiler" title="Permanent link">&para;</a></h1>
+<p>The Profiler is a core Feather runtime service, not a plugin. It is available as <code>DEBUGGER.profiler</code> in every debug session and stays stopped until you explicitly start a capture from the <strong>Performance -&gt; Profiler</strong> tab or from Lua.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">updateWorld</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">profiler</span><span class="p">:</span><span class="nf">wrap</span><span class="p">(</span><span class="s2">&quot;World:update&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">updateWorld</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">profiler</span><span class="p">:</span><span class="nf">start</span><span class="p">()</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">profiler</span><span class="p">:</span><span class="nf">begin</span><span class="p">(</span><span class="s2">&quot;physics.step&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1">-- work</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">profiler</span><span class="p">:</span><span class="nf">finish</span><span class="p">(</span><span class="s2">&quot;physics.step&quot;</span><span class="p">)</span>
 </code></pre></div>
-<p>The coroutine monitor is included by default.</p>
-<h3 id="manual-registration">Manual registration<a class="headerlink" href="#manual-registration" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">CoroutineMonitorPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;plugins.coroutine-monitor&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherPluginManager</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;feather.plugin_manager&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nv">DEBUGGER</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Feather</span><span class="p">({</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nv">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">CoroutineMonitorPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;coroutine-monitor&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{}),</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">})</span>
-</code></pre></div>
-<h3 id="labeling-coroutines">Labeling coroutines<a class="headerlink" href="#labeling-coroutines" title="Permanent link">&para;</a></h3>
-<p>Coroutines created after the hook is active are auto-labeled (<code>coroutine#1</code>, <code>coroutine#2</code>, etc.). For meaningful names, register manually:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">coPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">pluginManager</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;coroutine-monitor&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kr">if</span><span class="w"> </span><span class="nv">coPlugin</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">co</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">coroutine.create</span><span class="p">(</span><span class="nv">myCutsceneFunction</span><span class="p">)</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nv">coPlugin</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">addCoroutine</span><span class="p">(</span><span class="nv">co</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;intro-cutscene&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kr">end</span>
-</code></pre></div>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Type</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>autoHook</code></td>
-<td>boolean</td>
-<td><code>true</code></td>
-<td>Hook <code>coroutine.*</code> functions automatically</td>
-</tr>
-<tr>
-<td><code>showDead</code></td>
-<td>boolean</td>
-<td><code>false</code></td>
-<td>Show dead coroutines in the table by default</td>
-</tr>
-</tbody>
-</table>
-<h2 id="desktop-ui">Desktop UI<a class="headerlink" href="#desktop-ui" title="Permanent link">&para;</a></h2>
-<h3 id="table-columns">Table columns<a class="headerlink" href="#table-columns" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Column</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Name</td>
-<td>Label or auto-generated ID</td>
-</tr>
-<tr>
-<td>Status</td>
-<td>running / suspended / normal / dead</td>
-</tr>
-<tr>
-<td>Total Yields</td>
-<td>Cumulative yield count since creation</td>
-</tr>
-<tr>
-<td>Yields/Frame</td>
-<td>Number of yields in the last frame</td>
-</tr>
-<tr>
-<td>Last Yield</td>
-<td>Time since the last yield</td>
-</tr>
-<tr>
-<td>Age</td>
-<td>Time since the coroutine was created</td>
-</tr>
-</tbody>
-</table>
-<h3 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">&para;</a></h3>
+<p>Use <code>wrap(name, fn)</code> for functions you want to measure repeatedly, or pair <code>begin(name)</code> and <code>finish(name)</code> around scoped work. Names are grouped by their first <code>.</code> or <code>:</code> prefix, so <code>World:update</code> appears in the <code>World</code> group.</p>
+<p>The desktop Profiler tab is organized around capture sessions. Use <strong>Record Capture</strong> to start collecting instrumented samples, <strong>Finish Capture</strong> to freeze the run, and <strong>Record New Capture</strong> to reset and start fresh. The capture header summarizes elapsed time, total measured work, sample count, and the hottest function.</p>
+<p>The <strong>Hotspots</strong> panel highlights the top functions by captured time before you dive into the table. Click a hotspot to focus the result list, save named snapshots for before/after comparisons, then use the diff selector, filters, sorting, and JSON export for deeper analysis. While stopped, wrapped functions call through normally without collecting timings. Large profiler payloads are deferred onto Feather's runtime update lane, so stop and snapshot actions do not serialize the capture inside the profiled function or debugger line hook.</p>
+<p>Click a hotspot or table row to open the <strong>Run Comparison</strong> drawer for that function. Feather keeps a bounded history of exact invocation samples for the current capture, so you can compare two runs directly, compare a run against the previous/first/best/median baseline, and see delta, percent change, ratio, and median distance. The run strip has its own zoom and horizontal scroll controls so long captures stay inspectable without widening the drawer. Snapshot diffs remain aggregate-only; detailed run strips apply to the current capture until you reset or start a new capture.</p>
+<h2 id="debugger-probes">Debugger probes<a class="headerlink" href="#debugger-probes" title="Permanent link">&para;</a></h2>
+<p>The Debugger source view can start, stop, or snapshot the profiler from specific source lines. Use the stopwatch gutter beside breakpoints to add a probe:</p>
 <ul>
-<li><strong>Clear Dead</strong> — Remove dead coroutines from the tracking list</li>
-<li><strong>Reset Counts</strong> — Zero out all yield counters</li>
-<li><strong>Show Dead</strong> — Toggle visibility of dead coroutines in the table</li>
+<li><strong>Start profiling here</strong> starts <code>DEBUGGER.profiler</code>.</li>
+<li><strong>Stop profiling here</strong> stops it and schedules the latest profiler state for upload.</li>
+<li><strong>Snapshot here</strong> records a named snapshot without pausing execution.</li>
+<li><strong>Profile function here</strong> installs a wrapper for supported global/table functions, equivalent to assigning <code>target = DEBUGGER.profiler:wrap(label, target)</code>.</li>
 </ul>
-<h3 id="cards">Cards<a class="headerlink" href="#cards" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Summary</strong> — Tracked, Active, Suspended, Running, Dead counts</li>
-<li><strong>Lifetime</strong> — Total Created, Total Dead across the session</li>
-</ul>
-<h2 id="debugging-scenarios">Debugging scenarios<a class="headerlink" href="#debugging-scenarios" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Stuck coroutine</strong> — A coroutine stuck in "suspended" with 0 yields/frame means it's not being resumed</li>
-<li><strong>Yield storm</strong> — High yields/frame on a single coroutine may indicate a tight loop or busy-wait</li>
-<li><strong>Coroutine leak</strong> — Total Created growing without Total Dead increasing means coroutines aren't completing</li>
-<li><strong>Dead accumulation</strong> — Many dead coroutines suggest they should be cleaned up (use Clear Dead)</li>
-</ul>
+<p>Probes are explicit capture controls. Start/stop/snapshot probes reuse the debugger's existing line hook and do not add a separate call/return <code>debug.sethook</code>, so they are lighter and safer than global hook profilers. Profile Function probes wrap resolvable <code>_G</code> table targets as soon as they sync to the game; locals and closures still need manual <code>wrap</code>, <code>begin</code>, or <code>finish</code> instrumentation.</p>
+<p>Legacy <code>pluginManager:getPlugin("profiler")</code> access is no longer supported. Remove <code>profiler</code> from plugin include lists and migrate instrumentation to <code>DEBUGGER.profiler</code>.</p>
 
 
 
@@ -2104,10 +1768,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

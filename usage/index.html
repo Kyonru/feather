@@ -587,34 +587,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Logging">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#trace" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Trace
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#error-logging" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error logging
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -706,6 +678,141 @@
     
   
     Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../session/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
   
 
     
@@ -1003,10 +1110,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_22" >
         
           
-          <label class="md-nav__link" for="__nav_17" id="__nav_17_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_22" id="__nav_22_label" tabindex="0">
             
   
   
@@ -1024,8 +1131,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_17">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_22">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1574,34 +1681,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/profiler/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Profiler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../plugins/runtime-snapshot/" class="md-nav__link">
         
   
@@ -1787,34 +1866,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Logging">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#trace" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Trace
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#error-logging" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error logging
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1919,7 +1970,7 @@
 <p>Manual setup can leave Feather code, remote debugging hooks, or powerful plugins such as Console in places you did not intend to ship. Use it only if you understand the security consequences of accidental or unintended use. Prefer the CLI-managed workflow for normal development and releases.</p>
 </div>
 <p>CLI init creates a <code>feather.config.lua</code> with <code>debug = true</code>, automatic error capture enabled, and the default creative plugins <code>particle-system-playground</code> and <code>shader-graph</code> included. Add or remove plugins with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>profiler,input-replay<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>input-replay<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--exclude<span class="w"> </span>shader-graph<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">FeatherDebugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="w"> </span><span class="s2">&quot;feather&quot;</span>
@@ -1944,7 +1995,6 @@
 <a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">  </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
 <a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="kr">end</span>
 </code></pre></div>
-<hr />
 <h2 id="command-center">Command Center<a class="headerlink" href="#command-center" title="Permanent link">&para;</a></h2>
 <p>Press <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd>, or use the <strong>Command</strong> button in the app header, to open the Command Center.</p>
 <p>It searches pages, plugins, Console snippets, Debugger actions, Hot Reload shortcuts, sessions, and docs links. By default, features hidden from the sidebar are also hidden from Command Center search; enable <strong>Show hidden sidebar features in Command Center</strong> in Settings to keep them searchable with a <strong>Hidden</strong> badge. Disabled plugins hidden from the sidebar are hidden from Command Center too.</p>
@@ -1961,53 +2011,51 @@
 <p>Open <strong>About</strong> from the lower sidebar to see the desktop app version, update status, project links, release notes, license, docs, and sponsorship links. When Feather detects that a newer desktop release is available, the About entry changes to <strong>Update available</strong> and the modal links directly to releases.</p>
 <hr />
 <h2 id="session-health">Session Health<a class="headerlink" href="#session-health" title="Permanent link">&para;</a></h2>
-<p>Open <strong>Session</strong> first when you want to know what Feather thinks is happening. The page summarizes connection state, runtime/API version, project roots, capabilities, enabled or incompatible plugins, Console/API-key status, Hot Reload state, debugger state, package lockfile status, and recent performance signals.</p>
-<p>The <strong>Recommended Next Actions</strong> panel points to the next useful place to go, such as Settings for security/API-key issues, Debugger for paused breakpoints or Hot Reload failures, Performance for frame hitches, or package guidance when no lockfile is available.</p>
-<p>Use the pause button beside the active live session tab to temporarily suspend Feather runtime work inside the connected game. The socket stays open so you can resume from the desktop, but sampling, plugin updates, asset work, and preview overlays stay dormant until resumed.</p>
+<p>Open <strong>Session</strong> first when you want to know what Feather thinks is happening. It summarizes connection state, auth/config status, runtime versions, enabled plugins, debugger state, package state, and recommended next actions.</p>
+<p>Use the session pause button to temporarily suspend Feather runtime work while keeping the socket available for resume.</p>
+<p>→ <a href="../session/">Full Session documentation</a></p>
 <hr />
 <h2 id="observers">Observers<a class="headerlink" href="#observers" title="Permanent link">&para;</a></h2>
-<p>Watch variable values in real-time from the Observability tab:</p>
+<p>Watch variable values from the <strong>Observability</strong> tab:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;player&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">)</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">observe</span><span class="p">(</span><span class="s2">&quot;camera&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">camera</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">watch</span><span class="p">(</span><span class="s2">&quot;player.health&quot;</span><span class="p">,</span><span class="w"> </span><span class="kr">function</span><span class="p">()</span><span class="w"> </span><span class="kr">return</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="w"> </span><span class="kr">end</span><span class="p">)</span>
 </code></pre></div>
-<p>The Observability page tracks first seen, last seen, last changed, value size, change counts, and recent value history for each observer. Use key prefixes like <code>player.x</code>, <code>player.health</code>, or <code>physics.contacts</code> to get automatic group filters, then search, filter, sort, inspect diffs, customize how long changed markers stay visible, and export the visible observer set as JSON.</p>
+<p>Use <code>observe</code> for values you want to expose directly and <code>watch</code> for cheap on-demand values. Observability wakes up when the page asks for data, then goes dormant again when you leave.</p>
+<p>→ <a href="../observability/">Full Observability documentation</a></p>
 <hr />
 <h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
-<p>Feather automatically wraps <code>print()</code> when <code>wrapPrint = true</code>. You can also log manually:</p>
+<p>Feather automatically wraps <code>print()</code> when <code>wrapPrint = true</code>. You can also send logs manually:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">print</span><span class="p">(</span><span class="s2">&quot;Something happened&quot;</span><span class="p">)</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">log</span><span class="p">({</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;awesome_log_type&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nv">str</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Something happened&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">})</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">log</span><span class="p">({</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;combat&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Player took damage&quot;</span><span class="w"> </span><span class="p">})</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">trace</span><span class="p">(</span><span class="s2">&quot;Something happened&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">error</span><span class="p">(</span><span class="s2">&quot;Something went wrong&quot;</span><span class="p">)</span>
 </code></pre></div>
-<h3 id="trace">Trace<a class="headerlink" href="#trace" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">trace</span><span class="p">(</span><span class="s2">&quot;Something happened&quot;</span><span class="p">)</span>
-</code></pre></div>
-<h3 id="error-logging">Error logging<a class="headerlink" href="#error-logging" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">debugger</span><span class="p">:</span><span class="nf">error</span><span class="p">(</span><span class="s2">&quot;Something went wrong&quot;</span><span class="p">)</span>
-</code></pre></div>
-<p>Live session logs are also cached locally in the desktop app. Reopening Feather or restarting a CLI-launched game restores the recent log history for that saved session/project, while screenshots stay out of the cache to keep the app storage small.</p>
+<p>Logs support follow-tail, search, filters, clear, local history restore, <code>.featherlog</code> files, and immediate delivery for error/fatal events.</p>
+<p>→ <a href="../logs/">Full Logs documentation</a></p>
 <hr />
 <h2 id="performance-and-profiler">Performance And Profiler<a class="headerlink" href="#performance-and-profiler" title="Permanent link">&para;</a></h2>
-<p>The <strong>Performance</strong> page has a <strong>Health</strong> tab for live FPS, frame-time, memory, disk, draw-call, canvas-switch, shader-switch, and texture-memory charts. Use pause/follow when a hitch happens, inspect recent spikes, then export the visible JSON window if you need to compare runs.</p>
-<p>Enable the <code>profiler</code> plugin to use the <strong>Performance → Profiler</strong> tab for instrumented hot paths:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>profiler<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<p>The <strong>Performance</strong> page has <strong>Health</strong> for game runtime signals, <strong>Overhead</strong> for Feather's own runtime cost, and <strong>Profiler</strong> for explicit instrumentation captures.</p>
+<p>Use the core profiler for hot paths:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">updateWorld</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">profiler</span><span class="p">:</span><span class="nf">wrap</span><span class="p">(</span><span class="s2">&quot;World:update&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">updateWorld</span><span class="p">)</span>
 </code></pre></div>
-<p>The profiler still uses explicit instrumentation via <code>profiler:wrap(name, fn)</code>, or scoped samples with <code>profiler:begin(name)</code> and <code>profiler:finish(name)</code>. The desktop can start/stop captures, group rows by name prefix, hide one-call entries, filter rows, sort by percent/total/average/max/calls, save before/after snapshots, compare diffs, and export JSON.</p>
+<p>Record captures from the desktop or from debugger profiler probes, then inspect hotspots, run comparisons, snapshots, diffs, and exports.</p>
+<p>→ <a href="../performance/">Full Performance documentation</a></p>
+<p>→ <a href="../profiler/">Full Profiler documentation</a></p>
 <hr />
 <h2 id="console-repl">Console / REPL<a class="headerlink" href="#console-repl" title="Permanent link">&para;</a></h2>
 <p>The Console is an <strong>opt-in plugin</strong> for evaluating Lua code directly inside the running game. It is not included by default.</p>
 <p>Enable it from <code>feather.config.lua</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">console</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">evalEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">console</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">evalEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">}</span>
 </code></pre></div>
 <p>Once enabled, open the <strong>Console</strong> tab in the desktop app and type any Lua expression. Return values are shown inline; <code>print()</code> output is captured automatically.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kr">return</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="w">          </span><span class="c1">-- inspect a value</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nv">player</span><span class="p">.</span><span class="py">speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="w">            </span><span class="c1">-- tweak live</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kr">return</span><span class="w"> </span><span class="nv">love</span><span class="p">.</span><span class="py">graphics</span><span class="p">.</span><span class="nf">getStats</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kr">return</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="w">          </span><span class="c1">-- inspect a value</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">player</span><span class="p">.</span><span class="py">speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="w">            </span><span class="c1">-- tweak live</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kr">return</span><span class="w"> </span><span class="nv">love</span><span class="p">.</span><span class="py">graphics</span><span class="p">.</span><span class="nf">getStats</span><span class="p">()</span>
 </code></pre></div>
 <p>Console also includes structured inspectors for table results, live pins that publish expressions into Observability as <code>console.*</code> keys, and a best-effort <strong>Read-only</strong> guardrail mode. Read-only blocks obvious mutation patterns, but it is not a true dry run or rollback system.</p>
 <p>→ <a href="../console/">Full Console documentation</a></p>
@@ -2015,11 +2063,12 @@
 <h2 id="step-debugger">Step Debugger<a class="headerlink" href="#step-debugger" title="Permanent link">&para;</a></h2>
 <p>The step debugger pauses game execution at any line and lets you inspect local variables, closure values, and the call stack from the <strong>Debugger</strong> tab.</p>
 <p>Enable it from <code>feather.config.lua</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="p">}</span>
 </code></pre></div>
 <p>Click any line number in the source view to add a breakpoint. While paused, use <strong>Continue</strong>, <strong>Step Over</strong>, <strong>Step Into</strong>, and <strong>Step Out</strong> to navigate execution.</p>
+<p>Use the stopwatch gutter beside line numbers for profiler probes. They trigger profiler start, stop, or snapshot actions on line hits while breakpoints keep their normal pause behavior. On supported function declaration lines, <strong>Profile function here</strong> installs a profiler wrapper without source rewriting.</p>
 <p>→ <a href="../debugger/">Full Debugger documentation</a></p>
 <hr />
 <h2 id="assets">Assets<a class="headerlink" href="#assets" title="Permanent link">&para;</a></h2>
@@ -2030,9 +2079,9 @@
 <h2 id="time-travel">Time Travel<a class="headerlink" href="#time-travel" title="Permanent link">&para;</a></h2>
 <p>Time Travel records per-frame observer snapshots into a ring buffer and lets you scrub backwards through history to find exactly when a value changed.</p>
 <p>Enable it from <code>feather.config.lua</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;time-travel&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;time-travel&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="p">}</span>
 </code></pre></div>
 <p>Open the <strong>Time Travel</strong> tab, click <strong>Start Recording</strong>, reproduce the bug, then click <strong>Stop &amp; Load</strong> to fetch and scrub through the captured frames.</p>
 <p>→ <a href="../time-travel/">Full Time Travel documentation</a></p>
@@ -2040,18 +2089,18 @@
 <h2 id="session-replay">Session Replay<a class="headerlink" href="#session-replay" title="Permanent link">&para;</a></h2>
 <p>Session Replay combines input replay with developer-selected state checkpoints so you can reproduce playthroughs.</p>
 <p>Enable it from <code>feather.config.lua</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;session-replay&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;session-replay&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="p">}</span>
 </code></pre></div>
 <p>Add guarded state capture where it helps reproduction:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">replayState</span><span class="p">(</span><span class="s2">&quot;player&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">x</span><span class="p">,</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">y</span><span class="p">,</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="nv">health</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="p">,</span>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">  </span><span class="p">})</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="kr">end</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nv">DEBUGGER</span><span class="p">:</span><span class="nf">replayState</span><span class="p">(</span><span class="s2">&quot;player&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">x</span><span class="p">,</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">y</span><span class="p">,</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nv">health</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="p">,</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="p">})</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="kr">end</span>
 </code></pre></div>
 <p>For reliable playback, register a restore handler with <code>DEBUGGER:replayRegister()</code>. Feather captures an initial baseline at recording start, then records inputs and the state deltas you provide; it does not magically serialize the whole game.</p>
 <p>→ <a href="../session-replay/">Full Session Replay documentation</a></p>

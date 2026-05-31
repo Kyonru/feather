@@ -507,6 +507,141 @@
   
   
     <li class="md-nav__item">
+      <a href="../session/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../debugger/" class="md-nav__link">
         
   
@@ -1422,10 +1557,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_22" >
         
           
-          <label class="md-nav__link" for="__nav_17" id="__nav_17_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_22" id="__nav_22_label" tabindex="0">
             
   
   
@@ -1443,8 +1578,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_17">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_22">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1973,34 +2108,6 @@
     
   
     Physics Debug
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../plugins/profiler/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Profiler
   
 
     
@@ -2755,10 +2862,10 @@
 <li>Connect the final <code>vec4</code> color into <strong>Fragment Output</strong>.</li>
 <li>Use <strong>Custom Function</strong> when a graph needs a small hand-written GLSL function. Function parameters become input ports; the return value and <code>out</code> parameters become output ports.</li>
 <li>Insert <strong>Preview</strong> nodes between <code>vec4</code> effects when you want an inline love.js probe that shows the RGBA result up to that point while still passing the color downstream.</li>
-<li>Use the right panel tabs while authoring: <strong>Controls</strong> for Template Controls and root Parameter nodes, <strong>Selection</strong> for the selected node or edge inspector, and <strong>Output</strong> for diagnostics, generated GLSL, validation, preview, and apply actions.</li>
+<li>Use the right panel tabs while authoring: <strong>Controls</strong> for Template Controls and root Parameter nodes, <strong>Selection</strong> for the selected node or edge inspector, and <strong>Output</strong> for diagnostics, generated GLSL, validation, preview, and apply actions. Selecting a node opens <strong>Selection</strong> automatically. Use the canvas toolbar or press Space to switch empty-canvas drags between select-box mode and pan mode.</li>
 <li>Check <strong>Graph Diagnostics</strong> on the Output tab before validating. Blocking diagnostics catch missing outputs, stale connections, invalid custom functions, missing textures, and subgraph reference cycles locally.</li>
 <li>Use <strong>Validate</strong> to compile in the running LÖVE game after local diagnostics are clear.</li>
-<li>Toggle <strong>Preview On</strong> to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically through a throttled live preview so the attached game stays responsive. Leaving the Shader Graph page, switching sessions, or turning Preview Off clears the connected-game overlay so it does not keep drawing in the background.</li>
+<li>Toggle <strong>Preview On</strong> to draw the shader on a temporary circle, line, or rectangle in the center of the running game when you are not ready to apply it to particles. Upload a preview texture when the shader should run against a real sprite instead of a generated shape. While preview is enabled, graph edits, shape changes, preview color changes, and uploaded texture changes re-apply automatically through a throttled live preview so the attached game stays responsive. If Feather runtime work is suspended, the game keeps drawing the last preview payload but edits stop syncing until you resume; Preview Off still clears the overlay. Leaving the Shader Graph page, switching sessions, or turning Preview Off clears the connected-game overlay so it does not keep drawing in the background.</li>
 <li>Use <strong>Apply</strong> to send the generated shader to the selected Particle System Playground emitter.</li>
 <li>Export/import <code>.feathershgh</code> files when you want to save or share editable graph projects. New template graphs export as version 3 files; older version 1/2 graphs still import as plain editable graphs.</li>
 </ol>
@@ -2782,9 +2889,9 @@
 <p>Runtime validation is still the final compiler check. Driver-specific GLSL errors remain grouped by pixel and vertex stage, with the raw error text available to copy from the GLSL panel.</p>
 <h2 id="node-types">Node Types<a class="headerlink" href="#node-types" title="Permanent link">&para;</a></h2>
 <h3 id="debug">Debug<a class="headerlink" href="#debug" title="Permanent link">&para;</a></h3>
-<p>Use <strong>Preview</strong> as an inline RGBA probe while building effect chains. It accepts a <code>vec4</code>, outputs the same <code>vec4</code>, and is safe to place between color/effect nodes because production GLSL treats it as a pass-through. The selected Preview node renders the graph up to that point inside the node with the standalone love.js preview; other Preview nodes stay paused so large graphs do not run multiple preview runtimes at once. Use the node's game-preview button to send that same probe shader to a connected LÖVE game; game sends are deduped and throttled to about two updates per second, and the runtime overlay caches shader/drawable work while drawing a capped preview canvas. A disconnected Preview node shows a fallback until its RGBA input is connected.</p>
+<p>Use <strong>Preview</strong> as an inline RGBA probe while building effect chains. It accepts a <code>vec4</code>, outputs the same <code>vec4</code>, and is safe to place between color/effect nodes because production GLSL treats it as a pass-through. The selected Preview node renders the graph up to that point inside the node with a lightweight WebGL preview target; other Preview nodes stay paused so large graphs do not run multiple preview runtimes at once. Embedded previews keep uploaded source and uniform textures inline, use a stable 16:9 aspect ratio, and preserve texture proportions while zooming. Use the node's game-preview button to send that same probe shader to a connected LÖVE game for runtime truth; game sends are deduped and throttled to about two updates per second, and the runtime overlay caches shader/drawable work while drawing a preview canvas that starts at 60 FPS and automatically lowers to 40, 30, or 24 FPS for highly zoomed or large-texture previews. When Feather runtime work is suspended, the connected-game probe keeps drawing from the last payload and only clear-preview commands are accepted until Feather resumes. A disconnected Preview node shows a fallback until its RGBA input is connected.</p>
 <h3 id="showcase-development">Showcase development<a class="headerlink" href="#showcase-development" title="Permanent link">&para;</a></h3>
-<p><code>npm run dev</code>, Tauri dev, and <code>npm run showcase:dev</code> serve the same real love.js preview target from <code>.showcase-dev/showcase-lovejs</code> when a love.js player is available. The helper builds a fresh <code>showcase.love</code> bundle from the standalone preview example plus the shared Shader Graph preview runtime. The dev servers use the same <code>/showcase-lovejs/index.html?g=showcase.love&amp;v=11.5</code> path and serve it with the isolation headers love.js needs, so Preview nodes exercise the LÖVE code path during local app and browser development.</p>
+<p><code>npm run dev</code>, Tauri dev, and <code>npm run showcase:dev</code> serve the same real love.js preview target from <code>.showcase-dev/showcase-lovejs</code> when a love.js player is available. The helper builds a fresh <code>showcase.love</code> bundle from the standalone preview example plus the shared Shader Graph preview runtime for the main preview frame, and also writes a dedicated <code>/showcase-lovejs/webgl.html</code> target for inline Preview nodes so texture-heavy probes do not depend on love.js payload polling.</p>
 <p>If the love.js player is not already available, the dev server looks at <code>SHOWCASE_LOVEJS_DIR</code>, <code>vendor/love.js</code>, and <code>.showcase-vendor/love.js</code>, then attempts to clone <code>https://github.com/2dengine/love.js</code>. Set <code>SHOWCASE_LOVEJS_SKIP_FETCH=1</code> when working offline and provide <code>SHOWCASE_LOVEJS_DIR</code> manually. If no real player is available, Feather falls back to the lightweight <code>public/showcase-lovejs</code> bridge.</p>
 <h3 id="custom">Custom<a class="headerlink" href="#custom" title="Permanent link">&para;</a></h3>
 <p>Use <strong>Custom Function</strong> for small GLSL snippets that are easier to express as code than as node chains.</p>
@@ -2946,6 +3053,8 @@
 <li><code>Alpha Mask</code>: turns sprite alpha into a soft mask and an optionally masked color.</li>
 <li><code>Luma Mask</code>: turns perceived brightness into a soft mask.</li>
 <li><code>Mask Range</code>: isolates a scalar range with soft edges.</li>
+<li><code>Color Key Mask</code>: selects pixels close to a target color with tolerance/softness controls, returning both a mask and masked RGBA.</li>
+<li><code>Palette Swap</code>: remaps one to three source colors to replacement colors using pair count, tolerance, softness, and strength controls, returning swapped RGBA and a match mask.</li>
 <li><code>Gradient Map</code>: maps a mask/noise value between two colors.</li>
 <li><code>Mask Combine</code>: outputs common mask combinations such as multiply, add, max, min, and subtract.</li>
 <li><code>Blend Modes</code>: outputs normal, multiply, screen, overlay, add, and difference blends from the same inputs.</li>
@@ -3252,7 +3361,7 @@
 </code></pre></div>
 <p><code>pixelError</code> / <code>vertexError</code> are <code>nil</code> when that stage compiled successfully.</p>
 <h3 id="preview-shader"><code>preview-shader</code><a class="headerlink" href="#preview-shader" title="Permanent link">&para;</a></h3>
-<p>Compiles the provided GLSL source, creates a temporary padded shape texture, and draws it in-game with the shader until preview is cleared. Repeated identical preview payloads reuse cached shader, drawable, texture, and parameter state; the overlay renders through a capped preview canvas so live authoring does not monopolize the attached game's frame time. This is useful for sprite shaders, especially outline graphs, before applying the shader to a Particle System Playground emitter.</p>
+<p>Compiles the provided GLSL source, creates a temporary padded shape texture, and draws it in-game with the shader until preview is cleared. Repeated identical preview payloads reuse cached shader, drawable, texture, and parameter state; the overlay renders through a capped preview canvas so live authoring does not monopolize the attached game's frame time. The cap is automatic: small previews refresh at 60 FPS, while high zoom levels and large source/uniform textures lower the preview refresh cadence to 40, 30, or 24 FPS. This is useful for sprite shaders, especially outline graphs, before applying the shader to a Particle System Playground emitter.</p>
 <p><strong>Params</strong></p>
 <table>
 <thead>

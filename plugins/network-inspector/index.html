@@ -507,6 +507,141 @@
   
   
     <li class="md-nav__item">
+      <a href="../../session/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../logs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../profiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../debugger/" class="md-nav__link">
         
   
@@ -787,10 +922,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_17" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_22" checked>
         
           
-          <label class="md-nav__link" for="__nav_17" id="__nav_17_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_22" id="__nav_22_label" tabindex="0">
             
   
   
@@ -808,8 +943,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_17_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_17">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_22_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_22">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1334,21 +1469,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
+        Setup
       
     </span>
   </a>
@@ -1532,34 +1656,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../profiler/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Profiler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../runtime-snapshot/" class="md-nav__link">
         
   
@@ -1671,21 +1767,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
+        Setup
       
     </span>
   </a>
@@ -1819,16 +1904,18 @@
 
 <h1 id="networkinspectorplugin">NetworkInspectorPlugin<a class="headerlink" href="#networkinspectorplugin" title="Permanent link">&para;</a></h1>
 <p>The <code>NetworkInspectorPlugin</code> is a plugin for the <a href="https://github.com/Kyonru/feather">Feather Debugger</a> that lets you <strong>inspect network traffic</strong> in your LÖVE game. It logs outgoing and incoming packets with timestamps, sizes, and decoded payloads — similar to the browser DevTools Network tab.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">NetworkInspectorPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;plugins.network-inspector&quot;</span><span class="p">)</span>
-</code></pre></div>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">FeatherPluginManager</span><span class="p">.</span><span class="nf">createPlugin</span><span class="p">(</span><span class="nv">NetworkInspectorPlugin</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;network-inspector&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nv">maxPackets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">          </span><span class="c1">-- max stored packets (oldest trimmed)</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nv">maxPayloadPreview</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w">    </span><span class="c1">-- max chars shown per payload</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nv">hookSocket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">         </span><span class="c1">-- true = auto-hook LuaSocket TCP globally</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nv">captureFeatherTraffic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="c1">-- true = include Feather&#39;s own WS traffic</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">})</span>
+<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;network-inspector&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;network-inspector&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">      </span><span class="nv">maxPackets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">             </span><span class="c1">-- max stored packets</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">      </span><span class="nv">maxPayloadPreview</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w">       </span><span class="c1">-- max chars shown per payload</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">      </span><span class="nv">hookSocket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">            </span><span class="c1">-- true = auto-hook LuaSocket TCP globally</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">      </span><span class="nv">captureFeatherTraffic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="c1">-- true = include Feather&#39;s own WS traffic</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
 <table>
@@ -1870,68 +1957,68 @@
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <h3 id="manual-wrapping-recommended">Manual wrapping (recommended)<a class="headerlink" href="#manual-wrapping-recommended" title="Permanent link">&para;</a></h3>
 <p>Wrap your send/receive functions to log packets under a named endpoint:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">pluginManager</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;network-inspector&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kr">if</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="c1">-- Wrap your send function</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nv">mySendFn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">wrapSend</span><span class="p">(</span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">mySendFn</span><span class="p">)</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="c1">-- Wrap your receive function</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nv">myRecvFn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">wrapReceive</span><span class="p">(</span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">myRecvFn</span><span class="p">)</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="kr">end</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">pluginManager</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;network-inspector&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kr">if</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="c1">-- Wrap your send function</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nv">mySendFn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">wrapSend</span><span class="p">(</span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">mySendFn</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="c1">-- Wrap your receive function</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nv">myRecvFn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">wrapReceive</span><span class="p">(</span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">myRecvFn</span><span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="kr">end</span>
 </code></pre></div>
 <p>The wrapped functions are transparent — they call the original and log the packet.</p>
 <h3 id="method-wrapping-on-objects">Method wrapping on objects<a class="headerlink" href="#method-wrapping-on-objects" title="Permanent link">&para;</a></h3>
 <p>For OOP-style network objects, wrap the methods directly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">myNetworkClient</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nv">client</span><span class="p">.</span><span class="py">send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">wrapSendMethod</span><span class="p">(</span><span class="s2">&quot;lobby&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">client</span><span class="p">.</span><span class="py">send</span><span class="p">)</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nv">client</span><span class="p">.</span><span class="py">receive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">wrapReceiveMethod</span><span class="p">(</span><span class="s2">&quot;lobby&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">client</span><span class="p">.</span><span class="py">receive</span><span class="p">)</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kr">end</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">myNetworkClient</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nv">client</span><span class="p">.</span><span class="py">send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">wrapSendMethod</span><span class="p">(</span><span class="s2">&quot;lobby&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">client</span><span class="p">.</span><span class="py">send</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nv">client</span><span class="p">.</span><span class="py">receive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">wrapReceiveMethod</span><span class="p">(</span><span class="s2">&quot;lobby&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">client</span><span class="p">.</span><span class="py">receive</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kr">end</span>
 </code></pre></div>
 <p>Use <code>wrapSend</code> and <code>wrapReceive</code> for plain functions. Use <code>wrapSendMethod</code> and <code>wrapReceiveMethod</code> for colon-style calls where the object is passed as the first argument.</p>
 <h3 id="http-requests-luasocket-http">HTTP requests (LuaSocket HTTP)<a class="headerlink" href="#http-requests-luasocket-http" title="Permanent link">&para;</a></h3>
 <p>Wrap <code>socket.http.request</code> to log all HTTP traffic:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">http</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;socket.http&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">ltn12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;ltn12&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">pluginManager</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;network-inspector&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="kr">if</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">originalRequest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">http</span><span class="p">.</span><span class="py">request</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="nv">http</span><span class="p">.</span><span class="py">request</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kr">function</span><span class="p">(</span><span class="nv">url</span><span class="p">,</span><span class="w"> </span><span class="nv">body</span><span class="p">)</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="c1">-- Simple form: http.request(url)</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nb">type</span><span class="p">(</span><span class="nv">url</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">      </span><span class="kd">local</span><span class="w"> </span><span class="nv">endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">url</span><span class="p">:</span><span class="nf">match</span><span class="p">(</span><span class="s2">&quot;https?://([^/]+)&quot;</span><span class="p">)</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="nv">url</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">      </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nv">body</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="p">(</span><span class="s2">&quot;GET &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">url</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">      </span><span class="kd">local</span><span class="w"> </span><span class="nv">result</span><span class="p">,</span><span class="w"> </span><span class="nv">code</span><span class="p">,</span><span class="w"> </span><span class="nv">headers</span><span class="p">,</span><span class="w"> </span><span class="nv">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">originalRequest</span><span class="p">(</span><span class="nv">url</span><span class="p">,</span><span class="w"> </span><span class="nv">body</span><span class="p">)</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">      </span><span class="kr">if</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">400</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">        </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">code</span><span class="p">)</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot; &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="p">(</span><span class="nv">status</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">      </span><span class="kr">else</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">        </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">status</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;HTTP &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">code</span><span class="p">))</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">      </span><span class="kr">end</span>
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">      </span><span class="kr">return</span><span class="w"> </span><span class="nv">result</span><span class="p">,</span><span class="w"> </span><span class="nv">code</span><span class="p">,</span><span class="w"> </span><span class="nv">headers</span><span class="p">,</span><span class="w"> </span><span class="nv">status</span>
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">    </span><span class="kr">end</span>
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">    </span><span class="c1">-- Table form: http.request{ url = ..., sink = ..., ... }</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">reqTable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">url</span>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">reqTable</span><span class="p">.</span><span class="py">url</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">reqTable</span><span class="p">.</span><span class="py">url</span><span class="p">:</span><span class="nf">match</span><span class="p">(</span><span class="s2">&quot;https?://([^/]+)&quot;</span><span class="p">)</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;http&quot;</span>
-<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">reqTable</span><span class="p">.</span><span class="py">method</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="p">(</span><span class="nv">reqTable</span><span class="p">.</span><span class="py">source</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="s2">&quot;POST&quot;</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;GET&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">    </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nv">method</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot; &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="p">(</span><span class="nv">reqTable</span><span class="p">.</span><span class="py">url</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>
-<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">result</span><span class="p">,</span><span class="w"> </span><span class="nv">code</span><span class="p">,</span><span class="w"> </span><span class="nv">headers</span><span class="p">,</span><span class="w"> </span><span class="nv">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">originalRequest</span><span class="p">(</span><span class="nv">reqTable</span><span class="p">,</span><span class="w"> </span><span class="nv">body</span><span class="p">)</span>
-<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>
-<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">400</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="w">      </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">code</span><span class="p">)</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot; &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="p">(</span><span class="nv">status</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="w">    </span><span class="kr">else</span>
-<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="w">      </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">status</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;HTTP &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">code</span><span class="p">))</span>
-<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="w">    </span><span class="kr">end</span>
-<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>
-<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="nv">result</span><span class="p">,</span><span class="w"> </span><span class="nv">code</span><span class="p">,</span><span class="w"> </span><span class="nv">headers</span><span class="p">,</span><span class="w"> </span><span class="nv">status</span>
-<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="w">  </span><span class="kr">end</span>
-<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="kr">end</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">http</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;socket.http&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">ltn12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;ltn12&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DEBUGGER</span><span class="p">.</span><span class="py">pluginManager</span><span class="p">:</span><span class="nf">getPlugin</span><span class="p">(</span><span class="s2">&quot;network-inspector&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kr">if</span><span class="w"> </span><span class="nv">net</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nv">originalRequest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">http</span><span class="p">.</span><span class="py">request</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nv">http</span><span class="p">.</span><span class="py">request</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kr">function</span><span class="p">(</span><span class="nv">url</span><span class="p">,</span><span class="w"> </span><span class="nv">body</span><span class="p">)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="c1">-- Simple form: http.request(url)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nb">type</span><span class="p">(</span><span class="nv">url</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">      </span><span class="kd">local</span><span class="w"> </span><span class="nv">endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">url</span><span class="p">:</span><span class="nf">match</span><span class="p">(</span><span class="s2">&quot;https?://([^/]+)&quot;</span><span class="p">)</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="nv">url</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">      </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nv">body</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="p">(</span><span class="s2">&quot;GET &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">url</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="kd">local</span><span class="w"> </span><span class="nv">result</span><span class="p">,</span><span class="w"> </span><span class="nv">code</span><span class="p">,</span><span class="w"> </span><span class="nv">headers</span><span class="p">,</span><span class="w"> </span><span class="nv">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">originalRequest</span><span class="p">(</span><span class="nv">url</span><span class="p">,</span><span class="w"> </span><span class="nv">body</span><span class="p">)</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">      </span><span class="kr">if</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">400</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">        </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">code</span><span class="p">)</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot; &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="p">(</span><span class="nv">status</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">      </span><span class="kr">else</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">        </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">status</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;HTTP &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">code</span><span class="p">))</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">      </span><span class="kr">end</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">      </span><span class="kr">return</span><span class="w"> </span><span class="nv">result</span><span class="p">,</span><span class="w"> </span><span class="nv">code</span><span class="p">,</span><span class="w"> </span><span class="nv">headers</span><span class="p">,</span><span class="w"> </span><span class="nv">status</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">    </span><span class="kr">end</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span><span class="c1">-- Table form: http.request{ url = ..., sink = ..., ... }</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">reqTable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">url</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">reqTable</span><span class="p">.</span><span class="py">url</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">reqTable</span><span class="p">.</span><span class="py">url</span><span class="p">:</span><span class="nf">match</span><span class="p">(</span><span class="s2">&quot;https?://([^/]+)&quot;</span><span class="p">)</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;http&quot;</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">reqTable</span><span class="p">.</span><span class="py">method</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="p">(</span><span class="nv">reqTable</span><span class="p">.</span><span class="py">source</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="s2">&quot;POST&quot;</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;GET&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">    </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nv">method</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot; &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="p">(</span><span class="nv">reqTable</span><span class="p">.</span><span class="py">url</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">result</span><span class="p">,</span><span class="w"> </span><span class="nv">code</span><span class="p">,</span><span class="w"> </span><span class="nv">headers</span><span class="p">,</span><span class="w"> </span><span class="nv">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">originalRequest</span><span class="p">(</span><span class="nv">reqTable</span><span class="p">,</span><span class="w"> </span><span class="nv">body</span><span class="p">)</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">code</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">400</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="w">      </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">code</span><span class="p">)</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot; &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="p">(</span><span class="nv">status</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="w">    </span><span class="kr">else</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="w">      </span><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">endpoint</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">status</span><span class="p">),</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;HTTP &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">code</span><span class="p">))</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="w">    </span><span class="kr">end</span>
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="nv">result</span><span class="p">,</span><span class="w"> </span><span class="nv">code</span><span class="p">,</span><span class="w"> </span><span class="nv">headers</span><span class="p">,</span><span class="w"> </span><span class="nv">status</span>
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="w">  </span><span class="kr">end</span>
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="kr">end</span>
 </code></pre></div>
 <h3 id="global-luasocket-hooking">Global LuaSocket hooking<a class="headerlink" href="#global-luasocket-hooking" title="Permanent link">&para;</a></h3>
 <p>Set <code>hookSocket = true</code> to automatically intercept <strong>all</strong> <code>tcp:send()</code> and <code>tcp:receive()</code> calls at the LuaSocket metatable level. This captures everything without manual wrapping, but is noisier.</p>
@@ -1939,9 +2026,9 @@
 <p>Partial receive data returned with a timeout is recorded when LuaSocket provides it, while empty timeout polls are ignored to keep the table readable.</p>
 <h3 id="programmatic-recording">Programmatic recording<a class="headerlink" href="#programmatic-recording" title="Permanent link">&para;</a></h3>
 <p>You can record packets directly from game code:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;{&quot;action&quot;:&quot;move&quot;,&quot;x&quot;:10}&#39;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;{&quot;ack&quot;:true}&#39;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;connection refused&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;{&quot;action&quot;:&quot;move&quot;,&quot;x&quot;:10}&#39;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;in&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;{&quot;ack&quot;:true}&#39;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nv">net</span><span class="p">.</span><span class="py">instance</span><span class="p">:</span><span class="nf">_record</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;game-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;connection refused&quot;</span><span class="p">)</span>
 </code></pre></div>
 <p>Payloads can be strings or tables. Tables are JSON-encoded for preview, and control characters in binary payloads are escaped as <code>\xNN</code>.</p>
 <h2 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">&para;</a></h2>

@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://kyonru.github.io/feather/debugger/">
       
       
-        <link rel="prev" href="../configuration/">
+        <link rel="prev" href="../profiler/">
       
       
         <link rel="next" href="../hot-reload/">
@@ -504,6 +504,141 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../session/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -616,6 +751,17 @@
   
     <nav class="md-nav" aria-label="Setting breakpoints">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#profiler-probes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profiler probes
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#conditional-breakpoints" class="md-nav__link">
@@ -1021,10 +1167,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_22" >
         
           
-          <label class="md-nav__link" for="__nav_17" id="__nav_17_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_22" id="__nav_22_label" tabindex="0">
             
   
   
@@ -1042,8 +1188,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_17">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_22">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1592,34 +1738,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/profiler/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Profiler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../plugins/runtime-snapshot/" class="md-nav__link">
         
   
@@ -1780,6 +1898,17 @@
   
     <nav class="md-nav" aria-label="Setting breakpoints">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#profiler-probes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profiler probes
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#conditional-breakpoints" class="md-nav__link">
@@ -1984,6 +2113,20 @@
 <p>Debugger expects the folder structure to be the same where the main.lua is located. Feather is capable of automatically detecting the directory, but if it doesn't, just open the project folder where your main.lua is located.</p>
 </div>
 <p>The toolbar shows how many enabled breakpoints the game accepted after path normalization. If a breakpoint path or line cannot be synced, Feather keeps the local breakpoint but reports it in the debugger status instead of failing silently.</p>
+<h3 id="profiler-probes">Profiler probes<a class="headerlink" href="#profiler-probes" title="Permanent link">&para;</a></h3>
+<p>Use the stopwatch gutter beside the breakpoint gutter to mark source lines that control the core profiler without pausing the game:</p>
+<ul>
+<li>Click an empty stopwatch slot to cycle <code>Start -&gt; Stop -&gt; Snapshot -&gt; Empty</code>.</li>
+<li>Right-click the stopwatch slot to choose <strong>Start profiling here</strong>, <strong>Stop profiling here</strong>, <strong>Snapshot here</strong>, <strong>Profile function here</strong>, or <strong>Remove probe</strong> directly.</li>
+<li>Snapshot probes use the saved label when present, otherwise they create a snapshot named <code>Debugger probe</code>.</li>
+<li><strong>Profile function here</strong> installs a <code>DEBUGGER.profiler:wrap(...)</code> wrapper for supported global/table functions such as <code>love.update</code>, <code>Game.update</code>, <code>Player:update</code>, or <code>Game.update = function(...)</code>. It does not start recording by itself.</li>
+</ul>
+<p>Profiler probes persist with debugger state and sync to the active session whenever the debugger is enabled. They run inside the same debugger line hook as breakpoints, so Feather does not install a second <code>debug.sethook</code> path. When a probe and breakpoint share a line, the probe action runs first and the breakpoint still pauses normally.</p>
+<p>Probe captures appear in <strong>Performance -&gt; Profiler</strong>. Use them for line-triggered capture windows around instrumented code, then inspect, diff, snapshot, or export the profiler rows from the Performance page.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Automatic function profiling only supports functions Feather can resolve from <code>_G</code> through table fields. Local functions, closures, and module-private returned tables still need manual instrumentation.</p>
+</div>
 <h3 id="conditional-breakpoints">Conditional breakpoints<a class="headerlink" href="#conditional-breakpoints" title="Permanent link">&para;</a></h3>
 <p>Right-click a breakpoint (or use the condition field) to add a Lua expression. The game only pauses when the expression evaluates to truthy:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- Only pause when the player takes damage</span>
@@ -2095,6 +2238,7 @@
 <p class="admonition-title">Note</p>
 <p><code>debug.sethook</code> adds a small overhead to every executed Lua line. It is noticeable in CPU-heavy games. Enable the debugger only during active debugging sessions and disable it from the desktop when not in use.</p>
 </div>
+<p>Profiler probes also use this line hook. They are intentionally line-triggered start/stop/snapshot markers, not call/return hook profiling; heavier profile.lua-style call counting is deferred so the debugger remains the only hook owner.</p>
 <hr />
 <h2 id="integration-with-time-travel">Integration with Time Travel<a class="headerlink" href="#integration-with-time-travel" title="Permanent link">&para;</a></h2>
 <p>If the <strong>Time Travel</strong> plugin is recording when a breakpoint fires, Feather automatically pushes the frame buffer to the desktop. The debugger toolbar shows a <strong>Time Travel (N frames)</strong> button — clicking it navigates to the <a href="../time-travel/">Time Travel</a> timeline, pre-loaded with the observer history leading up to the pause.</p>
