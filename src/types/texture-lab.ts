@@ -85,6 +85,8 @@ export type TextureLabRecipe = {
   pixelated: boolean;
   alphaMode: TextureLabAlphaMode;
   colorRamp: TextureLabColorRamp;
+  backgroundColor: string;
+  backgroundAlpha: number;
   spline?: TextureLabSplineRecipe;
 };
 

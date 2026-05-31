@@ -78,6 +78,8 @@ export const DEFAULT_TEXTURE_LAB_RECIPE: TextureLabRecipe = {
   pixelated: false,
   alphaMode: 'shape',
   colorRamp: 'white',
+  backgroundColor: '#000000',
+  backgroundAlpha: 0,
 };
 
 export const TEXTURE_LAB_SPLINE_GENERATOR_IDS = [
@@ -212,6 +214,27 @@ function clamp(value: number, min: number, max: number): number {
 
 function clamp01(value: number): number {
   return clamp(value, 0, 1);
+}
+
+function normalizeHexColor(value: unknown, fallback = '#000000'): string {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  const short = /^#?([0-9a-f]{3})$/i.exec(trimmed);
+  if (short) {
+    return `#${short[1].split('').map((part) => `${part}${part}`).join('')}`.toLowerCase();
+  }
+  const full = /^#?([0-9a-f]{6})$/i.exec(trimmed);
+  if (full) return `#${full[1].toLowerCase()}`;
+  return fallback;
+}
+
+function hexToRgb(value: string): [number, number, number] {
+  const hex = normalizeHexColor(value).slice(1);
+  return [
+    parseInt(hex.slice(0, 2), 16) / 255,
+    parseInt(hex.slice(2, 4), 16) / 255,
+    parseInt(hex.slice(4, 6), 16) / 255,
+  ];
 }
 
 function cloneSplineRecipe(spline: TextureLabSplineRecipe): TextureLabSplineRecipe {
@@ -391,6 +414,8 @@ function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRe
     pixelated: source.pixelated === true,
     alphaMode,
     colorRamp,
+    backgroundColor: normalizeHexColor(source.backgroundColor, DEFAULT_TEXTURE_LAB_RECIPE.backgroundColor),
+    backgroundAlpha: clamp(Number(source.backgroundAlpha ?? DEFAULT_TEXTURE_LAB_RECIPE.backgroundAlpha), 0, 1),
     spline: normalizeSplineRecipe(source.spline, generator),
   };
 }
@@ -771,6 +796,8 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
   const height = recipe.size;
   const pixels = new Uint8ClampedArray(width * height * 4);
   const splinePath = buildSampledSplinePath(recipe);
+  const backgroundColor = hexToRgb(recipe.backgroundColor);
+  const backgroundAlpha = recipe.backgroundAlpha;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -791,11 +818,21 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
       if (recipe.alphaMode === 'luminance') alpha = colorT;
       if (recipe.alphaMode === 'inverted') alpha = 1 - alpha;
 
+      const foregroundAlpha = alpha * color[3];
+      const finalAlpha = foregroundAlpha + backgroundAlpha * (1 - foregroundAlpha);
+      const finalColor: [number, number, number] = finalAlpha > 0
+        ? [
+            (color[0] * foregroundAlpha + backgroundColor[0] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+            (color[1] * foregroundAlpha + backgroundColor[1] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+            (color[2] * foregroundAlpha + backgroundColor[2] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+          ]
+        : [color[0], color[1], color[2]];
+
       const offset = (y * width + x) * 4;
-      pixels[offset] = Math.round(clamp01(color[0]) * 255);
-      pixels[offset + 1] = Math.round(clamp01(color[1]) * 255);
-      pixels[offset + 2] = Math.round(clamp01(color[2]) * 255);
-      pixels[offset + 3] = Math.round(alpha * color[3] * 255);
+      pixels[offset] = Math.round(clamp01(finalColor[0]) * 255);
+      pixels[offset + 1] = Math.round(clamp01(finalColor[1]) * 255);
+      pixels[offset + 2] = Math.round(clamp01(finalColor[2]) * 255);
+      pixels[offset + 3] = Math.round(finalAlpha * 255);
     }
   }
 

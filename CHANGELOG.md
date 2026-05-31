@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle Playground scratch composites now have in-memory undo/redo history with toolbar buttons plus `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, and `Ctrl+Y` shortcuts.
 - Added Texture Lab, a shared procedural PNG generator for particle sprites, masks, noise maps, pixel patterns, gradients, and trail textures that can feed Particle Playground and Shader Graph texture slots.
 - Added editable Texture Lab spline path generators for trails, ribbons, masks, and lightning strokes.
+- Added Texture Lab background color and alpha controls for baking generated PNGs onto transparent, solid, or translucent backgrounds.
 - Added Texture Lab spline overlap resolution controls so self-crossing paths can merge, bridge, or stack additively.
 - Texture Lab spline points now use explicit fill, border color, and border width styles with a separate selected-point highlight, and Texture Lab includes a quick reset for the current generator values.
 - Texture Lab now fills the available editor height, keeps controls and preview/presets scrolling independently, tucks generator presets into a collapsible panel, and keeps reset/regenerate/export/apply actions in the fixed header.
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused history reducer tests plus Lua, app, and showcase coverage for Particle Playground undo/redo restores.
 - Added focused Texture Lab generator tests plus app/showcase coverage for the generator page and creative texture picker workflows.
 - Added focused spline generator coverage plus app/showcase checks for editing Texture Lab path points.
+- Added focused Texture Lab background compositing coverage plus app/showcase checks for the transparent default.
 - Added focused spline overlap coverage plus app/showcase checks for the overlap selector.
 - Added focused/app/showcase coverage for Texture Lab generator resets and spline point styling.
 - Added app/showcase coverage for Texture Lab independent panel scrolling, collapsible presets, and fixed-header generator actions.

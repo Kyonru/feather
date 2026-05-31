@@ -642,6 +642,21 @@ export function TextureLabPanel({
               </Select>
             </div>
             <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Background</Label>
+              <Input
+                aria-label="Texture background color"
+                className="h-8 cursor-pointer p-1"
+                type="color"
+                value={recipe.backgroundColor}
+                onChange={(event) =>
+                  patch({
+                    backgroundColor: event.target.value,
+                    backgroundAlpha: recipe.backgroundAlpha === 0 ? 1 : recipe.backgroundAlpha,
+                  })
+                }
+              />
+            </div>
+            <div className="grid gap-1">
               <Label className="text-[10px] text-muted-foreground">Alpha</Label>
               <Select
                 value={recipe.alphaMode}
@@ -658,6 +673,21 @@ export function TextureLabPanel({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Background alpha</Label>
+              <Input
+                aria-label="Texture background alpha"
+                className="h-8 text-xs"
+                type="number"
+                value={recipe.backgroundAlpha}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(event) =>
+                  patch({ backgroundAlpha: Math.min(1, Math.max(0, Number(event.target.value) || 0)) })
+                }
+              />
             </div>
           </div>
 

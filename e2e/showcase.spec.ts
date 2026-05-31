@@ -324,6 +324,8 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await expect(textureHeader.getByRole('button', { name: /regenerate/i })).toBeVisible();
   await expect(textureHeader.getByRole('button', { name: /export png/i })).toBeVisible();
   await expect(textureHeader.getByRole('button', { name: /use as shader preview/i })).toBeVisible();
+  await expect(page.getByLabel('Texture background color')).toHaveValue('#000000');
+  await expect(page.getByLabel('Texture background alpha')).toHaveValue('0');
   const preview = page.getByTestId('texture-lab-preview');
   const before = await preview.getAttribute('src');
   await page.getByTitle('Randomize seed').click();

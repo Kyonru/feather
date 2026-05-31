@@ -23,6 +23,11 @@ function alphaAt(result, x, y) {
   return result.pixels[(y * result.width + x) * 4 + 3];
 }
 
+function rgbaAt(result, x, y) {
+  const offset = (y * result.width + x) * 4;
+  return Array.from(result.pixels.slice(offset, offset + 4));
+}
+
 test('texture lab output is deterministic for a recipe', () => {
   const recipe = { ...DEFAULT_TEXTURE_LAB_RECIPE, generator: 'smoke-puff', seed: 42, size: 64 };
   const first = renderTextureLabPixels(recipe);
@@ -40,12 +45,16 @@ test('texture lab normalizes unknown persisted values', () => {
     seed: -10,
     colorRamp: 'unknown',
     alphaMode: 'nope',
+    backgroundColor: 'bad-color',
+    backgroundAlpha: 9,
   });
   assert.equal(recipe.generator, DEFAULT_TEXTURE_LAB_RECIPE.generator);
   assert.equal(recipe.size, DEFAULT_TEXTURE_LAB_RECIPE.size);
   assert.equal(recipe.seed, 1);
   assert.equal(recipe.colorRamp, DEFAULT_TEXTURE_LAB_RECIPE.colorRamp);
   assert.equal(recipe.alphaMode, DEFAULT_TEXTURE_LAB_RECIPE.alphaMode);
+  assert.equal(recipe.backgroundColor, '#000000');
+  assert.equal(recipe.backgroundAlpha, 1);
 });
 
 test('tileable noise repeats texture edges', () => {
@@ -72,6 +81,25 @@ test('alpha modes control transparency', () => {
   const opaqueAlpha = Array.from({ length: opaque.width * opaque.height }, (_, index) => opaque.pixels[index * 4 + 3]);
   assert.ok(transparentAlpha.some((alpha) => alpha < 255));
   assert.ok(opaqueAlpha.every((alpha) => alpha === 255));
+});
+
+test('background color composites behind transparent texture pixels', () => {
+  const transparent = renderTextureLabPixels({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'soft-circle',
+    size: 32,
+    backgroundColor: '#336699',
+    backgroundAlpha: 0,
+  });
+  const backed = renderTextureLabPixels({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'soft-circle',
+    size: 32,
+    backgroundColor: '#336699',
+    backgroundAlpha: 1,
+  });
+  assert.equal(alphaAt(transparent, 0, 0), 0);
+  assert.deepEqual(rgbaAt(backed, 0, 0), [51, 102, 153, 255]);
 });
 
 test('texture lab filenames include generator size and seed', () => {
