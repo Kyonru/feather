@@ -1503,6 +1503,9 @@ test('texture lab is available without a connected session in the app', async ({
   await page.goto('/texture-lab');
 
   await expect(page.getByRole('heading', { name: 'Texture Lab' })).toBeVisible();
+  await expect(page.getByTestId('texture-lab-page')).toHaveCSS('overflow', 'hidden');
+  await expect(page.getByTestId('texture-lab-controls-panel')).toHaveCSS('overflow-y', 'auto');
+  await expect(page.getByTestId('texture-lab-main-panel')).toHaveCSS('overflow-y', 'auto');
   const preview = page.getByTestId('texture-lab-preview');
   await expect(preview).toBeVisible();
   const before = await preview.getAttribute('src');
@@ -1542,6 +1545,8 @@ test('texture lab is available without a connected session in the app', async ({
   await expect.poll(() => preview.getAttribute('src')).not.toBe(splineBefore);
   await page.getByRole('button', { name: /reset values/i }).click();
   await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
+  await page.getByRole('button', { name: /expand texture presets/i }).click();
+  await expect(page.getByRole('button', { name: /smoke puff/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /export png/i })).toBeVisible();
 });
 

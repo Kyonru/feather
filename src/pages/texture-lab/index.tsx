@@ -42,17 +42,19 @@ export default function TextureLab() {
       : 'Use as shader preview';
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col overflow-auto p-4" data-testid="texture-lab-page">
-      <div className="mx-auto grid w-full max-w-7xl gap-4">
-        <header className="flex flex-wrap items-start justify-between gap-3">
-          <div className="grid gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Texture Lab</h1>
-            <p className="max-w-3xl text-sm text-muted-foreground">
-              Generate tiny procedural textures for particles, shader masks, noise uniforms, trails, and sprite effects.
-            </p>
-          </div>
-        </header>
-        <TextureLabPanel applyLabel={applyLabel} onApply={useTexture} />
+    <main className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden" data-testid="texture-lab-page">
+      <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b px-4 py-3">
+        <div className="grid gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Texture Lab</h1>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Generate tiny procedural textures for particles, shader masks, noise uniforms, trails, and sprite effects.
+          </p>
+        </div>
+      </header>
+      <div className="h-0 min-h-0 flex-1 overflow-hidden p-4">
+        <div className="mx-auto h-full min-h-0 w-full max-w-7xl">
+          <TextureLabPanel applyLabel={applyLabel} onApply={useTexture} />
+        </div>
       </div>
     </main>
   );

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Texture Lab, a shared procedural PNG generator for particle sprites, masks, noise maps, pixel patterns, gradients, and trail textures that can feed Particle Playground and Shader Graph texture slots.
 - Added editable Texture Lab spline path generators for trails, ribbons, masks, and lightning strokes.
 - Texture Lab spline points now use explicit fill, border color, and border width styles with a separate selected-point highlight, and Texture Lab includes a quick reset for the current generator values.
+- Texture Lab now fills the available editor height, keeps controls and preview/presets scrolling independently, and tucks generator presets into a collapsible panel.
 
 ### Fixed
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused Texture Lab generator tests plus app/showcase coverage for the generator page and creative texture picker workflows.
 - Added focused spline generator coverage plus app/showcase checks for editing Texture Lab path points.
 - Added focused/app/showcase coverage for Texture Lab generator resets and spline point styling.
+- Added app/showcase coverage for Texture Lab independent panel scrolling and collapsible presets.
 
 ## [v3.0.0] - 2026-05-31 - The one with core workflows
 

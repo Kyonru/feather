@@ -9,6 +9,7 @@ import {
 import {
   Dice5Icon,
   DownloadIcon,
+  ChevronDownIcon,
   ImageIcon,
   MousePointer2Icon,
   RotateCcwIcon,
@@ -20,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -320,6 +322,7 @@ export function TextureLabPanel({
   applyDisabled = false,
   onApply,
 }: TextureLabPanelProps) {
+  const [presetsOpen, setPresetsOpen] = useState(false);
   const { recipe, patch } = useTextureLabRecipe();
   const pixels = useMemo(() => renderTextureLabPixels(recipe), [recipe]);
   const dataUrl = useMemo(() => textureLabPixelsToDataUrl(pixels), [pixels]);
@@ -361,8 +364,21 @@ export function TextureLabPanel({
   };
 
   return (
-    <div className={cn('grid min-h-0 gap-4', compact ? 'text-xs' : 'lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]')}>
-      <section className="grid min-h-0 gap-3 rounded-md border bg-card p-3">
+    <div
+      className={cn(
+        'grid min-h-0 gap-4',
+        compact
+          ? 'text-xs'
+          : 'h-full grid-rows-[minmax(0,1fr)_minmax(0,1fr)] overflow-hidden lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] lg:grid-rows-1',
+      )}
+    >
+      <section
+        className={cn(
+          'grid min-h-0 gap-3 rounded-md border bg-card p-3',
+          compact ? '' : 'h-full content-start overflow-y-auto',
+        )}
+        data-testid="texture-lab-controls-panel"
+      >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -596,7 +612,13 @@ export function TextureLabPanel({
         </div>
       </section>
 
-      <section className="grid min-h-0 gap-3 rounded-md border bg-card p-3 select-none">
+      <section
+        className={cn(
+          'grid min-h-0 gap-3 rounded-md border bg-card p-3 select-none',
+          compact ? '' : 'h-full content-start overflow-y-auto',
+        )}
+        data-testid="texture-lab-main-panel"
+      >
         <div className="flex items-center justify-between gap-2">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</div>
@@ -627,25 +649,46 @@ export function TextureLabPanel({
           </div>
         )}
         {!compact && (
-          <div className="grid gap-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Presets</div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {TEXTURE_LAB_GENERATORS.map((generator) => (
-                <button
-                  key={generator.id}
-                  type="button"
+          <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen} className="rounded-md border border-border/70">
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-muted/50"
+                aria-label={presetsOpen ? 'Collapse texture presets' : 'Expand texture presets'}
+              >
+                <span>
+                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Presets
+                  </span>
+                  <span className="text-muted-foreground">{TEXTURE_LAB_GENERATORS.length} generator starters</span>
+                </span>
+                <ChevronDownIcon
                   className={cn(
-                    'grid gap-1 rounded-md border p-2 text-left text-xs transition-colors hover:bg-muted/50',
-                    generator.id === recipe.generator && 'border-primary bg-primary/10',
+                    'size-4 shrink-0 text-muted-foreground transition-transform',
+                    presetsOpen && 'rotate-180',
                   )}
-                  onClick={() => patch({ generator: generator.id })}
-                >
-                  <span className="font-medium">{generator.label}</span>
-                  <span className="line-clamp-2 text-[10px] text-muted-foreground">{generator.description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid gap-2 border-t border-border/70 p-3 sm:grid-cols-2 xl:grid-cols-3">
+                {TEXTURE_LAB_GENERATORS.map((generator) => (
+                  <button
+                    key={generator.id}
+                    type="button"
+                    className={cn(
+                      'grid gap-1 rounded-md border p-2 text-left text-xs transition-colors hover:bg-muted/50',
+                      generator.id === recipe.generator && 'border-primary bg-primary/10',
+                    )}
+                    onClick={() => selectGenerator(generator.id)}
+                  >
+                    <span className="font-medium">{generator.label}</span>
+                    <span className="line-clamp-2 text-[10px] text-muted-foreground">{generator.description}</span>
+                  </button>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </section>
     </div>
