@@ -285,6 +285,7 @@ export default function ParticleSystemPlaygroundPage({
                       activeSystemIndex={playground.activeSystemIndex}
                       isGameComposite={isGameComposite}
                       onSelectSystem={playground.selectSystem}
+                      onSystemEnabledChange={(index, enabled) => playground.updateSystemParam(index, 'enabled', enabled)}
                       onTimelineChange={playground.updateTimeline}
                       onPlay={() => playground.playTimeline(sendRuntimeTimeline)}
                       onPause={(time) => playground.pauseTimeline(time, sendRuntimeTimeline)}

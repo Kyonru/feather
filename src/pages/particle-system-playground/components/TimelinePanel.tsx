@@ -1,5 +1,7 @@
 import {
   CopyIcon,
+  EyeIcon,
+  EyeOffIcon,
   PauseIcon,
   PlayIcon,
   PlusIcon,
@@ -47,6 +49,7 @@ type Props = {
   activeSystemIndex: number;
   isGameComposite: boolean;
   onSelectSystem: (index: number) => void;
+  onSystemEnabledChange: (index: number, enabled: boolean) => void;
   onTimelineChange: (timeline: ParticleTimeline) => void;
   onPlay: () => void;
   onPause: (time?: number) => void;
@@ -60,6 +63,12 @@ type SelectedTimelineItem =
   | { type: 'lane'; systemIndex: number; lane: ParticleTimelineLane }
   | { type: 'keyframe'; systemIndex: number; lane: ParticleTimelineLane; keyframeId: string };
 
+type SelectableTimelineItem = Extract<SelectedTimelineItem, { type: 'clip' | 'keyframe' }>;
+
+type TimelineMoveItem =
+  | { type: 'clip'; systemIndex: number; clipId: string; start: number; end: number }
+  | { type: 'keyframe'; systemIndex: number; lane: ParticleTimelineLane; keyframeId: string; time: number };
+
 type DragState =
   | {
       type: 'clip';
@@ -72,6 +81,7 @@ type DragState =
       stripWidth: number;
       initialStart: number;
       initialEnd: number;
+      moveItems: TimelineMoveItem[];
     }
   | {
       type: 'keyframe';
@@ -82,6 +92,7 @@ type DragState =
       hasMoved: boolean;
       stripLeft: number;
       stripWidth: number;
+      moveItems: TimelineMoveItem[];
     };
 
 const MIN_CLIP_DURATION = 0.01;
@@ -181,6 +192,47 @@ function uniqueId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function clipSelectionKey(systemIndex: number, clipId: string): string {
+  return `clip:${systemIndex}:${clipId}`;
+}
+
+function keyframeSelectionKey(systemIndex: number, lane: ParticleTimelineLane, keyframeId: string): string {
+  return `keyframe:${systemIndex}:${lane}:${keyframeId}`;
+}
+
+function selectionKeyForItem(item: SelectedTimelineItem | null): string | null {
+  if (!item) return null;
+  if (item.type === 'clip') return clipSelectionKey(item.systemIndex, item.clipId);
+  if (item.type === 'keyframe') return keyframeSelectionKey(item.systemIndex, item.lane, item.keyframeId);
+  return null;
+}
+
+function itemFromSelectionKey(key: string): SelectableTimelineItem | null {
+  const [type, systemIndexRaw, third, fourth] = key.split(':');
+  const systemIndex = Number(systemIndexRaw);
+  if (!Number.isFinite(systemIndex)) return null;
+  if (type === 'clip' && third) return { type: 'clip', systemIndex, clipId: third };
+  if (type === 'keyframe' && third && fourth) {
+    return { type: 'keyframe', systemIndex, lane: third as ParticleTimelineLane, keyframeId: fourth };
+  }
+  return null;
+}
+
+function timelineMoveRange(items: TimelineMoveItem[]): { min: number; max: number } {
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  for (const item of items) {
+    if (item.type === 'clip') {
+      min = Math.min(min, item.start);
+      max = Math.max(max, item.end);
+    } else {
+      min = Math.min(min, item.time);
+      max = Math.max(max, item.time);
+    }
+  }
+  return Number.isFinite(min) && Number.isFinite(max) ? { min, max } : { min: 0, max: 0 };
+}
+
 function updateTrack(
   timeline: ParticleTimeline,
   systemIndex: number,
@@ -194,6 +246,111 @@ function updateTrack(
 
 function sortedKeyframes(points: ParticleTimelineKeyframe[] = []): ParticleTimelineKeyframe[] {
   return [...points].sort((a, b) => a.time - b.time);
+}
+
+function moveItemsForSelection(timeline: ParticleTimeline, keys: Set<string>, fallback: SelectableTimelineItem): TimelineMoveItem[] {
+  const selectedKeys = keys.size > 0 ? keys : new Set([selectionKeyForItem(fallback) ?? '']);
+  const moveItems: TimelineMoveItem[] = [];
+
+  for (const track of timeline.tracks) {
+    for (const clip of track.clips) {
+      if (selectedKeys.has(clipSelectionKey(track.systemIndex, clip.id))) {
+        moveItems.push({
+          type: 'clip',
+          systemIndex: track.systemIndex,
+          clipId: clip.id,
+          start: clip.start,
+          end: clip.end,
+        });
+      }
+    }
+
+    for (const lane of PARTICLE_TIMELINE_LANES) {
+      for (const point of sortedKeyframes(track.lanes[lane])) {
+        if (selectedKeys.has(keyframeSelectionKey(track.systemIndex, lane, point.id))) {
+          moveItems.push({
+            type: 'keyframe',
+            systemIndex: track.systemIndex,
+            lane,
+            keyframeId: point.id,
+            time: point.time,
+          });
+        }
+      }
+    }
+  }
+
+  if (moveItems.length > 0) return moveItems;
+
+  if (fallback.type === 'clip') {
+    const clip = timeline.tracks
+      .find((track) => track.systemIndex === fallback.systemIndex)
+      ?.clips.find((item) => item.id === fallback.clipId);
+    return clip
+      ? [{ type: 'clip', systemIndex: fallback.systemIndex, clipId: fallback.clipId, start: clip.start, end: clip.end }]
+      : [];
+  }
+
+  const point = sortedKeyframes(
+    timeline.tracks.find((track) => track.systemIndex === fallback.systemIndex)?.lanes[fallback.lane],
+  ).find((item) => item.id === fallback.keyframeId);
+  return point
+    ? [
+        {
+          type: 'keyframe',
+          systemIndex: fallback.systemIndex,
+          lane: fallback.lane,
+          keyframeId: fallback.keyframeId,
+          time: point.time,
+        },
+      ]
+    : [];
+}
+
+function moveTimelineItems(timeline: ParticleTimeline, items: TimelineMoveItem[], delta: number): ParticleTimeline {
+  if (items.length === 0 || Math.abs(delta) < 0.0001) return timeline;
+  const clipMoves = new Map<string, Extract<TimelineMoveItem, { type: 'clip' }>>();
+  const keyframeMoves = new Map<string, Extract<TimelineMoveItem, { type: 'keyframe' }>>();
+  for (const item of items) {
+    if (item.type === 'clip') {
+      clipMoves.set(clipSelectionKey(item.systemIndex, item.clipId), item);
+    } else {
+      keyframeMoves.set(keyframeSelectionKey(item.systemIndex, item.lane, item.keyframeId), item);
+    }
+  }
+
+  return {
+    ...timeline,
+    tracks: timeline.tracks.map((track) => {
+      const clips = track.clips.map((clip) => {
+        const move = clipMoves.get(clipSelectionKey(track.systemIndex, clip.id));
+        return move
+          ? {
+              ...clip,
+              start: roundTimelineTime(move.start + delta),
+              end: roundTimelineTime(move.end + delta),
+            }
+          : clip;
+      });
+      let lanes = track.lanes;
+      for (const lane of PARTICLE_TIMELINE_LANES) {
+        const lanePoints = track.lanes[lane] ?? [];
+        if (!lanePoints.some((point) => keyframeMoves.has(keyframeSelectionKey(track.systemIndex, lane, point.id)))) {
+          continue;
+        }
+        lanes = {
+          ...lanes,
+          [lane]: sortedKeyframes(
+            lanePoints.map((point) => {
+              const move = keyframeMoves.get(keyframeSelectionKey(track.systemIndex, lane, point.id));
+              return move ? { ...point, time: roundTimelineTime(move.time + delta) } : point;
+            }),
+          ),
+        };
+      }
+      return { ...track, clips, lanes };
+    }),
+  };
 }
 
 function laneValueRange(points: ParticleTimelineKeyframe[], lane: ParticleTimelineLane): { min: number; max: number } {
@@ -278,6 +435,7 @@ export function TimelinePanel({
   activeSystemIndex,
   isGameComposite,
   onSelectSystem,
+  onSystemEnabledChange,
   onTimelineChange,
   onPlay,
   onPause,
@@ -294,11 +452,15 @@ export function TimelinePanel({
   const setSnap = useSettingsStore((state) => state.setParticleTimelineSnap);
   const [expandedTrack, setExpandedTrack] = useState<number>(activeSystemIndex);
   const [selectedItem, setSelectedItem] = useState<SelectedTimelineItem | null>(null);
+  const [selectedTimelineKeys, setSelectedTimelineKeys] = useState<Set<string>>(() => new Set());
   const [localPlayheadTime, setLocalPlayheadTime] = useState<number | null>(null);
   const [draftTimeline, setDraftTimeline] = useState<ParticleTimeline | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const dragCleanupRef = useRef<(() => void) | null>(null);
   const dragDraftRef = useRef<ParticleTimeline | null>(null);
+  const lastDragMovedRef = useRef(false);
+  const skipNextClickRef = useRef(false);
+  const selectedTimelineKeysRef = useRef<Set<string>>(new Set());
   const playbackFrameRef = useRef<number | null>(null);
   const displayTimeRef = useRef(0);
   const timeline = draftTimeline ?? sourceTimeline;
@@ -336,6 +498,10 @@ export function TimelinePanel({
   useEffect(() => {
     displayTimeRef.current = displayTime;
   }, [displayTime]);
+
+  useEffect(() => {
+    selectedTimelineKeysRef.current = selectedTimelineKeys;
+  }, [selectedTimelineKeys]);
 
   useEffect(() => {
     if (dragRef.current) return;
@@ -392,9 +558,14 @@ export function TimelinePanel({
     setSelectedItem((current) => {
       if (current?.systemIndex === activeSystemIndex) return current;
       const track = timeline.tracks.find((item) => item.systemIndex === activeSystemIndex);
-      return track?.clips[0]
+      const nextItem: SelectedTimelineItem = track?.clips[0]
         ? { type: 'clip', systemIndex: activeSystemIndex, clipId: track.clips[0].id }
         : { type: 'emitter', systemIndex: activeSystemIndex };
+      const key = selectionKeyForItem(nextItem);
+      const nextKeys = key ? new Set([key]) : new Set<string>();
+      selectedTimelineKeysRef.current = nextKeys;
+      setSelectedTimelineKeys(nextKeys);
+      return nextItem;
     });
   }, [activeSystemIndex, timeline.tracks]);
 
@@ -414,6 +585,13 @@ export function TimelinePanel({
     return roundTimelineTime(snap ? Math.round(clamped * 10) / 10 : clamped);
   };
 
+  const snapDelta = (delta: number) => roundTimelineTime(snap ? Math.round(delta * 10) / 10 : delta);
+
+  const clampMoveDelta = (items: TimelineMoveItem[], rawDelta: number) => {
+    const range = timelineMoveRange(items);
+    return roundTimelineTime(clamp(snapDelta(rawDelta), -range.min, timeline.duration - range.max));
+  };
+
   const setDuration = (duration: number) => {
     commitTimeline({
       ...timeline,
@@ -425,11 +603,70 @@ export function TimelinePanel({
     commitTimeline({ ...timeline, mode, loop: mode === 'loop' });
   };
 
+  const setSingleSelection = (item: SelectedTimelineItem) => {
+    setSelectedItem(item);
+    const key = selectionKeyForItem(item);
+    const next = key ? new Set([key]) : new Set<string>();
+    selectedTimelineKeysRef.current = next;
+    setSelectedTimelineKeys(next);
+  };
+
+  const firstSelectedItemFromKeys = (keys: Set<string>) => {
+    for (const key of keys) {
+      const item = itemFromSelectionKey(key);
+      if (item) return item;
+    }
+    return null;
+  };
+
+  const toggleSelection = (item: SelectableTimelineItem) => {
+    const key = selectionKeyForItem(item);
+    if (!key) return;
+    const next = new Set(selectedTimelineKeysRef.current);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    const nextItem: SelectedTimelineItem = next.has(key)
+      ? item
+      : firstSelectedItemFromKeys(next) ?? { type: 'emitter', systemIndex: item.systemIndex };
+    selectedTimelineKeysRef.current = next;
+    setSelectedTimelineKeys(next);
+    setExpandedTrack(nextItem.systemIndex);
+    setSelectedItem(nextItem);
+  };
+
+  const collapseSelectionToFocused = () => {
+    if (selectedTimelineKeysRef.current.size <= 1) return;
+    const key = selectionKeyForItem(selectedItem);
+    const next = key ? new Set([key]) : new Set<string>();
+    selectedTimelineKeysRef.current = next;
+    setSelectedTimelineKeys(next);
+  };
+
+  const selectItemFromClick = (item: SelectableTimelineItem, event: React.MouseEvent<HTMLElement>) => {
+    if (skipNextClickRef.current) {
+      skipNextClickRef.current = false;
+      return;
+    }
+    if (lastDragMovedRef.current) {
+      lastDragMovedRef.current = false;
+      return;
+    }
+    if (event.metaKey || event.ctrlKey) {
+      toggleSelection(item);
+      return;
+    }
+    setExpandedTrack(item.systemIndex);
+    setSingleSelection(item);
+  };
+
   const selectTrack = (systemIndex: number) => {
     const track = timeline.tracks.find((item) => item.systemIndex === systemIndex);
     onSelectSystem(systemIndex);
     setExpandedTrack(systemIndex);
-    setSelectedItem(
+    setSingleSelection(
       track?.clips[0]
         ? { type: 'clip', systemIndex, clipId: track.clips[0].id }
         : { type: 'emitter', systemIndex },
@@ -470,7 +707,7 @@ export function TimelinePanel({
       })),
     );
     setExpandedTrack(systemIndex);
-    setSelectedItem({ type: 'clip', systemIndex, clipId: id });
+    setSingleSelection({ type: 'clip', systemIndex, clipId: id });
   };
 
   const duplicateClip = (systemIndex: number, clip: ParticleTimelineClip) => {
@@ -484,7 +721,7 @@ export function TimelinePanel({
         clips: [...track.clips, { ...clip, id, start, end }].sort((a, b) => a.start - b.start),
       })),
     );
-    setSelectedItem({ type: 'clip', systemIndex, clipId: id });
+    setSingleSelection({ type: 'clip', systemIndex, clipId: id });
   };
 
   const deleteClip = (systemIndex: number, clipId: string) => {
@@ -494,7 +731,7 @@ export function TimelinePanel({
         clips: track.clips.filter((clip) => clip.id !== clipId),
       })),
     );
-    setSelectedItem({ type: 'emitter', systemIndex });
+    setSingleSelection({ type: 'emitter', systemIndex });
   };
 
   const addKeyframeAt = (systemIndex: number, lane: ParticleTimelineLane, time = displayTime) => {
@@ -516,7 +753,7 @@ export function TimelinePanel({
       })),
     );
     setExpandedTrack(systemIndex);
-    setSelectedItem({ type: 'keyframe', systemIndex, lane, keyframeId: id });
+    setSingleSelection({ type: 'keyframe', systemIndex, lane, keyframeId: id });
   };
 
   const updateKeyframe = (
@@ -578,7 +815,7 @@ export function TimelinePanel({
         },
       })),
     );
-    setSelectedItem({ type: 'lane', systemIndex, lane });
+    setSingleSelection({ type: 'lane', systemIndex, lane });
   };
 
   useEffect(() => {
@@ -609,35 +846,13 @@ export function TimelinePanel({
     }
 
     if (drag.type === 'keyframe') {
-      return stageDragTimeline(
-        updateTrack(timeline, drag.systemIndex, (track) => ({
-          ...track,
-          lanes: {
-            ...track.lanes,
-            [drag.lane]: sortedKeyframes(track.lanes[drag.lane]).map((point) =>
-              point.id === drag.keyframeId
-                ? {
-                    ...point,
-                    time: snapTime(timeFromClientX(clientX, drag.stripLeft, drag.stripWidth, timeline.duration)),
-                  }
-                : point,
-            ),
-          },
-        })),
-      );
+      const rawDelta = ((clientX - drag.pointerStartX) / drag.stripWidth) * timeline.duration;
+      return stageDragTimeline(moveTimelineItems(timeline, drag.moveItems, clampMoveDelta(drag.moveItems, rawDelta)));
     }
 
     if (drag.mode === 'move') {
-      const clipDuration = Math.max(MIN_CLIP_DURATION, drag.initialEnd - drag.initialStart);
       const delta = ((clientX - drag.pointerStartX) / drag.stripWidth) * timeline.duration;
-      const start = clamp(snapTime(drag.initialStart + delta), 0, Math.max(0, timeline.duration - clipDuration));
-      const end = roundTimelineTime(clamp(start + clipDuration, start + MIN_CLIP_DURATION, timeline.duration));
-      return stageDragTimeline(
-        updateTrack(timeline, drag.systemIndex, (track) => ({
-          ...track,
-          clips: track.clips.map((clip) => (clip.id === drag.clipId ? { ...clip, start, end } : clip)),
-        })),
-      );
+      return stageDragTimeline(moveTimelineItems(timeline, drag.moveItems, clampMoveDelta(drag.moveItems, delta)));
     }
 
     const pointerTime = timeFromClientX(clientX, drag.stripLeft, drag.stripWidth, timeline.duration);
@@ -659,6 +874,12 @@ export function TimelinePanel({
     const drag = dragRef.current;
     const finalTimeline = next ?? dragDraftRef.current;
     const shouldCommit = drag?.hasMoved === true && finalTimeline !== null;
+    lastDragMovedRef.current = drag?.hasMoved === true;
+    if (lastDragMovedRef.current) {
+      window.setTimeout(() => {
+        lastDragMovedRef.current = false;
+      }, 0);
+    }
     cleanupDocumentDrag();
     dragRef.current = null;
     dragDraftRef.current = null;
@@ -715,9 +936,29 @@ export function TimelinePanel({
     const strip = event.currentTarget.closest('[data-timeline-strip="true"]') as HTMLElement | null;
     const rect = strip?.getBoundingClientRect();
     if (!rect || rect.width <= 0) return;
+    const item: SelectableTimelineItem = { type: 'clip', systemIndex, clipId: clip.id };
+    if (event.metaKey || event.ctrlKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      skipNextClickRef.current = true;
+      toggleSelection(item);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
+    const key = clipSelectionKey(systemIndex, clip.id);
+    let dragSelection = selectedTimelineKeysRef.current;
+    if (mode !== 'move') {
+      dragSelection = new Set([key]);
+      setSingleSelection(item);
+    } else if (!selectedTimelineKeys.has(key) && !event.metaKey && !event.ctrlKey) {
+      dragSelection = new Set([key]);
+      setSingleSelection(item);
+    } else if (!event.metaKey && !event.ctrlKey) {
+      setExpandedTrack(systemIndex);
+      setSelectedItem(item);
+    }
     dragRef.current = {
       type: 'clip',
       mode,
@@ -729,10 +970,9 @@ export function TimelinePanel({
       stripWidth: rect.width,
       initialStart: clip.start,
       initialEnd: clip.end,
+      moveItems: mode === 'move' ? moveItemsForSelection(timeline, dragSelection, item) : [],
     };
     beginDocumentDrag();
-    setExpandedTrack(systemIndex);
-    setSelectedItem({ type: 'clip', systemIndex, clipId: clip.id });
   };
 
   const beginKeyframeDrag = (
@@ -744,9 +984,26 @@ export function TimelinePanel({
     const strip = event.currentTarget.closest('[data-timeline-strip="true"]') as HTMLElement | null;
     const rect = strip?.getBoundingClientRect();
     if (!rect || rect.width <= 0) return;
+    const item: SelectableTimelineItem = { type: 'keyframe', systemIndex, lane, keyframeId: point.id };
+    if (event.metaKey || event.ctrlKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      skipNextClickRef.current = true;
+      toggleSelection(item);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
+    const key = keyframeSelectionKey(systemIndex, lane, point.id);
+    let dragSelection = selectedTimelineKeysRef.current;
+    if (!selectedTimelineKeys.has(key) && !event.metaKey && !event.ctrlKey) {
+      dragSelection = new Set([key]);
+      setSingleSelection(item);
+    } else if (!event.metaKey && !event.ctrlKey) {
+      setExpandedTrack(systemIndex);
+      setSelectedItem(item);
+    }
     dragRef.current = {
       type: 'keyframe',
       systemIndex,
@@ -756,10 +1013,9 @@ export function TimelinePanel({
       hasMoved: false,
       stripLeft: rect.left,
       stripWidth: rect.width,
+      moveItems: moveItemsForSelection(timeline, dragSelection, item),
     };
     beginDocumentDrag();
-    setExpandedTrack(systemIndex);
-    setSelectedItem({ type: 'keyframe', systemIndex, lane, keyframeId: point.id });
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
@@ -988,6 +1244,20 @@ export function TimelinePanel({
                   }}
                 >
                   <div className="sticky left-0 z-20 flex min-w-0 items-center gap-2 border-r bg-card/95 px-3 py-2">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      aria-label={system.enabled ? `Disable emitter ${system.title}` : `Enable emitter ${system.title}`}
+                      title={system.enabled ? `Disable emitter ${system.title}` : `Enable emitter ${system.title}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSystemEnabledChange(system.index, !system.enabled);
+                      }}
+                    >
+                      {system.enabled ? <EyeIcon className="size-3.5" /> : <EyeOffIcon className="size-3.5" />}
+                    </Button>
                     <span className="truncate text-xs font-medium">{system.title}</span>
                     {active && (
                       <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
@@ -1065,7 +1335,9 @@ export function TimelinePanel({
                         const startPercent = timeToPercent(clip.start, timeline.duration);
                         const endPercent = timeToPercent(clip.end, timeline.duration);
                         const emissionSegment = emissionSegmentForClip(clip, emitterLifetimeDuration(system));
+                        const clipKey = clipSelectionKey(system.index, clip.id);
                         const selectedClipMatch = selectedItem?.type === 'clip' && selectedItem.clipId === clip.id;
+                        const groupSelectedClip = selectedTimelineKeys.has(clipKey);
                         return (
                           <div
                             key={clip.id}
@@ -1075,7 +1347,8 @@ export function TimelinePanel({
                             className={[
                               'absolute inset-y-0 cursor-grab rounded-sm border border-primary/45 bg-primary/25 shadow-xs outline-none',
                               'focus-visible:ring-ring/50 focus-visible:ring-2 active:cursor-grabbing',
-                              selectedClipMatch ? 'ring-2 ring-primary/70' : '',
+                              groupSelectedClip ? 'ring-2 ring-primary/35' : '',
+                              selectedClipMatch ? 'ring-2 ring-primary/80' : '',
                             ].join(' ')}
                             style={{
                               left: `${startPercent}%`,
@@ -1085,8 +1358,7 @@ export function TimelinePanel({
                             title={`${system.title}: ${formatTime(clip.start)} to ${formatTime(clip.end)}`}
                             onClick={(event) => {
                               event.stopPropagation();
-                              setExpandedTrack(system.index);
-                              setSelectedItem({ type: 'clip', systemIndex: system.index, clipId: clip.id });
+                              selectItemFromClick({ type: 'clip', systemIndex: system.index, clipId: clip.id }, event);
                             }}
                             onPointerDown={(event) => beginClipDrag(event, 'move', system.index, clip)}
                           >
@@ -1145,7 +1417,7 @@ export function TimelinePanel({
                           <button
                             type="button"
                             className="sticky left-0 z-20 flex min-w-0 items-center justify-between gap-2 border-r bg-muted/95 px-3 py-1.5 text-left"
-                            onClick={() => setSelectedItem({ type: 'lane', systemIndex: system.index, lane })}
+                            onClick={() => setSingleSelection({ type: 'lane', systemIndex: system.index, lane })}
                           >
                             <span className="truncate text-[11px] font-medium">{PARTICLE_TIMELINE_LANE_LABELS[lane]}</span>
                             <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px]">
@@ -1160,7 +1432,7 @@ export function TimelinePanel({
                               onPointerMove={handlePointerMove}
                               onPointerUp={endPointerDrag}
                               onPointerCancel={endPointerDrag}
-                              onClick={() => setSelectedItem({ type: 'lane', systemIndex: system.index, lane })}
+                              onClick={() => setSingleSelection({ type: 'lane', systemIndex: system.index, lane })}
                               onDoubleClick={(event) => {
                                 const rect = event.currentTarget.getBoundingClientRect();
                                 addKeyframeAt(system.index, lane, timeFromClientX(event.clientX, rect.left, rect.width, timeline.duration));
@@ -1191,11 +1463,13 @@ export function TimelinePanel({
                                   )}
                                   {renderPlayhead('bg-primary/50')}
                                   {points.map((point) => {
+                                    const keyframeKey = keyframeSelectionKey(system.index, lane, point.id);
                                     const selectedKey =
                                       selectedItem?.type === 'keyframe' &&
                                       selectedItem.systemIndex === system.index &&
                                       selectedItem.lane === lane &&
                                       selectedItem.keyframeId === point.id;
+                                    const groupSelectedKey = selectedTimelineKeys.has(keyframeKey);
                                     return (
                                       <button
                                         key={point.id}
@@ -1204,7 +1478,8 @@ export function TimelinePanel({
                                         className={[
                                           'absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1px] border border-primary bg-background outline-none',
                                           'focus-visible:ring-ring/50 focus-visible:ring-2',
-                                          selectedKey ? 'bg-primary ring-2 ring-primary/40' : '',
+                                          groupSelectedKey ? 'ring-2 ring-primary/30' : '',
+                                          selectedKey ? 'bg-primary ring-2 ring-primary/50' : '',
                                         ].join(' ')}
                                         style={{
                                           left:
@@ -1215,7 +1490,10 @@ export function TimelinePanel({
                                         title={`${PARTICLE_TIMELINE_LANE_LABELS[lane]} ${formatTime(point.time)} = ${point.value}`}
                                         onClick={(event) => {
                                           event.stopPropagation();
-                                          setSelectedItem({ type: 'keyframe', systemIndex: system.index, lane, keyframeId: point.id });
+                                          selectItemFromClick(
+                                            { type: 'keyframe', systemIndex: system.index, lane, keyframeId: point.id },
+                                            event,
+                                          );
                                         }}
                                         onPointerDown={(event) => beginKeyframeDrag(event, system.index, lane, point)}
                                       />
@@ -1237,7 +1515,11 @@ export function TimelinePanel({
       </div>
 
       {selectedTrack && selectedSystem && (
-        <div className="grid gap-3 rounded-md border bg-muted/10 p-3" data-testid="particle-timeline-inspector">
+        <div
+          className="grid gap-3 rounded-md border bg-muted/10 p-3"
+          data-testid="particle-timeline-inspector"
+          onPointerDownCapture={collapseSelectionToFocused}
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="truncate text-xs font-semibold">{selectedSystem.title}</div>

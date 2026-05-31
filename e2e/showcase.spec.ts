@@ -27,6 +27,10 @@ async function dragLocatorToX(page: Page, locator: Locator, x: number) {
   await page.mouse.up();
 }
 
+function multiSelectModifier(): 'Control' | 'Meta' {
+  return process.platform === 'darwin' ? 'Meta' : 'Control';
+}
+
 async function dragPaletteNodeToCanvas(page: Page, nodeName: string, position: { x: number; y: number }) {
   const source = page.getByTestId('shader-node-palette').getByRole('button', { name: nodeName }).first();
   const target = page.getByTestId('shader-canvas');
@@ -449,6 +453,53 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await page.getByRole('tab', { name: 'Timeline' }).click();
   await expect(page.getByText('150%')).toBeVisible();
   await expect(page.getByRole('button', { name: /snap off/i })).toBeVisible();
+});
+
+test('particle playground timeline toggles emitters and moves grouped items in the showcase', async ({ page }) => {
+  await page.goto('/particle-system-playground');
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+
+  await page.getByTestId('particle-timeline-track-1').getByRole('button', { name: 'Disable emitter Flame' }).click();
+  await expect(page.getByTestId('particle-timeline-track-1').getByText('muted')).toBeVisible();
+  await page.getByTestId('particle-timeline-track-1').getByRole('button', { name: 'Enable emitter Flame' }).click();
+  await expect(page.getByTestId('particle-timeline-track-1').getByText('muted')).toHaveCount(0);
+
+  const strip1 = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
+  expect(strip1).not.toBeNull();
+  await page.getByTestId('particle-timeline-track-1').click();
+  await dragLocatorToX(page, page.getByTestId('particle-timeline-clip-end-handle-1').first(), strip1!.x + strip1!.width * (2.2 / 3));
+  await page.getByRole('button', { name: /duplicate clip/i }).click();
+  await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
+
+  const firstClip = page.getByTestId('particle-timeline-clip-1').nth(0);
+  const secondClip = page.getByTestId('particle-timeline-clip-1').nth(1);
+  await firstClip.click({ position: { x: 4, y: 10 } });
+  await secondClip.click({ modifiers: [multiSelectModifier()] });
+  await dragLocatorBy(page, secondClip, strip1!.width * (0.4 / 3));
+  await expect(page.locator('[title="Flame: 0.40s to 2.60s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Flame: 0.50s to 2.70s"]').first()).toBeVisible();
+
+  await firstClip.click({ position: { x: 4, y: 10 } });
+  await secondClip.click({ modifiers: [multiSelectModifier()] });
+  await dragLocatorBy(page, secondClip, strip1!.width);
+  await expect(page.locator('[title="Flame: 0.70s to 2.90s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Flame: 0.80s to 3.00s"]').first()).toBeVisible();
+
+  await page.getByTestId('particle-timeline-track-1').click();
+  const playhead = page.getByTestId('particle-timeline-playhead');
+  await playhead.fill('1');
+  await playhead.dispatchEvent('change');
+  await page.getByText('Opacity').click();
+  await page.getByRole('button', { name: /add key at playhead/i }).click();
+  await page.getByLabel('Opacity key value').first().fill('0.55');
+  const opacityKey = page.locator('[title="Opacity 1.00s = 0.55"]').first();
+  const shiftedFlameClip = page.locator('[title="Flame: 0.80s to 3.00s"]').first();
+  await opacityKey.click();
+  await shiftedFlameClip.click({ modifiers: [multiSelectModifier()] });
+  await dragLocatorBy(page, shiftedFlameClip, -strip1!.width * (0.2 / 3));
+  await expect(page.locator('[title="Flame: 0.60s to 2.80s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Opacity 0.80s = 0.55"]').first()).toBeVisible();
 });
 
 test('particle playground creates the complex composite timeline template in the showcase', async ({ page }) => {

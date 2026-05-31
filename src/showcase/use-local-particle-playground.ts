@@ -312,6 +312,21 @@ export function useLocalParticlePlayground() {
     });
   }
 
+  function updateSystemParam(systemIndex: number, key: string, value: ParamValue) {
+    setData((current) => {
+      if (!current.data) return current;
+      return {
+        ...current,
+        data: {
+          ...current.data,
+          systems: current.data.systems.map((item) =>
+            item.index === systemIndex ? updateSystemDraft(item, key, value) : item,
+          ),
+        },
+      };
+    });
+  }
+
   function updateParam(key: string, value: ParamValue) {
     setData((current) => {
       if (!current.data) return current;
@@ -380,6 +395,7 @@ export function useLocalParticlePlayground() {
     activeSystem,
     shaderError: '',
     updateActiveParam,
+    updateSystemParam,
     updateParam,
     sendAction: () => Promise.resolve(),
     setRuntimePreviewActive: () => Promise.resolve(),

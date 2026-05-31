@@ -29,6 +29,10 @@ async function dragLocatorToX(page: Page, locator: Locator, x: number) {
   await page.mouse.up();
 }
 
+function multiSelectModifier(): 'Control' | 'Meta' {
+  return process.platform === 'darwin' ? 'Meta' : 'Control';
+}
+
 async function uploadShaderPreviewTexture(page: Page, trigger: Locator, file: { name: string; mimeType: string; buffer: Buffer }) {
   const fileChooserPromise = page.waitForEvent('filechooser', { timeout: 1000 }).catch(() => null);
   await trigger.click({ force: true });
@@ -2802,6 +2806,49 @@ test('particle playground timeline mode control updates in the app', async ({ pa
   await expect(mode.getByRole('button', { name: 'One-shot' })).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('particle playground timeline toggles emitters and moves grouped items in the app', async ({ page }) => {
+  await seedSession(page);
+  await page.goto('/');
+  await seedParticlePlaygroundConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page
+    .getByTestId('sidebar-tool-particle-system-playground')
+    .getByRole('link', { name: 'Particles Playground' })
+    .click();
+
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+
+  await page.getByTestId('particle-timeline-track-1').getByRole('button', { name: 'Disable emitter Fire' }).click();
+  await expect(page.getByTestId('particle-timeline-track-1').getByText('muted')).toBeVisible();
+  await page.getByTestId('particle-timeline-track-1').getByRole('button', { name: 'Enable emitter Fire' }).click();
+  await expect(page.getByTestId('particle-timeline-track-1').getByText('muted')).toHaveCount(0);
+
+  await page.getByTestId('particle-timeline-track-1').click();
+  const strip1 = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
+  expect(strip1).not.toBeNull();
+  await page.getByLabel('Stop at').first().fill('0.7');
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('0.7');
+  await page.getByTestId('particle-timeline-playhead').fill('1.2');
+  await page.getByTestId('particle-timeline-playhead').dispatchEvent('change');
+  await page.getByTestId('particle-timeline-inspector').getByRole('button', { name: /add clip at playhead/i }).click();
+  await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
+
+  const firstClip = page.getByTestId('particle-timeline-clip-1').nth(0);
+  const secondClip = page.getByTestId('particle-timeline-clip-1').nth(1);
+  await firstClip.click({ force: true, position: { x: 4, y: 10 } });
+  await secondClip.click({ force: true, modifiers: [multiSelectModifier()] });
+  await dragLocatorBy(page, secondClip, strip1!.width * (0.4 / 3));
+  await expect(page.locator('[title="Fire: 0.40s to 1.10s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Fire: 1.60s to 2.40s"]').first()).toBeVisible();
+
+  await firstClip.click({ force: true, position: { x: 4, y: 10 } });
+  await secondClip.click({ force: true, modifiers: [multiSelectModifier()] });
+  await dragLocatorBy(page, secondClip, strip1!.width);
+  await expect(page.locator('[title="Fire: 1.00s to 1.70s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Fire: 2.20s to 3.00s"]').first()).toBeVisible();
+});
+
 test('shader graph template presets expose public controls in the app', async ({ page }) => {
   await seedSession(page);
   await page.goto('/');
@@ -3008,7 +3055,7 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   const keyframe = page.locator('[title="Opacity 0.00s = 0.4"]').first();
   await expect(keyframe).toBeVisible();
   await dragLocatorBy(page, keyframe, trackStripBox!.width * (0.3 / 3));
-  await expect(page.getByLabel('Opacity key time').first()).toHaveValue('0.4');
+  await expect(page.getByLabel('Opacity key time').first()).toHaveValue('0.3');
 
   await page.getByTestId('particle-emitter-row-1').dragTo(page.getByTestId('particle-emitter-row-2'));
   await page.getByTestId('particle-timeline-track-2').click();

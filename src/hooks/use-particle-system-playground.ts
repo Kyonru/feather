@@ -355,6 +355,22 @@ export function useParticleSystemPlayground() {
     [data.activeComposite, data.activeSystem, flushParams, setOptimisticData],
   );
 
+  const updateSystemParam = useCallback(
+    (systemIndex: number, key: string, value: ParamValue) => {
+      const composite = data.activeComposite ?? '';
+      const batchKey = targetKey(composite, systemIndex);
+      setOptimisticData(composite, systemIndex, { [key]: value });
+      pendingParams.current[batchKey] = {
+        ...(pendingParams.current[batchKey] ?? {}),
+        composite,
+        systemIndex,
+        [key]: value,
+      };
+      flushParams();
+    },
+    [data.activeComposite, flushParams, setOptimisticData],
+  );
+
   const sendAction = useCallback(
     (action: string, extra: ActionParams = {}) => {
       const allowedWhileSuspended = action === 'runtime-preview' && extra.active === false;
@@ -519,6 +535,7 @@ export function useParticleSystemPlayground() {
     activeSystem: data.data?.systems.find((system) => system.index === data.activeSystem) ?? null,
     shaderError: lastShaderResponse?.status === 'error' ? lastShaderResponse.message : '',
     updateActiveParam,
+    updateSystemParam,
     updateParam,
     sendAction,
     setRuntimePreviewActive,

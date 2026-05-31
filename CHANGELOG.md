@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.1.0] - 2026-06-01 - The one with particles improvements
+
+### Added
+
+- Particle Playground timeline rows now include emitter visibility toggles and grouped clip/keyframe selection for clamped horizontal timing moves.
+
+### Tests
+
+- Added app and showcase e2e coverage for timeline visibility toggles and grouped timeline dragging.
+
 ## [v3.0.0] - 2026-05-31 - The one with core workflows
 
 ### Added
@@ -897,6 +907,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v3.1.0]: https://github.com/Kyonru/feather/compare/v3.0.0...v3.1.0
 [v3.0.0]: https://github.com/Kyonru/feather/compare/v2.0.0...v3.0.0
 [v2.0.0]: https://github.com/Kyonru/feather/compare/v1.5.0...v2.0.0
 [v1.5.0]: https://github.com/Kyonru/feather/compare/v1.4.2...v1.5.0
