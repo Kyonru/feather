@@ -616,7 +616,7 @@ async function seedHealthySessionConfig(page: Page) {
       },
       root_path: '/tmp/demo',
       sourceDir: '/tmp/demo',
-      version: '2.0.0',
+      version: '3.0.0',
       API: 5,
       sampleRate: 1,
       outfile: '',
