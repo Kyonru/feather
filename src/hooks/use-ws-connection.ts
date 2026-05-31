@@ -573,6 +573,24 @@ export const useWsConnection = () => {
             break;
           }
 
+          case 'logs': {
+            const messages = Array.isArray(data) ? data : [];
+            const history = useLogHistoryStore.getState();
+            for (const entry of messages) {
+              if (!isRecord(entry)) continue;
+              if (entry.type === 'log') {
+                const log = entry.data as Log;
+                queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) => [...(prev ?? []), log]);
+                history.appendLog(sessionId, log, history.sessionHistoryKeys[sessionId]);
+              } else if (entry.type === 'log:update') {
+                const update = entry.data as { id: string; count: number; time: number; lastTime?: number };
+                queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) => applyLogUpdate(prev ?? [], update));
+                history.updateLog(sessionId, update, history.sessionHistoryKeys[sessionId]);
+              }
+            }
+            break;
+          }
+
           case 'performance': {
             const metric = normalizePerformanceMetric(data, { runtimeUnits: true });
             queryClient.setQueryData<PerformanceMetrics[]>(sessionQueryKey.performance(sessionId), (prev) => [

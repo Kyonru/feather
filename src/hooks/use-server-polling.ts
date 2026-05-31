@@ -10,5 +10,7 @@ export const requestAllData = (sessionId: string) => {
 
   sendCommand(sessionId, { type: 'req:observers' }).catch(() => {});
 
+  sendCommand(sessionId, { type: 'req:assets' }).catch(() => {});
+
   sendCommand(sessionId, { type: 'req:plugins' }).catch(() => {});
 };

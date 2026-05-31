@@ -30,6 +30,29 @@ type SupportedFeatures = {
   instancing: boolean;
 };
 
+export type FeatherOverheadMetric = {
+  windowSeconds: number;
+  frameCount: number;
+  suspendedFrameCount?: number;
+  avgMsPerFrame: number;
+  timings?: Record<string, { totalMs: number; avgMs: number; maxMs: number; count: number }>;
+  messages: number;
+  serializedBytes: number;
+  binaryBytes: number;
+  deferredTasks: number;
+  budgetMisses?: Record<string, number>;
+  budget?: {
+    maxFrameMs?: number;
+    maxMessagesPerFrame?: number;
+    maxSerializedBytesPerFrame?: number;
+  };
+  plugins?: Array<{
+    id: string;
+    update?: { totalMs: number; avgMs: number; maxMs: number; count: number };
+    payload?: { totalMs: number; avgMs: number; maxMs: number; count: number };
+  }>;
+};
+
 export type PerformanceMetrics = {
   time: number;
   gameTime: number;
@@ -45,6 +68,7 @@ export type PerformanceMetrics = {
   frameTimeMax: number;
   frameTimeAvg: number;
   sysInfo: SystemInfo;
+  featherOverhead?: FeatherOverheadMetric;
 };
 
 export const DEFAULT_METRIC: PerformanceMetrics = {

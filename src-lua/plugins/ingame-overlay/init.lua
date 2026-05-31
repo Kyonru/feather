@@ -26,6 +26,10 @@ function IngameOverlayPlugin:update(dt)
   self.overlay.update(dt)
 end
 
+function IngameOverlayPlugin:isRuntimeActive()
+  return self.overlay and self.overlay.isActive == true
+end
+
 function IngameOverlayPlugin:onSuspendedUpdate(dt)
   if not self.overlay.isActive then
     return

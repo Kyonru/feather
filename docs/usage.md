@@ -90,6 +90,8 @@ The **Recommended Next Actions** panel points to the next useful place to go, su
 
 Use the pause button beside the active live session tab to temporarily suspend Feather runtime work inside the connected game. The socket stays open so you can resume from the desktop, but sampling, plugin updates, asset work, and preview overlays stay dormant until resumed.
 
+Feather also keeps most expensive runtime work dormant while you are not looking at the matching panel. Logs, errors, debugger control, and a low-rate performance heartbeat stay live, but observer serialization, asset catalog pushes, plugin UI payloads, and creative preview sync are activated by opening the relevant page or starting an explicit recording/preview workflow.
+
 ---
 
 ## Observers
@@ -102,6 +104,8 @@ debugger:observe("camera", camera)
 ```
 
 The Observability page tracks first seen, last seen, last changed, value size, change counts, and recent value history for each observer. Use key prefixes like `player.x`, `player.health`, or `physics.contacts` to get automatic group filters, then search, filter, sort, inspect diffs, customize how long changed markers stay visible, and export the visible observer set as JSON.
+
+For cheap watched values, prefer `debugger:watch("player.health", function() return player.health end)`. Watches are evaluated when Observability asks for data instead of forcing you to serialize a larger table every frame.
 
 ---
 
@@ -132,11 +136,13 @@ debugger:error("Something went wrong")
 
 Live session logs are also cached locally in the desktop app. Reopening Feather or restarting a CLI-launched game restores the recent log history for that saved session/project, while screenshots stay out of the cache to keep the app storage small.
 
+Normal websocket log lines are batched in small groups to reduce runtime overhead. Error, fatal, start, and finish lines still flush immediately.
+
 ---
 
 ## Performance And Profiler
 
-The **Performance** page has a **Health** tab for live FPS, frame-time, memory, disk, draw-call, canvas-switch, shader-switch, and texture-memory charts. Use pause/follow when a hitch happens, inspect recent spikes, then export the visible JSON window if you need to compare runs.
+The **Performance** page has a **Health** tab for live FPS, frame-time, memory, disk, draw-call, canvas-switch, shader-switch, and texture-memory, plus an **Overhead** tab for Feather's own runtime cost. Use pause/follow when a hitch happens, inspect recent spikes or the Feather Overhead panel, then export the visible JSON window if you need to compare runs.
 
 Use the core profiler in the **Performance → Profiler** tab for instrumented hot paths. It is available in every debug session and stays idle until you press **Record Capture** or call `DEBUGGER.profiler:start()`:
 

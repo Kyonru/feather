@@ -766,6 +766,9 @@ return M
     update = function() end,
     send = function() end,
   }
+  scheduledFeather:__setRuntimeInterest({
+    features = { profiler = true, observers = true, assets = true, plugins = true },
+  })
   pushRequestCount = 0
   scheduledFeather:update(1)
   assertEqual(pushRequestCount, 0, "connected sample starts with non-plugin payload work")

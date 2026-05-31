@@ -75,6 +75,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reworked the Profiler tab into a capture workspace with Record/Finish capture controls, named snapshots, and hotspot bars for the highest-cost instrumented functions.
 - Profiler command and debugger-probe state uploads are now deferred onto Feather's runtime update lane so stop/snapshot probes do not serialize large captures inside the profiled call.
 - Profiler run strips are now zoomable and horizontally scroll inside the Run Comparison drawer instead of widening the drawer content.
+- Feather now reports its own runtime overhead in Performance, including update cost, transport bytes, deferred work, budget misses, and top plugin costs.
+- Performance now puts Feather runtime overhead in its own Overhead tab instead of crowding the Health view.
+- Feather runtime sampling now uses panel-driven interest and frame/message/byte budgets so observers, assets, plugin payloads, and high-cost plugin updates stay dormant until their page or explicit workflow needs them.
+- Feather websocket logs are now batched for normal output while errors, fatal lines, and session start/finish still flush immediately.
 
 ### Fixed
 
@@ -109,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Particle Playground and Shader Graph connected-game preview work lingering after leaving the page or switching sessions.
 - Fixed connected Lua games stuttering on the default one-second sample cadence when several live payloads were pushed together.
 - Fixed Runtime Snapshot contributing to idle connected-game stutters through default live dashboard pushes.
+- Fixed Feather runtime budgets so active panels cannot get stuck behind a deferred sampling task when a frame is already over budget.
 - Fixed In-Game Overlay performance by caching its font/layout and throttling expensive graphics, GC, and particle metric sampling instead of doing that work every frame.
 - Fixed Particle System Playground connected-game preview performance by muting paused timeline emission and updating only the selected scratch composite.
 - Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
@@ -127,6 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Tauri development reloads getting stuck on Vite `504 Outdated Optimize Dep` responses by isolating app/showcase optimizer caches, forcing a fresh Tauri dev optimize pass, and disabling WebView caching for dev modules.
 - Fixed Tauri dev CSP headers so Feather can use Tauri IPC for event listeners and commands while love.js preview isolation headers are enabled.
 - Fixed the Particle System Playground app layout so editor content scrolls inside the main pane instead of expanding the whole app window.
+- Fixed idle connected-game overhead from background observer, asset, and plugin payload work by gating those pushes behind active panels or explicit recording/preview state.
 
 ### Tests
 
@@ -189,6 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Lua e2e coverage for Shader Graph runtime preview render cadence scaling across small, large-texture, and highly zoomed previews.
 - Added Lua and app e2e coverage for Debugger Profiler Probes syncing to the runtime and triggering core profiler captures from source lines.
 - Expanded Lua and app e2e coverage for Debugger Profile Function probes, including automatic wrapping, unsupported lines, persistence, and removal.
+- Added Lua and app e2e coverage for Feather overhead telemetry, runtime interest, log batching, and panel-driven runtime activation.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 

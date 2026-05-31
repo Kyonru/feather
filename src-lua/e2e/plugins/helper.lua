@@ -109,6 +109,10 @@ local pluginSpecs = {
     suiteModulePath = "e2e.plugins.profiler",
   },
   {
+    id = "runtime-impact",
+    suiteModulePath = "e2e.plugins.runtime_impact",
+  },
+  {
     id = "runtime-snapshot",
     modulePath = "plugins.runtime-snapshot",
     suiteModulePath = "e2e.plugins.runtime_snapshot",
@@ -207,7 +211,8 @@ function PluginE2EHelper.createPluginRecord(definition, optionOverrides, disable
       maxApi = manifest.maxApi,
       name = manifest.name,
       version = manifest.version,
-    }
+    },
+    manifest.runtime or {}
   )
 end
 

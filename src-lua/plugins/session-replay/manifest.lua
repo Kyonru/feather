@@ -5,6 +5,7 @@ return {
   version = "0.1.0",
   api = { min = 5 },
   capabilities = { "input", "filesystem", "binary" },
+  runtime = { cost = "high", update = "explicit", push = "active", sampleRate = 1 },
   optIn = true,
   disabled = true,
   opts = {

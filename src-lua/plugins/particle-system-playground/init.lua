@@ -1740,6 +1740,10 @@ function ParticleSystemPlaygroundPlugin:init(config)
   self.timelineRuntimeActive = false
 end
 
+function ParticleSystemPlaygroundPlugin:isRuntimeActive()
+  return self.previewSessionActive == true or self.timelineRuntimeActive == true
+end
+
 function ParticleSystemPlaygroundPlugin:_setRuntimePreviewActive(active, composite)
   if not active then
     self.previewSessionActive = false

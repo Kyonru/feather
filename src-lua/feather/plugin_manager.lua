@@ -172,6 +172,7 @@ function FeatherPluginManager:init(feather, logger, observer)
         compatibility = compatibility,
         name = plugin.name,
         version = plugin.version,
+        runtime = plugin.runtime or {},
         callbackDisposers = {},
       }
 
@@ -333,10 +334,68 @@ function FeatherPluginManager:disposePluginCallbacks(plugin)
   plugin.callbackDisposers = {}
 end
 
+local function runtimeField(plugin, key, fallback)
+  local runtime = plugin and plugin.runtime
+  if type(runtime) == "table" and runtime[key] ~= nil then
+    return runtime[key]
+  end
+  return fallback
+end
+
+function FeatherPluginManager:isPluginUpdateActive(plugin, feather)
+  local mode = runtimeField(plugin, "update", "always")
+  if mode == "always" then
+    return true
+  end
+  if plugin.instance and type(plugin.instance.isRuntimeActive) == "function" then
+    local ok, active = pcall(plugin.instance.isRuntimeActive, plugin.instance, feather)
+    if ok and active == true then
+      return true
+    end
+  end
+  if mode == "active" then
+    return feather and feather.__isPluginInterested and feather:__isPluginInterested(plugin.identifier)
+  end
+  return false
+end
+
+function FeatherPluginManager:isPluginPushActive(plugin, feather, force)
+  if force then
+    return true
+  end
+  local mode = runtimeField(plugin, "push", "sampled")
+  if mode == "sampled" then
+    return true
+  end
+  if plugin.instance and type(plugin.instance.isRuntimeActive) == "function" then
+    local ok, active = pcall(plugin.instance.isRuntimeActive, plugin.instance, feather)
+    if ok and active == true then
+      return true
+    end
+  end
+  if mode == "active" then
+    return feather and feather.__isPluginInterested and feather:__isPluginInterested(plugin.identifier)
+  end
+  return false
+end
+
+function FeatherPluginManager:hasInterestedPlugins(feather)
+  for _, plugin in ipairs(self.plugins) do
+    if plugin.instance and not plugin.disabled and self:isPluginPushActive(plugin, feather, false) then
+      return true
+    end
+  end
+  return false
+end
+
 function FeatherPluginManager:update(dt, feather)
   for _, plugin in ipairs(self.plugins) do
-    if plugin.instance and not plugin.disabled then
+    if plugin.instance and not plugin.disabled and self:isPluginUpdateActive(plugin, feather) then
+      local startedAt = feather and feather.overhead and feather.overhead:begin()
       local ok, err = pcall(plugin.instance.update, plugin.instance, dt, feather)
+      if feather and feather.overhead then
+        feather.overhead:recordPlugin("update", plugin.identifier, startedAt)
+      end
       if not ok then
         plugin.errorCount = (plugin.errorCount or 0) + 1
         self.logger:log({
@@ -519,12 +578,16 @@ function FeatherPluginManager:pushSome(feather, startIndex, maxPlugins, opts)
 
   while index <= #self.plugins and pushed < limit do
     local plugin = self.plugins[index]
-    if plugin.instance and not plugin.disabled then
+    if plugin.instance and not plugin.disabled and self:isPluginPushActive(plugin, feather, force) then
       local interval = force and 0 or getPushInterval(plugin)
       if force or interval <= 0 or not plugin._nextPushAt or currentTime >= plugin._nextPushAt then
         fakeRequest.path = "/plugins/" .. plugin.identifier
 
+        local startedAt = feather and feather.overhead and feather.overhead:begin()
         local ok, data = pcall(plugin.instance.handleRequest, plugin.instance, fakeRequest, feather)
+        if feather and feather.overhead then
+          feather.overhead:recordPlugin("payload", plugin.identifier, startedAt)
+        end
         if ok and data then
           pcall(feather.pushPlugin, feather, plugin.identifier, data)
         end
@@ -660,7 +723,8 @@ end
 ---@param disabled? boolean   Start the plugin in disabled state (visible in UI but not running)
 ---@param capabilities? string[] Capabilities declared by this plugin (from its manifest)
 ---@param compatibility? table|number Feather plugin API compatibility metadata
-function FeatherPluginManager.createPlugin(plugin, identifier, options, disabled, capabilities, compatibility)
+---@param runtime? table Runtime cost/update/push policy metadata
+function FeatherPluginManager.createPlugin(plugin, identifier, options, disabled, capabilities, compatibility, runtime)
   local normalizedCompatibility = normalizeApiCompatibility(compatibility)
   return {
     plugin = plugin,
@@ -674,6 +738,7 @@ function FeatherPluginManager.createPlugin(plugin, identifier, options, disabled
     maxApi = normalizedCompatibility.maxApi,
     name = normalizedCompatibility.name,
     version = normalizedCompatibility.version,
+    runtime = runtime or {},
   }
 end
 
@@ -700,6 +765,7 @@ function FeatherPluginManager:getConfig()
     config.currentApi = plugin.compatibility and plugin.compatibility.currentApi or nil
     config.version = plugin.version or config.version
     config.capabilities = plugin.capabilities or {}
+    config.runtime = plugin.runtime or {}
     pluginsConfig[plugin.identifier] = config
   end
 

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router';
 import { toast } from 'sonner';
 import {
   BookOpenIcon,
@@ -37,6 +37,7 @@ import { useSessionStore } from './store/session';
 import { useSettingsStore } from './store/settings';
 import { copyToClipboardWithMeta } from './utils/strings';
 import { openUrl } from './utils/linking';
+import { sendCommand } from './lib/send-command';
 
 const INSTALL_DOCS_URL = 'https://kyonru.github.io/feather/installation/';
 const CLI_DOCS_URL = 'https://kyonru.github.io/feather/cli/';
@@ -66,6 +67,75 @@ const Modals = () => {
     </>
   );
 };
+
+const runtimeInterestForPath = (pathname: string) => {
+  const pluginMatch = pathname.match(/^\/plugins\/([^/]+)/);
+  const pluginId = pluginMatch?.[1] ? decodeURIComponent(pluginMatch[1]) : null;
+  return {
+    logs: true,
+    performance: true,
+    observers: pathname.startsWith('/observability'),
+    assets: pathname.startsWith('/assets'),
+    plugins: pathname.startsWith('/plugins'),
+    profiler: pathname.startsWith('/performance'),
+    timeTravel: pathname.startsWith('/time-travel'),
+    sessionReplay: pathname.startsWith('/session-replay'),
+    console: pathname.startsWith('/console'),
+    debugger: pathname.startsWith('/debugger'),
+    shaderGraph: pathname.startsWith('/shader-graph'),
+    particlePlayground: pathname.startsWith('/particle-system-playground'),
+    pluginIds: [
+      pluginId,
+      pathname.startsWith('/shader-graph') ? 'shader-graph' : null,
+      pathname.startsWith('/particle-system-playground') ? 'particle-system-playground' : null,
+      pathname.startsWith('/time-travel') ? 'time-travel' : null,
+      pathname.startsWith('/session-replay') ? 'session-replay' : null,
+    ].filter(Boolean),
+  };
+};
+
+const runtimeRefreshCommandsForPath = (pathname: string): Array<Record<string, unknown>> => {
+  const interest = runtimeInterestForPath(pathname);
+  const commands: Array<Record<string, unknown>> = [];
+
+  if (interest.performance) {
+    commands.push({ type: 'req:performance' });
+  }
+  if (interest.profiler) {
+    commands.push({ type: 'cmd:profiler', action: 'refresh', params: {} });
+  }
+  if (interest.observers) {
+    commands.push({ type: 'req:observers' });
+  }
+  if (interest.assets) {
+    commands.push({ type: 'req:assets' });
+  }
+  if (interest.plugins || interest.shaderGraph || interest.particlePlayground) {
+    commands.push({ type: 'req:plugins' });
+  }
+
+  return commands;
+};
+
+function RuntimeInterestBridge() {
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (!sessionId) return;
+    sendCommand(sessionId, {
+      type: 'cmd:runtime:interest',
+      data: {
+        features: runtimeInterestForPath(pathname),
+      },
+    }).catch(() => {});
+    for (const command of runtimeRefreshCommandsForPath(pathname)) {
+      sendCommand(sessionId, command).catch(() => {});
+    }
+  }, [pathname, sessionId]);
+
+  return null;
+}
 
 function SessionEmptyState() {
   const sessions = useSessionStore((state) => state.sessions);
@@ -290,6 +360,7 @@ export const Router = () => {
         </SidebarInset>
       </SidebarProvider>
       <CommandCenter />
+      <RuntimeInterestBridge />
       <Modals />
     </BrowserRouter>
   );

@@ -38,6 +38,10 @@ function TimeTravelPlugin:stopRecording()
   self.recording = false
 end
 
+function TimeTravelPlugin:isRuntimeActive()
+  return self.recording == true
+end
+
 function TimeTravelPlugin:_pushFrame(frame)
   self._buf[self._bufHead] = frame
   self._bufHead = (self._bufHead % self.bufferSize) + 1

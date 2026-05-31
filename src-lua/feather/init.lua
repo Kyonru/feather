@@ -15,6 +15,7 @@ local FeatherLogger = require(FEATHER_PATH .. ".core.logger")
 local FeatherObserver = require(FEATHER_PATH .. ".core.observer")
 local FeatherPerformance = require(FEATHER_PATH .. ".core.performance")
 local FeatherProfiler = require(FEATHER_PATH .. ".core.profiler")
+local FeatherOverhead = require(FEATHER_PATH .. ".core.overhead")
 local FeatherAssets = require(FEATHER_PATH .. ".core.assets")
 local FeatherDebugOverlay = require(FEATHER_PATH .. ".core.debug_overlay")
 local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
@@ -118,6 +119,8 @@ local customErrorHandler = errorhandler
 ---@field sampleRate? number
 ---@field pluginPushBatchSize? number
 ---@field gcStepAmount? number
+---@field runtimeBudget? table
+---@field logFlushInterval? number
 ---@field sessionName? string  Custom display name shown in desktop session tabs (e.g. "My RPG")
 ---@field deviceId? string  Override persistent device ID (auto-generated and saved to disk if not set)
 ---@field appId? string  Desktop app ID allowed to send commands to this game. Required unless __DANGEROUS_INSECURE_CONNECTION__ = true.
@@ -159,6 +162,8 @@ function Feather:init(config)
   self.profilerPushInterval = conf.profilerPushInterval or 0.25
   self.pluginPushBatchSize = conf.pluginPushBatchSize or 2
   self.gcStepAmount = conf.gcStepAmount or 40
+  self.runtimeBudget = conf.runtimeBudget or {}
+  self.logFlushInterval = conf.logFlushInterval or 0.05
   self.callbackHookInterval = conf.callbackHookInterval or 0.25
   self._callbackHookElapsed = 0
   self.defaultObservers = conf.defaultObservers or false
@@ -206,6 +211,17 @@ function Feather:init(config)
   self._scheduledSampleTasks = {}
   self._pluginPushIndex = nil
   self._lastSampleDt = 0
+  self._pendingLogMessages = {}
+  self._logFlushElapsed = 0
+  self.runtimeInterest = {
+    logs = true,
+    performance = true,
+    observers = false,
+    assets = false,
+    plugins = false,
+    profiler = false,
+    pluginIds = {},
+  }
   self.lastError = 0
   self.wsConnected = false
   self.runtimeSuspended = false
@@ -256,6 +272,7 @@ function Feather:init(config)
 
   self.performance = FeatherPerformance()
   self.profiler = FeatherProfiler({ pushInterval = self.profilerPushInterval, feather = self })
+  self.overhead = FeatherOverhead({ runtimeBudget = self.runtimeBudget })
   self.hotReloader = nil
 
   if self.autoRegisterErrorHandler then
@@ -339,9 +356,54 @@ end
 --- Send a JSON string directly over the WS client.
 function Feather:__sendWs(payload)
   if self.wsConnected and self.wsClient then
+    if self.overhead then
+      self.overhead:recordMessage(type(payload) == "string" and #payload or 0)
+    end
     pcall(function()
       self.wsClient:send(payload)
     end)
+  end
+end
+
+function Feather:__queueLogMessage(message, immediate)
+  if immediate then
+    self:__sendWs(json.encode(message))
+    return
+  end
+  self._pendingLogMessages = self._pendingLogMessages or {}
+  self._pendingLogMessages[#self._pendingLogMessages + 1] = message
+  if #self._pendingLogMessages >= 25 then
+    self:__flushLogMessages()
+  end
+end
+
+function Feather:__flushLogMessages()
+  local pending = self._pendingLogMessages or {}
+  if #pending == 0 then
+    return
+  end
+  self._pendingLogMessages = {}
+  if #pending == 1 then
+    self:__sendWs(json.encode(pending[1]))
+    return
+  end
+  self:__sendWs(json.encode({
+    type = "logs",
+    session = self.sessionId,
+    data = pending,
+  }))
+end
+
+function Feather:__maybeFlushLogMessages(dt, force)
+  local pending = self._pendingLogMessages or {}
+  if #pending == 0 then
+    self._logFlushElapsed = 0
+    return
+  end
+  self._logFlushElapsed = (self._logFlushElapsed or 0) + (dt or 0)
+  if force or self._logFlushElapsed >= (self.logFlushInterval or 0.05) then
+    self._logFlushElapsed = 0
+    self:__flushLogMessages()
   end
 end
 
@@ -421,6 +483,7 @@ function Feather:__getConfig()
     version = FEATHER_VERSION.name,
     API = FEATHER_VERSION.api,
     sampleRate = self.sampleRate,
+    runtimeBudget = self.overhead and self.overhead.budget or self.runtimeBudget,
     continueOnGameError = self.continueOnGameError,
     gameErrorToast = self.gameErrorToast,
     language = "lua",
@@ -450,6 +513,12 @@ function Feather:__setConfig(params)
   self.sampleRate = params.sampleRate or self.sampleRate
   self.updateInterval = params.updateInterval or self.updateInterval
   self.maxTempLogs = params.maxTempLogs or self.maxTempLogs
+  if type(params.runtimeBudget) == "table" then
+    self.runtimeBudget = params.runtimeBudget
+    if self.overhead then
+      self.overhead:setBudget(params.runtimeBudget)
+    end
+  end
   if params.continueOnGameError ~= nil then
     self.continueOnGameError = params.continueOnGameError == true
   end
@@ -483,6 +552,71 @@ function Feather:__setAssetPreviewEnabled(enabled)
   end
 
   self.pluginManager:hookLoveCallbacks()
+end
+
+function Feather:__setRuntimeInterest(data)
+  local features = type(data) == "table" and data.features or data
+  features = type(features) == "table" and features or {}
+  local current = self.runtimeInterest or {}
+  local nextInterest = {
+    logs = features.logs ~= false,
+    performance = features.performance ~= false,
+    observers = features.observers == true,
+    assets = features.assets == true,
+    plugins = features.plugins == true,
+    profiler = features.profiler == true,
+    timeTravel = features.timeTravel == true,
+    sessionReplay = features.sessionReplay == true,
+    console = features.console == true,
+    debugger = features.debugger == true,
+    shaderGraph = features.shaderGraph == true,
+    particlePlayground = features.particlePlayground == true,
+    pluginIds = {},
+  }
+
+  local pluginIds = features.pluginIds or current.pluginIds or {}
+  if type(pluginIds) == "table" then
+    for key, value in pairs(pluginIds) do
+      if type(key) == "string" and value == true then
+        nextInterest.pluginIds[key] = true
+      elseif type(value) == "string" then
+        nextInterest.pluginIds[value] = true
+      end
+    end
+  end
+
+  self.runtimeInterest = nextInterest
+end
+
+function Feather:__isFeatureInterested(feature)
+  local interest = self.runtimeInterest or {}
+  if feature == "logs" or feature == "performance" then
+    return interest[feature] ~= false
+  end
+  return interest[feature] == true
+end
+
+function Feather:__isPluginInterested(pluginId)
+  local interest = self.runtimeInterest or {}
+  if interest.plugins == true then
+    return true
+  end
+  return interest.pluginIds and interest.pluginIds[tostring(pluginId)] == true
+end
+
+function Feather:__hasRuntimeBudget(task, extraBytes, opts)
+  if not self.overhead then
+    return true
+  end
+  local ok, reason = self.overhead:hasBudget(extraBytes)
+  if not ok and reason == "time" and opts and opts.allowOverTime == true then
+    self.overhead:recordDeferred(task, "time-soft")
+    return true
+  end
+  if not ok then
+    self.overhead:recordDeferred(task, reason)
+  end
+  return ok
 end
 
 function Feather:__isAppAuthorized(msg)
@@ -607,7 +741,9 @@ function Feather:__handleCommand(msg)
     return
   end
 
-  if msg.type == "cmd:config" and msg.data then
+  if msg.type == "cmd:runtime:interest" then
+    self:__setRuntimeInterest(msg.data or {})
+  elseif msg.type == "cmd:config" and msg.data then
     self:__setConfig(msg.data)
   elseif msg.type == "cmd:log" and msg.action == "clear" then
     self.featherLogger:clear()
@@ -793,6 +929,8 @@ function Feather:__handleCommand(msg)
     self:__pushPerformance(love.timer.getDelta())
   elseif msg.type == "req:observers" then
     self:__pushObservers()
+  elseif msg.type == "req:assets" then
+    self:__pushAssets()
   elseif msg.type == "req:plugins" then
     self.pluginManager:pushAll(self)
   elseif msg.type == "cmd:time_travel:start" then
@@ -910,10 +1048,14 @@ end
 --- Push a performance snapshot to the desktop.
 ---@param dt number
 function Feather:__pushPerformance(dt)
+  local body = self.performance:getResponseBody(dt)
+  if self.overhead then
+    body.featherOverhead = self.overhead:getResponseBody()
+  end
   self:__sendWs(json.encode({
     type = "performance",
     session = self.sessionId,
-    data = self.performance:getResponseBody(dt),
+    data = body,
   }))
 end
 
@@ -1004,6 +1146,9 @@ function Feather:__pushAssets()
   }))
   if binaryData and self.wsClient and self.wsClient.sendBinary then
     self.wsClient:sendBinary(binaryData)
+    if self.overhead then
+      self.overhead:recordBinary(#binaryData)
+    end
   end
 end
 
@@ -1014,7 +1159,22 @@ function Feather:__queueSampleTasks(dt)
     return
   end
 
-  self._scheduledSampleTasks = { "performance", "profiler", "observers", "assets", "plugins", "gc" }
+  local tasks = { "performance" }
+  if self.profiler and (self.profiler.recording or self._profilerPushQueued or self:__isFeatureInterested("profiler")) then
+    tasks[#tasks + 1] = "profiler"
+  end
+  if self:__isFeatureInterested("observers") then
+    tasks[#tasks + 1] = "observers"
+  end
+  if self:__isFeatureInterested("assets") or (self.assets and self.assets:hasPreview()) then
+    tasks[#tasks + 1] = "assets"
+  end
+  if self:__isFeatureInterested("plugins") or self.pluginManager:hasInterestedPlugins(self) then
+    tasks[#tasks + 1] = "plugins"
+  end
+  tasks[#tasks + 1] = "gc"
+
+  self._scheduledSampleTasks = tasks
   self._pluginPushIndex = 1
 end
 
@@ -1025,31 +1185,54 @@ function Feather:__runNextSampleTask()
   end
 
   local task = tasks[1]
+  if task ~= "performance" and not self:__hasRuntimeBudget(task, nil, {
+    allowOverTime = (self._sampleTasksRanThisFrame or 0) == 0,
+  }) then
+    return
+  end
   if task == "performance" then
+    local startedAt = self.overhead and self.overhead:begin()
     self:__pushPerformance(self._lastSampleDt or 0)
+    if self.overhead then self.overhead:recordElapsed("performance", startedAt) end
+    self._sampleTasksRanThisFrame = (self._sampleTasksRanThisFrame or 0) + 1
     table.remove(tasks, 1)
   elseif task == "profiler" then
+    local startedAt = self.overhead and self.overhead:begin()
     self:__pushProfiler(false)
+    if self.overhead then self.overhead:recordElapsed("profiler", startedAt) end
+    self._sampleTasksRanThisFrame = (self._sampleTasksRanThisFrame or 0) + 1
     table.remove(tasks, 1)
   elseif task == "observers" then
+    local startedAt = self.overhead and self.overhead:begin()
     self:__pushObservers()
+    if self.overhead then self.overhead:recordElapsed("observers", startedAt) end
+    self._sampleTasksRanThisFrame = (self._sampleTasksRanThisFrame or 0) + 1
     table.remove(tasks, 1)
   elseif task == "assets" then
+    local startedAt = self.overhead and self.overhead:begin()
     self:__pushAssets()
+    if self.overhead then self.overhead:recordElapsed("assetsPayload", startedAt) end
+    self._sampleTasksRanThisFrame = (self._sampleTasksRanThisFrame or 0) + 1
     table.remove(tasks, 1)
   elseif task == "plugins" then
+    local startedAt = self.overhead and self.overhead:begin()
     local nextIndex, done = self.pluginManager:pushSome(
       self,
       self._pluginPushIndex or 1,
       self.pluginPushBatchSize or 2
     )
+    if self.overhead then self.overhead:recordElapsed("pluginPayloads", startedAt) end
+    self._sampleTasksRanThisFrame = (self._sampleTasksRanThisFrame or 0) + 1
     self._pluginPushIndex = nextIndex
     if done then
       self._pluginPushIndex = nil
       table.remove(tasks, 1)
     end
   elseif task == "gc" then
+    local startedAt = self.overhead and self.overhead:begin()
     collectgarbage("step", self.gcStepAmount or 40)
+    if self.overhead then self.overhead:recordElapsed("gc", startedAt) end
+    self._sampleTasksRanThisFrame = (self._sampleTasksRanThisFrame or 0) + 1
     table.remove(tasks, 1)
   else
     table.remove(tasks, 1)
@@ -1115,12 +1298,17 @@ function Feather:observe(key, value)
   self.featherObserver:observe(key, value)
 end
 
+function Feather:watch(key, getter, opts)
+  return self.featherObserver:watch(key, getter, opts or {})
+end
+
 function Feather:clear()
   self.featherLogger:clear()
 end
 
 function Feather:finish()
   self.featherLogger:log({ type = "feather:finish" })
+  self:__maybeFlushLogMessages(0, true)
   if self.wsConnected then
     self:__sendWs(json.encode({ type = "feather:bye", session = self.sessionId }))
   end
@@ -1146,23 +1334,41 @@ function Feather:update(dt)
     return
   end
 
+  if self.overhead then
+    self.overhead:frameStart()
+  end
+  self._sampleTasksRanThisFrame = 0
+
   -- Keep suspended runtimes cheap while allowing explicitly enabled overlays to animate.
   if self.runtimeSuspended then
+    local startedAt = self.overhead and self.overhead:begin()
     self.pluginManager:updateSuspended(dt, self)
+    if self.overhead then self.overhead:recordElapsed("suspendedUpdate", startedAt) end
   else
     self._callbackHookElapsed = (self._callbackHookElapsed or 0) + (dt or 0)
     if self._callbackHookElapsed >= (self.callbackHookInterval or 0.25) then
       self._callbackHookElapsed = 0
+      local startedAt = self.overhead and self.overhead:begin()
       self.pluginManager:hookLoveCallbacks()
+      if self.overhead then self.overhead:recordElapsed("callbackHook", startedAt) end
     end
+    local loggerStartedAt = self.overhead and self.overhead:begin()
     self.featherLogger:update()
+    if self.overhead then self.overhead:recordElapsed("logger", loggerStartedAt) end
     if self.assets then
+      local assetsStartedAt = self.overhead and self.overhead:begin()
       self.assets:update(dt)
+      if self.overhead then self.overhead:recordElapsed("assetsUpdate", assetsStartedAt) end
     end
+    local pluginsStartedAt = self.overhead and self.overhead:begin()
     self.pluginManager:update(dt, self)
+    if self.overhead then self.overhead:recordElapsed("pluginUpdate", pluginsStartedAt) end
   end
 
   if self.mode == "disk" then
+    if self.overhead then
+      self.overhead:frameEnd(self.runtimeSuspended)
+    end
     return
   end
 
@@ -1183,31 +1389,46 @@ function Feather:update(dt)
         end
       end
     else
+      local wsStartedAt = self.overhead and self.overhead:begin()
       self.wsClient:update()
+      if self.overhead then self.overhead:recordElapsed("transport", wsStartedAt) end
       -- Drain queued binary frames: at most 2 per game frame to avoid flooding the socket
       if not self.runtimeSuspended and self.wsConnected and self._binaryDrainQueue and #self._binaryDrainQueue > 0 then
         for _ = 1, 2 do
+          if not self:__hasRuntimeBudget("binary") then
+            break
+          end
           local binary = table.remove(self._binaryDrainQueue, 1)
           if not binary then break end
           if binary.bytes and self.wsClient.sendBinary then
             self.wsClient:sendBinary(binary.bytes)
+            if self.overhead then
+              self.overhead:recordBinary(#binary.bytes)
+            end
           end
         end
       end
     end
   end
 
+  self:__maybeFlushLogMessages(dt)
+
   -- Push-based data delivery: only after handshake is complete
   if self.wsConnected and self.__connState == "connected" and self._profilerPushQueued then
-    self:__flushProfilerPush(false)
+    if self._profilerPushForce or self:__hasRuntimeBudget("profiler") then
+      self:__flushProfilerPush(false)
+    end
   end
 
   if self.runtimeSuspended then
+    if self.overhead then
+      self.overhead:frameEnd(true)
+    end
     return
   end
 
   if self.wsConnected and self.__connState == "connected" then
-    if self.assets and self.assets:hasPreview() then
+    if self.assets and self.assets:hasPreview() and self:__hasRuntimeBudget("assets-preview") then
       self:__pushAssets()
     end
     self._wsElapsed = (self._wsElapsed or 0) + dt
@@ -1216,6 +1437,10 @@ function Feather:update(dt)
       self:__queueSampleTasks(dt)
     end
     self:__runNextSampleTask()
+  end
+
+  if self.overhead then
+    self.overhead:frameEnd(false)
   end
 end
 

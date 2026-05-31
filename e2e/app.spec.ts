@@ -1160,6 +1160,28 @@ async function seedPerformanceData(page: Page) {
         memory: 75,
         peakMemory: 90,
         stats: { drawcallsbatched: 80, canvasswitches: 10, shaderswitches: 6, canvases: 4, images: 10, fonts: 2, texturememory: 180, drawcalls: 1600 },
+        featherOverhead: {
+          windowSeconds: 1,
+          frameCount: 60,
+          avgMsPerFrame: 0.18,
+          messages: 5,
+          serializedBytes: 4096,
+          binaryBytes: 512,
+          deferredTasks: 2,
+          budgetMisses: { time: 1, bytes: 1 },
+          budget: {
+            maxFrameMs: 0.5,
+            maxMessagesPerFrame: 20,
+            maxSerializedBytesPerFrame: 32768,
+          },
+          plugins: [
+            {
+              id: 'runtime-snapshot',
+              update: { totalMs: 0.25, avgMs: 0.05, maxMs: 0.1, count: 5 },
+              payload: { totalMs: 0.75, avgMs: 0.75, maxMs: 0.75, count: 1 },
+            },
+          ],
+        },
       },
     ]);
   });
@@ -1866,6 +1888,12 @@ test('performance health surfaces actionable verdicts and safe metrics', async (
   await expect(page.getByTestId('performance-verdicts')).toBeVisible();
   await expect(page.getByText('Recent Spikes', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/performance-health-narrow.png', fullPage: true });
+
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.getByRole('tab', { name: 'Overhead' }).click();
+  await expect(page.getByTestId('feather-overhead-panel')).toBeVisible();
+  await expect(page.getByText('Runtime Cost')).toBeVisible();
+  await expect(page.getByText('runtime-snapshot')).toBeVisible();
 });
 
 test('performance and core profiler degraded matrix handles partial samples', async ({ page }) => {
@@ -2597,6 +2625,60 @@ test('live game runtime can be suspended and resumed from the session tabs', asy
       }),
     )
     .toEqual(expect.arrayContaining(['suspend', 'resume']));
+});
+
+test('runtime interest follows active app panels', async ({ page }) => {
+  await seedTauriConnectedGame(page);
+  await page.goto('/performance');
+  await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
+
+  await expect.poll(async () => page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+    return commands.some((item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
+      item.message?.type === 'cmd:runtime:interest' && item.message.data?.features?.profiler === true,
+    );
+  })).toBe(true);
+
+  await page.getByTestId('sidebar-tool-assets').getByRole('link', { name: 'Assets' }).click();
+  await expect.poll(async () => page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+    const lastInterest = [...commands]
+      .reverse()
+      .find((item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
+        item.message?.type === 'cmd:runtime:interest',
+      );
+    return lastInterest?.message?.data?.features;
+  })).toMatchObject({ assets: true, observers: false });
+  await expect.poll(async () => page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+    return commands.some((item: { message?: { type?: string } }) => item.message?.type === 'req:assets');
+  })).toBe(true);
+
+  await page
+    .getByTestId('sidebar-tool-particle-system-playground')
+    .getByRole('link', { name: 'Particles Playground' })
+    .click();
+  await expect.poll(async () => page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+    const lastInterest = [...commands]
+      .reverse()
+      .find((item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
+        item.message?.type === 'cmd:runtime:interest',
+      );
+    return lastInterest?.message?.data?.features;
+  })).toMatchObject({
+    particlePlayground: true,
+    pluginIds: expect.arrayContaining(['particle-system-playground']),
+  });
+  await expect.poll(async () => page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+    return commands.some((item: { message?: { type?: string } }) => item.message?.type === 'req:plugins');
+  })).toBe(true);
 });
 
 test('particle playground uses connected-game preview on demand in the app', async ({ page }) => {

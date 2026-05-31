@@ -13,6 +13,11 @@ export interface Config {
   version: string;
   API: number;
   sampleRate: number;
+  runtimeBudget?: {
+    maxFrameMs?: number;
+    maxMessagesPerFrame?: number;
+    maxSerializedBytesPerFrame?: number;
+  };
   continueOnGameError?: boolean;
   gameErrorToast?: boolean;
   outfile: string;
@@ -64,6 +69,12 @@ export interface PluginConfig {
   version?: string;
   docs?: string;
   capabilities?: string[];
+  runtime?: {
+    cost?: 'low' | 'medium' | 'high' | string;
+    update?: 'always' | 'active' | 'explicit' | string;
+    push?: 'sampled' | 'active' | 'manual' | string;
+    sampleRate?: number;
+  };
   actions?: Array<Record<string, unknown>>;
   [key: string]: unknown;
 }

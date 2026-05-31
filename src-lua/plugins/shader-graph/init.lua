@@ -18,6 +18,10 @@ function ShaderGraphPlugin:init(config)
   }
 end
 
+function ShaderGraphPlugin:isRuntimeActive()
+  return self.preview ~= nil
+end
+
 local function stableValue(value, depth)
   depth = depth or 0
   if depth > 5 then

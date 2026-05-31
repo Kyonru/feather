@@ -276,6 +276,24 @@ local plugin = FeatherPluginManager.createPlugin(MyPlugin, "my-plugin", {}, fals
 > [!IMPORTANT]
 > Declare an API range when your plugin depends on specific Feather UI nodes, binary attachments, action semantics, or table/gallery formats. Incompatible plugins are shown in the desktop app with an API mismatch message and cannot be enabled.
 
+### Runtime Cost Policy
+
+Built-in plugins can declare a runtime policy in `manifest.lua` so Feather can stay cheap while the matching panel is not active:
+
+```lua
+return {
+  id = "my-plugin",
+  runtime = {
+    cost = "high",       -- low | medium | high
+    update = "active",   -- always | active | explicit
+    push = "active",     -- sampled | active | manual
+    sampleRate = 5,
+  },
+}
+```
+
+`active` means the plugin runs while its desktop panel is visible. `explicit` means the plugin should expose `isRuntimeActive(feather)` and return true only while recording, previewing, replaying, or otherwise doing user-requested work. Plugins without runtime metadata keep the existing sampled behavior for compatibility.
+
 ### Plugin lifecycle
 
 The FeatherPluginManager handles the lifecycle of each plugin. Each plugin's `update()` is wrapped in `pcall` for error isolation — if a plugin crashes, it won't affect the game or other plugins. After 10 consecutive errors, a plugin is automatically disabled. Use `pluginManager:enablePlugin(id)` to re-enable it.

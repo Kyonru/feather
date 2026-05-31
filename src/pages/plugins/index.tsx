@@ -14,6 +14,7 @@ import { openUrl } from '@/utils/linking';
 import { PuzzleIcon, TriangleAlertIcon } from 'lucide-react';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { cn } from '@/utils/styles';
+import { Badge } from '@/components/ui/badge';
 
 type PluginActionDefinition = {
   label: string;
@@ -46,6 +47,24 @@ const describePluginApi = (plugin: { api?: unknown; minApi?: unknown; maxApi?: u
     return `Requires API ${typeof plugin.minApi === 'number' ? plugin.minApi : 'any'}-${typeof plugin.maxApi === 'number' ? plugin.maxApi : 'any'}; this desktop supports API ${current}.`;
   }
   return `This plugin is not compatible with Feather plugin API ${current}.`;
+};
+
+const describeRuntimePolicy = (plugin: { runtime?: { update?: string; push?: string; sampleRate?: number } }) => {
+  const runtime = plugin.runtime ?? {};
+  const update =
+    runtime.update === 'explicit'
+      ? 'updates only while an explicit workflow is active'
+      : runtime.update === 'active'
+        ? 'updates only while this tool is active'
+        : 'may update continuously';
+  const push =
+    runtime.push === 'manual'
+      ? 'sends payloads only after commands'
+      : runtime.push === 'active'
+        ? 'sends payloads only while active'
+        : 'uses sampled payload updates';
+  const sample = typeof runtime.sampleRate === 'number' ? ` around every ${runtime.sampleRate}s` : '';
+  return `${update}; ${push}${sample}.`;
 };
 
 const VectorInput = ({
@@ -407,6 +426,18 @@ export default function PluginPage() {
               <p className="text-muted-foreground">
                 {plugin.incompatibilityReason || describePluginApi(plugin)} Update this plugin or use a matching Feather desktop/runtime version.
               </p>
+            </div>
+          </div>
+        )}
+        {!plugin.disabled && !plugin.incompatible && plugin.runtime?.cost === 'high' && (
+          <div className="mb-4 flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
+            <div className="grid gap-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium">High-cost runtime plugin</p>
+                <Badge variant="outline">Dormant when inactive</Badge>
+              </div>
+              <p className="text-muted-foreground">{describeRuntimePolicy(plugin)}</p>
             </div>
           </div>
         )}

@@ -136,11 +136,11 @@ function FeatherLogger:__countOnRepeat(type, ...)
     last.lastTime = last.time
     last.count = last.count + 1
     if self.feather then
-      self.feather:__sendWs(json.encode({
+      self.feather:__queueLogMessage({
         type = "log:update",
         session = self.feather.sessionId,
         data = { id = last.id, count = last.count, time = last.time, lastTime = last.lastTime },
-      }))
+      }, false)
     end
   else
     self:log({ type = type, str = str })
@@ -196,11 +196,15 @@ function FeatherLogger:log(line, screenshot)
 
   -- Non-blocking channel push; __sendWs is a no-op when not connected
   if self.feather then
-    self.feather:__sendWs(json.encode({
+    local immediate = line.type == "error"
+      or line.type == "fatal"
+      or line.type == "feather:start"
+      or line.type == "feather:finish"
+    self.feather:__queueLogMessage({
       type = "log",
       session = self.feather.sessionId,
       data = line,
-    }))
+    }, immediate)
   end
 end
 

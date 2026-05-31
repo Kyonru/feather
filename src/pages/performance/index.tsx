@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChartAreaInteractive, chartMetrics, type ChartMetricKey } from '@/pages/performance/chart-area-interactive';
 import { PageLayout } from '@/components/page-layout';
-import { PerformanceMetrics, usePerformance } from '@/hooks/use-performance';
+import { PerformanceMetrics, usePerformance, type FeatherOverheadMetric } from '@/hooks/use-performance';
 import { SectionCards } from './section-cards';
 import { useConfig } from '@/hooks/use-config';
 import { Switch } from '@/components/ui/switch';
@@ -41,6 +41,107 @@ function exportPerformance(samples: PerformanceMetrics[], metric: ChartMetricKey
   };
   const src = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
   void downloadFile(`feather-performance-${Date.now()}.json`, src, 'string');
+}
+
+function formatByteCount(bytes: unknown): string {
+  const value = metricNumber(bytes);
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MB`;
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${value.toFixed(0)} B`;
+}
+
+function OverheadMetricCard({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="rounded-md border bg-muted/20 px-3 py-2">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-semibold tabular-nums">{value}</div>
+      {detail && <div className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</div>}
+    </div>
+  );
+}
+
+function FeatherOverheadPanel({ overhead }: { overhead?: FeatherOverheadMetric }) {
+  const topPlugins = overhead?.plugins?.slice(0, 4) ?? [];
+  const budgetMisses = overhead?.budgetMisses ?? {};
+  const totalPluginCost = topPlugins.reduce(
+    (sum, plugin) => sum + metricNumber(plugin.update?.totalMs) + metricNumber(plugin.payload?.totalMs),
+    0,
+  );
+
+  return (
+    <Card data-testid="feather-overhead-panel">
+      <CardHeader>
+        <CardTitle>Feather Overhead</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {!overhead ? (
+          <TriageEmptyState title="No Feather overhead samples yet" className="min-h-28" />
+        ) : (
+          <>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <OverheadMetricCard
+                label="Runtime Cost"
+                value={`${formatOptionalFixed(metricNumber(overhead.avgMsPerFrame), 3)} ms`}
+                detail={`${overhead.frameCount ?? 0} frames sampled`}
+              />
+              <OverheadMetricCard
+                label="Messages"
+                value={String(overhead.messages ?? 0)}
+                detail={`${formatByteCount(overhead.serializedBytes)} JSON`}
+              />
+              <OverheadMetricCard
+                label="Binary"
+                value={formatByteCount(overhead.binaryBytes)}
+                detail={`${overhead.deferredTasks ?? 0} deferred tasks`}
+              />
+              <OverheadMetricCard
+                label="Budget"
+                value={`${formatOptionalFixed(overhead.budget?.maxFrameMs, 2)} ms`}
+                detail={`${Object.values(budgetMisses).reduce((sum, count) => sum + metricNumber(count), 0)} misses`}
+              />
+            </div>
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="grid gap-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Top Feather Work
+                </div>
+                {topPlugins.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No plugin update or payload cost in this sample.</p>
+                ) : (
+                  topPlugins.map((plugin) => {
+                    const total = metricNumber(plugin.update?.totalMs) + metricNumber(plugin.payload?.totalMs);
+                    const pct = totalPluginCost > 0 ? Math.max(4, (total / totalPluginCost) * 100) : 0;
+                    return (
+                      <div
+                        key={plugin.id}
+                        className="grid gap-1 rounded-md border bg-background px-3 py-2 text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <span className="truncate font-medium">{plugin.id}</span>
+                          <span className="shrink-0 tabular-nums text-muted-foreground">{total.toFixed(3)} ms</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <div className="rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
+                <div className="font-semibold uppercase tracking-wide text-foreground">Active Budget</div>
+                <div className="mt-2 grid gap-1">
+                  <div>Frame: {formatOptionalFixed(overhead.budget?.maxFrameMs, 2)} ms</div>
+                  <div>Messages: {overhead.budget?.maxMessagesPerFrame ?? '—'} / frame</div>
+                  <div>JSON: {formatByteCount(overhead.budget?.maxSerializedBytesPerFrame)} / frame</div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function SpikesList({ data }: { data: PerformanceMetrics[] }) {
@@ -241,6 +342,7 @@ export default function Page() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <TabsList>
             <TabsTrigger value="health">Health</TabsTrigger>
+            <TabsTrigger value="overhead">Overhead</TabsTrigger>
             <TabsTrigger value="profiler">Profiler</TabsTrigger>
           </TabsList>
           <TriageToolbar
@@ -306,6 +408,10 @@ export default function Page() {
             diskUsageEnabled={diskUsageEnabled}
           />
           <SpikesList data={cardData} />
+        </TabsContent>
+
+        <TabsContent value="overhead" className="grid gap-4">
+          <FeatherOverheadPanel overhead={latestMetric?.featherOverhead} />
         </TabsContent>
 
         <TabsContent value="profiler">

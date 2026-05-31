@@ -5,6 +5,7 @@ return {
   version = "1.0.0",
   capabilities = { "filesystem" },
   opts = { bufferSize = 1000 },
+  runtime = { cost = "high", update = "explicit", push = "active", sampleRate = 1 },
   optIn = false,
   disabled = true,
 }

@@ -4,6 +4,7 @@ return {
   description = "Author composite particle effects with live in-game preview",
   version = "1.0.0",
   capabilities = { "draw", "filesystem" },
+  runtime = { cost = "medium", update = "explicit", push = "active", sampleRate = 1 },
   optIn = false,
   disabled = false,
   api = 5,

@@ -1291,6 +1291,10 @@ function SessionReplayPlugin:update(_dt, feather)
   end
 end
 
+function SessionReplayPlugin:isRuntimeActive()
+  return self.recording == true or self.replaying == true
+end
+
 function SessionReplayPlugin:_filePayload(path, feather, dir)
   local content = readFile(joinPath(dir or self.currentReplayDir, path)) or ""
   if feather and feather.attachBinary then
