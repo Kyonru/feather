@@ -1,4 +1,5 @@
 local json = require("feather.lib.json")
+local runtimeLog = require("feather.lib.log")
 local ws = require("feather.lib.ws")
 local FeatherPluginManager = require("feather.plugin_manager")
 local PluginE2EHelper = require("e2e.plugins.helper")
@@ -28,6 +29,16 @@ local function findMessage(messages, messageType)
     end
   end
   return nil
+end
+
+local function withSuppressedLogOutput(callback)
+  local originalPrint = runtimeLog.originalPrint
+  runtimeLog.originalPrint = function() end
+  local ok, err = pcall(callback)
+  runtimeLog.originalPrint = originalPrint
+  if not ok then
+    error(err, 0)
+  end
 end
 
 function RuntimeImpactE2E.run(assertEqual, assertTruthy)
@@ -110,7 +121,9 @@ function RuntimeImpactE2E.run(assertEqual, assertTruthy)
   feather:__maybeFlushLogMessages(1, true)
   assertEqual(messages[#messages].type, "logs", "normal logs flush as a batch")
 
-  feather.featherLogger:log({ type = "error", str = "critical now" })
+  withSuppressedLogOutput(function()
+    feather.featherLogger:log({ type = "error", str = "critical now" })
+  end)
   assertEqual(messages[#messages].type, "log", "errors flush immediately")
 
   feather:watch("runtime.watch", function()

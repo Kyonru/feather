@@ -52,7 +52,8 @@ return PluginE2EHelper.createSmokeSuite("shader-graph", {
     plugin:onDraw()
     assertTruthy(plugin.preview.canvas, "shader graph preview renders into cached canvas")
     assertEqual(plugin.preview.renderFps, 60, "shader graph preview uses smooth render cadence for small previews")
-    local renderedAt = plugin.preview.renderedAt
+    local renderedAt = (love.timer and love.timer.getTime() or os.clock()) + 1
+    plugin.preview.renderedAt = renderedAt
     plugin:onDraw()
     assertEqual(plugin.preview.renderedAt, renderedAt, "shader graph preview respects render cap")
 

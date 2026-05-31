@@ -1,4 +1,5 @@
 local json = require("feather.lib.json")
+local runtimeLog = require("feather.lib.log")
 local ws = require("feather.lib.ws")
 local PluginE2EHelper = require("e2e.plugins.helper")
 
@@ -29,6 +30,16 @@ local function findMessage(messages, messageType)
   return nil
 end
 
+local function withSuppressedLogOutput(callback)
+  local originalPrint = runtimeLog.originalPrint
+  runtimeLog.originalPrint = function() end
+  local ok, err = pcall(callback)
+  runtimeLog.originalPrint = originalPrint
+  if not ok then
+    error(err, 0)
+  end
+end
+
 local function findProfilerRow(state, name)
   for _, row in ipairs(state.data or {}) do
     if row.name == name then
@@ -55,7 +66,9 @@ function GoldenWorkflowsE2E.run(assertEqual, assertTruthy)
   assertEqual(#messages, beforeLogs, "normal golden logs batch before flush")
   feather:__maybeFlushLogMessages(1, true)
   assertTruthy(messages[#messages].type == "logs" or messages[#messages].type == "log", "normal golden logs flush after batching")
-  feather.featherLogger:log({ type = "error", str = "golden immediate error" })
+  withSuppressedLogOutput(function()
+    feather.featherLogger:log({ type = "error", str = "golden immediate error" })
+  end)
   assertEqual(messages[#messages].type, "log", "golden error logs flush immediately")
 
   feather:watch("golden.health", function()
