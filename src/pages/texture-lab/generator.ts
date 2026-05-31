@@ -15,7 +15,12 @@ import {
   type TextureLabSplineRecipe,
 } from '@/types/texture-lab';
 
-export type TextureLabGeneratorCategory = 'Particle sprites' | 'Masks' | 'Noise / maps' | 'Pixel patterns' | 'Spline paths';
+export type TextureLabGeneratorCategory =
+  | 'Particle sprites'
+  | 'Masks'
+  | 'Noise / maps'
+  | 'Pixel patterns'
+  | 'Spline paths';
 
 export type TextureLabGeneratorMeta = {
   id: TextureLabGeneratorId;
@@ -33,35 +38,145 @@ export type TextureLabSplinePreset = {
 };
 
 export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
-  { id: 'soft-circle', label: 'Soft Circle', category: 'Particle sprites', description: 'A soft radial sprite for glows, embers, and dust.' },
-  { id: 'spark', label: 'Spark', category: 'Particle sprites', description: 'A compact cross-shaped spark with a hot center.' },
-  { id: 'streak', label: 'Streak', category: 'Particle sprites', description: 'A tapered horizontal streak for speed lines.' },
-  { id: 'ring', label: 'Ring', category: 'Particle sprites', description: 'A soft hollow ring for shockwaves and ripples.' },
-  { id: 'smoke-puff', label: 'Smoke Puff', category: 'Particle sprites', description: 'A noisy soft puff with uneven edges.' },
+  {
+    id: 'soft-circle',
+    label: 'Soft Circle',
+    category: 'Particle sprites',
+    description: 'A soft radial sprite for glows, embers, and dust.',
+  },
+  {
+    id: 'spark',
+    label: 'Spark',
+    category: 'Particle sprites',
+    description: 'A compact cross-shaped spark with a hot center.',
+  },
+  {
+    id: 'streak',
+    label: 'Streak',
+    category: 'Particle sprites',
+    description: 'A tapered horizontal streak for speed lines.',
+  },
+  {
+    id: 'ring',
+    label: 'Ring',
+    category: 'Particle sprites',
+    description: 'A soft hollow ring for shockwaves and ripples.',
+  },
+  {
+    id: 'smoke-puff',
+    label: 'Smoke Puff',
+    category: 'Particle sprites',
+    description: 'A noisy soft puff with uneven edges.',
+  },
   { id: 'star', label: 'Star', category: 'Particle sprites', description: 'A pointed sparkle sprite.' },
-  { id: 'slash', label: 'Slash', category: 'Particle sprites', description: 'A diagonal slash texture for cuts and wind.' },
-  { id: 'trail-blob', label: 'Trail Blob', category: 'Particle sprites', description: 'A soft blob stretched for magical trails.' },
-  { id: 'comet-tail', label: 'Comet Tail', category: 'Particle sprites', description: 'A bright head with a long fading tail.' },
-  { id: 'rain-slash', label: 'Rain Slash', category: 'Particle sprites', description: 'A thin diagonal streak for rain and speed.' },
+  {
+    id: 'slash',
+    label: 'Slash',
+    category: 'Particle sprites',
+    description: 'A diagonal slash texture for cuts and wind.',
+  },
+  {
+    id: 'trail-blob',
+    label: 'Trail Blob',
+    category: 'Particle sprites',
+    description: 'A soft blob stretched for magical trails.',
+  },
+  {
+    id: 'comet-tail',
+    label: 'Comet Tail',
+    category: 'Particle sprites',
+    description: 'A bright head with a long fading tail.',
+  },
+  {
+    id: 'rain-slash',
+    label: 'Rain Slash',
+    category: 'Particle sprites',
+    description: 'A thin diagonal streak for rain and speed.',
+  },
   { id: 'circle-mask', label: 'Circle Mask', category: 'Masks', description: 'A hard or soft circular alpha mask.' },
   { id: 'ellipse-mask', label: 'Ellipse Mask', category: 'Masks', description: 'A horizontal ellipse alpha mask.' },
-  { id: 'rounded-rect-mask', label: 'Rounded Rect', category: 'Masks', description: 'A rounded rectangle utility mask.' },
+  {
+    id: 'rounded-rect-mask',
+    label: 'Rounded Rect',
+    category: 'Masks',
+    description: 'A rounded rectangle utility mask.',
+  },
   { id: 'radial-mask', label: 'Radial Mask', category: 'Masks', description: 'A grayscale radial falloff map.' },
-  { id: 'threshold-noise-mask', label: 'Noise Mask', category: 'Masks', description: 'A thresholded procedural noise mask.' },
-  { id: 'cloud-noise', label: 'Cloud Noise', category: 'Noise / maps', description: 'Soft value noise for smoke and water.' },
-  { id: 'cellular-spots', label: 'Cellular Spots', category: 'Noise / maps', description: 'Cell-like spots for foam, stars, or dissolve.' },
-  { id: 'dissolve-noise', label: 'Dissolve Noise', category: 'Noise / maps', description: 'High-contrast texture for shader dissolves.' },
-  { id: 'water-noise', label: 'Water Noise', category: 'Noise / maps', description: 'Layered directional noise for shimmer.' },
-  { id: 'height-map', label: 'Height Map', category: 'Noise / maps', description: 'Smooth grayscale map for shader experiments.' },
-  { id: 'directional-gradient', label: 'Directional Gradient', category: 'Noise / maps', description: 'A simple left-to-right utility map.' },
+  {
+    id: 'threshold-noise-mask',
+    label: 'Noise Mask',
+    category: 'Masks',
+    description: 'A thresholded procedural noise mask.',
+  },
+  {
+    id: 'cloud-noise',
+    label: 'Cloud Noise',
+    category: 'Noise / maps',
+    description: 'Soft value noise for smoke and water.',
+  },
+  {
+    id: 'cellular-spots',
+    label: 'Cellular Spots',
+    category: 'Noise / maps',
+    description: 'Cell-like spots for foam, stars, or dissolve.',
+  },
+  {
+    id: 'dissolve-noise',
+    label: 'Dissolve Noise',
+    category: 'Noise / maps',
+    description: 'High-contrast texture for shader dissolves.',
+  },
+  {
+    id: 'water-noise',
+    label: 'Water Noise',
+    category: 'Noise / maps',
+    description: 'Layered directional noise for shimmer.',
+  },
+  {
+    id: 'height-map',
+    label: 'Height Map',
+    category: 'Noise / maps',
+    description: 'Smooth grayscale map for shader experiments.',
+  },
+  {
+    id: 'directional-gradient',
+    label: 'Directional Gradient',
+    category: 'Noise / maps',
+    description: 'A simple left-to-right utility map.',
+  },
   { id: 'checker', label: 'Checker', category: 'Pixel patterns', description: 'A tileable checker texture.' },
   { id: 'dither', label: 'Dither', category: 'Pixel patterns', description: 'A deterministic ordered dither pattern.' },
-  { id: 'scanline', label: 'Scanline', category: 'Pixel patterns', description: 'Horizontal scanlines for pixel effects.' },
+  {
+    id: 'scanline',
+    label: 'Scanline',
+    category: 'Pixel patterns',
+    description: 'Horizontal scanlines for pixel effects.',
+  },
   { id: 'palette-ramp', label: 'Palette Ramp', category: 'Pixel patterns', description: 'A horizontal color ramp.' },
-  { id: 'spline-trail', label: 'Spline Trail', category: 'Spline paths', description: 'An editable tapered path for trails, wisps, and comet-like sprites.' },
-  { id: 'spline-ribbon', label: 'Spline Ribbon', category: 'Spline paths', description: 'A wider editable ribbon path with soft feathered edges.' },
-  { id: 'spline-mask', label: 'Spline Mask', category: 'Spline paths', description: 'An editable stroke or closed-loop mask.' },
-  { id: 'spline-lightning', label: 'Spline Lightning', category: 'Spline paths', description: 'A seed-jittered editable path for bolts and energized streaks.' },
+  {
+    id: 'spline-trail',
+    label: 'Spline Trail',
+    category: 'Spline paths',
+    description: 'An editable tapered path for trails, wisps, and comet-like sprites.',
+  },
+  {
+    id: 'spline-ribbon',
+    label: 'Spline Ribbon',
+    category: 'Spline paths',
+    description: 'A wider editable ribbon path with soft feathered edges.',
+  },
+  {
+    id: 'spline-mask',
+    label: 'Spline Mask',
+    category: 'Spline paths',
+    description: 'An editable stroke or closed-loop mask.',
+  },
+  {
+    id: 'spline-lightning',
+    label: 'Spline Lightning',
+    category: 'Spline paths',
+    description: 'A seed-jittered editable path for bolts and energized streaks.',
+  },
 ];
 
 export const DEFAULT_TEXTURE_LAB_RECIPE: TextureLabRecipe = {
@@ -80,6 +195,26 @@ export const DEFAULT_TEXTURE_LAB_RECIPE: TextureLabRecipe = {
   colorRamp: 'white',
   backgroundColor: '#000000',
   backgroundAlpha: 0,
+};
+
+const TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS: Partial<Record<TextureLabGeneratorId, Partial<TextureLabRecipe>>> = {
+  'circle-mask': { alphaMode: 'luminance' },
+  'ellipse-mask': { alphaMode: 'luminance' },
+  'rounded-rect-mask': { alphaMode: 'luminance' },
+  'radial-mask': { alphaMode: 'luminance' },
+  'threshold-noise-mask': { alphaMode: 'inverted' },
+  'cloud-noise': { alphaMode: 'luminance' },
+  'cellular-spots': { alphaMode: 'luminance' },
+  'dissolve-noise': { alphaMode: 'inverted' },
+  'water-noise': { alphaMode: 'luminance' },
+  'height-map': { alphaMode: 'luminance' },
+  'directional-gradient': { alphaMode: 'luminance' },
+  dither: { alphaMode: 'luminance' },
+  scanline: { alphaMode: 'luminance' },
+  'spline-mask': { alphaMode: 'luminance' },
+  'palette-ramp': {
+    alphaMode: 'luminance',
+  },
 };
 
 export const TEXTURE_LAB_SPLINE_GENERATOR_IDS = [
@@ -221,7 +356,10 @@ function normalizeHexColor(value: unknown, fallback = '#000000'): string {
   const trimmed = value.trim();
   const short = /^#?([0-9a-f]{3})$/i.exec(trimmed);
   if (short) {
-    return `#${short[1].split('').map((part) => `${part}${part}`).join('')}`.toLowerCase();
+    return `#${short[1]
+      .split('')
+      .map((part) => `${part}${part}`)
+      .join('')}`.toLowerCase();
   }
   const full = /^#?([0-9a-f]{6})$/i.exec(trimmed);
   if (full) return `#${full[1].toLowerCase()}`;
@@ -251,6 +389,7 @@ export function isTextureLabSplineGenerator(generator: TextureLabGeneratorId): b
 export function defaultTextureLabRecipeForGenerator(generator: TextureLabGeneratorId): TextureLabRecipe {
   return normalizeRecipe({
     ...DEFAULT_TEXTURE_LAB_RECIPE,
+    ...TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS[generator],
     generator,
     tileable: isTextureLabSplineGenerator(generator) ? false : DEFAULT_TEXTURE_LAB_RECIPE.tileable,
     spline: isTextureLabSplineGenerator(generator) ? defaultSplineForGenerator(generator) : undefined,
@@ -259,13 +398,19 @@ export function defaultTextureLabRecipeForGenerator(generator: TextureLabGenerat
 
 function defaultSplineForGenerator(generator: TextureLabGeneratorId): TextureLabSplineRecipe {
   if (generator === 'spline-ribbon') {
-    return cloneSplineRecipe(TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'ribbon-s')?.spline ?? DEFAULT_TRAIL_SPLINE);
+    return cloneSplineRecipe(
+      TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'ribbon-s')?.spline ?? DEFAULT_TRAIL_SPLINE,
+    );
   }
   if (generator === 'spline-mask') {
-    return cloneSplineRecipe(TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'ellipse-border')?.spline ?? DEFAULT_TRAIL_SPLINE);
+    return cloneSplineRecipe(
+      TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'ellipse-border')?.spline ?? DEFAULT_TRAIL_SPLINE,
+    );
   }
   if (generator === 'spline-lightning') {
-    return cloneSplineRecipe(TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'lightning')?.spline ?? DEFAULT_TRAIL_SPLINE);
+    return cloneSplineRecipe(
+      TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'lightning')?.spline ?? DEFAULT_TRAIL_SPLINE,
+    );
   }
   return cloneSplineRecipe(DEFAULT_TRAIL_SPLINE);
 }
@@ -365,9 +510,12 @@ function normalizeSplinePoint(point: unknown): TextureLabSplinePoint | null {
 function normalizeSplineRecipe(input: unknown, generator: TextureLabGeneratorId): TextureLabSplineRecipe | undefined {
   if (!isTextureLabSplineGenerator(generator)) return undefined;
   const fallback = defaultSplineForGenerator(generator);
-  const source = input && typeof input === 'object' ? input as Partial<TextureLabSplineRecipe> : {};
+  const source = input && typeof input === 'object' ? (input as Partial<TextureLabSplineRecipe>) : {};
   const points = Array.isArray(source.points)
-    ? source.points.map(normalizeSplinePoint).filter((point): point is TextureLabSplinePoint => point !== null).slice(0, 16)
+    ? source.points
+        .map(normalizeSplinePoint)
+        .filter((point): point is TextureLabSplinePoint => point !== null)
+        .slice(0, 16)
     : [];
   const normalizedPoints = points.length >= 2 ? points : fallback.points;
 
@@ -381,24 +529,28 @@ function normalizeSplineRecipe(input: unknown, generator: TextureLabGeneratorId)
     taperEnd: clamp(Number(source.taperEnd ?? fallback.taperEnd), 0, 1),
     jitter: clamp(Number(source.jitter ?? fallback.jitter), 0, 1),
     samples: Math.round(clamp(Number(source.samples ?? fallback.samples), 16, 192)),
-    overlapMode: typeof source.overlapMode === 'string' && SPLINE_OVERLAP_SET.has(source.overlapMode)
-      ? source.overlapMode
-      : fallback.overlapMode,
+    overlapMode:
+      typeof source.overlapMode === 'string' && SPLINE_OVERLAP_SET.has(source.overlapMode)
+        ? source.overlapMode
+        : fallback.overlapMode,
   };
 }
 
 function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRecipe {
   const source = input ?? {};
   const size = Number(source.size);
-  const generator = typeof source.generator === 'string' && GENERATOR_SET.has(source.generator)
-    ? source.generator as TextureLabGeneratorId
-    : DEFAULT_TEXTURE_LAB_RECIPE.generator;
-  const colorRamp = typeof source.colorRamp === 'string' && RAMP_SET.has(source.colorRamp)
-    ? source.colorRamp as TextureLabColorRamp
-    : DEFAULT_TEXTURE_LAB_RECIPE.colorRamp;
-  const alphaMode = typeof source.alphaMode === 'string' && ALPHA_SET.has(source.alphaMode)
-    ? source.alphaMode as TextureLabAlphaMode
-    : DEFAULT_TEXTURE_LAB_RECIPE.alphaMode;
+  const generator =
+    typeof source.generator === 'string' && GENERATOR_SET.has(source.generator)
+      ? (source.generator as TextureLabGeneratorId)
+      : DEFAULT_TEXTURE_LAB_RECIPE.generator;
+  const colorRamp =
+    typeof source.colorRamp === 'string' && RAMP_SET.has(source.colorRamp)
+      ? (source.colorRamp as TextureLabColorRamp)
+      : DEFAULT_TEXTURE_LAB_RECIPE.colorRamp;
+  const alphaMode =
+    typeof source.alphaMode === 'string' && ALPHA_SET.has(source.alphaMode)
+      ? (source.alphaMode as TextureLabAlphaMode)
+      : DEFAULT_TEXTURE_LAB_RECIPE.alphaMode;
 
   return {
     generator,
@@ -423,24 +575,61 @@ function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRe
 function rampStops(ramp: TextureLabColorRamp): Array<[number, number, number, number]> {
   switch (ramp) {
     case 'fire':
-      return [[0.16, 0.02, 0.01, 1], [1, 0.22, 0.02, 1], [1, 0.9, 0.28, 1], [1, 1, 1, 1]];
+      return [
+        [0.16, 0.02, 0.01, 1],
+        [1, 0.22, 0.02, 1],
+        [1, 0.9, 0.28, 1],
+        [1, 1, 1, 1],
+      ];
     case 'smoke':
-      return [[0.06, 0.06, 0.07, 1], [0.28, 0.28, 0.3, 1], [0.68, 0.66, 0.62, 1]];
+      return [
+        [0.06, 0.06, 0.07, 1],
+        [0.28, 0.28, 0.3, 1],
+        [0.68, 0.66, 0.62, 1],
+      ];
     case 'ice':
-      return [[0.2, 0.55, 1, 1], [0.74, 0.94, 1, 1], [1, 1, 1, 1]];
+      return [
+        [0.2, 0.55, 1, 1],
+        [0.74, 0.94, 1, 1],
+        [1, 1, 1, 1],
+      ];
     case 'magic':
-      return [[0.32, 0.1, 0.72, 1], [0.95, 0.24, 1, 1], [0.25, 0.9, 1, 1]];
+      return [
+        [0.32, 0.1, 0.72, 1],
+        [0.95, 0.24, 1, 1],
+        [0.25, 0.9, 1, 1],
+      ];
     case 'water':
-      return [[0.02, 0.16, 0.34, 1], [0.06, 0.52, 0.86, 1], [0.74, 1, 1, 1]];
+      return [
+        [0.02, 0.16, 0.34, 1],
+        [0.06, 0.52, 0.86, 1],
+        [0.74, 1, 1, 1],
+      ];
     case 'gold':
-      return [[0.4, 0.18, 0.02, 1], [1, 0.62, 0.08, 1], [1, 0.95, 0.45, 1]];
+      return [
+        [0.4, 0.18, 0.02, 1],
+        [1, 0.62, 0.08, 1],
+        [1, 0.95, 0.45, 1],
+      ];
     case 'rainbow':
-      return [[1, 0.05, 0.1, 1], [1, 0.82, 0.05, 1], [0.1, 0.82, 0.24, 1], [0.05, 0.38, 1, 1], [0.8, 0.18, 1, 1]];
+      return [
+        [1, 0.05, 0.1, 1],
+        [1, 0.82, 0.05, 1],
+        [0.1, 0.82, 0.24, 1],
+        [0.05, 0.38, 1, 1],
+        [0.8, 0.18, 1, 1],
+      ];
     case 'grayscale':
-      return [[0, 0, 0, 1], [1, 1, 1, 1]];
+      return [
+        [0, 0, 0, 1],
+        [1, 1, 1, 1],
+      ];
     case 'white':
     default:
-      return [[1, 1, 1, 1], [1, 1, 1, 1]];
+      return [
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+      ];
   }
 }
 
@@ -688,7 +877,10 @@ function generatorValue(
       return { colorT: 1 - d * 0.7, alpha };
     }
     case 'spark': {
-      const alpha = Math.max(shapeFalloff(d, 0.55, recipe.softness * 0.4, recipe.falloff), Math.pow(rays, 12) * shapeFalloff(d, 0.95, 0.15, 1));
+      const alpha = Math.max(
+        shapeFalloff(d, 0.55, recipe.softness * 0.4, recipe.falloff),
+        Math.pow(rays, 12) * shapeFalloff(d, 0.95, 0.15, 1),
+      );
       return { colorT: 1 - d * 0.5, alpha };
     }
     case 'streak': {
@@ -717,7 +909,10 @@ function generatorValue(
     case 'trail-blob': {
       const tail = smoothstep(0.95, -0.75, cx);
       const thickness = 0.2 + tail * 0.3;
-      const alpha = tail * Math.exp(-(cy * cy) / Math.max(0.01, thickness * thickness)) * shapeFalloff(Math.abs(cx) * 0.8, 0.95, recipe.softness, 1);
+      const alpha =
+        tail *
+        Math.exp(-(cy * cy) / Math.max(0.01, thickness * thickness)) *
+        shapeFalloff(Math.abs(cx) * 0.8, 0.95, recipe.softness, 1);
       return { colorT: tail, alpha };
     }
     case 'comet-tail': {
@@ -729,10 +924,16 @@ function generatorValue(
       return { colorT: 0.75, alpha: Math.exp(-diagonal * diagonal * 120) * shapeFalloff(Math.abs(cx), 0.92, 0.08, 1) };
     }
     case 'circle-mask':
-      return { colorT: shapeFalloff(d, 0.76, recipe.softness, recipe.falloff), alpha: shapeFalloff(d, 0.76, recipe.softness, recipe.falloff) };
+      return {
+        colorT: shapeFalloff(d, 0.76, recipe.softness, recipe.falloff),
+        alpha: shapeFalloff(d, 0.76, recipe.softness, recipe.falloff),
+      };
     case 'ellipse-mask': {
       const ed = Math.hypot(cx / 0.95, cy / 0.58);
-      return { colorT: shapeFalloff(ed, 0.82, recipe.softness, recipe.falloff), alpha: shapeFalloff(ed, 0.82, recipe.softness, recipe.falloff) };
+      return {
+        colorT: shapeFalloff(ed, 0.82, recipe.softness, recipe.falloff),
+        alpha: shapeFalloff(ed, 0.82, recipe.softness, recipe.falloff),
+      };
     }
     case 'rounded-rect-mask': {
       const mask = 1 - smoothstep(-0.02, recipe.softness * 0.35, roundedRectMask(cx, cy, 0.28));
@@ -820,13 +1021,14 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
 
       const foregroundAlpha = alpha * color[3];
       const finalAlpha = foregroundAlpha + backgroundAlpha * (1 - foregroundAlpha);
-      const finalColor: [number, number, number] = finalAlpha > 0
-        ? [
-            (color[0] * foregroundAlpha + backgroundColor[0] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
-            (color[1] * foregroundAlpha + backgroundColor[1] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
-            (color[2] * foregroundAlpha + backgroundColor[2] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
-          ]
-        : [color[0], color[1], color[2]];
+      const finalColor: [number, number, number] =
+        finalAlpha > 0
+          ? [
+              (color[0] * foregroundAlpha + backgroundColor[0] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+              (color[1] * foregroundAlpha + backgroundColor[1] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+              (color[2] * foregroundAlpha + backgroundColor[2] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+            ]
+          : [color[0], color[1], color[2]];
 
       const offset = (y * width + x) * 4;
       pixels[offset] = Math.round(clamp01(finalColor[0]) * 255);
@@ -841,7 +1043,10 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
 
 export function textureLabFilename(recipe: TextureLabRecipe): string {
   const generator = TEXTURE_LAB_GENERATORS.find((item) => item.id === recipe.generator);
-  const base = (generator?.label ?? recipe.generator).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const base = (generator?.label ?? recipe.generator)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
   return `${base}-${recipe.size}-${recipe.seed}.png`;
 }
 

@@ -112,8 +112,18 @@ test('texture lab can reset a generator to its default values', () => {
   assert.equal(recipe.generator, 'spline-lightning');
   assert.equal(recipe.seed, DEFAULT_TEXTURE_LAB_RECIPE.seed);
   assert.equal(recipe.tileable, false);
+  assert.equal(recipe.alphaMode, 'shape');
   assert.equal(recipe.spline.jitter, 0.5);
   assert.equal(recipe.spline.points.length, 5);
+});
+
+test('texture lab reset applies generator-specific alpha defaults', () => {
+  assert.equal(defaultTextureLabRecipeForGenerator('soft-circle').alphaMode, 'shape');
+  assert.equal(defaultTextureLabRecipeForGenerator('cloud-noise').alphaMode, 'luminance');
+  assert.equal(defaultTextureLabRecipeForGenerator('radial-mask').alphaMode, 'luminance');
+  assert.equal(defaultTextureLabRecipeForGenerator('dissolve-noise').alphaMode, 'inverted');
+  assert.equal(defaultTextureLabRecipeForGenerator('threshold-noise-mask').alphaMode, 'inverted');
+  assert.equal(defaultTextureLabRecipeForGenerator('spline-mask').alphaMode, 'luminance');
 });
 
 test('spline texture output is deterministic and point edits change the raster', () => {
