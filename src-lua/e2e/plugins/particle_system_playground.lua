@@ -1277,5 +1277,55 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     })
     assertEqual(invalid, nil, "particle project import rejects unsupported project")
     assertTruthy(contains(invalidErr or "", "Unsupported particle project file"), "particle project import returns clear error")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Restore Snapshot",
+        template = "fire",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Restore Snapshot",
+        systemIndex = 1,
+        title = "Before Restore",
+        emissionRate = 12,
+      },
+    })
+    local restoreResult, restoreErr = plugin:handleActionRequest({
+      params = {
+        action = "restore-composite",
+        composite = "Restore Snapshot",
+        activeSystem = 2,
+        data = project.composite,
+      },
+    })
+    assertEqual(restoreErr, nil, "particle history restore succeeds for scratch composites")
+    assertTruthy(restoreResult == true, "particle history restore returns true")
+    local restored = plugin:handleRequest()
+    assertEqual(restored.activeComposite, "Restore Snapshot", "particle history restore keeps the target composite active")
+    assertEqual(restored.activeSystem, 2, "particle history restore applies active system")
+    assertEqual(restored.data.x, 321, "particle history restore replaces composite data")
+    assertEqual(#restored.data.systems, 3, "particle history restore replaces emitter count")
+    assertEqual(restored.data.systems[1].title, "Saved Core", "particle history restore replaces emitter metadata")
+    assertEqual(restored.data.timeline.tracks[1].systemIndex, 1, "particle history restore normalizes timeline tracks")
+
+    plugin:addComposite("Game Owned Restore", function()
+      return {}
+    end)
+    local rejected, rejectedErr = plugin:handleActionRequest({
+      params = {
+        action = "restore-composite",
+        composite = "Game Owned Restore",
+        activeSystem = 1,
+        data = project.composite,
+      },
+    })
+    assertEqual(rejected, nil, "particle history restore rejects game composites")
+    assertTruthy(
+      contains(rejectedErr or "", "scratch composites only"),
+      "particle history restore reports scratch-only behavior"
+    )
   end,
 })

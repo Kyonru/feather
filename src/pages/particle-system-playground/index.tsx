@@ -1,6 +1,6 @@
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { AlertTriangleIcon, FileWarningIcon, PlayIcon, RotateCcwIcon, SparklesIcon } from 'lucide-react';
+import { AlertTriangleIcon, FileWarningIcon, PlayIcon, Redo2Icon, RotateCcwIcon, SparklesIcon, Undo2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function targetIsTextInput(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || target.isContentEditable;
+}
+
 export default function ParticleSystemPlaygroundPage({
   playgroundOverride,
   standalone = false,
@@ -65,6 +71,30 @@ export default function ParticleSystemPlaygroundPage({
   }, [standalone]);
 
   const appRootHeight = !standalone && viewportHeight > 0 ? Math.max(240, viewportHeight - 64) : undefined;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (targetIsTextInput(event.target)) return;
+      const modifier = event.metaKey || event.ctrlKey;
+      const key = event.key.toLowerCase();
+      if (!modifier) return;
+      if (key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          playground.redo();
+        } else {
+          playground.undo();
+        }
+        return;
+      }
+      if (key === 'y') {
+        event.preventDefault();
+        playground.redo();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [playground]);
 
   const importProject = async () => {
     if (isWeb()) {
@@ -197,6 +227,28 @@ export default function ParticleSystemPlaygroundPage({
               </div>
               {system && (
                 <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="size-8"
+                    disabled={!playground.canUndo}
+                    title={playground.historyUnavailableReason ?? 'Undo (Cmd/Ctrl+Z)'}
+                    aria-label="Undo particle edit"
+                    onClick={playground.undo}
+                  >
+                    <Undo2Icon className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="size-8"
+                    disabled={!playground.canRedo}
+                    title={playground.historyUnavailableReason ?? 'Redo (Cmd/Ctrl+Shift+Z or Ctrl+Y)'}
+                    aria-label="Redo particle edit"
+                    onClick={playground.redo}
+                  >
+                    <Redo2Icon className="size-4" />
+                  </Button>
                   <ExportPanel
                     onExportCode={playground.exportCode}
                     onExportZip={playground.exportZip}

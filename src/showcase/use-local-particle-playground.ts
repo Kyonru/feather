@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
   ParticleTimeline,
@@ -21,6 +21,16 @@ import {
   timelineForTemplate,
   withNormalizedTimeline,
 } from '@/pages/particle-system-playground/timeline';
+import {
+  createParticleHistoryState,
+  recordParticleHistory,
+  redoParticleHistory,
+  restoreParticleSnapshotToData,
+  snapshotParticleAuthoring,
+  undoParticleHistory,
+  type ParticleAuthoringSnapshot,
+  type ParticleHistoryState,
+} from '@/pages/particle-system-playground/history';
 
 type ParamValue = string | number | boolean;
 
@@ -33,6 +43,10 @@ function downloadProject(project: ParticleSystemPlaygroundProjectFile) {
   a.download = `${project.name.replace(/[^a-zA-Z0-9._-]+/g, '-') || 'particle-project'}.featherparticles`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function timelinesEqual(a: ParticleTimeline, b: ParticleTimeline): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 function system(index: number, title: string, template: ParticleSystemPlaygroundTemplate): ParticleSystemPlaygroundSystem {
@@ -291,6 +305,73 @@ export function useLocalParticlePlayground() {
     activeSystem: 1,
     data: composite('fire'),
   });
+  const [historyState, setHistoryState] = useState<ParticleHistoryState>(() => createParticleHistoryState());
+  const historyStateRef = useRef<ParticleHistoryState>(historyState);
+  const historyScope = useRef<string | null>('Showcase Fire');
+  const dataRef = useRef<ParticleSystemPlaygroundData>(data);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
+  useEffect(() => {
+    historyStateRef.current = historyState;
+  }, [historyState]);
+
+  function clearHistory() {
+    const empty = createParticleHistoryState();
+    historyStateRef.current = empty;
+    setHistoryState(empty);
+  }
+
+  useEffect(() => {
+    const nextScope = data.activeComposite;
+    if (historyScope.current === nextScope) return;
+    historyScope.current = nextScope;
+    clearHistory();
+  }, [data.activeComposite]);
+
+  const currentHistorySnapshot = useCallback(() => snapshotParticleAuthoring(dataRef.current), []);
+
+  function recordSnapshot(snapshot: ParticleAuthoringSnapshot | null, groupKey: string, coalesce = false) {
+    if (!snapshot) return;
+    setHistoryState((current) => {
+      const next = recordParticleHistory(current, snapshot, { groupKey, coalesce });
+      historyStateRef.current = next;
+      return next;
+    });
+  }
+
+  function recordHistory(groupKey: string, coalesce = false) {
+    recordSnapshot(currentHistorySnapshot(), groupKey, coalesce);
+  }
+
+  function setDataAndRef(updater: (current: ParticleSystemPlaygroundData) => ParticleSystemPlaygroundData) {
+    setData((current) => {
+      const next = updater(current);
+      dataRef.current = next;
+      return next;
+    });
+  }
+
+  function restoreSnapshot(snapshot: ParticleAuthoringSnapshot) {
+    dataRef.current = restoreParticleSnapshotToData(dataRef.current, snapshot) ?? dataRef.current;
+    setData((current) => restoreParticleSnapshotToData(current, snapshot) ?? current);
+  }
+
+  function undo() {
+    const result = undoParticleHistory(historyStateRef.current, currentHistorySnapshot());
+    historyStateRef.current = result.state;
+    setHistoryState(result.state);
+    if (result.snapshot) restoreSnapshot(result.snapshot);
+  }
+
+  function redo() {
+    const result = redoParticleHistory(historyStateRef.current, currentHistorySnapshot());
+    historyStateRef.current = result.state;
+    setHistoryState(result.state);
+    if (result.snapshot) restoreSnapshot(result.snapshot);
+  }
 
   const activeSystem = useMemo(
     () => data.data?.systems.find((item) => item.index === data.activeSystem) ?? null,
@@ -298,6 +379,7 @@ export function useLocalParticlePlayground() {
   );
 
   function updateActiveParam(key: string, value: ParamValue) {
+    recordHistory(`system:${data.activeSystem}:${key}`, true);
     setData((current) => {
       if (!current.data) return current;
       return {
@@ -313,6 +395,7 @@ export function useLocalParticlePlayground() {
   }
 
   function updateSystemParam(systemIndex: number, key: string, value: ParamValue) {
+    recordHistory(`system:${systemIndex}:${key}`, true);
     setData((current) => {
       if (!current.data) return current;
       return {
@@ -328,6 +411,7 @@ export function useLocalParticlePlayground() {
   }
 
   function updateParam(key: string, value: ParamValue) {
+    recordHistory(`composite:${key}`, true);
     setData((current) => {
       if (!current.data) return current;
       if (key === 'compositeX') return { ...current, data: { ...current.data, x: Number(value) } };
@@ -347,9 +431,15 @@ export function useLocalParticlePlayground() {
   }
 
   function updateTimeline(timeline: ParticleTimeline) {
-    setData((current) => {
+    const currentComposite = dataRef.current.data;
+    if (!currentComposite) return;
+    const nextTimeline = normalizeParticleTimeline(timeline, currentComposite.systems);
+    const currentTimeline = normalizeParticleTimeline(currentComposite.timeline, currentComposite.systems);
+    if (timelinesEqual(nextTimeline, currentTimeline)) return;
+    recordHistory('timeline', false);
+    setDataAndRef((current) => {
       if (!current.data) return current;
-      return { ...current, data: withNormalizedTimeline({ ...current.data, timeline }) };
+      return { ...current, data: withNormalizedTimeline({ ...current.data, timeline: nextTimeline }) };
     });
   }
 
@@ -373,6 +463,7 @@ export function useLocalParticlePlayground() {
 
   function createComposite(name?: string, template: ParticleSystemPlaygroundTemplate = 'fire') {
     const nextName = name?.trim() || `Showcase ${data.composites.length + 1}`;
+    clearHistory();
     setData({
       type: 'particle-system-playground',
       composites: [...data.composites, nextName],
@@ -394,17 +485,26 @@ export function useLocalParticlePlayground() {
     composite: data.data,
     activeSystem,
     shaderError: '',
+    canUndo: historyState.undoStack.length > 0,
+    canRedo: historyState.redoStack.length > 0,
+    historyUnavailableReason: undefined,
+    undo,
+    redo,
     updateActiveParam,
     updateSystemParam,
     updateParam,
     sendAction: () => Promise.resolve(),
     setRuntimePreviewActive: () => Promise.resolve(),
     refreshAfterAction: () => undefined,
-    selectComposite: (name: string) => setData((current) => ({ ...current, activeComposite: name })),
+    selectComposite: (name: string) => {
+      clearHistory();
+      setData((current) => ({ ...current, activeComposite: name }));
+    },
     selectSystem: (index: number) => setData((current) => ({ ...current, activeSystem: index })),
     createComposite,
     deleteComposite: () => toast.info('The showcase keeps one demo composite available.'),
-    addSystem: () =>
+    addSystem: () => {
+      recordHistory('systems:add', false);
       setData((current) => {
         if (!current.data) return current;
         const nextIndex = Math.max(0, ...current.data.systems.map((item) => item.index)) + 1;
@@ -414,8 +514,10 @@ export function useLocalParticlePlayground() {
           activeSystem: nextIndex,
           data: withNormalizedTimeline({ ...current.data, systems }),
         };
-      }),
-    removeSystem: (systemIndex: number) =>
+      });
+    },
+    removeSystem: (systemIndex: number) => {
+      recordHistory(`systems:remove:${systemIndex}`, false);
       setData((current) => {
         if (!current.data || current.data.systems.length <= 1) return current;
         const timeline = removeParticleTimelineTrack(current.data.timeline, current.data.systems, systemIndex);
@@ -431,8 +533,10 @@ export function useLocalParticlePlayground() {
           activeSystem,
           data: withNormalizedTimeline({ ...current.data, systems, timeline }),
         };
-      }),
-    reorderSystem: (fromIndex: number, toIndex: number) =>
+      });
+    },
+    reorderSystem: (fromIndex: number, toIndex: number) => {
+      recordHistory(`systems:reorder:${fromIndex}:${toIndex}`, false);
       setData((current) => {
         if (!current.data) return current;
         const systems = [...current.data.systems];
@@ -447,7 +551,8 @@ export function useLocalParticlePlayground() {
           activeSystem: toIndex,
           data: withNormalizedTimeline({ ...current.data, systems: reindexParticleSystems(systems), timeline }),
         };
-      }),
+      });
+    },
     updateTimeline,
     playTimeline: () => {
       const timeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
@@ -466,6 +571,7 @@ export function useLocalParticlePlayground() {
     reset: () => toast.success('Preview reset'),
     kickStart: () => toast.success('Kick start sent to the showcase preview'),
     setTexturePreset: (preset: string) => {
+      recordHistory(`system:${data.activeSystem}:texture`, false);
       setData((current) => {
         if (!current.data) return current;
         return {
@@ -481,7 +587,8 @@ export function useLocalParticlePlayground() {
         };
       });
     },
-    setTexturePath: (texturePath: string) =>
+    setTexturePath: (texturePath: string) => {
+      recordHistory(`system:${data.activeSystem}:texture`, false);
       setData((current) => {
         if (!current.data) return current;
         return {
@@ -501,13 +608,49 @@ export function useLocalParticlePlayground() {
             ),
           },
         };
-      }),
+      });
+    },
     setTextureFromUpload: (filename: string) => {
+      recordHistory(`system:${data.activeSystem}:texture`, false);
+      setData((current) => {
+        if (!current.data) return current;
+        return {
+          ...current,
+          data: {
+            ...current.data,
+            systems: current.data.systems.map((item) =>
+              item.index === current.activeSystem
+                ? {
+                    ...item,
+                    texturePath: '',
+                    texturePreset: '',
+                    textureFilename: filename,
+                    exportReady: true,
+                  }
+                : item,
+            ),
+          },
+        };
+      });
       toast.success(`Texture loaded for preview: ${filename}`);
       return Promise.resolve();
     },
     setShader: (params: Record<string, unknown>) => {
-      if (typeof params.shaderSource === 'string') updateActiveParam('shaderSource', params.shaderSource);
+      recordHistory(`system:${data.activeSystem}:shader`, false);
+      if (typeof params.shaderSource === 'string') {
+        setData((current) => {
+          if (!current.data) return current;
+          return {
+            ...current,
+            data: {
+              ...current.data,
+              systems: current.data.systems.map((item) =>
+                item.index === current.activeSystem ? updateSystemDraft(item, 'shaderSource', String(params.shaderSource)) : item,
+              ),
+            },
+          };
+        });
+      }
       toast.success('Shader applied to showcase preview');
     },
     exportCode: () => {
@@ -548,6 +691,7 @@ export function useLocalParticlePlayground() {
       const nextName = project.name && !data.composites.includes(project.name)
         ? project.name
         : `${project.name || 'Imported Particles'} ${data.composites.length + 1}`;
+      clearHistory();
       setData({
         type: 'particle-system-playground',
         composites: [...data.composites, nextName],

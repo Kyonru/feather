@@ -10,10 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Particle Playground timeline rows now include emitter visibility toggles and grouped clip/keyframe selection for clamped horizontal timing moves.
+- Particle Playground scratch composites now have in-memory undo/redo history with toolbar buttons plus `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, and `Ctrl+Y` shortcuts.
+
+### Fixed
+
+- Fixed Particle Playground timeline drags so focused numeric clip editors cannot write stale values back over direct clip movement.
 
 ### Tests
 
 - Added app and showcase e2e coverage for timeline visibility toggles and grouped timeline dragging.
+- Added focused history reducer tests plus Lua, app, and showcase coverage for Particle Playground undo/redo restores.
 
 ## [v3.0.0] - 2026-05-31 - The one with core workflows
 

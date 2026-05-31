@@ -25,6 +25,16 @@ import {
   reorderParticleTimeline,
   withNormalizedTimeline,
 } from '@/pages/particle-system-playground/timeline';
+import {
+  createParticleHistoryState,
+  recordParticleHistory,
+  redoParticleHistory,
+  restoreParticleSnapshotToData,
+  snapshotParticleAuthoring,
+  undoParticleHistory,
+  type ParticleAuthoringSnapshot,
+  type ParticleHistoryState,
+} from '@/pages/particle-system-playground/history';
 
 const PLUGIN_ID = 'particle-system-playground';
 
@@ -185,6 +195,10 @@ function valuesEqual(a: unknown, b: unknown) {
   return a === b;
 }
 
+function timelinesEqual(a: ParticleTimeline, b: ParticleTimeline): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 function valueForParam(
   data: ParticleSystemPlaygroundData | undefined,
   params: Record<string, ParamValue>,
@@ -225,8 +239,12 @@ export function useParticleSystemPlayground() {
   const pendingParams = useRef<ScopedParamBatches>({});
   const pendingTimelineSeek = useRef<{ composite: string; time: number } | null>(null);
   const pendingTimelineUpdate = useRef<{ composite: string; timeline: ParticleTimeline } | null>(null);
+  const pendingRestore = useRef<{ composite: string; snapshot: ParticleAuthoringSnapshot } | null>(null);
+  const historyScope = useRef<string | null>(null);
   const [optimisticParams, setOptimisticParams] = useState<ScopedParamBatches>({});
   const [localTimelineStates, setLocalTimelineStates] = useState<TimelineStateByComposite>({});
+  const [historyState, setHistoryState] = useState<ParticleHistoryState>(() => createParticleHistoryState());
+  const historyStateRef = useRef<ParticleHistoryState>(historyState);
 
   const { data: serverData } = useQuery<ParticleSystemPlaygroundData>({
     queryKey: sessionQueryKey.plugin(sessionId ?? '', PLUGIN_ID),
@@ -250,6 +268,11 @@ export function useParticleSystemPlayground() {
       },
     };
   }, [localTimelineStates, serverData, optimisticParams]);
+  const dataRef = useRef<ParticleSystemPlaygroundData>(data);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   const lastShaderResponse = useQuery<{ status?: string; message?: string }>({
     queryKey: sessionQueryKey.pluginAction(sessionId ?? '', PLUGIN_ID, 'set-shader'),
@@ -280,6 +303,52 @@ export function useParticleSystemPlayground() {
       },
     }));
   }, []);
+
+  const historyUnavailableReason =
+    data.data?.compositeType === 'game' ? 'Undo history is available for scratch composites only.' : undefined;
+
+  useEffect(() => {
+    historyStateRef.current = historyState;
+  }, [historyState]);
+
+  useEffect(() => {
+    const nextScope = sessionId && data.activeComposite ? `${sessionId}\u0000${data.activeComposite}` : null;
+    if (historyScope.current === nextScope) return;
+    historyScope.current = nextScope;
+    const empty = createParticleHistoryState();
+    historyStateRef.current = empty;
+    setHistoryState(empty);
+    pendingRestore.current = null;
+  }, [data.activeComposite, sessionId]);
+
+  const clearHistory = useCallback(() => {
+    const empty = createParticleHistoryState();
+    historyStateRef.current = empty;
+    setHistoryState(empty);
+    pendingRestore.current = null;
+  }, []);
+
+  const currentHistorySnapshot = useCallback(() => snapshotParticleAuthoring(dataRef.current), []);
+
+  const recordSnapshot = useCallback(
+    (snapshot: ParticleAuthoringSnapshot | null, groupKey: string, coalesce = false) => {
+      if (historyUnavailableReason) return;
+      if (!snapshot) return;
+      setHistoryState((current) => {
+        const next = recordParticleHistory(current, snapshot, { groupKey, coalesce });
+        historyStateRef.current = next;
+        return next;
+      });
+    },
+    [historyUnavailableReason],
+  );
+
+  const recordHistory = useCallback(
+    (groupKey: string, coalesce = false) => {
+      recordSnapshot(currentHistorySnapshot(), groupKey, coalesce);
+    },
+    [currentHistorySnapshot, recordSnapshot],
+  );
 
   useEffect(() => {
     setOptimisticParams((current) => {
@@ -325,6 +394,9 @@ export function useParticleSystemPlayground() {
     (key: string, value: ParamValue) => {
       const composite = data.activeComposite ?? '';
       const systemIndex = data.activeSystem;
+      const currentValue = valueForParam(data, { composite, systemIndex }, key);
+      if (currentValue !== undefined && valuesEqual(currentValue, value)) return;
+      recordHistory(`composite:${key}`, true);
       const batchKey = targetKey(composite, systemIndex);
       setOptimisticData(composite, systemIndex, { [key]: value });
       pendingParams.current[batchKey] = {
@@ -335,13 +407,16 @@ export function useParticleSystemPlayground() {
       };
       flushParams();
     },
-    [data.activeComposite, data.activeSystem, flushParams, setOptimisticData],
+    [data, flushParams, recordHistory, setOptimisticData],
   );
 
   const updateActiveParam = useCallback(
     (key: string, value: ParamValue) => {
       const composite = data.activeComposite ?? '';
       const systemIndex = data.activeSystem;
+      const currentValue = valueForParam(data, { composite, systemIndex }, key);
+      if (currentValue !== undefined && valuesEqual(currentValue, value)) return;
+      recordHistory(`system:${systemIndex}:${key}`, true);
       const batchKey = targetKey(composite, systemIndex);
       setOptimisticData(composite, systemIndex, { [key]: value });
       pendingParams.current[batchKey] = {
@@ -352,12 +427,15 @@ export function useParticleSystemPlayground() {
       };
       flushParams();
     },
-    [data.activeComposite, data.activeSystem, flushParams, setOptimisticData],
+    [data, flushParams, recordHistory, setOptimisticData],
   );
 
   const updateSystemParam = useCallback(
     (systemIndex: number, key: string, value: ParamValue) => {
       const composite = data.activeComposite ?? '';
+      const currentValue = valueForParam(data, { composite, systemIndex }, key);
+      if (currentValue !== undefined && valuesEqual(currentValue, value)) return;
+      recordHistory(`system:${systemIndex}:${key}`, true);
       const batchKey = targetKey(composite, systemIndex);
       setOptimisticData(composite, systemIndex, { [key]: value });
       pendingParams.current[batchKey] = {
@@ -368,7 +446,7 @@ export function useParticleSystemPlayground() {
       };
       flushParams();
     },
-    [data.activeComposite, flushParams, setOptimisticData],
+    [data, flushParams, recordHistory, setOptimisticData],
   );
 
   const sendAction = useCallback(
@@ -406,8 +484,56 @@ export function useParticleSystemPlayground() {
     [data.activeComposite, data.activeSystem, runtimeSuspended, send],
   );
 
+  const sendRestoreSnapshot = useCallback(
+    (composite: string, snapshot: ParticleAuthoringSnapshot) => {
+      if (!composite) return Promise.resolve();
+      if (runtimeSuspended) {
+        pendingRestore.current = { composite, snapshot };
+        return Promise.resolve();
+      }
+      pendingRestore.current = null;
+      return send({
+        type: 'cmd:plugin:action',
+        plugin: PLUGIN_ID,
+        action: 'restore-composite',
+        params: {
+          composite,
+          activeSystem: snapshot.activeSystem,
+          data: snapshot.data,
+        },
+      });
+    },
+    [runtimeSuspended, send],
+  );
+
+  const restoreSnapshot = useCallback(
+    (snapshot: ParticleAuthoringSnapshot) => {
+      const composite = data.activeComposite ?? '';
+      pendingParams.current = {};
+      pendingTimelineSeek.current = null;
+      pendingTimelineUpdate.current = null;
+      setOptimisticParams({});
+      setLocalTimelineStates((current) => {
+        if (!composite) return current;
+        const { [composite]: _removed, ...rest } = current;
+        return rest;
+      });
+      queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>
+        restoreParticleSnapshotToData(current ?? data, snapshot),
+      );
+      dataRef.current = restoreParticleSnapshotToData(dataRef.current, snapshot) ?? dataRef.current;
+      void sendRestoreSnapshot(composite, snapshot);
+    },
+    [data, pluginQueryKey, queryClient, sendRestoreSnapshot],
+  );
+
   useEffect(() => {
     if (runtimeSuspended) return;
+    const restore = pendingRestore.current;
+    if (restore) {
+      pendingRestore.current = null;
+      void sendRestoreSnapshot(restore.composite, restore.snapshot);
+    }
     const pending = pendingTimelineUpdate.current;
     if (!pending) return;
     pendingTimelineUpdate.current = null;
@@ -415,10 +541,11 @@ export function useParticleSystemPlayground() {
       composite: pending.composite,
       timeline: pending.timeline,
     });
-  }, [runtimeSuspended, sendAction]);
+  }, [runtimeSuspended, sendAction, sendRestoreSnapshot]);
 
   const setTextureFromUpload = useCallback(
     (filename: string, dataBase64: string) => {
+      recordHistory(`system:${data.activeSystem}:texture`, false);
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>
         updateTextureDraft(current, data.activeSystem, {
           texturePath: '',
@@ -429,7 +556,7 @@ export function useParticleSystemPlayground() {
       );
       return sendAction('set-texture', { filename, dataBase64 });
     },
-    [data.activeSystem, pluginQueryKey, queryClient, sendAction],
+    [data.activeSystem, pluginQueryKey, queryClient, recordHistory, sendAction],
   );
 
   const refreshAfterAction = useCallback(
@@ -522,6 +649,24 @@ export function useParticleSystemPlayground() {
     [sendAction],
   );
 
+  const undo = useCallback(() => {
+    if (historyUnavailableReason) return;
+    const current = currentHistorySnapshot();
+    const result = undoParticleHistory(historyStateRef.current, current);
+    historyStateRef.current = result.state;
+    setHistoryState(result.state);
+    if (result.snapshot) restoreSnapshot(result.snapshot);
+  }, [currentHistorySnapshot, historyUnavailableReason, restoreSnapshot]);
+
+  const redo = useCallback(() => {
+    if (historyUnavailableReason) return;
+    const current = currentHistorySnapshot();
+    const result = redoParticleHistory(historyStateRef.current, current);
+    historyStateRef.current = result.state;
+    setHistoryState(result.state);
+    if (result.snapshot) restoreSnapshot(result.snapshot);
+  }, [currentHistorySnapshot, historyUnavailableReason, restoreSnapshot]);
+
   return {
     plugin,
     available: !!plugin,
@@ -534,19 +679,36 @@ export function useParticleSystemPlayground() {
     composite: data.data,
     activeSystem: data.data?.systems.find((system) => system.index === data.activeSystem) ?? null,
     shaderError: lastShaderResponse?.status === 'error' ? lastShaderResponse.message : '',
+    canUndo: !historyUnavailableReason && historyState.undoStack.length > 0,
+    canRedo: !historyUnavailableReason && historyState.redoStack.length > 0,
+    historyUnavailableReason,
+    undo,
+    redo,
     updateActiveParam,
     updateSystemParam,
     updateParam,
     sendAction,
     setRuntimePreviewActive,
     refreshAfterAction,
-    selectComposite: (name: string) => refreshAfterAction('select-composite', { composite: name }),
+    selectComposite: (name: string) => {
+      clearHistory();
+      refreshAfterAction('select-composite', { composite: name });
+    },
     selectSystem: (index: number) => refreshAfterAction('select-system', { systemIndex: index }),
-    createComposite: (name?: string, template?: ParticleSystemPlaygroundTemplate) =>
-      refreshAfterAction('new-composite', { ...(name ? { name } : {}), ...(template ? { template } : {}) }),
-    deleteComposite: () => refreshAfterAction('delete-composite'),
-    addSystem: () => refreshAfterAction('add-system'),
+    createComposite: (name?: string, template?: ParticleSystemPlaygroundTemplate) => {
+      clearHistory();
+      refreshAfterAction('new-composite', { ...(name ? { name } : {}), ...(template ? { template } : {}) });
+    },
+    deleteComposite: () => {
+      clearHistory();
+      refreshAfterAction('delete-composite');
+    },
+    addSystem: () => {
+      recordHistory('systems:add', false);
+      refreshAfterAction('add-system');
+    },
     removeSystem: (systemIndex: number) => {
+      recordHistory(`systems:remove:${systemIndex}`, false);
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => {
         if (!current?.data || current.data.systems.length <= 1) return current;
         const timeline = removeParticleTimelineTrack(current.data.timeline, current.data.systems, systemIndex);
@@ -566,6 +728,7 @@ export function useParticleSystemPlayground() {
       refreshAfterAction('remove-system', { systemIndex });
     },
     reorderSystem: (fromIndex: number, toIndex: number) => {
+      recordHistory(`systems:reorder:${fromIndex}:${toIndex}`, false);
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => {
         if (!current?.data) return current;
         const systems = [...current.data.systems];
@@ -588,15 +751,25 @@ export function useParticleSystemPlayground() {
       refreshAfterAction('reorder-system', { fromIndex, toIndex });
     },
     updateTimeline: (timeline: ParticleTimeline) => {
-      queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => updateTimelineDraft(current, timeline));
+      const currentComposite = dataRef.current.data;
+      if (!currentComposite) return;
+      const nextTimeline = normalizeParticleTimeline(timeline, currentComposite.systems);
+      const currentTimeline = normalizeParticleTimeline(currentComposite.timeline, currentComposite.systems);
+      if (timelinesEqual(nextTimeline, currentTimeline)) return;
+      recordHistory('timeline', false);
+      queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) => {
+        const next = updateTimelineDraft(current, nextTimeline);
+        if (next) dataRef.current = next;
+        return next;
+      });
       if (runtimeSuspended) {
         pendingTimelineUpdate.current = {
           composite: data.activeComposite ?? '',
-          timeline,
+          timeline: nextTimeline,
         };
         return;
       }
-      refreshAfterAction('set-timeline', { timeline });
+      refreshAfterAction('set-timeline', { timeline: nextTimeline });
     },
     playTimeline: (sendRuntime = true) => {
       const timeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
@@ -645,6 +818,7 @@ export function useParticleSystemPlayground() {
     reset: (_all = true) => refreshAfterAction('reset'),
     kickStart: () => refreshAfterAction('kick-start'),
     setTexturePreset: (preset: string) => {
+      recordHistory(`system:${data.activeSystem}:texture`, false);
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>
         updateTextureDraft(current, data.activeSystem, {
           texturePath: '',
@@ -656,6 +830,7 @@ export function useParticleSystemPlayground() {
       refreshAfterAction('set-texture', { preset });
     },
     setTexturePath: (texturePath: string) => {
+      recordHistory(`system:${data.activeSystem}:texture`, false);
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>
         updateTextureDraft(current, data.activeSystem, {
           texturePath,
@@ -667,7 +842,10 @@ export function useParticleSystemPlayground() {
       refreshAfterAction('set-texture', { texturePath });
     },
     setTextureFromUpload,
-    setShader: (params: ActionParams) => refreshAfterAction('set-shader', params),
+    setShader: (params: ActionParams) => {
+      recordHistory(`system:${data.activeSystem}:shader`, false);
+      refreshAfterAction('set-shader', params);
+    },
     exportCode: () => refreshAfterAction('export-code'),
     exportZip: () => refreshAfterAction('export-zip'),
     saveProject: () => refreshAfterAction('export-project'),
@@ -684,6 +862,7 @@ export function useParticleSystemPlayground() {
         return;
       }
       project = migrateParticleProject(project);
+      clearHistory();
       refreshAfterAction('import-project', { project });
       toast.success('Particle project import requested');
     },

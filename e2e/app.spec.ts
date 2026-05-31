@@ -2806,6 +2806,75 @@ test('particle playground timeline mode control updates in the app', async ({ pa
   await expect(mode.getByRole('button', { name: 'One-shot' })).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('particle playground undo redo history works in the app', async ({ page }) => {
+  await seedTauriConnectedGame(page);
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
+  await seedParticlePlaygroundConfig(page, 'live-game-session');
+  await page
+    .getByTestId('sidebar-tool-particle-system-playground')
+    .getByRole('link', { name: 'Particles Playground' })
+    .click();
+
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  const undoButton = page.getByLabel('Undo particle edit');
+  const redoButton = page.getByLabel('Redo particle edit');
+  await expect(undoButton).toBeDisabled();
+  await expect(redoButton).toBeDisabled();
+
+  const restoreCommandCount = () =>
+    page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+        (item: { message?: { action?: string } }) => item.message?.action === 'restore-composite',
+      ).length;
+    });
+
+  const restoresBeforeEdit = await restoreCommandCount();
+  const rate = page.getByText('Rate', { exact: true }).locator('..').getByRole('spinbutton');
+  await expect(rate).toHaveValue('100');
+  await rate.fill('150');
+  await expect(rate).toHaveValue('150');
+  await expect(undoButton).toBeEnabled();
+  await expect(redoButton).toBeDisabled();
+  await expect.poll(restoreCommandCount).toBe(restoresBeforeEdit);
+
+  await page.getByRole('heading', { name: 'Particles Playground' }).click();
+  await page.keyboard.press(`${multiSelectModifier()}+Z`);
+  await expect(rate).toHaveValue('100');
+  await expect(redoButton).toBeEnabled();
+  await expect.poll(restoreCommandCount).toBe(restoresBeforeEdit + 1);
+
+  await page.keyboard.press(`${multiSelectModifier()}+Shift+Z`);
+  await expect(rate).toHaveValue('150');
+  await expect(undoButton).toBeEnabled();
+  await expect.poll(restoreCommandCount).toBe(restoresBeforeEdit + 2);
+
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await page.getByTestId('particle-timeline-track-1').click();
+  const strip = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
+  expect(strip).not.toBeNull();
+  await page.getByLabel('Stop at').first().fill('2.2');
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.2');
+  await dragLocatorBy(page, page.getByTestId('particle-timeline-clip-1').first(), strip!.width * (0.2 / 3));
+  await expect(page.getByLabel('Emit at').first()).toHaveValue('0.2');
+  await undoButton.click();
+  await expect(page.getByLabel('Emit at').first()).toHaveValue('0');
+
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = (window as any).__FEATHER_QUERY_CLIENT__;
+    const current = client?.getQueryData(['live-game-session', 'plugin', 'particle-system-playground']);
+    if (!current?.data) return;
+    client.setQueryData(['live-game-session', 'plugin', 'particle-system-playground'], {
+      ...current,
+      data: { ...current.data, compositeType: 'game' },
+    });
+  });
+  await expect(undoButton).toBeDisabled();
+  await expect(redoButton).toBeDisabled();
+});
+
 test('particle playground timeline toggles emitters and moves grouped items in the app', async ({ page }) => {
   await seedSession(page);
   await page.goto('/');

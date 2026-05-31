@@ -2577,6 +2577,10 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     return true
   end
 
+  if action == "restore-composite" then
+    return self:_restoreComposite(name, params.data, params.activeSystem)
+  end
+
   if action == "set-timeline" then
     entry.timeline = normalizeTimeline(params.timeline, timelineSystemsForPlugin(self, name))
     entry.timelineState = entry.timelineState or { time = 0, playing = false, scrubVersion = 0 }
@@ -3016,6 +3020,59 @@ function ParticleSystemPlaygroundPlugin:_importProject(project)
   self.timelineRuntimeActive = hasPlayingTimeline(self)
 
   return name
+end
+
+function ParticleSystemPlaygroundPlugin:_restoreComposite(name, data, activeSystem)
+  local entry = self.composites[name]
+  if not entry then
+    return nil, "Composite not found"
+  end
+  if entry.kind ~= "scratch" then
+    return nil, "Undo history is available for scratch composites only"
+  end
+  if type(data) ~= "table" or type(data.systems) ~= "table" or #data.systems == 0 then
+    return nil, "Particle history snapshot is missing emitters"
+  end
+
+  local systems = {}
+  for i, systemData in ipairs(data.systems) do
+    local sys, err = self:_systemFromProject(i, systemData)
+    if not sys then
+      for _, existing in ipairs(systems) do
+        if existing.system and existing.system.release then
+          pcall(existing.system.release, existing.system)
+        end
+      end
+      return nil, err
+    end
+    systems[i] = sys
+  end
+
+  for _, existing in ipairs(entry.systems or {}) do
+    if existing.system and existing.system.release then
+      pcall(existing.system.release, existing.system)
+    end
+  end
+
+  entry.x = safeNumber(data.x, DEFAULT_X)
+  entry.y = safeNumber(data.y, DEFAULT_Y)
+  entry.previewEnabled = safeBoolean(data.previewEnabled, true)
+  entry.movement = type(data.movement) == "table"
+      and data.movement
+    or { pattern = "none", radius = 50, radiusX = 80, radiusY = 40, speed = 1, scale = 50 }
+  entry.offsetX = 0
+  entry.offsetY = 0
+  entry.systems = systems
+  entry.timeline = normalizeTimeline(data.timeline, systems)
+  entry.timelineState = { time = 0, playing = false, scrubVersion = safeNumber(entry.timelineState and entry.timelineState.scrubVersion, 0) + 1 }
+  self.activeComposite = name
+  self.activeSystem = math.max(1, math.min(#systems, math.floor(safeNumber(activeSystem, 1))))
+  if self.previewSessionActive then
+    self.previewComposite = name
+  end
+  applyTimelineAt(self, name, 0)
+  self.timelineRuntimeActive = hasPlayingTimeline(self)
+  return true
 end
 
 function ParticleSystemPlaygroundPlugin:_generateCode(name)

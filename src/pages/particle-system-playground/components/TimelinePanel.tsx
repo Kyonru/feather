@@ -430,6 +430,11 @@ function targetIsTextInput(target: EventTarget | null): boolean {
   );
 }
 
+function blurFocusedTimelineEditor() {
+  const activeElement = document.activeElement;
+  if (targetIsTextInput(activeElement) && activeElement instanceof HTMLElement) activeElement.blur();
+}
+
 export function TimelinePanel({
   composite,
   activeSystemIndex,
@@ -944,6 +949,7 @@ export function TimelinePanel({
       toggleSelection(item);
       return;
     }
+    blurFocusedTimelineEditor();
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -992,6 +998,7 @@ export function TimelinePanel({
       toggleSelection(item);
       return;
     }
+    blurFocusedTimelineEditor();
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);

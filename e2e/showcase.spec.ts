@@ -468,23 +468,27 @@ test('particle playground timeline toggles emitters and moves grouped items in t
   const strip1 = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
   expect(strip1).not.toBeNull();
   await page.getByTestId('particle-timeline-track-1').click();
-  await dragLocatorToX(page, page.getByTestId('particle-timeline-clip-end-handle-1').first(), strip1!.x + strip1!.width * (2.2 / 3));
-  await page.getByRole('button', { name: /duplicate clip/i }).click();
+  await page.getByLabel('Stop at').first().fill('0.7');
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('0.7');
+  const playheadForClip = page.getByTestId('particle-timeline-playhead');
+  await playheadForClip.fill('1.2');
+  await playheadForClip.dispatchEvent('change');
+  await page.getByTestId('particle-timeline-inspector').getByRole('button', { name: /add clip at playhead/i }).click();
   await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
 
   const firstClip = page.getByTestId('particle-timeline-clip-1').nth(0);
   const secondClip = page.getByTestId('particle-timeline-clip-1').nth(1);
-  await firstClip.click({ position: { x: 4, y: 10 } });
-  await secondClip.click({ modifiers: [multiSelectModifier()] });
+  await firstClip.click({ force: true, position: { x: 12, y: 10 } });
+  await secondClip.click({ force: true, modifiers: [multiSelectModifier()] });
   await dragLocatorBy(page, secondClip, strip1!.width * (0.4 / 3));
-  await expect(page.locator('[title="Flame: 0.40s to 2.60s"]').first()).toBeVisible();
-  await expect(page.locator('[title="Flame: 0.50s to 2.70s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Flame: 0.40s to 1.10s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Flame: 1.60s to 2.40s"]').first()).toBeVisible();
 
-  await firstClip.click({ position: { x: 4, y: 10 } });
-  await secondClip.click({ modifiers: [multiSelectModifier()] });
+  await firstClip.click({ force: true, position: { x: 12, y: 10 } });
+  await secondClip.click({ force: true, modifiers: [multiSelectModifier()] });
   await dragLocatorBy(page, secondClip, strip1!.width);
-  await expect(page.locator('[title="Flame: 0.70s to 2.90s"]').first()).toBeVisible();
-  await expect(page.locator('[title="Flame: 0.80s to 3.00s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Flame: 1.00s to 1.70s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Flame: 2.20s to 3.00s"]').first()).toBeVisible();
 
   await page.getByTestId('particle-timeline-track-1').click();
   const playhead = page.getByTestId('particle-timeline-playhead');
@@ -494,12 +498,71 @@ test('particle playground timeline toggles emitters and moves grouped items in t
   await page.getByRole('button', { name: /add key at playhead/i }).click();
   await page.getByLabel('Opacity key value').first().fill('0.55');
   const opacityKey = page.locator('[title="Opacity 1.00s = 0.55"]').first();
-  const shiftedFlameClip = page.locator('[title="Flame: 0.80s to 3.00s"]').first();
+  const shiftedFlameClip = page.locator('[title="Flame: 2.20s to 3.00s"]').first();
   await opacityKey.click();
   await shiftedFlameClip.click({ modifiers: [multiSelectModifier()] });
   await dragLocatorBy(page, shiftedFlameClip, -strip1!.width * (0.2 / 3));
-  await expect(page.locator('[title="Flame: 0.60s to 2.80s"]').first()).toBeVisible();
+  await expect(page.locator('[title="Flame: 2.00s to 2.80s"]').first()).toBeVisible();
   await expect(page.locator('[title="Opacity 0.80s = 0.55"]').first()).toBeVisible();
+});
+
+test('particle playground undo redo history works in the showcase', async ({ page }) => {
+  await page.goto('/particle-system-playground');
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+
+  const undoButton = page.getByLabel('Undo particle edit');
+  const redoButton = page.getByLabel('Redo particle edit');
+  await expect(undoButton).toBeDisabled();
+  await expect(redoButton).toBeDisabled();
+
+  const rate = page.getByText('Rate', { exact: true }).locator('..').getByRole('spinbutton');
+  await expect(rate).toHaveValue('100');
+  await rate.fill('150');
+  await expect(rate).toHaveValue('150');
+  await expect(undoButton).toBeEnabled();
+  await page.getByRole('heading', { name: 'Particles Playground' }).click();
+  await page.keyboard.press(`${multiSelectModifier()}+Z`);
+  await expect(rate).toHaveValue('100');
+  await expect(redoButton).toBeEnabled();
+  await page.keyboard.press(`${multiSelectModifier()}+Shift+Z`);
+  await expect(rate).toHaveValue('150');
+
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await page.getByTestId('particle-timeline-track-1').click();
+  const strip = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
+  expect(strip).not.toBeNull();
+  await page.getByLabel('Stop at').first().fill('2.2');
+  await expect(page.getByLabel('Stop at').first()).toHaveValue('2.2');
+  await dragLocatorBy(page, page.getByTestId('particle-timeline-clip-1').first(), strip!.width * (0.2 / 3));
+  await expect(page.getByLabel('Emit at').first()).toHaveValue('0.2');
+  await page.evaluate(() => {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) activeElement.blur();
+  });
+  await page.getByRole('heading', { name: 'Timeline' }).click();
+  await page.keyboard.press(`${multiSelectModifier()}+Z`);
+  await expect(redoButton).toBeEnabled();
+  await expect(page.getByLabel('Emit at').first()).toHaveValue('0');
+  await page.keyboard.press(`${multiSelectModifier()}+Shift+Z`);
+  await expect(page.getByLabel('Emit at').first()).toHaveValue('0.2');
+
+  await page.getByRole('tab', { name: 'Emitter' }).click();
+  await page.getByRole('button', { name: 'Add Emitter' }).click();
+  await expect(page.getByTestId('particle-emitter-row-2')).toBeVisible();
+  await undoButton.click();
+  await expect(page.getByTestId('particle-emitter-row-2')).toHaveCount(0);
+  await redoButton.click();
+  await expect(page.getByTestId('particle-emitter-row-2')).toBeVisible();
+  await page.getByTestId('particle-emitter-row-1').dragTo(page.getByTestId('particle-emitter-row-2'));
+  await expect(page.getByTestId('particle-emitter-row-1').getByText('Emitter 2')).toBeVisible();
+  await undoButton.click();
+  await expect(page.getByTestId('particle-emitter-row-1').getByText('Flame')).toBeVisible();
+  await redoButton.click();
+  await expect(page.getByTestId('particle-emitter-row-1').getByText('Emitter 2')).toBeVisible();
+  await page.getByTestId('particle-emitter-row-1').getByTitle('Delete emitter').click();
+  await expect(page.getByTestId('particle-emitter-row-2')).toHaveCount(0);
+  await undoButton.click();
+  await expect(page.getByTestId('particle-emitter-row-2')).toBeVisible();
 });
 
 test('particle playground creates the complex composite timeline template in the showcase', async ({ page }) => {
