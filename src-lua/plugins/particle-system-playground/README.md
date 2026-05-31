@@ -55,6 +55,8 @@ Scratch composites are created from the playground. The browser showcase shows a
 
 Built-in scratch templates include Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, Dust Puff, Complex Composite, Snowfall, Rainfall, and Falling Leaves. Complex Composite is a five-emitter example with staggered timeline clips for a core pulse, expanding ring, smoke bloom, spark trails, and dust wake. Snowfall, Rainfall, and Falling Leaves use Ambient timeline mode for continuous background effects.
 
+Emitter texture controls include **Generate texture**, which opens Texture Lab and applies the generated PNG through the same upload path as imported images. This is useful for quickly creating soft circles, sparks, streaks, smoke puffs, trail blobs, comet tails, rain slashes, and masks without leaving Feather. Scratch project export embeds those generated texture bytes the same way it embeds uploaded texture files.
+
 Composite preview `x`/`y` and preview movement patterns change emitter positions via `ParticleSystem:setPosition(...)`. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.
 
 Connected-game scratch preview work is dormant until **Show in Game** is explicitly enabled. Opening the Particle Playground page in Feather does not draw anything in the attached game. Hiding the game preview, leaving the page, switching sessions, or disabling preview sends an inactive signal so the game stops updating and drawing plugin-owned scratch previews. Only the active scratch composite is updated/drawn; switching composites replaces the runtime preview target instead of keeping older composites alive.

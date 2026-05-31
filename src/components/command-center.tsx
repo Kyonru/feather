@@ -20,6 +20,7 @@ import {
   SquareTerminalIcon,
   TerminalIcon,
   ToggleLeftIcon,
+  WandSparklesIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -85,6 +86,11 @@ const DOC_LINKS = [
   { title: 'Plugins docs', url: 'https://kyonru.github.io/feather/plugins/', keywords: ['plugin', 'capabilities'] },
   { title: 'Assets docs', url: 'https://kyonru.github.io/feather/assets/', keywords: ['textures', 'fonts', 'audio'] },
   {
+    title: 'Texture Lab docs',
+    url: 'https://kyonru.github.io/feather/texture-lab/',
+    keywords: ['texture', 'sprite', 'mask', 'noise', 'particles', 'shader'],
+  },
+  {
     title: 'Performance docs',
     url: 'https://kyonru.github.io/feather/performance/',
     keywords: ['fps', 'profiler', 'metrics'],
@@ -101,6 +107,7 @@ const featureIcons: Record<MainFeatureId | 'session', ElementType> = {
   console: TerminalIcon,
   'particle-system-playground': FileCodeIcon,
   'shader-graph': FileCodeIcon,
+  'texture-lab': WandSparklesIcon,
   assets: FolderSearchIcon,
   'time-travel': RotateCcwIcon,
   'session-replay': RotateCcwIcon,
@@ -296,7 +303,7 @@ export function CommandCenter() {
         keywords: [feature.id, feature.url, 'page', 'tool'],
         icon: featureIcons[feature.id],
         actionKind: 'navigate' as const,
-        disabled: !hasSession && feature.id !== 'shader-graph',
+        disabled: !hasSession && feature.id !== 'shader-graph' && feature.id !== 'texture-lab',
         disabledReason: sessionRequired,
         badges: hiddenMainFeatures.includes(feature.id)
           ? [{ label: 'Hidden', variant: 'secondary' as const }]

@@ -28,6 +28,7 @@ async function dragLocatorToX(page: Page, locator: Locator, x: number) {
 }
 
 function multiSelectModifier(): 'Control' | 'Meta' {
+  // @ts-expect-error process expected error
   return process.platform === 'darwin' ? 'Meta' : 'Control';
 }
 
@@ -303,6 +304,38 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
   const particlePreviewFrame = await page.getByTestId('love-js-preview-frame').boundingBox();
   expect(particlePreviewFrame).not.toBeNull();
   expect(Math.abs(particlePreviewFrame!.width / particlePreviewFrame!.height - 16 / 9)).toBeLessThan(0.04);
+
+  await page
+    .locator('header')
+    .getByRole('button', { name: /texture lab/i })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Texture Lab' })).toBeVisible();
+  await expect(page.getByTestId('texture-lab-preview')).toBeVisible();
+});
+
+test('texture lab generates textures and feeds creative tools in the showcase', async ({ page }) => {
+  await page.goto('/texture-lab');
+  await expect(page.getByRole('heading', { name: 'Texture Lab' })).toBeVisible();
+  const preview = page.getByTestId('texture-lab-preview');
+  const before = await preview.getAttribute('src');
+  await page.getByTitle('Randomize seed').click();
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(before);
+  await expect(page.getByRole('button', { name: /export png/i })).toBeVisible();
+
+  await page.goto('/particle-system-playground');
+  await page.getByRole('tab', { name: 'Preview & Assets' }).click();
+  await page.getByTestId('particle-texture-generate').click();
+  await page.getByTestId('texture-lab-apply').click();
+  await expect
+    .poll(async () => page.locator('input').evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value)))
+    .toContainEqual(expect.stringMatching(/soft-circle-64-\d+\.png/));
+  await page.getByTitle('Minimise').click({ force: true });
+
+  await page.goto('/shader-graph');
+  await openShaderOutput(page);
+  await page.getByTestId('shader-preview-texture-generate').evaluate((element) => (element as HTMLElement).click());
+  await page.getByTestId('texture-lab-apply').click();
+  await expect(page.getByTestId('shader-output-dock').getByText(/soft-circle-64-\d+\.png/)).toBeVisible();
 });
 
 test('showcase serves the real love.js shader preview target', async ({ page }) => {
@@ -473,7 +506,10 @@ test('particle playground timeline toggles emitters and moves grouped items in t
   const playheadForClip = page.getByTestId('particle-timeline-playhead');
   await playheadForClip.fill('1.2');
   await playheadForClip.dispatchEvent('change');
-  await page.getByTestId('particle-timeline-inspector').getByRole('button', { name: /add clip at playhead/i }).click();
+  await page
+    .getByTestId('particle-timeline-inspector')
+    .getByRole('button', { name: /add clip at playhead/i })
+    .click();
   await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
 
   const firstClip = page.getByTestId('particle-timeline-clip-1').nth(0);

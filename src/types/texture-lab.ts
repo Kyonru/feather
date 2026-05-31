@@ -1,0 +1,80 @@
+export const TEXTURE_LAB_SIZES = [32, 64, 128, 256] as const;
+
+export const TEXTURE_LAB_GENERATOR_IDS = [
+  'soft-circle',
+  'spark',
+  'streak',
+  'ring',
+  'smoke-puff',
+  'star',
+  'slash',
+  'trail-blob',
+  'comet-tail',
+  'rain-slash',
+  'circle-mask',
+  'ellipse-mask',
+  'rounded-rect-mask',
+  'radial-mask',
+  'threshold-noise-mask',
+  'cloud-noise',
+  'cellular-spots',
+  'dissolve-noise',
+  'water-noise',
+  'height-map',
+  'directional-gradient',
+  'checker',
+  'dither',
+  'scanline',
+  'palette-ramp',
+] as const;
+
+export const TEXTURE_LAB_COLOR_RAMPS = [
+  'white',
+  'fire',
+  'smoke',
+  'ice',
+  'magic',
+  'water',
+  'gold',
+  'rainbow',
+  'grayscale',
+] as const;
+
+export const TEXTURE_LAB_ALPHA_MODES = ['shape', 'opaque', 'luminance', 'inverted'] as const;
+
+export type TextureLabSize = (typeof TEXTURE_LAB_SIZES)[number];
+export type TextureLabGeneratorId = (typeof TEXTURE_LAB_GENERATOR_IDS)[number];
+export type TextureLabColorRamp = (typeof TEXTURE_LAB_COLOR_RAMPS)[number];
+export type TextureLabAlphaMode = (typeof TEXTURE_LAB_ALPHA_MODES)[number];
+
+export type TextureLabRecipe = {
+  generator: TextureLabGeneratorId;
+  size: TextureLabSize;
+  seed: number;
+  softness: number;
+  falloff: number;
+  contrast: number;
+  threshold: number;
+  scale: number;
+  distortion: number;
+  tileable: boolean;
+  pixelated: boolean;
+  alphaMode: TextureLabAlphaMode;
+  colorRamp: TextureLabColorRamp;
+};
+
+export type TextureLabGeneratedPixels = {
+  width: number;
+  height: number;
+  pixels: Uint8ClampedArray;
+  recipe: TextureLabRecipe;
+};
+
+export type GeneratedTextureResult = {
+  filename: string;
+  dataBase64: string;
+  dataUrl: string;
+  width: number;
+  height: number;
+  recipe: TextureLabRecipe;
+};

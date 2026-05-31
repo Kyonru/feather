@@ -46,6 +46,7 @@ nav:
   - Assets: assets.md
   - Particle System Playground: particle-system-playground.md
   - Shader Graph: shader-graph.md
+  - Texture Lab: texture-lab.md
   - Standalone Showcase: standalone-showcase.md
   - Time Travel: time-travel.md
   - Session Replay: session-replay.md

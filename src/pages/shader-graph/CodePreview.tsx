@@ -16,6 +16,7 @@ import { codegen } from './codegen';
 import { shaderGraphGamePreviewController } from './gamePreviewController';
 import { pickShaderTexture } from './textureUpload';
 import type { ShaderGraphDiagnostic } from '@/types/shader-graph';
+import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -277,6 +278,11 @@ export function ShaderOutputDock({
     toast.success(`Preview texture loaded: ${texture.filename}`);
   }
 
+  function generateBaseTexture(filename: string, dataBase64: string) {
+    setBaseTexture({ filename, dataBase64 });
+    toast.success(`Preview texture generated: ${filename}`);
+  }
+
   function copyValidationErrors() {
     if (!rawValidationErrors) return;
     navigator.clipboard.writeText(rawValidationErrors).then(() => toast.success('Shader error copied'));
@@ -492,6 +498,14 @@ export function ShaderOutputDock({
             >
               <FolderOpenIcon className="size-3.5" />
             </Button>
+            <TextureLabDialog
+              triggerClassName="size-7"
+              triggerTitle="Generate preview texture"
+              triggerTestId="shader-preview-texture-generate"
+              disabled={!previewAvailable}
+              applyLabel="Use for preview"
+              onApply={(texture) => generateBaseTexture(texture.filename, texture.dataBase64)}
+            />
           </div>
         </div>
       </div>

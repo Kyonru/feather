@@ -8,6 +8,7 @@ import { FolderOpenIcon, LocateFixedIcon, RotateCcwIcon, SlidersHorizontalIcon, 
 import { toast } from 'sonner';
 import { ShaderNumberInput } from './ShaderNumberInput';
 import { pickShaderTexture } from './textureUpload';
+import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
 
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
@@ -123,6 +124,13 @@ export function TemplateControlsPanel() {
     if (!texture) return;
     setTextureUpload(source.id, texture);
     toast.success(`${port.label} loaded: ${texture.filename}`);
+  }
+
+  function generateTexture(port: PortDef, filename: string, dataBase64: string) {
+    const source = textureSourceNode(port);
+    if (!source) return;
+    setTextureUpload(source.id, { filename, dataBase64 });
+    toast.success(`${port.label} generated: ${filename}`);
   }
 
   function selectTemplateSource(port: PortDef) {
@@ -293,6 +301,14 @@ export function TemplateControlsPanel() {
                     >
                       <FolderOpenIcon className="size-3.5" />
                     </Button>
+                    <TextureLabDialog
+                      triggerClassName="size-7"
+                      triggerTitle="Generate texture slot"
+                      triggerTestId="shader-template-texture-generate"
+                      applyLabel="Use for slot"
+                      disabled={!sourceNode}
+                      onApply={(texture) => generateTexture(port, texture.filename, texture.dataBase64)}
+                    />
                   </div>
                 </div>
               ) : (

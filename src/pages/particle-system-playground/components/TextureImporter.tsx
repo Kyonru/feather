@@ -7,6 +7,7 @@ import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
 import { FolderOpenIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
 
 function bytesToBase64(bytes: Uint8Array) {
   let binary = '';
@@ -54,6 +55,13 @@ export function TextureImporter({ texturePath, texturePreset, textureFilename, o
         <Button size="icon" variant="outline" className="size-8" title="Import texture" onClick={pickFile}>
           <FolderOpenIcon className="size-4" />
         </Button>
+        <TextureLabDialog
+          triggerClassName="size-8"
+          triggerTitle="Generate texture"
+          triggerTestId="particle-texture-generate"
+          applyLabel="Use for emitter"
+          onApply={(texture) => onUpload(texture.filename, texture.dataBase64)}
+        />
       </div>
       <div className="grid gap-1">
         <Label className="text-[10px] text-muted-foreground font-semibold">Game path</Label>

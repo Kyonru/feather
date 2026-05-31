@@ -18,6 +18,7 @@ Like Flipper or React DevTools, but for LÖVE game. Inspect logs, variables, per
 - 💻 **Console / REPL** — Execute Lua code in the running game (opt-in, requires `apiKey`).
 - 🐛 **Step Debugger** — Breakpoints, step over/into/out, call stack, and local variable inspection.
 - 🖼️ **Asset inspector** — Browse loaded textures, fonts, and audio sources with previews, zoom, pan, and pixel grid.
+- ✨ **Texture Lab** — Generate tiny PNG sprites, masks, noise maps, gradients, and trail textures for creative workflows.
 - 📁 **Log file viewer** — Open `.featherlog` files for offline inspection.
 - 🖥️ **CLI-first workflow** — `feather init`, `feather run`, and `feather remove` manage setup and cleanup with no manual Lua integration.
 - 🚢 **Build/upload helpers** — `feather build` creates `.love`, web, mobile, and desktop artifacts and `feather upload itch` pushes them with Butler.
@@ -110,6 +111,7 @@ See [CLI](cli.md) for `feather run`, `feather doctor`, `feather build`, and `fea
 - [Assets](assets.md) — Inspect loaded textures, fonts, audio, previews, and game-root mapping
 - [Particle System Playground](particle-system-playground.md) — Particle templates, timelines, previews, exports
 - [Shader Graph](shader-graph.md) — Node graph shaders, templates, previews, connected-game apply
+- [Texture Lab](texture-lab.md) — Procedural PNG sprites, masks, noise maps, gradients, and trail textures
 - [Standalone Showcase](standalone-showcase.md) — Browser-hosted creative tools without a local game
 - [Time Travel](time-travel.md) — Observer snapshot recording and timeline scrubbing
 - [Session Replay](session-replay.md) — Input replay with developer-selected state checkpoints

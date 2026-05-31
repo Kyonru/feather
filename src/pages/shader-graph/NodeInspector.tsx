@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { customFunctionNodeDef, customFunctionSource, validateCustomFunctionSource } from './customNode';
 import { ShaderNumberInput } from './ShaderNumberInput';
 import { subgraphBoundaryPort } from './subgraphBoundary';
+import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
 
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
@@ -164,6 +165,12 @@ export function NodeInspector() {
     if (!texture) return;
     setTextureUpload(selected.id, texture);
     toast.success(`${selected.data.label || 'Texture'} loaded: ${texture.filename}`);
+  }
+
+  function generateSelectedTexture(filename: string, dataBase64: string) {
+    if (!selected) return;
+    setTextureUpload(selected.id, { filename, dataBase64 });
+    toast.success(`${selected.data.label || 'Texture'} generated: ${filename}`);
   }
 
   function openCustomFunctionModal() {
@@ -651,6 +658,13 @@ export function NodeInspector() {
                   >
                     <FolderOpenIcon className="size-3.5" />
                   </Button>
+                  <TextureLabDialog
+                    triggerClassName="size-7"
+                    triggerTitle="Generate texture file"
+                    triggerTestId="shader-texture-generate"
+                    applyLabel="Use for node"
+                    onApply={(texture) => generateSelectedTexture(texture.filename, texture.dataBase64)}
+                  />
                 </div>
               </div>
               <p className="text-[10px] text-muted-foreground">

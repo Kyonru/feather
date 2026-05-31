@@ -28,6 +28,7 @@ import Compare from './pages/compare';
 import Assets from './pages/assets';
 import ParticleSystemPlayground from './pages/particle-system-playground';
 import ShaderGraph from './pages/shader-graph';
+import TextureLab from './pages/texture-lab';
 import SessionPage from './pages/session';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
@@ -336,6 +337,7 @@ export const Router = () => {
                 element={<Compare />}
               />
               <Route path="/shader-graph" element={<ShaderGraph />} />
+              <Route path="/texture-lab" element={<TextureLab />} />
               <Route
                 path="/session"
                 element={

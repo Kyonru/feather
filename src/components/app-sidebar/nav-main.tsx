@@ -22,6 +22,7 @@ import {
   RepeatIcon,
   SparklesIcon,
   StarIcon,
+  WandSparklesIcon,
   TelescopeIcon,
   TerminalIcon,
 } from 'lucide-react';
@@ -38,6 +39,7 @@ const featureIcons: Record<MainFeatureId | 'session', ElementType> = {
   console: TerminalIcon,
   'particle-system-playground': SparklesIcon,
   'shader-graph': BlendIcon,
+  'texture-lab': WandSparklesIcon,
   assets: ImagesIcon,
   'time-travel': ClockIcon,
   'session-replay': RepeatIcon,
@@ -56,7 +58,7 @@ type SidebarTool = {
 const sidebarGroups: Array<{ id: string; label: string; toolIds: SidebarToolId[] }> = [
   { id: 'core', label: 'Core', toolIds: ['logs', 'performance', 'session', 'compare'] },
   { id: 'inspect', label: 'Inspect', toolIds: ['observability', 'debugger', 'console', 'assets'] },
-  { id: 'creative', label: 'Creative', toolIds: ['particle-system-playground', 'shader-graph'] },
+  { id: 'creative', label: 'Creative', toolIds: ['particle-system-playground', 'shader-graph', 'texture-lab'] },
   { id: 'history', label: 'History', toolIds: ['time-travel', 'session-replay'] },
 ];
 
@@ -120,7 +122,8 @@ export function NavMain() {
 
   const renderTool = (item: SidebarTool) => {
     const isDebugger = item.url === '/debugger';
-    const isActive = hasSession && item.url === location.pathname;
+    const worksWithoutSession = item.id === 'shader-graph' || item.id === 'texture-lab';
+    const isActive = (hasSession || worksWithoutSession) && item.url === location.pathname;
     const isPinned = pinnedSidebarTools.includes(item.id);
     const iconClassName = cn(isPinned && 'text-primary');
     const content = (
@@ -135,7 +138,7 @@ export function NavMain() {
 
     return (
       <SidebarMenuItem key={item.id} data-testid={`sidebar-tool-${item.id}`}>
-        {hasSession ? (
+        {hasSession || worksWithoutSession ? (
           <SidebarMenuButton
             asChild
             isActive={isActive}

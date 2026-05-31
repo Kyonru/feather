@@ -340,6 +340,7 @@ const optionalFeatureDefaults: MainFeatureId[] = [
   'console',
   'particle-system-playground',
   'shader-graph',
+  'texture-lab',
   'time-travel',
   'session-replay',
   'compare',

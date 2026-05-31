@@ -5,13 +5,15 @@ import { ShowcaseShaderGraph } from './ShowcaseShaderGraph';
 import { ShowcaseParticlePlayground } from './ShowcaseParticlePlayground';
 import { ShowcaseGallery } from './ShowcaseGallery';
 import { BookOpenIcon } from 'lucide-react';
+import TextureLab from '@/pages/texture-lab';
 
-type ShowcaseRoute = 'home' | 'shader-graph' | 'particle-system-playground';
+type ShowcaseRoute = 'home' | 'shader-graph' | 'particle-system-playground' | 'texture-lab';
 
 function currentRoute(): ShowcaseRoute {
   const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
   if (path === 'shader-graph') return 'shader-graph';
   if (path === 'particle-system-playground') return 'particle-system-playground';
+  if (path === 'texture-lab') return 'texture-lab';
   return 'home';
 }
 
@@ -57,6 +59,15 @@ function Home() {
             <span className="text-sm text-muted-foreground">
               Tune LÖVE particle systems from presets, edit motion and color curves, preview locally, and copy demo
               settings.
+            </span>
+          </button>
+          <button
+            className="grid gap-3 rounded-md border bg-card p-5 text-left transition-colors hover:bg-muted/40"
+            onClick={() => navigate('texture-lab')}
+          >
+            <span className="text-lg font-semibold">Texture Lab</span>
+            <span className="text-sm text-muted-foreground">
+              Generate tiny particle sprites, shader masks, noise maps, gradients, and trail textures as PNGs.
             </span>
           </button>
         </section>
@@ -116,12 +127,22 @@ export function ShowcaseApp() {
           >
             Particle Playground
           </Button>
+          <Button
+            size="sm"
+            variant={route === 'texture-lab' ? 'default' : 'ghost'}
+            className="h-8 text-xs"
+            onClick={() => navigate('texture-lab')}
+          >
+            Texture Lab
+          </Button>
         </nav>
       </header>
       {route === 'shader-graph' ? (
         <ShowcaseShaderGraph />
       ) : route === 'particle-system-playground' ? (
         <ShowcaseParticlePlayground />
+      ) : route === 'texture-lab' ? (
+        <TextureLab />
       ) : (
         <Home />
       )}

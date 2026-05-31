@@ -13,6 +13,8 @@ import {
 } from '@/constants/shader-graph';
 import { normalizeThemePreference, type ThemePreference } from '@/assets/theme/registry';
 import type { NodeCategory } from '@/types/shader-graph';
+import type { TextureLabRecipe } from '@/types/texture-lab';
+import { DEFAULT_TEXTURE_LAB_RECIPE, normalizeTextureLabRecipe } from '@/pages/texture-lab/generator';
 
 type SettingsStoreState = {
   open: boolean;
@@ -35,6 +37,7 @@ type SettingsStoreState = {
   collapsedShaderGraphNodeCategories: NodeCategory[];
   particleTimelineZoom: number;
   particleTimelineSnap: boolean;
+  textureLabRecipe: TextureLabRecipe;
   showHiddenMainFeaturesInCommandCenter: boolean;
   assetSourceDir: string;
 };
@@ -62,6 +65,7 @@ type SettingsStoreActions = {
   setCollapsedShaderGraphNodeCategories: (categories: NodeCategory[]) => void;
   setParticleTimelineZoom: (zoom: number) => void;
   setParticleTimelineSnap: (snap: boolean) => void;
+  setTextureLabRecipe: (recipe: Partial<TextureLabRecipe>) => void;
   setShowHiddenMainFeaturesInCommandCenter: (show: boolean) => void;
   setAssetSourceDir: (dir: string) => void;
   reset: () => void;
@@ -118,6 +122,7 @@ const defaultSettings: SettingsStoreState = {
   collapsedShaderGraphNodeCategories: [...DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES],
   particleTimelineZoom: 1,
   particleTimelineSnap: true,
+  textureLabRecipe: DEFAULT_TEXTURE_LAB_RECIPE,
   showHiddenMainFeaturesInCommandCenter: false,
   assetSourceDir: '',
 };
@@ -187,6 +192,8 @@ export const useSettingsStore = create<SettingsStore>()(
       setParticleTimelineZoom: (particleTimelineZoom: number) =>
         set({ particleTimelineZoom: normalizeParticleTimelineZoom(particleTimelineZoom) }),
       setParticleTimelineSnap: (particleTimelineSnap: boolean) => set({ particleTimelineSnap }),
+      setTextureLabRecipe: (textureLabRecipe: Partial<TextureLabRecipe>) =>
+        set((state) => ({ textureLabRecipe: normalizeTextureLabRecipe({ ...state.textureLabRecipe, ...textureLabRecipe }) })),
       setShowHiddenMainFeaturesInCommandCenter: (showHiddenMainFeaturesInCommandCenter: boolean) =>
         set({ showHiddenMainFeaturesInCommandCenter }),
       togglePinnedSidebarTool: (toolId: SidebarToolId) =>
@@ -242,6 +249,7 @@ export const useSettingsStore = create<SettingsStore>()(
             typeof persisted?.particleTimelineSnap === 'boolean'
               ? persisted.particleTimelineSnap
               : currentState.particleTimelineSnap,
+          textureLabRecipe: normalizeTextureLabRecipe(persisted?.textureLabRecipe),
         };
       },
     },

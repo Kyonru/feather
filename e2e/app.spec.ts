@@ -1498,6 +1498,19 @@ test('shows no-session empty state and opens settings', async ({ page }) => {
   await expect(page.getByLabel('Connection Timeout (seconds)')).toHaveValue('15');
 });
 
+test('texture lab is available without a connected session in the app', async ({ page }) => {
+  await seedNoSession(page);
+  await page.goto('/texture-lab');
+
+  await expect(page.getByRole('heading', { name: 'Texture Lab' })).toBeVisible();
+  const preview = page.getByTestId('texture-lab-preview');
+  await expect(preview).toBeVisible();
+  const before = await preview.getAttribute('src');
+  await page.getByTitle('Randomize seed').click();
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(before);
+  await expect(page.getByRole('button', { name: /export png/i })).toBeVisible();
+});
+
 test('opens redesigned about modal from the sidebar', async ({ page }) => {
   await seedNoSession(page);
   await page.goto('/');

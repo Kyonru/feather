@@ -12,6 +12,7 @@ import { ShaderNumberInput } from './ShaderNumberInput';
 import { shaderParameterUniformName } from './glslUtils';
 import { getNodeDef } from './nodeDefs';
 import { pickShaderTexture } from './textureUpload';
+import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
 
 const PARAMETER_NODE_TYPES = new Set<NodeType>([
   'FloatParameter',
@@ -229,6 +230,16 @@ export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: (
             >
               <FolderOpenIcon className="size-3.5" />
             </Button>
+            <TextureLabDialog
+              triggerClassName="size-7"
+              triggerTitle="Generate texture file"
+              triggerTestId="shader-control-texture-generate"
+              applyLabel="Use for control"
+              onApply={(texture) => {
+                setTextureUpload(node.id, { filename: texture.filename, dataBase64: texture.dataBase64 });
+                toast.success(`${node.data.label || 'Texture'} generated: ${texture.filename}`);
+              }}
+            />
           </div>
         </div>
       );
