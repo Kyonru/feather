@@ -50,8 +50,6 @@ function love.update(dt)
 end
 ```
 
----
-
 ## Command Center
 
 Press <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd>, or use the **Command** button in the app header, to open the Command Center.

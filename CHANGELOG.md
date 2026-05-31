@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Debugger Profiler Probes so source gutter markers can start, stop, or snapshot the core profiler without adding a second Lua debug hook.
 - Added Debugger Profile Function probes that automatically wrap supported global/table functions for core Profiler captures.
 - Added exact Profiler invocation samples and a Run Comparison drawer for comparing individual executions against A/B, previous, first, best, or median baselines.
+- Added a golden workflow checklist for validating connect/session health, logs, performance/profiler, debugger/probes, and runtime inspection before developer-preview use.
 
 ### Changed
 
@@ -155,6 +156,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added app e2e coverage for Performance Profiler filter controls at constrained desktop widths.
 - Expanded app e2e coverage for the Profiler capture workspace, including Record/Finish capture, named snapshots, hotspot focus, and constrained-width controls.
 - Expanded Lua and app e2e coverage for exact Profiler invocation samples, sample caps, debugger wrap samples, and run comparison drawer behavior.
+- Added golden workflow app and Lua e2e coverage for connection recovery, log batching, performance overhead, profiler captures, debugger probes, observers, assets, and Console eval.
 - Added app e2e coverage for the constrained-width Logs toolbar layout.
 - Added app e2e coverage for grouped sidebar navigation, pinned tool persistence, Settings pin controls, and hidden pinned tools.
 - Added showcase e2e and focused settings coverage for Shader Graph collapsible node palette defaults, persistence, search, and empty states.

@@ -154,6 +154,22 @@ npm run feather -- build android --dir src-lua/example/test_cli --no-cache --ver
 npm run feather -- build android --dir src-lua/example/test_cli --clean --verbose
 ```
 
+## Golden Workflow Checklist
+
+Use this smoke path when validating Feather for day-to-day LÖVE development:
+
+```bash
+npm run feather -- run src-lua/example/test_cli --verbose --config src-lua/example/test_cli/feather.config.lua
+```
+
+1. **Connect And Session Health**: the running game appears as the active session, stale **Connecting game** entries disappear, **Session** shows the runtime/config details, and suspend/resume keeps the socket available without leaving the app stuck.
+2. **Logs And Error History**: normal log batches arrive in order, error/fatal logs appear immediately, follow-tail tracks new output, search/filter/clear stay responsive, and recent logs return after restarting Feather or the game.
+3. **Performance, Overhead, And Profiler**: **Performance → Health** and **Overhead** refresh as soon as the tab opens, profiler captures use **Record Capture** / **Finish Capture**, snapshots are named, wrapped functions keep original game behavior, and large profiler uploads are deferred away from the measured call.
+4. **Debugger And Profiler Probes**: breakpoints, stepping, pause-on-error, and source gutter profiler probes sync on connect; start/stop/snapshot probes never pause the game, and **Profile function here** only wraps supported global/table functions.
+5. **Runtime Inspection**: **Observability**, **Assets**, and **Console** request fresh data when opened, then go dormant when you leave unless an explicit recording, preview, or eval workflow is active.
+
+This is the developer-preview acceptance bar: Feather should let an external LÖVE developer connect a game, read logs, inspect state, diagnose performance, and debug/profile code without stale UI, broken refreshes, or surprising idle FPS impact.
+
 ## Verification
 
 Run the checks that match your change. For broad changes, run more than one lane.

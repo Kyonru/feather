@@ -50,6 +50,10 @@ local pluginSpecs = {
     suiteModulePath = "e2e.plugins.feel_inspector",
   },
   {
+    id = "golden-workflows",
+    suiteModulePath = "e2e.plugins.golden_workflows",
+  },
+  {
     id = "filesystem",
     modulePath = "plugins.filesystem",
     suiteModulePath = "e2e.plugins.filesystem",
