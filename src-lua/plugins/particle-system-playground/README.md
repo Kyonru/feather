@@ -55,7 +55,7 @@ Scratch composites are created from the playground. The browser showcase shows a
 
 Built-in scratch templates include Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, Dust Puff, Complex Composite, Snowfall, Rainfall, and Falling Leaves. Complex Composite is a five-emitter example with staggered timeline clips for a core pulse, expanding ring, smoke bloom, spark trails, and dust wake. Snowfall, Rainfall, and Falling Leaves use Ambient timeline mode for continuous background effects.
 
-Emitter texture controls include **Generate texture**, which opens Texture Lab and applies the generated PNG through the same upload path as imported images. This is useful for quickly creating soft circles, sparks, streaks, smoke puffs, trail blobs, comet tails, rain slashes, and masks without leaving Feather. Scratch project export embeds those generated texture bytes the same way it embeds uploaded texture files.
+Emitter texture controls include **Generate texture**, which opens Texture Lab and applies the generated PNG through the same upload path as imported images. This is useful for quickly creating soft circles, sparks, streaks, smoke puffs, trail blobs, comet tails, rain slashes, editable spline trails, spline ribbons, lightning strokes, and masks without leaving Feather. Scratch project export embeds those generated texture bytes the same way it embeds uploaded texture files.
 
 Composite preview `x`/`y` and preview movement patterns change emitter positions via `ParticleSystem:setPosition(...)`. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.
 

@@ -1,11 +1,21 @@
-import { useMemo } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import {
   Dice5Icon,
   DownloadIcon,
   ImageIcon,
+  MousePointer2Icon,
+  RotateCcwIcon,
   RefreshCwIcon,
   SendIcon,
   SparklesIcon,
+  Trash2Icon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -28,14 +38,20 @@ import {
   TEXTURE_LAB_SIZES,
   type GeneratedTextureResult,
   type TextureLabRecipe,
+  type TextureLabSplinePoint,
+  type TextureLabSplineRecipe,
 } from '@/types/texture-lab';
 import { cn } from '@/utils/styles';
 import { downloadFile } from '@/utils/file';
 import {
+  defaultTextureLabRecipeForGenerator,
   generateTextureLabTexture,
+  isTextureLabSplineGenerator,
   renderTextureLabPixels,
   textureLabPixelsToDataUrl,
   TEXTURE_LAB_GENERATORS,
+  TEXTURE_LAB_SPLINE_PRESETS,
+  textureLabSplinePreset,
 } from './generator';
 
 type TextureLabPanelProps = {
@@ -59,6 +75,29 @@ const NUMBER_CONTROLS: Array<{
   { key: 'scale', label: 'Scale', min: 1, max: 32, step: 1 },
   { key: 'distortion', label: 'Distortion', min: 0, max: 1, step: 0.01 },
 ];
+
+const SPLINE_NUMBER_CONTROLS: Array<{
+  key: keyof Pick<
+    TextureLabSplineRecipe,
+    'strokeWidth' | 'feather' | 'taperStart' | 'taperEnd' | 'tension' | 'jitter' | 'samples'
+  >;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+}> = [
+  { key: 'strokeWidth', label: 'Width', min: 0.01, max: 0.8, step: 0.01 },
+  { key: 'feather', label: 'Feather', min: 0, max: 1, step: 0.01 },
+  { key: 'taperStart', label: 'Taper start', min: 0, max: 1, step: 0.01 },
+  { key: 'taperEnd', label: 'Taper end', min: 0, max: 1, step: 0.01 },
+  { key: 'tension', label: 'Tension', min: 0, max: 1, step: 0.01 },
+  { key: 'jitter', label: 'Jitter', min: 0, max: 1, step: 0.01 },
+  { key: 'samples', label: 'Samples', min: 16, max: 192, step: 1 },
+];
+
+const SPLINE_POINT_STYLE = { fill: '#bfdbfe', stroke: '#2563eb', strokeWidth: 2 };
+const SELECTED_SPLINE_POINT_STYLE = { fill: '#facc15', stroke: '#111827', strokeWidth: 3 };
+const SPLINE_CONNECTOR_STYLE = { stroke: '#2563eb', shadow: '#ffffff' };
 
 function formatLabel(value: string): string {
   return value
@@ -86,11 +125,208 @@ function useTextureLabRecipe() {
   };
 }
 
-export function TextureLabPanel({ compact = false, applyLabel = 'Use texture', applyDisabled = false, onApply }: TextureLabPanelProps) {
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
+function isEditableElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  return (
+    target.isContentEditable ||
+    tagName === 'input' ||
+    tagName === 'textarea' ||
+    tagName === 'select' ||
+    tagName === 'button'
+  );
+}
+
+function splinePathData(points: TextureLabSplinePoint[], closed: boolean): string {
+  if (points.length === 0) return '';
+  const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`);
+  return `${commands.join(' ')}${closed ? ' Z' : ''}`;
+}
+
+type SplineEditorProps = {
+  spline: TextureLabSplineRecipe;
+  pixelated: boolean;
+  dataUrl: string;
+  onChange: (spline: TextureLabSplineRecipe) => void;
+};
+
+function TextureSplineEditor({ spline, pixelated, dataUrl, onChange }: SplineEditorProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [selectedPoint, setSelectedPoint] = useState<number>(0);
+  const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
+  const canDelete = spline.points.length > 2 && selectedPoint >= 0 && selectedPoint < spline.points.length;
+  const selectedPointLabel =
+    selectedPoint >= 0 && selectedPoint < spline.points.length ? `Point ${selectedPoint + 1}` : 'No point';
+
+  const pointFromClient = (clientX: number, clientY: number): TextureLabSplinePoint => {
+    const bounds = containerRef.current?.getBoundingClientRect();
+    if (!bounds) return { x: 0.5, y: 0.5 };
+    return {
+      x: clamp01((clientX - bounds.left) / Math.max(1, bounds.width)),
+      y: clamp01((clientY - bounds.top) / Math.max(1, bounds.height)),
+    };
+  };
+
+  const pointFromEvent = (event: ReactPointerEvent<Element> | ReactMouseEvent<Element>): TextureLabSplinePoint =>
+    pointFromClient(event.clientX, event.clientY);
+
+  const updatePoint = (index: number, point: TextureLabSplinePoint) => {
+    const points = spline.points.map((existing, pointIndex) => (pointIndex === index ? point : existing));
+    onChange({ ...spline, points });
+  };
+
+  const deleteSelectedPoint = () => {
+    if (!canDelete) return;
+    const points = spline.points.filter((_, index) => index !== selectedPoint);
+    const nextSelected = Math.min(points.length - 1, selectedPoint);
+    setSelectedPoint(nextSelected);
+    onChange({ ...spline, points });
+  };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isEditableElement(event.target)) return;
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+      if (!canDelete) return;
+      event.preventDefault();
+      deleteSelectedPoint();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canDelete, selectedPoint, spline]);
+
+  useEffect(() => {
+    setSelectedPoint((point) => Math.min(Math.max(point, 0), spline.points.length - 1));
+  }, [spline.points.length]);
+
+  return (
+    <div className="grid gap-2 rounded-md border border-border/70 p-2">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <MousePointer2Icon className="size-3" />
+            Spline editor
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Drag points, double-click to add, Delete removes the selected point.
+          </div>
+        </div>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="size-8 shrink-0"
+          title="Delete selected spline point"
+          disabled={!canDelete}
+          onClick={deleteSelectedPoint}
+        >
+          <Trash2Icon className="size-3.5" />
+        </Button>
+      </div>
+      <div
+        ref={containerRef}
+        className="relative aspect-square overflow-hidden rounded border bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        data-testid="texture-lab-spline-editor"
+        onDoubleClick={(event) => {
+          const point = pointFromEvent(event);
+          const nextIndex = Math.min(spline.points.length, selectedPoint + 1);
+          const points = [...spline.points.slice(0, nextIndex), point, ...spline.points.slice(nextIndex)];
+          setSelectedPoint(nextIndex);
+          onChange({ ...spline, points });
+        }}
+        onPointerMove={(event) => {
+          if (draggingPoint === null) return;
+          updatePoint(draggingPoint, pointFromEvent(event));
+        }}
+        onPointerUp={(event) => {
+          if (draggingPoint !== null) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+          setDraggingPoint(null);
+        }}
+        onPointerCancel={() => setDraggingPoint(null)}
+      >
+        <img
+          data-testid="texture-lab-preview"
+          alt="Generated texture preview"
+          src={dataUrl}
+          className={cn(
+            'absolute inset-0 size-full object-contain opacity-70',
+            pixelated && '[image-rendering:pixelated]',
+          )}
+        />
+        <svg
+          className="pointer-events-none absolute inset-0 size-full touch-none"
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+        >
+          <path
+            d={splinePathData(spline.points, spline.closed)}
+            fill="none"
+            stroke={SPLINE_CONNECTOR_STYLE.shadow}
+            strokeWidth={5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.72}
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={splinePathData(spline.points, spline.closed)}
+            fill="none"
+            stroke={SPLINE_CONNECTOR_STYLE.stroke}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          {spline.points.map((point, index) => (
+            <circle
+              key={index}
+              cx={point.x}
+              cy={point.y}
+              r={index === selectedPoint ? 0.029 : 0.022}
+              fill={(index === selectedPoint ? SELECTED_SPLINE_POINT_STYLE : SPLINE_POINT_STYLE).fill}
+              stroke={(index === selectedPoint ? SELECTED_SPLINE_POINT_STYLE : SPLINE_POINT_STYLE).stroke}
+              strokeWidth={(index === selectedPoint ? SELECTED_SPLINE_POINT_STYLE : SPLINE_POINT_STYLE).strokeWidth}
+              className="pointer-events-auto"
+              vectorEffect="non-scaling-stroke"
+              data-testid={`texture-lab-spline-point-${index}`}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                setSelectedPoint(index);
+                setDraggingPoint(index);
+                containerRef.current?.setPointerCapture(event.pointerId);
+              }}
+            />
+          ))}
+        </svg>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground">
+        <span>{selectedPointLabel}</span>
+        <span>{spline.points.length} points</span>
+      </div>
+    </div>
+  );
+}
+
+export function TextureLabPanel({
+  compact = false,
+  applyLabel = 'Use texture',
+  applyDisabled = false,
+  onApply,
+}: TextureLabPanelProps) {
   const { recipe, patch } = useTextureLabRecipe();
   const pixels = useMemo(() => renderTextureLabPixels(recipe), [recipe]);
   const dataUrl = useMemo(() => textureLabPixelsToDataUrl(pixels), [pixels]);
-  const selectedGenerator = TEXTURE_LAB_GENERATORS.find((item) => item.id === recipe.generator) ?? TEXTURE_LAB_GENERATORS[0];
+  const selectedGenerator =
+    TEXTURE_LAB_GENERATORS.find((item) => item.id === recipe.generator) ?? TEXTURE_LAB_GENERATORS[0];
+  const isSpline = isTextureLabSplineGenerator(recipe.generator);
+  const spline = recipe.spline;
   const groupedGenerators = useMemo(
     () =>
       TEXTURE_LAB_GENERATORS.reduce<Record<string, typeof TEXTURE_LAB_GENERATORS>>((groups, generator) => {
@@ -101,6 +337,16 @@ export function TextureLabPanel({ compact = false, applyLabel = 'Use texture', a
   );
 
   const createTexture = () => generateTextureLabTexture(recipe);
+  const selectGenerator = (generator: TextureLabRecipe['generator']) => {
+    patch({ generator, tileable: isTextureLabSplineGenerator(generator) ? false : recipe.tileable });
+  };
+  const resetValues = () => {
+    patch(defaultTextureLabRecipeForGenerator(recipe.generator));
+  };
+  const patchSpline = (splinePatch: Partial<TextureLabSplineRecipe>) => {
+    if (!spline) return;
+    patch({ spline: { ...spline, ...splinePatch } });
+  };
 
   const exportTexture = () => {
     const texture = createTexture();
@@ -140,7 +386,10 @@ export function TextureLabPanel({ compact = false, applyLabel = 'Use texture', a
 
         <div className="grid gap-2">
           <Label className="text-[10px] text-muted-foreground">Generator</Label>
-          <Select value={recipe.generator} onValueChange={(generator) => patch({ generator: generator as TextureLabRecipe['generator'] })}>
+          <Select
+            value={recipe.generator}
+            onValueChange={(generator) => selectGenerator(generator as TextureLabRecipe['generator'])}
+          >
             <SelectTrigger size="sm" className="w-full" aria-label="Texture generator">
               <SelectValue />
             </SelectTrigger>
@@ -162,7 +411,10 @@ export function TextureLabPanel({ compact = false, applyLabel = 'Use texture', a
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
             <Label className="text-[10px] text-muted-foreground">Size</Label>
-            <Select value={String(recipe.size)} onValueChange={(size) => patch({ size: Number(size) as TextureLabRecipe['size'] })}>
+            <Select
+              value={String(recipe.size)}
+              onValueChange={(size) => patch({ size: Number(size) as TextureLabRecipe['size'] })}
+            >
               <SelectTrigger size="sm" className="w-full" aria-label="Texture size">
                 <SelectValue />
               </SelectTrigger>
@@ -206,10 +458,63 @@ export function TextureLabPanel({ compact = false, applyLabel = 'Use texture', a
           ))}
         </div>
 
+        {isSpline && spline && (
+          <div className="grid gap-2 rounded-md border border-border/70 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Path presets
+              </Label>
+              <label className="flex items-center gap-2 text-xs">
+                <Checkbox
+                  checked={spline.closed}
+                  onCheckedChange={(checked) => patchSpline({ closed: checked === true })}
+                />
+                Closed
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {TEXTURE_LAB_SPLINE_PRESETS.map((preset) => (
+                <Button
+                  key={preset.id}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-[10px]"
+                  onClick={() => patch({ spline: textureLabSplinePreset(preset.id) })}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+            <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2')}>
+              {SPLINE_NUMBER_CONTROLS.map((control) => (
+                <div key={control.key} className="grid gap-1">
+                  <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
+                  <Input
+                    aria-label={`Spline ${control.label.toLowerCase()}`}
+                    className="h-8 text-xs"
+                    type="number"
+                    value={spline[control.key]}
+                    min={control.min}
+                    max={control.max}
+                    step={control.step}
+                    onChange={(event) =>
+                      patchSpline({ [control.key]: Number(event.target.value) } as Partial<TextureLabSplineRecipe>)
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
             <Label className="text-[10px] text-muted-foreground">Color ramp</Label>
-            <Select value={recipe.colorRamp} onValueChange={(colorRamp) => patch({ colorRamp: colorRamp as TextureLabRecipe['colorRamp'] })}>
+            <Select
+              value={recipe.colorRamp}
+              onValueChange={(colorRamp) => patch({ colorRamp: colorRamp as TextureLabRecipe['colorRamp'] })}
+            >
               <SelectTrigger size="sm" className="w-full" aria-label="Texture color ramp">
                 <SelectValue />
               </SelectTrigger>
@@ -224,7 +529,10 @@ export function TextureLabPanel({ compact = false, applyLabel = 'Use texture', a
           </div>
           <div className="grid gap-1">
             <Label className="text-[10px] text-muted-foreground">Alpha</Label>
-            <Select value={recipe.alphaMode} onValueChange={(alphaMode) => patch({ alphaMode: alphaMode as TextureLabRecipe['alphaMode'] })}>
+            <Select
+              value={recipe.alphaMode}
+              onValueChange={(alphaMode) => patch({ alphaMode: alphaMode as TextureLabRecipe['alphaMode'] })}
+            >
               <SelectTrigger size="sm" className="w-full" aria-label="Texture alpha mode">
                 <SelectValue />
               </SelectTrigger>
@@ -245,13 +553,26 @@ export function TextureLabPanel({ compact = false, applyLabel = 'Use texture', a
             Tileable
           </label>
           <label className="flex items-center gap-2 text-xs">
-            <Checkbox checked={recipe.pixelated} onCheckedChange={(checked) => patch({ pixelated: checked === true })} />
+            <Checkbox
+              checked={recipe.pixelated}
+              onCheckedChange={(checked) => patch({ pixelated: checked === true })}
+            />
             Pixelated
           </label>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => patch({ ...recipe })}>
+          <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={resetValues}>
+            <RotateCcwIcon className="size-3.5" />
+            Reset values
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => patch({ ...recipe })}
+          >
             <RefreshCwIcon className="size-3.5" />
             Regenerate
           </Button>
@@ -275,25 +596,36 @@ export function TextureLabPanel({ compact = false, applyLabel = 'Use texture', a
         </div>
       </section>
 
-      <section className="grid min-h-0 gap-3 rounded-md border bg-card p-3">
+      <section className="grid min-h-0 gap-3 rounded-md border bg-card p-3 select-none">
         <div className="flex items-center justify-between gap-2">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</div>
-            <div className="text-xs text-muted-foreground">{recipe.size} x {recipe.size} PNG</div>
+            <div className="text-xs text-muted-foreground">
+              {recipe.size} x {recipe.size} PNG
+            </div>
           </div>
           <ImageIcon className="size-4 text-muted-foreground" />
         </div>
-        <div className="grid min-h-64 place-items-center rounded border bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] p-4">
-          <img
-            data-testid="texture-lab-preview"
-            alt="Generated texture preview"
-            src={dataUrl}
-            className={cn(
-              'aspect-square max-h-[48vh] w-full max-w-[32rem] object-contain drop-shadow-sm',
-              recipe.pixelated && '[image-rendering:pixelated]',
-            )}
+        {isSpline && spline && !compact ? (
+          <TextureSplineEditor
+            spline={spline}
+            pixelated={recipe.pixelated}
+            dataUrl={dataUrl}
+            onChange={(nextSpline) => patch({ spline: nextSpline })}
           />
-        </div>
+        ) : (
+          <div className="grid min-h-64 place-items-center rounded border bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] p-4">
+            <img
+              data-testid="texture-lab-preview"
+              alt="Generated texture preview"
+              src={dataUrl}
+              className={cn(
+                'aspect-square max-h-[48vh] w-full max-w-[32rem] object-contain drop-shadow-sm select-none',
+                recipe.pixelated && '[image-rendering:pixelated]',
+              )}
+            />
+          </div>
+        )}
         {!compact && (
           <div className="grid gap-2">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Presets</div>

@@ -12,8 +12,16 @@ Texture Lab includes focused generators for common LÖVE effects:
 - **Masks**: circles, ellipses, rounded rectangles, radial masks, and thresholded noise masks.
 - **Noise and maps**: clouds, cellular spots, dissolve noise, water noise, height-style grayscale maps, and directional gradients.
 - **Pixel patterns**: checkers, dithers, scanlines, and palette ramps.
+- **Spline paths**: editable trails, ribbons, stroke masks, and lightning paths.
 
 Use the shared controls to adjust size, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp.
+Use **Reset values** to restore the current generator's default controls and seed.
+
+## Spline Paths
+
+Choose **Spline Trail**, **Spline Ribbon**, **Spline Mask**, or **Spline Lightning** when a texture needs a custom path. Drag points in the preview editor, double-click to add a point, and press Delete or Backspace to remove the selected point when the path has more than two points.
+
+Spline presets give quick starting shapes such as Slash, Comet Tail, Ribbon S, Lightning, and Ellipse Border. Control points share a consistent fill, border color, and border width; the selected point uses a separate highlighted fill and border. Use Width, Feather, Taper, Tension, Jitter, and Samples to shape the rasterized path. Lightning jitter is seed-driven, so the same recipe and seed regenerate the same texture.
 
 ## Particle Playground
 
@@ -22,6 +30,7 @@ In Particle Playground, open an emitter's texture controls and choose **Generate
 Useful starting points:
 
 - **Streak**, **Comet Tail**, and **Rain Slash** for trail-like particles.
+- **Spline Trail**, **Spline Ribbon**, and **Spline Lightning** for custom particle trails, slash sprites, bolt textures, and curved masks.
 - **Smoke Puff** for soft puffs and dust.
 - **Spark** or **Star** with additive blending for magic, fire, and impact particles.
 

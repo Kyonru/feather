@@ -10,13 +10,25 @@ import {
   type TextureLabGeneratorId,
   type TextureLabRecipe,
   type TextureLabSize,
+  type TextureLabSplinePoint,
+  type TextureLabSplineRecipe,
 } from '@/types/texture-lab';
+
+export type TextureLabGeneratorCategory = 'Particle sprites' | 'Masks' | 'Noise / maps' | 'Pixel patterns' | 'Spline paths';
 
 export type TextureLabGeneratorMeta = {
   id: TextureLabGeneratorId;
   label: string;
-  category: 'Particle sprites' | 'Masks' | 'Noise / maps' | 'Pixel patterns';
+  category: TextureLabGeneratorCategory;
   description: string;
+};
+
+export type TextureLabSplinePresetId = 'slash' | 'comet' | 'ribbon-s' | 'lightning' | 'ellipse-border';
+
+export type TextureLabSplinePreset = {
+  id: TextureLabSplinePresetId;
+  label: string;
+  spline: TextureLabSplineRecipe;
 };
 
 export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
@@ -45,6 +57,10 @@ export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
   { id: 'dither', label: 'Dither', category: 'Pixel patterns', description: 'A deterministic ordered dither pattern.' },
   { id: 'scanline', label: 'Scanline', category: 'Pixel patterns', description: 'Horizontal scanlines for pixel effects.' },
   { id: 'palette-ramp', label: 'Palette Ramp', category: 'Pixel patterns', description: 'A horizontal color ramp.' },
+  { id: 'spline-trail', label: 'Spline Trail', category: 'Spline paths', description: 'An editable tapered path for trails, wisps, and comet-like sprites.' },
+  { id: 'spline-ribbon', label: 'Spline Ribbon', category: 'Spline paths', description: 'A wider editable ribbon path with soft feathered edges.' },
+  { id: 'spline-mask', label: 'Spline Mask', category: 'Spline paths', description: 'An editable stroke or closed-loop mask.' },
+  { id: 'spline-lightning', label: 'Spline Lightning', category: 'Spline paths', description: 'A seed-jittered editable path for bolts and energized streaks.' },
 ];
 
 export const DEFAULT_TEXTURE_LAB_RECIPE: TextureLabRecipe = {
@@ -63,10 +79,124 @@ export const DEFAULT_TEXTURE_LAB_RECIPE: TextureLabRecipe = {
   colorRamp: 'white',
 };
 
+export const TEXTURE_LAB_SPLINE_GENERATOR_IDS = [
+  'spline-trail',
+  'spline-ribbon',
+  'spline-mask',
+  'spline-lightning',
+] as const satisfies readonly TextureLabGeneratorId[];
+
+const DEFAULT_TRAIL_SPLINE: TextureLabSplineRecipe = {
+  points: [
+    { x: 0.12, y: 0.68 },
+    { x: 0.34, y: 0.46 },
+    { x: 0.62, y: 0.38 },
+    { x: 0.88, y: 0.25 },
+  ],
+  closed: false,
+  tension: 0.35,
+  strokeWidth: 0.18,
+  feather: 0.5,
+  taperStart: 0.78,
+  taperEnd: 0.12,
+  jitter: 0,
+  samples: 96,
+};
+
+export const TEXTURE_LAB_SPLINE_PRESETS: TextureLabSplinePreset[] = [
+  {
+    id: 'slash',
+    label: 'Slash',
+    spline: {
+      points: [
+        { x: 0.16, y: 0.78 },
+        { x: 0.38, y: 0.48 },
+        { x: 0.68, y: 0.28 },
+        { x: 0.9, y: 0.16 },
+      ],
+      closed: false,
+      tension: 0.28,
+      strokeWidth: 0.14,
+      feather: 0.38,
+      taperStart: 0.72,
+      taperEnd: 0.22,
+      jitter: 0,
+      samples: 88,
+    },
+  },
+  {
+    id: 'comet',
+    label: 'Comet Tail',
+    spline: DEFAULT_TRAIL_SPLINE,
+  },
+  {
+    id: 'ribbon-s',
+    label: 'Ribbon S',
+    spline: {
+      points: [
+        { x: 0.12, y: 0.34 },
+        { x: 0.32, y: 0.16 },
+        { x: 0.6, y: 0.76 },
+        { x: 0.86, y: 0.52 },
+      ],
+      closed: false,
+      tension: 0.18,
+      strokeWidth: 0.2,
+      feather: 0.42,
+      taperStart: 0.32,
+      taperEnd: 0.32,
+      jitter: 0,
+      samples: 112,
+    },
+  },
+  {
+    id: 'lightning',
+    label: 'Lightning',
+    spline: {
+      points: [
+        { x: 0.08, y: 0.52 },
+        { x: 0.3, y: 0.34 },
+        { x: 0.52, y: 0.62 },
+        { x: 0.75, y: 0.28 },
+        { x: 0.94, y: 0.42 },
+      ],
+      closed: false,
+      tension: 0,
+      strokeWidth: 0.08,
+      feather: 0.22,
+      taperStart: 0.18,
+      taperEnd: 0.18,
+      jitter: 0.5,
+      samples: 128,
+    },
+  },
+  {
+    id: 'ellipse-border',
+    label: 'Ellipse Border',
+    spline: {
+      points: [
+        { x: 0.5, y: 0.18 },
+        { x: 0.82, y: 0.5 },
+        { x: 0.5, y: 0.82 },
+        { x: 0.18, y: 0.5 },
+      ],
+      closed: true,
+      tension: 0.1,
+      strokeWidth: 0.12,
+      feather: 0.38,
+      taperStart: 0,
+      taperEnd: 0,
+      jitter: 0,
+      samples: 128,
+    },
+  },
+];
+
 const GENERATOR_SET = new Set<string>(TEXTURE_LAB_GENERATOR_IDS);
 const SIZE_SET = new Set<number>(TEXTURE_LAB_SIZES);
 const RAMP_SET = new Set<string>(TEXTURE_LAB_COLOR_RAMPS);
 const ALPHA_SET = new Set<string>(TEXTURE_LAB_ALPHA_MODES);
+const SPLINE_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SPLINE_GENERATOR_IDS);
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -75,6 +205,44 @@ function clamp(value: number, min: number, max: number): number {
 
 function clamp01(value: number): number {
   return clamp(value, 0, 1);
+}
+
+function cloneSplineRecipe(spline: TextureLabSplineRecipe): TextureLabSplineRecipe {
+  return {
+    ...spline,
+    points: spline.points.map((point) => ({ ...point })),
+  };
+}
+
+export function isTextureLabSplineGenerator(generator: TextureLabGeneratorId): boolean {
+  return SPLINE_GENERATOR_SET.has(generator);
+}
+
+export function defaultTextureLabRecipeForGenerator(generator: TextureLabGeneratorId): TextureLabRecipe {
+  return normalizeRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator,
+    tileable: isTextureLabSplineGenerator(generator) ? false : DEFAULT_TEXTURE_LAB_RECIPE.tileable,
+    spline: isTextureLabSplineGenerator(generator) ? defaultSplineForGenerator(generator) : undefined,
+  });
+}
+
+function defaultSplineForGenerator(generator: TextureLabGeneratorId): TextureLabSplineRecipe {
+  if (generator === 'spline-ribbon') {
+    return cloneSplineRecipe(TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'ribbon-s')?.spline ?? DEFAULT_TRAIL_SPLINE);
+  }
+  if (generator === 'spline-mask') {
+    return cloneSplineRecipe(TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'ellipse-border')?.spline ?? DEFAULT_TRAIL_SPLINE);
+  }
+  if (generator === 'spline-lightning') {
+    return cloneSplineRecipe(TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'lightning')?.spline ?? DEFAULT_TRAIL_SPLINE);
+  }
+  return cloneSplineRecipe(DEFAULT_TRAIL_SPLINE);
+}
+
+export function textureLabSplinePreset(presetId: TextureLabSplinePresetId): TextureLabSplineRecipe {
+  const preset = TEXTURE_LAB_SPLINE_PRESETS.find((item) => item.id === presetId);
+  return cloneSplineRecipe(preset?.spline ?? DEFAULT_TRAIL_SPLINE);
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -155,6 +323,37 @@ function cellular(u: number, v: number, scale: number, seed: number, tileable: b
   return clamp01(1 - nearest);
 }
 
+function normalizeSplinePoint(point: unknown): TextureLabSplinePoint | null {
+  if (!point || typeof point !== 'object') return null;
+  const candidate = point as Partial<TextureLabSplinePoint>;
+  const x = Number(candidate.x);
+  const y = Number(candidate.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return { x: clamp01(x), y: clamp01(y) };
+}
+
+function normalizeSplineRecipe(input: unknown, generator: TextureLabGeneratorId): TextureLabSplineRecipe | undefined {
+  if (!isTextureLabSplineGenerator(generator)) return undefined;
+  const fallback = defaultSplineForGenerator(generator);
+  const source = input && typeof input === 'object' ? input as Partial<TextureLabSplineRecipe> : {};
+  const points = Array.isArray(source.points)
+    ? source.points.map(normalizeSplinePoint).filter((point): point is TextureLabSplinePoint => point !== null).slice(0, 16)
+    : [];
+  const normalizedPoints = points.length >= 2 ? points : fallback.points;
+
+  return {
+    points: normalizedPoints.map((point) => ({ ...point })),
+    closed: typeof source.closed === 'boolean' ? source.closed : fallback.closed,
+    tension: clamp(Number(source.tension ?? fallback.tension), 0, 1),
+    strokeWidth: clamp(Number(source.strokeWidth ?? fallback.strokeWidth), 0.01, 0.8),
+    feather: clamp(Number(source.feather ?? fallback.feather), 0, 1),
+    taperStart: clamp(Number(source.taperStart ?? fallback.taperStart), 0, 1),
+    taperEnd: clamp(Number(source.taperEnd ?? fallback.taperEnd), 0, 1),
+    jitter: clamp(Number(source.jitter ?? fallback.jitter), 0, 1),
+    samples: Math.round(clamp(Number(source.samples ?? fallback.samples), 16, 192)),
+  };
+}
+
 function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRecipe {
   const source = input ?? {};
   const size = Number(source.size);
@@ -182,6 +381,7 @@ function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRe
     pixelated: source.pixelated === true,
     alphaMode,
     colorRamp,
+    spline: normalizeSplineRecipe(source.spline, generator),
   };
 }
 
@@ -238,7 +438,170 @@ function roundedRectMask(x: number, y: number, radius: number): number {
   return outside + inside - radius;
 }
 
-function generatorValue(recipe: TextureLabRecipe, u: number, v: number, x: number, y: number): { colorT: number; alpha: number } {
+type SampledSplinePoint = TextureLabSplinePoint & {
+  progress: number;
+  width: number;
+};
+
+type SampledSplinePath = {
+  points: SampledSplinePoint[];
+  closed: boolean;
+};
+
+function splineWidthAt(spline: TextureLabSplineRecipe, progress: number): number {
+  const start = lerp(1, 0.05, spline.taperStart * (1 - progress));
+  const end = lerp(1, 0.05, spline.taperEnd * progress);
+  return spline.strokeWidth * Math.max(0.03, start * end);
+}
+
+function catmullRom(
+  p0: TextureLabSplinePoint,
+  p1: TextureLabSplinePoint,
+  p2: TextureLabSplinePoint,
+  p3: TextureLabSplinePoint,
+  t: number,
+  tension: number,
+): TextureLabSplinePoint {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const tangent = (1 - tension) * 0.5;
+  const m1x = (p2.x - p0.x) * tangent;
+  const m1y = (p2.y - p0.y) * tangent;
+  const m2x = (p3.x - p1.x) * tangent;
+  const m2y = (p3.y - p1.y) * tangent;
+  return {
+    x: (2 * t3 - 3 * t2 + 1) * p1.x + (t3 - 2 * t2 + t) * m1x + (-2 * t3 + 3 * t2) * p2.x + (t3 - t2) * m2x,
+    y: (2 * t3 - 3 * t2 + 1) * p1.y + (t3 - 2 * t2 + t) * m1y + (-2 * t3 + 3 * t2) * p2.y + (t3 - t2) * m2y,
+  };
+}
+
+function splinePointAt(points: TextureLabSplinePoint[], index: number, closed: boolean): TextureLabSplinePoint {
+  if (closed) {
+    return points[((index % points.length) + points.length) % points.length];
+  }
+  return points[Math.min(points.length - 1, Math.max(0, index))];
+}
+
+function buildSampledSplinePath(recipe: TextureLabRecipe): SampledSplinePath | null {
+  const spline = recipe.spline;
+  if (!spline || !isTextureLabSplineGenerator(recipe.generator)) return null;
+  const points = spline.points;
+  const segmentCount = spline.closed ? points.length : points.length - 1;
+  const stepsPerSegment = Math.max(4, Math.ceil(spline.samples / Math.max(1, segmentCount)));
+  const sampled: SampledSplinePoint[] = [];
+
+  for (let segment = 0; segment < segmentCount; segment += 1) {
+    for (let step = 0; step < stepsPerSegment; step += 1) {
+      if (segment > 0 && step === 0) continue;
+      const local = step / stepsPerSegment;
+      const raw = catmullRom(
+        splinePointAt(points, segment - 1, spline.closed),
+        splinePointAt(points, segment, spline.closed),
+        splinePointAt(points, segment + 1, spline.closed),
+        splinePointAt(points, segment + 2, spline.closed),
+        local,
+        spline.tension,
+      );
+      const progress = (segment + local) / Math.max(1, segmentCount);
+      sampled.push({
+        x: clamp01(raw.x),
+        y: clamp01(raw.y),
+        progress,
+        width: splineWidthAt(spline, progress),
+      });
+    }
+  }
+
+  const finalProgress = spline.closed ? 1 : 1;
+  const lastSource = spline.closed ? points[0] : points[points.length - 1];
+  sampled.push({
+    x: lastSource.x,
+    y: lastSource.y,
+    progress: finalProgress,
+    width: splineWidthAt(spline, finalProgress),
+  });
+
+  if (recipe.generator === 'spline-lightning' && spline.jitter > 0) {
+    for (let index = 1; index < sampled.length - 1; index += 1) {
+      const prev = sampled[index - 1];
+      const next = sampled[index + 1];
+      const dx = next.x - prev.x;
+      const dy = next.y - prev.y;
+      const length = Math.hypot(dx, dy) || 1;
+      const normalX = -dy / length;
+      const normalY = dx / length;
+      const amount = (random01(recipe.seed + 401, index, 0) - 0.5) * spline.jitter * 0.09;
+      sampled[index] = {
+        ...sampled[index],
+        x: clamp01(sampled[index].x + normalX * amount),
+        y: clamp01(sampled[index].y + normalY * amount),
+      };
+    }
+  }
+
+  return { points: sampled, closed: spline.closed };
+}
+
+function splineGeneratorValue(
+  recipe: TextureLabRecipe,
+  u: number,
+  v: number,
+  path: SampledSplinePath | null | undefined,
+): { colorT: number; alpha: number } {
+  if (!recipe.spline || !path || path.points.length < 2) return { colorT: 0, alpha: 0 };
+  let nearest = Number.POSITIVE_INFINITY;
+  let nearestProgress = 0;
+  let nearestWidth = recipe.spline.strokeWidth;
+  const segments = path.points.length - 1;
+
+  for (let index = 0; index < segments; index += 1) {
+    const a = path.points[index];
+    const b = path.points[(index + 1) % path.points.length];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const lengthSq = dx * dx + dy * dy || 0.00001;
+    const t = clamp01(((u - a.x) * dx + (v - a.y) * dy) / lengthSq);
+    const px = a.x + dx * t;
+    const py = a.y + dy * t;
+    const distance = Math.hypot(u - px, v - py);
+    if (distance < nearest) {
+      nearest = distance;
+      nearestProgress = lerp(a.progress, b.progress, t);
+      nearestWidth = lerp(a.width, b.width, t);
+    }
+  }
+
+  const radius = nearestWidth * 0.5;
+  const feather = Math.max(0.001, recipe.spline.feather * 0.12);
+  let alpha = 1 - smoothstep(radius, radius + feather, nearest);
+  alpha = Math.pow(clamp01(alpha), recipe.falloff);
+
+  if (recipe.generator === 'spline-ribbon') {
+    const pulse = 0.65 + Math.sin(nearestProgress * Math.PI * 2) * 0.15;
+    return { colorT: pulse, alpha };
+  }
+  if (recipe.generator === 'spline-mask') {
+    return { colorT: alpha, alpha };
+  }
+  if (recipe.generator === 'spline-lightning') {
+    const core = 1 - smoothstep(radius * 0.35, Math.max(radius * 0.35 + 0.001, radius), nearest);
+    return { colorT: Math.max(core, 0.7), alpha: Math.max(alpha * 0.7, core) };
+  }
+  return { colorT: 1 - nearestProgress * 0.8, alpha };
+}
+
+function generatorValue(
+  recipe: TextureLabRecipe,
+  u: number,
+  v: number,
+  x: number,
+  y: number,
+  splinePath?: SampledSplinePath | null,
+): { colorT: number; alpha: number } {
+  if (isTextureLabSplineGenerator(recipe.generator)) {
+    return splineGeneratorValue(recipe, u, v, splinePath);
+  }
+
   const cx = (u - 0.5) * 2;
   const cy = (v - 0.5) * 2;
   const n = fbm(u, v, recipe.scale, recipe.seed, recipe.tileable);
@@ -362,6 +725,7 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
   const width = recipe.size;
   const height = recipe.size;
   const pixels = new Uint8ClampedArray(width * height * 4);
+  const splinePath = buildSampledSplinePath(recipe);
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -374,7 +738,7 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
         v = recipe.tileable ? fract(v + dy * recipe.distortion * 0.12 + 1) : clamp01(v + dy * recipe.distortion * 0.12);
       }
 
-      const value = generatorValue(recipe, u, v, x, y);
+      const value = generatorValue(recipe, u, v, x, y, splinePath);
       const colorT = contrast(value.colorT, recipe.contrast);
       const color = sampleRamp(recipe.colorRamp, colorT);
       let alpha = clamp01(value.alpha);

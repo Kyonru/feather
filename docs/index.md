@@ -111,7 +111,7 @@ See [CLI](cli.md) for `feather run`, `feather doctor`, `feather build`, and `fea
 - [Assets](assets.md) — Inspect loaded textures, fonts, audio, previews, and game-root mapping
 - [Particle System Playground](particle-system-playground.md) — Particle templates, timelines, previews, exports
 - [Shader Graph](shader-graph.md) — Node graph shaders, templates, previews, connected-game apply
-- [Texture Lab](texture-lab.md) — Procedural PNG sprites, masks, noise maps, gradients, and trail textures
+- [Texture Lab](texture-lab.md) — Procedural PNG sprites, masks, noise maps, spline paths, gradients, and trail textures
 - [Standalone Showcase](standalone-showcase.md) — Browser-hosted creative tools without a local game
 - [Time Travel](time-travel.md) — Observer snapshot recording and timeline scrubbing
 - [Session Replay](session-replay.md) — Input replay with developer-selected state checkpoints

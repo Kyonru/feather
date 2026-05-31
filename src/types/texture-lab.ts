@@ -26,6 +26,10 @@ export const TEXTURE_LAB_GENERATOR_IDS = [
   'dither',
   'scanline',
   'palette-ramp',
+  'spline-trail',
+  'spline-ribbon',
+  'spline-mask',
+  'spline-lightning',
 ] as const;
 
 export const TEXTURE_LAB_COLOR_RAMPS = [
@@ -47,6 +51,23 @@ export type TextureLabGeneratorId = (typeof TEXTURE_LAB_GENERATOR_IDS)[number];
 export type TextureLabColorRamp = (typeof TEXTURE_LAB_COLOR_RAMPS)[number];
 export type TextureLabAlphaMode = (typeof TEXTURE_LAB_ALPHA_MODES)[number];
 
+export type TextureLabSplinePoint = {
+  x: number;
+  y: number;
+};
+
+export type TextureLabSplineRecipe = {
+  points: TextureLabSplinePoint[];
+  closed: boolean;
+  tension: number;
+  strokeWidth: number;
+  feather: number;
+  taperStart: number;
+  taperEnd: number;
+  jitter: number;
+  samples: number;
+};
+
 export type TextureLabRecipe = {
   generator: TextureLabGeneratorId;
   size: TextureLabSize;
@@ -61,6 +82,7 @@ export type TextureLabRecipe = {
   pixelated: boolean;
   alphaMode: TextureLabAlphaMode;
   colorRamp: TextureLabColorRamp;
+  spline?: TextureLabSplineRecipe;
 };
 
 export type TextureLabGeneratedPixels = {

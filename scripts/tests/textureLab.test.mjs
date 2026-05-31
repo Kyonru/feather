@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   DEFAULT_TEXTURE_LAB_RECIPE,
+  defaultTextureLabRecipeForGenerator,
   normalizeTextureLabRecipe,
   renderTextureLabPixels,
+  textureLabSplinePreset,
   textureLabFilename,
 } from '../../src/pages/texture-lab/generator.ts';
 
@@ -15,6 +17,10 @@ function checksum(pixels) {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+function alphaAt(result, x, y) {
+  return result.pixels[(y * result.width + x) * 4 + 3];
 }
 
 test('texture lab output is deterministic for a recipe', () => {
@@ -71,4 +77,96 @@ test('alpha modes control transparency', () => {
 test('texture lab filenames include generator size and seed', () => {
   const recipe = normalizeTextureLabRecipe({ generator: 'comet-tail', size: 128, seed: 99 });
   assert.equal(textureLabFilename(recipe), 'comet-tail-128-99.png');
+});
+
+test('texture lab can reset a generator to its default values', () => {
+  const recipe = defaultTextureLabRecipeForGenerator('spline-lightning');
+  assert.equal(recipe.generator, 'spline-lightning');
+  assert.equal(recipe.seed, DEFAULT_TEXTURE_LAB_RECIPE.seed);
+  assert.equal(recipe.tileable, false);
+  assert.equal(recipe.spline.jitter, 0.5);
+  assert.equal(recipe.spline.points.length, 5);
+});
+
+test('spline texture output is deterministic and point edits change the raster', () => {
+  const recipe = normalizeTextureLabRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'spline-trail',
+    seed: 123,
+    size: 64,
+    spline: textureLabSplinePreset('comet'),
+  });
+  const first = renderTextureLabPixels(recipe);
+  const second = renderTextureLabPixels(recipe);
+  const edited = renderTextureLabPixels({
+    ...recipe,
+    spline: {
+      ...recipe.spline,
+      points: recipe.spline.points.map((point, index) => (index === 1 ? { ...point, y: 0.8 } : point)),
+    },
+  });
+  assert.equal(checksum(first.pixels), checksum(second.pixels));
+  assert.notEqual(checksum(first.pixels), checksum(edited.pixels));
+});
+
+test('spline recipes normalize invalid points and clamp controls', () => {
+  const recipe = normalizeTextureLabRecipe({
+    generator: 'spline-ribbon',
+    spline: {
+      points: [{ x: -10, y: 2 }, { x: 0.5, y: 0.5 }, { x: Number.NaN, y: 0.4 }],
+      closed: 'yes',
+      strokeWidth: 99,
+      feather: -1,
+      taperStart: 8,
+      taperEnd: -2,
+      tension: 4,
+      jitter: 6,
+      samples: 999,
+    },
+  });
+  assert.equal(recipe.spline.points.length, 2);
+  assert.deepEqual(recipe.spline.points[0], { x: 0, y: 1 });
+  assert.equal(recipe.spline.closed, false);
+  assert.equal(recipe.spline.strokeWidth, 0.8);
+  assert.equal(recipe.spline.feather, 0);
+  assert.equal(recipe.spline.taperStart, 1);
+  assert.equal(recipe.spline.taperEnd, 0);
+  assert.equal(recipe.spline.tension, 1);
+  assert.equal(recipe.spline.jitter, 1);
+  assert.equal(recipe.spline.samples, 192);
+});
+
+test('spline taper narrows a trail endpoint compared with the middle', () => {
+  const result = renderTextureLabPixels({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'spline-trail',
+    size: 64,
+    falloff: 1,
+    spline: {
+      points: [{ x: 0.1, y: 0.5 }, { x: 0.9, y: 0.5 }],
+      closed: false,
+      tension: 0,
+      strokeWidth: 0.28,
+      feather: 0.2,
+      taperStart: 1,
+      taperEnd: 0,
+      jitter: 0,
+      samples: 48,
+    },
+  });
+  assert.ok(alphaAt(result, 32, 36) > alphaAt(result, 7, 36));
+});
+
+test('spline lightning jitter is deterministic for a seed', () => {
+  const recipe = normalizeTextureLabRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'spline-lightning',
+    seed: 88,
+    spline: textureLabSplinePreset('lightning'),
+  });
+  const first = renderTextureLabPixels(recipe);
+  const second = renderTextureLabPixels(recipe);
+  const changed = renderTextureLabPixels({ ...recipe, seed: 89 });
+  assert.equal(checksum(first.pixels), checksum(second.pixels));
+  assert.notEqual(checksum(first.pixels), checksum(changed.pixels));
 });

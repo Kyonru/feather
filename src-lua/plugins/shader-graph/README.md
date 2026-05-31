@@ -34,7 +34,7 @@ Palette sections are collapsible and remember their open/closed state across app
 
 The right panel starts on **Controls** so an effect can be tuned without hunting through the graph. Template presets show their curated **Template Controls** first, followed by **Shader Controls**, which collects root-level `FloatParameter`, `Vec2Parameter`, `Vec3Parameter`, `Vec4Parameter`, `ColorParameter`, `BooleanParameter`, and `TextureParameter` nodes in one place.
 
-Shader Controls let you rename the exposed control, edit its default value or texture upload, generate a texture with Texture Lab, inspect the generated uniform name, and jump back to the source node. Unconnected parameters stay visible with a small warning so reusable knobs are easy to find before they are wired. When editing inside a subgraph, Shader Controls still show root graph parameters; using a row's select action returns to the root graph and selects that parameter node.
+Shader Controls let you rename the exposed control, edit its default value or texture upload, generate a texture with Texture Lab, inspect the generated uniform name, and jump back to the source node. Texture Lab includes editable spline trails, ribbons, stroke masks, and lightning paths for shader masks and distortion maps. Unconnected parameters stay visible with a small warning so reusable knobs are easy to find before they are wired. When editing inside a subgraph, Shader Controls still show root graph parameters; using a row's select action returns to the root graph and selects that parameter node.
 
 ## Template Presets And Subgraphs
 

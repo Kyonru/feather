@@ -320,6 +320,40 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   const before = await preview.getAttribute('src');
   await page.getByTitle('Randomize seed').click();
   await expect.poll(() => preview.getAttribute('src')).not.toBe(before);
+  await page.getByLabel('Texture generator').click();
+  await page.getByRole('option', { name: 'Spline Trail' }).click();
+  await expect(page.getByTestId('texture-lab-spline-editor')).toBeVisible();
+  const firstPointStyle = await page.getByTestId('texture-lab-spline-point-1').evaluate((point) => ({
+    fill: point.getAttribute('fill'),
+    stroke: point.getAttribute('stroke'),
+    strokeWidth: point.getAttribute('stroke-width'),
+  }));
+  const secondPointStyle = await page.getByTestId('texture-lab-spline-point-2').evaluate((point) => ({
+    fill: point.getAttribute('fill'),
+    stroke: point.getAttribute('stroke'),
+    strokeWidth: point.getAttribute('stroke-width'),
+  }));
+  expect(firstPointStyle).toEqual(secondPointStyle);
+  expect(firstPointStyle.stroke).toBeTruthy();
+  expect(Number(firstPointStyle.strokeWidth)).toBeGreaterThan(0);
+  await page.getByTestId('texture-lab-spline-point-1').click();
+  await expect.poll(() =>
+    page.getByTestId('texture-lab-spline-point-1').evaluate((point) => ({
+      fill: point.getAttribute('fill'),
+      stroke: point.getAttribute('stroke'),
+      strokeWidth: point.getAttribute('stroke-width'),
+    })),
+  ).toEqual({ fill: '#facc15', stroke: '#111827', strokeWidth: '3' });
+  const splineBefore = await preview.getAttribute('src');
+  const splinePoint = await page.getByTestId('texture-lab-spline-point-1').boundingBox();
+  expect(splinePoint).not.toBeNull();
+  await page.mouse.move(splinePoint!.x + splinePoint!.width / 2, splinePoint!.y + splinePoint!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(splinePoint!.x + splinePoint!.width / 2 + 34, splinePoint!.y + splinePoint!.height / 2 + 18);
+  await page.mouse.up();
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(splineBefore);
+  await page.getByRole('button', { name: /reset values/i }).click();
+  await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
   await expect(page.getByRole('button', { name: /export png/i })).toBeVisible();
 
   await page.goto('/particle-system-playground');
@@ -328,14 +362,14 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await page.getByTestId('texture-lab-apply').click();
   await expect
     .poll(async () => page.locator('input').evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value)))
-    .toContainEqual(expect.stringMatching(/soft-circle-64-\d+\.png/));
+    .toContainEqual(expect.stringMatching(/spline-trail-64-\d+\.png/));
   await page.getByTitle('Minimise').click({ force: true });
 
   await page.goto('/shader-graph');
   await openShaderOutput(page);
   await page.getByTestId('shader-preview-texture-generate').evaluate((element) => (element as HTMLElement).click());
   await page.getByTestId('texture-lab-apply').click();
-  await expect(page.getByTestId('shader-output-dock').getByText(/soft-circle-64-\d+\.png/)).toBeVisible();
+  await expect(page.getByTestId('shader-output-dock').getByText(/spline-trail-64-\d+\.png/)).toBeVisible();
 });
 
 test('showcase serves the real love.js shader preview target', async ({ page }) => {
