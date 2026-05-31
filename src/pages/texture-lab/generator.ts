@@ -70,22 +70,10 @@ export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
   },
   { id: 'star', label: 'Star', category: 'Particle sprites', description: 'A pointed sparkle sprite.' },
   {
-    id: 'slash',
-    label: 'Slash',
-    category: 'Particle sprites',
-    description: 'A diagonal slash texture for cuts and wind.',
-  },
-  {
     id: 'trail-blob',
     label: 'Trail Blob',
     category: 'Particle sprites',
     description: 'A soft blob stretched for magical trails.',
-  },
-  {
-    id: 'comet-tail',
-    label: 'Comet Tail',
-    category: 'Particle sprites',
-    description: 'A bright head with a long fading tail.',
   },
   {
     id: 'rain-slash',
@@ -215,6 +203,10 @@ const TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS: Partial<Record<TextureLabGeneratorI
   'palette-ramp': {
     alphaMode: 'luminance',
   },
+  checker: {
+    alphaMode: 'luminance',
+    scale: 5,
+  },
 };
 
 export const TEXTURE_LAB_SPLINE_GENERATOR_IDS = [
@@ -267,7 +259,23 @@ export const TEXTURE_LAB_SPLINE_PRESETS: TextureLabSplinePreset[] = [
   {
     id: 'comet',
     label: 'Comet Tail',
-    spline: DEFAULT_TRAIL_SPLINE,
+    spline: {
+      points: [
+        { x: 0.1, y: 0.62 },
+        { x: 0.32, y: 0.52 },
+        { x: 0.62, y: 0.42 },
+        { x: 0.92, y: 0.34 },
+      ],
+      closed: false,
+      tension: 0.24,
+      strokeWidth: 0.26,
+      feather: 0.56,
+      taperStart: 0.9,
+      taperEnd: 0,
+      jitter: 0,
+      samples: 128,
+      overlapMode: 'merge',
+    },
   },
   {
     id: 'ribbon-s',
@@ -901,11 +909,6 @@ function generatorValue(
       const alpha = shapeFalloff(d * (1.3 - points * 0.45), 0.58, recipe.softness * 0.55, recipe.falloff);
       return { colorT: points, alpha };
     }
-    case 'slash': {
-      const along = shapeFalloff(Math.abs(cx - cy * 0.35), 0.88, recipe.softness * 0.6, recipe.falloff);
-      const alpha = along * Math.exp(-diagonal * diagonal * 34);
-      return { colorT: 1 - diagonal, alpha };
-    }
     case 'trail-blob': {
       const tail = smoothstep(0.95, -0.75, cx);
       const thickness = 0.2 + tail * 0.3;
@@ -914,11 +917,6 @@ function generatorValue(
         Math.exp(-(cy * cy) / Math.max(0.01, thickness * thickness)) *
         shapeFalloff(Math.abs(cx) * 0.8, 0.95, recipe.softness, 1);
       return { colorT: tail, alpha };
-    }
-    case 'comet-tail': {
-      const head = shapeFalloff(Math.hypot(cx - 0.45, cy), 0.28, recipe.softness * 0.45, recipe.falloff);
-      const tail = smoothstep(0.85, -0.95, cx) * Math.exp(-cy * cy * 22);
-      return { colorT: Math.max(head, tail), alpha: Math.max(head, tail * 0.75) };
     }
     case 'rain-slash': {
       return { colorT: 0.75, alpha: Math.exp(-diagonal * diagonal * 120) * shapeFalloff(Math.abs(cx), 0.92, 0.08, 1) };

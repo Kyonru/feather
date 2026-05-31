@@ -395,7 +395,7 @@ export function TextureLabPanel({
   onApply,
 }: TextureLabPanelProps) {
   const [presetsOpen, setPresetsOpen] = useState(false);
-  const { recipe, patch } = useTextureLabRecipe();
+  const { recipe, setRecipe, patch } = useTextureLabRecipe();
   const pixels = useMemo(() => renderTextureLabPixels(recipe), [recipe]);
   const dataUrl = useMemo(() => textureLabPixelsToDataUrl(pixels), [pixels]);
   const selectedGenerator =
@@ -412,7 +412,13 @@ export function TextureLabPanel({
   );
 
   const selectGenerator = (generator: TextureLabRecipe['generator']) => {
-    patch({ generator, tileable: isTextureLabSplineGenerator(generator) ? false : recipe.tileable });
+    setRecipe(defaultTextureLabRecipeForGenerator(generator));
+  };
+  const selectSplinePreset = (presetId: (typeof TEXTURE_LAB_SPLINE_PRESETS)[number]['id']) => {
+    setRecipe({
+      ...defaultTextureLabRecipeForGenerator(recipe.generator),
+      spline: textureLabSplinePreset(presetId),
+    });
   };
   const patchSpline = (splinePatch: Partial<TextureLabSplineRecipe>) => {
     if (!spline) return;
@@ -574,7 +580,7 @@ export function TextureLabPanel({
                     size="sm"
                     variant="outline"
                     className="h-7 px-2 text-[10px]"
-                    onClick={() => patch({ spline: textureLabSplinePreset(preset.id) })}
+                    onClick={() => selectSplinePreset(preset.id)}
                   >
                     {preset.label}
                 </Button>

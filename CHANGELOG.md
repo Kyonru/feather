@@ -19,8 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Texture Lab spline points now use explicit fill, border color, and border width styles with a separate selected-point highlight, and Texture Lab includes a quick reset for the current generator values.
 - Texture Lab now fills the available editor height, keeps controls and preview/presets scrolling independently, tucks generator presets into a collapsible panel, and keeps reset/regenerate/export/apply actions in the fixed header.
 
+### Changed
+
+- Texture Lab now keeps Comet Tail and Slash as Spline Trail path presets instead of redundant hardcoded generators.
+
 ### Fixed
 
+- Fixed Texture Lab generator and spline preset switching so each preset restores its default controls instead of inheriting stale values from the previous recipe.
 - Fixed Particle Playground timeline drags so focused numeric clip editors cannot write stale values back over direct clip movement.
 
 ### Tests
@@ -34,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused Texture Lab coverage for generator-specific reset alpha defaults.
 - Added focused/app/showcase coverage for Texture Lab generator resets and spline point styling.
 - Added app/showcase coverage for Texture Lab independent panel scrolling, collapsible presets, and fixed-header generator actions.
+- Added focused Texture Lab coverage for removing hardcoded Comet Tail/Slash generator IDs while preserving their spline presets.
+- Added app/showcase coverage for Texture Lab generator and spline presets restoring default values when selected.
 
 ## [v3.0.0] - 2026-05-31 - The one with core workflows
 

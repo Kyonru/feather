@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   DEFAULT_TEXTURE_LAB_RECIPE,
+  TEXTURE_LAB_GENERATORS,
   defaultTextureLabRecipeForGenerator,
   normalizeTextureLabRecipe,
   renderTextureLabPixels,
@@ -103,8 +104,16 @@ test('background color composites behind transparent texture pixels', () => {
 });
 
 test('texture lab filenames include generator size and seed', () => {
-  const recipe = normalizeTextureLabRecipe({ generator: 'comet-tail', size: 128, seed: 99 });
-  assert.equal(textureLabFilename(recipe), 'comet-tail-128-99.png');
+  const recipe = normalizeTextureLabRecipe({ generator: 'rain-slash', size: 128, seed: 99 });
+  assert.equal(textureLabFilename(recipe), 'rain-slash-128-99.png');
+});
+
+test('hardcoded comet tail and slash generators are removed in favor of spline presets', () => {
+  const generatorIds = TEXTURE_LAB_GENERATORS.map((generator) => generator.id);
+  assert.ok(!generatorIds.includes('comet-tail'));
+  assert.ok(!generatorIds.includes('slash'));
+  assert.equal(normalizeTextureLabRecipe({ generator: 'comet-tail' }).generator, DEFAULT_TEXTURE_LAB_RECIPE.generator);
+  assert.equal(normalizeTextureLabRecipe({ generator: 'slash' }).generator, DEFAULT_TEXTURE_LAB_RECIPE.generator);
 });
 
 test('texture lab can reset a generator to its default values', () => {
@@ -145,6 +154,30 @@ test('spline texture output is deterministic and point edits change the raster',
   });
   assert.equal(checksum(first.pixels), checksum(second.pixels));
   assert.notEqual(checksum(first.pixels), checksum(edited.pixels));
+});
+
+test('comet and slash spline presets remain deterministic texture starting points', () => {
+  const cometSpline = textureLabSplinePreset('comet');
+  assert.equal(cometSpline.points.length, 4);
+  assert.equal(cometSpline.overlapMode, 'merge');
+  assert.ok(cometSpline.strokeWidth > 0.2);
+  assert.equal(cometSpline.taperEnd, 0);
+
+  const comet = normalizeTextureLabRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'spline-trail',
+    seed: 712,
+    spline: cometSpline,
+  });
+  const slash = normalizeTextureLabRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'spline-trail',
+    seed: 712,
+    spline: textureLabSplinePreset('slash'),
+  });
+  assert.equal(checksum(renderTextureLabPixels(comet).pixels), checksum(renderTextureLabPixels(comet).pixels));
+  assert.equal(checksum(renderTextureLabPixels(slash).pixels), checksum(renderTextureLabPixels(slash).pixels));
+  assert.notEqual(checksum(renderTextureLabPixels(comet).pixels), checksum(renderTextureLabPixels(slash).pixels));
 });
 
 test('spline recipes normalize invalid points and clamp controls', () => {

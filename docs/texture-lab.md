@@ -8,13 +8,13 @@ Open **Texture Lab** from the Creative sidebar group, Command Center, or the sta
 
 Texture Lab includes focused generators for common LÖVE effects:
 
-- **Particle sprites**: soft circles, sparks, streaks, rings, smoke puffs, stars, slashes, trail blobs, comet tails, and rain slashes.
+- **Particle sprites**: soft circles, sparks, streaks, rings, smoke puffs, stars, trail blobs, and rain slashes.
 - **Masks**: circles, ellipses, rounded rectangles, radial masks, and thresholded noise masks.
 - **Noise and maps**: clouds, cellular spots, dissolve noise, water noise, height-style grayscale maps, and directional gradients.
 - **Pixel patterns**: checkers, dithers, scanlines, and palette ramps.
 - **Spline paths**: editable trails, ribbons, stroke masks, and lightning paths.
 
-Use the shared controls to adjust size, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp.
+Choosing a generator or spline path preset loads that preset's default controls. Use the shared controls to adjust size, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp.
 Use **Reset values** to restore the current generator's default controls and seed.
 
 ## Spline Paths
@@ -29,8 +29,8 @@ In Particle Playground, open an emitter's texture controls and choose **Generate
 
 Useful starting points:
 
-- **Streak**, **Comet Tail**, and **Rain Slash** for trail-like particles.
-- **Spline Trail**, **Spline Ribbon**, and **Spline Lightning** for custom particle trails, slash sprites, bolt textures, and curved masks.
+- **Streak**, **Trail Blob**, and **Rain Slash** for quick trail-like particles.
+- **Spline Trail** with the **Comet Tail** or **Slash** path preset, plus **Spline Ribbon** and **Spline Lightning**, for custom particle trails, slash sprites, bolt textures, and curved masks.
 - **Smoke Puff** for soft puffs and dust.
 - **Spark** or **Star** with additive blending for magic, fire, and impact particles.
 

@@ -332,6 +332,7 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await expect.poll(() => preview.getAttribute('src')).not.toBe(before);
   await page.getByLabel('Texture generator').click();
   await page.getByRole('option', { name: 'Spline Trail' }).click();
+  await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
   await expect(page.getByTestId('texture-lab-spline-editor')).toBeVisible();
   await expect(page.getByLabel('Spline overlap resolution')).toHaveText(/Merge/);
   const firstPointStyle = await page.getByTestId('texture-lab-spline-point-1').evaluate((point) => ({
@@ -363,6 +364,9 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await page.mouse.move(splinePoint!.x + splinePoint!.width / 2 + 34, splinePoint!.y + splinePoint!.height / 2 + 18);
   await page.mouse.up();
   await expect.poll(() => preview.getAttribute('src')).not.toBe(splineBefore);
+  await page.getByTitle('Randomize seed').click();
+  await page.getByRole('button', { name: 'Comet Tail' }).click();
+  await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
   await textureHeader.getByRole('button', { name: /reset values/i }).click();
   await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
   await page.getByRole('button', { name: /expand texture presets/i }).click();
