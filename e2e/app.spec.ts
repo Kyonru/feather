@@ -1506,6 +1506,11 @@ test('texture lab is available without a connected session in the app', async ({
   await expect(page.getByTestId('texture-lab-page')).toHaveCSS('overflow', 'hidden');
   await expect(page.getByTestId('texture-lab-controls-panel')).toHaveCSS('overflow-y', 'auto');
   await expect(page.getByTestId('texture-lab-main-panel')).toHaveCSS('overflow-y', 'auto');
+  const textureHeader = page.getByTestId('texture-lab-page').locator('header');
+  await expect(textureHeader.getByRole('button', { name: /reset values/i })).toBeVisible();
+  await expect(textureHeader.getByRole('button', { name: /regenerate/i })).toBeVisible();
+  await expect(textureHeader.getByRole('button', { name: /export png/i })).toBeVisible();
+  await expect(textureHeader.getByRole('button', { name: /use as shader preview/i })).toBeVisible();
   const preview = page.getByTestId('texture-lab-preview');
   await expect(preview).toBeVisible();
   const before = await preview.getAttribute('src');
@@ -1514,6 +1519,7 @@ test('texture lab is available without a connected session in the app', async ({
   await page.getByLabel('Texture generator').click();
   await page.getByRole('option', { name: 'Spline Trail' }).click();
   await expect(page.getByTestId('texture-lab-spline-editor')).toBeVisible();
+  await expect(page.getByLabel('Spline overlap resolution')).toHaveText(/Merge/);
   const firstPointStyle = await page.getByTestId('texture-lab-spline-point-1').evaluate((point) => ({
     fill: point.getAttribute('fill'),
     stroke: point.getAttribute('stroke'),
@@ -1543,11 +1549,11 @@ test('texture lab is available without a connected session in the app', async ({
   await page.mouse.move(splinePoint!.x + splinePoint!.width / 2 + 28, splinePoint!.y + splinePoint!.height / 2 + 16);
   await page.mouse.up();
   await expect.poll(() => preview.getAttribute('src')).not.toBe(splineBefore);
-  await page.getByRole('button', { name: /reset values/i }).click();
+  await textureHeader.getByRole('button', { name: /reset values/i }).click();
   await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
   await page.getByRole('button', { name: /expand texture presets/i }).click();
   await expect(page.getByRole('button', { name: /smoke puff/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /export png/i })).toBeVisible();
+  await expect(textureHeader.getByRole('button', { name: /export png/i })).toBeVisible();
 });
 
 test('opens redesigned about modal from the sidebar', async ({ page }) => {

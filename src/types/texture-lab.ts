@@ -45,11 +45,13 @@ export const TEXTURE_LAB_COLOR_RAMPS = [
 ] as const;
 
 export const TEXTURE_LAB_ALPHA_MODES = ['shape', 'opaque', 'luminance', 'inverted'] as const;
+export const TEXTURE_LAB_SPLINE_OVERLAP_MODES = ['merge', 'bridge', 'additive'] as const;
 
 export type TextureLabSize = (typeof TEXTURE_LAB_SIZES)[number];
 export type TextureLabGeneratorId = (typeof TEXTURE_LAB_GENERATOR_IDS)[number];
 export type TextureLabColorRamp = (typeof TEXTURE_LAB_COLOR_RAMPS)[number];
 export type TextureLabAlphaMode = (typeof TEXTURE_LAB_ALPHA_MODES)[number];
+export type TextureLabSplineOverlapMode = (typeof TEXTURE_LAB_SPLINE_OVERLAP_MODES)[number];
 
 export type TextureLabSplinePoint = {
   x: number;
@@ -66,6 +68,7 @@ export type TextureLabSplineRecipe = {
   taperEnd: number;
   jitter: number;
   samples: number;
+  overlapMode: TextureLabSplineOverlapMode;
 };
 
 export type TextureLabRecipe = {

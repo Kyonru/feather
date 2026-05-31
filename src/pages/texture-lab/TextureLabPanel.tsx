@@ -37,9 +37,11 @@ import { useSettingsStore } from '@/store/settings';
 import {
   TEXTURE_LAB_ALPHA_MODES,
   TEXTURE_LAB_COLOR_RAMPS,
+  TEXTURE_LAB_SPLINE_OVERLAP_MODES,
   TEXTURE_LAB_SIZES,
   type GeneratedTextureResult,
   type TextureLabRecipe,
+  type TextureLabSplineOverlapMode,
   type TextureLabSplinePoint,
   type TextureLabSplineRecipe,
 } from '@/types/texture-lab';
@@ -61,6 +63,10 @@ type TextureLabPanelProps = {
   applyLabel?: string;
   applyDisabled?: boolean;
   onApply?: (texture: GeneratedTextureResult) => void;
+};
+
+type TextureLabActionControlsProps = Pick<TextureLabPanelProps, 'applyLabel' | 'applyDisabled' | 'onApply'> & {
+  className?: string;
 };
 
 const NUMBER_CONTROLS: Array<{
@@ -101,6 +107,12 @@ const SPLINE_POINT_STYLE = { fill: '#bfdbfe', stroke: '#2563eb', strokeWidth: 2 
 const SELECTED_SPLINE_POINT_STYLE = { fill: '#facc15', stroke: '#111827', strokeWidth: 3 };
 const SPLINE_CONNECTOR_STYLE = { stroke: '#2563eb', shadow: '#ffffff' };
 
+const SPLINE_OVERLAP_LABELS: Record<TextureLabSplineOverlapMode, string> = {
+  merge: 'Merge',
+  bridge: 'Bridge',
+  additive: 'Additive',
+};
+
 function formatLabel(value: string): string {
   return value
     .split('-')
@@ -125,6 +137,66 @@ function useTextureLabRecipe() {
     setRecipe,
     patch: (patch: Partial<TextureLabRecipe>) => setRecipe({ ...recipe, ...patch }),
   };
+}
+
+export function TextureLabActionControls({
+  applyLabel = 'Use texture',
+  applyDisabled = false,
+  onApply,
+  className,
+}: TextureLabActionControlsProps) {
+  const { recipe, patch } = useTextureLabRecipe();
+
+  const createTexture = () => generateTextureLabTexture(recipe);
+  const resetValues = () => {
+    patch(defaultTextureLabRecipeForGenerator(recipe.generator));
+  };
+  const exportTexture = () => {
+    const texture = createTexture();
+    void downloadFile(texture.filename, texture.dataBase64, 'base64');
+  };
+  const applyTexture = () => {
+    if (!onApply) return;
+    const texture = createTexture();
+    onApply(texture);
+    toast.success(`${texture.filename} applied`);
+  };
+
+  return (
+    <div className={cn('flex flex-wrap items-center justify-end gap-2', className)}>
+      <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={resetValues}>
+        <RotateCcwIcon className="size-3.5" />
+        Reset values
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-8 gap-1.5 text-xs"
+        onClick={() => patch({ ...recipe })}
+      >
+        <RefreshCwIcon className="size-3.5" />
+        Regenerate
+      </Button>
+      <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={exportTexture}>
+        <DownloadIcon className="size-3.5" />
+        Export PNG
+      </Button>
+      {onApply && (
+        <Button
+          type="button"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          disabled={applyDisabled}
+          onClick={applyTexture}
+          data-testid="texture-lab-apply"
+        >
+          <SendIcon className="size-3.5" />
+          {applyLabel}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 function clamp01(value: number): number {
@@ -232,7 +304,7 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, onChange }: SplineEdi
       </div>
       <div
         ref={containerRef}
-        className="relative aspect-square overflow-hidden rounded border bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        className="relative aspect-square overflow-hidden rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
         data-testid="texture-lab-spline-editor"
         onDoubleClick={(event) => {
           const point = pointFromEvent(event);
@@ -339,28 +411,12 @@ export function TextureLabPanel({
     [],
   );
 
-  const createTexture = () => generateTextureLabTexture(recipe);
   const selectGenerator = (generator: TextureLabRecipe['generator']) => {
     patch({ generator, tileable: isTextureLabSplineGenerator(generator) ? false : recipe.tileable });
-  };
-  const resetValues = () => {
-    patch(defaultTextureLabRecipeForGenerator(recipe.generator));
   };
   const patchSpline = (splinePatch: Partial<TextureLabSplineRecipe>) => {
     if (!spline) return;
     patch({ spline: { ...spline, ...splinePatch } });
-  };
-
-  const exportTexture = () => {
-    const texture = createTexture();
-    void downloadFile(texture.filename, texture.dataBase64, 'base64');
-  };
-
-  const applyTexture = () => {
-    if (!onApply) return;
-    const texture = createTexture();
-    onApply(texture);
-    toast.success(`${texture.filename} applied`);
   };
 
   return (
@@ -372,324 +428,331 @@ export function TextureLabPanel({
           : 'h-full grid-rows-[minmax(0,1fr)_minmax(0,1fr)] overflow-hidden lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] lg:grid-rows-1',
       )}
     >
-      <section
-        className={cn(
-          'grid min-h-0 gap-3 rounded-md border bg-card p-3',
-          compact ? '' : 'h-full content-start overflow-y-auto',
-        )}
-        data-testid="texture-lab-controls-panel"
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <SparklesIcon className="size-3.5" />
-              Texture Lab
+      <section className={cn('min-h-0 overflow-hidden rounded-md border bg-card', compact ? '' : 'h-full')}>
+        <div
+          className={cn(
+            'grid min-h-0 gap-3 p-3',
+            compact ? '' : 'h-full content-start overflow-y-auto [scrollbar-gutter:stable]',
+          )}
+          data-testid="texture-lab-controls-panel"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <SparklesIcon className="size-3.5" />
+                Texture Lab
+              </div>
+              <h2 className={cn('truncate font-semibold', compact ? 'text-sm' : 'text-xl')}>
+                {selectedGenerator.label}
+              </h2>
+              <p className="text-xs text-muted-foreground">{selectedGenerator.description}</p>
             </div>
-            <h2 className={cn('truncate font-semibold', compact ? 'text-sm' : 'text-xl')}>{selectedGenerator.label}</h2>
-            <p className="text-xs text-muted-foreground">{selectedGenerator.description}</p>
-          </div>
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="size-8 shrink-0"
-            title="Randomize seed"
-            onClick={() => patch({ seed: randomSeed() })}
-          >
-            <Dice5Icon className="size-4" />
-          </Button>
-        </div>
-
-        <div className="grid gap-2">
-          <Label className="text-[10px] text-muted-foreground">Generator</Label>
-          <Select
-            value={recipe.generator}
-            onValueChange={(generator) => selectGenerator(generator as TextureLabRecipe['generator'])}
-          >
-            <SelectTrigger size="sm" className="w-full" aria-label="Texture generator">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(groupedGenerators).map(([category, generators]) => (
-                <SelectGroup key={category}>
-                  <SelectLabel>{category}</SelectLabel>
-                  {generators.map((generator) => (
-                    <SelectItem key={generator.id} value={generator.id}>
-                      {generator.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Size</Label>
-            <Select
-              value={String(recipe.size)}
-              onValueChange={(size) => patch({ size: Number(size) as TextureLabRecipe['size'] })}
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="size-8 shrink-0"
+              title="Randomize seed"
+              onClick={() => patch({ seed: randomSeed() })}
             >
-              <SelectTrigger size="sm" className="w-full" aria-label="Texture size">
+              <Dice5Icon className="size-4" />
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 rounded border border-border/70 p-2">
+            <label className="flex items-center gap-2 text-xs">
+              <Checkbox
+                checked={recipe.tileable}
+                onCheckedChange={(checked) => patch({ tileable: checked === true })}
+              />
+              Tileable
+            </label>
+            <label className="flex items-center gap-2 text-xs">
+              <Checkbox
+                checked={recipe.pixelated}
+                onCheckedChange={(checked) => patch({ pixelated: checked === true })}
+              />
+              Pixelated
+            </label>
+          </div>
+
+          <div className="grid gap-2">
+            <Label className="text-[10px] text-muted-foreground">Generator</Label>
+            <Select
+              value={recipe.generator}
+              onValueChange={(generator) => selectGenerator(generator as TextureLabRecipe['generator'])}
+            >
+              <SelectTrigger size="sm" className="w-full" aria-label="Texture generator">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {TEXTURE_LAB_SIZES.map((size) => (
-                  <SelectItem key={size} value={String(size)}>
-                    {size} x {size}
-                  </SelectItem>
+                {Object.entries(groupedGenerators).map(([category, generators]) => (
+                  <SelectGroup key={category}>
+                    <SelectLabel>{category}</SelectLabel>
+                    {generators.map((generator) => (
+                      <SelectItem key={generator.id} value={generator.id}>
+                        {generator.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Seed</Label>
-            <Input
-              aria-label="Texture seed"
-              className="h-8 text-xs"
-              type="number"
-              value={recipe.seed}
-              min={1}
-              onChange={(event) => patch({ seed: Math.max(1, Math.floor(Number(event.target.value) || 1)) })}
-            />
-          </div>
-        </div>
 
-        <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2')}>
-          {NUMBER_CONTROLS.map((control) => (
-            <div key={control.key} className="grid gap-1">
-              <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Size</Label>
+              <Select
+                value={String(recipe.size)}
+                onValueChange={(size) => patch({ size: Number(size) as TextureLabRecipe['size'] })}
+              >
+                <SelectTrigger size="sm" className="w-full" aria-label="Texture size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEXTURE_LAB_SIZES.map((size) => (
+                    <SelectItem key={size} value={String(size)}>
+                      {size} x {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Seed</Label>
               <Input
-                aria-label={`Texture ${control.label.toLowerCase()}`}
+                aria-label="Texture seed"
                 className="h-8 text-xs"
                 type="number"
-                value={recipe[control.key]}
-                min={control.min}
-                max={control.max}
-                step={control.step}
-                onChange={(event) => patch({ [control.key]: Number(event.target.value) } as Partial<TextureLabRecipe>)}
+                value={recipe.seed}
+                min={1}
+                onChange={(event) => patch({ seed: Math.max(1, Math.floor(Number(event.target.value) || 1)) })}
               />
             </div>
-          ))}
-        </div>
+          </div>
 
-        {isSpline && spline && (
-          <div className="grid gap-2 rounded-md border border-border/70 p-2">
-            <div className="flex items-center justify-between gap-2">
-              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Path presets
-              </Label>
-              <label className="flex items-center gap-2 text-xs">
-                <Checkbox
-                  checked={spline.closed}
-                  onCheckedChange={(checked) => patchSpline({ closed: checked === true })}
+          <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2')}>
+            {NUMBER_CONTROLS.map((control) => (
+              <div key={control.key} className="grid gap-1">
+                <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
+                <Input
+                  aria-label={`Texture ${control.label.toLowerCase()}`}
+                  className="h-8 text-xs"
+                  type="number"
+                  value={recipe[control.key]}
+                  min={control.min}
+                  max={control.max}
+                  step={control.step}
+                  onChange={(event) =>
+                    patch({ [control.key]: Number(event.target.value) } as Partial<TextureLabRecipe>)
+                  }
                 />
-                Closed
-              </label>
-            </div>
+              </div>
+            ))}
+          </div>
+
+          {isSpline && spline && (
+            <div className="grid gap-2 rounded-md border border-border/70 p-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Path presets
+                </Label>
+                <label className="flex items-center gap-2 text-xs">
+                  <Checkbox
+                    checked={spline.closed}
+                    onCheckedChange={(checked) => patchSpline({ closed: checked === true })}
+                  />
+                  Closed
+                </label>
+              </div>
             <div className="flex flex-wrap gap-1.5">
               {TEXTURE_LAB_SPLINE_PRESETS.map((preset) => (
                 <Button
-                  key={preset.id}
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 px-2 text-[10px]"
-                  onClick={() => patch({ spline: textureLabSplinePreset(preset.id) })}
-                >
-                  {preset.label}
+                    key={preset.id}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-[10px]"
+                    onClick={() => patch({ spline: textureLabSplinePreset(preset.id) })}
+                  >
+                    {preset.label}
                 </Button>
               ))}
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Overlap</Label>
+              <Select
+                value={spline.overlapMode}
+                onValueChange={(overlapMode) =>
+                  patchSpline({ overlapMode: overlapMode as TextureLabSplineOverlapMode })
+                }
+              >
+                <SelectTrigger size="sm" className="w-full" aria-label="Spline overlap resolution">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEXTURE_LAB_SPLINE_OVERLAP_MODES.map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {SPLINE_OVERLAP_LABELS[mode]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2')}>
               {SPLINE_NUMBER_CONTROLS.map((control) => (
                 <div key={control.key} className="grid gap-1">
-                  <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
-                  <Input
-                    aria-label={`Spline ${control.label.toLowerCase()}`}
-                    className="h-8 text-xs"
-                    type="number"
-                    value={spline[control.key]}
-                    min={control.min}
-                    max={control.max}
-                    step={control.step}
-                    onChange={(event) =>
-                      patchSpline({ [control.key]: Number(event.target.value) } as Partial<TextureLabSplineRecipe>)
-                    }
-                  />
-                </div>
-              ))}
+                    <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
+                    <Input
+                      aria-label={`Spline ${control.label.toLowerCase()}`}
+                      className="h-8 text-xs"
+                      type="number"
+                      value={spline[control.key]}
+                      min={control.min}
+                      max={control.max}
+                      step={control.step}
+                      onChange={(event) =>
+                        patchSpline({ [control.key]: Number(event.target.value) } as Partial<TextureLabSplineRecipe>)
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Color ramp</Label>
+              <Select
+                value={recipe.colorRamp}
+                onValueChange={(colorRamp) => patch({ colorRamp: colorRamp as TextureLabRecipe['colorRamp'] })}
+              >
+                <SelectTrigger size="sm" className="w-full" aria-label="Texture color ramp">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEXTURE_LAB_COLOR_RAMPS.map((ramp) => (
+                    <SelectItem key={ramp} value={ramp}>
+                      {formatLabel(ramp)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Alpha</Label>
+              <Select
+                value={recipe.alphaMode}
+                onValueChange={(alphaMode) => patch({ alphaMode: alphaMode as TextureLabRecipe['alphaMode'] })}
+              >
+                <SelectTrigger size="sm" className="w-full" aria-label="Texture alpha mode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEXTURE_LAB_ALPHA_MODES.map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {formatLabel(mode)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Color ramp</Label>
-            <Select
-              value={recipe.colorRamp}
-              onValueChange={(colorRamp) => patch({ colorRamp: colorRamp as TextureLabRecipe['colorRamp'] })}
-            >
-              <SelectTrigger size="sm" className="w-full" aria-label="Texture color ramp">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TEXTURE_LAB_COLOR_RAMPS.map((ramp) => (
-                  <SelectItem key={ramp} value={ramp}>
-                    {formatLabel(ramp)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Alpha</Label>
-            <Select
-              value={recipe.alphaMode}
-              onValueChange={(alphaMode) => patch({ alphaMode: alphaMode as TextureLabRecipe['alphaMode'] })}
-            >
-              <SelectTrigger size="sm" className="w-full" aria-label="Texture alpha mode">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TEXTURE_LAB_ALPHA_MODES.map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    {formatLabel(mode)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 rounded border border-border/70 p-2">
-          <label className="flex items-center gap-2 text-xs">
-            <Checkbox checked={recipe.tileable} onCheckedChange={(checked) => patch({ tileable: checked === true })} />
-            Tileable
-          </label>
-          <label className="flex items-center gap-2 text-xs">
-            <Checkbox
-              checked={recipe.pixelated}
-              onCheckedChange={(checked) => patch({ pixelated: checked === true })}
-            />
-            Pixelated
-          </label>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={resetValues}>
-            <RotateCcwIcon className="size-3.5" />
-            Reset values
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1.5 text-xs"
-            onClick={() => patch({ ...recipe })}
-          >
-            <RefreshCwIcon className="size-3.5" />
-            Regenerate
-          </Button>
-          <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={exportTexture}>
-            <DownloadIcon className="size-3.5" />
-            Export PNG
-          </Button>
-          {onApply && (
-            <Button
-              type="button"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              disabled={applyDisabled}
-              onClick={applyTexture}
-              data-testid="texture-lab-apply"
-            >
-              <SendIcon className="size-3.5" />
-              {applyLabel}
-            </Button>
+          {compact && (
+            <TextureLabActionControls applyLabel={applyLabel} applyDisabled={applyDisabled} onApply={onApply} />
           )}
         </div>
       </section>
 
-      <section
-        className={cn(
-          'grid min-h-0 gap-3 rounded-md border bg-card p-3 select-none',
-          compact ? '' : 'h-full content-start overflow-y-auto',
-        )}
-        data-testid="texture-lab-main-panel"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</div>
-            <div className="text-xs text-muted-foreground">
-              {recipe.size} x {recipe.size} PNG
+      <section className={cn('min-h-0 overflow-hidden rounded-md border bg-card select-none', compact ? '' : 'h-full')}>
+        <div
+          className={cn(
+            'grid min-h-0 gap-3 p-3',
+            compact ? '' : 'h-full content-start overflow-y-auto [scrollbar-gutter:stable]',
+          )}
+          data-testid="texture-lab-main-panel"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</div>
+              <div className="text-xs text-muted-foreground">
+                {recipe.size} x {recipe.size} PNG
+              </div>
             </div>
+            <ImageIcon className="size-4 text-muted-foreground" />
           </div>
-          <ImageIcon className="size-4 text-muted-foreground" />
-        </div>
-        {isSpline && spline && !compact ? (
-          <TextureSplineEditor
-            spline={spline}
-            pixelated={recipe.pixelated}
-            dataUrl={dataUrl}
-            onChange={(nextSpline) => patch({ spline: nextSpline })}
-          />
-        ) : (
-          <div className="grid min-h-64 place-items-center rounded border bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] p-4">
-            <img
-              data-testid="texture-lab-preview"
-              alt="Generated texture preview"
-              src={dataUrl}
-              className={cn(
-                'aspect-square max-h-[48vh] w-full max-w-[32rem] object-contain drop-shadow-sm select-none',
-                recipe.pixelated && '[image-rendering:pixelated]',
-              )}
+          {isSpline && spline && !compact ? (
+            <TextureSplineEditor
+              spline={spline}
+              pixelated={recipe.pixelated}
+              dataUrl={dataUrl}
+              onChange={(nextSpline) => patch({ spline: nextSpline })}
             />
-          </div>
-        )}
-        {!compact && (
-          <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen} className="rounded-md border border-border/70">
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-muted/50"
-                aria-label={presetsOpen ? 'Collapse texture presets' : 'Expand texture presets'}
-              >
-                <span>
-                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Presets
-                  </span>
-                  <span className="text-muted-foreground">{TEXTURE_LAB_GENERATORS.length} generator starters</span>
-                </span>
-                <ChevronDownIcon
+          ) : (
+            <div className="rounded-md border border-border/70 bg-card p-2">
+              <div className="grid min-h-64 place-items-center rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] p-4">
+                <img
+                  data-testid="texture-lab-preview"
+                  alt="Generated texture preview"
+                  src={dataUrl}
                   className={cn(
-                    'size-4 shrink-0 text-muted-foreground transition-transform',
-                    presetsOpen && 'rotate-180',
+                    'aspect-square max-h-[48vh] w-full max-w-[32rem] object-contain drop-shadow-sm select-none',
+                    recipe.pixelated && '[image-rendering:pixelated]',
                   )}
                 />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="grid gap-2 border-t border-border/70 p-3 sm:grid-cols-2 xl:grid-cols-3">
-                {TEXTURE_LAB_GENERATORS.map((generator) => (
-                  <button
-                    key={generator.id}
-                    type="button"
-                    className={cn(
-                      'grid gap-1 rounded-md border p-2 text-left text-xs transition-colors hover:bg-muted/50',
-                      generator.id === recipe.generator && 'border-primary bg-primary/10',
-                    )}
-                    onClick={() => selectGenerator(generator.id)}
-                  >
-                    <span className="font-medium">{generator.label}</span>
-                    <span className="line-clamp-2 text-[10px] text-muted-foreground">{generator.description}</span>
-                  </button>
-                ))}
               </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+            </div>
+          )}
+          {!compact && (
+            <Collapsible
+              open={presetsOpen}
+              onOpenChange={setPresetsOpen}
+              className="rounded-md border border-border/70"
+            >
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-muted/50"
+                  aria-label={presetsOpen ? 'Collapse texture presets' : 'Expand texture presets'}
+                >
+                  <span>
+                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Presets
+                    </span>
+                    <span className="text-muted-foreground">{TEXTURE_LAB_GENERATORS.length} generator starters</span>
+                  </span>
+                  <ChevronDownIcon
+                    className={cn(
+                      'size-4 shrink-0 text-muted-foreground transition-transform',
+                      presetsOpen && 'rotate-180',
+                    )}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="grid gap-2 border-t border-border/70 p-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {TEXTURE_LAB_GENERATORS.map((generator) => (
+                    <button
+                      key={generator.id}
+                      type="button"
+                      className={cn(
+                        'grid gap-1 rounded-md border p-2 text-left text-xs transition-colors hover:bg-muted/50',
+                        generator.id === recipe.generator && 'border-primary bg-primary/10',
+                      )}
+                      onClick={() => selectGenerator(generator.id)}
+                    >
+                      <span className="font-medium">{generator.label}</span>
+                      <span className="line-clamp-2 text-[10px] text-muted-foreground">{generator.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
       </section>
     </div>
   );

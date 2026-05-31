@@ -2,6 +2,7 @@ import {
   TEXTURE_LAB_ALPHA_MODES,
   TEXTURE_LAB_COLOR_RAMPS,
   TEXTURE_LAB_GENERATOR_IDS,
+  TEXTURE_LAB_SPLINE_OVERLAP_MODES,
   TEXTURE_LAB_SIZES,
   type GeneratedTextureResult,
   type TextureLabAlphaMode,
@@ -101,6 +102,7 @@ const DEFAULT_TRAIL_SPLINE: TextureLabSplineRecipe = {
   taperEnd: 0.12,
   jitter: 0,
   samples: 96,
+  overlapMode: 'merge',
 };
 
 export const TEXTURE_LAB_SPLINE_PRESETS: TextureLabSplinePreset[] = [
@@ -122,6 +124,7 @@ export const TEXTURE_LAB_SPLINE_PRESETS: TextureLabSplinePreset[] = [
       taperEnd: 0.22,
       jitter: 0,
       samples: 88,
+      overlapMode: 'merge',
     },
   },
   {
@@ -147,6 +150,7 @@ export const TEXTURE_LAB_SPLINE_PRESETS: TextureLabSplinePreset[] = [
       taperEnd: 0.32,
       jitter: 0,
       samples: 112,
+      overlapMode: 'merge',
     },
   },
   {
@@ -168,6 +172,7 @@ export const TEXTURE_LAB_SPLINE_PRESETS: TextureLabSplinePreset[] = [
       taperEnd: 0.18,
       jitter: 0.5,
       samples: 128,
+      overlapMode: 'bridge',
     },
   },
   {
@@ -188,6 +193,7 @@ export const TEXTURE_LAB_SPLINE_PRESETS: TextureLabSplinePreset[] = [
       taperEnd: 0,
       jitter: 0,
       samples: 128,
+      overlapMode: 'merge',
     },
   },
 ];
@@ -197,6 +203,7 @@ const SIZE_SET = new Set<number>(TEXTURE_LAB_SIZES);
 const RAMP_SET = new Set<string>(TEXTURE_LAB_COLOR_RAMPS);
 const ALPHA_SET = new Set<string>(TEXTURE_LAB_ALPHA_MODES);
 const SPLINE_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SPLINE_GENERATOR_IDS);
+const SPLINE_OVERLAP_SET = new Set<string>(TEXTURE_LAB_SPLINE_OVERLAP_MODES);
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -351,6 +358,9 @@ function normalizeSplineRecipe(input: unknown, generator: TextureLabGeneratorId)
     taperEnd: clamp(Number(source.taperEnd ?? fallback.taperEnd), 0, 1),
     jitter: clamp(Number(source.jitter ?? fallback.jitter), 0, 1),
     samples: Math.round(clamp(Number(source.samples ?? fallback.samples), 16, 192)),
+    overlapMode: typeof source.overlapMode === 'string' && SPLINE_OVERLAP_SET.has(source.overlapMode)
+      ? source.overlapMode
+      : fallback.overlapMode,
   };
 }
 
@@ -448,6 +458,12 @@ type SampledSplinePath = {
   closed: boolean;
 };
 
+type SplineSegmentHit = {
+  distance: number;
+  progress: number;
+  width: number;
+};
+
 function splineWidthAt(spline: TextureLabSplineRecipe, progress: number): number {
   const start = lerp(1, 0.05, spline.taperStart * (1 - progress));
   const end = lerp(1, 0.05, spline.taperEnd * progress);
@@ -542,6 +558,31 @@ function buildSampledSplinePath(recipe: TextureLabRecipe): SampledSplinePath | n
   return { points: sampled, closed: spline.closed };
 }
 
+function splineSegmentValue(
+  recipe: TextureLabRecipe,
+  distance: number,
+  progress: number,
+  width: number,
+): { colorT: number; alpha: number } {
+  const radius = width * 0.5;
+  const feather = Math.max(0.001, (recipe.spline?.feather ?? 0) * 0.12);
+  let alpha = 1 - smoothstep(radius, radius + feather, distance);
+  alpha = Math.pow(clamp01(alpha), recipe.falloff);
+
+  if (recipe.generator === 'spline-ribbon') {
+    const pulse = 0.65 + Math.sin(progress * Math.PI * 2) * 0.15;
+    return { colorT: pulse, alpha };
+  }
+  if (recipe.generator === 'spline-mask') {
+    return { colorT: alpha, alpha };
+  }
+  if (recipe.generator === 'spline-lightning') {
+    const core = 1 - smoothstep(radius * 0.35, Math.max(radius * 0.35 + 0.001, radius), distance);
+    return { colorT: Math.max(core, 0.7), alpha: Math.max(alpha * 0.7, core) };
+  }
+  return { colorT: 1 - progress * 0.8, alpha };
+}
+
 function splineGeneratorValue(
   recipe: TextureLabRecipe,
   u: number,
@@ -549,9 +590,11 @@ function splineGeneratorValue(
   path: SampledSplinePath | null | undefined,
 ): { colorT: number; alpha: number } {
   if (!recipe.spline || !path || path.points.length < 2) return { colorT: 0, alpha: 0 };
-  let nearest = Number.POSITIVE_INFINITY;
-  let nearestProgress = 0;
-  let nearestWidth = recipe.spline.strokeWidth;
+  let nearestHit: SplineSegmentHit | null = null;
+  let mergedAlpha = 0;
+  let addedAlpha = 0;
+  let weightedColorT = 0;
+  let weight = 0;
   const segments = path.points.length - 1;
 
   for (let index = 0; index < segments; index += 1) {
@@ -564,30 +607,32 @@ function splineGeneratorValue(
     const px = a.x + dx * t;
     const py = a.y + dy * t;
     const distance = Math.hypot(u - px, v - py);
-    if (distance < nearest) {
-      nearest = distance;
-      nearestProgress = lerp(a.progress, b.progress, t);
-      nearestWidth = lerp(a.width, b.width, t);
+    const progress = lerp(a.progress, b.progress, t);
+    const width = lerp(a.width, b.width, t);
+
+    if (!nearestHit || distance < nearestHit.distance) {
+      nearestHit = { distance, progress, width };
+    }
+
+    if (recipe.spline.overlapMode !== 'bridge') {
+      const value = splineSegmentValue(recipe, distance, progress, width);
+      if (value.alpha > 0.001) {
+        mergedAlpha = Math.max(mergedAlpha, value.alpha);
+        addedAlpha = 1 - (1 - addedAlpha) * (1 - value.alpha);
+        weightedColorT += value.colorT * value.alpha;
+        weight += value.alpha;
+      }
     }
   }
 
-  const radius = nearestWidth * 0.5;
-  const feather = Math.max(0.001, recipe.spline.feather * 0.12);
-  let alpha = 1 - smoothstep(radius, radius + feather, nearest);
-  alpha = Math.pow(clamp01(alpha), recipe.falloff);
-
-  if (recipe.generator === 'spline-ribbon') {
-    const pulse = 0.65 + Math.sin(nearestProgress * Math.PI * 2) * 0.15;
-    return { colorT: pulse, alpha };
+  if (!nearestHit) return { colorT: 0, alpha: 0 };
+  if (recipe.spline.overlapMode === 'merge' && weight > 0) {
+    return { colorT: weightedColorT / weight, alpha: mergedAlpha };
   }
-  if (recipe.generator === 'spline-mask') {
-    return { colorT: alpha, alpha };
+  if (recipe.spline.overlapMode === 'additive' && weight > 0) {
+    return { colorT: weightedColorT / weight, alpha: addedAlpha };
   }
-  if (recipe.generator === 'spline-lightning') {
-    const core = 1 - smoothstep(radius * 0.35, Math.max(radius * 0.35 + 0.001, radius), nearest);
-    return { colorT: Math.max(core, 0.7), alpha: Math.max(alpha * 0.7, core) };
-  }
-  return { colorT: 1 - nearestProgress * 0.8, alpha };
+  return splineSegmentValue(recipe, nearestHit.distance, nearestHit.progress, nearestHit.width);
 }
 
 function generatorValue(

@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { TextureLabPanel } from './TextureLabPanel';
+import { TextureLabActionControls, TextureLabPanel } from './TextureLabPanel';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { GeneratedTextureResult } from '@/types/texture-lab';
@@ -50,6 +50,11 @@ export default function TextureLab() {
             Generate tiny procedural textures for particles, shader masks, noise uniforms, trails, and sprite effects.
           </p>
         </div>
+        <TextureLabActionControls
+          applyLabel={applyLabel}
+          onApply={useTexture}
+          className="max-w-full justify-start sm:justify-end"
+        />
       </header>
       <div className="h-0 min-h-0 flex-1 overflow-hidden p-4">
         <div className="mx-auto h-full min-h-0 w-full max-w-7xl">

@@ -122,6 +122,7 @@ test('spline recipes normalize invalid points and clamp controls', () => {
       tension: 4,
       jitter: 6,
       samples: 999,
+      overlapMode: 'not-real',
     },
   });
   assert.equal(recipe.spline.points.length, 2);
@@ -134,6 +135,40 @@ test('spline recipes normalize invalid points and clamp controls', () => {
   assert.equal(recipe.spline.tension, 1);
   assert.equal(recipe.spline.jitter, 1);
   assert.equal(recipe.spline.samples, 192);
+  assert.equal(recipe.spline.overlapMode, 'merge');
+});
+
+test('spline overlap resolution can merge or stack crossing strokes', () => {
+  const spline = {
+    points: [
+      { x: 0.14, y: 0.16 },
+      { x: 0.86, y: 0.84 },
+      { x: 0.14, y: 0.84 },
+      { x: 0.86, y: 0.16 },
+    ],
+    closed: false,
+    tension: 1,
+    strokeWidth: 0.18,
+    feather: 0.18,
+    taperStart: 0,
+    taperEnd: 0,
+    jitter: 0,
+    samples: 96,
+  };
+  const base = {
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'spline-ribbon',
+    size: 64,
+    falloff: 1,
+    colorRamp: 'rainbow',
+    spline,
+  };
+  const bridge = renderTextureLabPixels({ ...base, spline: { ...spline, overlapMode: 'bridge' } });
+  const merge = renderTextureLabPixels({ ...base, spline: { ...spline, overlapMode: 'merge' } });
+  const additive = renderTextureLabPixels({ ...base, spline: { ...spline, overlapMode: 'additive' } });
+  assert.notEqual(checksum(bridge.pixels), checksum(merge.pixels));
+  assert.notEqual(checksum(merge.pixels), checksum(additive.pixels));
+  assert.ok(alphaAt(additive, 32, 32) >= alphaAt(merge, 32, 32));
 });
 
 test('spline taper narrows a trail endpoint compared with the middle', () => {
