@@ -8,8 +8,11 @@ export type ParticleSystemPlaygroundTemplate =
   | 'muzzle-flash'
   | 'magic-burst'
   | 'dust-puff'
-  | 'complex-composite';
-export type ParticleSystemPlaygroundProjectVersion = 1 | 2;
+  | 'complex-composite'
+  | 'snowfall'
+  | 'rainfall'
+  | 'falling-leaves';
+export type ParticleSystemPlaygroundProjectVersion = 1 | 2 | 3;
 
 export type ParticleSystemPlaygroundMovement = {
   pattern: MovementPattern;
@@ -144,8 +147,13 @@ export type ParticleTimelineTrack = {
   lanes: Partial<Record<ParticleTimelineLane, ParticleTimelineKeyframe[]>>;
 };
 
+export const PARTICLE_TIMELINE_MODES = ['one-shot', 'loop', 'ambient'] as const;
+
+export type ParticleTimelineMode = (typeof PARTICLE_TIMELINE_MODES)[number];
+
 export type ParticleTimeline = {
   duration: number;
+  mode: ParticleTimelineMode;
   loop: boolean;
   tracks: ParticleTimelineTrack[];
 };
@@ -201,6 +209,9 @@ export const PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES: Array<{ value: ParticleSystem
   { value: 'magic-burst', label: 'Magic Burst' },
   { value: 'dust-puff', label: 'Dust Puff' },
   { value: 'complex-composite', label: 'Complex Composite' },
+  { value: 'snowfall', label: 'Snowfall' },
+  { value: 'rainfall', label: 'Rainfall' },
+  { value: 'falling-leaves', label: 'Falling Leaves' },
 ];
 export const EMISSION_AREA_DISTRIBUTIONS = [
   'none',

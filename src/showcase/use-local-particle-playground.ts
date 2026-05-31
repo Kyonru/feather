@@ -14,6 +14,7 @@ import {
   normalizeParticleTimeline,
   PARTICLE_PROJECT_TYPE,
   PARTICLE_PROJECT_VERSION,
+  normalizeParticleTimelineMode,
   reindexParticleSystems,
   removeParticleTimelineTrack,
   reorderParticleTimeline,
@@ -36,7 +37,11 @@ function downloadProject(project: ParticleSystemPlaygroundProjectFile) {
 
 function system(index: number, title: string, template: ParticleSystemPlaygroundTemplate): ParticleSystemPlaygroundSystem {
   const texturePreset =
-    template === 'smoke' || template === 'dust-puff' ? 'light' : template === 'sparkles' || template === 'magic-burst' ? 'star' : 'circle';
+    template === 'smoke' || template === 'dust-puff' || template === 'snowfall' || template === 'rainfall'
+      ? 'light'
+      : template === 'sparkles' || template === 'magic-burst' || template === 'falling-leaves'
+        ? 'star'
+        : 'circle';
   return {
     index,
     title,
@@ -65,7 +70,13 @@ function system(index: number, title: string, template: ParticleSystemPlayground
     exportReady: true,
     properties: {
       emissionRate:
-        template === 'smoke'
+        template === 'snowfall'
+          ? 120
+          : template === 'rainfall'
+            ? 260
+            : template === 'falling-leaves'
+              ? 32
+        : template === 'smoke'
           ? 45
           : template === 'sparkles'
             ? 70
@@ -75,13 +86,39 @@ function system(index: number, title: string, template: ParticleSystemPlayground
                 ? 80
                 : 100,
       emitterLifetime: -1,
-      particleLifetimeMin: template === 'smoke' || template === 'dust-puff' ? 1.2 : template === 'muzzle-flash' ? 0.08 : 0.35,
+      particleLifetimeMin:
+        template === 'snowfall'
+          ? 4
+          : template === 'rainfall'
+            ? 0.65
+            : template === 'falling-leaves'
+              ? 5
+        : template === 'smoke' || template === 'dust-puff' ? 1.2 : template === 'muzzle-flash' ? 0.08 : 0.35,
       particleLifetimeMax:
-        template === 'smoke' || template === 'dust-puff' ? 3.2 : template === 'sparkles' ? 0.9 : template === 'muzzle-flash' ? 0.22 : 1.3,
-      direction: template === 'muzzle-flash' ? 0 : -Math.PI / 2,
-      spread: template === 'sparkles' || template === 'magic-burst' || template === 'dust-puff' ? Math.PI * 2 : template === 'muzzle-flash' ? Math.PI / 8 : Math.PI / 3,
+        template === 'snowfall'
+          ? 7
+          : template === 'rainfall'
+            ? 1.2
+            : template === 'falling-leaves'
+              ? 9
+        : template === 'smoke' || template === 'dust-puff' ? 3.2 : template === 'sparkles' ? 0.9 : template === 'muzzle-flash' ? 0.22 : 1.3,
+      direction: template === 'muzzle-flash' ? 0 : template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? Math.PI / 2 : -Math.PI / 2,
+      spread:
+        template === 'snowfall'
+          ? Math.PI / 6
+          : template === 'rainfall'
+            ? Math.PI / 18
+            : template === 'falling-leaves'
+              ? Math.PI / 3
+        : template === 'sparkles' || template === 'magic-burst' || template === 'dust-puff' ? Math.PI * 2 : template === 'muzzle-flash' ? Math.PI / 8 : Math.PI / 3,
       speedMin:
-        template === 'smoke' || template === 'dust-puff'
+        template === 'snowfall'
+          ? 18
+          : template === 'rainfall'
+            ? 360
+            : template === 'falling-leaves'
+              ? 18
+        : template === 'smoke' || template === 'dust-puff'
           ? 12
           : template === 'sparkles'
             ? 80
@@ -89,43 +126,61 @@ function system(index: number, title: string, template: ParticleSystemPlayground
               ? 260
               : 40,
       speedMax:
-        template === 'smoke' || template === 'dust-puff'
+        template === 'snowfall'
+          ? 55
+          : template === 'rainfall'
+            ? 620
+            : template === 'falling-leaves'
+              ? 72
+        : template === 'smoke' || template === 'dust-puff'
           ? 45
           : template === 'sparkles'
             ? 220
             : template === 'muzzle-flash'
               ? 680
               : 140,
-      linearAccelXMin: template === 'smoke' || template === 'dust-puff' ? -8 : 0,
-      linearAccelYMin: template === 'smoke' || template === 'dust-puff' ? -18 : 0,
-      linearAccelXMax: template === 'smoke' || template === 'dust-puff' ? 8 : 0,
-      linearAccelYMax: template === 'smoke' || template === 'dust-puff' ? -55 : 0,
+      linearAccelXMin: template === 'falling-leaves' ? -16 : template === 'snowfall' ? -6 : template === 'smoke' || template === 'dust-puff' ? -8 : 0,
+      linearAccelYMin: template === 'falling-leaves' ? 8 : template === 'snowfall' ? 10 : template === 'smoke' || template === 'dust-puff' ? -18 : 0,
+      linearAccelXMax: template === 'falling-leaves' ? 16 : template === 'snowfall' ? 6 : template === 'smoke' || template === 'dust-puff' ? 8 : 0,
+      linearAccelYMax: template === 'falling-leaves' ? 26 : template === 'snowfall' ? 22 : template === 'smoke' || template === 'dust-puff' ? -55 : 0,
       radialAccelMin: 0,
       radialAccelMax: 0,
       tangentialAccelMin: 0,
       tangentialAccelMax: 0,
-      linearDampingMin: template === 'sparkles' ? 1.5 : 0,
-      linearDampingMax: template === 'sparkles' ? 3 : 0,
+      linearDampingMin: template === 'falling-leaves' ? 0.4 : template === 'sparkles' ? 1.5 : 0,
+      linearDampingMax: template === 'falling-leaves' ? 1.2 : template === 'sparkles' ? 3 : 0,
       sizes:
-        template === 'smoke' || template === 'dust-puff'
+        template === 'snowfall'
+          ? '0.12, 0.16'
+          : template === 'rainfall'
+            ? '0.06, 0.18'
+            : template === 'falling-leaves'
+              ? '0.24, 0.32, 0.2'
+        : template === 'smoke' || template === 'dust-puff'
           ? '0.35, 1.2, 2.2'
           : template === 'sparkles' || template === 'magic-burst'
             ? '0.45, 0.1'
             : template === 'muzzle-flash'
               ? '0.6, 1.15, 0'
               : '1, 0',
-      sizeVariation: template === 'smoke' || template === 'dust-puff' ? 0.6 : template === 'sparkles' || template === 'magic-burst' ? 0.8 : 0,
+      sizeVariation: template === 'snowfall' || template === 'falling-leaves' ? 0.7 : template === 'smoke' || template === 'dust-puff' ? 0.6 : template === 'sparkles' || template === 'magic-burst' ? 0.8 : 0,
       rotationMin: 0,
       rotationMax: 0,
       relativeRotation: false,
       spinMin: 0,
-      spinMax: 0,
+      spinMax: template === 'falling-leaves' ? 1.2 : 0,
       spinVariation: 0,
       offsetX: 0,
       offsetY: 0,
       insertMode: 'top',
       colors:
-        template === 'smoke'
+        template === 'snowfall'
+          ? '1, 1, 1, 0.82, 0.8, 0.92, 1, 0.45'
+          : template === 'rainfall'
+            ? '0.55, 0.78, 1, 0.55, 0.3, 0.5, 0.95, 0.15'
+            : template === 'falling-leaves'
+              ? '0.95, 0.55, 0.16, 0.85, 0.45, 0.22, 0.06, 0.25'
+        : template === 'smoke'
           ? '0.35, 0.35, 0.38, 0.45, 0.15, 0.15, 0.17, 0'
           : template === 'dust-puff'
             ? '0.7, 0.62, 0.48, 0.55, 0.45, 0.38, 0.28, 0'
@@ -136,9 +191,9 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           : template === 'sparkles'
             ? '1, 0.95, 0.55, 1, 0.35, 0.75, 1, 0'
             : '1, 0.5, 0.1, 1, 1, 0.1, 0, 0',
-      emissionAreaDist: 'none',
-      emissionAreaDx: 0,
-      emissionAreaDy: 0,
+      emissionAreaDist: template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? 'uniform' : 'none',
+      emissionAreaDx: template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? 520 : 0,
+      emissionAreaDy: template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? 16 : 0,
       emissionAreaAngle: 0,
       emissionAreaRelative: false,
       count: 100,
@@ -167,6 +222,12 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
   const systems =
     template === 'explosion'
       ? [system(1, 'Core Blast', 'explosion'), system(2, 'Smoke Bloom', 'smoke'), system(3, 'Sparks', 'sparkles')]
+      : template === 'snowfall'
+        ? [system(1, 'Snow Field', 'snowfall')]
+        : template === 'rainfall'
+          ? [system(1, 'Rain Sheet', 'rainfall')]
+          : template === 'falling-leaves'
+            ? [system(1, 'Leaf Drift', 'falling-leaves')]
       : template === 'muzzle-flash'
         ? [system(1, 'Flash Cone', 'muzzle-flash'), system(2, 'Barrel Sparks', 'sparkles')]
         : template === 'magic-burst'
@@ -375,7 +436,7 @@ export function useLocalParticlePlayground() {
     playTimeline: () => {
       const timeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
       const time = data.data?.timelineState?.time ?? 0;
-      const restart = !!timeline && !timeline.loop && time >= timeline.duration - 0.001;
+      const restart = !!timeline && normalizeParticleTimelineMode(timeline.mode, timeline.loop ? 'loop' : 'one-shot') === 'one-shot' && time >= timeline.duration - 0.001;
       setTimelineState({ ...(restart ? { time: 0 } : {}), playing: true });
     },
     pauseTimeline: (time?: number) =>
@@ -459,7 +520,11 @@ export function useLocalParticlePlayground() {
         toast.error('Particle project JSON is invalid');
         return;
       }
-      if (project.type !== PARTICLE_PROJECT_TYPE || (project.version !== 1 && project.version !== 2) || !project.composite?.systems?.length) {
+      if (
+        project.type !== PARTICLE_PROJECT_TYPE ||
+        (project.version !== 1 && project.version !== 2 && project.version !== 3) ||
+        !project.composite?.systems?.length
+      ) {
         toast.error('Unsupported particle project file');
         return;
       }

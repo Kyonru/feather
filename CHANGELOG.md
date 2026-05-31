@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a Particle System Playground Timeline tab with emitter clips, keyframed opacity/rate/speed/size/direction/spread/offset lanes, transport controls, and real LÖVE preview scrubbing.
 - Added timeline-authored beginner Particle System Playground templates for Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, and Dust Puff.
 - Added a Complex Composite Particle System Playground template with five emitters and a staggered authored timeline for combining burst, ring, smoke, spark, and dust layers.
+- Added Ambient timeline mode and Snowfall, Rainfall, and Falling Leaves templates for continuous Particle System Playground effects.
 - Added a session-tab suspend/resume control that temporarily pauses Feather runtime work in a connected game while keeping the command socket available.
 - Added an opt-in Feel Inspector plugin for feel.lua sequences, active plays, targets, recent events, and LOVE adapter state.
 - Added Debugger Profiler Probes so source gutter markers can start, stop, or snapshot the core profiler without adding a second Lua debug hook.
@@ -52,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph Parameter nodes can now be edited from the Controls tab, including labels, defaults, texture uploads, uniform names, connection warnings, and select-node actions.
 - Shader Graph now opens the Selection tab when a node is selected and lets Space toggle the canvas between selection and panning modes.
 - Shader Graph connected-game previews now start runtime canvas refresh at 60 FPS and automatically lower to 40, 30, or 24 FPS for highly zoomed or large-texture previews.
-- Particle System Playground project files now save as `.featherparticles` version 2 with timelines, while version 1 imports migrate to a default 3-second timeline.
+- Particle System Playground project files now save as `.featherparticles` version 3 with authoritative timeline modes, while version 1/2 imports migrate legacy loop booleans to One-shot or Loop.
 - Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping playback.
 - Improved Particle System Playground Timeline layout so the editor fills the available width and clips, playhead, zoom, and keyframe strips align on one timeline scale.
 - Reworked the Particle System Playground Timeline tab with video-editor-style clip dragging, resize handles, inline selected-emitter lanes, draggable keyframe timing, a selection inspector, and remembered zoom/snap preferences.
@@ -67,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle System Playground Lua exports now include `play`, `pause`, and `stop` methods, with `emit` kept as a compatibility alias for timeline playback payloads.
 - Particle System Playground Lua exports now play authored timeline bursts exactly instead of applying a payload-level amount scale.
 - Particle System Playground Lua exports now expose `setLoop` and `isLooping`, and `play({ loop = ... })` can override the saved timeline loop setting per playback.
+- Particle System Playground Lua exports now expose `setMode` and `getMode`, and `play({ mode = ... })` can override saved One-shot, Loop, or Ambient behavior per playback.
 - Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
 - Feather runtime suspend now keeps explicitly active Shader Graph and Particle Playground in-game previews animating from their last payload, and lets the In-Game Overlay keep sampling/drawing while other runtime work stays paused.
 - Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
@@ -117,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Feather runtime budgets so active panels cannot get stuck behind a deferred sampling task when a frame is already over budget.
 - Fixed In-Game Overlay performance by caching its font/layout and throttling expensive graphics, GC, and particle metric sampling instead of doing that work every frame.
 - Fixed Particle System Playground connected-game preview performance by muting paused timeline emission and updating only the selected scratch composite.
+- Fixed continuous Particle System Playground effects by adding Ambient timeline playback that holds final lane values without replaying clip bursts.
 - Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
 - Fixed the Particle System Playground Timeline loop control so it renders as a stable explicit toggle.
 - Fixed Particle System Playground timeline playback after applying motion presets while paused, so presets no longer capture the muted preview emission rate as the base rate.
@@ -182,6 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded app and showcase e2e coverage for the Particle System Playground header Play action replacing Emit.
 - Expanded Lua e2e coverage for Particle System Playground timeline playback after applying motion presets while the preview is muted.
 - Added Lua and showcase e2e coverage for the Complex Composite Particle System Playground timeline template.
+- Expanded Lua, showcase, and app e2e coverage for Ambient Particle System Playground timelines and continuous templates.
 - Expanded Lua e2e coverage for paused Particle System Playground timelines and inactive scratch preview throttling.
 - Expanded Lua e2e coverage for capability allowlist startup warnings.
 - Added Lua, showcase, and app e2e coverage for Particle System Playground timeline import/export, clip/keyframe editing, preview controls, and exported timeline replay hooks.

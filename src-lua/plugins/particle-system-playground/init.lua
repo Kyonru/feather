@@ -13,7 +13,7 @@ local DEFAULT_X = 400
 local DEFAULT_Y = 300
 local TWO_PI = math.pi * 2
 local PROJECT_TYPE = "feather.particle-system-playground"
-local PROJECT_VERSION = 2
+local PROJECT_VERSION = 3
 local DEFAULT_TIMELINE_DURATION = 3
 local TIMELINE_LANES = {
   "opacity",
@@ -126,6 +126,21 @@ local VALID_TIMELINE_EASINGS = {
 local function normalizeTimelineEasing(value)
   value = tostring(value or "linear")
   return VALID_TIMELINE_EASINGS[value] and value or "linear"
+end
+
+local function normalizeTimelineMode(value, loop)
+  value = tostring(value or "")
+  if value == "one-shot" or value == "loop" or value == "ambient" then
+    return value
+  end
+  return loop == true and "loop" or "one-shot"
+end
+
+local function timelineMode(timeline)
+  if type(timeline) ~= "table" then
+    return "one-shot"
+  end
+  return normalizeTimelineMode(timeline.mode, timeline.loop)
 end
 
 local function isSystemEnabled(sys, meta)
@@ -915,6 +930,7 @@ local function cloneTimeline(timeline)
   end
   local copy = {
     duration = safeNumber(timeline.duration, DEFAULT_TIMELINE_DURATION),
+    mode = normalizeTimelineMode(timeline.mode, timeline.loop == true),
     loop = safeBoolean(timeline.loop, false),
     tracks = {},
   }
@@ -997,7 +1013,10 @@ end
 
 local function defaultTimelineForSystems(systems, template)
   local duration = DEFAULT_TIMELINE_DURATION
-  local loop = template == "fire" or template == "smoke" or template == "sparkles"
+  local mode = template == "snowfall" or template == "rainfall" or template == "falling-leaves"
+      and "ambient"
+    or (template == "fire" or template == "smoke" or template == "sparkles") and "loop"
+    or "one-shot"
   local tracks = {}
 
   if template == "explosion" and systems[3] then
@@ -1094,6 +1113,46 @@ local function defaultTimelineForSystems(systems, template)
     return { duration = duration, loop = false, tracks = tracks }
   end
 
+  if template == "snowfall" then
+    duration = 8
+    for index, sys in ipairs(systems or {}) do
+      tracks[index] = authoredTrack(sys, 0, 2, {
+        opacity = { { 0, 0.7 }, { duration, 0.78 } },
+        emissionRate = { { 0, 120 }, { duration, 135 } },
+        speedScale = { { 0, 0.85 }, { duration, 0.95 } },
+        offsetX = { { 0, -8 }, { duration, 12 } },
+      }, 0)
+    end
+    return { duration = duration, mode = "ambient", loop = false, tracks = tracks }
+  end
+
+  if template == "rainfall" then
+    duration = 6
+    for index, sys in ipairs(systems or {}) do
+      tracks[index] = authoredTrack(sys, 0, 1.5, {
+        opacity = { { 0, 0.55 }, { duration, 0.62 } },
+        emissionRate = { { 0, 260 }, { duration, 280 } },
+        speedScale = { { 0, 1 }, { duration, 1.08 } },
+        spread = { { 0, 0.14 }, { duration, 0.2 } },
+      }, 0)
+    end
+    return { duration = duration, mode = "ambient", loop = false, tracks = tracks }
+  end
+
+  if template == "falling-leaves" then
+    duration = 10
+    for index, sys in ipairs(systems or {}) do
+      tracks[index] = authoredTrack(sys, 0, 3, {
+        opacity = { { 0, 0.9 }, { duration, 0.85 } },
+        emissionRate = { { 0, 32 }, { duration, 38 } },
+        speedScale = { { 0, 0.75 }, { duration, 0.82 } },
+        direction = { { 0, 1.65 }, { duration, 1.8 } },
+        offsetX = { { 0, -18 }, { duration, 18 } },
+      }, 0)
+    end
+    return { duration = duration, mode = "ambient", loop = false, tracks = tracks }
+  end
+
   for index, sys in ipairs(systems or {}) do
     tracks[index] = {
       systemIndex = index,
@@ -1101,13 +1160,14 @@ local function defaultTimelineForSystems(systems, template)
       lanes = {},
     }
   end
-  return { duration = duration, loop = loop, tracks = tracks }
+  return { duration = duration, mode = mode, loop = mode == "loop", tracks = tracks }
 end
 
 local function normalizeTimeline(timeline, systems, template)
   local fallback = defaultTimelineForSystems(systems or {}, template)
   local raw = cloneTimeline(timeline) or fallback
   local duration = math.max(0.25, math.min(60, safeNumber(raw.duration, DEFAULT_TIMELINE_DURATION)))
+  local mode = normalizeTimelineMode(raw.mode, raw.loop == true)
   local tracksByIndex = {}
   for _, track in ipairs(raw.tracks or {}) do
     tracksByIndex[math.max(1, math.floor(safeNumber(track.systemIndex, 1)))] = track
@@ -1158,7 +1218,8 @@ local function normalizeTimeline(timeline, systems, template)
 
   return {
     duration = duration,
-    loop = raw.loop == true,
+    mode = mode,
+    loop = mode == "loop",
     tracks = tracks,
   }
 end
@@ -1218,7 +1279,7 @@ local function captureTimelineBase(sys)
   end
 end
 
-local function applyTimelineToSystem(sys, track, time, allowEmission)
+local function applyTimelineToSystem(sys, track, time, allowEmission, timeline)
   if not sys or not sys.system then
     return
   end
@@ -1228,6 +1289,8 @@ local function applyTimelineToSystem(sys, track, time, allowEmission)
   local base = sys._timelineBase or {}
   TimelineRuntime.applyTimelineToEmitter(sys, track, time, allowEmission == true, {
     base = base,
+    timeline = timeline,
+    mode = timelineMode(timeline),
     opacityField = "_timelineOpacity",
   })
 end
@@ -1322,7 +1385,7 @@ local function applyTimelineAt(plugin, name, time, allowEmission)
   for index, track in ipairs(entry.timeline.tracks or {}) do
     local sys = plugin:_getSystemEntry(name, index)
     if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, index)) then
-      applyTimelineToSystem(sys, track, time, allowEmission == true)
+      applyTimelineToSystem(sys, track, time, allowEmission == true, entry.timeline)
     end
   end
 end
@@ -1349,12 +1412,17 @@ local function advanceTimeline(plugin, name, dt)
     return
   end
   local duration = math.max(0.25, safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
+  local mode = timelineMode(entry.timeline)
   local previous = math.max(0, math.min(duration, state.time or 0))
   local elapsed = math.max(0, dt or 0)
   local nextTime = previous + elapsed
   if nextTime > duration then
-    if entry.timeline.loop then
+    if mode == "loop" then
       nextTime = emitTimelineStartsForAdvance(plugin, name, previous, elapsed, entry.timeline, duration)
+    elseif mode == "ambient" then
+      emitTimelineStarts(plugin, name, previous, duration, entry.timeline)
+      nextTime = duration
+      state.playing = true
     else
       emitTimelineStarts(plugin, name, previous, duration, entry.timeline)
       nextTime = duration
@@ -1417,6 +1485,12 @@ local function createDefaultSystem(index, template)
   end
   if template == "explosion-smoke" then
     texturePreset = "light"
+  end
+  if template == "snowfall" or template == "rainfall" then
+    texturePreset = "light"
+  end
+  if template == "falling-leaves" then
+    texturePreset = "star"
   end
 
   local image, png = generatePresetImage(texturePreset)
@@ -1506,6 +1580,39 @@ local function createDefaultSystem(index, template)
     ps:setColors(0.7, 0.62, 0.48, 0.55, 0.45, 0.38, 0.28, 0)
     ps:setSizes(0.35, 1.2, 2.2)
     ps:setSizeVariation(0.6)
+  elseif template == "snowfall" then
+    ps:setEmissionRate(120)
+    ps:setParticleLifetime(4, 7)
+    ps:setSpeed(18, 55)
+    ps:setDirection(math.pi / 2)
+    ps:setSpread(math.pi / 6)
+    ps:setEmissionArea("uniform", 520, 16, 0, false)
+    ps:setLinearAcceleration(-6, 10, 6, 22)
+    ps:setColors(1, 1, 1, 0.82, 0.8, 0.92, 1, 0.45)
+    ps:setSizes(0.12, 0.16)
+    ps:setSizeVariation(0.7)
+  elseif template == "rainfall" then
+    ps:setEmissionRate(260)
+    ps:setParticleLifetime(0.65, 1.2)
+    ps:setSpeed(360, 620)
+    ps:setDirection(math.pi / 2)
+    ps:setSpread(math.pi / 18)
+    ps:setEmissionArea("uniform", 520, 16, 0, false)
+    ps:setColors(0.55, 0.78, 1, 0.55, 0.3, 0.5, 0.95, 0.15)
+    ps:setSizes(0.06, 0.18)
+  elseif template == "falling-leaves" then
+    ps:setEmissionRate(32)
+    ps:setParticleLifetime(5, 9)
+    ps:setSpeed(18, 72)
+    ps:setDirection(math.pi / 2)
+    ps:setSpread(math.pi / 3)
+    ps:setEmissionArea("uniform", 520, 16, 0, false)
+    ps:setLinearAcceleration(-16, 8, 16, 26)
+    ps:setLinearDamping(0.4, 1.2)
+    ps:setColors(0.95, 0.55, 0.16, 0.85, 0.45, 0.22, 0.06, 0.25)
+    ps:setSizes(0.24, 0.32, 0.2)
+    ps:setSizeVariation(0.7)
+    ps:setSpin(0, 1.2)
   end
 
   ps:start()
@@ -1649,6 +1756,24 @@ local function createDefaultSystems(template)
     dust.title = "Dust Puff"
     dust.emitAtStart = 120
     return { dust }
+  end
+
+  if template == "snowfall" then
+    local snow = createDefaultSystem(1, "snowfall")
+    snow.title = "Snow Field"
+    return { snow }
+  end
+
+  if template == "rainfall" then
+    local rain = createDefaultSystem(1, "rainfall")
+    rain.title = "Rain Sheet"
+    return { rain }
+  end
+
+  if template == "falling-leaves" then
+    local leaves = createDefaultSystem(1, "falling-leaves")
+    leaves.title = "Leaf Drift"
+    return { leaves }
   end
 
   local fire = createDefaultSystem(1, "fire")
@@ -2467,7 +2592,7 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     if command == "play" then
       pauseOtherScratchTimelines(self, name)
       local duration = math.max(0.25, safeNumber(entry.timeline.duration, DEFAULT_TIMELINE_DURATION))
-      if not entry.timeline.loop and safeNumber(state.time, 0) >= duration then
+      if timelineMode(entry.timeline) == "one-shot" and safeNumber(state.time, 0) >= duration then
         state.time = 0
         resetTimelineSystems(self, name)
       end
@@ -2632,6 +2757,7 @@ end
 local function luaTimelineTable(timeline)
   local lines = { "{" }
   lines[#lines + 1] = "  duration = " .. fmt(timeline.duration) .. ","
+  lines[#lines + 1] = "  mode = " .. quote(timelineMode(timeline)) .. ","
   lines[#lines + 1] = "  loop = " .. tostring(timeline.loop == true) .. ","
   lines[#lines + 1] = "  tracks = {"
   for _, track in ipairs(timeline.tracks or {}) do
@@ -2840,7 +2966,7 @@ function ParticleSystemPlaygroundPlugin:_importProject(project)
   if
     type(project) ~= "table"
     or project.type ~= PROJECT_TYPE
-    or (project.version ~= 1 and project.version ~= PROJECT_VERSION)
+    or (project.version ~= 1 and project.version ~= 2 and project.version ~= PROJECT_VERSION)
   then
     return nil, "Unsupported particle project file"
   end
@@ -2914,6 +3040,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     "---@field x? number",
     "---@field y? number",
     "---@field r? number",
+    "---@field mode? 'one-shot'|'loop'|'ambient'",
     "---@field loop? boolean",
     "---@field systemIndex? integer",
     "",
@@ -2922,7 +3049,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     "local systems = {}",
     "local particles = { x = " .. fmt(entry.x or 0) .. ", y = " .. fmt(entry.y or 0) .. ", systems = systems, instances = activeInstances }",
     "local timeline = " .. luaTimelineTable(timeline),
-    "local timelineState = { time = 0, playing = false, loop = nil, directionOffset = 0 }",
+    "local timelineState = { time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0 }",
     "local MAX_POOLED_INSTANCES = 8",
     "local release",
     "",
@@ -2999,7 +3126,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function createInstance()"
   lines[#lines + 1] = "  local instanceSystems = {}"
-  lines[#lines + 1] = "  local instance = { systems = instanceSystems, time = 0, playing = false, loop = nil, directionOffset = 0, active = false, systemIndex = nil }"
+  lines[#lines + 1] = "  local instance = { systems = instanceSystems, time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0, active = false, systemIndex = nil }"
 
   for i = 1, count do
     local sys = self:_getSystemEntry(name, i)
@@ -3188,6 +3315,25 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   appendIndentedSource(lines, TIMELINE_RUNTIME_SOURCE, "  ")
   lines[#lines + 1] = "end)()"
   lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function validMode(mode)"
+  lines[#lines + 1] = "  return mode == \"one-shot\" or mode == \"loop\" or mode == \"ambient\""
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function normalizeMode(mode, loop)"
+  lines[#lines + 1] = "  if validMode(mode) then return mode end"
+  lines[#lines + 1] = "  return loop == true and \"loop\" or \"one-shot\""
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function timelineMode(instance)"
+  lines[#lines + 1] = "  if instance and instance.mode ~= nil then return normalizeMode(instance.mode, instance.loop) end"
+  lines[#lines + 1] = "  if timelineState.mode ~= nil then return normalizeMode(timelineState.mode, timelineState.loop) end"
+  lines[#lines + 1] = "  return normalizeMode(timeline.mode, timeline.loop)"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function timelineShouldLoop(instance)"
+  lines[#lines + 1] = "  return timelineMode(instance) == \"loop\""
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
   lines[#lines + 1] = "local function applyTimeline(instance, time, allowEmission)"
   lines[#lines + 1] = "  if not instance then"
   lines[#lines + 1] = "    return"
@@ -3197,6 +3343,8 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system and (not instance.systemIndex or instance.systemIndex == index) then"
   lines[#lines + 1] = "      TimelineRuntime.applyTimelineToEmitter(emitter, track, time, allowEmission == true, {"
   lines[#lines + 1] = "        base = emitter.base or {},"
+  lines[#lines + 1] = "        timeline = timeline,"
+  lines[#lines + 1] = "        mode = timelineMode(instance),"
   lines[#lines + 1] = "        directionOffset = instance.directionOffset or 0,"
   lines[#lines + 1] = "        opacityField = \"opacity\","
   lines[#lines + 1] = "      })"
@@ -3250,22 +3398,30 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return cursor >= timeline.duration and 0 or cursor"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function timelineShouldLoop(instance)"
-  lines[#lines + 1] = "  if instance and instance.loop ~= nil then return instance.loop == true end"
-  lines[#lines + 1] = "  if timelineState.loop ~= nil then return timelineState.loop == true end"
-  lines[#lines + 1] = "  return timeline.loop == true"
+  lines[#lines + 1] = "local function setMode(mode)"
+  lines[#lines + 1] = "  if validMode(mode) then"
+  lines[#lines + 1] = "    timelineState.mode = mode"
+  lines[#lines + 1] = "    timelineState.loop = mode == \"loop\""
+  lines[#lines + 1] = "  else"
+  lines[#lines + 1] = "    timelineState.mode = nil"
+  lines[#lines + 1] = "    timelineState.loop = nil"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  for _, instance in ipairs(activeInstances) do"
+  lines[#lines + 1] = "    instance.mode = timelineState.mode"
+  lines[#lines + 1] = "    instance.loop = timelineState.loop"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return timelineMode(nil)"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function getMode()"
+  lines[#lines + 1] = "  return timelineMode(nil)"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function setLoop(loop)"
   lines[#lines + 1] = "  if type(loop) == \"boolean\" then"
-  lines[#lines + 1] = "    timelineState.loop = loop"
-  lines[#lines + 1] = "  else"
-  lines[#lines + 1] = "    timelineState.loop = nil"
+  lines[#lines + 1] = "    return setMode(loop and \"loop\" or \"one-shot\")"
   lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  for _, instance in ipairs(activeInstances) do"
-  lines[#lines + 1] = "    instance.loop = timelineState.loop"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return timelineShouldLoop(nil)"
+  lines[#lines + 1] = "  return setMode(nil)"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function resetInstance(instance, payload)"
@@ -3275,8 +3431,15 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  instance.time = 0"
   lines[#lines + 1] = "  instance.playing = true"
   lines[#lines + 1] = "  instance.active = true"
-  lines[#lines + 1] = "  if type(payload.loop) == \"boolean\" then"
-  lines[#lines + 1] = "    instance.loop = payload.loop"
+  lines[#lines + 1] = "  if validMode(payload.mode) then"
+  lines[#lines + 1] = "    instance.mode = payload.mode"
+  lines[#lines + 1] = "  elseif type(payload.loop) == \"boolean\" then"
+  lines[#lines + 1] = "    instance.mode = payload.loop and \"loop\" or \"one-shot\""
+  lines[#lines + 1] = "  else"
+  lines[#lines + 1] = "    instance.mode = timelineState.mode"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  if validMode(instance.mode) then"
+  lines[#lines + 1] = "    instance.loop = instance.mode == \"loop\""
   lines[#lines + 1] = "  else"
   lines[#lines + 1] = "    instance.loop = timelineState.loop"
   lines[#lines + 1] = "  end"
@@ -3309,6 +3472,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  instance.active = false"
   lines[#lines + 1] = "  instance.playing = false"
   lines[#lines + 1] = "  instance.time = 0"
+  lines[#lines + 1] = "  instance.mode = nil"
   lines[#lines + 1] = "  instance.loop = nil"
   lines[#lines + 1] = "  instance.directionOffset = 0"
   lines[#lines + 1] = "  instance.systemIndex = nil"
@@ -3357,8 +3521,13 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "      local previous = instance.time"
   lines[#lines + 1] = "      local nextTime = previous + dt"
   lines[#lines + 1] = "      if nextTime > timeline.duration then"
-  lines[#lines + 1] = "        if timelineShouldLoop(instance) then"
+  lines[#lines + 1] = "        local mode = timelineMode(instance)"
+  lines[#lines + 1] = "        if mode == \"loop\" then"
   lines[#lines + 1] = "          nextTime = emitTimelineStartsForAdvance(instance, previous, dt)"
+  lines[#lines + 1] = "        elseif mode == \"ambient\" then"
+  lines[#lines + 1] = "          emitTimelineStarts(instance, previous, timeline.duration)"
+  lines[#lines + 1] = "          nextTime = timeline.duration"
+  lines[#lines + 1] = "          instance.playing = true"
   lines[#lines + 1] = "        else"
   lines[#lines + 1] = "          emitTimelineStarts(instance, previous, timeline.duration)"
   lines[#lines + 1] = "          nextTime = timeline.duration"
@@ -3375,7 +3544,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "        emitter.system:update(dt)"
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "    end"
-  lines[#lines + 1] = "    if not instance.playing and not instanceHasParticles(instance) then"
+  lines[#lines + 1] = "    if not instance.playing and timelineMode(instance) ~= \"ambient\" and not instanceHasParticles(instance) then"
   lines[#lines + 1] = "      table.remove(activeInstances, i)"
   lines[#lines + 1] = "      recycleInstance(instance)"
   lines[#lines + 1] = "    end"
@@ -3383,6 +3552,10 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  local latest = activeInstances[#activeInstances]"
   lines[#lines + 1] = "  timelineState.time = latest and latest.time or 0"
   lines[#lines + 1] = "  timelineState.playing = latest and latest.playing or false"
+  lines[#lines + 1] = "  if latest then"
+  lines[#lines + 1] = "    timelineState.mode = latest.mode"
+  lines[#lines + 1] = "    timelineState.loop = latest.loop"
+  lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  timelineState.directionOffset = latest and latest.directionOffset or 0"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
@@ -3431,11 +3604,13 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "local function stop(resetParticles)"
   lines[#lines + 1] = "  timelineState.time = 0"
   lines[#lines + 1] = "  timelineState.playing = false"
+  lines[#lines + 1] = "  timelineState.mode = nil"
   lines[#lines + 1] = "  timelineState.loop = nil"
   lines[#lines + 1] = "  timelineState.directionOffset = 0"
   lines[#lines + 1] = "  for i = #activeInstances, 1, -1 do"
   lines[#lines + 1] = "    local instance = activeInstances[i]"
   lines[#lines + 1] = "    instance.playing = false"
+  lines[#lines + 1] = "    instance.mode = nil"
   lines[#lines + 1] = "    instance.loop = nil"
   lines[#lines + 1] = "    instance.directionOffset = 0"
   lines[#lines + 1] = "    applyTimeline(instance, instance.time or 0, false)"
@@ -3474,6 +3649,8 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  play = play,"
   lines[#lines + 1] = "  pause = pause,"
   lines[#lines + 1] = "  stop = stop,"
+  lines[#lines + 1] = "  setMode = setMode,"
+  lines[#lines + 1] = "  getMode = getMode,"
   lines[#lines + 1] = "  setLoop = setLoop,"
   lines[#lines + 1] = "  isLooping = timelineShouldLoop,"
   lines[#lines + 1] = "  emit = emit,"

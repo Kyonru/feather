@@ -475,6 +475,25 @@ test('particle playground creates the complex composite timeline template in the
   await expect(page.getByLabel('Burst particles').first()).toHaveValue('100');
 });
 
+test('particle playground ambient templates expose ambient timeline mode in the showcase', async ({ page }) => {
+  await page.goto('/particle-system-playground');
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+
+  await page.getByTitle('New composite').click();
+  const dialog = page.getByRole('dialog', { name: 'New Composite' });
+  await dialog.getByPlaceholder('Explosion').fill('Rain Field');
+  await dialog.getByRole('combobox').click();
+  await page.getByRole('option', { name: 'Rainfall' }).click();
+  await dialog.getByRole('button', { name: 'Create' }).click();
+
+  await expect(page.getByText('Rain Sheet')).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  const mode = page.getByTestId('particle-timeline-mode');
+  await expect(mode.getByRole('button', { name: 'Ambient' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText(/Ambient starts once/)).toBeVisible();
+  await expect(page.getByTestId('particle-timeline-ambient-continuation-1')).toBeVisible();
+});
+
 test('shader graph right panel exposes root shader controls', async ({ page }) => {
   await page.goto('/shader-graph');
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();

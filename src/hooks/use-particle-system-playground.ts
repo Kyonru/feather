@@ -19,6 +19,7 @@ import {
   migrateParticleProject,
   PARTICLE_PROJECT_TYPE,
   normalizeParticleTimeline,
+  normalizeParticleTimelineMode,
   reindexParticleSystems,
   removeParticleTimelineTrack,
   reorderParticleTimeline,
@@ -583,7 +584,10 @@ export function useParticleSystemPlayground() {
     playTimeline: (sendRuntime = true) => {
       const timeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
       const time = data.data?.timelineState?.time ?? 0;
-      const restart = !!timeline && !timeline.loop && time >= timeline.duration - 0.001;
+      const restart =
+        !!timeline &&
+        normalizeParticleTimelineMode(timeline.mode, timeline.loop ? 'loop' : 'one-shot') === 'one-shot' &&
+        time >= timeline.duration - 0.001;
       setTimelineState({ ...(restart ? { time: 0 } : {}), playing: true });
       if (!sendRuntime) return;
       refreshAfterAction('timeline-control', { command: 'play' });
@@ -658,7 +662,7 @@ export function useParticleSystemPlayground() {
         toast.error('Particle project JSON is invalid');
         return;
       }
-      if (project.type !== PARTICLE_PROJECT_TYPE || (project.version !== 1 && project.version !== 2)) {
+      if (project.type !== PARTICLE_PROJECT_TYPE || (project.version !== 1 && project.version !== 2 && project.version !== 3)) {
         toast.error('Unsupported particle project file');
         return;
       }

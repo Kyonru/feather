@@ -70,6 +70,21 @@ function Runtime.normalizeTimelineEasing(easing)
   return VALID_EASINGS[easing] and easing or "linear"
 end
 
+function Runtime.normalizeTimelineMode(mode, loop)
+  mode = tostring(mode or "")
+  if mode == "one-shot" or mode == "loop" or mode == "ambient" then
+    return mode
+  end
+  return loop == true and "loop" or "one-shot"
+end
+
+function Runtime.timelineMode(timeline)
+  if type(timeline) ~= "table" then
+    return "one-shot"
+  end
+  return Runtime.normalizeTimelineMode(timeline.mode, timeline.loop)
+end
+
 local function easeOutBounce(t)
   local n1 = 7.5625
   local d1 = 2.75
@@ -166,22 +181,28 @@ function Runtime.evaluateKeyframes(points, time, fallback)
   return Runtime.safeNumber(points[#points].value, fallback)
 end
 
-function Runtime.clipAllowsEmission(clip, time, emitterLifetime)
+function Runtime.clipAllowsEmission(clip, time, emitterLifetime, mode)
   local startTime = Runtime.safeNumber(clip and clip.start, 0)
   local endTime = Runtime.safeNumber(clip and clip["end"], 0)
-  if time < startTime or time > endTime then
+  if time < startTime then
     return false
   end
   local lifetime = Runtime.safeNumber(emitterLifetime, -1)
+  if Runtime.normalizeTimelineMode(mode) == "ambient" and lifetime < 0 then
+    return true
+  end
+  if time > endTime then
+    return false
+  end
   if lifetime < 0 then
     return true
   end
   return time <= startTime + lifetime
 end
 
-function Runtime.trackAllowsEmission(track, time, emitterLifetime)
+function Runtime.trackAllowsEmission(track, time, emitterLifetime, mode)
   for _, clip in ipairs(track and track.clips or {}) do
-    if Runtime.clipAllowsEmission(clip, time, emitterLifetime) then
+    if Runtime.clipAllowsEmission(clip, time, emitterLifetime, mode) then
       return true
     end
   end
@@ -217,7 +238,12 @@ function Runtime.applyTimelineToEmitter(emitter, track, time, allowEmission, opt
     base = emitter.base or emitter._timelineBase or {}
   end
   local lanes = track and track.lanes or {}
-  local active = Runtime.trackAllowsEmission(track, time, Runtime.safeNumber(base.emitterLifetime, -1))
+  local active = Runtime.trackAllowsEmission(
+    track,
+    time,
+    Runtime.safeNumber(base.emitterLifetime, -1),
+    options.mode or Runtime.timelineMode(options.timeline)
+  )
 
   local emissionRate = math.max(0, Runtime.evaluateKeyframes(lanes.emissionRate, time, Runtime.safeNumber(base.emissionRate, 0)))
   if not active or allowEmission ~= true then

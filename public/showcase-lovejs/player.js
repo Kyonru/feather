@@ -632,15 +632,23 @@ void main() {
     return tracks.find((track) => safeNumber(track.systemIndex, -1) === systemIndex);
   }
 
+  function particleTimelineMode(timeline) {
+    const mode = timeline?.mode;
+    if (mode === 'one-shot' || mode === 'loop' || mode === 'ambient') return mode;
+    return timeline?.loop ? 'loop' : 'one-shot';
+  }
+
   function particleCanEmit(system, time) {
     const timeline = payload.composite?.timeline;
     if (!timeline || !Array.isArray(timeline.tracks)) return true;
+    const mode = particleTimelineMode(timeline);
     const track = particleTrackFor(system.index);
     const clips = Array.isArray(track?.clips) ? track.clips : [];
     return clips.some((clip) => {
       const start = safeNumber(clip.start, 0);
       const stop = safeNumber(clip.end, 0);
       const lifetime = safeNumber(system.baseEmitterLifetime, -1);
+      if (mode === 'ambient' && lifetime < 0) return time >= start;
       const lifetimeStop = lifetime < 0 ? stop : Math.min(stop, start + lifetime);
       return time >= start && time <= lifetimeStop;
     });
@@ -763,10 +771,15 @@ void main() {
       const previous = particleTimelineTime;
       particleTimelineTime += dt;
       if (particleTimelineTime > duration) {
-        if (timeline?.loop) {
+        const mode = particleTimelineMode(timeline);
+        if (mode === 'loop') {
           emitTimelineBursts(previous, duration, width, height);
           particleTimelineTime %= duration;
           emitTimelineBursts(0, particleTimelineTime, width, height);
+        } else if (mode === 'ambient') {
+          emitTimelineBursts(previous, duration, width, height);
+          particleTimelineTime = duration;
+          particleTimelinePlaying = true;
         } else {
           emitTimelineBursts(previous, duration, width, height);
           particleTimelineTime = duration;

@@ -2778,6 +2778,30 @@ test('particle playground uses connected-game preview on demand in the app', asy
   ).toBe(clearsBeforeLeave);
 });
 
+test('particle playground timeline mode control updates in the app', async ({ page }) => {
+  await seedSession(page);
+  await page.goto('/');
+  await seedParticlePlaygroundConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page
+    .getByTestId('sidebar-tool-particle-system-playground')
+    .getByRole('link', { name: 'Particles Playground' })
+    .click();
+
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+
+  const mode = page.getByTestId('particle-timeline-mode');
+  await expect(mode.getByRole('button', { name: 'Loop' })).toHaveAttribute('aria-pressed', 'true');
+
+  await mode.getByRole('button', { name: 'Ambient' }).click();
+  await expect(mode.getByRole('button', { name: 'Ambient' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText(/Ambient starts once/)).toBeVisible();
+
+  await mode.getByRole('button', { name: 'One-shot' }).click();
+  await expect(mode.getByRole('button', { name: 'One-shot' })).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('shader graph template presets expose public controls in the app', async ({ page }) => {
   await seedSession(page);
   await page.goto('/');
@@ -2919,6 +2943,8 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
   await page.getByRole('tab', { name: 'Timeline' }).click();
   await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
+  const mode = page.getByTestId('particle-timeline-mode');
+  await expect(mode.getByRole('button', { name: 'Loop' })).toHaveAttribute('aria-pressed', 'true');
   const mainWidth = await page.getByTestId('particle-playground-main').evaluate((element) => element.getBoundingClientRect().width);
   const panelWidth = await page.getByTestId('particle-timeline-panel').evaluate((element) => element.getBoundingClientRect().width);
   expect(panelWidth).toBeGreaterThan(mainWidth * 0.85);

@@ -78,6 +78,8 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "local function emit(payload)"), "particle playground export includes payload emit lifecycle")
     assertTruthy(contains(code, "local function pause()"), "particle playground export includes pause lifecycle")
     assertTruthy(contains(code, "local function stop(resetParticles)"), "particle playground export includes stop lifecycle")
+    assertTruthy(contains(code, "local function setMode(mode)"), "particle playground export includes mode override helper")
+    assertTruthy(contains(code, "local function getMode()"), "particle playground export includes mode getter")
     assertTruthy(contains(code, "local function setLoop(loop)"), "particle playground export includes loop override helper")
     assertTruthy(contains(code, "release = function()"), "particle playground export includes release lifecycle")
     assertTruthy(contains(code, "local activeInstances = {}"), "particle playground export supports overlapping timeline instances")
@@ -88,7 +90,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "local timeline = {"), "particle playground export includes timeline data")
     assertTruthy(contains(code, "easing = "), "particle playground export preserves keyframe easing names")
     assertTruthy(
-      contains(code, "local timelineState = { time = 0, playing = false, loop = nil, directionOffset = 0 }"),
+      contains(code, "local timelineState = { time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0 }"),
       "particle playground export includes timeline play state"
     )
     assertTruthy(contains(code, "local function applyTimeline(instance, time, allowEmission)"), "particle playground export includes timeline evaluator")
@@ -99,14 +101,17 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "TimelineRuntime.applyTimelineToEmitter"), "particle playground export applies timeline through shared runtime")
     assertTruthy(contains(code, "local function emitTimelineStartsForAdvance"), "particle playground export preserves timeline tails across loop wraps")
     assertTruthy(contains(code, "timelineShouldLoop(instance)"), "particle playground export supports per-play loop overrides")
+    assertTruthy(contains(code, "validMode(payload.mode)"), "particle playground export lets mode override saved behavior")
     assertTruthy(contains(code, "if type(payload.loop) == \"boolean\" then"), "particle playground export preserves explicit false loop overrides")
-    assertTruthy(contains(code, "instance.loop = payload.loop"), "particle playground export applies play payload loop overrides")
+    assertTruthy(contains(code, "instance.mode = payload.loop and \"loop\" or \"one-shot\""), "particle playground export maps legacy loop payloads to modes")
     assertTruthy(not contains(code, "timelineState.amount"), "particle playground export does not scale authored timeline bursts from payload")
     assertTruthy(not contains(code, "payload.amount"), "particle playground export payload does not define timeline intensity")
     assertTruthy(contains(code, "instance.directionOffset = tonumber(payload.r) or 0"), "particle playground export supports payload direction offset")
     assertTruthy(not contains(code, "emitter.system:setDirection(r)"), "particle playground export does not overwrite authored emitter directions")
     assertTruthy(contains(code, "return checkoutInstance(payload)"), "particle playground export plays independent timeline instances")
     assertTruthy(contains(code, "return play(payload)"), "particle playground export keeps emit as a play alias")
+    assertTruthy(contains(code, "setMode = setMode"), "particle playground export exposes mode override helper")
+    assertTruthy(contains(code, "getMode = getMode"), "particle playground export exposes resolved mode")
     assertTruthy(contains(code, "setLoop = setLoop"), "particle playground export exposes loop override helper")
     assertTruthy(contains(code, "isLooping = timelineShouldLoop"), "particle playground export exposes resolved loop state")
     assertTruthy(contains(code, "emitter.system:start()"), "particle playground export restarts delayed timeline clips")
@@ -796,6 +801,157 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     plugin:handleActionRequest({
       params = {
         action = "new-composite",
+        name = "Ambient Continuous",
+        template = "snowfall",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Ambient Continuous",
+        systemIndex = 1,
+        emissionRate = 80,
+        emitterLifetime = -1,
+        particleLifetimeMin = 2,
+        particleLifetimeMax = 2,
+        emitAtStart = 0,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Ambient Continuous",
+        timeline = {
+          duration = 0.25,
+          mode = "ambient",
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "ambient", start = 0, ["end"] = 0.08, emit = 0 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    local ambientSystem = plugin:_getSystemEntry("Ambient Continuous", 1).system
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Ambient Continuous",
+        command = "play",
+      },
+    })
+    plugin:update(0.3)
+    local ambientSnapshot = plugin:handleRequest()
+    assertEqual(ambientSnapshot.data.timeline.mode, "ambient", "particle ambient timeline keeps its mode")
+    assertEqual(ambientSnapshot.data.timeline.loop, false, "particle ambient timeline keeps loop compatibility false")
+    assertEqual(ambientSnapshot.data.timelineState.time, 0.25, "particle ambient timeline holds at duration")
+    assertEqual(ambientSnapshot.data.timelineState.playing, true, "particle ambient timeline keeps playing while held")
+    assertEqual(ambientSystem:getEmissionRate(), 80, "particle ambient infinite lifetime keeps continuous emission after duration")
+    assertTruthy(ambientSystem:getCount() > 0, "particle ambient infinite lifetime continues emitting particles")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Ambient Burst Once",
+        template = "snowfall",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Ambient Burst Once",
+        systemIndex = 1,
+        emissionRate = 0,
+        emitterLifetime = -1,
+        particleLifetimeMin = 2,
+        particleLifetimeMax = 2,
+        emitAtStart = 7,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Ambient Burst Once",
+        timeline = {
+          duration = 0.2,
+          mode = "ambient",
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "burst-once", start = 0, ["end"] = 0.05, emit = 7 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    local ambientBurstSystem = plugin:_getSystemEntry("Ambient Burst Once", 1).system
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Ambient Burst Once",
+        command = "play",
+      },
+    })
+    plugin:update(0.25)
+    local ambientBurstCount = ambientBurstSystem:getCount()
+    plugin:update(0.25)
+    assertEqual(ambientBurstCount, 7, "particle ambient timeline fires clip bursts once")
+    assertEqual(ambientBurstSystem:getCount(), ambientBurstCount, "particle ambient timeline does not reschedule bursts at duration")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Ambient Finite",
+        template = "snowfall",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Ambient Finite",
+        systemIndex = 1,
+        emissionRate = 70,
+        emitterLifetime = 0.08,
+        particleLifetimeMin = 1.5,
+        particleLifetimeMax = 1.5,
+        emitAtStart = 0,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Ambient Finite",
+        timeline = {
+          duration = 0.3,
+          mode = "ambient",
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "ambient-finite", start = 0, ["end"] = 0.25, emit = 0 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    local ambientFiniteSystem = plugin:_getSystemEntry("Ambient Finite", 1).system
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Ambient Finite",
+        command = "play",
+      },
+    })
+    plugin:update(0.05)
+    assertEqual(ambientFiniteSystem:getEmissionRate(), 70, "particle ambient finite lifetime starts continuous emission")
+    plugin:update(0.12)
+    assertEqual(ambientFiniteSystem:getEmissionRate(), 0, "particle ambient finite lifetime stops continuous emission")
+    assertTruthy(ambientFiniteSystem:getCount() > 0, "particle ambient finite lifetime keeps particle tails alive")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
         name = "Complex Template",
         template = "complex-composite",
       },
@@ -808,6 +964,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(complex.data.systems[4].title, "Spark Trails", "particle complex composite names the spark emitter")
     assertEqual(complex.data.systems[5].title, "Dust Wake", "particle complex composite names the dust emitter")
     assertEqual(complex.data.timeline.duration, 3, "particle complex composite uses the standard three second timeline")
+    assertEqual(complex.data.timeline.mode, "one-shot", "particle complex composite is saved as one-shot mode")
     assertEqual(complex.data.timeline.loop, false, "particle complex composite is a one-shot timeline")
     assertEqual(#complex.data.timeline.tracks, 5, "particle complex composite authors one timeline track per emitter")
     assertEqual(complex.data.timeline.tracks[1].clips[1].emit, 140, "particle complex composite starts with a strong core burst")
@@ -818,6 +975,17 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       -42,
       "particle complex composite lifts the smoke bloom over time"
     )
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Rain Template",
+        template = "rainfall",
+      },
+    })
+    local rain = plugin:handleRequest()
+    assertEqual(rain.data.timeline.mode, "ambient", "particle rainfall template uses ambient mode")
+    assertEqual(rain.data.systems[1].title, "Rain Sheet", "particle rainfall template names the emitter")
 
     local pausedComplexSystem = plugin:_getSystemEntry("Complex Template", 1).system
     pausedComplexSystem:reset()
@@ -990,7 +1158,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     })
     local project = projectResult and projectResult.project
     assertEqual(project.type, "feather.particle-system-playground", "particle project export includes type")
-    assertEqual(project.version, 2, "particle project export includes version")
+    assertEqual(project.version, 3, "particle project export includes version")
     assertEqual(project.name, "Project Save", "particle project export includes composite name")
     assertEqual(project.composite.x, 321, "particle project export includes composite x")
     assertEqual(project.composite.y, 432, "particle project export includes composite y")
@@ -998,6 +1166,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(project.composite.movement.pattern, "circle", "particle project export includes movement")
     assertEqual(#project.composite.systems, 3, "particle project export includes every emitter")
     assertEqual(project.composite.timeline.duration, 3, "particle project export includes timeline duration")
+    assertEqual(project.composite.timeline.mode, "one-shot", "particle project export includes timeline mode")
     assertEqual(#project.composite.timeline.tracks, 3, "particle project export includes emitter tracks")
     assertEqual(project.composite.systems[1].enabled, false, "particle project export includes enabled state")
     assertEqual(project.composite.systems[1].title, "Saved Core", "particle project export includes title")
@@ -1043,6 +1212,39 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(imported.data.systems[1].shaderFilename, "saved-particle-shader.glsl", "particle project import restores shader metadata")
     assertEqual(imported.data.systems[1].properties.spinMin, -0.1, "particle project import restores particle properties")
 
+    local legacyV2Project = {
+      type = "feather.particle-system-playground",
+      version = 2,
+      name = "Legacy Loop Particles",
+      composite = {
+        x = 12,
+        y = 34,
+        previewEnabled = true,
+        movement = { pattern = "none" },
+        systems = { project.composite.systems[1] },
+        timeline = {
+          duration = 1,
+          loop = true,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "legacy-loop", start = 0, ["end"] = 1, emit = 0 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    }
+    plugin:handleActionRequest({
+      params = {
+        action = "import-project",
+        project = legacyV2Project,
+      },
+    })
+    local legacyV2 = plugin:handleRequest()
+    assertEqual(legacyV2.data.timeline.mode, "loop", "particle project v2 import migrates loop boolean to loop mode")
+    assertEqual(legacyV2.data.timeline.loop, true, "particle project v2 import preserves loop compatibility")
+
     local legacyProject = {
       type = "feather.particle-system-playground",
       version = 1,
@@ -1064,6 +1266,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(legacyResult.composite, "Legacy Particles", "particle project v1 import creates scratch composite")
     local legacy = plugin:handleRequest()
     assertEqual(legacy.data.timeline.duration, 3, "particle project v1 import migrates a default timeline")
+    assertEqual(legacy.data.timeline.mode, "one-shot", "particle project v1 import keeps default timeline mode")
     assertEqual(#legacy.data.timeline.tracks, 1, "particle project v1 import creates one clip track per emitter")
 
     local invalid, invalidErr = plugin:handleActionRequest({

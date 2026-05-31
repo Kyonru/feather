@@ -575,6 +575,10 @@ local function normalizeTimeline(timeline, systems)
     timeline = {}
   end
   local duration = math.max(0.25, tonumber(timeline.duration) or 3)
+  local mode = tostring(timeline.mode or "")
+  if mode ~= "one-shot" and mode ~= "loop" and mode ~= "ambient" then
+    mode = timeline.loop == true and "loop" or "one-shot"
+  end
   local tracksByIndex = {}
   if type(timeline.tracks) == "table" then
     for _, track in ipairs(timeline.tracks) do
@@ -583,7 +587,7 @@ local function normalizeTimeline(timeline, systems)
       end
     end
   end
-  local normalized = { duration = duration, loop = timeline.loop == true, tracks = {} }
+  local normalized = { duration = duration, mode = mode, loop = mode == "loop", tracks = {} }
   for index, sys in ipairs(systems or {}) do
     local source = tracksByIndex[index] or {}
     local track = { systemIndex = index, clips = {}, lanes = {} }
@@ -764,22 +768,28 @@ local function particlePayloadSignature(payload)
   })
 end
 
-local function clipAllowsEmission(clip, time, emitterLifetime)
+local function clipAllowsEmission(clip, time, emitterLifetime, mode)
   local startTime = tonumber(clip and clip.start) or 0
   local endTime = tonumber(clip and clip["end"]) or 0
-  if time < startTime or time > endTime then
+  if time < startTime then
     return false
   end
   local lifetime = tonumber(emitterLifetime) or -1
+  if mode == "ambient" and lifetime < 0 then
+    return true
+  end
+  if time > endTime then
+    return false
+  end
   if lifetime < 0 then
     return true
   end
   return time <= startTime + lifetime
 end
 
-local function trackAllowsEmission(track, time, emitterLifetime)
+local function trackAllowsEmission(track, time, emitterLifetime, mode)
   for _, clip in ipairs(track and track.clips or {}) do
-    if clipAllowsEmission(clip, time, emitterLifetime) then
+    if clipAllowsEmission(clip, time, emitterLifetime, mode) then
       return true
     end
   end
@@ -796,7 +806,7 @@ local function applyTimelineAt(time, allowEmission)
     if entry and entry.ps and entry.enabled then
       local base = entry.base or {}
       local lanes = track.lanes or {}
-      local active = trackAllowsEmission(track, time, tonumber(base.emitterLifetime) or -1)
+      local active = trackAllowsEmission(track, time, tonumber(base.emitterLifetime) or -1, timeline.mode)
       local rate = evaluateKeyframes(lanes.emissionRate, time, tonumber(base.emissionRate) or 0)
       if not active or allowEmission ~= true then
         rate = 0
@@ -942,7 +952,7 @@ local function syncParticleTimelineState(state)
     if incomingPlaying and wasPlaying then
       if target >= currentTime then
         emitTimelineStarts(currentTime, target)
-      elseif particleState.timeline.loop then
+      elseif particleState.timeline.mode == "loop" then
         emitTimelineStarts(currentTime, duration)
         emitTimelineStarts(0, target)
       end
@@ -1131,8 +1141,12 @@ function love.update(dt)
       local previous = particleState.timelineState.time or 0
       local nextTime = previous + dt
       if nextTime > duration then
-        if timeline.loop then
+        if timeline.mode == "loop" then
           nextTime = emitTimelineStartsForAdvance(previous, dt, duration)
+        elseif timeline.mode == "ambient" then
+          emitTimelineStarts(previous, duration)
+          nextTime = duration
+          particleState.timelineState.playing = true
         else
           emitTimelineStarts(previous, duration)
           nextTime = duration

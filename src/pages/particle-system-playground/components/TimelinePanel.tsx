@@ -24,6 +24,7 @@ import {
   PARTICLE_TIMELINE_LANE_LABELS,
   evaluateParticleKeyframes,
   normalizeParticleTimeline,
+  normalizeParticleTimelineMode,
   trackIsActive,
 } from '../timeline';
 import { ParticleNumberInput } from './ParticleNumberInput';
@@ -37,6 +38,7 @@ import {
   type ParticleTimelineClip,
   type ParticleTimelineKeyframe,
   type ParticleTimelineLane,
+  type ParticleTimelineMode,
   type ParticleTimelineTrack,
 } from '@/types/particle-system-playground';
 
@@ -141,12 +143,12 @@ function tailSegmentsForClip(
   clip: ParticleTimelineClip,
   tailDuration: number,
   timelineDuration: number,
-  loop: boolean,
+  mode: ParticleTimelineMode,
 ): Array<{ start: number; end: number }> {
   const tail = Math.min(Math.max(0, tailDuration), timelineDuration);
   if (tail <= 0 || timelineDuration <= 0) return [];
 
-  if (!loop) {
+  if (mode !== 'loop') {
     const start = clamp(clip.end, 0, timelineDuration);
     const end = clamp(clip.end + tail, 0, timelineDuration);
     return end > start ? [{ start, end }] : [];
@@ -162,6 +164,17 @@ function tailSegmentsForClip(
     cursor = 0;
   }
   return segments;
+}
+
+function ambientContinuationForClip(
+  clip: ParticleTimelineClip,
+  emitterLifetime: number,
+  timelineDuration: number,
+): { start: number; end: number } | null {
+  if (emitterLifetime >= 0) return null;
+  const start = clamp(clip.end, 0, timelineDuration);
+  const end = timelineDuration;
+  return end > start ? { start, end } : null;
 }
 
 function uniqueId(prefix: string): string {
@@ -289,6 +302,7 @@ export function TimelinePanel({
   const playbackFrameRef = useRef<number | null>(null);
   const displayTimeRef = useRef(0);
   const timeline = draftTimeline ?? sourceTimeline;
+  const timelineMode = normalizeParticleTimelineMode(timeline.mode, timeline.loop ? 'loop' : 'one-shot');
   const currentTime = clamp(composite.timelineState?.time ?? 0, 0, timeline.duration);
   const displayTime = localPlayheadTime ?? currentTime;
   const playing = composite.timelineState?.playing === true;
@@ -339,10 +353,10 @@ export function TimelinePanel({
     const tick = (now: number) => {
       const elapsed = (now - startedAt) / 1000;
       const nextTime = startTime + elapsed;
-      const displayed = timeline.loop ? nextTime % duration : Math.min(nextTime, duration);
+      const displayed = timelineMode === 'loop' ? nextTime % duration : Math.min(nextTime, duration);
       setLocalPlayheadTime(displayed);
 
-      if (!timeline.loop && nextTime >= duration) {
+      if (timelineMode === 'one-shot' && nextTime >= duration) {
         playbackFrameRef.current = null;
         return;
       }
@@ -358,7 +372,7 @@ export function TimelinePanel({
         playbackFrameRef.current = null;
       }
     };
-  }, [playing, timeline.duration, timeline.loop]);
+  }, [playing, timeline.duration, timelineMode]);
 
   useEffect(() => {
     setLocalPlayheadTime((time) => (time === null ? null : clamp(time, 0, timeline.duration)));
@@ -407,8 +421,8 @@ export function TimelinePanel({
     });
   };
 
-  const setLoop = (loop: boolean) => {
-    commitTimeline({ ...timeline, loop });
+  const setMode = (mode: ParticleTimelineMode) => {
+    commitTimeline({ ...timeline, mode, loop: mode === 'loop' });
   };
 
   const selectTrack = (systemIndex: number) => {
@@ -843,7 +857,7 @@ export function TimelinePanel({
           />
         </div>
 
-        <div className="grid gap-2 lg:grid-cols-[9rem_9rem_minmax(18rem,1fr)]">
+        <div className="grid gap-2 lg:grid-cols-[9rem_minmax(18rem,24rem)_minmax(18rem,1fr)]">
           <label className="grid gap-1 text-[10px] text-muted-foreground">
             Duration
             <ParticleNumberInput
@@ -854,18 +868,24 @@ export function TimelinePanel({
               onValueChange={setDuration}
             />
           </label>
-          <div className="flex items-end">
-            <Button
-              type="button"
-              size="sm"
-              variant={timeline.loop ? 'default' : 'outline'}
-              className="h-8 w-full justify-start gap-2 text-xs"
-              aria-pressed={timeline.loop}
-              onClick={() => setLoop(!timeline.loop)}
-            >
-              <RepeatIcon className="size-3.5" />
-              Loop {timeline.loop ? 'On' : 'Off'}
-            </Button>
+          <div className="grid gap-1">
+            <span className="text-[10px] text-muted-foreground">Mode</span>
+            <div className="grid grid-cols-3 rounded-md border bg-background p-0.5" data-testid="particle-timeline-mode">
+              {(['one-shot', 'loop', 'ambient'] as ParticleTimelineMode[]).map((mode) => (
+                <Button
+                  key={mode}
+                  type="button"
+                  size="sm"
+                  variant={timelineMode === mode ? 'default' : 'ghost'}
+                  className="h-7 gap-1 px-2 text-[11px]"
+                  aria-pressed={timelineMode === mode}
+                  onClick={() => setMode(mode)}
+                >
+                  {mode === 'loop' && <RepeatIcon className="size-3" />}
+                  {mode === 'one-shot' ? 'One-shot' : mode === 'loop' ? 'Loop' : 'Ambient'}
+                </Button>
+              ))}
+            </div>
           </div>
           <div className="flex flex-wrap items-end justify-start gap-2 lg:justify-end">
             <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setZoom(zoom - 0.25)}>
@@ -882,6 +902,11 @@ export function TimelinePanel({
             </Button>
           </div>
         </div>
+        {timelineMode === 'ambient' && (
+          <p className="text-[11px] text-muted-foreground">
+            Ambient starts once, holds final values, and continuous emitters with Emitter Lifetime -1 keep running until stopped.
+          </p>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-md border" data-testid="particle-timeline-scroll">
@@ -921,7 +946,15 @@ export function TimelinePanel({
 
           {composite.systems.map((system) => {
             const track = timeline.tracks.find((item) => item.systemIndex === system.index);
-            const active = track ? trackIsActive(track, displayTime) : false;
+            const active = track
+              ? timelineMode === 'ambient'
+                ? track.clips.some((clip) => {
+                    const lifetime = emitterLifetimeDuration(system);
+                    if (lifetime < 0) return displayTime >= clip.start;
+                    return displayTime >= clip.start && displayTime <= Math.min(clip.end, clip.start + lifetime);
+                  })
+                : trackIsActive(track, displayTime)
+              : false;
             const selected = system.index === activeSystemIndex;
             const expanded = system.index === expandedTrack;
             const trackKeyCount = PARTICLE_TIMELINE_LANES.reduce(
@@ -982,7 +1015,7 @@ export function TimelinePanel({
                       <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
                       {renderPlayhead()}
                       {track?.clips.map((clip) =>
-                        tailSegmentsForClip(clip, particleTailDuration(system), timeline.duration, timeline.loop).map(
+                        tailSegmentsForClip(clip, particleTailDuration(system), timeline.duration, timelineMode).map(
                           (segment, index) => {
                             const startPercent = timeToPercent(segment.start, timeline.duration);
                             const endPercent = timeToPercent(segment.end, timeline.duration);
@@ -1002,6 +1035,26 @@ export function TimelinePanel({
                           },
                         ),
                       )}
+                      {timelineMode === 'ambient' &&
+                        track?.clips.map((clip) => {
+                          const continuation = ambientContinuationForClip(clip, emitterLifetimeDuration(system), timeline.duration);
+                          if (!continuation) return null;
+                          const startPercent = timeToPercent(continuation.start, timeline.duration);
+                          const endPercent = timeToPercent(continuation.end, timeline.duration);
+                          return (
+                            <div
+                              key={`${clip.id}-ambient-continuation`}
+                              data-testid={`particle-timeline-ambient-continuation-${system.index}`}
+                              className="pointer-events-none absolute inset-y-[7px] rounded-sm border border-sky-400/25 bg-sky-400/15"
+                              style={{
+                                left: `${startPercent}%`,
+                                right: `${100 - Math.max(startPercent, endPercent)}%`,
+                                minWidth: '0.25rem',
+                              }}
+                              title={`${system.title} keeps emitting after Stop At in Ambient mode`}
+                            />
+                          );
+                        })}
                       {track?.clips.map((clip) => {
                         const startPercent = timeToPercent(clip.start, timeline.duration);
                         const endPercent = timeToPercent(clip.end, timeline.duration);

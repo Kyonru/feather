@@ -10,12 +10,13 @@ import {
   type ParticleTimelineClip,
   type ParticleTimelineKeyframe,
   type ParticleTimelineLane,
+  type ParticleTimelineMode,
   type ParticleTimelineTrack,
 } from '@/types/particle-system-playground';
 import { easeParticleTimelineValue, normalizeParticleTimelineEasing } from './easing';
 
 export const PARTICLE_PROJECT_TYPE = 'feather.particle-system-playground';
-export const PARTICLE_PROJECT_VERSION = 2;
+export const PARTICLE_PROJECT_VERSION = 3;
 export const PARTICLE_TIMELINE_DEFAULT_DURATION = 3;
 export const PARTICLE_TIMELINE_SCRUB_THROTTLE_MS = 120;
 
@@ -41,8 +42,10 @@ export const PARTICLE_TIMELINE_LANE_DEFAULTS: Record<ParticleTimelineLane, numbe
   offsetY: 0,
 };
 
-const AMBIENT_TEMPLATES = new Set<ParticleSystemPlaygroundTemplate>(['fire', 'smoke', 'sparkles']);
+const LOOP_TEMPLATES = new Set<ParticleSystemPlaygroundTemplate>(['fire', 'smoke', 'sparkles']);
+const AMBIENT_TEMPLATES = new Set<ParticleSystemPlaygroundTemplate>(['snowfall', 'rainfall', 'falling-leaves']);
 const VALID_LANES = new Set<string>(PARTICLE_TIMELINE_LANES);
+const VALID_TIMELINE_MODES = new Set<ParticleTimelineMode>(['one-shot', 'loop', 'ambient']);
 
 function finiteNumber(value: unknown, fallback: number): number {
   const n = Number(value);
@@ -51,6 +54,29 @@ function finiteNumber(value: unknown, fallback: number): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+export function normalizeParticleTimelineMode(value: unknown, fallback: ParticleTimelineMode = 'one-shot'): ParticleTimelineMode {
+  return typeof value === 'string' && VALID_TIMELINE_MODES.has(value as ParticleTimelineMode)
+    ? (value as ParticleTimelineMode)
+    : fallback;
+}
+
+export function particleTimelineModeFromLoop(loop: boolean): ParticleTimelineMode {
+  return loop ? 'loop' : 'one-shot';
+}
+
+export function particleTimelineLoopForMode(mode: ParticleTimelineMode): boolean {
+  return mode === 'loop';
+}
+
+function makeTimeline(duration: number, mode: ParticleTimelineMode, tracks: ParticleTimelineTrack[]): ParticleTimeline {
+  return {
+    duration,
+    mode,
+    loop: particleTimelineLoopForMode(mode),
+    tracks,
+  };
 }
 
 function idPart(value: string): string {
@@ -114,13 +140,19 @@ export function timelineForTemplate(
   systems: Pick<ParticleSystemPlaygroundSystem, 'index' | 'emitAtStart'>[],
 ): ParticleTimeline {
   const duration = PARTICLE_TIMELINE_DEFAULT_DURATION;
-  const loop = template ? AMBIENT_TEMPLATES.has(template) : true;
+  const mode: ParticleTimelineMode = template
+    ? AMBIENT_TEMPLATES.has(template)
+      ? 'ambient'
+      : LOOP_TEMPLATES.has(template)
+        ? 'loop'
+        : 'one-shot'
+    : 'one-shot';
 
   if (template === 'explosion' && systems.length >= 3) {
-    return {
+    return makeTimeline(
       duration,
-      loop: false,
-      tracks: [
+      'one-shot',
+      [
         authoredTrack(systems[0], 0, 0.42, {
           opacity: [
             [0, 1, 'outExpo'],
@@ -176,14 +208,14 @@ export function timelineForTemplate(
           ],
         }, 140),
       ],
-    };
+    );
   }
 
   if (template === 'muzzle-flash' && systems.length >= 2) {
-    return {
+    return makeTimeline(
       duration,
-      loop: false,
-      tracks: [
+      'one-shot',
+      [
         authoredTrack(systems[0], 0, 0.28, {
           opacity: [
             [0, 1],
@@ -212,14 +244,14 @@ export function timelineForTemplate(
           ],
         }, 80),
       ],
-    };
+    );
   }
 
   if (template === 'magic-burst' && systems.length >= 3) {
-    return {
+    return makeTimeline(
       duration,
-      loop: false,
-      tracks: [
+      'one-shot',
+      [
         authoredTrack(systems[0], 0, 0.65, {
           opacity: [
             [0, 1],
@@ -259,14 +291,14 @@ export function timelineForTemplate(
           ],
         }, 110),
       ],
-    };
+    );
   }
 
   if (template === 'dust-puff' && systems.length >= 1) {
-    return {
+    return makeTimeline(
       duration,
-      loop: false,
-      tracks: [
+      'one-shot',
+      [
         authoredTrack(systems[0], 0, 2.25, {
           opacity: [
             [0, 0.65],
@@ -289,14 +321,14 @@ export function timelineForTemplate(
           ],
         }, 120),
       ],
-    };
+    );
   }
 
   if (template === 'complex-composite' && systems.length >= 5) {
-    return {
+    return makeTimeline(
       duration,
-      loop: false,
-      tracks: [
+      'one-shot',
+      [
         authoredTrack(systems[0], 0, 0.72, {
           opacity: [
             [0, 1],
@@ -400,14 +432,14 @@ export function timelineForTemplate(
           ],
         }, 100),
       ],
-    };
+    );
   }
 
   if (template === 'fire') {
-    return {
+    return makeTimeline(
       duration,
-      loop: true,
-      tracks: systems.map((system) =>
+      'loop',
+      systems.map((system) =>
         authoredTrack(system, 0, duration, {
           opacity: [
             [0, 0.95],
@@ -426,14 +458,14 @@ export function timelineForTemplate(
           ],
         }),
       ),
-    };
+    );
   }
 
   if (template === 'smoke') {
-    return {
+    return makeTimeline(
       duration,
-      loop: true,
-      tracks: systems.map((system) =>
+      'loop',
+      systems.map((system) =>
         authoredTrack(system, 0, duration, {
           opacity: [
             [0, 0.55, 'inOutSine'],
@@ -451,14 +483,14 @@ export function timelineForTemplate(
           ],
         }),
       ),
-    };
+    );
   }
 
   if (template === 'sparkles') {
-    return {
+    return makeTimeline(
       duration,
-      loop: true,
-      tracks: systems.map((system) =>
+      'loop',
+      systems.map((system) =>
         authoredTrack(system, 0, duration, {
           opacity: [
             [0, 1, 'outSine'],
@@ -474,14 +506,95 @@ export function timelineForTemplate(
           ],
         }),
       ),
-    };
+    );
   }
 
-  return {
-    duration,
-    loop,
-    tracks: systems.map((system) => baseTrack(system, duration)),
-  };
+  if (template === 'snowfall') {
+    return makeTimeline(
+      8,
+      'ambient',
+      systems.map((system) =>
+        authoredTrack(system, 0, 2, {
+          opacity: [
+            [0, 0.7, 'outSine'],
+            [8, 0.78],
+          ],
+          emissionRate: [
+            [0, 120, 'outSine'],
+            [8, 135],
+          ],
+          speedScale: [
+            [0, 0.85],
+            [8, 0.95],
+          ],
+          offsetX: [
+            [0, -8, 'inOutSine'],
+            [8, 12],
+          ],
+        }, 0),
+      ),
+    );
+  }
+
+  if (template === 'rainfall') {
+    return makeTimeline(
+      6,
+      'ambient',
+      systems.map((system) =>
+        authoredTrack(system, 0, 1.5, {
+          opacity: [
+            [0, 0.55],
+            [6, 0.62],
+          ],
+          emissionRate: [
+            [0, 260],
+            [6, 280],
+          ],
+          speedScale: [
+            [0, 1],
+            [6, 1.08],
+          ],
+          spread: [
+            [0, 0.14],
+            [6, 0.2],
+          ],
+        }, 0),
+      ),
+    );
+  }
+
+  if (template === 'falling-leaves') {
+    return makeTimeline(
+      10,
+      'ambient',
+      systems.map((system) =>
+        authoredTrack(system, 0, 3, {
+          opacity: [
+            [0, 0.9],
+            [10, 0.85],
+          ],
+          emissionRate: [
+            [0, 32],
+            [10, 38],
+          ],
+          speedScale: [
+            [0, 0.75],
+            [10, 0.82],
+          ],
+          direction: [
+            [0, 1.65, 'inOutSine'],
+            [10, 1.8],
+          ],
+          offsetX: [
+            [0, -18, 'inOutSine'],
+            [10, 18],
+          ],
+        }, 0),
+      ),
+    );
+  }
+
+  return makeTimeline(duration, mode, systems.map((system) => baseTrack(system, duration)));
 }
 
 function normalizeKeyframes(
@@ -541,6 +654,13 @@ export function normalizeParticleTimeline(
   const fallback = timelineForTemplate(template, systems);
   const raw = typeof timeline === 'object' && timeline !== null ? (timeline as Record<string, unknown>) : {};
   const duration = clamp(finiteNumber(raw.duration, fallback.duration), 0.25, 60);
+  const fallbackMode = normalizeParticleTimelineMode(fallback.mode, particleTimelineModeFromLoop(fallback.loop));
+  const mode =
+    raw.mode !== undefined
+      ? normalizeParticleTimelineMode(raw.mode, fallbackMode)
+      : raw.loop !== undefined
+        ? particleTimelineModeFromLoop(raw.loop === true)
+        : fallbackMode;
   const tracksByIndex = new Map<number, unknown>();
   if (Array.isArray(raw.tracks)) {
     for (const track of raw.tracks) {
@@ -553,7 +673,8 @@ export function normalizeParticleTimeline(
 
   return {
     duration,
-    loop: raw.loop !== undefined ? raw.loop === true : fallback.loop,
+    mode,
+    loop: particleTimelineLoopForMode(mode),
     tracks: systems.map((system) => normalizeTrack(tracksByIndex.get(system.index), system, duration)),
   };
 }
@@ -612,12 +733,13 @@ export function withNormalizedTimeline(
   composite: ParticleSystemPlaygroundCompositeData,
   template?: ParticleSystemPlaygroundTemplate,
 ): ParticleSystemPlaygroundCompositeData {
+  const timeline = normalizeParticleTimeline(composite.timeline, composite.systems, template);
   return {
     ...composite,
-    timeline: normalizeParticleTimeline(composite.timeline, composite.systems, template),
+    timeline,
     timelineState: composite.timelineState
       ? {
-          time: clamp(finiteNumber(composite.timelineState.time, 0), 0, composite.timeline?.duration ?? PARTICLE_TIMELINE_DEFAULT_DURATION),
+          time: clamp(finiteNumber(composite.timelineState.time, 0), 0, timeline.duration),
           playing: composite.timelineState.playing === true,
           scrubVersion: finiteNumber(composite.timelineState.scrubVersion, 0),
         }
