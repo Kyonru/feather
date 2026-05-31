@@ -400,7 +400,7 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
 
   await page.getByRole('button', { name: /duplicate clip/i }).click();
   await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
-  await page.getByRole('button', { name: /delete clip/i }).click();
+  await page.keyboard.press('Delete');
   await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(1);
 
   const playhead = page.getByTestId('particle-timeline-playhead');

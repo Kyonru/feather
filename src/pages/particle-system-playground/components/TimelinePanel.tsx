@@ -585,9 +585,15 @@ export function TimelinePanel({
     const onKeyDown = (event: KeyboardEvent) => {
       if (targetIsTextInput(event.target)) return;
       if (event.key !== 'Backspace' && event.key !== 'Delete') return;
-      if (selectedItem?.type !== 'keyframe') return;
-      event.preventDefault();
-      deleteKeyframe(selectedItem.systemIndex, selectedItem.lane, selectedItem.keyframeId);
+      if (selectedItem?.type === 'keyframe') {
+        event.preventDefault();
+        deleteKeyframe(selectedItem.systemIndex, selectedItem.lane, selectedItem.keyframeId);
+        return;
+      }
+      if (selectedItem?.type === 'clip') {
+        event.preventDefault();
+        deleteClip(selectedItem.systemIndex, selectedItem.clipId);
+      }
     };
 
     window.addEventListener('keydown', onKeyDown);

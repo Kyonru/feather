@@ -2997,7 +2997,7 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
 
   await page.getByRole('button', { name: /duplicate clip/i }).click();
   await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
-  await page.getByRole('button', { name: /delete clip/i }).click();
+  await page.keyboard.press('Delete');
   await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(1);
 
   await page.getByText('Opacity').click();
