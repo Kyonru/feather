@@ -3,22 +3,21 @@
 The `LuaStateMachinePlugin` is a plugin for the [Feather Debugger](https://github.com/Kyonru/feather) that integrates with the [`lua-state-machine`](https://github.com/kyleconroy/lua-state-machine) library (or any compatible state machine implementation).
 It automatically observes and tracks the current state of created state machine instances, making it easier to debug and visualize state transitions inside Feather.
 
-## 📦 Installation
+## Setup
 
-Place `lua-state-machine.lua` in your `feather/plugins/` directory (or wherever you keep your Feather plugins). You might need to modify the require path to match your project structure.
-
-```lua
-local LuaStateMachinePlugin = require("feather.plugins.lua-state-machine")
-```
-
-## ⚙️ Configuration
-
-Register the plugin using the FeatherPluginManager.createPlugin function:
+Enable and configure the plugin from `feather.config.lua`:
 
 ```lua
-FeatherPluginManager.createPlugin(LuaStateMachinePlugin, "lua-state-machine", {
-  machine = machine,
-})
+local machine = require("statemachine")
+
+return {
+  include = { "lua-state-machine" },
+  pluginOptions = {
+    ["lua-state-machine"] = {
+      machine = machine,
+    },
+  },
+}
 ```
 
 ## Options
@@ -51,12 +50,12 @@ Observed variables will appear in the observers tab of Feather:
 ```lua
 local machine = require("statemachine")
 
-local debugger = FeatherDebugger({
-  debug = true,
-  plugins = {
-    FeatherPluginManager.createPlugin(LuaStateMachinePlugin, "lua-state-machine", {
+require("feather.auto").setup({
+  include = { "lua-state-machine" },
+  pluginOptions = {
+    ["lua-state-machine"] = {
       machine = machine,
-    }),
+    },
   },
 })
 

@@ -2,46 +2,43 @@
 
 The `ConfigTweakerPlugin` is a plugin for the [Feather Debugger](https://github.com/Kyonru/feather) that lets you **tweak game config values live** from the Feather desktop app. Expose any variable — gravity, speed, spawn rate, toggle flags — as inputs, number fields, or checkboxes in the desktop UI. Changes apply instantly without restarting.
 
-## 📦 Installation
+## Setup
 
-The plugin lives in `plugins/config-tweaker/`. Require it from your project:
-
-```lua
-local ConfigTweakerPlugin = require("plugins.config-tweaker")
-```
-
-## ⚙️ Configuration
-
-Register the plugin with a list of config fields:
+Enable and configure the plugin from `feather.config.lua`:
 
 ```lua
-FeatherPluginManager.createPlugin(ConfigTweakerPlugin, "config-tweaker", {
-  fields = {
-    {
-      key = "gravity",
-      label = "Gravity",
-      type = "number",
-      min = 0, max = 2000, step = 10,
-      get = function() return gameConfig.gravity end,
-      set = function(v) gameConfig.gravity = v end,
-    },
-    {
-      key = "playerSpeed",
-      label = "Player Speed",
-      type = "number",
-      min = 0, max = 1000,
-      get = function() return player.speed end,
-      set = function(v) player.speed = v end,
-    },
-    {
-      key = "godMode",
-      label = "God Mode",
-      type = "boolean",
-      get = function() return gameConfig.godMode end,
-      set = function(v) gameConfig.godMode = v end,
+return {
+  include = { "config-tweaker" },
+  pluginOptions = {
+    ["config-tweaker"] = {
+      fields = {
+        {
+          key = "gravity",
+          label = "Gravity",
+          type = "number",
+          min = 0, max = 2000, step = 10,
+          get = function() return gameConfig.gravity end,
+          set = function(v) gameConfig.gravity = v end,
+        },
+        {
+          key = "playerSpeed",
+          label = "Player Speed",
+          type = "number",
+          min = 0, max = 1000,
+          get = function() return player.speed end,
+          set = function(v) player.speed = v end,
+        },
+        {
+          key = "godMode",
+          label = "God Mode",
+          type = "boolean",
+          get = function() return gameConfig.godMode end,
+          set = function(v) gameConfig.godMode = v end,
+        },
+      },
     },
   },
-})
+}
 ```
 
 ### Plugin Options
@@ -98,20 +95,20 @@ If a setter throws an error, it's caught with `pcall` and logged. The game conti
 
 ### Physics Config
 
+This is the `fields` value you would place under `pluginOptions["config-tweaker"]`:
+
 ```lua
-FeatherPluginManager.createPlugin(ConfigTweakerPlugin, "config-tweaker", {
-  fields = {
-    { key = "gravity", label = "Gravity", type = "number", min = 0, max = 2000, step = 10,
-      get = function() return physics.gravity end,
-      set = function(v) physics.gravity = v end },
-    { key = "friction", label = "Friction", type = "number", min = 0, max = 1, step = 0.01,
-      get = function() return physics.friction end,
-      set = function(v) physics.friction = v end },
-    { key = "bounce", label = "Bounce", type = "number", min = 0, max = 1, step = 0.05,
-      get = function() return physics.bounce end,
-      set = function(v) physics.bounce = v end },
-  },
-})
+fields = {
+  { key = "gravity", label = "Gravity", type = "number", min = 0, max = 2000, step = 10,
+    get = function() return physics.gravity end,
+    set = function(v) physics.gravity = v end },
+  { key = "friction", label = "Friction", type = "number", min = 0, max = 1, step = 0.01,
+    get = function() return physics.friction end,
+    set = function(v) physics.friction = v end },
+  { key = "bounce", label = "Bounce", type = "number", min = 0, max = 1, step = 0.05,
+    get = function() return physics.bounce end,
+    set = function(v) physics.bounce = v end },
+}
 ```
 
 ### Adding Fields at Runtime

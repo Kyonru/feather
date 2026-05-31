@@ -36,6 +36,7 @@
 | `debugOverlay`                      | `table` or `false`    | enabled in debug    | Small in-game “Feather debugger enabled” badge. Use `enabled`, `visible`, `hideKey`, `touchToggle`, and `corner` to customize it. Press `F12` or double-tap the top-right corner to hide/show by default. |
 | `assetPreview`                      | `boolean`             | `true`              | Enable the core Assets tab tracking and previews. Set to `false` to avoid hooking asset loaders and `love.draw`.                                                                        |
 | `binaryTextThreshold`               | `number`              | `4096`              | Observer, time-travel, debugger, and console text values longer than this many bytes are sent through the hybrid binary protocol instead of JSON.                                       |
+| `runtimeBudget`                     | `table`               | see below           | Budget for non-critical Feather runtime work such as observer payloads, asset payloads, plugin pushes, profiler live uploads, binary drains, and GC steps.                              |
 
 ---
 
@@ -70,6 +71,30 @@ feather config plugins --exclude shader-graph
 ```
 
 Plugins marked `optIn = true` or `disabled = true` in their `manifest.lua` only become active when included. This is how development-only tools such as Console and Hot Reload stay off unless you ask for them.
+
+## Runtime Budget And Panel Interest
+
+Feather keeps connection, auth, errors, logs, debugger control, explicit profiler captures, and a low-rate performance heartbeat available while the game is connected. More expensive work such as observer serialization, asset payloads, plugin UI payloads, Time Travel, Session Replay, Runtime Snapshot, and creative preview sync is activated by opening the matching page or starting an explicit recording/preview workflow.
+
+Non-critical work is spread across frames with `runtimeBudget`:
+
+```lua
+return {
+  runtimeBudget = {
+    maxFrameMs = 0.5,
+    maxMessagesPerFrame = 20,
+    maxSerializedBytesPerFrame = 32 * 1024,
+  },
+}
+```
+
+| Field                         | Default     | Description                                                                 |
+| ----------------------------- | ----------- | --------------------------------------------------------------------------- |
+| `maxFrameMs`                  | `0.5`       | Soft per-frame time budget for deferrable Feather work.                     |
+| `maxMessagesPerFrame`         | `20`        | Maximum non-critical messages Feather should flush in one runtime frame.     |
+| `maxSerializedBytesPerFrame`  | `32 * 1024` | Approximate serialized-byte budget for non-critical payload work per frame. |
+
+Critical messages still send immediately under budget pressure: auth/hello/bye, fatal errors, command/action responses, debugger pause/resume/status, runtime suspend/resume, and explicit preview clear/hide actions.
 
 ## Hot Reload
 

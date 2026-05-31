@@ -2,25 +2,22 @@
 
 The `InputReplayPlugin` is a plugin for the [Feather Debugger](https://github.com/Kyonru/feather) that lets you **record and replay input events** (keyboard and mouse) with timestamps. Replay recorded inputs deterministically to reproduce bugs, test sequences, or automate repetitive interactions.
 
-## 📦 Installation
+## Setup
 
-The plugin lives in `plugins/input-replay/`. Require it from your project:
-
-```lua
-local InputReplayPlugin = require("plugins.input-replay")
-```
-
-## ⚙️ Configuration
-
-Register the plugin using `FeatherPluginManager.createPlugin`:
+Enable and configure the plugin from `feather.config.lua`:
 
 ```lua
-FeatherPluginManager.createPlugin(InputReplayPlugin, "input-replay", {
-  captureKeys = true,       -- record keypressed/keyreleased (default: true)
-  captureMouse = true,      -- record mousepressed/mousereleased (default: true)
-  captureMouseMove = false,  -- record mousemoved (default: false, can be noisy)
-  maxEvents = 10000,         -- max events per recording (default: 10000)
-})
+return {
+  include = { "input-replay" },
+  pluginOptions = {
+    ["input-replay"] = {
+      captureKeys = true,        -- record keypressed/keyreleased
+      captureMouse = true,       -- record mousepressed/mousereleased
+      captureMouseMove = false,  -- can be noisy
+      maxEvents = 10000,
+    },
+  },
+}
 ```
 
 ### Plugin Options
@@ -84,12 +81,12 @@ The Feather desktop app shows these controls:
 
 ## 🎮 Usage Examples
 
-### Basic Setup
+### Basic Workflow
 
 ```lua
-local InputReplayPlugin = require("plugins.input-replay")
-
-FeatherPluginManager.createPlugin(InputReplayPlugin, "input-replay", {})
+return {
+  include = { "input-replay" },
+}
 ```
 
 Then in the Feather desktop app:

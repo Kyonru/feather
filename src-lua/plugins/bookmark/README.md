@@ -4,25 +4,28 @@ The `BookmarkPlugin` is a plugin for the [Feather Debugger](https://github.com/K
 
 Use it to mark bugs, lag spikes, interesting events, or anything you want to revisit later — either via an in-game hotkey or from the desktop controls.
 
-## Installation
+## Setup
 
-The plugin lives in `plugins/bookmark/`. Require it from your project:
+Enable the plugin from `feather.config.lua`:
 
 ```lua
-local BookmarkPlugin = require("plugins.bookmark")
+return {
+  include = { "bookmark" },
+  pluginOptions = {
+    bookmark = {
+      hotkey = "f3",               -- key to add a quick bookmark in-game
+      defaultCategory = "general", -- default category for new bookmarks
+      categories = { "general", "bug", "lag", "note", "important" },
+      maxBookmarks = 500,          -- max stored bookmarks (oldest trimmed)
+    },
+  },
+}
 ```
 
-## Configuration
+You can also enable it from the CLI:
 
-Register the plugin using `FeatherPluginManager.createPlugin`:
-
-```lua
-FeatherPluginManager.createPlugin(BookmarkPlugin, "bookmark", {
-  hotkey = "f3",              -- key to add a quick bookmark in-game
-  defaultCategory = "general", -- default category for new bookmarks
-  categories = { "general", "bug", "lag", "note", "important" },
-  maxBookmarks = 500,          -- max stored bookmarks (oldest trimmed)
-})
+```bash
+feather config plugins --include bookmark --dir path/to/my-game
 ```
 
 ## Options

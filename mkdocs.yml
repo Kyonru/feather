@@ -35,11 +35,15 @@ nav:
   - VS Code Extension: vscode-extension.md
   - Usage: usage.md
   - Configuration: configuration.md
+  - Session: session.md
+  - Logs: logs.md
+  - Observability: observability.md
+  - Performance: performance.md
+  - Profiler: profiler.md
   - Debugger: debugger.md
   - Hot Reload: hot-reload.md
   - Console: console.md
   - Assets: assets.md
-  - Profiler: profiler.md
   - Particle System Playground: particle-system-playground.md
   - Shader Graph: shader-graph.md
   - Standalone Showcase: standalone-showcase.md

@@ -2,21 +2,20 @@
 
 The `NetworkInspectorPlugin` is a plugin for the [Feather Debugger](https://github.com/Kyonru/feather) that lets you **inspect network traffic** in your LÖVE game. It logs outgoing and incoming packets with timestamps, sizes, and decoded payloads — similar to the browser DevTools Network tab.
 
-## Installation
+## Setup
 
 ```lua
-local NetworkInspectorPlugin = require("plugins.network-inspector")
-```
-
-## Configuration
-
-```lua
-FeatherPluginManager.createPlugin(NetworkInspectorPlugin, "network-inspector", {
-  maxPackets = 1000,          -- max stored packets (oldest trimmed)
-  maxPayloadPreview = 200,    -- max chars shown per payload
-  hookSocket = false,         -- true = auto-hook LuaSocket TCP globally
-  captureFeatherTraffic = false, -- true = include Feather's own WS traffic
-})
+return {
+  include = { "network-inspector" },
+  pluginOptions = {
+    ["network-inspector"] = {
+      maxPackets = 1000,             -- max stored packets
+      maxPayloadPreview = 200,       -- max chars shown per payload
+      hookSocket = false,            -- true = auto-hook LuaSocket TCP globally
+      captureFeatherTraffic = false, -- true = include Feather's own WS traffic
+    },
+  },
+}
 ```
 
 ## Options

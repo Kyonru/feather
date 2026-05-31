@@ -7,27 +7,21 @@ It helps with debugging rendering issues, documenting game states, and
 quickly sharing visual output without leaving your development
 environment.
 
-## 📦 Installation
+## Setup
 
-Place `screenshot.lua` in your `feather/plugins/` directory (or wherever
-you keep your Feather plugins).
-Adjust the require path as needed:
+Enable and configure the plugin from `feather.config.lua`:
 
 ``` lua
-local ScreenshotPlugin = require("feather.plugins.screenshot")
-```
-
-## ⚙️ Configuration
-
-Register the plugin using the `FeatherPluginManager.createPlugin`
-function:
-
-``` lua
-FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
-  screenshotDirectory = "screenshots", -- output folder for captures
-  fps = 60,                            -- frames per second for GIFs
-  gifDuration = 5,                     -- default duration of GIFs in seconds
-})
+return {
+  include = { "screenshots" },
+  pluginOptions = {
+    screenshots = {
+      screenshotDirectory = "screenshots", -- output folder for captures
+      fps = 60,                            -- frames per second for GIFs
+      gifDuration = 5,                     -- default duration of GIFs
+    },
+  },
+}
 ```
 
 ## Options
@@ -85,24 +79,22 @@ The plugin adds interactive actions to the Feather UI:
 ## 📊 Example
 
 ``` lua
-local ScreenshotPlugin = require("feather.plugins.screenshot")
-
-local debugger = FeatherDebugger({
-  debug = true,
-  plugins = {
-    FeatherPluginManager.createPlugin(ScreenshotPlugin, "screenshots", {
+require("feather.auto").setup({
+  include = { "screenshots" },
+  pluginOptions = {
+    screenshots = {
       screenshotDirectory = "screenshots",
       fps = 30,
       gifDuration = 5,
-    }),
+    },
   },
 })
 
 function love.keypressed(key)
   if key == "f1" then
-    debugger:action("screenshots", "screenshot", {})
+    DEBUGGER:action("screenshots", "screenshot", {})
   elseif key == "f2" then
-    debugger:action("screenshots", "gif", { duration = 3, fps = 60 })
+    DEBUGGER:action("screenshots", "gif", { duration = 3, fps = 60 })
   end
 end
 ```

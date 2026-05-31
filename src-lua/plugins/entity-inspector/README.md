@@ -4,27 +4,24 @@ The `EntityInspectorPlugin` is a plugin for the [Feather Debugger](https://githu
 
 LÖVE doesn't have a built-in scene graph, so this plugin works with **any entity structure** — custom tables, ECS libraries (Concord, tiny-ecs), or scene trees. You register one or more entity sources, and the plugin handles introspection automatically.
 
-## 📦 Installation
+## Setup
 
-The plugin lives in `plugins/entity-inspector/`. Require it from your project:
-
-```lua
-local EntityInspectorPlugin = require("plugins.entity-inspector")
-```
-
-## ⚙️ Configuration
-
-Register the plugin using `FeatherPluginManager.createPlugin`:
+Enable and configure the plugin from `feather.config.lua`:
 
 ```lua
-FeatherPluginManager.createPlugin(EntityInspectorPlugin, "entity-inspector", {
-  sources = {
-    {
-      name = "Game Objects",
-      entities = function() return myEntityList end,
+return {
+  include = { "entity-inspector" },
+  pluginOptions = {
+    ["entity-inspector"] = {
+      sources = {
+        {
+          name = "Game Objects",
+          entities = function() return myEntityList end,
+        },
+      },
     },
   },
-})
+}
 ```
 
 ### Plugin Options
@@ -106,63 +103,57 @@ end
 
 ## 🎮 Usage Examples
 
+The examples below show the `sources` value you would place under `pluginOptions["entity-inspector"]`.
+
 ### Simple Entity Table
 
 ```lua
 local entities = {
   { name = "Player", x = 100, y = 200, health = 100, speed = 150 },
-  { name = "Enemy",  x = 400, y = 180, health = 30,  tag = "goblin" },
+  { name = "Enemy",  x = 400, y = 180, health = 30,  tag = "enemy" },
 }
 
-FeatherPluginManager.createPlugin(EntityInspectorPlugin, "entity-inspector", {
-  sources = {
-    { name = "All Entities", entities = entities },
-  },
-})
+sources = {
+  { name = "All Entities", entities = entities },
+}
 ```
 
 ### With Children (Scene Graph)
 
 ```lua
-FeatherPluginManager.createPlugin(EntityInspectorPlugin, "entity-inspector", {
-  sources = {
-    {
-      name = "Scene",
-      entities = function() return scene.rootNodes end,
-      getChildren = function(node) return node.children end,
-    },
+sources = {
+  {
+    name = "Scene",
+    entities = function() return scene.rootNodes end,
+    getChildren = function(node) return node.children end,
   },
-})
+}
 ```
 
 ### ECS Integration (tiny-ecs)
 
 ```lua
-FeatherPluginManager.createPlugin(EntityInspectorPlugin, "entity-inspector", {
-  sources = {
-    {
-      name = "ECS Entities",
-      entities = function() return world.entities end,
-      getProperties = function(e)
-        return {
-          components = table.concat(world:getComponents(e), ", "),
-        }
-      end,
-    },
+sources = {
+  {
+    name = "ECS Entities",
+    entities = function() return world.entities end,
+    getProperties = function(e)
+      return {
+        components = table.concat(world:getComponents(e), ", "),
+      }
+    end,
   },
-})
+}
 ```
 
 ### Multiple Sources
 
 ```lua
-FeatherPluginManager.createPlugin(EntityInspectorPlugin, "entity-inspector", {
-  sources = {
-    { name = "Players", entities = function() return playerList end },
-    { name = "Enemies", entities = function() return enemyList end },
-    { name = "Pickups", entities = function() return pickupList end },
-  },
-})
+sources = {
+  { name = "Players", entities = function() return playerList end },
+  { name = "Enemies", entities = function() return enemyList end },
+  { name = "Pickups", entities = function() return pickupList end },
+}
 ```
 
 The desktop app shows a dropdown to switch between sources.

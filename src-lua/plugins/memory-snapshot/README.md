@@ -2,19 +2,18 @@
 
 The `MemorySnapshotPlugin` lets you take **point-in-time memory snapshots** of your LÖVE game and **diff between them** to find memory leaks. It captures `collectgarbage("count")` plus the size and entry count of any tables you register for tracking.
 
-## Installation
+## Setup
 
 ```lua
-local MemorySnapshotPlugin = require("plugins.memory-snapshot")
-```
-
-## Configuration
-
-```lua
-FeatherPluginManager.createPlugin(MemorySnapshotPlugin, "memory-snapshot", {
-  maxSnapshots = 100,     -- max snapshots stored (oldest trimmed)
-  autoInterval = 0,       -- seconds between auto-snapshots (0 = off)
-})
+return {
+  include = { "memory-snapshot" },
+  pluginOptions = {
+    ["memory-snapshot"] = {
+      maxSnapshots = 100, -- max snapshots stored (oldest trimmed)
+      autoInterval = 0,   -- seconds between auto-snapshots (0 = off)
+    },
+  },
+}
 ```
 
 ## Options

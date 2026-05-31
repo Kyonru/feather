@@ -82,80 +82,63 @@ Open **About** from the lower sidebar to see the desktop app version, update sta
 
 ## Session Health
 
-Open **Session** first when you want to know what Feather thinks is happening. The page summarizes connection state, runtime/API version, project roots, capabilities, enabled or incompatible plugins, Console/API-key status, Hot Reload state, debugger state, package lockfile status, and recent performance signals.
+Open **Session** first when you want to know what Feather thinks is happening. It summarizes connection state, auth/config status, runtime versions, enabled plugins, debugger state, package state, and recommended next actions.
 
-The **Recommended Next Actions** panel points to the next useful place to go, such as Settings for security/API-key issues, Debugger for paused breakpoints or Hot Reload failures, Performance for frame hitches, or package guidance when no lockfile is available.
+Use the session pause button to temporarily suspend Feather runtime work while keeping the socket available for resume.
 
-Use the pause button beside the active live session tab to temporarily suspend Feather runtime work inside the connected game. The socket stays open so you can resume from the desktop, but sampling, plugin updates, asset work, and preview overlays stay dormant until resumed.
-
-Feather also keeps most expensive runtime work dormant while you are not looking at the matching panel. Logs, errors, debugger control, and a low-rate performance heartbeat stay live, but observer serialization, asset catalog pushes, plugin UI payloads, and creative preview sync are activated by opening the relevant page or starting an explicit recording/preview workflow.
+→ [Full Session documentation](session.md)
 
 ---
 
 ## Observers
 
-Watch variable values in real-time from the Observability tab:
+Watch variable values from the **Observability** tab:
 
 ```lua
 debugger:observe("player", player)
 debugger:observe("camera", camera)
+debugger:watch("player.health", function() return player.health end)
 ```
 
-The Observability page tracks first seen, last seen, last changed, value size, change counts, and recent value history for each observer. Use key prefixes like `player.x`, `player.health`, or `physics.contacts` to get automatic group filters, then search, filter, sort, inspect diffs, customize how long changed markers stay visible, and export the visible observer set as JSON.
+Use `observe` for values you want to expose directly and `watch` for cheap on-demand values. Observability wakes up when the page asks for data, then goes dormant again when you leave.
 
-For cheap watched values, prefer `debugger:watch("player.health", function() return player.health end)`. Watches are evaluated when Observability asks for data instead of forcing you to serialize a larger table every frame.
+→ [Full Observability documentation](observability.md)
 
 ---
 
 ## Logging
 
-Feather automatically wraps `print()` when `wrapPrint = true`. You can also log manually:
+Feather automatically wraps `print()` when `wrapPrint = true`. You can also send logs manually:
 
 ```lua
 debugger:print("Something happened")
 
-debugger:log({
-  type = "awesome_log_type",
-  str  = "Something happened",
-})
-```
-
-### Trace
-
-```lua
+debugger:log({ type = "combat", str = "Player took damage" })
 debugger:trace("Something happened")
-```
-
-### Error logging
-
-```lua
 debugger:error("Something went wrong")
 ```
 
-Live session logs are also cached locally in the desktop app. Reopening Feather or restarting a CLI-launched game restores the recent log history for that saved session/project, while screenshots stay out of the cache to keep the app storage small.
+Logs support follow-tail, search, filters, clear, local history restore, `.featherlog` files, and immediate delivery for error/fatal events.
 
-Normal websocket log lines are batched in small groups to reduce runtime overhead. Error, fatal, start, and finish lines still flush immediately.
+→ [Full Logs documentation](logs.md)
 
 ---
 
 ## Performance And Profiler
 
-The **Performance** page has a **Health** tab for live FPS, frame-time, memory, disk, draw-call, canvas-switch, shader-switch, and texture-memory, plus an **Overhead** tab for Feather's own runtime cost. Use pause/follow when a hitch happens, inspect recent spikes or the Feather Overhead panel, then export the visible JSON window if you need to compare runs.
+The **Performance** page has **Health** for game runtime signals, **Overhead** for Feather's own runtime cost, and **Profiler** for explicit instrumentation captures.
 
-Use the core profiler in the **Performance → Profiler** tab for instrumented hot paths. It is available in every debug session and stays idle until you press **Record Capture** or call `DEBUGGER.profiler:start()`:
+Use the core profiler for hot paths:
 
 ```lua
 local updateWorld = DEBUGGER.profiler:wrap("World:update", updateWorld)
-
-DEBUGGER.profiler:start()
-DEBUGGER.profiler:begin("physics.step")
--- work
-DEBUGGER.profiler:finish("physics.step")
 ```
 
-The profiler uses explicit instrumentation only. The desktop capture workspace can record/finish captures, show top hotspots, open a per-function run comparison drawer with a zoomable run strip, group rows by name prefix, hide one-call entries, filter rows, sort by percent/total/average/max/calls, save named snapshots, compare aggregate diffs, and export JSON. Capture uploads are deferred onto Feather's runtime update lane so stop/snapshot probes do not serialize large profiler payloads inside the measured function.
+Record captures from the desktop or from debugger profiler probes, then inspect hotspots, run comparisons, snapshots, diffs, and exports.
 
-Debugger profiler probes let you control those captures from source lines. Add stopwatch markers in the **Debugger** gutter to start, stop, or snapshot the core profiler without pausing execution, or use **Profile function here** on supported global/table function lines to install a `wrap` automatically; the results stream into **Performance -> Profiler**.
+→ [Full Performance documentation](performance.md)
+
+→ [Full Profiler documentation](profiler.md)
 
 ---
 

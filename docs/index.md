@@ -97,9 +97,23 @@ See [CLI](cli.md) for `feather run`, `feather doctor`, `feather build`, and `fea
 
 - [CLI](cli.md) — Run games without touching their code, `feather run`, `feather init`, `feather doctor`, `feather build`, `feather upload`
 - [Installation](installation.md) — Download, install script, LuaRocks, custom paths
-- [Configuration](configuration.md) — All config options, connecting, mobile debugging
-- [Usage](usage.md) — Observers, logging, console / REPL, step debugger
-- [Assets](assets.md) — Inspect loaded textures, fonts, audio, and configure the game root
+- [VS Code Extension](vscode-extension.md) — Run, doctor, build, plugin, package, and project settings from the editor
+- [Usage](usage.md) — Quick tour of the desktop app and common workflows
+- [Configuration](configuration.md) — Runtime options, auth, runtime budgets, connecting, mobile debugging
+- [Session](session.md) — Connection health, auth/config status, suspend/resume, session switching
+- [Logs](logs.md) — Live logs, follow-tail, persistence, filters, `.featherlog` files
+- [Observability](observability.md) — `observe`, `watch`, diffs, history, exports, and payload-cost guidance
+- [Performance](performance.md) — Health metrics, Feather overhead, runtime budgets, profiler entry points
+- [Profiler](profiler.md) — Core profiler captures, snapshots, probes, wrapped functions, run comparisons
+- [Debugger](debugger.md) — Breakpoints, stepping, pause-on-error, source views, profiler probes
+- [Console](console.md) — Opt-in Lua eval, result inspectors, pins, read-only guardrails
+- [Assets](assets.md) — Inspect loaded textures, fonts, audio, previews, and game-root mapping
+- [Particle System Playground](particle-system-playground.md) — Particle templates, timelines, previews, exports
+- [Shader Graph](shader-graph.md) — Node graph shaders, templates, previews, connected-game apply
+- [Standalone Showcase](standalone-showcase.md) — Browser-hosted creative tools without a local game
+- [Time Travel](time-travel.md) — Observer snapshot recording and timeline scrubbing
+- [Session Replay](session-replay.md) — Input replay with developer-selected state checkpoints
+- [Package Management](packages.md) — Curated LÖVE packages, trust, checksums, lockfiles
 - [Plugins](plugins.md) — Built-in plugins, plugin system, custom plugins
 - [Recommendations](recommendations.md) — Security, performance, release builds
 
@@ -110,3 +124,5 @@ See [CLI](cli.md) for `feather run`, `feather doctor`, `feather build`, and `fea
 ![log tab](images/logs.png)
 ![performance tab](images/performance.png)
 ![observability tab](images/observable.png)
+![debugger tab](images/debugger.png)
+![assets tab](images/assets.png)
