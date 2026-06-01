@@ -7,11 +7,17 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CopyIcon,
   Dice5Icon,
   DownloadIcon,
   ChevronDownIcon,
+  EyeIcon,
+  EyeOffIcon,
   ImageIcon,
   MousePointer2Icon,
+  PlusIcon,
   RotateCcwIcon,
   RefreshCwIcon,
   SendIcon,
@@ -37,10 +43,18 @@ import { useSettingsStore } from '@/store/settings';
 import {
   TEXTURE_LAB_ALPHA_MODES,
   TEXTURE_LAB_COLOR_RAMPS,
+  TEXTURE_LAB_SHAPE_BLEND_MODES,
+  TEXTURE_LAB_SHAPE_ELEMENT_KINDS,
+  TEXTURE_LAB_SHAPE_REPEAT_MODES,
   TEXTURE_LAB_SPLINE_OVERLAP_MODES,
   TEXTURE_LAB_SIZES,
   type GeneratedTextureResult,
   type TextureLabRecipe,
+  type TextureLabShapeElement,
+  type TextureLabShapeElementKind,
+  type TextureLabShapeRecipe,
+  type TextureLabShapeRepeat,
+  type TextureLabShapeRepeatMode,
   type TextureLabSplineOverlapMode,
   type TextureLabSplinePoint,
   type TextureLabSplineRecipe,
@@ -54,7 +68,10 @@ import {
   renderTextureLabPixels,
   textureLabPixelsToDataUrl,
   TEXTURE_LAB_GENERATORS,
+  TEXTURE_LAB_SHAPE_PRESETS,
   TEXTURE_LAB_SPLINE_PRESETS,
+  textureLabShapeElement,
+  textureLabShapePreset,
   textureLabSplinePreset,
 } from './generator';
 
@@ -101,6 +118,44 @@ const SPLINE_NUMBER_CONTROLS: Array<{
   { key: 'tension', label: 'Tension', min: 0, max: 1, step: 0.01 },
   { key: 'jitter', label: 'Jitter', min: 0, max: 1, step: 0.01 },
   { key: 'samples', label: 'Samples', min: 16, max: 192, step: 1 },
+];
+
+const SHAPE_NUMBER_CONTROLS: Array<{
+  key: keyof Pick<
+    TextureLabShapeElement,
+    'x' | 'y' | 'size' | 'rotation' | 'opacity' | 'strokeWidth' | 'feather' | 'sides' | 'innerRadius' | 'cornerRoundness'
+  >;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+}> = [
+  { key: 'x', label: 'X', min: 0, max: 1, step: 0.01 },
+  { key: 'y', label: 'Y', min: 0, max: 1, step: 0.01 },
+  { key: 'size', label: 'Size', min: 0.03, max: 1.5, step: 0.01 },
+  { key: 'rotation', label: 'Rotation', min: -2, max: 2, step: 0.01 },
+  { key: 'opacity', label: 'Opacity', min: 0, max: 1, step: 0.01 },
+  { key: 'strokeWidth', label: 'Stroke', min: 0, max: 0.45, step: 0.01 },
+  { key: 'feather', label: 'Feather', min: 0, max: 0.45, step: 0.01 },
+  { key: 'sides', label: 'Sides', min: 3, max: 12, step: 1 },
+  { key: 'innerRadius', label: 'Inner radius', min: 0.08, max: 0.95, step: 0.01 },
+  { key: 'cornerRoundness', label: 'Roundness', min: 0, max: 1, step: 0.01 },
+];
+
+const REPEAT_NUMBER_CONTROLS: Array<{
+  key: keyof Omit<TextureLabShapeRepeat, 'mode'>;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+}> = [
+  { key: 'count', label: 'Count', min: 1, max: 64, step: 1 },
+  { key: 'spacing', label: 'Spacing', min: 0, max: 1, step: 0.01 },
+  { key: 'radius', label: 'Radius', min: 0, max: 1, step: 0.01 },
+  { key: 'seedOffset', label: 'Seed offset', min: 0, max: 9999, step: 1 },
+  { key: 'rotationVariance', label: 'Rotation var', min: 0, max: 1, step: 0.01 },
+  { key: 'scaleVariance', label: 'Scale var', min: 0, max: 1, step: 0.01 },
+  { key: 'jitter', label: 'Jitter', min: 0, max: 1, step: 0.01 },
 ];
 
 const SPLINE_POINT_STYLE = { fill: '#bfdbfe', stroke: '#2563eb', strokeWidth: 2 };
@@ -336,7 +391,7 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, onChange }: SplineEdi
           )}
         />
         <svg
-          className="pointer-events-none absolute inset-0 size-full touch-none"
+          className="absolute inset-0 size-full touch-none"
           viewBox="0 0 1 1"
           preserveAspectRatio="none"
         >
@@ -389,6 +444,376 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, onChange }: SplineEdi
   );
 }
 
+function shapeLayerEditablePoints(layer: TextureLabShapeElement | undefined): TextureLabSplinePoint[] | undefined {
+  if (!layer) return undefined;
+  if ((layer.kind === 'polygon' || layer.kind === 'star') && Array.isArray(layer.points) && layer.points.length >= 3) {
+    return layer.points;
+  }
+  if (layer.kind === 'spline' && layer.spline?.points && layer.spline.points.length >= 2) {
+    return layer.spline.points;
+  }
+  return undefined;
+}
+
+function shapeLayerSupportsPoints(layer: TextureLabShapeElement | undefined): boolean {
+  return !!shapeLayerEditablePoints(layer);
+}
+
+function shapeLayerMinimumPoints(layer: TextureLabShapeElement): number {
+  return layer.kind === 'spline' ? 2 : 3;
+}
+
+function shapePointToWorld(layer: TextureLabShapeElement, point: TextureLabSplinePoint): TextureLabSplinePoint {
+  const angle = layer.rotation * Math.PI * 2;
+  const x = (point.x - 0.5) * layer.size;
+  const y = (point.y - 0.5) * layer.size;
+  return {
+    x: clamp01(layer.x + x * Math.cos(angle) - y * Math.sin(angle)),
+    y: clamp01(layer.y + x * Math.sin(angle) + y * Math.cos(angle)),
+  };
+}
+
+function shapeWorldToPoint(layer: TextureLabShapeElement, point: TextureLabSplinePoint): TextureLabSplinePoint {
+  const angle = -layer.rotation * Math.PI * 2;
+  const dx = point.x - layer.x;
+  const dy = point.y - layer.y;
+  return {
+    x: clamp01((dx * Math.cos(angle) - dy * Math.sin(angle)) / Math.max(0.001, layer.size) + 0.5),
+    y: clamp01((dx * Math.sin(angle) + dy * Math.cos(angle)) / Math.max(0.001, layer.size) + 0.5),
+  };
+}
+
+function shapeLayerPathData(layer: TextureLabShapeElement): string {
+  const points = shapeLayerEditablePoints(layer);
+  if (!points) return '';
+  return splinePathData(points.map((point) => shapePointToWorld(layer, point)), layer.kind === 'spline' ? layer.spline?.closed === true : true);
+}
+
+type ShapeEditorProps = {
+  shape: TextureLabShapeRecipe;
+  pixelated: boolean;
+  dataUrl: string;
+  onChange: (shape: TextureLabShapeRecipe) => void;
+};
+
+function TextureShapeEditor({ shape, pixelated, dataUrl, onChange }: ShapeEditorProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const selectedLayer =
+    shape.layers.find((layer) => layer.id === shape.selectedLayerId) ?? shape.layers.find(shapeLayerSupportsPoints);
+  const editableLayer = shapeLayerSupportsPoints(selectedLayer) ? selectedLayer : undefined;
+  const editablePoints = shapeLayerEditablePoints(editableLayer);
+  const [selectedPoint, setSelectedPoint] = useState<number>(0);
+  const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
+  const draggingPointRef = useRef<number | null>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+  const canDelete =
+    !!editableLayer &&
+    !!editablePoints &&
+    editablePoints.length > shapeLayerMinimumPoints(editableLayer) &&
+    selectedPoint >= 0 &&
+    selectedPoint < editablePoints.length;
+
+  const pointFromClient = (clientX: number, clientY: number): TextureLabSplinePoint => {
+    const bounds = containerRef.current?.getBoundingClientRect();
+    if (!bounds) return { x: 0.5, y: 0.5 };
+    return {
+      x: clamp01((clientX - bounds.left) / Math.max(1, bounds.width)),
+      y: clamp01((clientY - bounds.top) / Math.max(1, bounds.height)),
+    };
+  };
+  const pointFromEvent = (event: ReactPointerEvent<Element> | ReactMouseEvent<Element>): TextureLabSplinePoint =>
+    pointFromClient(event.clientX, event.clientY);
+
+  const capturePointer = (pointerId: number) => {
+    try {
+      containerRef.current?.setPointerCapture(pointerId);
+    } catch {
+      // Some browsers are picky about SVG hit targets; dragging still works without capture.
+    }
+  };
+
+  const releasePointer = (pointerId: number) => {
+    try {
+      containerRef.current?.releasePointerCapture(pointerId);
+    } catch {
+      // Ignore stale pointer capture during fast test/user interactions.
+    }
+  };
+
+  const updateLayer = (nextLayer: TextureLabShapeElement) => {
+    onChange({
+      ...shape,
+      selectedLayerId: nextLayer.id,
+      layers: shape.layers.map((layer) => (layer.id === nextLayer.id ? nextLayer : layer)),
+    });
+  };
+
+  const updatePoint = (index: number, worldPoint: TextureLabSplinePoint) => {
+    if (!editableLayer || !editablePoints) return;
+    const localPoint = shapeWorldToPoint(editableLayer, worldPoint);
+    const points = editablePoints.map((point, pointIndex) => (pointIndex === index ? localPoint : point));
+    updateLayer(
+      editableLayer.kind === 'spline'
+        ? { ...editableLayer, spline: { ...editableLayer.spline!, points } }
+        : { ...editableLayer, points },
+    );
+  };
+
+  const nearestPointIndex = (worldPoint: TextureLabSplinePoint): number | null => {
+    if (!editableLayer || !editablePoints) return null;
+    let bestIndex = -1;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    editablePoints.forEach((point, index) => {
+      const world = shapePointToWorld(editableLayer, point);
+      const distance = Math.hypot(world.x - worldPoint.x, world.y - worldPoint.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    });
+    return bestDistance <= 0.075 ? bestIndex : null;
+  };
+
+  const clearWindowDragListeners = () => {
+    dragCleanupRef.current?.();
+    dragCleanupRef.current = null;
+  };
+
+  const beginPointDrag = (index: number, pointerId?: number) => {
+    clearWindowDragListeners();
+    draggingPointRef.current = index;
+    setSelectedPoint(index);
+    setDraggingPoint(index);
+    if (pointerId !== undefined) capturePointer(pointerId);
+
+    const move = (event: PointerEvent | MouseEvent) => {
+      updatePoint(index, pointFromClient(event.clientX, event.clientY));
+    };
+    const stop = () => {
+      clearWindowDragListeners();
+      draggingPointRef.current = null;
+      setDraggingPoint(null);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('pointerup', stop, { once: true });
+    window.addEventListener('mouseup', stop, { once: true });
+    dragCleanupRef.current = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('mouseup', stop);
+    };
+  };
+
+  const endPointDrag = (pointerId?: number) => {
+    if (pointerId !== undefined && (draggingPointRef.current !== null || draggingPoint !== null)) releasePointer(pointerId);
+    clearWindowDragListeners();
+    draggingPointRef.current = null;
+    setDraggingPoint(null);
+  };
+
+  const deleteSelectedPoint = () => {
+    if (!canDelete || !editableLayer || !editablePoints) return;
+    const points = editablePoints.filter((_, index) => index !== selectedPoint);
+    setSelectedPoint(Math.min(points.length - 1, selectedPoint));
+    updateLayer(
+      editableLayer.kind === 'spline'
+        ? { ...editableLayer, spline: { ...editableLayer.spline!, points } }
+        : { ...editableLayer, points },
+    );
+  };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isEditableElement(event.target)) return;
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+      if (!canDelete) return;
+      event.preventDefault();
+      deleteSelectedPoint();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canDelete, selectedPoint, editableLayer, shape]);
+
+  useEffect(() => {
+    setSelectedPoint((point) => Math.min(Math.max(point, 0), Math.max(0, (editablePoints?.length ?? 1) - 1)));
+  }, [editablePoints?.length, editableLayer?.id]);
+
+  useEffect(() => () => clearWindowDragListeners(), []);
+
+  return (
+    <div className="grid gap-2 rounded-md border border-border/70 p-2">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <MousePointer2Icon className="size-3" />
+            Shape editor
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Drag polygon or spline points, double-click to add, Delete removes the selected point.
+          </div>
+        </div>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="size-8 shrink-0"
+          title="Delete selected shape point"
+          disabled={!canDelete}
+          onClick={deleteSelectedPoint}
+        >
+          <Trash2Icon className="size-3.5" />
+        </Button>
+      </div>
+      <div
+        ref={containerRef}
+        className="relative aspect-square overflow-hidden rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        data-testid="texture-lab-shape-editor"
+        onDoubleClick={(event) => {
+          if (!editableLayer || !editablePoints) return;
+          const nextIndex = Math.min(editablePoints.length, selectedPoint + 1);
+          const localPoint = shapeWorldToPoint(editableLayer, pointFromEvent(event));
+          const points = [
+            ...editablePoints.slice(0, nextIndex),
+            localPoint,
+            ...editablePoints.slice(nextIndex),
+          ].slice(0, 24);
+          setSelectedPoint(nextIndex);
+          updateLayer(
+            editableLayer.kind === 'spline'
+              ? { ...editableLayer, spline: { ...editableLayer.spline!, points } }
+              : { ...editableLayer, points },
+          );
+        }}
+        onPointerMove={(event) => {
+          const pointIndex = draggingPointRef.current ?? draggingPoint;
+          if (pointIndex === null) return;
+          updatePoint(pointIndex, pointFromEvent(event));
+        }}
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          const pointIndex = nearestPointIndex(pointFromEvent(event));
+          if (pointIndex === null) return;
+          event.preventDefault();
+          beginPointDrag(pointIndex, event.pointerId);
+        }}
+        onMouseDown={(event) => {
+          if (event.button !== 0) return;
+          const pointIndex = nearestPointIndex(pointFromEvent(event));
+          if (pointIndex === null) return;
+          event.preventDefault();
+          beginPointDrag(pointIndex);
+        }}
+        onMouseMove={(event) => {
+          const pointIndex = draggingPointRef.current ?? draggingPoint;
+          if (pointIndex === null) return;
+          updatePoint(pointIndex, pointFromEvent(event));
+        }}
+        onMouseUp={() => endPointDrag()}
+        onPointerUp={(event) => {
+          endPointDrag(event.pointerId);
+        }}
+        onPointerCancel={() => {
+          draggingPointRef.current = null;
+          setDraggingPoint(null);
+        }}
+      >
+        <img
+          data-testid="texture-lab-preview"
+          alt="Generated texture preview"
+          src={dataUrl}
+          draggable={false}
+          className={cn(
+            'absolute inset-0 size-full select-none object-contain opacity-75',
+            pixelated && '[image-rendering:pixelated]',
+          )}
+        />
+        <svg
+          className="absolute inset-0 size-full touch-none"
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+        >
+          {shape.layers.filter(shapeLayerSupportsPoints).map((layer) => (
+            <path
+              key={layer.id}
+              d={shapeLayerPathData(layer)}
+              fill="none"
+              stroke={layer.id === editableLayer?.id ? '#2563eb' : '#64748b'}
+              strokeWidth={layer.id === editableLayer?.id ? 2.5 : 1.5}
+              opacity={layer.enabled ? 0.9 : 0.35}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+        {editableLayer && editablePoints?.map((point, index) => {
+          const world = shapePointToWorld(editableLayer, point);
+          const style = index === selectedPoint ? SELECTED_SPLINE_POINT_STYLE : SPLINE_POINT_STYLE;
+          const size = index === selectedPoint ? 24 : 20;
+          return (
+            <button
+              key={index}
+              type="button"
+              aria-label={`Shape point ${index + 1}`}
+              data-testid={`texture-lab-shape-point-${index}`}
+              data-point={`${world.x}:${world.y}`}
+              className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-sm cursor-grab active:cursor-grabbing"
+              style={{
+                left: `${world.x * 100}%`,
+                top: `${world.y * 100}%`,
+                width: size,
+                height: size,
+                backgroundColor: style.fill,
+                borderColor: style.stroke,
+                borderStyle: 'solid',
+                borderWidth: style.strokeWidth,
+              }}
+              onDoubleClick={(event) => {
+                event.stopPropagation();
+              }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                try {
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                } catch {
+                  // Window-level drag listeners still handle browsers that reject capture.
+                }
+                beginPointDrag(index, event.pointerId);
+              }}
+              onPointerMove={(event) => {
+                if ((draggingPointRef.current ?? draggingPoint) !== index) return;
+                updatePoint(index, pointFromEvent(event));
+              }}
+              onPointerUp={(event) => {
+                if ((draggingPointRef.current ?? draggingPoint) === index) updatePoint(index, pointFromEvent(event));
+                endPointDrag(event.pointerId);
+              }}
+              onMouseDown={(event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                beginPointDrag(index);
+              }}
+              onMouseMove={(event) => {
+                if ((draggingPointRef.current ?? draggingPoint) !== index) return;
+                updatePoint(index, pointFromEvent(event));
+              }}
+              onMouseUp={(event) => {
+                if ((draggingPointRef.current ?? draggingPoint) === index) updatePoint(index, pointFromEvent(event));
+                endPointDrag();
+              }}
+            />
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground">
+        <span>{editableLayer && editablePoints ? `${editableLayer.label}: ${editablePoints.length} points` : 'Select a polygon, star, or spline layer'}</span>
+        <span>{shape.layers.length} layers</span>
+      </div>
+    </div>
+  );
+}
+
 export function TextureLabPanel({
   compact = false,
   applyLabel = 'Use texture',
@@ -402,7 +827,10 @@ export function TextureLabPanel({
   const selectedGenerator =
     TEXTURE_LAB_GENERATORS.find((item) => item.id === recipe.generator) ?? TEXTURE_LAB_GENERATORS[0];
   const isSpline = isTextureLabSplineGenerator(recipe.generator);
+  const isShapeComposer = recipe.generator === 'shape-composer';
   const spline = recipe.spline;
+  const shape = recipe.shape;
+  const selectedShapeLayer = shape?.layers.find((layer) => layer.id === shape.selectedLayerId) ?? shape?.layers[0];
   const groupedGenerators = useMemo(
     () =>
       TEXTURE_LAB_GENERATORS.reduce<Record<string, typeof TEXTURE_LAB_GENERATORS>>((groups, generator) => {
@@ -424,6 +852,63 @@ export function TextureLabPanel({
   const patchSpline = (splinePatch: Partial<TextureLabSplineRecipe>) => {
     if (!spline) return;
     patch({ spline: { ...spline, ...splinePatch } });
+  };
+  const setShape = (nextShape: TextureLabShapeRecipe) => {
+    patch({ shape: nextShape });
+  };
+  const updateShapeLayer = (layerId: string, patchLayer: Partial<TextureLabShapeElement>) => {
+    if (!shape) return;
+    setShape({
+      ...shape,
+      selectedLayerId: layerId,
+      layers: shape.layers.map((layer) => {
+        if (layer.id !== layerId) return layer;
+        const nextLayer = { ...layer, ...patchLayer };
+        if ((patchLayer.sides !== undefined || patchLayer.innerRadius !== undefined) && (layer.kind === 'polygon' || layer.kind === 'star')) {
+          return textureLabShapeElement(layer.kind, {
+            ...nextLayer,
+            id: layer.id,
+            points: undefined,
+          });
+        }
+        return nextLayer;
+      }),
+    });
+  };
+  const addShapeLayer = (kind: TextureLabShapeElementKind) => {
+    if (!shape || shape.layers.length >= 8) return;
+    const id = `${kind}-${Date.now().toString(36)}`;
+    const layer = textureLabShapeElement(kind, { id });
+    setShape({ ...shape, selectedLayerId: id, layers: [...shape.layers, layer] });
+  };
+  const duplicateShapeLayer = (layerId: string) => {
+    if (!shape || shape.layers.length >= 8) return;
+    const layer = shape.layers.find((item) => item.id === layerId);
+    if (!layer) return;
+    const id = `${layer.kind}-${Date.now().toString(36)}`;
+    const copy = { ...layer, id, label: `${layer.label} Copy`, x: Math.min(1, layer.x + 0.05), y: Math.min(1, layer.y + 0.05) };
+    setShape({ ...shape, selectedLayerId: id, layers: [...shape.layers, copy] });
+  };
+  const deleteShapeLayer = (layerId: string) => {
+    if (!shape || shape.layers.length <= 1) return;
+    const layers = shape.layers.filter((layer) => layer.id !== layerId);
+    setShape({ selectedLayerId: layers[0]?.id, layers });
+  };
+  const moveShapeLayer = (layerId: string, direction: -1 | 1) => {
+    if (!shape) return;
+    const index = shape.layers.findIndex((layer) => layer.id === layerId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= shape.layers.length) return;
+    const layers = [...shape.layers];
+    const [layer] = layers.splice(index, 1);
+    layers.splice(target, 0, layer);
+    setShape({ ...shape, selectedLayerId: layerId, layers });
+  };
+  const selectShapePreset = (presetId: (typeof TEXTURE_LAB_SHAPE_PRESETS)[number]['id']) => {
+    setRecipe({
+      ...defaultTextureLabRecipeForGenerator('shape-composer'),
+      shape: textureLabShapePreset(presetId),
+    });
   };
 
   return (
@@ -629,26 +1114,278 @@ export function TextureLabPanel({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1">
-              <Label className="text-[10px] text-muted-foreground">Color ramp</Label>
-              <Select
-                value={recipe.colorRamp}
-                onValueChange={(colorRamp) => patch({ colorRamp: colorRamp as TextureLabRecipe['colorRamp'] })}
-              >
-                <SelectTrigger size="sm" className="w-full" aria-label="Texture color ramp">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TEXTURE_LAB_COLOR_RAMPS.map((ramp) => (
-                    <SelectItem key={ramp} value={ramp}>
-                      {formatLabel(ramp)}
-                    </SelectItem>
+          {isShapeComposer && shape && (
+            <div className="grid gap-3 rounded-md border border-border/70 p-2" data-testid="texture-lab-shape-controls">
+              <div className="grid gap-2">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Shape presets
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {TEXTURE_LAB_SHAPE_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.id}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[10px]"
+                      onClick={() => selectShapePreset(preset.id)}
+                    >
+                      {preset.label}
+                    </Button>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-2" data-testid="texture-lab-shape-layer-stack">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Layers
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground">{shape.layers.length}/8</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {TEXTURE_LAB_SHAPE_ELEMENT_KINDS.map((kind) => (
+                    <Button
+                      key={kind}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 px-2 text-[10px]"
+                      disabled={shape.layers.length >= 8}
+                      onClick={() => addShapeLayer(kind)}
+                    >
+                      <PlusIcon className="size-3" />
+                      {formatLabel(kind)}
+                    </Button>
+                  ))}
+                </div>
+                <div className="grid gap-1.5">
+                  {shape.layers.map((layer, index) => (
+                    <div
+                      key={layer.id}
+                      className={cn(
+                        'flex min-w-0 items-center gap-1 rounded border p-1 text-xs',
+                        layer.id === selectedShapeLayer?.id && 'border-primary bg-primary/10',
+                        !layer.enabled && 'opacity-60',
+                      )}
+                    >
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 shrink-0"
+                        title={layer.enabled ? `Disable ${layer.label}` : `Enable ${layer.label}`}
+                        onClick={() => updateShapeLayer(layer.id, { enabled: !layer.enabled })}
+                      >
+                        {layer.enabled ? <EyeIcon className="size-3.5" /> : <EyeOffIcon className="size-3.5" />}
+                      </Button>
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 truncate text-left"
+                        onClick={() => setShape({ ...shape, selectedLayerId: layer.id })}
+                      >
+                        <span className="font-medium">{layer.label}</span>
+                        <span className="ml-1 text-[10px] text-muted-foreground">{formatLabel(layer.kind)}</span>
+                      </button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 shrink-0"
+                        title="Move layer up"
+                        disabled={index === 0}
+                        onClick={() => moveShapeLayer(layer.id, -1)}
+                      >
+                        <ArrowUpIcon className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 shrink-0"
+                        title="Move layer down"
+                        disabled={index === shape.layers.length - 1}
+                        onClick={() => moveShapeLayer(layer.id, 1)}
+                      >
+                        <ArrowDownIcon className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 shrink-0"
+                        title="Duplicate layer"
+                        disabled={shape.layers.length >= 8}
+                        onClick={() => duplicateShapeLayer(layer.id)}
+                      >
+                        <CopyIcon className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 shrink-0"
+                        title="Delete layer"
+                        disabled={shape.layers.length <= 1}
+                        onClick={() => deleteShapeLayer(layer.id)}
+                      >
+                        <Trash2Icon className="size-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {selectedShapeLayer && (
+                <div className="grid gap-2 rounded border border-border/60 p-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="grid gap-1">
+                      <Label className="text-[10px] text-muted-foreground">Fill</Label>
+                      <Input
+                        aria-label="Shape fill color"
+                        className="h-8 cursor-pointer p-1"
+                        type="color"
+                        value={selectedShapeLayer.fillColor}
+                        onChange={(event) => updateShapeLayer(selectedShapeLayer.id, { fillColor: event.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label className="text-[10px] text-muted-foreground">Stroke</Label>
+                      <Input
+                        aria-label="Shape stroke color"
+                        className="h-8 cursor-pointer p-1"
+                        type="color"
+                        value={selectedShapeLayer.strokeColor}
+                        onChange={(event) => updateShapeLayer(selectedShapeLayer.id, { strokeColor: event.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label className="text-[10px] text-muted-foreground">Blend</Label>
+                      <Select
+                        value={selectedShapeLayer.blendMode}
+                        onValueChange={(blendMode) =>
+                          updateShapeLayer(selectedShapeLayer.id, { blendMode: blendMode as TextureLabShapeElement['blendMode'] })
+                        }
+                      >
+                        <SelectTrigger size="sm" className="w-full" aria-label="Shape blend mode">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TEXTURE_LAB_SHAPE_BLEND_MODES.map((mode) => (
+                            <SelectItem key={mode} value={mode}>
+                              {formatLabel(mode)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-1">
+                      <Label className="text-[10px] text-muted-foreground">Repeat</Label>
+                      <Select
+                        value={selectedShapeLayer.repeat.mode}
+                        onValueChange={(mode) =>
+                          updateShapeLayer(selectedShapeLayer.id, {
+                            repeat: { ...selectedShapeLayer.repeat, mode: mode as TextureLabShapeRepeatMode },
+                          })
+                        }
+                      >
+                        <SelectTrigger size="sm" className="w-full" aria-label="Shape repeat mode">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TEXTURE_LAB_SHAPE_REPEAT_MODES.map((mode) => (
+                            <SelectItem key={mode} value={mode}>
+                              {formatLabel(mode)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {SHAPE_NUMBER_CONTROLS.filter((control) => {
+                      if (control.key === 'sides' || control.key === 'innerRadius') {
+                        return selectedShapeLayer.kind === 'polygon' || selectedShapeLayer.kind === 'star';
+                      }
+                      if (control.key === 'cornerRoundness') {
+                        return selectedShapeLayer.kind === 'polygon' || selectedShapeLayer.kind === 'star' || selectedShapeLayer.kind === 'rect';
+                      }
+                      return true;
+                    }).map((control) => (
+                      <div key={control.key} className="grid gap-1">
+                        <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
+                        <Input
+                          aria-label={`Shape ${control.label.toLowerCase()}`}
+                          className="h-8 text-xs"
+                          type="number"
+                          value={selectedShapeLayer[control.key]}
+                          min={control.min}
+                          max={control.max}
+                          step={control.step}
+                          onChange={(event) =>
+                            updateShapeLayer(selectedShapeLayer.id, {
+                              [control.key]: Number(event.target.value),
+                            } as Partial<TextureLabShapeElement>)
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedShapeLayer.repeat.mode !== 'none' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {REPEAT_NUMBER_CONTROLS.map((control) => (
+                        <div key={control.key} className="grid gap-1">
+                          <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
+                          <Input
+                            aria-label={`Shape repeat ${control.label.toLowerCase()}`}
+                            className="h-8 text-xs"
+                            type="number"
+                            value={selectedShapeLayer.repeat[control.key]}
+                            min={control.min}
+                            max={control.max}
+                            step={control.step}
+                            onChange={(event) =>
+                              updateShapeLayer(selectedShapeLayer.id, {
+                                repeat: {
+                                  ...selectedShapeLayer.repeat,
+                                  [control.key]: Number(event.target.value),
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {recipe.colorRamp === 'solid' && (
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            {!isShapeComposer && (
+              <div className="grid gap-1">
+                <Label className="text-[10px] text-muted-foreground">Color ramp</Label>
+                <Select
+                  value={recipe.colorRamp}
+                  onValueChange={(colorRamp) => patch({ colorRamp: colorRamp as TextureLabRecipe['colorRamp'] })}
+                >
+                  <SelectTrigger size="sm" className="w-full" aria-label="Texture color ramp">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEXTURE_LAB_COLOR_RAMPS.map((ramp) => (
+                      <SelectItem key={ramp} value={ramp}>
+                        {formatLabel(ramp)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {!isShapeComposer && recipe.colorRamp === 'solid' && (
               <div className="grid gap-1">
                 <Label className="text-[10px] text-muted-foreground">Solid color</Label>
                 <Input
@@ -733,7 +1470,14 @@ export function TextureLabPanel({
             </div>
             <ImageIcon className="size-4 text-muted-foreground" />
           </div>
-          {isSpline && spline && !compact ? (
+          {isShapeComposer && shape && !compact ? (
+            <TextureShapeEditor
+              shape={shape}
+              pixelated={recipe.pixelated}
+              dataUrl={dataUrl}
+              onChange={(nextShape) => patch({ shape: nextShape })}
+            />
+          ) : isSpline && spline && !compact ? (
             <TextureSplineEditor
               spline={spline}
               pixelated={recipe.pixelated}

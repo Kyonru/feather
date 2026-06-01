@@ -7,6 +7,9 @@ import {
   defaultTextureLabRecipeForGenerator,
   normalizeTextureLabRecipe,
   renderTextureLabPixels,
+  TEXTURE_LAB_SHAPE_PRESETS,
+  textureLabShapePreset,
+  textureLabShapeElement,
   textureLabSplinePreset,
   textureLabFilename,
 } from '../../src/pages/texture-lab/generator.ts';
@@ -148,6 +151,182 @@ test('texture lab reset applies generator-specific alpha defaults', () => {
   assert.equal(defaultTextureLabRecipeForGenerator('dissolve-noise').alphaMode, 'inverted');
   assert.equal(defaultTextureLabRecipeForGenerator('threshold-noise-mask').alphaMode, 'inverted');
   assert.equal(defaultTextureLabRecipeForGenerator('spline-mask').alphaMode, 'luminance');
+});
+
+test('shape composer normalizes layers, points, repeat controls, and selection', () => {
+  const recipe = normalizeTextureLabRecipe({
+    generator: 'shape-composer',
+    shape: {
+      selectedLayerId: 'missing',
+      layers: Array.from({ length: 10 }, (_, index) => ({
+        id: `layer-${index}`,
+        kind: index === 0 ? 'not-real' : 'polygon',
+        points: [{ x: -1, y: 3 }],
+        repeat: { mode: 'scatter', count: 999, radius: 4, jitter: 2, rotationVariance: 9, scaleVariance: 9 },
+      })),
+    },
+  });
+  assert.equal(recipe.shape.layers.length, 8);
+  assert.equal(recipe.shape.selectedLayerId, 'layer-0');
+  assert.equal(recipe.shape.layers[0].kind, 'polygon');
+  assert.ok(recipe.shape.layers[0].points.length >= 3);
+  assert.equal(recipe.shape.layers[0].repeat.count, 64);
+  assert.equal(recipe.shape.layers[0].repeat.radius, 1);
+  assert.equal(recipe.shape.layers[0].repeat.jitter, 1);
+});
+
+test('shape composer renders deterministic layered polygons and respects enabled state', () => {
+  const recipe = normalizeTextureLabRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'shape-composer',
+    seed: 404,
+    shape: textureLabShapePreset('hex-badge'),
+  });
+  const first = renderTextureLabPixels(recipe);
+  const second = renderTextureLabPixels(recipe);
+  const disabled = renderTextureLabPixels({
+    ...recipe,
+    shape: { ...recipe.shape, layers: recipe.shape.layers.map((layer) => ({ ...layer, enabled: false })) },
+  });
+  assert.equal(checksum(first.pixels), checksum(second.pixels));
+  assert.notEqual(checksum(first.pixels), checksum(disabled.pixels));
+  assert.ok(alphaAt(first, 32, 32) > alphaAt(disabled, 32, 32));
+});
+
+test('shape composer fill and stroke colors render distinctly', () => {
+  const recipe = normalizeTextureLabRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'shape-composer',
+    size: 64,
+    shape: {
+      selectedLayerId: 'rect',
+      layers: [
+        {
+          id: 'rect',
+          kind: 'rect',
+          label: 'Rect',
+          x: 0.5,
+          y: 0.5,
+          size: 0.7,
+          rotation: 0,
+          opacity: 1,
+          fillColor: '#ff0000',
+          strokeColor: '#0000ff',
+          strokeWidth: 0.12,
+          feather: 0.01,
+          blendMode: 'normal',
+          enabled: true,
+          sides: 4,
+          innerRadius: 0.5,
+          cornerRoundness: 0,
+          repeat: { mode: 'none', count: 1, spacing: 0.1, radius: 0.1, seedOffset: 0, rotationVariance: 0, scaleVariance: 0, jitter: 0 },
+        },
+      ],
+    },
+  });
+  const result = renderTextureLabPixels(recipe);
+  const center = rgbaAt(result, 32, 32);
+  const edge = rgbaAt(result, 52, 32);
+  assert.ok(center[0] > 220 && center[2] < 40);
+  assert.ok(edge[2] > edge[0]);
+});
+
+test('shape composer stroke and feather affect edge alpha', () => {
+  const base = normalizeTextureLabRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'shape-composer',
+    size: 64,
+    shape: textureLabShapePreset('triangle'),
+  });
+  const noStroke = renderTextureLabPixels({
+    ...base,
+    shape: { ...base.shape, layers: base.shape.layers.map((layer) => ({ ...layer, strokeWidth: 0, feather: 0 })) },
+  });
+  const softStroke = renderTextureLabPixels({
+    ...base,
+    shape: { ...base.shape, layers: base.shape.layers.map((layer) => ({ ...layer, strokeWidth: 0.16, feather: 0.18 })) },
+  });
+  assert.notEqual(checksum(noStroke.pixels), checksum(softStroke.pixels));
+  assert.ok(alphaAt(softStroke, 12, 48) >= alphaAt(noStroke, 12, 48));
+});
+
+test('shape composer repeat modes are deterministic and seed-aware', () => {
+  for (const mode of ['grid', 'radial', 'scatter']) {
+    const recipe = normalizeTextureLabRecipe({
+      ...DEFAULT_TEXTURE_LAB_RECIPE,
+      generator: 'shape-composer',
+      seed: 51,
+      shape: {
+        selectedLayerId: mode,
+        layers: [
+          {
+            ...textureLabShapePreset('scatter-dots').layers[0],
+            id: mode,
+            repeat: {
+              mode,
+              count: 12,
+              spacing: 0.2,
+              radius: 0.38,
+              seedOffset: 3,
+              rotationVariance: 0.5,
+              scaleVariance: 0.4,
+              jitter: 0.08,
+            },
+          },
+        ],
+      },
+    });
+    const first = renderTextureLabPixels(recipe);
+    const second = renderTextureLabPixels(recipe);
+    const changedSeed = renderTextureLabPixels({ ...recipe, seed: 52 });
+    assert.equal(checksum(first.pixels), checksum(second.pixels));
+    assert.notEqual(checksum(first.pixels), checksum(changedSeed.pixels));
+  }
+});
+
+test('shape composer presets are available', () => {
+  const presetIds = TEXTURE_LAB_SHAPE_PRESETS.map((preset) => preset.id);
+  assert.deepEqual(presetIds, [
+    'triangle',
+    'hex-badge',
+    'starburst',
+    'ring-sigil',
+    'scatter-dots',
+    'pixel-confetti',
+    'soft-polygon-mask',
+  ]);
+});
+
+test('shape composer spline layers render edited spline points', () => {
+  const splineLayer = textureLabShapeElement('spline', { id: 'spline-layer' });
+  const recipe = normalizeTextureLabRecipe({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'shape-composer',
+    seed: 1337,
+    size: 64,
+    shape: {
+      selectedLayerId: 'spline-layer',
+      layers: [splineLayer],
+    },
+  });
+  const edited = normalizeTextureLabRecipe({
+    ...recipe,
+    shape: {
+      selectedLayerId: 'spline-layer',
+      layers: [
+        {
+          ...splineLayer,
+          spline: {
+            ...splineLayer.spline,
+            points: splineLayer.spline.points.map((point, index) =>
+              index === 1 ? { x: Math.min(1, point.x + 0.08), y: Math.max(0, point.y - 0.06) } : point,
+            ),
+          },
+        },
+      ],
+    },
+  });
+  assert.notEqual(checksum(renderTextureLabPixels(recipe).pixels), checksum(renderTextureLabPixels(edited).pixels));
 });
 
 test('spline texture output is deterministic and point edits change the raster', () => {

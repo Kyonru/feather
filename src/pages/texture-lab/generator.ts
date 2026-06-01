@@ -2,6 +2,9 @@ import {
   TEXTURE_LAB_ALPHA_MODES,
   TEXTURE_LAB_COLOR_RAMPS,
   TEXTURE_LAB_GENERATOR_IDS,
+  TEXTURE_LAB_SHAPE_BLEND_MODES,
+  TEXTURE_LAB_SHAPE_ELEMENT_KINDS,
+  TEXTURE_LAB_SHAPE_REPEAT_MODES,
   TEXTURE_LAB_SPLINE_OVERLAP_MODES,
   TEXTURE_LAB_SIZES,
   type GeneratedTextureResult,
@@ -10,6 +13,12 @@ import {
   type TextureLabGeneratedPixels,
   type TextureLabGeneratorId,
   type TextureLabRecipe,
+  type TextureLabShapeBlendMode,
+  type TextureLabShapeElement,
+  type TextureLabShapeElementKind,
+  type TextureLabShapeRecipe,
+  type TextureLabShapeRepeat,
+  type TextureLabShapeRepeatMode,
   type TextureLabSize,
   type TextureLabSplinePoint,
   type TextureLabSplineRecipe,
@@ -20,6 +29,7 @@ export type TextureLabGeneratorCategory =
   | 'Masks'
   | 'Noise / maps'
   | 'Pixel patterns'
+  | 'Shapes / polygons'
   | 'Spline paths';
 
 export type TextureLabGeneratorMeta = {
@@ -35,6 +45,21 @@ export type TextureLabSplinePreset = {
   id: TextureLabSplinePresetId;
   label: string;
   spline: TextureLabSplineRecipe;
+};
+
+export type TextureLabShapePresetId =
+  | 'triangle'
+  | 'hex-badge'
+  | 'starburst'
+  | 'ring-sigil'
+  | 'scatter-dots'
+  | 'pixel-confetti'
+  | 'soft-polygon-mask';
+
+export type TextureLabShapePreset = {
+  id: TextureLabShapePresetId;
+  label: string;
+  shape: TextureLabShapeRecipe;
 };
 
 export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
@@ -141,6 +166,12 @@ export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
     description: 'Horizontal scanlines for pixel effects.',
   },
   { id: 'palette-ramp', label: 'Palette Ramp', category: 'Pixel patterns', description: 'A horizontal color ramp.' },
+  {
+    id: 'shape-composer',
+    label: 'Shapes & Polygons',
+    category: 'Shapes / polygons',
+    description: 'Layered editable polygons, shapes, strokes, and seeded repeats.',
+  },
   {
     id: 'spline-trail',
     label: 'Spline Trail',
@@ -350,6 +381,11 @@ const RAMP_SET = new Set<string>(TEXTURE_LAB_COLOR_RAMPS);
 const ALPHA_SET = new Set<string>(TEXTURE_LAB_ALPHA_MODES);
 const SPLINE_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SPLINE_GENERATOR_IDS);
 const SPLINE_OVERLAP_SET = new Set<string>(TEXTURE_LAB_SPLINE_OVERLAP_MODES);
+const SHAPE_KIND_SET = new Set<string>(TEXTURE_LAB_SHAPE_ELEMENT_KINDS);
+const SHAPE_REPEAT_SET = new Set<string>(TEXTURE_LAB_SHAPE_REPEAT_MODES);
+const SHAPE_BLEND_SET = new Set<string>(TEXTURE_LAB_SHAPE_BLEND_MODES);
+const SHAPE_LAYER_LIMIT = 8;
+const SHAPE_POINT_LIMIT = 24;
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -400,8 +436,12 @@ export function defaultTextureLabRecipeForGenerator(generator: TextureLabGenerat
     ...DEFAULT_TEXTURE_LAB_RECIPE,
     ...TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS[generator],
     generator,
-    tileable: isTextureLabSplineGenerator(generator) ? false : DEFAULT_TEXTURE_LAB_RECIPE.tileable,
+    tileable:
+      isTextureLabSplineGenerator(generator) || generator === 'shape-composer'
+        ? false
+        : DEFAULT_TEXTURE_LAB_RECIPE.tileable,
     spline: isTextureLabSplineGenerator(generator) ? defaultSplineForGenerator(generator) : undefined,
+    shape: generator === 'shape-composer' ? defaultShapeRecipe() : undefined,
   });
 }
 
@@ -427,6 +467,248 @@ function defaultSplineForGenerator(generator: TextureLabGeneratorId): TextureLab
 export function textureLabSplinePreset(presetId: TextureLabSplinePresetId): TextureLabSplineRecipe {
   const preset = TEXTURE_LAB_SPLINE_PRESETS.find((item) => item.id === presetId);
   return cloneSplineRecipe(preset?.spline ?? DEFAULT_TRAIL_SPLINE);
+}
+
+const DEFAULT_SHAPE_REPEAT: TextureLabShapeRepeat = {
+  mode: 'none',
+  count: 1,
+  spacing: 0.18,
+  radius: 0.28,
+  seedOffset: 0,
+  rotationVariance: 0,
+  scaleVariance: 0,
+  jitter: 0,
+};
+
+function cloneShapeRepeat(repeat: TextureLabShapeRepeat): TextureLabShapeRepeat {
+  return { ...repeat };
+}
+
+function regularShapePoints(sides: number, innerRadius = 1, star = false): TextureLabSplinePoint[] {
+  const safeSides = Math.round(clamp(sides, 3, 12));
+  const pointCount = star ? safeSides * 2 : safeSides;
+  const points: TextureLabSplinePoint[] = [];
+  for (let index = 0; index < pointCount; index += 1) {
+    const radius = star && index % 2 === 1 ? innerRadius : 1;
+    const angle = -Math.PI / 2 + (index / pointCount) * Math.PI * 2;
+    points.push({
+      x: 0.5 + Math.cos(angle) * 0.44 * radius,
+      y: 0.5 + Math.sin(angle) * 0.44 * radius,
+    });
+  }
+  return points;
+}
+
+export function textureLabShapeElement(
+  kind: TextureLabShapeElementKind,
+  overrides: Partial<TextureLabShapeElement> = {},
+): TextureLabShapeElement {
+  const safeKind = SHAPE_KIND_SET.has(kind) ? kind : 'polygon';
+  const sides = Math.round(clamp(Number(overrides.sides ?? (safeKind === 'star' ? 5 : 6)), 3, 12));
+  const innerRadius = clamp(Number(overrides.innerRadius ?? 0.48), 0.08, 0.95);
+  const base: TextureLabShapeElement = {
+    id: overrides.id ?? `${safeKind}-1`,
+    kind: safeKind,
+    label: overrides.label ?? formatShapeKindLabel(safeKind),
+    enabled: overrides.enabled !== false,
+    x: clamp01(Number(overrides.x ?? 0.5)),
+    y: clamp01(Number(overrides.y ?? 0.5)),
+    size: clamp(Number(overrides.size ?? 0.58), 0.03, 1.5),
+    rotation: Number.isFinite(Number(overrides.rotation)) ? Number(overrides.rotation) : 0,
+    opacity: clamp01(Number(overrides.opacity ?? 1)),
+    fillColor: normalizeHexColor(overrides.fillColor, '#ffffff'),
+    strokeColor: normalizeHexColor(overrides.strokeColor, '#2563eb'),
+    strokeWidth: clamp(Number(overrides.strokeWidth ?? 0.035), 0, 0.45),
+    feather: clamp(Number(overrides.feather ?? 0.025), 0, 0.45),
+    blendMode:
+      typeof overrides.blendMode === 'string' && SHAPE_BLEND_SET.has(overrides.blendMode)
+        ? overrides.blendMode
+        : 'normal',
+    sides,
+    innerRadius,
+    cornerRoundness: clamp(Number(overrides.cornerRoundness ?? 0), 0, 1),
+    repeat: normalizeShapeRepeat(overrides.repeat),
+  };
+
+  if (safeKind === 'polygon' || safeKind === 'star') {
+    base.points =
+      overrides.points && overrides.points.length >= 3
+        ? overrides.points.map((point) => ({ x: clamp01(point.x), y: clamp01(point.y) })).slice(0, SHAPE_POINT_LIMIT)
+        : regularShapePoints(sides, innerRadius, safeKind === 'star');
+  }
+  if (safeKind === 'spline') {
+    base.spline = overrides.spline ? cloneSplineRecipe(overrides.spline) : textureLabSplinePreset('slash');
+    base.fillColor = normalizeHexColor(overrides.fillColor, '#f8fafc');
+    base.strokeColor = normalizeHexColor(overrides.strokeColor, '#7c3aed');
+    base.strokeWidth = clamp(Number(overrides.strokeWidth ?? 0.08), 0, 0.45);
+  }
+  if (safeKind === 'dot') {
+    base.size = clamp(Number(overrides.size ?? 0.14), 0.03, 1.5);
+    base.strokeWidth = clamp(Number(overrides.strokeWidth ?? 0), 0, 0.45);
+  }
+  if (safeKind === 'ring') {
+    base.fillColor = normalizeHexColor(overrides.fillColor, '#ffffff');
+    base.strokeWidth = clamp(Number(overrides.strokeWidth ?? 0.16), 0, 0.45);
+  }
+  return base;
+}
+
+function formatShapeKindLabel(kind: TextureLabShapeElementKind): string {
+  return kind
+    .split('-')
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function cloneShapeElement(layer: TextureLabShapeElement): TextureLabShapeElement {
+  return {
+    ...layer,
+    points: layer.points?.map((point) => ({ ...point })),
+    spline: layer.spline ? cloneSplineRecipe(layer.spline) : undefined,
+    repeat: cloneShapeRepeat(layer.repeat),
+  };
+}
+
+function shapeRecipe(layers: TextureLabShapeElement[], selectedLayerId?: string): TextureLabShapeRecipe {
+  const normalizedLayers = layers.slice(0, SHAPE_LAYER_LIMIT).map(cloneShapeElement);
+  return {
+    selectedLayerId: selectedLayerId ?? normalizedLayers[0]?.id,
+    layers: normalizedLayers,
+  };
+}
+
+function defaultShapeRecipe(): TextureLabShapeRecipe {
+  return shapeRecipe([
+    textureLabShapeElement('polygon', {
+      id: 'hex-layer',
+      label: 'Hex Badge',
+      sides: 6,
+      fillColor: '#ffffff',
+      strokeColor: '#2563eb',
+      strokeWidth: 0.045,
+      feather: 0.025,
+      points: regularShapePoints(6),
+    }),
+  ]);
+}
+
+export const TEXTURE_LAB_SHAPE_PRESETS: TextureLabShapePreset[] = [
+  {
+    id: 'triangle',
+    label: 'Triangle',
+    shape: shapeRecipe([
+      textureLabShapeElement('polygon', {
+        id: 'triangle-layer',
+        label: 'Triangle',
+        sides: 3,
+        fillColor: '#ffffff',
+        strokeColor: '#111827',
+        strokeWidth: 0.035,
+        points: regularShapePoints(3),
+      }),
+    ]),
+  },
+  {
+    id: 'hex-badge',
+    label: 'Hex Badge',
+    shape: defaultShapeRecipe(),
+  },
+  {
+    id: 'starburst',
+    label: 'Starburst',
+    shape: shapeRecipe([
+      textureLabShapeElement('star', {
+        id: 'starburst-layer',
+        label: 'Starburst',
+        sides: 8,
+        innerRadius: 0.38,
+        fillColor: '#facc15',
+        strokeColor: '#fb923c',
+        strokeWidth: 0.025,
+        points: regularShapePoints(8, 0.38, true),
+      }),
+    ]),
+  },
+  {
+    id: 'ring-sigil',
+    label: 'Ring Sigil',
+    shape: shapeRecipe([
+      textureLabShapeElement('ring', {
+        id: 'sigil-ring',
+        label: 'Outer Ring',
+        size: 0.72,
+        fillColor: '#38bdf8',
+        strokeColor: '#e0f2fe',
+        strokeWidth: 0.13,
+        opacity: 0.9,
+      }),
+      textureLabShapeElement('spline', {
+        id: 'sigil-stroke',
+        label: 'Inner Stroke',
+        size: 0.52,
+        strokeColor: '#a78bfa',
+        strokeWidth: 0.055,
+        spline: textureLabSplinePreset('ellipse-border'),
+      }),
+    ]),
+  },
+  {
+    id: 'scatter-dots',
+    label: 'Scatter Dots',
+    shape: shapeRecipe([
+      textureLabShapeElement('dot', {
+        id: 'scatter-dots-layer',
+        label: 'Scatter Dots',
+        fillColor: '#ffffff',
+        opacity: 0.88,
+        repeat: { ...DEFAULT_SHAPE_REPEAT, mode: 'scatter', count: 24, radius: 0.42, jitter: 0.12, scaleVariance: 0.55 },
+      }),
+    ]),
+  },
+  {
+    id: 'pixel-confetti',
+    label: 'Pixel Confetti',
+    shape: shapeRecipe([
+      textureLabShapeElement('rect', {
+        id: 'confetti-layer',
+        label: 'Confetti',
+        size: 0.08,
+        fillColor: '#f472b6',
+        strokeColor: '#fef3c7',
+        strokeWidth: 0,
+        repeat: {
+          ...DEFAULT_SHAPE_REPEAT,
+          mode: 'scatter',
+          count: 28,
+          radius: 0.45,
+          jitter: 0.2,
+          scaleVariance: 0.35,
+          rotationVariance: 1,
+        },
+      }),
+    ]),
+  },
+  {
+    id: 'soft-polygon-mask',
+    label: 'Soft Polygon Mask',
+    shape: shapeRecipe([
+      textureLabShapeElement('polygon', {
+        id: 'soft-mask-layer',
+        label: 'Soft Mask',
+        fillColor: '#ffffff',
+        strokeColor: '#ffffff',
+        strokeWidth: 0,
+        feather: 0.12,
+        sides: 7,
+        points: regularShapePoints(7),
+      }),
+    ]),
+  },
+];
+
+export function textureLabShapePreset(presetId: TextureLabShapePresetId): TextureLabShapeRecipe {
+  const preset = TEXTURE_LAB_SHAPE_PRESETS.find((item) => item.id === presetId);
+  return shapeRecipe((preset?.shape ?? defaultShapeRecipe()).layers, preset?.shape.selectedLayerId);
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -545,6 +827,62 @@ function normalizeSplineRecipe(input: unknown, generator: TextureLabGeneratorId)
   };
 }
 
+function normalizeShapeRepeat(input: unknown): TextureLabShapeRepeat {
+  const source = input && typeof input === 'object' ? (input as Partial<TextureLabShapeRepeat>) : {};
+  const mode =
+    typeof source.mode === 'string' && SHAPE_REPEAT_SET.has(source.mode)
+      ? (source.mode as TextureLabShapeRepeatMode)
+      : DEFAULT_SHAPE_REPEAT.mode;
+  return {
+    mode,
+    count: Math.round(clamp(Number(source.count ?? DEFAULT_SHAPE_REPEAT.count), 1, 64)),
+    spacing: clamp(Number(source.spacing ?? DEFAULT_SHAPE_REPEAT.spacing), 0, 1),
+    radius: clamp(Number(source.radius ?? DEFAULT_SHAPE_REPEAT.radius), 0, 1),
+    seedOffset: Math.round(clamp(Number(source.seedOffset ?? DEFAULT_SHAPE_REPEAT.seedOffset), 0, 9999)),
+    rotationVariance: clamp(Number(source.rotationVariance ?? DEFAULT_SHAPE_REPEAT.rotationVariance), 0, 1),
+    scaleVariance: clamp(Number(source.scaleVariance ?? DEFAULT_SHAPE_REPEAT.scaleVariance), 0, 1),
+    jitter: clamp(Number(source.jitter ?? DEFAULT_SHAPE_REPEAT.jitter), 0, 1),
+  };
+}
+
+function normalizeShapeLayer(input: unknown, index: number): TextureLabShapeElement {
+  const source = input && typeof input === 'object' ? (input as Partial<TextureLabShapeElement>) : {};
+  const kind =
+    typeof source.kind === 'string' && SHAPE_KIND_SET.has(source.kind)
+      ? (source.kind as TextureLabShapeElementKind)
+      : 'polygon';
+  const points = Array.isArray(source.points)
+    ? source.points
+        .map(normalizeSplinePoint)
+        .filter((point): point is TextureLabSplinePoint => point !== null)
+        .slice(0, SHAPE_POINT_LIMIT)
+    : undefined;
+  const spline =
+    kind === 'spline' ? normalizeSplineRecipe(source.spline, 'spline-trail') ?? textureLabSplinePreset('slash') : undefined;
+  return textureLabShapeElement(kind, {
+    ...source,
+    id: typeof source.id === 'string' && source.id.trim() ? source.id.trim() : `${kind}-${index + 1}`,
+    label: typeof source.label === 'string' && source.label.trim() ? source.label.trim().slice(0, 32) : undefined,
+    points: points && points.length >= 3 ? points : undefined,
+    spline,
+    repeat: normalizeShapeRepeat(source.repeat),
+  });
+}
+
+function normalizeShapeRecipe(input: unknown, generator: TextureLabGeneratorId): TextureLabShapeRecipe | undefined {
+  if (generator !== 'shape-composer') return undefined;
+  const source = input && typeof input === 'object' ? (input as Partial<TextureLabShapeRecipe>) : {};
+  const layers = Array.isArray(source.layers)
+    ? source.layers.slice(0, SHAPE_LAYER_LIMIT).map((layer, index) => normalizeShapeLayer(layer, index))
+    : [];
+  const normalizedLayers = layers.length > 0 ? layers : defaultShapeRecipe().layers.map(cloneShapeElement);
+  const selectedLayerId =
+    typeof source.selectedLayerId === 'string' && normalizedLayers.some((layer) => layer.id === source.selectedLayerId)
+      ? source.selectedLayerId
+      : normalizedLayers[0]?.id;
+  return { selectedLayerId, layers: normalizedLayers };
+}
+
 function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRecipe {
   const source = input ?? {};
   const size = Number(source.size);
@@ -579,6 +917,7 @@ function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRe
     backgroundColor: normalizeHexColor(source.backgroundColor, DEFAULT_TEXTURE_LAB_RECIPE.backgroundColor),
     backgroundAlpha: clamp(Number(source.backgroundAlpha ?? DEFAULT_TEXTURE_LAB_RECIPE.backgroundAlpha), 0, 1),
     spline: normalizeSplineRecipe(source.spline, generator),
+    shape: normalizeShapeRecipe(source.shape, generator),
   };
 }
 
@@ -863,6 +1202,221 @@ function splineGeneratorValue(
   return splineSegmentValue(recipe, nearestHit.distance, nearestHit.progress, nearestHit.width);
 }
 
+type ShapeLayerInstance = {
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+};
+
+type ShapePixel = {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+};
+
+function distanceToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lengthSq = dx * dx + dy * dy || 0.00001;
+  const t = clamp01(((px - ax) * dx + (py - ay) * dy) / lengthSq);
+  return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
+}
+
+function pointInPolygon(point: TextureLabSplinePoint, polygon: TextureLabSplinePoint[]): boolean {
+  let inside = false;
+  for (let index = 0, prev = polygon.length - 1; index < polygon.length; prev = index, index += 1) {
+    const a = polygon[index];
+    const b = polygon[prev];
+    const crosses = a.y > point.y !== b.y > point.y;
+    if (crosses && point.x < ((b.x - a.x) * (point.y - a.y)) / ((b.y - a.y) || 0.00001) + a.x) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function polygonSignedDistance(point: TextureLabSplinePoint, polygon: TextureLabSplinePoint[]): number {
+  if (polygon.length < 3) return 1;
+  let distance = 999;
+  for (let index = 0; index < polygon.length; index += 1) {
+    const a = polygon[index];
+    const b = polygon[(index + 1) % polygon.length];
+    distance = Math.min(distance, distanceToSegment(point.x, point.y, a.x, a.y, b.x, b.y));
+  }
+  return pointInPolygon(point, polygon) ? -distance : distance;
+}
+
+function rectSignedDistance(px: number, py: number, roundness: number): number {
+  const x = Math.abs(px - 0.5) - (0.5 - roundness * 0.18);
+  const y = Math.abs(py - 0.5) - (0.5 - roundness * 0.18);
+  const outside = Math.hypot(Math.max(x, 0), Math.max(y, 0));
+  const inside = Math.min(Math.max(x, y), 0);
+  return outside + inside - roundness * 0.18;
+}
+
+function alphaFromSignedDistance(signedDistance: number, feather: number): number {
+  return 1 - smoothstep(0, Math.max(0.0001, feather), signedDistance);
+}
+
+function strokeAlphaFromSignedDistance(signedDistance: number, strokeWidth: number, feather: number): number {
+  if (strokeWidth <= 0) return 0;
+  const halfWidth = strokeWidth * 0.5;
+  return 1 - smoothstep(halfWidth, halfWidth + Math.max(0.0001, feather), Math.abs(signedDistance));
+}
+
+function shapeRepeatInstances(layer: TextureLabShapeElement, seed: number): ShapeLayerInstance[] {
+  const repeat = layer.repeat;
+  const count = repeat.mode === 'none' ? 1 : Math.max(1, repeat.count);
+  const instances: ShapeLayerInstance[] = [];
+
+  for (let index = 0; index < count; index += 1) {
+    let x = layer.x;
+    let y = layer.y;
+    let rotation = layer.rotation;
+    let scale = 1;
+
+    if (repeat.mode === 'grid') {
+      const columns = Math.ceil(Math.sqrt(count));
+      const rows = Math.ceil(count / columns);
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      x += (col - (columns - 1) / 2) * repeat.spacing;
+      y += (row - (rows - 1) / 2) * repeat.spacing;
+    } else if (repeat.mode === 'radial') {
+      const angle = (index / count) * Math.PI * 2;
+      x += Math.cos(angle) * repeat.radius;
+      y += Math.sin(angle) * repeat.radius;
+      rotation += angle / (Math.PI * 2);
+    } else if (repeat.mode === 'scatter') {
+      const angle = random01(seed + repeat.seedOffset + 17, index, 1) * Math.PI * 2;
+      const radius = Math.sqrt(random01(seed + repeat.seedOffset + 29, index, 2)) * repeat.radius;
+      x += Math.cos(angle) * radius;
+      y += Math.sin(angle) * radius;
+    }
+
+    if (repeat.jitter > 0) {
+      x += (random01(seed + repeat.seedOffset + 41, index, 3) - 0.5) * repeat.jitter;
+      y += (random01(seed + repeat.seedOffset + 53, index, 4) - 0.5) * repeat.jitter;
+    }
+    if (repeat.rotationVariance > 0) {
+      rotation += (random01(seed + repeat.seedOffset + 67, index, 5) - 0.5) * repeat.rotationVariance;
+    }
+    if (repeat.scaleVariance > 0) {
+      scale += (random01(seed + repeat.seedOffset + 79, index, 6) - 0.5) * repeat.scaleVariance;
+    }
+
+    instances.push({ x, y, rotation, scale: Math.max(0.05, scale) });
+  }
+
+  return instances;
+}
+
+function shapeSignedDistance(layer: TextureLabShapeElement, px: number, py: number): number {
+  if (layer.kind === 'ellipse' || layer.kind === 'dot') {
+    return Math.hypot((px - 0.5) / 0.5, (py - 0.5) / 0.5) - 1;
+  }
+  if (layer.kind === 'rect') {
+    return rectSignedDistance(px, py, layer.cornerRoundness);
+  }
+  if (layer.kind === 'polygon' || layer.kind === 'star') {
+    return polygonSignedDistance({ x: px, y: py }, layer.points ?? regularShapePoints(layer.sides, layer.innerRadius, layer.kind === 'star'));
+  }
+  return 1;
+}
+
+function shapeSplineAlpha(layer: TextureLabShapeElement, px: number, py: number): number {
+  const spline = layer.spline;
+  if (!spline || spline.points.length < 2) return 0;
+  let distance = 999;
+  for (let index = 0; index < spline.points.length - 1; index += 1) {
+    const a = spline.points[index];
+    const b = spline.points[index + 1];
+    distance = Math.min(distance, distanceToSegment(px, py, a.x, a.y, b.x, b.y));
+  }
+  if (spline.closed) {
+    const a = spline.points[spline.points.length - 1];
+    const b = spline.points[0];
+    distance = Math.min(distance, distanceToSegment(px, py, a.x, a.y, b.x, b.y));
+  }
+  return strokeAlphaFromSignedDistance(distance, Math.max(0.01, layer.strokeWidth), layer.feather * 0.22);
+}
+
+function blendChannel(source: number, destination: number, mode: TextureLabShapeBlendMode): number {
+  if (mode === 'add') return clamp01(source + destination);
+  if (mode === 'multiply') return source * destination;
+  if (mode === 'screen') return 1 - (1 - source) * (1 - destination);
+  return source;
+}
+
+function compositeShapePixel(base: ShapePixel, color: [number, number, number], alpha: number, mode: TextureLabShapeBlendMode): ShapePixel {
+  const sourceAlpha = clamp01(alpha);
+  if (sourceAlpha <= 0) return base;
+  const source: [number, number, number] = [
+    blendChannel(color[0], base.r, mode),
+    blendChannel(color[1], base.g, mode),
+    blendChannel(color[2], base.b, mode),
+  ];
+  const outputAlpha = sourceAlpha + base.a * (1 - sourceAlpha);
+  if (outputAlpha <= 0) return { r: source[0], g: source[1], b: source[2], a: 0 };
+  return {
+    r: (source[0] * sourceAlpha + base.r * base.a * (1 - sourceAlpha)) / outputAlpha,
+    g: (source[1] * sourceAlpha + base.g * base.a * (1 - sourceAlpha)) / outputAlpha,
+    b: (source[2] * sourceAlpha + base.b * base.a * (1 - sourceAlpha)) / outputAlpha,
+    a: outputAlpha,
+  };
+}
+
+function shapeLayerPixel(layer: TextureLabShapeElement, u: number, v: number, seed: number): ShapePixel {
+  if (!layer.enabled) return { r: 0, g: 0, b: 0, a: 0 };
+  const fillColor = hexToRgb(layer.fillColor);
+  const strokeColor = hexToRgb(layer.strokeColor);
+  let pixel: ShapePixel = { r: 0, g: 0, b: 0, a: 0 };
+
+  for (const instance of shapeRepeatInstances(layer, seed)) {
+    const size = Math.max(0.001, layer.size * instance.scale);
+    const angle = -(layer.rotation + instance.rotation) * Math.PI * 2;
+    const dx = u - instance.x;
+    const dy = v - instance.y;
+    const localX = (dx * Math.cos(angle) - dy * Math.sin(angle)) / size + 0.5;
+    const localY = (dx * Math.sin(angle) + dy * Math.cos(angle)) / size + 0.5;
+    if (localX < -0.4 || localX > 1.4 || localY < -0.4 || localY > 1.4) continue;
+
+    if (layer.kind === 'spline') {
+      const alpha = shapeSplineAlpha(layer, localX, localY) * layer.opacity;
+      pixel = compositeShapePixel(pixel, strokeColor, alpha, layer.blendMode);
+      continue;
+    }
+
+    if (layer.kind === 'ring') {
+      const distance = Math.hypot(localX - 0.5, localY - 0.5);
+      const alpha =
+        (1 - smoothstep(layer.strokeWidth, layer.strokeWidth + Math.max(0.0001, layer.feather * 0.2), Math.abs(distance - 0.34))) *
+        layer.opacity;
+      pixel = compositeShapePixel(pixel, strokeColor, alpha, layer.blendMode);
+      continue;
+    }
+
+    const signedDistance = shapeSignedDistance(layer, localX, localY);
+    const feather = layer.feather * 0.22 + layer.cornerRoundness * 0.015;
+    const fillAlpha = alphaFromSignedDistance(signedDistance, feather) * layer.opacity;
+    const strokeAlpha = strokeAlphaFromSignedDistance(signedDistance, layer.strokeWidth, feather) * layer.opacity;
+    pixel = compositeShapePixel(pixel, fillColor, fillAlpha, layer.blendMode);
+    pixel = compositeShapePixel(pixel, strokeColor, strokeAlpha, layer.blendMode);
+  }
+
+  return pixel;
+}
+
+function shapeComposerPixel(recipe: TextureLabRecipe, u: number, v: number): ShapePixel {
+  const layers = recipe.shape?.layers ?? [];
+  return layers.reduce<ShapePixel>((pixel, layer, index) => {
+    const layerPixel = shapeLayerPixel(layer, u, v, recipe.seed + index * 101);
+    return compositeShapePixel(pixel, [layerPixel.r, layerPixel.g, layerPixel.b], layerPixel.a, layer.blendMode);
+  }, { r: 0, g: 0, b: 0, a: 0 });
+}
+
 function generatorValue(
   recipe: TextureLabRecipe,
   u: number,
@@ -1015,13 +1569,25 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
         v = recipe.tileable ? fract(v + dy * recipe.distortion * 0.12 + 1) : clamp01(v + dy * recipe.distortion * 0.12);
       }
 
-      const value = generatorValue(recipe, u, v, x, y, splinePath);
-      const colorT = contrast(value.colorT, recipe.contrast);
-      const color = sampleRamp(recipe.colorRamp, colorT, recipe.solidColor);
-      let alpha = clamp01(value.alpha);
-      if (recipe.alphaMode === 'opaque') alpha = 1;
-      if (recipe.alphaMode === 'luminance') alpha = colorT;
-      if (recipe.alphaMode === 'inverted') alpha = 1 - alpha;
+      let color: [number, number, number, number];
+      let alpha: number;
+      if (recipe.generator === 'shape-composer') {
+        const shapePixel = shapeComposerPixel(recipe, u, v);
+        color = [shapePixel.r, shapePixel.g, shapePixel.b, 1];
+        const luminance = clamp01(shapePixel.r * 0.299 + shapePixel.g * 0.587 + shapePixel.b * 0.114);
+        alpha = clamp01(shapePixel.a);
+        if (recipe.alphaMode === 'opaque') alpha = 1;
+        if (recipe.alphaMode === 'luminance') alpha = luminance;
+        if (recipe.alphaMode === 'inverted') alpha = 1 - alpha;
+      } else {
+        const value = generatorValue(recipe, u, v, x, y, splinePath);
+        const colorT = contrast(value.colorT, recipe.contrast);
+        color = sampleRamp(recipe.colorRamp, colorT, recipe.solidColor);
+        alpha = clamp01(value.alpha);
+        if (recipe.alphaMode === 'opaque') alpha = 1;
+        if (recipe.alphaMode === 'luminance') alpha = colorT;
+        if (recipe.alphaMode === 'inverted') alpha = 1 - alpha;
+      }
 
       const foregroundAlpha = alpha * color[3];
       const finalAlpha = foregroundAlpha + backgroundAlpha * (1 - foregroundAlpha);

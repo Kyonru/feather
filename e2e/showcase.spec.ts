@@ -374,6 +374,40 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await page.getByTitle('Randomize seed').click();
   await page.getByRole('button', { name: 'Comet Tail' }).click();
   await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
+  await page.getByLabel('Texture generator').click();
+  await page.getByRole('option', { name: 'Shapes & Polygons' }).click();
+  await expect(page.getByTestId('texture-lab-shape-editor')).toBeVisible();
+  await expect(page.getByTestId('texture-lab-shape-layer-stack')).toBeVisible();
+  const shapeBefore = await preview.getAttribute('src');
+  const shapePoint = await page.getByTestId('texture-lab-shape-point-0').boundingBox();
+  expect(shapePoint).not.toBeNull();
+  await page.mouse.move(shapePoint!.x + shapePoint!.width / 2, shapePoint!.y + shapePoint!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(shapePoint!.x + shapePoint!.width / 2 + 24, shapePoint!.y + shapePoint!.height / 2 + 12);
+  await page.mouse.up();
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(shapeBefore);
+  await page.getByRole('button', { name: 'Rect' }).click();
+  await expect(page.getByTitle('Disable Rect')).toBeVisible();
+  const withRect = await preview.getAttribute('src');
+  await page.getByTitle('Disable Rect').click();
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(withRect);
+  const beforeSplineLayer = await preview.getAttribute('src');
+  await page.getByTestId('texture-lab-shape-layer-stack').getByRole('button', { name: 'Spline', exact: true }).click();
+  await expect(page.getByTitle('Disable Spline')).toBeVisible();
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(beforeSplineLayer);
+  const shapeSplinePointLocator = page.getByTestId('texture-lab-shape-point-1');
+  const shapeSplinePointBefore = await shapeSplinePointLocator.getAttribute('data-point');
+  const shapeSplinePoint = await shapeSplinePointLocator.boundingBox();
+  expect(shapeSplinePoint).not.toBeNull();
+  await shapeSplinePointLocator.hover();
+  await page.mouse.down();
+  await page.mouse.move(shapeSplinePoint!.x + shapeSplinePoint!.width / 2 + 42, shapeSplinePoint!.y + shapeSplinePoint!.height / 2 + 32, {
+    steps: 8,
+  });
+  await page.mouse.up();
+  await expect.poll(() => shapeSplinePointLocator.getAttribute('data-point')).not.toBe(shapeSplinePointBefore);
+  await page.getByRole('button', { name: 'Scatter Dots' }).click();
+  await expect(page.getByLabel('Shape repeat mode')).toHaveText(/Scatter/);
   await textureHeader.getByRole('button', { name: /reset values/i }).click();
   await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
   await page.getByRole('button', { name: /expand texture presets/i }).click();
@@ -386,14 +420,14 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await page.getByTestId('texture-lab-apply').click();
   await expect
     .poll(async () => page.locator('input').evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value)))
-    .toContainEqual(expect.stringMatching(/spline-trail-64-\d+\.png/));
+    .toContainEqual(expect.stringMatching(/shapes-polygons-64-\d+\.png/));
   await page.getByTitle('Minimise').click({ force: true });
 
   await page.goto('/shader-graph');
   await openShaderOutput(page);
   await page.getByTestId('shader-preview-texture-generate').evaluate((element) => (element as HTMLElement).click());
   await page.getByTestId('texture-lab-apply').click();
-  await expect(page.getByTestId('shader-output-dock').getByText(/spline-trail-64-\d+\.png/)).toBeVisible();
+  await expect(page.getByTestId('shader-output-dock').getByText(/shapes-polygons-64-\d+\.png/)).toBeVisible();
 });
 
 test('showcase serves the real love.js shader preview target', async ({ page }) => {
