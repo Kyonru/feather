@@ -137,6 +137,49 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, ":setParticleLifetime("), "particle playground export includes particle setters")
     assertTruthy(not contains(code, "particles[1] = {system = "), "particle playground export avoids old table-only shape")
 
+    local atlas = {
+      mode = "variations",
+      preset = "seeded-spark",
+      playback = "variants",
+      columns = 4,
+      rows = 4,
+      frameCount = 16,
+      fps = 12,
+      frameWidth = 64,
+      frameHeight = 64,
+      width = 256,
+      height = 256,
+    }
+    local atlasAsset = plugin:_assetInfo("Export Format", 1, plugin:_getSystemEntry("Export Format", 1))
+    local atlasResult, atlasErr = plugin:handleActionRequest({
+      params = {
+        action = "set-texture",
+        composite = "Export Format",
+        systemIndex = 1,
+        filename = "atlas.png",
+        dataBase64 = atlasAsset.textureAssetBase64,
+        textureAtlas = atlas,
+      },
+    })
+    assertEqual(atlasErr, nil, "particle atlas texture upload succeeds")
+    assertTruthy(atlasResult == true, "particle atlas texture upload returns true")
+    local atlasPayload = plugin:handleRequest()
+    assertEqual(atlasPayload.data.systems[1].textureAtlas.playback, "variants", "particle atlas metadata appears in plugin payload")
+    assertEqual(atlasPayload.data.systems[1].textureAtlas.frameCount, 16, "particle atlas metadata preserves frame count")
+    local atlasExport = plugin:handleActionRequest({
+      params = {
+        action = "export-code",
+        composite = "Export Format",
+      },
+    })
+    local atlasCode = atlasExport and atlasExport.exportCode or ""
+    assertTruthy(contains(atlasCode, "local function applyTextureAtlas"), "particle atlas export embeds atlas helper")
+    assertTruthy(contains(atlasCode, "playback = \"variants\""), "particle atlas export preserves variant playback")
+    assertTruthy(contains(atlasCode, "emitAtlasSystems(emitter, count)"), "particle atlas export distributes bursts across atlas variants")
+    local atlasProject = plugin:_projectForComposite("Export Format")
+    assertEqual(atlasProject.version, 4, "particle atlas project export uses v4")
+    assertEqual(atlasProject.composite.systems[1].textureAtlas.playback, "variants", "particle atlas project export preserves metadata")
+
     plugin:handleActionRequest({
       params = {
         action = "new-composite",
@@ -1158,7 +1201,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     })
     local project = projectResult and projectResult.project
     assertEqual(project.type, "feather.particle-system-playground", "particle project export includes type")
-    assertEqual(project.version, 3, "particle project export includes version")
+    assertEqual(project.version, 4, "particle project export includes version")
     assertEqual(project.name, "Project Save", "particle project export includes composite name")
     assertEqual(project.composite.x, 321, "particle project export includes composite x")
     assertEqual(project.composite.y, 432, "particle project export includes composite y")

@@ -31,6 +31,7 @@ import {
   type ParticleAuthoringSnapshot,
   type ParticleHistoryState,
 } from '@/pages/particle-system-playground/history';
+import type { TextureLabAtlasMetadata } from '@/types/texture-lab';
 
 type ParamValue = string | number | boolean;
 
@@ -580,7 +581,7 @@ export function useLocalParticlePlayground() {
             ...current.data,
             systems: current.data.systems.map((item) =>
               item.index === current.activeSystem
-                ? { ...item, texturePreset: preset, texturePath: '', textureFilename: `${preset}.png`, exportReady: true }
+                ? { ...item, texturePreset: preset, texturePath: '', textureFilename: `${preset}.png`, textureAtlas: undefined, exportReady: true }
                 : item,
             ),
           },
@@ -602,6 +603,7 @@ export function useLocalParticlePlayground() {
                     texturePath,
                     texturePreset: '',
                     textureFilename: texturePath.split(/[\\/]/).pop() || 'texture.png',
+                    textureAtlas: undefined,
                     exportReady: true,
                   }
                 : item,
@@ -610,7 +612,7 @@ export function useLocalParticlePlayground() {
         };
       });
     },
-    setTextureFromUpload: (filename: string) => {
+    setTextureFromUpload: (filename: string, _dataBase64?: string, textureAtlas?: TextureLabAtlasMetadata) => {
       recordHistory(`system:${data.activeSystem}:texture`, false);
       setData((current) => {
         if (!current.data) return current;
@@ -625,6 +627,7 @@ export function useLocalParticlePlayground() {
                     texturePath: '',
                     texturePreset: '',
                     textureFilename: filename,
+                    textureAtlas,
                     exportReady: true,
                   }
                 : item,

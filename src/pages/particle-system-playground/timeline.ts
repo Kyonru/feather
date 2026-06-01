@@ -16,7 +16,7 @@ import {
 import { easeParticleTimelineValue, normalizeParticleTimelineEasing } from './easing';
 
 export const PARTICLE_PROJECT_TYPE = 'feather.particle-system-playground';
-export const PARTICLE_PROJECT_VERSION = 3;
+export const PARTICLE_PROJECT_VERSION = 4;
 export const PARTICLE_TIMELINE_DEFAULT_DURATION = 3;
 export const PARTICLE_TIMELINE_SCRUB_THROTTLE_MS = 120;
 

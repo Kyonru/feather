@@ -18,7 +18,7 @@ export default function TextureLab() {
 
   function useTexture(texture: GeneratedTextureResult) {
     if (canUseParticleEmitter) {
-      void playground.setTextureFromUpload(texture.filename, texture.dataBase64);
+      void playground.setTextureFromUpload(texture.filename, texture.dataBase64, texture.atlas);
       return;
     }
     if (canUseShaderTexture && selectedShaderNode) {
@@ -53,11 +53,12 @@ export default function TextureLab() {
         <TextureLabActionControls
           applyLabel={applyLabel}
           onApply={useTexture}
+          showAtlasAction
           className="max-w-full justify-start sm:justify-end"
         />
       </header>
       <div className="h-0 min-h-0 flex-1 overflow-hidden p-4">
-        <div className="mx-auto h-full min-h-0 w-full max-w-7xl">
+        <div className="h-full min-h-0 w-full">
           <TextureLabPanel applyLabel={applyLabel} onApply={useTexture} />
         </div>
       </div>

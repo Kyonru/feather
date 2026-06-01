@@ -55,7 +55,9 @@ Scratch composites are created from the playground. The browser showcase shows a
 
 Built-in scratch templates include Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, Dust Puff, Complex Composite, Snowfall, Rainfall, and Falling Leaves. Complex Composite is a five-emitter example with staggered timeline clips for a core pulse, expanding ring, smoke bloom, spark trails, and dust wake. Snowfall, Rainfall, and Falling Leaves use Ambient timeline mode for continuous background effects.
 
-Emitter texture controls include **Generate texture**, which opens Texture Lab and applies the generated PNG through the same upload path as imported images. This is useful for quickly creating soft circles, sparks, streaks, smoke puffs, trail blobs, comet tails, rain slashes, editable spline trails, spline ribbons, lightning strokes, and masks without leaving Feather. Scratch project export embeds those generated texture bytes the same way it embeds uploaded texture files.
+Emitter texture controls include **Generate texture**, which opens Texture Lab and applies the generated PNG through the same upload path as imported images. This is useful for quickly creating soft circles, sparks, streaks, smoke puffs, trail blobs, comet tails, rain slashes, editable spline trails, spline ribbons, lightning strokes, masks, and atlas/flipbook sheets without leaving Feather. Scratch project export embeds those generated texture bytes the same way it embeds uploaded texture files.
+
+Texture Lab atlas metadata is preserved for particle emitters. **Lifetime** atlas playback uses LÖVE particle quads so a particle progresses through the sheet over its life. **Variants** playback splits emission across grouped systems with one quad per frame, which gives randomized sprite variants for sparks, rain streaks, and smoke puffs while keeping exports consistent with the editor preview.
 
 Composite preview `x`/`y` and preview movement patterns change emitter positions via `ParticleSystem:setPosition(...)`. They do not translate the whole particle cloud during draw. Already-emitted particles keep moving naturally.
 
@@ -159,7 +161,7 @@ Particle projects use a portable JSON format with the `.featherparticles` extens
 }
 ```
 
-Saving a project preserves the editable composite settings, emitter metadata, particle properties, shader source, timeline clips/keyframes, and any texture bytes Feather can capture. Uploaded and generated preset textures round-trip inside the JSON file. Game-path textures are embedded when `love.filesystem.read` can access them; otherwise the project keeps the path and falls back to a generated/default texture if that path is unavailable on import.
+Saving a project preserves the editable composite settings, emitter metadata, particle properties, shader source, timeline clips/keyframes, texture atlas metadata, and any texture bytes Feather can capture. Uploaded and generated preset textures round-trip inside the JSON file. Game-path textures are embedded when `love.filesystem.read` can access them; otherwise the project keeps the path and falls back to a generated/default texture if that path is unavailable on import.
 
 Importing a project always creates a new scratch composite and selects it. Existing composites are left untouched, and duplicate names receive a numeric suffix. Version 1 project files still import; Feather migrates them to a default 3 second timeline with one clip per emitter starting at `0`.
 

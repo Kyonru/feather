@@ -1,5 +1,8 @@
 import {
   TEXTURE_LAB_ALPHA_MODES,
+  TEXTURE_LAB_ATLAS_MODES,
+  TEXTURE_LAB_ATLAS_PLAYBACK_MODES,
+  TEXTURE_LAB_ATLAS_PRESETS,
   TEXTURE_LAB_COLOR_RAMPS,
   TEXTURE_LAB_GENERATOR_IDS,
   TEXTURE_LAB_SHAPE_BLEND_MODES,
@@ -9,6 +12,15 @@ import {
   TEXTURE_LAB_SIZES,
   type GeneratedTextureResult,
   type TextureLabAlphaMode,
+  type TextureLabAtlasBundle,
+  type TextureLabAtlasCustomFrame,
+  type TextureLabAtlasFramePixels,
+  type TextureLabAtlasMetadata,
+  type TextureLabAtlasMode,
+  type TextureLabAtlasPixels,
+  type TextureLabAtlasPlaybackMode,
+  type TextureLabAtlasPreset,
+  type TextureLabAtlasSettings,
   type TextureLabColorRamp,
   type TextureLabGeneratedPixels,
   type TextureLabGeneratorId,
@@ -385,9 +397,43 @@ const SPLINE_OVERLAP_SET = new Set<string>(TEXTURE_LAB_SPLINE_OVERLAP_MODES);
 const SHAPE_KIND_SET = new Set<string>(TEXTURE_LAB_SHAPE_ELEMENT_KINDS);
 const SHAPE_REPEAT_SET = new Set<string>(TEXTURE_LAB_SHAPE_REPEAT_MODES);
 const SHAPE_BLEND_SET = new Set<string>(TEXTURE_LAB_SHAPE_BLEND_MODES);
+const ATLAS_MODE_SET = new Set<string>(TEXTURE_LAB_ATLAS_MODES);
+const ATLAS_PRESET_SET = new Set<string>(TEXTURE_LAB_ATLAS_PRESETS);
+const ATLAS_PLAYBACK_SET = new Set<string>(TEXTURE_LAB_ATLAS_PLAYBACK_MODES);
 const SHAPE_LAYER_LIMIT = 8;
 const SHAPE_POINT_LIMIT = 24;
 export const TEXTURE_LAB_SAVED_RECIPE_LIMIT = 32;
+export const TEXTURE_LAB_ATLAS_VARIANT_FRAME_LIMIT = 16;
+export const TEXTURE_LAB_ATLAS_LIFETIME_FRAME_LIMIT = 64;
+
+export const DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS: TextureLabAtlasSettings = {
+  enabled: false,
+  mode: 'variations',
+  preset: 'seeded-spark',
+  columns: 4,
+  rows: 4,
+  frameCount: 16,
+  fps: 12,
+  seedStep: 17,
+  playback: 'lifetime',
+  onionSkin: true,
+};
+
+export const TEXTURE_LAB_ATLAS_PRESET_LABELS: Record<TextureLabAtlasPreset, string> = {
+  'seeded-spark': 'Seeded Spark',
+  'smoke-variants': 'Smoke Variants',
+  'rain-variants': 'Rain Variants',
+  'dissolve-loop': 'Dissolve Loop',
+  'impact-ring': 'Impact Ring',
+  'custom-frames': 'Custom Frames',
+};
+
+export const TEXTURE_LAB_ATLAS_FILL_PRESETS = TEXTURE_LAB_ATLAS_PRESETS.filter(
+  (preset): preset is Exclude<TextureLabAtlasPreset, 'custom-frames'> => preset !== 'custom-frames',
+);
+
+const TEXTURE_LAB_RECIPE_FRAME_PLACEHOLDER =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lhvDkQAAAABJRU5ErkJggg==';
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -663,7 +709,14 @@ export const TEXTURE_LAB_SHAPE_PRESETS: TextureLabShapePreset[] = [
         label: 'Scatter Dots',
         fillColor: '#ffffff',
         opacity: 0.88,
-        repeat: { ...DEFAULT_SHAPE_REPEAT, mode: 'scatter', count: 24, radius: 0.42, jitter: 0.12, scaleVariance: 0.55 },
+        repeat: {
+          ...DEFAULT_SHAPE_REPEAT,
+          mode: 'scatter',
+          count: 24,
+          radius: 0.42,
+          jitter: 0.12,
+          scaleVariance: 0.55,
+        },
       }),
     ]),
   },
@@ -860,7 +913,9 @@ function normalizeShapeLayer(input: unknown, index: number): TextureLabShapeElem
         .slice(0, SHAPE_POINT_LIMIT)
     : undefined;
   const spline =
-    kind === 'spline' ? normalizeSplineRecipe(source.spline, 'spline-trail') ?? textureLabSplinePreset('slash') : undefined;
+    kind === 'spline'
+      ? (normalizeSplineRecipe(source.spline, 'spline-trail') ?? textureLabSplinePreset('slash'))
+      : undefined;
   return textureLabShapeElement(kind, {
     ...source,
     id: typeof source.id === 'string' && source.id.trim() ? source.id.trim() : `${kind}-${index + 1}`,
@@ -883,6 +938,85 @@ function normalizeShapeRecipe(input: unknown, generator: TextureLabGeneratorId):
       ? source.selectedLayerId
       : normalizedLayers[0]?.id;
   return { selectedLayerId, layers: normalizedLayers };
+}
+
+export function textureLabRecipeWithoutAtlas(
+  input?: Partial<TextureLabRecipe> | null,
+): Omit<TextureLabRecipe, 'atlas'> {
+  const normalized = normalizeRecipe({ ...input, atlas: undefined });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { atlas: _atlas, ...recipe } = normalized;
+  return recipe;
+}
+
+function normalizeTextureLabAtlasCustomFrames(input: unknown): TextureLabAtlasCustomFrame[] | undefined {
+  if (!Array.isArray(input)) return undefined;
+  const frames: TextureLabAtlasCustomFrame[] = [];
+  const ids = new Set<string>();
+
+  for (const [index, item] of input.entries()) {
+    if (!item || typeof item !== 'object') continue;
+    const source = item as Partial<TextureLabAtlasCustomFrame>;
+    const recipe = source.recipe ? textureLabRecipeWithoutAtlas(source.recipe) : undefined;
+    const dataBase64 = typeof source.dataBase64 === 'string' ? source.dataBase64 : '';
+    if (!recipe && dataBase64.length === 0) continue;
+    const baseId = typeof source.id === 'string' && source.id.trim() ? source.id.trim() : `custom-frame-${index + 1}`;
+    let id = baseId;
+    let suffix = 2;
+    while (ids.has(id)) {
+      id = `${baseId}-${suffix}`;
+      suffix += 1;
+    }
+    ids.add(id);
+    frames.push({
+      id,
+      name:
+        typeof source.name === 'string' && source.name.trim()
+          ? source.name.trim().replace(/\s+/g, ' ').slice(0, 96)
+          : `Frame ${index + 1}.png`,
+      dataBase64: dataBase64.length > 0 ? dataBase64 : TEXTURE_LAB_RECIPE_FRAME_PLACEHOLDER,
+      width: Math.round(clamp(Number(source.width ?? recipe?.size ?? 0), 1, 4096)),
+      height: Math.round(clamp(Number(source.height ?? recipe?.size ?? 0), 1, 4096)),
+      recipe,
+    });
+    if (frames.length >= TEXTURE_LAB_ATLAS_LIFETIME_FRAME_LIMIT) break;
+  }
+
+  return frames.length > 0 ? frames : undefined;
+}
+
+export function normalizeTextureLabAtlasSettings(input: unknown): TextureLabAtlasSettings {
+  const source = input && typeof input === 'object' ? (input as Partial<TextureLabAtlasSettings>) : {};
+  const playback =
+    typeof source.playback === 'string' && ATLAS_PLAYBACK_SET.has(source.playback)
+      ? (source.playback as TextureLabAtlasPlaybackMode)
+      : DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS.playback;
+  const frameLimit =
+    playback === 'variants' ? TEXTURE_LAB_ATLAS_VARIANT_FRAME_LIMIT : TEXTURE_LAB_ATLAS_LIFETIME_FRAME_LIMIT;
+  const columns = Math.round(clamp(Number(source.columns ?? DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS.columns), 1, 8));
+  const rows = Math.round(clamp(Number(source.rows ?? DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS.rows), 1, 8));
+  const capacity = Math.max(1, Math.min(frameLimit, columns * rows));
+  return {
+    enabled: source.enabled === true,
+    mode:
+      typeof source.mode === 'string' && ATLAS_MODE_SET.has(source.mode)
+        ? (source.mode as TextureLabAtlasMode)
+        : DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS.mode,
+    preset:
+      typeof source.preset === 'string' && ATLAS_PRESET_SET.has(source.preset)
+        ? (source.preset as TextureLabAtlasPreset)
+        : DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS.preset,
+    columns,
+    rows,
+    frameCount: Math.round(
+      clamp(Number(source.frameCount ?? DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS.frameCount), 1, capacity),
+    ),
+    fps: Math.round(clamp(Number(source.fps ?? DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS.fps), 1, 60)),
+    seedStep: Math.round(clamp(Number(source.seedStep ?? DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS.seedStep), 1, 9999)),
+    playback,
+    onionSkin: source.onionSkin !== false,
+    customFrames: normalizeTextureLabAtlasCustomFrames(source.customFrames),
+  };
 }
 
 function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRecipe {
@@ -920,6 +1054,7 @@ function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRe
     backgroundAlpha: clamp(Number(source.backgroundAlpha ?? DEFAULT_TEXTURE_LAB_RECIPE.backgroundAlpha), 0, 1),
     spline: normalizeSplineRecipe(source.spline, generator),
     shape: normalizeShapeRecipe(source.shape, generator),
+    atlas: source.atlas ? normalizeTextureLabAtlasSettings(source.atlas) : undefined,
   };
 }
 
@@ -1232,7 +1367,7 @@ function pointInPolygon(point: TextureLabSplinePoint, polygon: TextureLabSplineP
     const a = polygon[index];
     const b = polygon[prev];
     const crosses = a.y > point.y !== b.y > point.y;
-    if (crosses && point.x < ((b.x - a.x) * (point.y - a.y)) / ((b.y - a.y) || 0.00001) + a.x) {
+    if (crosses && point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y || 0.00001) + a.x) {
       inside = !inside;
     }
   }
@@ -1323,7 +1458,10 @@ function shapeSignedDistance(layer: TextureLabShapeElement, px: number, py: numb
     return rectSignedDistance(px, py, layer.cornerRoundness);
   }
   if (layer.kind === 'polygon' || layer.kind === 'star') {
-    return polygonSignedDistance({ x: px, y: py }, layer.points ?? regularShapePoints(layer.sides, layer.innerRadius, layer.kind === 'star'));
+    return polygonSignedDistance(
+      { x: px, y: py },
+      layer.points ?? regularShapePoints(layer.sides, layer.innerRadius, layer.kind === 'star'),
+    );
   }
   return 1;
 }
@@ -1352,7 +1490,12 @@ function blendChannel(source: number, destination: number, mode: TextureLabShape
   return source;
 }
 
-function compositeShapePixel(base: ShapePixel, color: [number, number, number], alpha: number, mode: TextureLabShapeBlendMode): ShapePixel {
+function compositeShapePixel(
+  base: ShapePixel,
+  color: [number, number, number],
+  alpha: number,
+  mode: TextureLabShapeBlendMode,
+): ShapePixel {
   const sourceAlpha = clamp01(alpha);
   if (sourceAlpha <= 0) return base;
   const source: [number, number, number] = [
@@ -1394,7 +1537,12 @@ function shapeLayerPixel(layer: TextureLabShapeElement, u: number, v: number, se
     if (layer.kind === 'ring') {
       const distance = Math.hypot(localX - 0.5, localY - 0.5);
       const alpha =
-        (1 - smoothstep(layer.strokeWidth, layer.strokeWidth + Math.max(0.0001, layer.feather * 0.2), Math.abs(distance - 0.34))) *
+        (1 -
+          smoothstep(
+            layer.strokeWidth,
+            layer.strokeWidth + Math.max(0.0001, layer.feather * 0.2),
+            Math.abs(distance - 0.34),
+          )) *
         layer.opacity;
       pixel = compositeShapePixel(pixel, strokeColor, alpha, layer.blendMode);
       continue;
@@ -1413,10 +1561,13 @@ function shapeLayerPixel(layer: TextureLabShapeElement, u: number, v: number, se
 
 function shapeComposerPixel(recipe: TextureLabRecipe, u: number, v: number): ShapePixel {
   const layers = recipe.shape?.layers ?? [];
-  return layers.reduce<ShapePixel>((pixel, layer, index) => {
-    const layerPixel = shapeLayerPixel(layer, u, v, recipe.seed + index * 101);
-    return compositeShapePixel(pixel, [layerPixel.r, layerPixel.g, layerPixel.b], layerPixel.a, layer.blendMode);
-  }, { r: 0, g: 0, b: 0, a: 0 });
+  return layers.reduce<ShapePixel>(
+    (pixel, layer, index) => {
+      const layerPixel = shapeLayerPixel(layer, u, v, recipe.seed + index * 101);
+      return compositeShapePixel(pixel, [layerPixel.r, layerPixel.g, layerPixel.b], layerPixel.a, layer.blendMode);
+    },
+    { r: 0, g: 0, b: 0, a: 0 },
+  );
 }
 
 function generatorValue(
@@ -1599,6 +1750,232 @@ export function normalizeTextureLabSavedRecipes(input?: unknown): TextureLabSave
   return recipes;
 }
 
+export function textureLabAtlasPresetBaseGenerator(preset: TextureLabAtlasPreset): TextureLabRecipe['generator'] {
+  if (preset === 'custom-frames') return 'soft-circle';
+  if (preset === 'seeded-spark') return 'spark';
+  if (preset === 'smoke-variants') return 'smoke-puff';
+  if (preset === 'rain-variants') return 'rain-slash';
+  if (preset === 'dissolve-loop') return 'threshold-noise-mask';
+  return 'ring';
+}
+
+export function textureLabAtlasFrameRecipe(
+  recipe: TextureLabRecipe,
+  atlas: TextureLabAtlasSettings,
+  index: number,
+): TextureLabRecipe {
+  const progress = atlas.frameCount <= 1 ? 0 : index / (atlas.frameCount - 1);
+  const seed = recipe.seed + index * atlas.seedStep;
+
+  if (atlas.preset === 'custom-frames') {
+    return normalizeRecipe({ ...recipe, seed, atlas: undefined });
+  }
+
+  if (atlas.preset === 'seeded-spark') {
+    return normalizeRecipe({
+      ...defaultTextureLabRecipeForGenerator('spark'),
+      ...recipe,
+      generator: 'spark',
+      seed,
+      softness: clamp(recipe.softness * (0.75 + progress * 0.35), 0, 1),
+      falloff: clamp(recipe.falloff * (0.9 + (index % 3) * 0.08), 0.1, 6),
+      atlas: undefined,
+    });
+  }
+
+  if (atlas.preset === 'smoke-variants') {
+    return normalizeRecipe({
+      ...defaultTextureLabRecipeForGenerator('smoke-puff'),
+      ...recipe,
+      generator: 'smoke-puff',
+      seed,
+      scale: clamp(recipe.scale + (index % 5) - 2, 1, 32),
+      softness: clamp(0.55 + progress * 0.25, 0, 1),
+      distortion: clamp(recipe.distortion + 0.12, 0, 1),
+      colorRamp: recipe.colorRamp === 'white' ? 'smoke' : recipe.colorRamp,
+      atlas: undefined,
+    });
+  }
+
+  if (atlas.preset === 'rain-variants') {
+    return normalizeRecipe({
+      ...defaultTextureLabRecipeForGenerator('rain-slash'),
+      ...recipe,
+      generator: 'rain-slash',
+      seed,
+      softness: clamp(0.06 + (index % 4) * 0.02, 0, 1),
+      falloff: clamp(1 + progress * 0.5, 0.1, 6),
+      colorRamp: recipe.colorRamp === 'white' ? 'ice' : recipe.colorRamp,
+      atlas: undefined,
+    });
+  }
+
+  if (atlas.preset === 'dissolve-loop') {
+    const loopProgress = atlas.frameCount <= 1 ? 0 : index / atlas.frameCount;
+    const threshold = 0.12 + (0.76 * (1 - Math.cos(loopProgress * Math.PI * 2))) / 2;
+    return normalizeRecipe({
+      ...defaultTextureLabRecipeForGenerator('threshold-noise-mask'),
+      ...recipe,
+      generator: 'threshold-noise-mask',
+      seed,
+      threshold,
+      scale: clamp(recipe.scale, 2, 32),
+      contrast: clamp(recipe.contrast * 1.2, 0.1, 4),
+      alphaMode: 'luminance',
+      colorRamp: recipe.colorRamp === 'white' ? 'grayscale' : recipe.colorRamp,
+      atlas: undefined,
+    });
+  }
+
+  if (atlas.preset === 'impact-ring') {
+    const size = 0.18 + progress * 0.92;
+    const opacity = Math.max(0.08, 1 - progress * 0.82);
+    return normalizeRecipe({
+      ...defaultTextureLabRecipeForGenerator('shape-composer'),
+      ...recipe,
+      generator: 'shape-composer',
+      seed,
+      shape: shapeRecipe(
+        [
+          textureLabShapeElement('ring', {
+            id: 'impact-ring',
+            label: 'Impact Ring',
+            x: 0.5,
+            y: 0.5,
+            size,
+            opacity,
+            fillColor: '#ffffff',
+            strokeColor: '#ffffff',
+            strokeWidth: 0.08,
+            feather: clamp(0.04 + progress * 0.12, 0, 0.45),
+          }),
+        ],
+        'impact-ring',
+      ),
+      alphaMode: 'shape',
+      backgroundAlpha: 0,
+      atlas: undefined,
+    });
+  }
+
+  return normalizeRecipe({ ...recipe, seed, atlas: undefined });
+}
+
+export function textureLabAtlasFrameFromRecipe(
+  input: Partial<TextureLabRecipe> | null | undefined,
+  index: number,
+): TextureLabAtlasCustomFrame {
+  const recipe = textureLabRecipeWithoutAtlas(input);
+  const label =
+    TEXTURE_LAB_GENERATORS.find((generator) => generator.id === recipe.generator)?.label ?? recipe.generator;
+  return {
+    id: `atlas-frame-${index + 1}-${recipe.generator}-${recipe.seed}`,
+    name: `Frame ${index + 1} - ${label}`,
+    dataBase64: TEXTURE_LAB_RECIPE_FRAME_PLACEHOLDER,
+    width: recipe.size,
+    height: recipe.size,
+    recipe,
+  };
+}
+
+export function textureLabMaterializeAtlasFrames(
+  input?: Partial<TextureLabRecipe> | null,
+  atlasInput?: Partial<TextureLabAtlasSettings> | null,
+  fillPreset?: TextureLabAtlasPreset,
+): TextureLabAtlasCustomFrame[] {
+  const sourceRecipe = normalizeRecipe(input);
+  const preset = fillPreset ?? atlasInput?.preset ?? sourceRecipe.atlas?.preset ?? 'custom-frames';
+  const atlas = normalizeTextureLabAtlasSettings({
+    ...sourceRecipe.atlas,
+    ...atlasInput,
+    enabled: true,
+    preset,
+  });
+
+  if (preset === 'custom-frames') {
+    return Array.from({ length: atlas.frameCount }, (_, index) => textureLabAtlasFrameFromRecipe(sourceRecipe, index));
+  }
+
+  const baseRecipe = normalizeRecipe({
+    ...defaultTextureLabRecipeForGenerator(textureLabAtlasPresetBaseGenerator(preset)),
+    size: sourceRecipe.size,
+    seed: sourceRecipe.seed,
+    atlas: undefined,
+  });
+  const presetAtlas = normalizeTextureLabAtlasSettings({ ...atlas, preset, enabled: true });
+  return Array.from({ length: presetAtlas.frameCount }, (_, index) =>
+    textureLabAtlasFrameFromRecipe(textureLabAtlasFrameRecipe(baseRecipe, presetAtlas, index), index),
+  );
+}
+
+function atlasMetadata(
+  atlas: TextureLabAtlasSettings,
+  frameWidth: number,
+  frameHeight: number,
+): TextureLabAtlasMetadata {
+  const width = atlas.columns * frameWidth;
+  const height = atlas.rows * frameHeight;
+  const duration = 1 / atlas.fps;
+  const frames = Array.from({ length: atlas.frameCount }, (_, index) => ({
+    index,
+    x: (index % atlas.columns) * frameWidth,
+    y: Math.floor(index / atlas.columns) * frameHeight,
+    width: frameWidth,
+    height: frameHeight,
+    duration,
+  }));
+  return {
+    mode: atlas.mode,
+    preset: atlas.preset,
+    playback: atlas.playback,
+    columns: atlas.columns,
+    rows: atlas.rows,
+    frameCount: atlas.frameCount,
+    fps: atlas.fps,
+    frameWidth,
+    frameHeight,
+    width,
+    height,
+    frames,
+  };
+}
+
+export function renderTextureLabAtlasPixels(input?: Partial<TextureLabRecipe> | null): TextureLabAtlasPixels {
+  const recipe = normalizeRecipe(input);
+  const atlas = normalizeTextureLabAtlasSettings({ ...recipe.atlas, enabled: true });
+  const frameWidth = recipe.size;
+  const frameHeight = recipe.size;
+  const metadata = atlasMetadata(atlas, frameWidth, frameHeight);
+  const pixels = new Uint8ClampedArray(metadata.width * metadata.height * 4);
+  const frames: TextureLabAtlasFramePixels[] = [];
+
+  for (let index = 0; index < atlas.frameCount; index += 1) {
+    const frameRecipe = textureLabAtlasFrameRecipe(recipe, atlas, index);
+    const frame = renderTextureLabPixels(frameRecipe);
+    const frameX = (index % atlas.columns) * frameWidth;
+    const frameY = Math.floor(index / atlas.columns) * frameHeight;
+    for (let y = 0; y < frameHeight; y += 1) {
+      const targetOffset = ((frameY + y) * metadata.width + frameX) * 4;
+      const sourceOffset = y * frameWidth * 4;
+      pixels.set(frame.pixels.subarray(sourceOffset, sourceOffset + frameWidth * 4), targetOffset);
+    }
+    frames.push({
+      ...frame,
+      index,
+      progress: atlas.frameCount <= 1 ? 0 : index / (atlas.frameCount - 1),
+    });
+  }
+
+  return {
+    width: metadata.width,
+    height: metadata.height,
+    pixels,
+    recipe: { ...recipe, atlas },
+    atlas: metadata,
+    frames,
+  };
+}
+
 export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null): TextureLabGeneratedPixels {
   const recipe = normalizeRecipe(input);
   const width = recipe.size;
@@ -1667,7 +2044,8 @@ export function textureLabFilename(recipe: TextureLabRecipe): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return `${base}-${recipe.size}-${recipe.seed}.png`;
+  const atlas = recipe.atlas?.enabled ? '-atlas' : '';
+  return `${base}${atlas}-${recipe.size}-${recipe.seed}.png`;
 }
 
 export function textureLabPixelsToDataUrl(result: TextureLabGeneratedPixels): string {
@@ -1682,8 +2060,125 @@ export function textureLabPixelsToDataUrl(result: TextureLabGeneratedPixels): st
   return canvas.toDataURL('image/png');
 }
 
+function textureLabCustomFrameDataUrl(frame: TextureLabAtlasCustomFrame): string {
+  return frame.dataBase64.startsWith('data:image') ? frame.dataBase64 : `data:image/png;base64,${frame.dataBase64}`;
+}
+
+function loadTextureLabImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Texture Lab could not load the custom atlas frame.'));
+    image.src = src;
+  });
+}
+
+async function renderTextureLabCustomFramePixels(
+  recipe: TextureLabRecipe,
+  frame: TextureLabAtlasCustomFrame,
+  index: number,
+): Promise<TextureLabAtlasFramePixels> {
+  if (frame.recipe) {
+    const rendered = renderTextureLabPixels({ ...frame.recipe, size: recipe.size, atlas: undefined });
+    return {
+      ...rendered,
+      index,
+      progress: 0,
+    };
+  }
+
+  const image = await loadTextureLabImage(textureLabCustomFrameDataUrl(frame));
+  const canvas = document.createElement('canvas');
+  canvas.width = recipe.size;
+  canvas.height = recipe.size;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Canvas 2D is not available');
+  context.imageSmoothingEnabled = !recipe.pixelated;
+  const scale = Math.min(
+    recipe.size / Math.max(1, image.naturalWidth || frame.width),
+    recipe.size / Math.max(1, image.naturalHeight || frame.height),
+  );
+  const width = Math.max(1, Math.round((image.naturalWidth || frame.width) * scale));
+  const height = Math.max(1, Math.round((image.naturalHeight || frame.height) * scale));
+  const x = Math.floor((recipe.size - width) / 2);
+  const y = Math.floor((recipe.size - height) / 2);
+  context.clearRect(0, 0, recipe.size, recipe.size);
+  context.drawImage(image, x, y, width, height);
+  const imageData = context.getImageData(0, 0, recipe.size, recipe.size);
+  return {
+    width: recipe.size,
+    height: recipe.size,
+    pixels: new Uint8ClampedArray(imageData.data),
+    recipe: normalizeRecipe({ ...recipe, atlas: undefined }),
+    index,
+    progress: 0,
+  };
+}
+
+export function isTextureLabCustomAtlas(input?: Partial<TextureLabRecipe> | null): boolean {
+  const recipe = normalizeRecipe(input);
+  const atlas = recipe.atlas ? normalizeTextureLabAtlasSettings(recipe.atlas) : undefined;
+  return atlas?.enabled === true && (atlas.preset === 'custom-frames' || (atlas.customFrames?.length ?? 0) > 0);
+}
+
+export async function renderTextureLabCustomAtlasPixels(
+  input?: Partial<TextureLabRecipe> | null,
+): Promise<TextureLabAtlasPixels> {
+  const recipe = normalizeRecipe(input);
+  const atlas = normalizeTextureLabAtlasSettings({ ...recipe.atlas, enabled: true, preset: 'custom-frames' });
+  const frameWidth = recipe.size;
+  const frameHeight = recipe.size;
+  const metadata = atlasMetadata(atlas, frameWidth, frameHeight);
+  const pixels = new Uint8ClampedArray(metadata.width * metadata.height * 4);
+  const frames: TextureLabAtlasFramePixels[] = [];
+  const customFrames = atlas.customFrames ?? [];
+
+  for (let index = 0; index < atlas.frameCount; index += 1) {
+    const customFrame = customFrames[index] ?? customFrames[0];
+    const frame = customFrame
+      ? await renderTextureLabCustomFramePixels(recipe, customFrame, index)
+      : renderTextureLabPixels(textureLabAtlasFrameRecipe(recipe, atlas, index));
+    const frameX = (index % atlas.columns) * frameWidth;
+    const frameY = Math.floor(index / atlas.columns) * frameHeight;
+    for (let y = 0; y < frameHeight; y += 1) {
+      const targetOffset = ((frameY + y) * metadata.width + frameX) * 4;
+      const sourceOffset = y * frameWidth * 4;
+      pixels.set(frame.pixels.subarray(sourceOffset, sourceOffset + frameWidth * 4), targetOffset);
+    }
+    frames.push({
+      ...frame,
+      index,
+      progress: atlas.frameCount <= 1 ? 0 : index / (atlas.frameCount - 1),
+    });
+  }
+
+  return {
+    width: metadata.width,
+    height: metadata.height,
+    pixels,
+    recipe: { ...recipe, atlas },
+    atlas: metadata,
+    frames,
+  };
+}
+
 export function generateTextureLabTexture(input?: Partial<TextureLabRecipe> | null): GeneratedTextureResult {
-  const pixels = renderTextureLabPixels(input);
+  const normalized = normalizeRecipe(input);
+  if (normalized.atlas?.enabled) {
+    const pixels = renderTextureLabAtlasPixels(normalized);
+    const dataUrl = textureLabPixelsToDataUrl(pixels);
+    return {
+      filename: textureLabFilename(pixels.recipe),
+      dataBase64: dataUrl.split(',', 2)[1] ?? '',
+      dataUrl,
+      width: pixels.width,
+      height: pixels.height,
+      recipe: pixels.recipe,
+      atlas: pixels.atlas,
+    };
+  }
+
+  const pixels = renderTextureLabPixels(normalized);
   const dataUrl = textureLabPixelsToDataUrl(pixels);
   return {
     filename: textureLabFilename(pixels.recipe),
@@ -1693,4 +2188,78 @@ export function generateTextureLabTexture(input?: Partial<TextureLabRecipe> | nu
     height: pixels.height,
     recipe: pixels.recipe,
   };
+}
+
+export async function generateTextureLabTextureAsync(
+  input?: Partial<TextureLabRecipe> | null,
+): Promise<GeneratedTextureResult> {
+  if (isTextureLabCustomAtlas(input)) {
+    const pixels = await renderTextureLabCustomAtlasPixels(input);
+    const dataUrl = textureLabPixelsToDataUrl(pixels);
+    return {
+      filename: textureLabFilename(pixels.recipe),
+      dataBase64: dataUrl.split(',', 2)[1] ?? '',
+      dataUrl,
+      width: pixels.width,
+      height: pixels.height,
+      recipe: pixels.recipe,
+      atlas: pixels.atlas,
+    };
+  }
+  return generateTextureLabTexture(input);
+}
+
+export function generateTextureLabAtlasBundle(input?: Partial<TextureLabRecipe> | null): TextureLabAtlasBundle {
+  const pixels = renderTextureLabAtlasPixels(input);
+  const sheetDataUrl = textureLabPixelsToDataUrl(pixels);
+  const texture: GeneratedTextureResult = {
+    filename: textureLabFilename(pixels.recipe),
+    dataBase64: sheetDataUrl.split(',', 2)[1] ?? '',
+    dataUrl: sheetDataUrl,
+    width: pixels.width,
+    height: pixels.height,
+    recipe: pixels.recipe,
+    atlas: pixels.atlas,
+  };
+  const frames = pixels.frames.map((frame) => {
+    const dataUrl = textureLabPixelsToDataUrl(frame);
+    return {
+      filename: `frame-${String(frame.index).padStart(3, '0')}.png`,
+      dataBase64: dataUrl.split(',', 2)[1] ?? '',
+      dataUrl,
+      width: frame.width,
+      height: frame.height,
+      recipe: frame.recipe,
+    };
+  });
+  return { texture, frames, atlas: pixels.atlas };
+}
+
+export async function generateTextureLabAtlasBundleAsync(
+  input?: Partial<TextureLabRecipe> | null,
+): Promise<TextureLabAtlasBundle> {
+  if (!isTextureLabCustomAtlas(input)) return generateTextureLabAtlasBundle(input);
+  const pixels = await renderTextureLabCustomAtlasPixels(input);
+  const sheetDataUrl = textureLabPixelsToDataUrl(pixels);
+  const texture: GeneratedTextureResult = {
+    filename: textureLabFilename(pixels.recipe),
+    dataBase64: sheetDataUrl.split(',', 2)[1] ?? '',
+    dataUrl: sheetDataUrl,
+    width: pixels.width,
+    height: pixels.height,
+    recipe: pixels.recipe,
+    atlas: pixels.atlas,
+  };
+  const frames = pixels.frames.map((frame) => {
+    const dataUrl = textureLabPixelsToDataUrl(frame);
+    return {
+      filename: `frame-${String(frame.index).padStart(3, '0')}.png`,
+      dataBase64: dataUrl.split(',', 2)[1] ?? '',
+      dataUrl,
+      width: frame.width,
+      height: frame.height,
+      recipe: frame.recipe,
+    };
+  });
+  return { texture, frames, atlas: pixels.atlas };
 }

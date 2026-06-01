@@ -8,6 +8,7 @@ import { readFile } from '@tauri-apps/plugin-fs';
 import { FolderOpenIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
+import type { TextureLabAtlasMetadata } from '@/types/texture-lab';
 
 function bytesToBase64(bytes: Uint8Array) {
   let binary = '';
@@ -28,7 +29,7 @@ type Props = {
   textureFilename: string;
   onPreset: (preset: string) => void;
   onPath: (path: string) => void;
-  onUpload: (filename: string, dataBase64: string) => void;
+  onUpload: (filename: string, dataBase64: string, atlas?: TextureLabAtlasMetadata) => void;
 };
 
 export function TextureImporter({ texturePath, texturePreset, textureFilename, onPreset, onPath, onUpload }: Props) {
@@ -60,7 +61,7 @@ export function TextureImporter({ texturePath, texturePreset, textureFilename, o
           triggerTitle="Generate texture"
           triggerTestId="particle-texture-generate"
           applyLabel="Use for emitter"
-          onApply={(texture) => onUpload(texture.filename, texture.dataBase64)}
+          onApply={(texture) => onUpload(texture.filename, texture.dataBase64, texture.atlas)}
         />
       </div>
       <div className="grid gap-1">

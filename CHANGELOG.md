@@ -17,10 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a Texture Lab Solid Color ramp with a color picker for baking one chosen color into generated sprites, masks, and spline textures.
 - Added a Texture Lab Shapes & Polygons composer with layered editable polygons, fill/stroke styling, blend modes, and seeded grid/radial/scatter repeats.
 - Added local Texture Lab saved recipes for named reusable generator, spline, and shape setups.
+- Added Texture Lab atlas/flipbook generation with sheet previews, frame strips, ZIP export, and Particle Playground atlas playback metadata.
+- Added Texture Lab custom sprite-sheet frames with Convert to Sprite Sheet, per-frame generator editing, replace-only uploaded bitmap frames, texture replacement, and toggleable onion-skin previews.
 - Added Texture Lab spline overlap resolution controls so self-crossing paths can merge, bridge, or stack additively.
 - Texture Lab reset now restores generator-specific alpha defaults, using luminance or inverted alpha where masks and noise presets benefit from it.
 - Texture Lab spline points now use explicit fill, border color, and border width styles with a separate selected-point highlight, and Texture Lab includes a quick reset for the current generator values.
-- Texture Lab now fills the available editor height, keeps controls and preview/presets scrolling independently, tucks generator presets into a collapsible panel, and keeps reset/regenerate/export/apply actions in the fixed header.
+- Texture Lab Shapes & Polygons now exposes direct move and resize handles in the preview editor while keeping polygon, star, and spline point reshaping.
+- Texture Lab now fills more of the available editor space, keeps controls and preview/presets scrolling independently, tucks generator presets into a collapsible panel, narrows side panels so previews can breathe, and keeps reset/regenerate/export/apply actions in the fixed header.
+- Texture Lab Atlas / Flipbook is now a first-class workspace with a fixed Create/Enter/Exit Atlas action, editable per-frame recipes, a right-side frame grid, seeded fills, onion skin, and frame replacement controls.
+- Texture Lab Atlas now uses in-app confirmation dialogs before replacing all frames and adds an Empty all frames action that clears the sheet to transparent editable frames.
 
 ### Changed
 
@@ -42,12 +47,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused/app/showcase Texture Lab coverage for the Solid Color ramp and selected color picker.
 - Added focused/app/showcase Texture Lab coverage for the Shapes & Polygons composer, layer toggles, editable points, presets, and repeat modes.
 - Added focused/app/showcase Texture Lab coverage for saving and loading named local recipes.
+- Added focused Texture Lab atlas coverage plus app/showcase and Lua checks for atlas UI, metadata, and Particle Playground export paths.
+- Added focused/app/showcase Texture Lab coverage for custom atlas frame normalization, Convert to Sprite Sheet, per-frame editing/replacement, and onion-skin toggles.
 - Added focused spline overlap coverage plus app/showcase checks for the overlap selector.
 - Added focused Texture Lab coverage for generator-specific reset alpha defaults.
 - Added focused/app/showcase coverage for Texture Lab generator resets and spline point styling.
 - Added app/showcase coverage for Texture Lab independent panel scrolling, collapsible presets, and fixed-header generator actions.
 - Added focused Texture Lab coverage for removing hardcoded Comet Tail/Slash generator IDs while preserving their spline presets.
 - Added app/showcase coverage for Texture Lab generator and spline presets restoring default values when selected.
+- Added focused/app/showcase coverage for the Texture Lab first-class atlas workspace, editable materialized frames, seeded fills, and uploaded frame handling.
 
 ## [v3.0.0] - 2026-05-31 - The one with core workflows
 

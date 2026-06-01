@@ -35,6 +35,7 @@ import {
   type ParticleAuthoringSnapshot,
   type ParticleHistoryState,
 } from '@/pages/particle-system-playground/history';
+import type { TextureLabAtlasMetadata } from '@/types/texture-lab';
 
 const PLUGIN_ID = 'particle-system-playground';
 
@@ -132,7 +133,7 @@ function updateTextureDraft(
   data: ParticleSystemPlaygroundData | undefined,
   systemIndex: number,
   texture: Partial<
-    Pick<ParticleSystemPlaygroundSystem, 'texturePath' | 'texturePreset' | 'textureFilename' | 'exportReady'>
+    Pick<ParticleSystemPlaygroundSystem, 'texturePath' | 'texturePreset' | 'textureFilename' | 'textureAtlas' | 'exportReady'>
   >,
 ): ParticleSystemPlaygroundData | undefined {
   if (!data?.data) return data;
@@ -544,17 +545,18 @@ export function useParticleSystemPlayground() {
   }, [runtimeSuspended, sendAction, sendRestoreSnapshot]);
 
   const setTextureFromUpload = useCallback(
-    (filename: string, dataBase64: string) => {
+    (filename: string, dataBase64: string, textureAtlas?: TextureLabAtlasMetadata) => {
       recordHistory(`system:${data.activeSystem}:texture`, false);
       queryClient.setQueryData<ParticleSystemPlaygroundData>(pluginQueryKey, (current) =>
         updateTextureDraft(current, data.activeSystem, {
           texturePath: '',
           texturePreset: '',
           textureFilename: filename,
+          textureAtlas,
           exportReady: true,
         }),
       );
-      return sendAction('set-texture', { filename, dataBase64 });
+      return sendAction('set-texture', { filename, dataBase64, textureAtlas });
     },
     [data.activeSystem, pluginQueryKey, queryClient, recordHistory, sendAction],
   );
@@ -824,6 +826,7 @@ export function useParticleSystemPlayground() {
           texturePath: '',
           texturePreset: preset,
           textureFilename: `${preset}.png`,
+          textureAtlas: undefined,
           exportReady: true,
         }),
       );
@@ -836,6 +839,7 @@ export function useParticleSystemPlayground() {
           texturePath,
           texturePreset: '',
           textureFilename: texturePath.split(/[\\/]/).pop() || 'texture.png',
+          textureAtlas: undefined,
           exportReady: true,
         }),
       );

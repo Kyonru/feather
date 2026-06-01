@@ -7,6 +7,11 @@ import {
   defaultTextureLabRecipeForGenerator,
   normalizeTextureLabRecipe,
   normalizeTextureLabSavedRecipes,
+  normalizeTextureLabAtlasSettings,
+  textureLabMaterializeAtlasFrames,
+  textureLabAtlasFrameRecipe,
+  renderTextureLabCustomAtlasPixels,
+  renderTextureLabAtlasPixels,
   renderTextureLabPixels,
   TEXTURE_LAB_SHAPE_PRESETS,
   TEXTURE_LAB_SAVED_RECIPE_LIMIT,
@@ -183,6 +188,205 @@ test('texture lab saved recipes normalize names, recipes, duplicates, and limits
   assert.equal(saved[0].updatedAt, 12);
   assert.equal(saved.filter((recipe) => recipe.name.toLowerCase() === 'blue spark').length, 1);
   assert.ok(saved.every((recipe) => recipe.recipe.seed >= 1));
+});
+
+test('texture lab atlas settings normalize layout and frame caps', () => {
+  const variants = normalizeTextureLabAtlasSettings({
+    enabled: true,
+    playback: 'variants',
+    columns: 8,
+    rows: 8,
+    frameCount: 99,
+    fps: 120,
+    seedStep: -2,
+  });
+  assert.equal(variants.enabled, true);
+  assert.equal(variants.frameCount, 16);
+  assert.equal(variants.fps, 60);
+  assert.equal(variants.seedStep, 1);
+
+  const lifetime = normalizeTextureLabAtlasSettings({
+    enabled: true,
+    playback: 'lifetime',
+    columns: 8,
+    rows: 8,
+    frameCount: 99,
+  });
+  assert.equal(lifetime.frameCount, 64);
+
+  const custom = normalizeTextureLabAtlasSettings({
+    enabled: true,
+    preset: 'custom-frames',
+    onionSkin: false,
+    customFrames: [
+      { id: 'frame-a', name: ' first.png ', dataBase64: 'abc123', width: 4, height: 8 },
+      { id: 'frame-a', name: '', dataBase64: '', width: 0, height: 0 },
+      {
+        id: 'frame-a',
+        name: 'second.png',
+        dataBase64: 'def456',
+        width: 16,
+        height: 16,
+        recipe: { generator: 'spark', seed: 42, atlas: { enabled: true, preset: 'impact-ring' } },
+      },
+    ],
+  });
+  assert.equal(custom.preset, 'custom-frames');
+  assert.equal(custom.onionSkin, false);
+  assert.equal(custom.customFrames.length, 2);
+  assert.equal(custom.customFrames[0].name, 'first.png');
+  assert.notEqual(custom.customFrames[0].id, custom.customFrames[1].id);
+  assert.equal(custom.customFrames[1].recipe.generator, 'spark');
+  assert.equal(custom.customFrames[1].recipe.seed, 42);
+  assert.equal(custom.customFrames[1].recipe.atlas, undefined);
+});
+
+test('texture lab custom atlas renders editable frame recipes independently', async () => {
+  const atlas = await renderTextureLabCustomAtlasPixels({
+    generator: 'soft-circle',
+    size: 32,
+    seed: 7,
+    atlas: {
+      enabled: true,
+      mode: 'flipbook',
+      preset: 'custom-frames',
+      playback: 'lifetime',
+      columns: 2,
+      rows: 1,
+      frameCount: 2,
+      fps: 12,
+      seedStep: 1,
+      customFrames: [
+        {
+          id: 'frame-1',
+          name: 'Frame 1',
+          dataBase64: 'placeholder-a',
+          width: 32,
+          height: 32,
+          recipe: { generator: 'soft-circle', seed: 7, softness: 0.8, atlas: { enabled: true, preset: 'impact-ring' } },
+        },
+        {
+          id: 'frame-2',
+          name: 'Frame 2',
+          dataBase64: 'placeholder-b',
+          width: 32,
+          height: 32,
+          recipe: { generator: 'ring', seed: 7, softness: 0.1 },
+        },
+      ],
+    },
+  });
+  assert.equal(atlas.frames.length, 2);
+  assert.equal(atlas.recipe.atlas.preset, 'custom-frames');
+  assert.equal(atlas.recipe.atlas.customFrames[0].recipe.atlas, undefined);
+  assert.equal(atlas.frames[0].recipe.generator, 'soft-circle');
+  assert.equal(atlas.frames[1].recipe.generator, 'ring');
+  assert.notEqual(checksum(atlas.frames[0].pixels), checksum(atlas.frames[1].pixels));
+});
+
+test('texture lab materializes atlas workspace frames as editable recipes', () => {
+  const recipe = normalizeTextureLabRecipe({ generator: 'spark', size: 32, seed: 11, softness: 0.44 });
+  const frames = textureLabMaterializeAtlasFrames(
+    recipe,
+    { enabled: true, preset: 'custom-frames', columns: 2, rows: 2, frameCount: 4 },
+    'custom-frames',
+  );
+  assert.equal(frames.length, 4);
+  assert.ok(frames.every((frame) => frame.recipe));
+  assert.ok(frames.every((frame) => frame.recipe.generator === 'spark'));
+  assert.ok(frames.every((frame) => frame.recipe.atlas === undefined));
+  assert.equal(frames[0].recipe.softness, 0.44);
+  assert.equal(frames[1].dataBase64.length > 0, true);
+});
+
+test('texture lab seeded atlas fill creates deterministic editable frame recipes', () => {
+  const recipe = normalizeTextureLabRecipe({ generator: 'soft-circle', size: 32, seed: 17 });
+  const atlas = normalizeTextureLabAtlasSettings({
+    enabled: true,
+    preset: 'smoke-variants',
+    columns: 2,
+    rows: 2,
+    frameCount: 4,
+    seedStep: 5,
+  });
+  const first = textureLabMaterializeAtlasFrames(recipe, atlas, 'smoke-variants');
+  const second = textureLabMaterializeAtlasFrames(recipe, atlas, 'smoke-variants');
+  assert.equal(first.length, 4);
+  assert.ok(first.every((frame) => frame.recipe.generator === 'smoke-puff'));
+  assert.deepEqual(first.map((frame) => frame.recipe.seed), [17, 22, 27, 32]);
+  assert.deepEqual(
+    first.map((frame) => frame.recipe),
+    second.map((frame) => frame.recipe),
+  );
+
+  const frameRecipe = textureLabAtlasFrameRecipe(recipe, atlas, 2);
+  assert.equal(frameRecipe.seed, 27);
+  assert.equal(frameRecipe.atlas, undefined);
+});
+
+test('texture lab atlas output is deterministic and carries metadata', () => {
+  const recipe = normalizeTextureLabRecipe({
+    generator: 'spark',
+    size: 32,
+    seed: 21,
+    atlas: {
+      enabled: true,
+      mode: 'variations',
+      preset: 'seeded-spark',
+      playback: 'variants',
+      columns: 4,
+      rows: 2,
+      frameCount: 8,
+      fps: 12,
+      seedStep: 9,
+    },
+  });
+  const first = renderTextureLabAtlasPixels(recipe);
+  const second = renderTextureLabAtlasPixels(recipe);
+  assert.equal(first.width, 128);
+  assert.equal(first.height, 64);
+  assert.equal(first.frames.length, 8);
+  assert.equal(first.atlas.frameWidth, 32);
+  assert.equal(first.atlas.playback, 'variants');
+  assert.equal(checksum(first.pixels), checksum(second.pixels));
+  assert.notEqual(checksum(first.frames[0].pixels), checksum(first.frames[1].pixels));
+});
+
+test('texture lab flipbook presets change over progress', () => {
+  const dissolve = renderTextureLabAtlasPixels({
+    generator: 'threshold-noise-mask',
+    size: 32,
+    seed: 33,
+    atlas: {
+      enabled: true,
+      mode: 'flipbook',
+      preset: 'dissolve-loop',
+      playback: 'lifetime',
+      columns: 4,
+      rows: 2,
+      frameCount: 8,
+      fps: 16,
+      seedStep: 1,
+    },
+  });
+  const impact = renderTextureLabAtlasPixels({
+    generator: 'ring',
+    size: 32,
+    seed: 33,
+    atlas: {
+      enabled: true,
+      mode: 'flipbook',
+      preset: 'impact-ring',
+      playback: 'lifetime',
+      columns: 4,
+      rows: 2,
+      frameCount: 8,
+      fps: 16,
+      seedStep: 1,
+    },
+  });
+  assert.notEqual(checksum(dissolve.frames[0].pixels), checksum(dissolve.frames[4].pixels));
+  assert.notEqual(checksum(impact.frames[0].pixels), checksum(impact.frames[7].pixels));
 });
 
 test('shape composer normalizes layers, points, repeat controls, and selection', () => {

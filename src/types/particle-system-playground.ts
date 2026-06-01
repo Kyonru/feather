@@ -1,3 +1,5 @@
+import type { TextureLabAtlasMetadata } from './texture-lab';
+
 export type MovementPattern = 'none' | 'circle' | 'figure-eight' | 'irregular';
 export type CompositeType = 'scratch' | 'game';
 export type ParticleSystemPlaygroundTemplate =
@@ -12,7 +14,7 @@ export type ParticleSystemPlaygroundTemplate =
   | 'snowfall'
   | 'rainfall'
   | 'falling-leaves';
-export type ParticleSystemPlaygroundProjectVersion = 1 | 2 | 3;
+export type ParticleSystemPlaygroundProjectVersion = 1 | 2 | 3 | 4;
 
 export type ParticleSystemPlaygroundMovement = {
   pattern: MovementPattern;
@@ -76,6 +78,7 @@ export type ParticleSystemPlaygroundSystem = {
   texturePath: string;
   texturePreset: string;
   textureFilename: string;
+  textureAtlas?: TextureLabAtlasMetadata;
   shaderPath: string;
   shaderFilename: string;
   shaderSource: string;

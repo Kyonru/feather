@@ -13,7 +13,7 @@ local DEFAULT_X = 400
 local DEFAULT_Y = 300
 local TWO_PI = math.pi * 2
 local PROJECT_TYPE = "feather.particle-system-playground"
-local PROJECT_VERSION = 3
+local PROJECT_VERSION = 4
 local DEFAULT_TIMELINE_DURATION = 3
 local TIMELINE_LANES = {
   "opacity",
@@ -92,6 +92,81 @@ local function safeBoolean(value, fallback)
     return false
   end
   return fallback == true
+end
+
+local VALID_ATLAS_MODES = { variations = true, flipbook = true }
+local VALID_ATLAS_PRESETS = {
+  ["seeded-spark"] = true,
+  ["smoke-variants"] = true,
+  ["rain-variants"] = true,
+  ["dissolve-loop"] = true,
+  ["impact-ring"] = true,
+}
+local VALID_ATLAS_PLAYBACK = { lifetime = true, variants = true }
+
+local function clampNumber(value, min, max)
+  local n = tonumber(value)
+  if n == nil then
+    n = min
+  end
+  if n < min then
+    return min
+  end
+  if n > max then
+    return max
+  end
+  return n
+end
+
+local function normalizeTextureAtlas(input)
+  if type(input) ~= "table" then
+    return nil
+  end
+
+  local playback = VALID_ATLAS_PLAYBACK[tostring(input.playback or "")] and tostring(input.playback) or "lifetime"
+  local frameLimit = playback == "variants" and 16 or 64
+  local columns = math.floor(clampNumber(input.columns, 1, 8))
+  local rows = math.floor(clampNumber(input.rows, 1, 8))
+  local capacity = math.max(1, math.min(frameLimit, columns * rows))
+  local frameWidth = math.floor(clampNumber(input.frameWidth or input.frameSize or input.width, 1, 1024))
+  local frameHeight = math.floor(clampNumber(input.frameHeight or input.frameSize or input.height, 1, 1024))
+  local frameCount = math.floor(clampNumber(input.frameCount, 1, capacity))
+  local mode = VALID_ATLAS_MODES[tostring(input.mode or "")] and tostring(input.mode) or "variations"
+  local preset = VALID_ATLAS_PRESETS[tostring(input.preset or "")] and tostring(input.preset) or "seeded-spark"
+
+  return {
+    mode = mode,
+    preset = preset,
+    playback = playback,
+    columns = columns,
+    rows = rows,
+    frameCount = frameCount,
+    fps = math.floor(clampNumber(input.fps, 1, 60)),
+    frameWidth = frameWidth,
+    frameHeight = frameHeight,
+    width = math.floor(clampNumber(input.width or (columns * frameWidth), 1, 8192)),
+    height = math.floor(clampNumber(input.height or (rows * frameHeight), 1, 8192)),
+  }
+end
+
+local function cloneTextureAtlas(input)
+  local atlas = normalizeTextureAtlas(input)
+  if not atlas then
+    return nil
+  end
+  local frames = {}
+  for i = 0, atlas.frameCount - 1 do
+    frames[#frames + 1] = {
+      index = i,
+      x = (i % atlas.columns) * atlas.frameWidth,
+      y = math.floor(i / atlas.columns) * atlas.frameHeight,
+      width = atlas.frameWidth,
+      height = atlas.frameHeight,
+      duration = 1 / atlas.fps,
+    }
+  end
+  atlas.frames = frames
+  return atlas
 end
 
 local VALID_TIMELINE_EASINGS = {
@@ -334,7 +409,7 @@ local function readFileBase64(path)
   return nil
 end
 
-local function copyParticleProperties(from, to)
+local function copyParticleProperties(from, to, skipQuads)
   if not from or not to then
     return
   end
@@ -377,12 +452,166 @@ local function copyParticleProperties(from, to)
     pcall(to.setEmissionArea, to, dist, dx, dy, angle, relativeArea)
   end
 
-  if from.getQuads and to.setQuads then
+  if not skipQuads and from.getQuads and to.setQuads then
     local okQuads, quads = pcall(function()
       return { from:getQuads() }
     end)
     if okQuads and #quads > 0 then
       pcall(to.setQuads, to, unpack(quads))
+    end
+  end
+end
+
+local function clearAtlasVariantSystems(sys)
+  if type(sys) ~= "table" or type(sys._atlasVariantSystems) ~= "table" then
+    return
+  end
+  for _, variant in ipairs(sys._atlasVariantSystems) do
+    if variant and variant.release then
+      pcall(variant.release, variant)
+    end
+  end
+  sys._atlasVariantSystems = nil
+end
+
+local function releaseSystemEntry(sys)
+  if not sys then
+    return
+  end
+  clearAtlasVariantSystems(sys)
+  if sys.system and sys.system.release then
+    pcall(sys.system.release, sys.system)
+  end
+end
+
+local function atlasQuads(image, atlas)
+  if not love or not love.graphics or not image or not atlas then
+    return {}
+  end
+  local width, height = image:getDimensions()
+  local frameWidth = math.max(1, atlas.frameWidth or math.floor(width / math.max(1, atlas.columns or 1)))
+  local frameHeight = math.max(1, atlas.frameHeight or math.floor(height / math.max(1, atlas.rows or 1)))
+  local count = math.max(1, math.min(atlas.frameCount or 1, (atlas.columns or 1) * (atlas.rows or 1)))
+  local quads = {}
+  for i = 0, count - 1 do
+    quads[#quads + 1] = love.graphics.newQuad(
+      (i % atlas.columns) * frameWidth,
+      math.floor(i / atlas.columns) * frameHeight,
+      frameWidth,
+      frameHeight,
+      width,
+      height
+    )
+  end
+  return quads
+end
+
+local function atlasSystems(sys)
+  local systems = {}
+  if sys and sys.system then
+    systems[#systems + 1] = sys.system
+  end
+  if sys and type(sys._atlasVariantSystems) == "table" then
+    for _, variant in ipairs(sys._atlasVariantSystems) do
+      systems[#systems + 1] = variant
+    end
+  end
+  return systems
+end
+
+local function syncAtlasVariantSystems(sys)
+  if not sys or not sys.system or type(sys._atlasVariantSystems) ~= "table" then
+    return
+  end
+  local systems = atlasSystems(sys)
+  local count = math.max(1, #systems)
+  local okRate, rate = pcall(sys.system.getEmissionRate, sys.system)
+  for _, variant in ipairs(sys._atlasVariantSystems) do
+    copyParticleProperties(sys.system, variant, true)
+  end
+  if okRate then
+    local splitRate = rate / count
+    for _, ps in ipairs(systems) do
+      pcall(ps.setEmissionRate, ps, splitRate)
+    end
+  end
+end
+
+local function applyTextureAtlasToSystem(sys)
+  if not sys or not sys.system or not sys._ownedImage then
+    return
+  end
+  clearAtlasVariantSystems(sys)
+  local atlas = normalizeTextureAtlas(sys.textureAtlas)
+  if not atlas then
+    return
+  end
+  sys.textureAtlas = cloneTextureAtlas(atlas)
+  local quads = atlasQuads(sys._ownedImage, atlas)
+  if #quads == 0 then
+    return
+  end
+
+  if atlas.playback == "variants" then
+    local variantCount = math.min(#quads, 16)
+    pcall(sys.system.setQuads, sys.system, quads[1])
+    sys._atlasVariantSystems = {}
+    local okBuffer, bufferSize = pcall(sys.system.getBufferSize, sys.system)
+    for i = 2, variantCount do
+      local variant = love.graphics.newParticleSystem(sys._ownedImage, okBuffer and bufferSize or DEFAULT_BUFFER_SIZE)
+      copyParticleProperties(sys.system, variant, true)
+      pcall(variant.setQuads, variant, quads[i])
+      pcall(variant.start, variant)
+      sys._atlasVariantSystems[#sys._atlasVariantSystems + 1] = variant
+    end
+    syncAtlasVariantSystems(sys)
+    return
+  end
+
+  pcall(sys.system.setQuads, sys.system, unpack(quads))
+end
+
+local function setParticlePosition(sys, x, y)
+  for _, ps in ipairs(atlasSystems(sys)) do
+    pcall(ps.setPosition, ps, x, y)
+  end
+end
+
+local function updateParticleSystems(sys, dt)
+  for _, ps in ipairs(atlasSystems(sys)) do
+    pcall(ps.update, ps, dt)
+  end
+end
+
+local function resetParticleSystems(sys)
+  for _, ps in ipairs(atlasSystems(sys)) do
+    pcall(ps.reset, ps)
+    pcall(ps.start, ps)
+  end
+end
+
+local function emitParticleSystems(sys, count)
+  count = math.max(0, math.floor(safeNumber(count, 0)))
+  if count <= 0 then
+    return
+  end
+  local systems = atlasSystems(sys)
+  if #systems <= 1 then
+    pcall(sys.system.emit, sys.system, count)
+    return
+  end
+  local remaining = count
+  for index, ps in ipairs(systems) do
+    local share = math.floor(count / #systems)
+    if index <= count % #systems then
+      share = share + 1
+    end
+    if index == #systems then
+      share = remaining
+    end
+    remaining = remaining - share
+    if share > 0 then
+      pcall(ps.emit, ps, share)
     end
   end
 end
@@ -1293,6 +1522,7 @@ local function applyTimelineToSystem(sys, track, time, allowEmission, timeline)
     mode = timelineMode(timeline),
     opacityField = "_timelineOpacity",
   })
+  syncAtlasVariantSystems(sys)
 end
 
 local function resetTimelineSystems(plugin, name)
@@ -1306,6 +1536,8 @@ local function resetTimelineSystems(plugin, name)
       pcall(sys.system.reset, sys.system)
       pcall(sys.system.setEmitterLifetime, sys.system, safeNumber(base.emitterLifetime, -1))
       pcall(sys.system.start, sys.system)
+      syncAtlasVariantSystems(sys)
+      resetParticleSystems(sys)
     end
   end
 end
@@ -1327,9 +1559,8 @@ local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline
           local count = math.max(0, math.floor(safeNumber(item.emit, safeNumber(sys.emitAtStart, 0))))
           pcall(sys.system.setEmitterLifetime, sys.system, safeNumber(base.emitterLifetime, -1))
           pcall(sys.system.start, sys.system)
-          if count > 0 then
-            pcall(sys.system.emit, sys.system, count)
-          end
+          syncAtlasVariantSystems(sys)
+          emitParticleSystems(sys, count)
         end
       end
     end
@@ -1459,7 +1690,7 @@ local function seekTimeline(plugin, name, time)
     for i = 1, plugin:_systemCount(name) do
       local sys = plugin:_getSystemEntry(name, i)
       if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, i)) then
-        pcall(sys.system.update, sys.system, nextTime - current)
+        updateParticleSystems(sys, nextTime - current)
       end
     end
     current = nextTime
@@ -1829,7 +2060,7 @@ local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEdi
   local y = (entry.y or DEFAULT_Y) + offsetY
   for index, system in ipairs(entry.systems or {}) do
     if system.system and isSystemEnabled(system, plugin:_meta(name, index)) then
-      pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
+      setParticlePosition(system, x + (system.x or 0), y + (system.y or 0))
     end
   end
 
@@ -1845,8 +2076,8 @@ local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEdi
     y = (entry.y or DEFAULT_Y) + offsetY
     for index, system in ipairs(entry.systems or {}) do
       if system.system and isSystemEnabled(system, plugin:_meta(name, index)) then
-        pcall(system.system.setPosition, system.system, x + (system.x or 0), y + (system.y or 0))
-        pcall(system.system.update, system.system, dt)
+        setParticlePosition(system, x + (system.x or 0), y + (system.y or 0))
+        updateParticleSystems(system, dt)
       end
     end
   end
@@ -2108,7 +2339,9 @@ function ParticleSystemPlaygroundPlugin:onDraw()
       end
       love.graphics.setShader(system.shader)
       love.graphics.setColor(1, 1, 1, safeNumber(system._timelineOpacity, 1))
-      love.graphics.draw(system.system, 0, 0)
+      for _, ps in ipairs(atlasSystems(system)) do
+        love.graphics.draw(ps, 0, 0)
+      end
     end
   end
 
@@ -2145,6 +2378,7 @@ function ParticleSystemPlaygroundPlugin:handleRequest()
         texturePath = safeString(meta.texturePath or sys.texturePath, ""),
         texturePreset = safeString(meta.texturePreset or sys.texturePreset, ""),
         textureFilename = safeString(meta.textureFilename or sys.textureFilename, ""),
+        textureAtlas = cloneTextureAtlas(meta.textureAtlas or sys.textureAtlas),
         shaderPath = safeString(meta.shaderPath or sys.shaderPath, ""),
         shaderFilename = safeString(meta.shaderFilename or sys.shaderFilename, ""),
         shaderSource = safeString(meta.shaderSource or sys.shaderSource, ""),
@@ -2271,25 +2505,29 @@ function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
       end
     end
   end
+  syncAtlasVariantSystems(sys)
 end
 
-function ParticleSystemPlaygroundPlugin:_replaceTexture(sys, image)
+function ParticleSystemPlaygroundPlugin:_replaceTexture(sys, image, forceNew)
   if not sys or not image then
     return
   end
   local old = sys.system
-  if old and old.setTexture then
+  if old and old.setTexture and not forceNew then
     local ok = pcall(old.setTexture, old, image)
     if ok then
       sys._ownedImage = image
+      applyTextureAtlasToSystem(sys)
       return
     end
   end
 
   local new = love.graphics.newParticleSystem(image, old and old:getBufferSize() or DEFAULT_BUFFER_SIZE)
   copyParticleProperties(old, new)
+  clearAtlasVariantSystems(sys)
   sys.system = new
   sys._ownedImage = image
+  applyTextureAtlasToSystem(sys)
   new:start()
 end
 
@@ -2314,7 +2552,11 @@ function ParticleSystemPlaygroundPlugin:_applyTexture(name, index, params)
     if not okImage or not image then
       return nil, "Could not create image from uploaded texture"
     end
-    self:_replaceTexture(sys, image)
+    local hadAtlas = sys.textureAtlas ~= nil
+    local textureAtlas = cloneTextureAtlas(params.textureAtlas)
+    sys.textureAtlas = textureAtlas
+    meta.textureAtlas = textureAtlas
+    self:_replaceTexture(sys, image, textureAtlas == nil and hadAtlas)
     sys.texturePath = ""
     sys.texturePreset = ""
     sys.textureFilename = filename
@@ -2331,7 +2573,10 @@ function ParticleSystemPlaygroundPlugin:_applyTexture(name, index, params)
     if not ok or not image then
       return nil, "Could not load texture: " .. tostring(params.texturePath)
     end
-    self:_replaceTexture(sys, image)
+    local hadAtlas = sys.textureAtlas ~= nil
+    sys.textureAtlas = nil
+    meta.textureAtlas = nil
+    self:_replaceTexture(sys, image, hadAtlas)
     sys.texturePath = tostring(params.texturePath)
     sys.texturePreset = ""
     sys.textureFilename = sanitizeFilename(params.texturePath, "texture.png")
@@ -2349,7 +2594,10 @@ function ParticleSystemPlaygroundPlugin:_applyTexture(name, index, params)
     if not image then
       return nil, "Could not generate texture preset"
     end
-    self:_replaceTexture(sys, image)
+    local hadAtlas = sys.textureAtlas ~= nil
+    sys.textureAtlas = nil
+    meta.textureAtlas = nil
+    self:_replaceTexture(sys, image, hadAtlas)
     sys.texturePath = ""
     sys.texturePreset = preset
     sys.textureFilename = preset .. ".png"
@@ -2544,9 +2792,7 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
       return nil, "A composite needs at least one emitter"
     end
     local sys = entry.systems[index]
-    if sys and sys.system and sys.system.release then
-      pcall(sys.system.release, sys.system)
-    end
+    releaseSystemEntry(sys)
     local nextTimeline = removeTimelineTrack(entry.timeline, entry.systems, index)
     table.remove(entry.systems, index)
     for i, item in ipairs(entry.systems) do
@@ -2662,10 +2908,9 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     for i = 1, self:_systemCount(name) do
       local item = self:_getSystemEntry(name, i)
       if item and item.system and isSystemEnabled(item, self:_meta(name, i)) then
-        item.system:reset()
-        item.system:start()
-        pcall(item.system.setPosition, item.system, baseX + offsetX + safeNumber(item.x, 0), baseY + offsetY + safeNumber(item.y, 0))
-        item.system:emit(count)
+        resetParticleSystems(item)
+        setParticlePosition(item, baseX + offsetX + safeNumber(item.x, 0), baseY + offsetY + safeNumber(item.y, 0))
+        emitParticleSystems(item, count)
       end
     end
     return true
@@ -2675,8 +2920,7 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
     for i = 1, self:_systemCount(name) do
       local item = self:_getSystemEntry(name, i)
       if item and item.system and isSystemEnabled(item, self:_meta(name, i)) then
-        item.system:reset()
-        item.system:start()
+        resetParticleSystems(item)
       end
     end
     return true
@@ -2687,7 +2931,7 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
       local steps = math.max(0, safeNumber(sys.kickStartSteps, 0))
       local dt = safeNumber(sys.kickStartDt, 1 / 60)
       for _ = 1, steps do
-        sys.system:update(dt)
+        updateParticleSystems(sys, dt)
       end
     end
     return true
@@ -2742,6 +2986,7 @@ function ParticleSystemPlaygroundPlugin:_assetInfo(name, index, sys)
     texturePreset = texturePreset,
     textureFilename = textureFilename,
     textureAssetBase64 = textureAssetBase64,
+    textureAtlas = cloneTextureAtlas(meta.textureAtlas or sys.textureAtlas),
     shaderPath = shaderPath,
     shaderSource = shaderSource,
     shaderFilename = shaderFilename,
@@ -2804,6 +3049,27 @@ local function luaTimelineTable(timeline)
   return table.concat(lines, "\n")
 end
 
+local function luaAtlasTable(atlas)
+  atlas = cloneTextureAtlas(atlas)
+  if not atlas then
+    return "nil"
+  end
+  local parts = {
+    "mode = " .. quote(atlas.mode),
+    "preset = " .. quote(atlas.preset),
+    "playback = " .. quote(atlas.playback),
+    "columns = " .. tostring(atlas.columns),
+    "rows = " .. tostring(atlas.rows),
+    "frameCount = " .. tostring(atlas.frameCount),
+    "fps = " .. tostring(atlas.fps),
+    "frameWidth = " .. tostring(atlas.frameWidth),
+    "frameHeight = " .. tostring(atlas.frameHeight),
+    "width = " .. tostring(atlas.width),
+    "height = " .. tostring(atlas.height),
+  }
+  return "{ " .. table.concat(parts, ", ") .. " }"
+end
+
 local function appendIndentedSource(lines, source, indent)
   indent = indent or ""
   source = tostring(source or "")
@@ -2841,6 +3107,7 @@ function ParticleSystemPlaygroundPlugin:_projectForComposite(name)
       texturePreset = asset.texturePreset,
       textureFilename = asset.textureFilename,
       textureAssetBase64 = asset.textureAssetBase64,
+      textureAtlas = asset.textureAtlas,
       shaderPath = asset.shaderPath,
       shaderFilename = asset.shaderSource ~= "" and asset.shaderFilename or "",
       shaderSource = asset.shaderSource,
@@ -2937,6 +3204,7 @@ function ParticleSystemPlaygroundPlugin:_systemFromProject(index, systemData)
     texturePreset = safeString(systemData.texturePreset, ""),
     textureFilename = sanitizeFilename(systemData.textureFilename, "texture.png"),
     textureAssetBase64 = safeString(systemData.textureAssetBase64, "") ~= "" and safeString(systemData.textureAssetBase64, "") or recoveredBase64,
+    textureAtlas = cloneTextureAtlas(systemData.textureAtlas),
     shaderPath = safeString(systemData.shaderPath, ""),
     shaderFilename = safeString(systemData.shaderFilename, ""),
     shaderSource = safeString(systemData.shaderSource, ""),
@@ -2945,6 +3213,7 @@ function ParticleSystemPlaygroundPlugin:_systemFromProject(index, systemData)
   for key, value in pairs(properties) do
     setProp(ps, key, value)
   end
+  applyTextureAtlasToSystem(sys)
 
   if sys.shaderSource ~= "" then
     local okShader, shader = pcall(love.graphics.newShader, sys.shaderSource)
@@ -2970,7 +3239,7 @@ function ParticleSystemPlaygroundPlugin:_importProject(project)
   if
     type(project) ~= "table"
     or project.type ~= PROJECT_TYPE
-    or (project.version ~= 1 and project.version ~= 2 and project.version ~= PROJECT_VERSION)
+    or (project.version ~= 1 and project.version ~= 2 and project.version ~= 3 and project.version ~= PROJECT_VERSION)
   then
     return nil, "Unsupported particle project file"
   end
@@ -2985,9 +3254,7 @@ function ParticleSystemPlaygroundPlugin:_importProject(project)
     local sys, err = self:_systemFromProject(i, systemData)
     if not sys then
       for _, existing in ipairs(systems) do
-        if existing.system and existing.system.release then
-          pcall(existing.system.release, existing.system)
-        end
+        releaseSystemEntry(existing)
       end
       return nil, err
     end
@@ -3039,9 +3306,7 @@ function ParticleSystemPlaygroundPlugin:_restoreComposite(name, data, activeSyst
     local sys, err = self:_systemFromProject(i, systemData)
     if not sys then
       for _, existing in ipairs(systems) do
-        if existing.system and existing.system.release then
-          pcall(existing.system.release, existing.system)
-        end
+        releaseSystemEntry(existing)
       end
       return nil, err
     end
@@ -3049,9 +3314,7 @@ function ParticleSystemPlaygroundPlugin:_restoreComposite(name, data, activeSyst
   end
 
   for _, existing in ipairs(entry.systems or {}) do
-    if existing.system and existing.system.release then
-      pcall(existing.system.release, existing.system)
-    end
+    releaseSystemEntry(existing)
   end
 
   entry.x = safeNumber(data.x, DEFAULT_X)
@@ -3153,6 +3416,95 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   end
 
   lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function atlasQuads(image, atlas)"
+  lines[#lines + 1] = "  if not image or not atlas then return {} end"
+  lines[#lines + 1] = "  local imageWidth, imageHeight = image:getDimensions()"
+  lines[#lines + 1] = "  local columns = math.max(1, atlas.columns or 1)"
+  lines[#lines + 1] = "  local rows = math.max(1, atlas.rows or 1)"
+  lines[#lines + 1] = "  local frameWidth = math.max(1, atlas.frameWidth or math.floor(imageWidth / columns))"
+  lines[#lines + 1] = "  local frameHeight = math.max(1, atlas.frameHeight or math.floor(imageHeight / rows))"
+  lines[#lines + 1] = "  local frameCount = math.max(1, math.min(atlas.frameCount or 1, columns * rows))"
+  lines[#lines + 1] = "  local quads = {}"
+  lines[#lines + 1] = "  for i = 0, frameCount - 1 do"
+  lines[#lines + 1] = "    quads[#quads + 1] = LG.newQuad((i % columns) * frameWidth, math.floor(i / columns) * frameHeight, frameWidth, frameHeight, imageWidth, imageHeight)"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return quads"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function atlasSystems(emitter)"
+  lines[#lines + 1] = "  local result = {}"
+  lines[#lines + 1] = "  if emitter and emitter.system then result[#result + 1] = emitter.system end"
+  lines[#lines + 1] = "  if emitter and emitter.variantSystems then"
+  lines[#lines + 1] = "    for _, ps in ipairs(emitter.variantSystems) do result[#result + 1] = ps end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return result"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function copyParticleProperties(from, to)"
+  lines[#lines + 1] = "  if not from or not to then return end"
+  lines[#lines + 1] = "  local function copy(getter, setter)"
+  lines[#lines + 1] = "    local values = { pcall(from[getter], from) }"
+  lines[#lines + 1] = "    if values[1] then"
+  lines[#lines + 1] = "      table.remove(values, 1)"
+  lines[#lines + 1] = "      pcall(to[setter], to, unpack(values))"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  copy('getColors', 'setColors'); copy('getDirection', 'setDirection'); copy('getEmissionArea', 'setEmissionArea')"
+  lines[#lines + 1] = "  copy('getEmissionRate', 'setEmissionRate'); copy('getEmitterLifetime', 'setEmitterLifetime'); copy('getInsertMode', 'setInsertMode')"
+  lines[#lines + 1] = "  copy('getLinearAcceleration', 'setLinearAcceleration'); copy('getLinearDamping', 'setLinearDamping'); copy('getOffset', 'setOffset')"
+  lines[#lines + 1] = "  copy('getParticleLifetime', 'setParticleLifetime'); copy('getRadialAcceleration', 'setRadialAcceleration'); copy('getRotation', 'setRotation')"
+  lines[#lines + 1] = "  copy('getSizes', 'setSizes'); copy('getSizeVariation', 'setSizeVariation'); copy('getSpeed', 'setSpeed'); copy('getSpin', 'setSpin')"
+  lines[#lines + 1] = "  copy('getSpinVariation', 'setSpinVariation'); copy('getSpread', 'setSpread'); copy('getTangentialAcceleration', 'setTangentialAcceleration')"
+  lines[#lines + 1] = "  local okRelative, relative = pcall(from.hasRelativeRotation, from)"
+  lines[#lines + 1] = "  if okRelative then pcall(to.setRelativeRotation, to, relative) end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function syncAtlasVariants(emitter)"
+  lines[#lines + 1] = "  if not emitter or not emitter.variantSystems then return end"
+  lines[#lines + 1] = "  local systems = atlasSystems(emitter)"
+  lines[#lines + 1] = "  local okRate, rate = pcall(emitter.system.getEmissionRate, emitter.system)"
+  lines[#lines + 1] = "  for _, ps in ipairs(emitter.variantSystems) do copyParticleProperties(emitter.system, ps) end"
+  lines[#lines + 1] = "  if okRate then"
+  lines[#lines + 1] = "    local split = rate / math.max(1, #systems)"
+  lines[#lines + 1] = "    for _, ps in ipairs(systems) do pcall(ps.setEmissionRate, ps, split) end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function applyTextureAtlas(emitter, image, atlas, bufferSize)"
+  lines[#lines + 1] = "  if not emitter or not emitter.system or not atlas then return end"
+  lines[#lines + 1] = "  local quads = atlasQuads(image, atlas)"
+  lines[#lines + 1] = "  if #quads == 0 then return end"
+  lines[#lines + 1] = "  if atlas.playback == 'variants' then"
+  lines[#lines + 1] = "    local count = math.min(#quads, 16)"
+  lines[#lines + 1] = "    emitter.system:setQuads(quads[1])"
+  lines[#lines + 1] = "    emitter.variantSystems = {}"
+  lines[#lines + 1] = "    for i = 2, count do"
+  lines[#lines + 1] = "      local ps = LG.newParticleSystem(image, bufferSize)"
+  lines[#lines + 1] = "      copyParticleProperties(emitter.system, ps)"
+  lines[#lines + 1] = "      ps:setQuads(quads[i])"
+  lines[#lines + 1] = "      ps:start()"
+  lines[#lines + 1] = "      emitter.variantSystems[#emitter.variantSystems + 1] = ps"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "    syncAtlasVariants(emitter)"
+  lines[#lines + 1] = "  else"
+  lines[#lines + 1] = "    emitter.system:setQuads(unpack(quads))"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function emitAtlasSystems(emitter, count)"
+  lines[#lines + 1] = "  local systems = atlasSystems(emitter)"
+  lines[#lines + 1] = "  if #systems <= 1 then emitter.system:emit(count); return end"
+  lines[#lines + 1] = "  local remaining = count"
+  lines[#lines + 1] = "  for index, ps in ipairs(systems) do"
+  lines[#lines + 1] = "    local share = math.floor(count / #systems)"
+  lines[#lines + 1] = "    if index <= count % #systems then share = share + 1 end"
+  lines[#lines + 1] = "    if index == #systems then share = remaining end"
+  lines[#lines + 1] = "    remaining = remaining - share"
+  lines[#lines + 1] = "    if share > 0 then ps:emit(share) end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+
+  lines[#lines + 1] = ""
   lines[#lines + 1] = "local function clearSystemsAlias()"
   lines[#lines + 1] = "  for key in pairs(systems) do"
   lines[#lines + 1] = "    systems[key] = nil"
@@ -3174,6 +3526,11 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    return"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  for index, emitter in ipairs(instance.systems or {}) do"
+  lines[#lines + 1] = "    if emitter.variantSystems then"
+  lines[#lines + 1] = "      for _, ps in ipairs(emitter.variantSystems) do"
+  lines[#lines + 1] = "        ps:release()"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "    end"
   lines[#lines + 1] = "    if emitter.system then"
   lines[#lines + 1] = "      emitter.system:release()"
   lines[#lines + 1] = "    end"
@@ -3194,12 +3551,13 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
       local imageKey = self:_textureLoadPath(asset)
       local imageVar = imageVars[imageKey]
       local psVar = "ps" .. tostring(i)
+      local bufferSize = math.max(1, math.floor(safeNumber(properties.bufferSize, ps:getBufferSize())))
       lines[#lines + 1] = "  local "
         .. psVar
         .. " = LG.newParticleSystem("
         .. imageVar
         .. ", "
-        .. tostring(math.max(1, math.floor(safeNumber(properties.bufferSize, ps:getBufferSize()))))
+        .. tostring(bufferSize)
         .. ")"
 
       local colors = parseNumberList(properties.colors)
@@ -3352,6 +3710,9 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
         .. fmt(offsetY)
         .. " }"
         .. " }"
+      if asset.textureAtlas then
+        lines[#lines + 1] = "  applyTextureAtlas(instanceSystems[" .. tostring(i) .. "], " .. imageVar .. ", " .. luaAtlasTable(asset.textureAtlas) .. ", " .. tostring(bufferSize) .. ")"
+      end
     end
   end
 
@@ -3405,6 +3766,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "        directionOffset = instance.directionOffset or 0,"
   lines[#lines + 1] = "        opacityField = \"opacity\","
   lines[#lines + 1] = "      })"
+  lines[#lines + 1] = "      syncAtlasVariants(emitter)"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "end"
@@ -3428,7 +3790,8 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "          local count = clipBurstCount(clip, emitter)"
   lines[#lines + 1] = "          emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "          emitter.system:start()"
-  lines[#lines + 1] = "          if count > 0 then emitter.system:emit(count) end"
+  lines[#lines + 1] = "          syncAtlasVariants(emitter)"
+  lines[#lines + 1] = "          if count > 0 then emitAtlasSystems(emitter, count) end"
   lines[#lines + 1] = "        end"
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "    end"
@@ -3505,15 +3868,14 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  for index, emitter in ipairs(instance.systems or {}) do"
   lines[#lines + 1] = "    local participates = not instance.systemIndex or instance.systemIndex == index"
   lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
-  lines[#lines + 1] = "      emitter.system:reset()"
+  lines[#lines + 1] = "      for _, ps in ipairs(atlasSystems(emitter)) do ps:reset() end"
   lines[#lines + 1] = "      emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
-  lines[#lines + 1] = "      emitter.system:setPosition(x + (emitter.x or 0), y + (emitter.y or 0))"
+  lines[#lines + 1] = "      for _, ps in ipairs(atlasSystems(emitter)) do ps:setPosition(x + (emitter.x or 0), y + (emitter.y or 0)) end"
   lines[#lines + 1] = "      emitter.opacity = participates and 1 or 0"
   lines[#lines + 1] = "      if participates then"
-  lines[#lines + 1] = "        emitter.system:start()"
+  lines[#lines + 1] = "        for _, ps in ipairs(atlasSystems(emitter)) do ps:start() end"
   lines[#lines + 1] = "      else"
-  lines[#lines + 1] = "        emitter.system:setEmissionRate(0)"
-  lines[#lines + 1] = "        emitter.system:stop()"
+  lines[#lines + 1] = "        for _, ps in ipairs(atlasSystems(emitter)) do ps:setEmissionRate(0); ps:stop() end"
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
@@ -3535,8 +3897,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  instance.systemIndex = nil"
   lines[#lines + 1] = "  for _, emitter in ipairs(instance.systems or {}) do"
   lines[#lines + 1] = "    if emitter.system then"
-  lines[#lines + 1] = "      emitter.system:reset()"
-  lines[#lines + 1] = "      emitter.system:setEmissionRate(0)"
+  lines[#lines + 1] = "      for _, ps in ipairs(atlasSystems(emitter)) do ps:reset(); ps:setEmissionRate(0) end"
   lines[#lines + 1] = "      emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "    emitter.opacity = 1"
@@ -3562,9 +3923,11 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "local function instanceHasParticles(instance)"
   lines[#lines + 1] = "  for _, emitter in ipairs(instance.systems or {}) do"
   lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
-  lines[#lines + 1] = "      local ok, count = pcall(emitter.system.getCount, emitter.system)"
-  lines[#lines + 1] = "      if ok and (tonumber(count) or 0) > 0 then"
-  lines[#lines + 1] = "        return true"
+  lines[#lines + 1] = "      for _, ps in ipairs(atlasSystems(emitter)) do"
+  lines[#lines + 1] = "        local ok, count = pcall(ps.getCount, ps)"
+  lines[#lines + 1] = "        if ok and (tonumber(count) or 0) > 0 then"
+  lines[#lines + 1] = "          return true"
+  lines[#lines + 1] = "        end"
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
@@ -3598,7 +3961,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    applyTimeline(instance, instance.time, instance.playing)"
   lines[#lines + 1] = "    for index, emitter in ipairs(instance.systems or {}) do"
   lines[#lines + 1] = "      if emitter.enabled and emitter.system and (not instance.systemIndex or instance.systemIndex == index) then"
-  lines[#lines + 1] = "        emitter.system:update(dt)"
+  lines[#lines + 1] = "        for _, ps in ipairs(atlasSystems(emitter)) do ps:update(dt) end"
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "    if not instance.playing and timelineMode(instance) ~= \"ambient\" and not instanceHasParticles(instance) then"
@@ -3630,7 +3993,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "        end"
   lines[#lines + 1] = "        LG.setShader(emitter.shader)"
   lines[#lines + 1] = "        LG.setColor(1, 1, 1, emitter.opacity or 1)"
-  lines[#lines + 1] = "        LG.draw(emitter.system, 0, 0)"
+  lines[#lines + 1] = "        for _, ps in ipairs(atlasSystems(emitter)) do LG.draw(ps, 0, 0) end"
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
@@ -3734,6 +4097,13 @@ function ParticleSystemPlaygroundPlugin:_buildZip(name)
         if not seen[filename] then
           seen[filename] = true
           files[#files + 1] = { name = filename, data = asset.textureAssetBase64, encoding = "base64" }
+        end
+        if asset.textureAtlas then
+          local atlasName = filename:gsub("%.[^%.]+$", "") .. ".atlas.json"
+          if not seen[atlasName] then
+            seen[atlasName] = true
+            files[#files + 1] = { name = atlasName, data = json.encode(asset.textureAtlas), encoding = "text" }
+          end
         end
       end
     end

@@ -49,6 +49,16 @@ export const TEXTURE_LAB_SPLINE_OVERLAP_MODES = ['merge', 'bridge', 'additive'] 
 export const TEXTURE_LAB_SHAPE_ELEMENT_KINDS = ['polygon', 'star', 'ellipse', 'rect', 'ring', 'spline', 'dot'] as const;
 export const TEXTURE_LAB_SHAPE_REPEAT_MODES = ['none', 'grid', 'radial', 'scatter'] as const;
 export const TEXTURE_LAB_SHAPE_BLEND_MODES = ['normal', 'add', 'multiply', 'screen'] as const;
+export const TEXTURE_LAB_ATLAS_MODES = ['variations', 'flipbook'] as const;
+export const TEXTURE_LAB_ATLAS_PRESETS = [
+  'seeded-spark',
+  'smoke-variants',
+  'rain-variants',
+  'dissolve-loop',
+  'impact-ring',
+  'custom-frames',
+] as const;
+export const TEXTURE_LAB_ATLAS_PLAYBACK_MODES = ['lifetime', 'variants'] as const;
 
 export type TextureLabSize = (typeof TEXTURE_LAB_SIZES)[number];
 export type TextureLabGeneratorId = (typeof TEXTURE_LAB_GENERATOR_IDS)[number];
@@ -58,6 +68,9 @@ export type TextureLabSplineOverlapMode = (typeof TEXTURE_LAB_SPLINE_OVERLAP_MOD
 export type TextureLabShapeElementKind = (typeof TEXTURE_LAB_SHAPE_ELEMENT_KINDS)[number];
 export type TextureLabShapeRepeatMode = (typeof TEXTURE_LAB_SHAPE_REPEAT_MODES)[number];
 export type TextureLabShapeBlendMode = (typeof TEXTURE_LAB_SHAPE_BLEND_MODES)[number];
+export type TextureLabAtlasMode = (typeof TEXTURE_LAB_ATLAS_MODES)[number];
+export type TextureLabAtlasPreset = (typeof TEXTURE_LAB_ATLAS_PRESETS)[number];
+export type TextureLabAtlasPlaybackMode = (typeof TEXTURE_LAB_ATLAS_PLAYBACK_MODES)[number];
 
 export type TextureLabSplinePoint = {
   x: number;
@@ -116,6 +129,53 @@ export type TextureLabShapeRecipe = {
   layers: TextureLabShapeElement[];
 };
 
+export type TextureLabAtlasSettings = {
+  enabled: boolean;
+  mode: TextureLabAtlasMode;
+  preset: TextureLabAtlasPreset;
+  columns: number;
+  rows: number;
+  frameCount: number;
+  fps: number;
+  seedStep: number;
+  playback: TextureLabAtlasPlaybackMode;
+  onionSkin: boolean;
+  customFrames?: TextureLabAtlasCustomFrame[];
+};
+
+export type TextureLabAtlasFrameMetadata = {
+  index: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  duration: number;
+};
+
+export type TextureLabAtlasCustomFrame = {
+  id: string;
+  name: string;
+  dataBase64: string;
+  width: number;
+  height: number;
+  recipe?: Omit<TextureLabRecipe, 'atlas'>;
+};
+
+export type TextureLabAtlasMetadata = {
+  mode: TextureLabAtlasMode;
+  preset: TextureLabAtlasPreset;
+  playback: TextureLabAtlasPlaybackMode;
+  columns: number;
+  rows: number;
+  frameCount: number;
+  fps: number;
+  frameWidth: number;
+  frameHeight: number;
+  width: number;
+  height: number;
+  frames: TextureLabAtlasFrameMetadata[];
+};
+
 export type TextureLabRecipe = {
   generator: TextureLabGeneratorId;
   size: TextureLabSize;
@@ -135,6 +195,7 @@ export type TextureLabRecipe = {
   backgroundAlpha: number;
   spline?: TextureLabSplineRecipe;
   shape?: TextureLabShapeRecipe;
+  atlas?: TextureLabAtlasSettings;
 };
 
 export type TextureLabSavedRecipe = {
@@ -152,6 +213,16 @@ export type TextureLabGeneratedPixels = {
   recipe: TextureLabRecipe;
 };
 
+export type TextureLabAtlasFramePixels = TextureLabGeneratedPixels & {
+  index: number;
+  progress: number;
+};
+
+export type TextureLabAtlasPixels = TextureLabGeneratedPixels & {
+  atlas: TextureLabAtlasMetadata;
+  frames: TextureLabAtlasFramePixels[];
+};
+
 export type GeneratedTextureResult = {
   filename: string;
   dataBase64: string;
@@ -159,4 +230,11 @@ export type GeneratedTextureResult = {
   width: number;
   height: number;
   recipe: TextureLabRecipe;
+  atlas?: TextureLabAtlasMetadata;
+};
+
+export type TextureLabAtlasBundle = {
+  texture: GeneratedTextureResult;
+  frames: GeneratedTextureResult[];
+  atlas: TextureLabAtlasMetadata;
 };
