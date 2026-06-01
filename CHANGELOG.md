@@ -9,23 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Particle Playground timeline rows now include emitter visibility toggles and grouped clip/keyframe selection for clamped horizontal timing moves.
-- Particle Playground scratch composites now have in-memory undo/redo history with toolbar buttons plus `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, and `Ctrl+Y` shortcuts.
-- Added Texture Lab, a shared procedural PNG generator for particle sprites, masks, noise maps, pixel patterns, gradients, and trail textures that can feed Particle Playground and Shader Graph texture slots.
-- Added editable Texture Lab spline path generators for trails, ribbons, masks, and lightning strokes.
-- Added Texture Lab background color and alpha controls for baking generated PNGs onto transparent, solid, or translucent backgrounds.
-- Added a Texture Lab Solid Color ramp with a color picker for baking one chosen color into generated sprites, masks, and spline textures.
-- Added a Texture Lab Shapes & Polygons composer with layered editable polygons, fill/stroke styling, blend modes, and seeded grid/radial/scatter repeats.
-- Added local Texture Lab saved recipes for named reusable generator, spline, and shape setups.
-- Added Texture Lab atlas/flipbook generation with sheet previews, frame strips, ZIP export, and Particle Playground atlas playback metadata.
-- Added Texture Lab custom sprite-sheet frames with Convert to Sprite Sheet, per-frame generator editing, replace-only uploaded bitmap frames, texture replacement, and toggleable onion-skin previews.
-- Added Texture Lab spline overlap resolution controls so self-crossing paths can merge, bridge, or stack additively.
-- Texture Lab reset now restores generator-specific alpha defaults, using luminance or inverted alpha where masks and noise presets benefit from it.
-- Texture Lab spline points now use explicit fill, border color, and border width styles with a separate selected-point highlight, and Texture Lab includes a quick reset for the current generator values.
-- Texture Lab Shapes & Polygons now exposes direct move and resize handles in the preview editor while keeping polygon, star, and spline point reshaping.
-- Texture Lab now fills more of the available editor space, keeps controls and preview/presets scrolling independently, tucks generator presets into a collapsible panel, narrows side panels so previews can breathe, and keeps reset/regenerate/export/apply actions in the fixed header.
-- Texture Lab Atlas / Flipbook is now a first-class workspace with a fixed Create/Enter/Exit Atlas action, editable per-frame recipes, a right-side frame grid, seeded fills, onion skin, and frame replacement controls.
-- Texture Lab Atlas now uses in-app confirmation dialogs before replacing all frames and adds an Empty all frames action that clears the sheet to transparent editable frames.
+- Particle Playground timeline editing now supports emitter visibility, grouped clip/keyframe moves, and scratch-composite undo/redo.
+- Added Texture Lab for procedural particle sprites, masks, noise, gradients, spline paths, and shape/polygon textures.
+- Texture Lab can send generated PNGs to Particle Playground emitters and Shader Graph texture slots.
+- Texture Lab supports saved recipes, solid/background color controls, generator-specific resets, spline overlap modes, and direct spline/shape editing.
+- Texture Lab atlas authoring now includes editable frames, seeded fills, onion skinning, uploaded-frame replacement, ZIP export, Particle Playground atlas metadata, and safe all-frame actions.
+- Texture Lab now uses a workspace layout with independent scrolling, collapsible presets, fixed header actions, compact side panels, and larger previews.
 
 ### Changed
 
@@ -39,275 +28,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- Added app and showcase e2e coverage for timeline visibility toggles and grouped timeline dragging.
-- Added focused history reducer tests plus Lua, app, and showcase coverage for Particle Playground undo/redo restores.
-- Added focused Texture Lab generator tests plus app/showcase coverage for the generator page and creative texture picker workflows.
-- Added focused spline generator coverage plus app/showcase checks for editing Texture Lab path points.
-- Added focused Texture Lab background compositing coverage plus app/showcase checks for the transparent default.
-- Added focused/app/showcase Texture Lab coverage for the Solid Color ramp and selected color picker.
-- Added focused/app/showcase Texture Lab coverage for the Shapes & Polygons composer, layer toggles, editable points, presets, and repeat modes.
-- Added focused/app/showcase Texture Lab coverage for saving and loading named local recipes.
-- Added focused Texture Lab atlas coverage plus app/showcase and Lua checks for atlas UI, metadata, and Particle Playground export paths.
-- Added focused/app/showcase Texture Lab coverage for custom atlas frame normalization, Convert to Sprite Sheet, per-frame editing/replacement, and onion-skin toggles.
-- Added focused spline overlap coverage plus app/showcase checks for the overlap selector.
-- Added focused Texture Lab coverage for generator-specific reset alpha defaults.
-- Added focused/app/showcase coverage for Texture Lab generator resets and spline point styling.
-- Added app/showcase coverage for Texture Lab independent panel scrolling, collapsible presets, and fixed-header generator actions.
-- Added focused Texture Lab coverage for removing hardcoded Comet Tail/Slash generator IDs while preserving their spline presets.
-- Added app/showcase coverage for Texture Lab generator and spline presets restoring default values when selected.
-- Added focused/app/showcase coverage for the Texture Lab first-class atlas workspace, editable materialized frames, seeded fills, and uploaded frame handling.
+- Added focused/Lua/app/showcase coverage for Particle Playground timeline grouping, undo/redo, atlas metadata, and export paths.
+- Added focused/app/showcase Texture Lab coverage for generators, saved recipes, spline/shape editing, atlas workflows, layout, and confirmation dialogs.
 
 ## [v3.0.0] - 2026-05-31 - The one with core workflows
 
 ### Added
 
-- Improved Shader Graph compiler UX with local diagnostics for missing outputs, stale connections, missing texture uploads, invalid custom functions, and cyclic subgraphs before runtime validation.
-- Added Shader Graph Preview nodes as inline RGBA probes with embedded love.js previews and an optional send-to-game control for connected LÖVE sessions.
-- Shader Graph now renders only the selected Preview node's embedded love.js probe so multiple inline probes do not run preview runtimes at the same time.
-- Added zoom controls to Shader Graph Preview nodes for inspecting details inside embedded love.js previews.
-- Shader Graph Preview node game-preview buttons now toggle the connected-game probe off after sending it live.
-- Added pinning for Shader Graph Preview nodes so chosen embedded previews stay live when another node is selected.
-- Expanded Shader Graph canvas zoom range for inspecting dense node clusters and large graphs.
-- Added Shader Graph canvas mode buttons for switching empty-canvas drags between node selection and panning.
-- Shader Graph now deletes all selected nodes together with one Delete/Backspace action.
-- Shader Graph connected-game previews now dedupe and throttle live updates while the runtime caches preview shaders and draws through a capped overlay canvas.
-- Showcase dev now serves a generated real love.js preview target so Shader Graph Preview nodes exercise the same LÖVE path during browser development.
-- Shader Graph Preview nodes now keep a stable embedded preview aspect ratio instead of stretching to an arbitrary fixed height.
-- Added all 11 Noctis theme variants as optional app themes with matching syntax highlighting while keeping Feather Light, Feather Dark, and System defaults.
-- Expanded GitHub themes with Light Default, Light High Contrast, Light Colorblind, Dark Default, Dark High Contrast, Dark Colorblind, and Dark Dimmed alongside the classic GitHub Light theme.
-- Added a curated Rainglow VS Code theme selection, including Hawaii, Heroku, Hive, Horizon, Hyrule, and Iceberg families, as optional app themes grouped into Light, Dark, and Contrast options with matching syntax highlighting.
-- Added Tokyo Night Light, Tokyo Night, and Tokyo Night Storm as optional app themes with matching syntax highlighting.
-- Added Microsoft Visual Studio C/C++ Light, Dark, 2017 Light, and 2017 Dark as optional app themes with matching syntax highlighting.
-- Added pinned sidebar Favorites for common tools, with Settings controls and quick star actions for pinning tools from the sidebar.
-- Added Shader Graph composition helper nodes for effect mixing, alpha/luma/range/color-key masks, palette swaps, gradient maps, mask combining, blend modes, and color ramps.
-- Added Shader Graph Fake 3D nodes for billboard UVs, parallax UVs, sprite texture sampling, depth shading, card shadows, and packed atlas sprite stacks.
-- Added Shader Graph template subgraphs for presets, with explicit Subgraph Input/Output boundary nodes and public Template Controls for common effect knobs and texture slots.
-- Added Shader Graph right-panel tabs with a Controls view that collects Template Controls and root Parameter nodes before the Selection inspector and Output panel.
-- Added a Particle System Playground Timeline tab with emitter clips, keyframed opacity/rate/speed/size/direction/spread/offset lanes, transport controls, and real LÖVE preview scrubbing.
-- Added timeline-authored beginner Particle System Playground templates for Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, and Dust Puff.
-- Added a Complex Composite Particle System Playground template with five emitters and a staggered authored timeline for combining burst, ring, smoke, spark, and dust layers.
-- Added Ambient timeline mode and Snowfall, Rainfall, and Falling Leaves templates for continuous Particle System Playground effects.
-- Added a session-tab suspend/resume control that temporarily pauses Feather runtime work in a connected game while keeping the command socket available.
-- Added an opt-in Feel Inspector plugin for feel.lua sequences, active plays, targets, recent events, and LOVE adapter state.
-- Added Debugger Profiler Probes so source gutter markers can start, stop, or snapshot the core profiler without adding a second Lua debug hook.
-- Added Debugger Profile Function probes that automatically wrap supported global/table functions for core Profiler captures.
-- Added exact Profiler invocation samples and a Run Comparison drawer for comparing individual executions against A/B, previous, first, best, or median baselines.
-- Added a golden workflow checklist for validating connect/session health, logs, performance/profiler, debugger/probes, and runtime inspection before developer-preview use.
+- Shader Graph gained inline Preview nodes, local diagnostics, richer canvas controls, composition helpers, Fake 3D nodes, template subgraphs, and right-panel Controls.
+- Particle Playground gained a timeline editor with clips, keyframed lanes, real LÖVE scrubbing, beginner/complex templates, Ambient mode, and continuous weather-style presets.
+- Added core workflow tooling for runtime suspend/resume, core Profiler captures, debugger profiler probes, function wrapping, invocation run comparison, and developer-preview golden checks.
+- Added runtime impact controls, including overhead telemetry, panel-driven runtime interest, frame/message/byte budgets, deferred profiler uploads, and batched normal logs.
+- Added app customization and navigation polish with expanded theme families, pinned sidebar Favorites, grouped sidebar sections, and refreshed Settings/About screens.
+- Added the opt-in Feel Inspector plugin for feel.lua sequences, active plays, targets, recent events, and LOVE adapter state.
 
 ### Changed
 
-- Reworked the Settings modal with a wider responsive layout, left-side navigation, page summaries, framed setting groups, and clearer autosave/status cues.
-- Reworked the About modal with clearer app identity, version/update status, quick actions, feature summaries, and project links.
-- Reworked the main sidebar into Favorites, Core, Inspect, Creative, and History groups for faster scanning.
-- Improved Shader Graph node palette scanability with collapsible category sections, remembered section state, node counts, and search that opens matching collapsed sections.
-- Shader Graph presets now load and insert as reusable Subgraph instances instead of expanding full flat graphs onto the root canvas.
-- Shader Graph previews in Feather dev and showcase dev now use the same generated love.js target when available so embedded node previews render through the same LÖVE path.
-- Shader Graph Parameter nodes can now be edited from the Controls tab, including labels, defaults, texture uploads, uniform names, connection warnings, and select-node actions.
-- Shader Graph now opens the Selection tab when a node is selected and lets Space toggle the canvas between selection and panning modes.
-- Shader Graph connected-game previews now start runtime canvas refresh at 60 FPS and automatically lower to 40, 30, or 24 FPS for highly zoomed or large-texture previews.
-- Particle System Playground project files now save as `.featherparticles` version 3 with authoritative timeline modes, while version 1/2 imports migrate legacy loop booleans to One-shot or Loop.
-- Particle System Playground Lua exports now replay saved timelines from `emit(payload)`, including scheduled clips, keyframes, non-looping stops, and looping playback.
-- Improved Particle System Playground Timeline layout so the editor fills the available width and clips, playhead, zoom, and keyframe strips align on one timeline scale.
-- Reworked the Particle System Playground Timeline tab with video-editor-style clip dragging, resize handles, inline selected-emitter lanes, draggable keyframe timing, a selection inspector, and remembered zoom/snap preferences.
-- Renamed Particle System Playground timing controls so clip entry time is shown as Emit At and burst counts are shown separately from timing.
-- Particle System Playground timelines now treat clips as emission windows, intersect clip timing with Emitter Lifetime, preserve particle-life tails across loop boundaries, and show non-editable tail overlays in the Timeline tab.
-- Particle System Playground timeline playback now animates the visible playhead smoothly between runtime updates instead of jumping in coarse connected-game intervals.
-- Particle System Playground timeline keyframes now support curated easing curves, including hold, sine, quad, cubic, quart, expo, back, elastic, and bounce shapes, with expanded lanes drawing the resulting value curve.
-- Particle System Playground keeps the local love.js preview in the browser showcase, while the Feather/Tauri app now uses connected-game runtime preview only through the explicit Show in Game toggle.
-- Particle System Playground showcase previews now float over the editor and keep a locked 16:9 love.js canvas aspect ratio.
-- Particle System Playground replaced the header Emit action with a Play action that starts timeline playback.
-- Particle System Playground now colors Show in Game green and Hide in Game red so connected-game preview state is easier to scan.
-- Particle System Playground Lua exports now include `play`, `pause`, and `stop` methods, with `emit` kept as a compatibility alias for timeline playback payloads.
-- Particle System Playground Lua exports now play authored timeline bursts exactly instead of applying a payload-level amount scale.
-- Particle System Playground Lua exports now expose `setLoop` and `isLooping`, and `play({ loop = ... })` can override the saved timeline loop setting per playback.
-- Particle System Playground Lua exports now expose `setMode` and `getMode`, and `play({ mode = ... })` can override saved One-shot, Loop, or Ambient behavior per playback.
-- Feather now keeps creative preview runtime work dormant until Particle Playground or Shader Graph previews are explicitly active.
-- Feather runtime suspend now keeps explicitly active Shader Graph and Particle Playground in-game previews animating from their last payload, and lets the In-Game Overlay keep sampling/drawing while other runtime work stays paused.
-- Reduced idle connected-game overhead by throttling callback/asset rehook checks and batching log-history persistence.
-- Feather now spreads connected-game sample pushes across frames so performance, observer, asset, plugin, and GC work no longer lands in one once-per-second burst.
-- Runtime Snapshot is now opt-in, disabled by default, and uses a low-frequency live push interval when enabled.
-- Profiler is now a core Feather runtime service available as `DEBUGGER.profiler`, with the old profiler plugin path removed and captures idle by default until explicitly started.
-- Reworked the Profiler tab into a capture workspace with Record/Finish capture controls, named snapshots, and hotspot bars for the highest-cost instrumented functions.
-- Profiler command and debugger-probe state uploads are now deferred onto Feather's runtime update lane so stop/snapshot probes do not serialize large captures inside the profiled call.
-- Profiler run strips are now zoomable and horizontally scroll inside the Run Comparison drawer instead of widening the drawer content.
-- Feather now reports its own runtime overhead in Performance, including update cost, transport bytes, deferred work, budget misses, and top plugin costs.
-- Performance now puts Feather runtime overhead in its own Overhead tab instead of crowding the Health view.
-- Feather runtime sampling now uses panel-driven interest and frame/message/byte budgets so observers, assets, plugin payloads, and high-cost plugin updates stay dormant until their page or explicit workflow needs them.
-- Feather websocket logs are now batched for normal output while errors, fatal lines, and session start/finish still flush immediately.
+- Reworked Shader Graph authoring around reusable subgraphs, docked controls, safer previews, selected-node inspection, palette organization, and adaptive connected-game preview FPS.
+- Reworked Particle Playground timeline authoring around direct clip/keyframe editing, shared timing coordinates, smooth playback, easing curves, explicit preview controls, and timeline-driven Lua exports.
+- Particle Playground `.featherparticles` files now save as version 3 with authoritative timeline modes while importing older loop booleans safely.
+- Particle Playground exports now expose `play`, `pause`, `stop`, `setLoop`, `setMode`, and compatibility `emit` behavior that replays authored timelines.
+- Creative previews now stay dormant by default, run on demand, and can keep animating from the last payload while the runtime is suspended.
+- Profiler moved from a plugin to the core `DEBUGGER.profiler` service, with a capture workspace, named snapshots, hotspot bars, zoomable run strips, and idle-by-default behavior.
+- Performance now shows Feather overhead in its own tab, and runtime sampling uses active-panel interest plus budgets so high-cost work stays dormant until needed.
 
 ### Fixed
 
-- Fixed log type badges so their text and icons keep readable contrast across light, dark, and Noctis themes.
-- Fixed live session logs disappearing after reopening Feather or restarting a CLI-launched game by restoring recent log history from a bounded local cache.
-- Fixed local log-history persistence so storage quota pressure no longer interrupts Particle Playground timeline editing.
-- Fixed the Settings modal close button so it no longer overlaps the version badge in the header.
-- Fixed Debugger Profile Function probes on `love.*` callbacks so profiling `love.keypressed`, `love.update`, and other managed callbacks preserves the game's original callback logic after Feather rehooks callbacks.
-- Fixed the Performance Profiler filter row so controls wrap instead of overflowing at medium desktop widths.
-- Fixed the Logs toolbar so search takes its own row before filters and actions when horizontal space is tight.
-- Fixed Feather dev Shader Graph node previews by serving the generated love.js preview route with the required isolation headers.
-- Fixed showcase love.js shader previews so node preview zoom is honored by the real LÖVE preview target.
-- Fixed Shader Graph preview probes so embedded love.js previews use the same 16:9 aspect ratio in web and preserve uploaded texture proportions while zooming.
-- Fixed Shader Graph Preview nodes so uploaded preview textures are passed through the embedded love.js bridge instead of falling back to generated preview shapes.
-- Fixed Shader Graph texture preview handling so the shared Preview Texture remains the source sprite while texture-uniform nodes require and bind their own uploads.
-- Fixed Shader Graph link suggestions so image outputs create type-correct Sample Texture nodes instead of wiring image data into Texture Uniform Color UV inputs.
-- Fixed Shader Graph template codegen so texture-image inputs, including Texture Noise Water's noise slot, emit valid LÖVE `Image` parameters.
-- Fixed Shader Graph connected-game preview so switching away from the Output tab no longer turns off an active runtime preview.
-- Fixed Shader Graph Preview nodes so the selected Preview Texture is sent directly to the embedded love.js iframe instead of falling back to the generated shape when upload-cache hydration is unavailable.
-- Fixed Shader Graph Preview nodes so texture-uniform uploads are also sent directly to the embedded iframe, restoring texture effects when the parent upload cache is unavailable.
-- Fixed Shader Graph Preview nodes so texture-image parameters inside template subgraphs are converted to WebGL sampler uniforms for embedded previews.
-- Fixed real love.js Shader Graph Preview nodes so uploaded texture uniforms are retained by the embedded LÖVE runtime after binding, matching connected-game preview behavior.
-- Fixed Shader Graph Preview nodes so embedded love.js frames wait for the preview-ready handshake before sending texture-heavy payloads.
-- Fixed Shader Graph Preview nodes so embedded node previews use a dedicated WebGL preview target that keeps uploaded source and uniform textures visible even when the generated love.js target cannot poll browser payloads.
-- Fixed standalone Shader Graph texture upload controls so browser showcase previews can load source and uniform textures.
-- Fixed Shader Graph palette dragging in the showcase by replacing native browser drag with a pointer-driven drop path and hardening the standalone layout against 0x0 canvas collapse.
-- Fixed Shader Graph Preview node toolbar actions so pin/zoom/reload clicks no longer re-select the node underneath.
-- Fixed looping Particle System Playground timelines so delayed emitter clips restart their particle system when the clip begins instead of expiring before they can emit.
-- Fixed Particle System Playground timeline clips and keyframes bleeding into the wrong emitter after reordering or deleting emitters.
-- Fixed Particle System Playground timeline Stop and Reset Playhead controls so restarting playback restores emitter base rates instead of keeping stale muted timeline values.
-- Fixed live-session reconnects so restored log-history sessions no longer block the app from requesting fresh config from an already-connected game.
-- Fixed Particle Playground and Shader Graph connected-game preview work lingering after leaving the page or switching sessions.
-- Fixed connected Lua games stuttering on the default one-second sample cadence when several live payloads were pushed together.
-- Fixed Runtime Snapshot contributing to idle connected-game stutters through default live dashboard pushes.
-- Fixed Feather runtime budgets so active panels cannot get stuck behind a deferred sampling task when a frame is already over budget.
-- Fixed In-Game Overlay performance by caching its font/layout and throttling expensive graphics, GC, and particle metric sampling instead of doing that work every frame.
-- Fixed Particle System Playground connected-game preview performance by muting paused timeline emission and updating only the selected scratch composite.
-- Fixed continuous Particle System Playground effects by adding Ambient timeline playback that holds final lane values without replaying clip bursts.
-- Fixed live session visibility so authenticated sockets appear in the app while waiting for the config handshake retry, and disabled plugin capability checks no longer show as startup errors.
-- Fixed the Particle System Playground Timeline loop control so it renders as a stable explicit toggle.
-- Fixed Particle System Playground timeline playback after applying motion presets while paused, so presets no longer capture the muted preview emission rate as the base rate.
-- Fixed Particle System Playground timeline drags so runtime timeline updates are sent only when the drag is released.
-- Fixed Feather Particle System Playground local previews when the app falls back to the static showcase love.js bridge.
-- Fixed Feather Particle System Playground local preview playback so play/pause timeline sync no longer rebuilds particle systems and interrupts continuous emission.
-- Fixed Particle System Playground local preview timelines so Feather keeps advancing local playback while Show in Game is off and love.js previews respect clip/lane timing.
-- Fixed Particle System Playground Lua exports so paused or scrubbed timeline state no longer mutates the exported base emitter settings.
-- Fixed Particle System Playground Lua exports so keyframe easing names are preserved and exported playback uses the same shared timeline evaluator as the plugin preview.
-- Fixed Particle System Playground Lua exports so repeated `play`/`emit` calls use pooled independent timeline instances and can overlap without resetting earlier effects.
-- Fixed Particle System Playground Lua exports so `play({ loop = false })` and `emit({ loop = false })` override looping timelines instead of falling back to the saved loop setting.
-- Fixed Follow Tail in Logs so newly appended visible rows scroll into view through the virtual log list.
-- Fixed Profiler actions so Start, Stop, Snapshot, and Reset refresh the visible capture table immediately.
-- Fixed Tauri development reloads getting stuck on Vite `504 Outdated Optimize Dep` responses by isolating app/showcase optimizer caches, forcing a fresh Tauri dev optimize pass, and disabling WebView caching for dev modules.
-- Fixed Tauri dev CSP headers so Feather can use Tauri IPC for event listeners and commands while love.js preview isolation headers are enabled.
-- Fixed the Particle System Playground app layout so editor content scrolls inside the main pane instead of expanding the whole app window.
-- Fixed idle connected-game overhead from background observer, asset, and plugin payload work by gating those pushes behind active panels or explicit recording/preview state.
+- Fixed Shader Graph preview reliability across texture uploads, texture-heavy subgraphs, WebGL fallback, preview-ready handshakes, aspect ratio, zoom, pin controls, and connected-game lifecycle.
+- Fixed Shader Graph authoring edge cases for palette dragging, collapsed standalone layouts, type-correct texture suggestions, template texture codegen, and Output-tab preview persistence.
+- Fixed Particle Playground timeline/runtime parity for delayed clips, emitter reorder/delete, stop/reset recovery, smooth playback, local preview timing, easing export, overlapping instances, and loop/mode overrides.
+- Fixed Particle Playground preview and layout issues, including stale game-preview work, Tauri fallback playback, app-pane scrolling, muted paused emission, and Ambient continuous playback.
+- Fixed runtime performance spikes by spreading sample pushes, gating idle observers/assets/plugins, throttling In-Game Overlay sampling, and moving Runtime Snapshot to opt-in low-frequency pushes.
+- Fixed session/log/profiler reliability around reconnect handshakes, follow-tail, log-history quota pressure, callback wrapper preservation, immediate profiler refreshes, and responsive filter/toolbars.
+- Fixed Tauri dev reload and CSP problems that could block Vite modules or Tauri IPC while preview isolation headers were enabled.
 
 ### Tests
 
-- Expanded app e2e coverage for responsive and degraded triage states, including missing sessions, partial payloads, missing/disabled plugins, and narrow layouts.
-- Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
-- Added showcase e2e coverage for inline Shader Graph Preview probes.
-- Expanded showcase e2e coverage to verify only the selected Shader Graph Preview probe renders live.
-- Expanded showcase e2e coverage for Shader Graph Preview node zoom controls.
-- Expanded showcase e2e coverage for pinned Shader Graph Preview nodes.
-- Added showcase e2e coverage for Shader Graph diagnostics on broken imported graphs.
-- Added focused coverage for Shader Graph game-preview throttling and runtime preview caching.
-- Expanded showcase e2e coverage for Shader Graph Preview node aspect ratio.
-- Added app and showcase e2e coverage that verifies texture-heavy Shader Graph Preview nodes receive source/uniform uploads and render textured canvas output.
-- Added app e2e and focused registry coverage for Noctis theme selection, persistence, and fallback behavior.
-- Expanded app e2e coverage for the redesigned Settings modal navigation and connection summary.
-- Added app e2e coverage for opening the redesigned About modal from the sidebar.
-- Added app e2e coverage for log type badge contrast in dark themes.
-- Added focused log-history coverage and app e2e coverage for restoring saved session logs.
-- Added focused and app e2e reconnect coverage for remembered sessions, pending config handshakes, and persisted session state.
-- Added app e2e coverage for Performance Profiler filter controls at constrained desktop widths.
-- Expanded app e2e coverage for the Profiler capture workspace, including Record/Finish capture, named snapshots, hotspot focus, and constrained-width controls.
-- Expanded Lua and app e2e coverage for exact Profiler invocation samples, sample caps, debugger wrap samples, and run comparison drawer behavior.
-- Added golden workflow app and Lua e2e coverage for connection recovery, log batching, performance overhead, profiler captures, debugger probes, observers, assets, and Console eval.
-- Added app e2e coverage for the constrained-width Logs toolbar layout.
-- Added app e2e coverage for grouped sidebar navigation, pinned tool persistence, Settings pin controls, and hidden pinned tools.
-- Added showcase e2e and focused settings coverage for Shader Graph collapsible node palette defaults, persistence, search, and empty states.
-- Added focused codegen and showcase e2e coverage for the new Shader Graph composition helper nodes.
-- Expanded particle playground e2e coverage for full-width Timeline layout, default overflow behavior, and clip alignment.
-- Expanded showcase and app e2e coverage for Particle System Playground Timeline clip dragging, clip duplication/deletion, keyframe retiming, and persisted zoom/snap controls.
-- Added focused codegen and showcase e2e coverage for the new Shader Graph Fake 3D sprite illusion nodes.
-- Added focused helper, showcase e2e, and app e2e coverage for Shader Graph template preset controls and subgraph boundary nodes.
-- Added showcase and app e2e coverage for the Shader Graph right-panel Controls, Selection, and Output workflow.
-- Added focused bridge coverage plus showcase and app e2e coverage for texture-heavy Shader Graph Preview node uploads.
-- Expanded Lua e2e coverage for looping Particle System Playground timelines with delayed emitter clips.
-- Expanded Lua e2e coverage for Particle System Playground export playback APIs and authored timeline burst handling.
-- Added Lua e2e coverage for Feel Inspector registration, handler preservation, replay/clear actions, and LOVE adapter summaries.
-- Expanded Lua, showcase, and app e2e coverage for Particle System Playground particle-life tails in timeline loops.
-- Expanded Lua, showcase, and app e2e coverage for Particle System Playground Emitter Lifetime and timeline clip intersections.
-- Expanded Lua, showcase, and app e2e coverage for preserving Particle System Playground timeline values when emitters are reordered.
-- Expanded Lua e2e coverage for Particle System Playground timeline stop/reset playback recovery.
-- Expanded showcase and app e2e coverage for smooth Particle System Playground timeline playback.
-- Added focused, Lua, showcase, and app e2e coverage for Particle System Playground timeline easing curves and track curve rendering.
-- Added Lua and app e2e coverage for the core Profiler runtime, dedicated protocol messages, and migration away from the old profiler plugin.
-- Expanded app and showcase e2e coverage for Particle System Playground showcase-local previews and Feather on-demand connected-game preview activation.
-- Expanded showcase e2e coverage for the floating, aspect-locked Particle System Playground preview.
-- Expanded app and showcase e2e coverage for the Particle System Playground header Play action replacing Emit.
-- Expanded Lua e2e coverage for Particle System Playground timeline playback after applying motion presets while the preview is muted.
-- Added Lua and showcase e2e coverage for the Complex Composite Particle System Playground timeline template.
-- Expanded Lua, showcase, and app e2e coverage for Ambient Particle System Playground timelines and continuous templates.
-- Expanded Lua e2e coverage for paused Particle System Playground timelines and inactive scratch preview throttling.
-- Expanded Lua e2e coverage for capability allowlist startup warnings.
-- Added Lua, showcase, and app e2e coverage for Particle System Playground timeline import/export, clip/keyframe editing, preview controls, and exported timeline replay hooks.
-- Added Lua, app e2e, and focused store coverage for idle creative preview runtime behavior, stable connected-game config probing, and batched log-history persistence.
-- Added Lua e2e coverage for incremental connected-game sample pushes.
-- Added Lua e2e coverage for plugin push intervals and manual refresh bypass.
-- Expanded theme registry and app e2e coverage for GitHub theme variants, including high contrast, colorblind, and dimmed options.
-- Expanded theme registry and app e2e coverage for the curated Rainglow theme selection, including restored family variants.
-- Expanded theme registry and app e2e coverage for Visual Studio C/C++ theme variants.
-- Expanded theme registry and app e2e coverage for Tokyo Night theme variants.
-- Added app e2e coverage for live runtime suspend/resume, Profiler action refreshes, and Logs Follow Tail behavior.
-- Expanded Lua e2e coverage for suspended-runtime creative preview allowlists, active Particle Playground preview updates, and throttled In-Game Overlay sampling.
-- Expanded Lua e2e coverage for Shader Graph runtime preview render cadence scaling across small, large-texture, and highly zoomed previews.
-- Added Lua and app e2e coverage for Debugger Profiler Probes syncing to the runtime and triggering core profiler captures from source lines.
-- Expanded Lua and app e2e coverage for Debugger Profile Function probes, including automatic wrapping, unsupported lines, persistence, and removal.
-- Added Lua and app e2e coverage for Feather overhead telemetry, runtime interest, log batching, and panel-driven runtime activation.
+- Expanded focused/app/showcase coverage for Shader Graph diagnostics, Preview nodes, texture-heavy uploads, composition helpers, Fake 3D nodes, template subgraphs, and right-panel workflows.
+- Expanded Lua/app/showcase coverage for Particle Playground timeline editing, easing, templates, Ambient mode, preview activation, export playback, and reordered emitter safety.
+- Added Lua/app coverage for the core Profiler runtime, debugger probes, function wrapping, invocation samples, run comparison, and deferred profiler uploads.
+- Added Lua/app coverage for runtime impact controls, overhead telemetry, panel-driven interest, log batching, suspended creative previews, and In-Game Overlay throttling.
+- Expanded app/focused coverage for themes, Settings/About/sidebar polish, log history, reconnects, responsive layouts, and golden workflow acceptance paths.
+- Added Lua coverage for the Feel Inspector plugin registration, handler preservation, replay/clear actions, and LOVE adapter summaries.
 
 ## [v2.0.0] - 2026-05-26 - The one with better traces
 
 ### Added
 
-- Added a global Command Center with `Cmd/Ctrl+K` for discovering pages, hidden sidebar features, plugins, Console snippets, debugger shortcuts, sessions, and docs links.
-- Added Console result inspectors, live Observability pins, and best-effort read-only guardrails for safer runtime inspection.
-- root path fallback for deeplinking from trace.
-- Added `continueOnGameError` for opt-in callback crash recovery with an in-game toast while keeping normal crash behavior as the default.
-- Added a Session page toggle for enabling callback crash recovery on the current run.
-- Added Health and Profiler tabs to the Performance page with expanded metric charts, spike triage, profiler controls, and JSON export.
-- Added Profiler scoped samples, before/after snapshots, group metadata, and diff-friendly capture data for focused profiling workflows.
-- Added richer Observability triage with observer groups, change counts, first/last seen metadata, sorting, group filters, customizable changed-marker duration, and JSON export.
-- Added debugger reliability status, opt-in pause-on-error, condition error reporting, and stack-frame variable inspection.
+- Added Command Center discovery, Console result inspectors, live Observability pins, and safer read-only runtime inspection.
+- Added opt-in callback crash recovery with Session controls and in-game error toasts while keeping normal crash behavior as the default.
+- Added Performance Health and Profiler workflows with richer charts, spike triage, scoped captures, snapshots, diffs, and JSON export.
+- Added deeper Observability and Debugger triage, including observer groups/history, pause-on-error, condition errors, reliability status, and stack-frame variables.
 
 ### Changed
 
-- Reworked the Logs view with a dedicated live log table, search and type filters, follow-tail control, stable row selection, and richer synced details.
-- Profiler plugin captures now include start/stop recording, raw timing values, percent of captured time, calls per second, and capture metadata.
-- Profiler wrapped functions now preserve tracebacks with error-safe wrappers while still recording failed calls.
-- Improved the Debugger page with a single-row header, colored controls, file-title flow controls, safer gutter-only breakpoint toggling, and clearer source/variable empty states.
-- Improved Debugger Hot Reload controls with selected-module status, disabled reasons, and compact safety chips for allowlist, remote-block, persistence, modified, and failed states.
-- Improved the Console page with status chips, transcript actions, collapsible long output, rerun/use-as-input controls, and session-scoped snippets.
-- Added manual `_G` refresh for Console autocomplete so runtime globals can be suggested without changing eval sandbox behavior.
-- Improved Console autocomplete with scoped Lua/LÖVE suggestions for member access such as `_G.print` and `love.graphics.getStats`.
-- Improved the Assets page with denser filtering, sorting, repeated-load badges, richer preview details, and copy/reveal actions.
-- Compare now appears below Session in the sidebar only when at least two sessions are connected.
-- Improved Compare with auto-selected sessions, observer diff filters/search/sorting, summary counts, performance deltas, and row copy actions.
-- Live session selection now re-requests the config handshake and current runtime data to refresh stale desktop state.
-- Added persisted Settings controls for hiding unused main sidebar features.
-- Reworked Session into an onboarding and health hub with connection, security, debugger, plugin, package, and recommended-action summaries.
-- Added actionable Performance Health verdicts for frame hitches, low FPS, draw-call pressure, state switching, memory growth, and texture pressure.
-- Performance Health warnings now render as a compact collapsible strip so diagnostics do not crowd the chart.
-- Hidden sidebar features and hidden disabled plugins are now hidden from Command Center by default, with a Settings opt-in for sidebar features.
-- Shared triage UI primitives now keep search, filters, summary chips, empty states, copy actions, and details panels more consistent across live debugging pages.
-- Shader Graph Output now keeps GLSL as the main scrollable content while docking diagnostics and preview/apply controls at the bottom of the panel.
+- Reworked Logs, Debugger, Console, Assets, Compare, Session, and Performance into denser, more predictable workflow screens.
+- Improved Profiler captures with start/stop recording, raw timing values, percent totals, calls-per-second, metadata, and error-safe wrappers.
+- Added persisted sidebar visibility controls and hid unused sidebar/disabled plugin entries from Command Center by default.
+- Improved live-session refresh behavior so selecting a session re-requests config and runtime data instead of showing stale desktop state.
+- Shader Graph Output now keeps GLSL as the scrollable tab content while diagnostics and preview/apply controls stay docked at the bottom.
 
 ### Fixed
 
-- Asset tracking now deduplicates repeated file-backed loads while keeping runtime-created assets distinct, and reports the real preview enabled state.
-- Wrapped game callback errors now rethrow by default after Feather can capture them, so game crashes are no longer silently swallowed.
-- Fixed CLI-managed debugger breakpoint matching for long source paths and modules loaded through the temporary run shim by matching against untruncated source paths and normalizing shim paths back to project-relative source files.
-- Fixed `feather run` so CLI-managed desktop launches enable the step debugger by default unless `--no-debugger` is used.
-- Fixed the Performance page empty-data state so the health chart no longer loops when no metrics have arrived yet.
-- Fixed Performance metric formatting and runtime normalization so partial samples render safe fallback values instead of `NaN` or broken units.
-- Fixed Compare memory and texture metrics so missing live performance fields render as unavailable instead of `NaN undefined`.
-- Fixed the Console snippets rail so it hides on narrow screens instead of squeezing the chat workspace.
-- Log repeat counts now render in the actual log table.
-- Log details now show the repeat count for the selected entry.
-- Log details now stay synced as repeat counts update.
-- Clearing logs now resets the runtime repeat counter so the next identical log appears normally.
-- Fixed log row selection so live updates no longer prevent opening a log details panel.
-- Fixed Shader Graph node previews so alpha-masked shaders stay clipped to the selected preview shape instead of tinting the full preview quad.
-- Traceback path stripping.
+- Fixed asset load deduplication, preview enabled reporting, and runtime-created asset tracking.
+- Fixed callback error handling so captured game errors rethrow by default instead of being silently swallowed.
+- Fixed CLI-managed debugger path matching, step-debugger startup defaults, and traceback path stripping.
+- Fixed Performance/Compare empty and partial data states so missing metrics render safe fallbacks instead of broken units.
+- Fixed Logs repeat counts, detail syncing, clear behavior, and row selection during live updates.
+- Fixed narrow Console layouts and Shader Graph alpha-masked node previews.
 
 ### Tests
 
