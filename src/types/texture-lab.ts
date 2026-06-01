@@ -1,4 +1,4 @@
-export const TEXTURE_LAB_SIZES = [32, 64, 128, 256] as const;
+export const TEXTURE_LAB_SIZES = [4, 8, 16, 32, 64, 128, 256] as const;
 
 export const TEXTURE_LAB_GENERATOR_IDS = [
   'soft-circle',
@@ -60,7 +60,7 @@ export const TEXTURE_LAB_ATLAS_PRESETS = [
 ] as const;
 export const TEXTURE_LAB_ATLAS_PLAYBACK_MODES = ['lifetime', 'variants'] as const;
 
-export type TextureLabSize = (typeof TEXTURE_LAB_SIZES)[number];
+export type TextureLabSize = number;
 export type TextureLabGeneratorId = (typeof TEXTURE_LAB_GENERATOR_IDS)[number];
 export type TextureLabColorRamp = (typeof TEXTURE_LAB_COLOR_RAMPS)[number];
 export type TextureLabAlphaMode = (typeof TEXTURE_LAB_ALPHA_MODES)[number];
@@ -179,6 +179,8 @@ export type TextureLabAtlasMetadata = {
 export type TextureLabRecipe = {
   generator: TextureLabGeneratorId;
   size: TextureLabSize;
+  width: number;
+  height: number;
   seed: number;
   softness: number;
   falloff: number;

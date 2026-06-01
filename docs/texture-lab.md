@@ -15,7 +15,7 @@ Texture Lab includes focused generators for common LÖVE effects:
 - **Shapes and polygons**: layered polygons, stars, rings, spline strokes, dots, and seeded repeat/scatter patterns.
 - **Spline paths**: editable trails, ribbons, stroke masks, and lightning paths.
 
-Choosing a generator or spline path preset loads that preset's default controls. Use the shared controls to adjust size, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp. Choose **Solid Color** in Color ramp to bake a single selected color into the generated shape.
+Choosing a generator or spline path preset loads that preset's default controls. Use the shared controls to adjust dimensions, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp. Size presets include tiny pixel-friendly outputs such as `4 x 4`, `8 x 8`, and `16 x 16`, plus larger square sizes and a Custom mode for explicit width and height. Choose **Solid Color** in Color ramp to bake a single selected color into the generated shape.
 Use **Reset values** to restore the current generator's default controls and seed.
 
 ## Atlas And Flipbook Export

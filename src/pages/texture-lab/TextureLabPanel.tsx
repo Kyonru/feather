@@ -99,6 +99,8 @@ import {
   textureLabMaterializeAtlasFrames,
   TEXTURE_LAB_ATLAS_LIFETIME_FRAME_LIMIT,
   TEXTURE_LAB_ATLAS_FILL_PRESETS,
+  TEXTURE_LAB_MAX_DIMENSION,
+  TEXTURE_LAB_MIN_DIMENSION,
   TEXTURE_LAB_ATLAS_PRESET_LABELS,
   TEXTURE_LAB_ATLAS_VARIANT_FRAME_LIMIT,
   TEXTURE_LAB_GENERATORS,
@@ -107,6 +109,7 @@ import {
   TEXTURE_LAB_SAVED_RECIPE_LIMIT,
   textureLabShapeElement,
   textureLabShapePreset,
+  textureLabRecipeDimensions,
   textureLabSplinePreset,
 } from './generator';
 
@@ -303,13 +306,21 @@ function customAtlasFrameDataUrl(frame?: TextureLabAtlasCustomFrame): string {
   return frame.dataBase64.startsWith('data:image') ? frame.dataBase64 : `data:image/png;base64,${frame.dataBase64}`;
 }
 
+function textureLabDimensionLabel(dimensions: { width: number; height: number }): string {
+  return `${dimensions.width} x ${dimensions.height}`;
+}
+
+function textureLabAspectRatio(dimensions: { width: number; height: number }): string {
+  return `${dimensions.width} / ${dimensions.height}`;
+}
+
 function customAtlasFramePreviewDataUrl(
   frame: TextureLabAtlasCustomFrame | undefined,
-  size: TextureLabRecipe['size'],
+  dimensions: Pick<TextureLabRecipe, 'size' | 'width' | 'height'>,
 ): string {
   if (!frame) return '';
   if (frame.recipe)
-    return textureLabPixelsToDataUrl(renderTextureLabPixels({ ...frame.recipe, size, atlas: undefined }));
+    return textureLabPixelsToDataUrl(renderTextureLabPixels({ ...frame.recipe, ...dimensions, atlas: undefined }));
   return customAtlasFrameDataUrl(frame);
 }
 
@@ -333,13 +344,13 @@ function cloneCustomAtlasFrame(frame: TextureLabAtlasCustomFrame, index: number)
 }
 
 function emptyCustomAtlasFrame(
-  size: TextureLabRecipe['size'],
+  dimensions: Pick<TextureLabRecipe, 'size' | 'width' | 'height'>,
   seed: number,
   index: number,
 ): TextureLabAtlasCustomFrame {
   const recipe = textureLabRecipeWithoutAtlas({
     ...defaultTextureLabRecipeForGenerator('shape-composer'),
-    size,
+    ...dimensions,
     seed,
     alphaMode: 'shape',
     backgroundAlpha: 0,
@@ -409,6 +420,12 @@ export function TextureLabActionControls({
 }: TextureLabActionControlsProps) {
   const { recipe, setRecipe, patch } = useTextureLabRecipe();
   const [isWorking, setIsWorking] = useState(false);
+  const textureDimensions = textureLabRecipeDimensions(recipe);
+  const textureDimensionFields = {
+    size: recipe.size,
+    width: textureDimensions.width,
+    height: textureDimensions.height,
+  };
   const atlasSettings = normalizeTextureLabAtlasSettings(recipe.atlas);
   const atlasHasFrames = (atlasSettings.customFrames?.length ?? 0) > 0;
   const atlasActive = recipe.atlas?.enabled === true;
@@ -444,7 +461,7 @@ export function TextureLabActionControls({
     });
     const firstFrameRecipe = customFrames[0]?.recipe;
     setRecipe({
-      ...(firstFrameRecipe ? { ...firstFrameRecipe, size: recipe.size } : recipe),
+      ...(firstFrameRecipe ? { ...firstFrameRecipe, ...textureDimensionFields } : recipe),
       atlas: normalizeTextureLabAtlasSettings({
         ...nextAtlas,
       }),
@@ -590,10 +607,11 @@ type SplineEditorProps = {
   spline: TextureLabSplineRecipe;
   pixelated: boolean;
   dataUrl: string;
+  aspectRatio: string;
   onChange: (spline: TextureLabSplineRecipe) => void;
 };
 
-function TextureSplineEditor({ spline, pixelated, dataUrl, onChange }: SplineEditorProps) {
+function TextureSplineEditor({ spline, pixelated, dataUrl, aspectRatio, onChange }: SplineEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<number>(0);
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
@@ -668,7 +686,8 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, onChange }: SplineEdi
       </div>
       <div
         ref={containerRef}
-        className="relative aspect-square overflow-hidden rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        className="relative w-full overflow-hidden rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        style={{ aspectRatio }}
         data-testid="texture-lab-spline-editor"
         onDoubleClick={(event) => {
           const point = pointFromEvent(event);
@@ -800,10 +819,11 @@ type ShapeEditorProps = {
   shape: TextureLabShapeRecipe;
   pixelated: boolean;
   dataUrl: string;
+  aspectRatio: string;
   onChange: (shape: TextureLabShapeRecipe) => void;
 };
 
-function TextureShapeEditor({ shape, pixelated, dataUrl, onChange }: ShapeEditorProps) {
+function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, onChange }: ShapeEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedLayer =
     shape.layers.find((layer) => layer.id === shape.selectedLayerId) ?? shape.layers.find(shapeLayerSupportsPoints);
@@ -1034,7 +1054,8 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, onChange }: ShapeEditor
       </div>
       <div
         ref={containerRef}
-        className="relative aspect-square overflow-hidden rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        className="relative w-full overflow-hidden rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        style={{ aspectRatio }}
         data-testid="texture-lab-shape-editor"
         onDoubleClick={(event) => {
           if (!editableLayer || !editablePoints) return;
@@ -1298,6 +1319,7 @@ export function TextureLabPanel({
   onApply,
 }: TextureLabPanelProps) {
   const [presetsOpen, setPresetsOpen] = useState(false);
+  const [customDimensionsOpen, setCustomDimensionsOpen] = useState(false);
   const [savedRecipeName, setSavedRecipeName] = useState('');
   const [selectedAtlasFrame, setSelectedAtlasFrame] = useState(0);
   const [atlasFillPreset, setAtlasFillPreset] = useState<TextureLabAtlasPreset>('seeded-spark');
@@ -1306,6 +1328,18 @@ export function TextureLabPanel({
   const [customAtlasError, setCustomAtlasError] = useState<string | null>(null);
   const customFrameInputRef = useRef<HTMLInputElement | null>(null);
   const { recipe, setRecipe, patch: patchRecipeStore } = useTextureLabRecipe();
+  const textureDimensions = useMemo(() => textureLabRecipeDimensions(recipe), [recipe]);
+  const textureDimensionFields = useMemo(
+    () => ({ size: recipe.size, width: textureDimensions.width, height: textureDimensions.height }),
+    [recipe.size, textureDimensions.height, textureDimensions.width],
+  );
+  const textureDimensionText = textureLabDimensionLabel(textureDimensions);
+  const textureAspectRatio = textureLabAspectRatio(textureDimensions);
+  const textureDimensionsMatchPreset =
+    textureDimensions.width === textureDimensions.height &&
+    TEXTURE_LAB_SIZES.some((size) => size === textureDimensions.width);
+  const textureSizeSelectValue =
+    customDimensionsOpen || !textureDimensionsMatchPreset ? 'custom' : String(textureDimensions.width);
   const savedRecipes = useSettingsStore((state) => state.textureLabSavedRecipes);
   const saveTextureLabRecipe = useSettingsStore((state) => state.saveTextureLabRecipe);
   const deleteTextureLabSavedRecipe = useSettingsStore((state) => state.deleteTextureLabSavedRecipe);
@@ -1343,7 +1377,7 @@ export function TextureLabPanel({
   const spline = recipe.spline;
   const shape = recipe.shape;
   const selectedShapeLayer = shape?.layers.find((layer) => layer.id === shape.selectedLayerId) ?? shape?.layers[0];
-  const suggestedSavedRecipeName = `${selectedGenerator.label} ${recipe.size} ${recipe.seed}`;
+  const suggestedSavedRecipeName = `${selectedGenerator.label} ${textureDimensionText} ${recipe.seed}`;
   const groupedGenerators = useMemo(
     () =>
       TEXTURE_LAB_GENERATORS.reduce<Record<string, typeof TEXTURE_LAB_GENERATORS>>((groups, generator) => {
@@ -1384,6 +1418,11 @@ export function TextureLabPanel({
     }
     commitEditorRecipe({ ...recipe, ...recipePatch });
   };
+  const patchDimensions = (width: number, height: number) => {
+    const nextWidth = Math.round(clampRange(width, TEXTURE_LAB_MIN_DIMENSION, TEXTURE_LAB_MAX_DIMENSION));
+    const nextHeight = Math.round(clampRange(height, TEXTURE_LAB_MIN_DIMENSION, TEXTURE_LAB_MAX_DIMENSION));
+    patch({ size: Math.max(nextWidth, nextHeight), width: nextWidth, height: nextHeight });
+  };
   const selectGenerator = (generator: TextureLabRecipe['generator']) => {
     commitEditorRecipe(defaultTextureLabRecipeForGenerator(generator));
   };
@@ -1417,7 +1456,7 @@ export function TextureLabPanel({
     if (!frame?.recipe) return;
     setRecipe({
       ...frame.recipe,
-      size: recipe.size,
+      ...textureDimensionFields,
       atlas: recipe.atlas,
     });
   };
@@ -1432,7 +1471,7 @@ export function TextureLabPanel({
     const customFrames = textureLabMaterializeAtlasFrames(recipe, nextAtlas, preset);
     const firstFrameRecipe = customFrames[0]?.recipe;
     setRecipe({
-      ...(firstFrameRecipe ? { ...firstFrameRecipe, size: recipe.size } : recipe),
+      ...(firstFrameRecipe ? { ...firstFrameRecipe, ...textureDimensionFields } : recipe),
       atlas: normalizeTextureLabAtlasSettings({
         ...nextAtlas,
         preset: 'custom-frames',
@@ -1486,11 +1525,11 @@ export function TextureLabPanel({
   };
   const emptyAllAtlasFrames = () => {
     const frames = Array.from({ length: atlasSettings.frameCount }, (_, index) =>
-      emptyCustomAtlasFrame(recipe.size, recipe.seed, index),
+      emptyCustomAtlasFrame(textureDimensionFields, recipe.seed, index),
     );
     const firstFrameRecipe = frames[0]?.recipe;
     setRecipe({
-      ...(firstFrameRecipe ? { ...firstFrameRecipe, size: recipe.size } : recipe),
+      ...(firstFrameRecipe ? { ...firstFrameRecipe, ...textureDimensionFields } : recipe),
       atlas: normalizeTextureLabAtlasSettings({
         ...atlasSettings,
         enabled: true,
@@ -1638,7 +1677,7 @@ export function TextureLabPanel({
     const customFrames = textureLabMaterializeAtlasFrames(recipe, atlasSettings, atlasSettings.preset);
     const firstFrameRecipe = customFrames[0]?.recipe;
     setRecipe({
-      ...(firstFrameRecipe ? { ...firstFrameRecipe, size: recipe.size } : recipe),
+      ...(firstFrameRecipe ? { ...firstFrameRecipe, ...textureDimensionFields } : recipe),
       atlas: normalizeTextureLabAtlasSettings({
         ...atlasSettings,
         enabled: true,
@@ -1813,8 +1852,8 @@ export function TextureLabPanel({
                       >
                         <span className="block truncate font-medium">{savedRecipe.name}</span>
                         <span className="block truncate text-[10px] text-muted-foreground">
-                          {textureLabGeneratorLabel(savedRecipe.recipe)} - {savedRecipe.recipe.size} x{' '}
-                          {savedRecipe.recipe.size}
+                          {textureLabGeneratorLabel(savedRecipe.recipe)} -{' '}
+                          {textureLabDimensionLabel(textureLabRecipeDimensions(savedRecipe.recipe))}
                         </span>
                       </button>
                       <Button
@@ -1836,10 +1875,18 @@ export function TextureLabPanel({
 
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-1">
-                <Label className="text-[10px] text-muted-foreground">Size</Label>
+                <Label className="text-[10px] text-muted-foreground">Dimensions</Label>
                 <Select
-                  value={String(recipe.size)}
-                  onValueChange={(size) => patch({ size: Number(size) as TextureLabRecipe['size'] })}
+                  value={textureSizeSelectValue}
+                  onValueChange={(size) => {
+                    if (size === 'custom') {
+                      setCustomDimensionsOpen(true);
+                      return;
+                    }
+                    setCustomDimensionsOpen(false);
+                    const nextSize = Number(size);
+                    patchDimensions(nextSize, nextSize);
+                  }}
                 >
                   <SelectTrigger size="sm" className="w-full" aria-label="Texture size">
                     <SelectValue />
@@ -1850,6 +1897,7 @@ export function TextureLabPanel({
                         {size} x {size}
                       </SelectItem>
                     ))}
+                    <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1864,6 +1912,34 @@ export function TextureLabPanel({
                   onChange={(event) => patch({ seed: Math.max(1, Math.floor(Number(event.target.value) || 1)) })}
                 />
               </div>
+              {textureSizeSelectValue === 'custom' && (
+                <div className="col-span-2 grid grid-cols-2 gap-2">
+                  <div className="grid gap-1">
+                    <Label className="text-[10px] text-muted-foreground">Width</Label>
+                    <Input
+                      aria-label="Texture width"
+                      className="h-8 text-xs"
+                      type="number"
+                      min={TEXTURE_LAB_MIN_DIMENSION}
+                      max={TEXTURE_LAB_MAX_DIMENSION}
+                      value={textureDimensions.width}
+                      onChange={(event) => patchDimensions(Number(event.target.value), textureDimensions.height)}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px] text-muted-foreground">Height</Label>
+                    <Input
+                      aria-label="Texture height"
+                      className="h-8 text-xs"
+                      type="number"
+                      min={TEXTURE_LAB_MIN_DIMENSION}
+                      max={TEXTURE_LAB_MAX_DIMENSION}
+                      value={textureDimensions.height}
+                      onChange={(event) => patchDimensions(textureDimensions.width, Number(event.target.value))}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2')}>
@@ -2322,8 +2398,8 @@ export function TextureLabPanel({
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</div>
               <div className="text-xs text-muted-foreground">
                 {atlasEnabled
-                  ? `Editing frame ${selectedAtlasFrame + 1} - ${recipe.size} x ${recipe.size}`
-                  : `${recipe.size} x ${recipe.size} PNG`}
+                  ? `Editing frame ${selectedAtlasFrame + 1} - ${textureDimensionText}`
+                  : `${textureDimensionText} PNG`}
               </div>
             </div>
             <ImageIcon className="size-4 text-muted-foreground" />
@@ -2333,6 +2409,7 @@ export function TextureLabPanel({
               shape={shape}
               pixelated={recipe.pixelated}
               dataUrl={editorDataUrl}
+              aspectRatio={textureAspectRatio}
               onChange={(nextShape) => patch({ shape: nextShape })}
             />
           ) : isSpline && spline && !compact && !selectedCustomFrameIsUploaded ? (
@@ -2340,6 +2417,7 @@ export function TextureLabPanel({
               spline={spline}
               pixelated={recipe.pixelated}
               dataUrl={editorDataUrl}
+              aspectRatio={textureAspectRatio}
               onChange={(nextSpline) => patch({ spline: nextSpline })}
             />
           ) : (
@@ -2349,8 +2427,9 @@ export function TextureLabPanel({
                   data-testid="texture-lab-preview"
                   alt="Generated texture preview"
                   src={editorDataUrl}
+                  style={{ aspectRatio: textureAspectRatio }}
                   className={cn(
-                    'aspect-square max-h-[64vh] w-full max-w-[48rem] object-contain drop-shadow-sm select-none',
+                    'max-h-[64vh] w-full max-w-[48rem] object-contain drop-shadow-sm select-none',
                     recipe.pixelated && '[image-rendering:pixelated]',
                   )}
                 />
@@ -2587,7 +2666,7 @@ export function TextureLabPanel({
                     data-testid="texture-lab-onion-past"
                     alt=""
                     aria-hidden="true"
-                    src={customAtlasFramePreviewDataUrl(previousCustomFrame, recipe.size)}
+                    src={customAtlasFramePreviewDataUrl(previousCustomFrame, textureDimensionFields)}
                     className={cn(
                       'absolute inset-2 size-[calc(100%-1rem)] object-contain opacity-35 mix-blend-multiply [filter:brightness(0)_saturate(100%)_invert(23%)_sepia(99%)_saturate(3848%)_hue-rotate(342deg)_brightness(98%)_contrast(95%)]',
                       recipe.pixelated && '[image-rendering:pixelated]',
@@ -2609,7 +2688,7 @@ export function TextureLabPanel({
                     data-testid="texture-lab-onion-future"
                     alt=""
                     aria-hidden="true"
-                    src={customAtlasFramePreviewDataUrl(nextCustomFrame, recipe.size)}
+                    src={customAtlasFramePreviewDataUrl(nextCustomFrame, textureDimensionFields)}
                     className={cn(
                       'absolute inset-2 size-[calc(100%-1rem)] object-contain opacity-35 mix-blend-multiply [filter:brightness(0)_saturate(100%)_invert(61%)_sepia(76%)_saturate(1162%)_hue-rotate(84deg)_brightness(96%)_contrast(96%)]',
                       recipe.pixelated && '[image-rendering:pixelated]',

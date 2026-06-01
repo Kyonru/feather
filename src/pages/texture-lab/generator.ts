@@ -9,7 +9,6 @@ import {
   TEXTURE_LAB_SHAPE_ELEMENT_KINDS,
   TEXTURE_LAB_SHAPE_REPEAT_MODES,
   TEXTURE_LAB_SPLINE_OVERLAP_MODES,
-  TEXTURE_LAB_SIZES,
   type GeneratedTextureResult,
   type TextureLabAlphaMode,
   type TextureLabAtlasBundle,
@@ -32,7 +31,6 @@ import {
   type TextureLabShapeRecipe,
   type TextureLabShapeRepeat,
   type TextureLabShapeRepeatMode,
-  type TextureLabSize,
   type TextureLabSplinePoint,
   type TextureLabSplineRecipe,
 } from '@/types/texture-lab';
@@ -214,6 +212,8 @@ export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
 export const DEFAULT_TEXTURE_LAB_RECIPE: TextureLabRecipe = {
   generator: 'soft-circle',
   size: 64,
+  width: 64,
+  height: 64,
   seed: 1337,
   softness: 0.55,
   falloff: 1.4,
@@ -389,7 +389,6 @@ export const TEXTURE_LAB_SPLINE_PRESETS: TextureLabSplinePreset[] = [
 ];
 
 const GENERATOR_SET = new Set<string>(TEXTURE_LAB_GENERATOR_IDS);
-const SIZE_SET = new Set<number>(TEXTURE_LAB_SIZES);
 const RAMP_SET = new Set<string>(TEXTURE_LAB_COLOR_RAMPS);
 const ALPHA_SET = new Set<string>(TEXTURE_LAB_ALPHA_MODES);
 const SPLINE_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SPLINE_GENERATOR_IDS);
@@ -402,6 +401,8 @@ const ATLAS_PRESET_SET = new Set<string>(TEXTURE_LAB_ATLAS_PRESETS);
 const ATLAS_PLAYBACK_SET = new Set<string>(TEXTURE_LAB_ATLAS_PLAYBACK_MODES);
 const SHAPE_LAYER_LIMIT = 8;
 const SHAPE_POINT_LIMIT = 24;
+export const TEXTURE_LAB_MIN_DIMENSION = 1;
+export const TEXTURE_LAB_MAX_DIMENSION = 1024;
 export const TEXTURE_LAB_SAVED_RECIPE_LIMIT = 32;
 export const TEXTURE_LAB_ATLAS_VARIANT_FRAME_LIMIT = 16;
 export const TEXTURE_LAB_ATLAS_LIFETIME_FRAME_LIMIT = 64;
@@ -438,6 +439,12 @@ const TEXTURE_LAB_RECIPE_FRAME_PLACEHOLDER =
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeDimension(value: unknown, fallback: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.round(clamp(numeric, TEXTURE_LAB_MIN_DIMENSION, TEXTURE_LAB_MAX_DIMENSION));
 }
 
 function clamp01(value: number): number {
@@ -975,8 +982,8 @@ function normalizeTextureLabAtlasCustomFrames(input: unknown): TextureLabAtlasCu
           ? source.name.trim().replace(/\s+/g, ' ').slice(0, 96)
           : `Frame ${index + 1}.png`,
       dataBase64: dataBase64.length > 0 ? dataBase64 : TEXTURE_LAB_RECIPE_FRAME_PLACEHOLDER,
-      width: Math.round(clamp(Number(source.width ?? recipe?.size ?? 0), 1, 4096)),
-      height: Math.round(clamp(Number(source.height ?? recipe?.size ?? 0), 1, 4096)),
+      width: Math.round(clamp(Number(source.width ?? recipe?.width ?? recipe?.size ?? 0), 1, 4096)),
+      height: Math.round(clamp(Number(source.height ?? recipe?.height ?? recipe?.size ?? 0), 1, 4096)),
       recipe,
     });
     if (frames.length >= TEXTURE_LAB_ATLAS_LIFETIME_FRAME_LIMIT) break;
@@ -1021,7 +1028,17 @@ export function normalizeTextureLabAtlasSettings(input: unknown): TextureLabAtla
 
 function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRecipe {
   const source = input ?? {};
-  const size = Number(source.size);
+  const size = normalizeDimension(source.size, DEFAULT_TEXTURE_LAB_RECIPE.size);
+  const sourceHasWidth = Object.prototype.hasOwnProperty.call(source, 'width');
+  const sourceHasHeight = Object.prototype.hasOwnProperty.call(source, 'height');
+  const hasInheritedDefaultDimensions =
+    size !== DEFAULT_TEXTURE_LAB_RECIPE.size &&
+    sourceHasWidth &&
+    sourceHasHeight &&
+    Number(source.width) === DEFAULT_TEXTURE_LAB_RECIPE.width &&
+    Number(source.height) === DEFAULT_TEXTURE_LAB_RECIPE.height;
+  const width = normalizeDimension(sourceHasWidth && !hasInheritedDefaultDimensions ? source.width : size, size);
+  const height = normalizeDimension(sourceHasHeight && !hasInheritedDefaultDimensions ? source.height : size, size);
   const generator =
     typeof source.generator === 'string' && GENERATOR_SET.has(source.generator)
       ? (source.generator as TextureLabGeneratorId)
@@ -1037,7 +1054,9 @@ function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRe
 
   return {
     generator,
-    size: (SIZE_SET.has(size) ? size : DEFAULT_TEXTURE_LAB_RECIPE.size) as TextureLabSize,
+    size,
+    width,
+    height,
     seed: Math.max(1, Math.floor(Number(source.seed) || DEFAULT_TEXTURE_LAB_RECIPE.seed)),
     softness: clamp(Number(source.softness ?? DEFAULT_TEXTURE_LAB_RECIPE.softness), 0, 1),
     falloff: clamp(Number(source.falloff ?? DEFAULT_TEXTURE_LAB_RECIPE.falloff), 0.1, 6),
@@ -1702,6 +1721,11 @@ export function normalizeTextureLabRecipe(input?: Partial<TextureLabRecipe> | nu
   return normalizeRecipe(input);
 }
 
+export function textureLabRecipeDimensions(input?: Partial<TextureLabRecipe> | null): { width: number; height: number } {
+  const recipe = normalizeRecipe(input);
+  return { width: recipe.width, height: recipe.height };
+}
+
 function normalizeSavedRecipeName(name: unknown, fallback: string): string {
   const value = typeof name === 'string' ? name.trim().replace(/\s+/g, ' ') : '';
   return (value || fallback).slice(0, 64);
@@ -1866,14 +1890,15 @@ export function textureLabAtlasFrameFromRecipe(
   index: number,
 ): TextureLabAtlasCustomFrame {
   const recipe = textureLabRecipeWithoutAtlas(input);
+  const { width, height } = textureLabRecipeDimensions(recipe);
   const label =
     TEXTURE_LAB_GENERATORS.find((generator) => generator.id === recipe.generator)?.label ?? recipe.generator;
   return {
     id: `atlas-frame-${index + 1}-${recipe.generator}-${recipe.seed}`,
     name: `Frame ${index + 1} - ${label}`,
     dataBase64: TEXTURE_LAB_RECIPE_FRAME_PLACEHOLDER,
-    width: recipe.size,
-    height: recipe.size,
+    width,
+    height,
     recipe,
   };
 }
@@ -1899,6 +1924,8 @@ export function textureLabMaterializeAtlasFrames(
   const baseRecipe = normalizeRecipe({
     ...defaultTextureLabRecipeForGenerator(textureLabAtlasPresetBaseGenerator(preset)),
     size: sourceRecipe.size,
+    width: sourceRecipe.width,
+    height: sourceRecipe.height,
     seed: sourceRecipe.seed,
     atlas: undefined,
   });
@@ -1943,8 +1970,7 @@ function atlasMetadata(
 export function renderTextureLabAtlasPixels(input?: Partial<TextureLabRecipe> | null): TextureLabAtlasPixels {
   const recipe = normalizeRecipe(input);
   const atlas = normalizeTextureLabAtlasSettings({ ...recipe.atlas, enabled: true });
-  const frameWidth = recipe.size;
-  const frameHeight = recipe.size;
+  const { width: frameWidth, height: frameHeight } = textureLabRecipeDimensions(recipe);
   const metadata = atlasMetadata(atlas, frameWidth, frameHeight);
   const pixels = new Uint8ClampedArray(metadata.width * metadata.height * 4);
   const frames: TextureLabAtlasFramePixels[] = [];
@@ -1978,8 +2004,7 @@ export function renderTextureLabAtlasPixels(input?: Partial<TextureLabRecipe> | 
 
 export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null): TextureLabGeneratedPixels {
   const recipe = normalizeRecipe(input);
-  const width = recipe.size;
-  const height = recipe.size;
+  const { width, height } = textureLabRecipeDimensions(recipe);
   const pixels = new Uint8ClampedArray(width * height * 4);
   const splinePath = buildSampledSplinePath(recipe);
   const backgroundColor = hexToRgb(recipe.backgroundColor);
@@ -2045,7 +2070,9 @@ export function textureLabFilename(recipe: TextureLabRecipe): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   const atlas = recipe.atlas?.enabled ? '-atlas' : '';
-  return `${base}${atlas}-${recipe.size}-${recipe.seed}.png`;
+  const { width, height } = textureLabRecipeDimensions(recipe);
+  const dimensions = width === height ? String(width) : `${width}x${height}`;
+  return `${base}${atlas}-${dimensions}-${recipe.seed}.png`;
 }
 
 export function textureLabPixelsToDataUrl(result: TextureLabGeneratedPixels): string {
@@ -2078,8 +2105,15 @@ async function renderTextureLabCustomFramePixels(
   frame: TextureLabAtlasCustomFrame,
   index: number,
 ): Promise<TextureLabAtlasFramePixels> {
+  const { width: frameWidth, height: frameHeight } = textureLabRecipeDimensions(recipe);
   if (frame.recipe) {
-    const rendered = renderTextureLabPixels({ ...frame.recipe, size: recipe.size, atlas: undefined });
+    const rendered = renderTextureLabPixels({
+      ...frame.recipe,
+      size: recipe.size,
+      width: frameWidth,
+      height: frameHeight,
+      atlas: undefined,
+    });
     return {
       ...rendered,
       index,
@@ -2089,25 +2123,25 @@ async function renderTextureLabCustomFramePixels(
 
   const image = await loadTextureLabImage(textureLabCustomFrameDataUrl(frame));
   const canvas = document.createElement('canvas');
-  canvas.width = recipe.size;
-  canvas.height = recipe.size;
+  canvas.width = frameWidth;
+  canvas.height = frameHeight;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas 2D is not available');
   context.imageSmoothingEnabled = !recipe.pixelated;
   const scale = Math.min(
-    recipe.size / Math.max(1, image.naturalWidth || frame.width),
-    recipe.size / Math.max(1, image.naturalHeight || frame.height),
+    frameWidth / Math.max(1, image.naturalWidth || frame.width),
+    frameHeight / Math.max(1, image.naturalHeight || frame.height),
   );
   const width = Math.max(1, Math.round((image.naturalWidth || frame.width) * scale));
   const height = Math.max(1, Math.round((image.naturalHeight || frame.height) * scale));
-  const x = Math.floor((recipe.size - width) / 2);
-  const y = Math.floor((recipe.size - height) / 2);
-  context.clearRect(0, 0, recipe.size, recipe.size);
+  const x = Math.floor((frameWidth - width) / 2);
+  const y = Math.floor((frameHeight - height) / 2);
+  context.clearRect(0, 0, frameWidth, frameHeight);
   context.drawImage(image, x, y, width, height);
-  const imageData = context.getImageData(0, 0, recipe.size, recipe.size);
+  const imageData = context.getImageData(0, 0, frameWidth, frameHeight);
   return {
-    width: recipe.size,
-    height: recipe.size,
+    width: frameWidth,
+    height: frameHeight,
     pixels: new Uint8ClampedArray(imageData.data),
     recipe: normalizeRecipe({ ...recipe, atlas: undefined }),
     index,
@@ -2126,8 +2160,7 @@ export async function renderTextureLabCustomAtlasPixels(
 ): Promise<TextureLabAtlasPixels> {
   const recipe = normalizeRecipe(input);
   const atlas = normalizeTextureLabAtlasSettings({ ...recipe.atlas, enabled: true, preset: 'custom-frames' });
-  const frameWidth = recipe.size;
-  const frameHeight = recipe.size;
+  const { width: frameWidth, height: frameHeight } = textureLabRecipeDimensions(recipe);
   const metadata = atlasMetadata(atlas, frameWidth, frameHeight);
   const pixels = new Uint8ClampedArray(metadata.width * metadata.height * 4);
   const frames: TextureLabAtlasFramePixels[] = [];

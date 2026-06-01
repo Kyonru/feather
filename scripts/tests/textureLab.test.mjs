@@ -49,10 +49,28 @@ test('texture lab output is deterministic for a recipe', () => {
   assert.equal(checksum(first.pixels), checksum(second.pixels));
 });
 
+test('texture lab supports tiny presets and custom rectangular dimensions', () => {
+  for (const size of [4, 8, 16]) {
+    const tiny = renderTextureLabPixels({ ...DEFAULT_TEXTURE_LAB_RECIPE, size, width: size, height: size });
+    assert.equal(tiny.width, size);
+    assert.equal(tiny.height, size);
+    assert.equal(tiny.pixels.length, size * size * 4);
+  }
+
+  const custom = normalizeTextureLabRecipe({ generator: 'rain-slash', size: 48, width: 48, height: 12, seed: 21 });
+  const result = renderTextureLabPixels(custom);
+  assert.equal(result.width, 48);
+  assert.equal(result.height, 12);
+  assert.equal(result.pixels.length, 48 * 12 * 4);
+  assert.equal(textureLabFilename(custom), 'rain-slash-48x12-21.png');
+});
+
 test('texture lab normalizes unknown persisted values', () => {
   const recipe = normalizeTextureLabRecipe({
     generator: 'not-real',
-    size: 999,
+    size: 'not-a-size',
+    width: 9999,
+    height: -5,
     seed: -10,
     colorRamp: 'unknown',
     alphaMode: 'nope',
@@ -62,6 +80,8 @@ test('texture lab normalizes unknown persisted values', () => {
   });
   assert.equal(recipe.generator, DEFAULT_TEXTURE_LAB_RECIPE.generator);
   assert.equal(recipe.size, DEFAULT_TEXTURE_LAB_RECIPE.size);
+  assert.equal(recipe.width, 1024);
+  assert.equal(recipe.height, 1);
   assert.equal(recipe.seed, 1);
   assert.equal(recipe.colorRamp, DEFAULT_TEXTURE_LAB_RECIPE.colorRamp);
   assert.equal(recipe.alphaMode, DEFAULT_TEXTURE_LAB_RECIPE.alphaMode);
