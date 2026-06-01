@@ -22,7 +22,14 @@ Object.defineProperty(globalThis, 'localStorage', {
   value: createMemoryStorage(),
 });
 
-const { PENDING_SESSION_NAME, prepareSessionsForPersistence } = await import('../../src/store/session.ts');
+const {
+  CREATIVE_SESSION_PREFIX,
+  PENDING_SESSION_NAME,
+  isCreativeSession,
+  prepareSessionsForPersistence,
+  sessionCanOpenRuntimePages,
+  sessionSupportsRuntime,
+} = await import('../../src/store/session.ts');
 
 test('reconnect probe requests config for remembered or half-connected sessions', () => {
   assert.equal(shouldRequestSessionConfig(undefined, false), true);
@@ -65,4 +72,50 @@ test('persisted sessions are remembered as disconnected history entries only', (
   assert.deepEqual(Object.keys(persisted), ['live']);
   assert.equal(persisted.live.connected, false);
   assert.equal(persisted.live.pendingConfig, false);
+});
+
+test('creative sessions persist as local workspace entries', () => {
+  const persisted = prepareSessionsForPersistence({
+    [`${CREATIVE_SESSION_PREFIX}one`]: {
+      id: `${CREATIVE_SESSION_PREFIX}one`,
+      name: 'Creative One',
+      kind: 'creative',
+      connected: true,
+      connectedAt: 20,
+      runtimeSuspended: true,
+    },
+    'file:logs': {
+      id: 'file:logs',
+      name: 'Logs',
+      kind: 'log-file',
+      connected: true,
+      connectedAt: 21,
+    },
+  });
+
+  assert.deepEqual(Object.keys(persisted), [`${CREATIVE_SESSION_PREFIX}one`]);
+  assert.equal(persisted[`${CREATIVE_SESSION_PREFIX}one`].kind, 'creative');
+  assert.equal(persisted[`${CREATIVE_SESSION_PREFIX}one`].connected, false);
+  assert.equal(persisted[`${CREATIVE_SESSION_PREFIX}one`].runtimeSuspended, false);
+});
+
+test('creative sessions unlock creative tools but not runtime work', () => {
+  const creative = {
+    id: `${CREATIVE_SESSION_PREFIX}two`,
+    name: 'Creative Two',
+    kind: 'creative' as const,
+    connected: false,
+    connectedAt: 30,
+  };
+  const live = {
+    id: 'live',
+    name: 'Game',
+    connected: true,
+    connectedAt: 31,
+  };
+
+  assert.equal(isCreativeSession(creative), true);
+  assert.equal(sessionCanOpenRuntimePages(creative), false);
+  assert.equal(sessionSupportsRuntime(creative), false);
+  assert.equal(sessionSupportsRuntime(live), true);
 });

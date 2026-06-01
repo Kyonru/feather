@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Texture Lab dimensions now include `4 x 4`, `8 x 8`, `16 x 16`, and custom width/height outputs.
 - Texture Lab atlas authoring now includes editable frames, seeded fills, onion skinning, uploaded-frame replacement, ZIP export, Particle Playground atlas metadata, and safe all-frame actions.
 - Texture Lab now uses a workspace layout with independent scrolling, collapsible presets, fixed header actions, compact side panels, and larger previews.
+- Added persisted local creative sessions for game-free Shader Graph, Particle Playground, and Texture Lab workspaces.
 
 ### Changed
 
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused Shader Graph coverage for WebGL preview derivative support.
 - Added focused/Lua/app/showcase coverage for Particle Playground timeline grouping, undo/redo, atlas metadata, and export paths.
 - Added focused Texture Lab dimension coverage alongside app/showcase coverage for generators, recipes, spline/shape editing, atlas workflows, layout, and confirmation dialogs.
+- Added focused/app coverage for creative session persistence and local creative-tool access without runtime commands.
 
 ## [v3.0.0] - 2026-05-31 - The one with core workflows
 

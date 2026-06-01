@@ -2,13 +2,16 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export const PENDING_SESSION_NAME = 'Connecting game';
+export const CREATIVE_SESSION_PREFIX = 'creative:';
+
+export type SessionKind = 'live' | 'log-file' | 'time-travel-file' | 'creative';
 
 export type SessionInfo = {
   id: string;
   os?: string;
   name?: string;
   deviceId?: string;
-  kind?: 'live' | 'log-file' | 'time-travel-file';
+  kind?: SessionKind;
   filePath?: string;
   connected: boolean;
   connectedAt: number;
@@ -16,6 +19,25 @@ export type SessionInfo = {
   pendingConfig?: boolean;
   runtimeSuspended?: boolean;
 };
+
+export function createCreativeSessionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${CREATIVE_SESSION_PREFIX}${crypto.randomUUID()}`;
+  }
+  return `${CREATIVE_SESSION_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function isCreativeSession(session?: SessionInfo | null): boolean {
+  return session?.kind === 'creative' || session?.id.startsWith(CREATIVE_SESSION_PREFIX) === true;
+}
+
+export function sessionSupportsRuntime(session?: SessionInfo | null): session is SessionInfo & { connected: true; kind?: undefined } {
+  return !!session && !isCreativeSession(session) && !session.kind && session.connected;
+}
+
+export function sessionCanOpenRuntimePages(session?: SessionInfo | null): boolean {
+  return !!session && !isCreativeSession(session);
+}
 
 type SessionStore = {
   sessionId: string | null;
@@ -32,7 +54,12 @@ export function prepareSessionsForPersistence(sessions: Record<string, SessionIn
   return Object.fromEntries(
     Object.entries(sessions)
       .filter(([id, session]) => !id.startsWith('file:') && !session.pendingConfig && session.name !== PENDING_SESSION_NAME)
-      .map(([id, session]) => [id, { ...session, connected: false, pendingConfig: false, runtimeSuspended: false }]),
+      .map(([id, session]) => [
+        id,
+        isCreativeSession(session)
+          ? { ...session, kind: 'creative' as const, connected: false, pendingConfig: false, runtimeSuspended: false }
+          : { ...session, connected: false, pendingConfig: false, runtimeSuspended: false },
+      ]),
   );
 }
 

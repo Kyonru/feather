@@ -3,7 +3,7 @@ import { MonitorOffIcon, MonitorPlayIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LoveJsPreview } from '@/components/love-js-preview';
-import { useSessionStore } from '@/store/session';
+import { sessionSupportsRuntime, useSessionStore } from '@/store/session';
 import type {
   ParticleSystemPlaygroundCompositeData,
   ParticleSystemPlaygroundSystem,
@@ -25,6 +25,7 @@ type Props = {
   playground: ParticlePreviewController;
   standalone: boolean;
   isGameComposite: boolean;
+  allowGamePreview?: boolean;
   gamePreviewActive: boolean;
   onGamePreviewActiveChange: (active: boolean) => void;
 };
@@ -46,12 +47,15 @@ export function ParticlePreviewMonitor({
   playground,
   standalone,
   isGameComposite,
+  allowGamePreview = true,
   gamePreviewActive,
   onGamePreviewActiveChange,
 }: Props) {
   const sessionId = useSessionStore((state) => state.sessionId);
+  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
+  const runtimeSessionId = allowGamePreview && sessionSupportsRuntime(activeSession) ? sessionId : null;
   const runtimeSuspended = useSessionStore((state) =>
-    sessionId ? state.sessions[sessionId]?.runtimeSuspended === true : false,
+    runtimeSessionId ? state.sessions[runtimeSessionId]?.runtimeSuspended === true : false,
   );
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +64,7 @@ export function ParticlePreviewMonitor({
   const runtimeSuspendedRef = useRef(runtimeSuspended);
   const previewEnabled = playground.composite?.previewEnabled !== false;
   const disabledReason = gamePreviewDisabledReason(
-    sessionId,
+    runtimeSessionId,
     playground.activeComposite,
     playground.composite,
     isGameComposite,
@@ -69,7 +73,7 @@ export function ParticlePreviewMonitor({
     ? 'Resume Feather runtime before starting an in-game preview'
     : undefined;
   const effectiveDisabledReason = disabledReason ?? suspendedStartReason;
-  const canShowInGame = !standalone && !effectiveDisabledReason;
+  const canShowInGame = !standalone && allowGamePreview && !effectiveDisabledReason;
 
   useEffect(() => {
     setRuntimePreviewActiveRef.current = playground.setRuntimePreviewActive;
@@ -205,7 +209,9 @@ export function ParticlePreviewMonitor({
   );
 
   if (!standalone) {
-    const runtimeMessage = isGameComposite
+    const runtimeMessage = !allowGamePreview
+      ? 'This creative workspace is local. Connect a LÖVE game session to preview particles in game.'
+      : isGameComposite
       ? 'This composite is owned and drawn by the connected game.'
       : gamePreviewActive && runtimeSuspended
         ? 'Running from the last particle payload. Resume Feather to sync edits.'

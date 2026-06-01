@@ -1,4 +1,11 @@
-import { useSessionStore, type SessionInfo } from '@/store/session';
+import { useState } from 'react';
+import {
+  createCreativeSessionId,
+  isCreativeSession,
+  sessionSupportsRuntime,
+  useSessionStore,
+  type SessionInfo,
+} from '@/store/session';
 import { Config, useConfigStore } from '@/store/config';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionQueryKey, type TimeTravelFrame, type TimeTravelStatus } from '@/hooks/use-ws-connection';
@@ -22,9 +29,11 @@ import {
   ClockIcon,
   PauseIcon,
   PlayIcon,
+  SparklesIcon,
 } from 'lucide-react';
 import { version } from '../../package.json';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -39,11 +48,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { sendCommand } from '@/lib/send-command';
+import { useShaderGraphStore } from '@/store/shader-graph';
+import { useSettingsStore } from '@/store/settings';
+import { deleteLocalParticleWorkspace } from '@/showcase/use-local-particle-playground';
 
 const osIcons: Record<string, React.ReactNode> = {
   Windows: <AppWindowIcon className="size-3" />,
@@ -74,6 +88,38 @@ function createFileConfig(path: string, name: string): Config {
   };
 }
 
+function createCreativeConfig(sessionId: string, name: string): Config {
+  return {
+    plugins: {},
+    root_path: '',
+    version,
+    API: 0,
+    sampleRate: 1,
+    outfile: '',
+    language: 'lua',
+    captureScreenshot: false,
+    location: sessionId,
+    sourceDir: '',
+    sessionName: name,
+    sysInfo: {
+      os: 'Creative',
+      arch: 'local',
+      cpuCount: 0,
+    },
+  };
+}
+
+function normalizeCreativeName(name: string, index: number): string {
+  const trimmed = name.trim().replace(/\s+/g, ' ').slice(0, 64);
+  return trimmed || `Creative Workspace ${index}`;
+}
+
+function isCreativeRoute(pathname: string): boolean {
+  return pathname.startsWith('/shader-graph') ||
+    pathname.startsWith('/particle-system-playground') ||
+    pathname.startsWith('/texture-lab');
+}
+
 function SessionTab({
   session,
   isActive,
@@ -91,6 +137,7 @@ function SessionTab({
 }) {
   const osIcon = session.os ? osIcons[session.os] : undefined;
   const FileIcon = session.kind === 'time-travel-file' ? ClockIcon : session.kind === 'log-file' ? FileTextIcon : null;
+  const creative = isCreativeSession(session);
 
   const tab = (
     <ContextMenu>
@@ -105,9 +152,20 @@ function SessionTab({
         >
           <button onClick={onClick} className="flex items-center gap-1.5">
             <CircleIcon
-              className={cn('size-2 fill-current', session.connected ? 'text-green-500' : 'text-muted-foreground/50')}
+              className={cn(
+                'size-2 fill-current',
+                session.connected ? 'text-green-500' : creative ? 'text-violet-500' : 'text-muted-foreground/50',
+              )}
             />
-            {FileIcon ? <FileIcon className="size-3" /> : osIcon ? <span className="text-xs">{osIcon}</span> : <MonitorIcon className="size-3" />}
+            {creative ? (
+              <SparklesIcon className="size-3" />
+            ) : FileIcon ? (
+              <FileIcon className="size-3" />
+            ) : osIcon ? (
+              <span className="text-xs">{osIcon}</span>
+            ) : (
+              <MonitorIcon className="size-3" />
+            )}
             <span className="max-w-[100px] truncate">{session.name || session.id.slice(0, 8)}</span>
             {versionMismatch && <TriangleAlertIcon className="size-3 text-yellow-500" />}
             {session.insecure && <ShieldOffIcon className="size-3 text-orange-400" />}
@@ -122,11 +180,15 @@ function SessionTab({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onSelect={onReload} disabled={!session.connected}>
-          <RefreshCwIcon className="size-3.5" />
-          Reload session
-        </ContextMenuItem>
-        <ContextMenuSeparator />
+        {!creative && (
+          <>
+            <ContextMenuItem onSelect={onReload} disabled={!session.connected}>
+              <RefreshCwIcon className="size-3.5" />
+              Reload session
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+          </>
+        )}
         <ContextMenuItem onSelect={onRemove} variant="destructive">
           <XIcon className="size-3.5" />
           Remove
@@ -157,11 +219,23 @@ function SessionTab({
     );
   }
 
+  if (creative) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{tab}</TooltipTrigger>
+        <TooltipContent>
+          <p>Local creative workspace — no connected LÖVE runtime required</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
   return tab;
 }
 
 export function SessionTabs() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const sessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.sessionId);
@@ -172,12 +246,17 @@ export function SessionTabs() {
   const setLogOverride = useConfigStore((state) => state.setLogOverride);
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const setRuntimeSuspended = useSessionStore((state) => state.setRuntimeSuspended);
+  const deleteShaderGraphWorkspace = useShaderGraphStore((state) => state.deleteWorkspace);
+  const deleteTextureLabWorkspace = useSettingsStore((state) => state.deleteTextureLabWorkspace);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [creativeName, setCreativeName] = useState('');
+  const [removeCreativeSession, setRemoveCreativeSession] = useState<SessionInfo | null>(null);
 
   const sessionList = Object.values(sessions);
   const activeSession = activeSessionId ? sessions[activeSessionId] : null;
 
   const refreshLiveSession = (session: SessionInfo) => {
-    if (!session.connected || session.kind) return;
+    if (!sessionSupportsRuntime(session)) return;
     requestAllData(session.id);
   };
 
@@ -188,6 +267,10 @@ export function SessionTabs() {
     const cachedConfig = queryClient.getQueryData<Config>(sessionQueryKey.config(session.id));
     if (cachedConfig) {
       setConfig(cachedConfig);
+    } else if (isCreativeSession(session)) {
+      const config = createCreativeConfig(session.id, session.name ?? 'Creative Workspace');
+      setConfig(config);
+      queryClient.setQueryData(sessionQueryKey.config(session.id), config);
     }
     refreshLiveSession(session);
   };
@@ -201,7 +284,7 @@ export function SessionTabs() {
   };
 
   const toggleRuntimeSuspended = async () => {
-    if (!activeSession || activeSession.kind || !activeSession.connected) return;
+    if (!sessionSupportsRuntime(activeSession)) return;
     const nextSuspended = !activeSession.runtimeSuspended;
     setRuntimeSuspended(activeSession.id, nextSuspended);
     try {
@@ -214,6 +297,50 @@ export function SessionTabs() {
       setRuntimeSuspended(activeSession.id, !nextSuspended);
       toast.error(error instanceof Error ? error.message : 'Failed to update Feather runtime');
     }
+  };
+
+  const createCreativeWorkspace = () => {
+    const nextIndex = Object.values(sessions).filter(isCreativeSession).length + 1;
+    const name = normalizeCreativeName(creativeName, nextIndex);
+    const sessionId = createCreativeSessionId();
+    const session: SessionInfo = {
+      id: sessionId,
+      name,
+      kind: 'creative',
+      connected: false,
+      connectedAt: Date.now(),
+      os: 'Creative',
+    };
+    const config = createCreativeConfig(sessionId, name);
+    addSession(session);
+    setActiveSession(sessionId);
+    setConfig(config);
+    setDisconnected(false);
+    setLogOverride(undefined);
+    queryClient.setQueryData(sessionQueryKey.config(sessionId), config);
+    setCreativeName('');
+    setCreateDialogOpen(false);
+    if (!isCreativeRoute(location.pathname)) {
+      navigate('/shader-graph');
+    }
+    toast.success(`Created ${name}`);
+  };
+
+  const confirmRemoveCreativeWorkspace = () => {
+    if (!removeCreativeSession) return;
+    const sessionId = removeCreativeSession.id;
+    queryClient.removeQueries({ queryKey: [sessionId] });
+    deleteShaderGraphWorkspace(sessionId);
+    deleteTextureLabWorkspace(sessionId);
+    deleteLocalParticleWorkspace(sessionId);
+    removeSession(sessionId);
+    if (activeSessionId === sessionId) {
+      setConfig(null);
+      setDisconnected(true);
+      setLogOverride(undefined);
+    }
+    setRemoveCreativeSession(null);
+    toast.success('Creative workspace removed');
   };
 
   const openLogFile = async () => {
@@ -300,12 +427,17 @@ export function SessionTabs() {
         <DropdownMenuTrigger asChild>
           <button
             className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
-            title="Add temporary session"
+            title="Add session or workspace"
           >
             <PlusIcon className="size-3.5" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuItem onSelect={() => setCreateDialogOpen(true)}>
+            <SparklesIcon className="size-3.5" />
+            New creative workspace
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={openLogFile}>
             <FileTextIcon className="size-3.5" />
             Open log file
@@ -317,7 +449,7 @@ export function SessionTabs() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {activeSession && !activeSession.kind && activeSession.connected ? (
+      {sessionSupportsRuntime(activeSession) ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -356,6 +488,10 @@ export function SessionTabs() {
             onClick={() => handleSessionClick(session)}
             onReload={() => refreshLiveSession(session)}
             onRemove={() => {
+              if (isCreativeSession(session)) {
+                setRemoveCreativeSession(session);
+                return;
+              }
               queryClient.removeQueries({ queryKey: [session.id] });
               removeSession(session.id);
             }}
@@ -363,6 +499,59 @@ export function SessionTabs() {
           />
         );
       })}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New creative workspace</DialogTitle>
+            <DialogDescription>
+              Create a local workspace for Shader Graph, Particle Playground, and Texture Lab without connecting a game.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createCreativeWorkspace();
+            }}
+          >
+            <label className="grid gap-1.5 text-sm">
+              Name
+              <Input
+                autoFocus
+                value={creativeName}
+                maxLength={64}
+                placeholder={`Creative Workspace ${Object.values(sessions).filter(isCreativeSession).length + 1}`}
+                onChange={(event) => setCreativeName(event.target.value)}
+              />
+            </label>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!removeCreativeSession} onOpenChange={(open) => !open && setRemoveCreativeSession(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove creative workspace?</DialogTitle>
+            <DialogDescription>
+              This deletes the local Shader Graph, Particle Playground, and Texture Lab state for{' '}
+              <span className="font-medium text-foreground">{removeCreativeSession?.name ?? 'this workspace'}</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRemoveCreativeSession(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmRemoveCreativeWorkspace}>
+              Remove workspace
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

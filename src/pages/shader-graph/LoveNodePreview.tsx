@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MonitorOffIcon, MonitorPlayIcon, PinIcon, PinOffIcon, RefreshCwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSessionStore } from '@/store/session';
+import { sessionSupportsRuntime, useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { ShaderTextureUpload } from '@/types/shader-graph';
 import { stripLovePreviewUploads } from '@/utils/love-preview-upload-bridge';
@@ -75,6 +75,8 @@ function InactiveLoveNodePreview({ pinned, onTogglePin }: Pick<Props, 'pinned'> 
 
 function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinned'>) {
   const sessionId = useSessionStore((s) => s.sessionId);
+  const activeSession = useSessionStore((s) => (s.sessionId ? s.sessions[s.sessionId] : null));
+  const runtimeSessionId = sessionSupportsRuntime(activeSession) ? sessionId : null;
   const nodes = useShaderGraphStore((s) => s.nodes);
   const edges = useShaderGraphStore((s) => s.edges);
   const subgraphs = useShaderGraphStore((s) => s.subgraphs);
@@ -146,16 +148,16 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
   }, []);
 
   useEffect(() => {
-    if (!sessionId) setStatus('idle');
-  }, [sessionId]);
+    if (!runtimeSessionId) setStatus('idle');
+  }, [runtimeSessionId]);
 
   useEffect(() => {
-    if (!sessionId || status !== 'live') return;
-    const activeSession = sessionId;
+    if (!runtimeSessionId || status !== 'live') return;
+    const activeSession = runtimeSessionId;
     return () => {
       void shaderGraphGamePreviewController.clear(activeSession);
     };
-  }, [sessionId, status]);
+  }, [runtimeSessionId, status]);
 
   function handleLoad() {
     loadedRef.current = true;
@@ -177,12 +179,12 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
   }
 
   async function toggleGamePreview() {
-    if (!sessionId) return;
+    if (!runtimeSessionId) return;
     setStatus('sending');
     setError(null);
     try {
       if (status === 'live') {
-        await shaderGraphGamePreviewController.clear(sessionId);
+        await shaderGraphGamePreviewController.clear(runtimeSessionId);
         setStatus('idle');
         return;
       }
@@ -192,7 +194,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
         return;
       }
 
-      await shaderGraphGamePreviewController.preview(sessionId, {
+      await shaderGraphGamePreviewController.preview(runtimeSessionId, {
         pixelSource: probe.pixel,
         vertexSource: probe.vertex ?? '',
         shape: previewShape,
@@ -289,13 +291,13 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
           variant="ghost"
           className="size-5 shrink-0 text-muted-foreground"
           title={
-            sessionId
+            runtimeSessionId
               ? status === 'live'
                 ? 'Turn off this probe preview in the connected game'
                 : 'Preview this probe in the connected game'
               : 'Connect a LÖVE session to preview in game'
           }
-          disabled={!sessionId || (status !== 'live' && !canPreview) || status === 'sending'}
+          disabled={!runtimeSessionId || (status !== 'live' && !canPreview) || status === 'sending'}
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();

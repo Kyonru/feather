@@ -44,8 +44,15 @@ type SettingsStoreState = {
   particleTimelineSnap: boolean;
   textureLabRecipe: TextureLabRecipe;
   textureLabSavedRecipes: TextureLabSavedRecipe[];
+  textureLabWorkspaceId: string;
+  textureLabWorkspaces: Record<string, TextureLabWorkspaceSnapshot>;
   showHiddenMainFeaturesInCommandCenter: boolean;
   assetSourceDir: string;
+};
+
+type TextureLabWorkspaceSnapshot = {
+  recipe: TextureLabRecipe;
+  savedRecipes: TextureLabSavedRecipe[];
 };
 
 type SettingsStoreActions = {
@@ -72,6 +79,8 @@ type SettingsStoreActions = {
   setParticleTimelineZoom: (zoom: number) => void;
   setParticleTimelineSnap: (snap: boolean) => void;
   setTextureLabRecipe: (recipe: Partial<TextureLabRecipe>) => void;
+  activateTextureLabWorkspace: (workspaceId: string) => void;
+  deleteTextureLabWorkspace: (workspaceId: string) => void;
   saveTextureLabRecipe: (name: string, recipe?: Partial<TextureLabRecipe>) => void;
   deleteTextureLabSavedRecipe: (id: string) => void;
   setShowHiddenMainFeaturesInCommandCenter: (show: boolean) => void;
@@ -97,6 +106,13 @@ function createSavedTextureRecipeId(): string {
 
 function normalizeTextureLabSavedName(name: string): string {
   return name.trim().replace(/\s+/g, ' ').slice(0, 64);
+}
+
+function normalizeTextureLabWorkspace(snapshot?: Partial<TextureLabWorkspaceSnapshot>): TextureLabWorkspaceSnapshot {
+  return {
+    recipe: normalizeTextureLabRecipe(snapshot?.recipe),
+    savedRecipes: normalizeTextureLabSavedRecipes(snapshot?.savedRecipes),
+  };
 }
 
 function normalizePinnedSidebarTools(toolIds?: unknown): SidebarToolId[] {
@@ -143,6 +159,8 @@ const defaultSettings: SettingsStoreState = {
   particleTimelineSnap: true,
   textureLabRecipe: DEFAULT_TEXTURE_LAB_RECIPE,
   textureLabSavedRecipes: [],
+  textureLabWorkspaceId: 'default',
+  textureLabWorkspaces: {},
   showHiddenMainFeaturesInCommandCenter: false,
   assetSourceDir: '',
 };
@@ -214,6 +232,40 @@ export const useSettingsStore = create<SettingsStore>()(
       setParticleTimelineSnap: (particleTimelineSnap: boolean) => set({ particleTimelineSnap }),
       setTextureLabRecipe: (textureLabRecipe: Partial<TextureLabRecipe>) =>
         set((state) => ({ textureLabRecipe: normalizeTextureLabRecipe({ ...state.textureLabRecipe, ...textureLabRecipe }) })),
+      activateTextureLabWorkspace: (workspaceId: string) =>
+        set((state) => {
+          const id = workspaceId.trim() || 'default';
+          if (state.textureLabWorkspaceId === id) return {};
+          const textureLabWorkspaces = {
+            ...state.textureLabWorkspaces,
+            [state.textureLabWorkspaceId]: normalizeTextureLabWorkspace({
+              recipe: state.textureLabRecipe,
+              savedRecipes: state.textureLabSavedRecipes,
+            }),
+          };
+          const next = textureLabWorkspaces[id] ?? normalizeTextureLabWorkspace();
+          return {
+            textureLabWorkspaceId: id,
+            textureLabWorkspaces,
+            textureLabRecipe: next.recipe,
+            textureLabSavedRecipes: next.savedRecipes,
+          };
+        }),
+      deleteTextureLabWorkspace: (workspaceId: string) =>
+        set((state) => {
+          const textureLabWorkspaces = { ...state.textureLabWorkspaces };
+          delete textureLabWorkspaces[workspaceId];
+          if (state.textureLabWorkspaceId !== workspaceId) {
+            return { textureLabWorkspaces };
+          }
+          const fallback = textureLabWorkspaces.default ?? normalizeTextureLabWorkspace();
+          return {
+            textureLabWorkspaceId: 'default',
+            textureLabWorkspaces,
+            textureLabRecipe: fallback.recipe,
+            textureLabSavedRecipes: fallback.savedRecipes,
+          };
+        }),
       saveTextureLabRecipe: (name: string, textureLabRecipe?: Partial<TextureLabRecipe>) =>
         set((state) => {
           const savedName = normalizeTextureLabSavedName(name);
@@ -297,8 +349,25 @@ export const useSettingsStore = create<SettingsStore>()(
               : currentState.particleTimelineSnap,
           textureLabRecipe: normalizeTextureLabRecipe(persisted?.textureLabRecipe),
           textureLabSavedRecipes: normalizeTextureLabSavedRecipes(persisted?.textureLabSavedRecipes),
+          textureLabWorkspaceId: persisted?.textureLabWorkspaceId ?? currentState.textureLabWorkspaceId,
+          textureLabWorkspaces: Object.fromEntries(
+            Object.entries(persisted?.textureLabWorkspaces ?? {}).map(([id, workspace]) => [
+              id,
+              normalizeTextureLabWorkspace(workspace),
+            ]),
+          ),
         };
       },
+      partialize: (state) => ({
+        ...state,
+        textureLabWorkspaces: {
+          ...state.textureLabWorkspaces,
+          [state.textureLabWorkspaceId]: normalizeTextureLabWorkspace({
+            recipe: state.textureLabRecipe,
+            savedRecipes: state.textureLabSavedRecipes,
+          }),
+        },
+      }),
     },
   ),
 );

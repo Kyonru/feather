@@ -6,7 +6,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { type ShaderPreviewColor, useShaderGraph } from '@/hooks/use-shader-graph';
 import type { ShaderParameter, ShaderPreviewShape } from '@/types/shader-graph';
-import { useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { useSyntaxTheme } from '@/hooks/use-theme';
 import { cn } from '@/utils/styles';
@@ -194,8 +193,6 @@ export function ShaderOutputDock({
   standalone?: boolean;
   onPreviewParamsChange?: (params: PreviewParams) => void;
 } = {}) {
-  const sessionId = useSessionStore((s) => s.sessionId);
-  const previewAvailable = !!sessionId || !!standalone;
   const {
     lastGeneratedGlsl,
     validationStatus,
@@ -207,6 +204,8 @@ export function ShaderOutputDock({
     diagnostics,
     hasBlockingGraphDiagnostics,
     runtimeSuspended,
+    runtimeSessionId,
+    runtimeAvailable,
     selectNode,
     generateAndStore,
     validateShader,
@@ -215,6 +214,7 @@ export function ShaderOutputDock({
     clearPreview,
     playgroundTarget,
   } = useShaderGraph();
+  const previewAvailable = runtimeAvailable || !!standalone;
   const previewShape = useShaderGraphStore((s) => s.previewShape);
   const previewColor = useShaderGraphStore((s) => s.previewColor);
   const previewZoom = useShaderGraphStore((s) => s.previewZoom);
@@ -246,7 +246,9 @@ export function ShaderOutputDock({
     [textureUniforms, textureUploads],
   );
   const hasMissingTextureUploads = textureUniforms.some((texture) => !textureUploads[texture.nodeId]);
-  const applyDisabledReason = runtimeSuspended
+  const applyDisabledReason = !runtimeAvailable
+    ? 'Connect a LÖVE session to validate, apply, or preview in game'
+    : runtimeSuspended
     ? 'Resume Feather runtime before validating or applying shader edits'
     : hasBlockingGraphDiagnostics
     ? 'Fix blocking graph diagnostics before applying this shader'
@@ -259,7 +261,7 @@ export function ShaderOutputDock({
     if (!previewAvailable || hasBlockingGraphDiagnostics) return;
     if (runtimeSuspended && !previewEnabled) return;
     if (previewEnabled) {
-      if (sessionId) await clearPreview();
+      if (runtimeSessionId) await clearPreview();
       setPreviewEnabled(false);
       return;
     }
@@ -297,10 +299,10 @@ export function ShaderOutputDock({
   }, [onPreviewParamsChange]);
 
   useEffect(() => {
-    if (!sessionId && !standalone) {
+    if (!runtimeSessionId && !standalone) {
       setPreviewEnabled(false);
     }
-  }, [sessionId, standalone]);
+  }, [runtimeSessionId, standalone]);
 
   useEffect(() => {
     if (!standalone) return;
@@ -315,7 +317,7 @@ export function ShaderOutputDock({
   }, [previewShape, previewColor, previewZoom, baseTexture, glsl.parameters, standalone, uploadedUniformTextures]);
 
   useEffect(() => {
-    if (!sessionId || !previewEnabled) return;
+    if (!runtimeSessionId || !previewEnabled) return;
     if (runtimeSuspended) {
       shaderGraphGamePreviewController.reset();
       return;
@@ -333,18 +335,18 @@ export function ShaderOutputDock({
     debouncedPreviewShape,
     previewEnabled,
     runtimeSuspended,
-    sessionId,
+    runtimeSessionId,
     subgraphs,
     uploadedUniformTextures,
   ]);
 
   useEffect(() => {
-    if (!sessionId || !previewEnabled) return;
-    const activeSession = sessionId;
+    if (!runtimeSessionId || !previewEnabled) return;
+    const activeSession = runtimeSessionId;
     return () => {
       void shaderGraphGamePreviewController.clear(activeSession);
     };
-  }, [previewEnabled, sessionId]);
+  }, [previewEnabled, runtimeSessionId]);
 
   return (
     <div
@@ -395,7 +397,7 @@ export function ShaderOutputDock({
           size="sm"
           variant="outline"
           className="h-7 text-xs flex-1"
-          disabled={!sessionId || runtimeSuspended || validationStatus === 'validating'}
+          disabled={!runtimeAvailable || runtimeSuspended || validationStatus === 'validating'}
           title={runtimeSuspended ? 'Resume Feather runtime before validating shader edits' : undefined}
           onClick={() => validateShader()}
         >
@@ -404,7 +406,7 @@ export function ShaderOutputDock({
         <Button
           size="sm"
           className="h-7 text-xs flex-1"
-          disabled={!sessionId || runtimeSuspended || !playgroundTarget || hasMissingTextureUploads || hasBlockingGraphDiagnostics}
+          disabled={!runtimeAvailable || runtimeSuspended || !playgroundTarget || hasMissingTextureUploads || hasBlockingGraphDiagnostics}
           title={applyDisabledReason}
           onClick={() => applyToPlayground(uploadedUniformTextures)}
         >
@@ -413,7 +415,7 @@ export function ShaderOutputDock({
       </div>
 
       <div className="border-t px-3 py-2 flex items-center gap-2">
-        <Select value={previewShape} onValueChange={handlePreviewShapeChange} disabled={!previewAvailable}>
+        <Select value={previewShape} onValueChange={handlePreviewShapeChange}>
           <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
             <SelectValue aria-label={previewShape} />
           </SelectTrigger>
@@ -432,7 +434,6 @@ export function ShaderOutputDock({
           <input
             type="color"
             value={previewColor}
-            disabled={!previewAvailable}
             onChange={(event) => setPreviewColor(event.target.value)}
             className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
           />
@@ -493,7 +494,6 @@ export function ShaderOutputDock({
               variant="outline"
               className="size-7"
               title="Upload preview texture"
-              disabled={!previewAvailable}
               onClick={() => void uploadBaseTexture()}
             >
               <FolderOpenIcon className="size-3.5" />
@@ -502,7 +502,6 @@ export function ShaderOutputDock({
               triggerClassName="size-7"
               triggerTitle="Generate preview texture"
               triggerTestId="shader-preview-texture-generate"
-              disabled={!previewAvailable}
               applyLabel="Use for preview"
               onApply={(texture) => generateBaseTexture(texture.filename, texture.dataBase64)}
             />

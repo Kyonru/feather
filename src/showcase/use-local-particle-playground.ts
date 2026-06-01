@@ -34,6 +34,63 @@ import {
 import type { TextureLabAtlasMetadata } from '@/types/texture-lab';
 
 type ParamValue = string | number | boolean;
+const LOCAL_PARTICLE_WORKSPACES_STORAGE_KEY = 'feather-local-particle-workspaces';
+
+function defaultLocalParticleData(): ParticleSystemPlaygroundData {
+  return {
+    type: 'particle-system-playground',
+    composites: ['Showcase Fire'],
+    activeComposite: 'Showcase Fire',
+    activeSystem: 1,
+    data: composite('fire'),
+  };
+}
+
+function particleDataForPersistence(data: ParticleSystemPlaygroundData): ParticleSystemPlaygroundData {
+  return {
+    ...data,
+    data: data.data ? { ...data.data, timelineState: undefined } : null,
+  };
+}
+
+function readLocalParticleWorkspaces(): Record<string, ParticleSystemPlaygroundData> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(LOCAL_PARTICLE_WORKSPACES_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, ParticleSystemPlaygroundData>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLocalParticleWorkspace(workspaceId: string, data: ParticleSystemPlaygroundData) {
+  if (typeof window === 'undefined') return;
+  try {
+    const workspaces = readLocalParticleWorkspaces();
+    workspaces[workspaceId] = particleDataForPersistence(data);
+    window.localStorage.setItem(LOCAL_PARTICLE_WORKSPACES_STORAGE_KEY, JSON.stringify(workspaces));
+  } catch {
+    // Local creative workspaces are convenience state; ignore quota/storage failures.
+  }
+}
+
+export function deleteLocalParticleWorkspace(workspaceId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const workspaces = readLocalParticleWorkspaces();
+    delete workspaces[workspaceId];
+    window.localStorage.setItem(LOCAL_PARTICLE_WORKSPACES_STORAGE_KEY, JSON.stringify(workspaces));
+  } catch {
+    // Best-effort cleanup only.
+  }
+}
+
+function loadLocalParticleWorkspace(workspaceId?: string): ParticleSystemPlaygroundData {
+  if (!workspaceId) return defaultLocalParticleData();
+  return readLocalParticleWorkspaces()[workspaceId] ?? defaultLocalParticleData();
+}
 
 function downloadProject(project: ParticleSystemPlaygroundProjectFile) {
   const json = JSON.stringify(project, null, 2);
@@ -298,14 +355,8 @@ function updateSystemDraft(systemDraft: ParticleSystemPlaygroundSystem, key: str
   return { ...systemDraft, properties: { ...systemDraft.properties, [key]: value } };
 }
 
-export function useLocalParticlePlayground() {
-  const [data, setData] = useState<ParticleSystemPlaygroundData>({
-    type: 'particle-system-playground',
-    composites: ['Showcase Fire'],
-    activeComposite: 'Showcase Fire',
-    activeSystem: 1,
-    data: composite('fire'),
-  });
+export function useLocalParticlePlayground(workspaceId?: string) {
+  const [data, setData] = useState<ParticleSystemPlaygroundData>(() => loadLocalParticleWorkspace(workspaceId));
   const [historyState, setHistoryState] = useState<ParticleHistoryState>(() => createParticleHistoryState());
   const historyStateRef = useRef<ParticleHistoryState>(historyState);
   const historyScope = useRef<string | null>('Showcase Fire');
@@ -331,6 +382,20 @@ export function useLocalParticlePlayground() {
     historyScope.current = nextScope;
     clearHistory();
   }, [data.activeComposite]);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    const next = loadLocalParticleWorkspace(workspaceId);
+    dataRef.current = next;
+    historyScope.current = next.activeComposite;
+    setData(next);
+    clearHistory();
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    writeLocalParticleWorkspace(workspaceId, data);
+  }, [data, workspaceId]);
 
   const currentHistorySnapshot = useCallback(() => snapshotParticleAuthoring(dataRef.current), []);
 

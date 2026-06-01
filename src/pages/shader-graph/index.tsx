@@ -2,10 +2,11 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { DownloadIcon, FolderOpenIcon, Trash2Icon, WorkflowIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { usePluginControl } from '@/hooks/use-plugin-control';
-import { useSessionStore } from '@/store/session';
+import { sessionSupportsRuntime, useSessionStore } from '@/store/session';
 import { open as openDialog, save } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { Button } from '@/components/ui/button';
@@ -70,7 +71,10 @@ function parseShaderGraphFile(raw: string): FeatherShaderGraphFile {
 
 export default function ShaderGraph() {
   const sessionId = useSessionStore((state) => state.sessionId);
+  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
   const shaderGraphPlugin = usePluginControl('shader-graph');
+  const localMode = !sessionSupportsRuntime(activeSession);
+  const workspaceId = sessionId ?? 'default';
   const nodes = useShaderGraphStore((state) => state.nodes);
   const edges = useShaderGraphStore((state) => state.edges);
   const subgraphs = useShaderGraphStore((state) => state.subgraphs);
@@ -78,6 +82,7 @@ export default function ShaderGraph() {
   const playgroundTarget = useShaderGraphStore((state) => state.playgroundTarget);
   const lastGeneratedGlsl = useShaderGraphStore((state) => state.lastGeneratedGlsl);
   const hasInitializedExample = useShaderGraphStore((state) => state.hasInitializedExample);
+  const activeWorkspaceId = useShaderGraphStore((state) => state.activeWorkspaceId);
   const loadGraph = useShaderGraphStore((state) => state.loadGraph);
   const addNodesAndEdges = useShaderGraphStore((state) => state.addNodesAndEdges);
   const setSubgraphs = useShaderGraphStore((state) => state.setSubgraphs);
@@ -85,9 +90,15 @@ export default function ShaderGraph() {
   const markClean = useShaderGraphStore((state) => state.markClean);
   const isDirty = useShaderGraphStore((state) => state.isDirty);
   const setHasInitializedExample = useShaderGraphStore((state) => state.setHasInitializedExample);
+  const activateWorkspace = useShaderGraphStore((state) => state.activateWorkspace);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    activateWorkspace(workspaceId);
+  }, [activateWorkspace, workspaceId]);
+
+  useEffect(() => {
+    if (activeWorkspaceId !== workspaceId) return;
     if (hasInitializedExample) return;
 
     if (nodes.length > 0 || edges.length > 0) {
@@ -110,7 +121,7 @@ export default function ShaderGraph() {
       shaderName: preset.shaderName,
       playgroundTarget,
     });
-  }, [edges.length, hasInitializedExample, loadGraph, nodes.length, playgroundTarget, setHasInitializedExample]);
+  }, [activeWorkspaceId, edges.length, hasInitializedExample, loadGraph, nodes.length, playgroundTarget, setHasInitializedExample, workspaceId]);
 
   const importRaw = (raw: string) => {
     const parsed = parseShaderGraphFile(raw);
@@ -244,18 +255,24 @@ export default function ShaderGraph() {
             <p className="text-xs text-muted-foreground">{shaderName}</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="shader-graph-enabled"
-                size="sm"
-                checked={shaderGraphPlugin.enabled}
-                disabled={shaderGraphPlugin.enabled ? !sessionId : !shaderGraphPlugin.available || !sessionId}
-                onCheckedChange={(enabled) => shaderGraphPlugin.setEnabled(enabled)}
-              />
-              <Label htmlFor="shader-graph-enabled" className="text-xs text-muted-foreground">
-                Enabled
-              </Label>
-            </div>
+            {localMode ? (
+              <Badge variant="secondary" className="h-6 rounded-full px-2 text-[10px]">
+                Local workspace
+              </Badge>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="shader-graph-enabled"
+                  size="sm"
+                  checked={shaderGraphPlugin.enabled}
+                  disabled={shaderGraphPlugin.enabled ? !sessionId : !shaderGraphPlugin.available || !sessionId}
+                  onCheckedChange={(enabled) => shaderGraphPlugin.setEnabled(enabled)}
+                />
+                <Label htmlFor="shader-graph-enabled" className="text-xs text-muted-foreground">
+                  Enabled
+                </Label>
+              </div>
+            )}
             <div className="flex flex-wrap justify-end gap-2">
               <Select onValueChange={loadPreset}>
                 <SelectTrigger aria-label="Load preset" className="h-8 w-48 text-xs">
@@ -314,7 +331,7 @@ export default function ShaderGraph() {
           />
         </header>
 
-        {!shaderGraphPlugin.enabled ? (
+        {!localMode && !shaderGraphPlugin.enabled ? (
           <div className="flex h-0 min-h-0 flex-1 items-center justify-center overflow-hidden">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex size-10 items-center justify-center rounded-md border bg-muted/40">

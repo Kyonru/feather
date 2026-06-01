@@ -13,7 +13,34 @@ type GraphSnapshot = {
   subgraphs: ShaderSubgraph[];
 };
 
+type ShaderGraphWorkspaceSnapshot = {
+  nodes: Node<ShaderNodeData>[];
+  edges: Edge[];
+  subgraphs: ShaderSubgraph[];
+  selectedNodeId: string | null;
+  selectedEdgeId: string | null;
+  rightPanelTab: ShaderRightPanelTab;
+  activeSubgraphId: string | null;
+  subgraphBreadcrumb: string[];
+  activeTemplateInstanceId: string | null;
+  shaderName: string;
+  playgroundTarget: PlaygroundTarget | null;
+  previewShape: ShaderPreviewShape;
+  previewColor: string;
+  previewBaseTexture: ShaderTextureUpload | null;
+  previewZoom: number;
+  pinnedPreviewNodeIds: string[];
+  textureUploads: Record<string, ShaderTextureUpload>;
+  lastGeneratedGlsl: GeneratedGlsl | null;
+  validationStatus: ValidationStatus;
+  validationErrors: { pixelError?: string; vertexError?: string };
+  hasInitializedExample: boolean;
+  cleanGraphHash: string;
+};
+
 type ShaderGraphStore = {
+  activeWorkspaceId: string;
+  workspaces: Record<string, ShaderGraphWorkspaceSnapshot>;
   nodes: Node<ShaderNodeData>[];
   edges: Edge[];
   subgraphs: ShaderSubgraph[];
@@ -82,9 +109,12 @@ type ShaderGraphStore = {
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  activateWorkspace: (workspaceId: string) => void;
+  deleteWorkspace: (workspaceId: string) => void;
 };
 
 const HISTORY_LIMIT = 100;
+const DEFAULT_WORKSPACE_ID = 'default';
 let storeIdCounter = Date.now();
 
 function nextStoreGraphId(prefix: string): string {
@@ -102,6 +132,69 @@ function snapshot(state: Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs'>
 
 function sameGraph(a: GraphSnapshot, b: GraphSnapshot): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function emptyShaderGraphWorkspace(): ShaderGraphWorkspaceSnapshot {
+  const emptyGraph = { nodes: [], edges: [], subgraphs: [] };
+  return {
+    nodes: [],
+    edges: [],
+    subgraphs: [],
+    selectedNodeId: null,
+    selectedEdgeId: null,
+    rightPanelTab: 'controls',
+    activeSubgraphId: null,
+    subgraphBreadcrumb: [],
+    activeTemplateInstanceId: null,
+    shaderName: 'my-shader',
+    playgroundTarget: null,
+    previewShape: 'circle',
+    previewColor: '#ffffff',
+    previewBaseTexture: null,
+    previewZoom: 1,
+    pinnedPreviewNodeIds: [],
+    textureUploads: {},
+    lastGeneratedGlsl: null,
+    validationStatus: 'idle',
+    validationErrors: {},
+    hasInitializedExample: false,
+    cleanGraphHash: graphHash(emptyGraph),
+  };
+}
+
+function shaderGraphWorkspaceSnapshot(state: ShaderGraphStore): ShaderGraphWorkspaceSnapshot {
+  return {
+    nodes: state.nodes,
+    edges: state.edges,
+    subgraphs: state.subgraphs,
+    selectedNodeId: state.selectedNodeId,
+    selectedEdgeId: state.selectedEdgeId,
+    rightPanelTab: state.rightPanelTab,
+    activeSubgraphId: state.activeSubgraphId,
+    subgraphBreadcrumb: state.subgraphBreadcrumb,
+    activeTemplateInstanceId: state.activeTemplateInstanceId,
+    shaderName: state.shaderName,
+    playgroundTarget: state.playgroundTarget,
+    previewShape: state.previewShape,
+    previewColor: state.previewColor,
+    previewBaseTexture: state.previewBaseTexture,
+    previewZoom: state.previewZoom,
+    pinnedPreviewNodeIds: state.pinnedPreviewNodeIds,
+    textureUploads: state.textureUploads,
+    lastGeneratedGlsl: state.lastGeneratedGlsl,
+    validationStatus: state.validationStatus,
+    validationErrors: state.validationErrors,
+    hasInitializedExample: state.hasInitializedExample,
+    cleanGraphHash: state.cleanGraphHash,
+  };
+}
+
+function applyShaderGraphWorkspace(snapshot: ShaderGraphWorkspaceSnapshot) {
+  return {
+    ...snapshot,
+    undoStack: [],
+    redoStack: [],
+  };
 }
 
 function cloneShaderNodeData(data: ShaderNodeData): ShaderNodeData {
@@ -269,6 +362,8 @@ function withHistory(
 export const useShaderGraphStore = create<ShaderGraphStore>()(
   persist(
     (set, get) => ({
+      activeWorkspaceId: DEFAULT_WORKSPACE_ID,
+      workspaces: {},
       nodes: [],
       edges: [],
       subgraphs: [],
@@ -571,10 +666,42 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
         }),
       canUndo: () => get().undoStack.length > 0,
       canRedo: () => get().redoStack.length > 0,
+      activateWorkspace: (workspaceId) =>
+        set((state) => {
+          const id = workspaceId.trim() || DEFAULT_WORKSPACE_ID;
+          if (state.activeWorkspaceId === id) return {};
+          const workspaces = {
+            ...state.workspaces,
+            [state.activeWorkspaceId]: shaderGraphWorkspaceSnapshot(state),
+          };
+          return {
+            activeWorkspaceId: id,
+            workspaces,
+            ...applyShaderGraphWorkspace(workspaces[id] ?? emptyShaderGraphWorkspace()),
+          };
+        }),
+      deleteWorkspace: (workspaceId) =>
+        set((state) => {
+          const workspaces = { ...state.workspaces };
+          delete workspaces[workspaceId];
+          if (state.activeWorkspaceId !== workspaceId) {
+            return { workspaces };
+          }
+          return {
+            activeWorkspaceId: DEFAULT_WORKSPACE_ID,
+            workspaces,
+            ...applyShaderGraphWorkspace(workspaces[DEFAULT_WORKSPACE_ID] ?? emptyShaderGraphWorkspace()),
+          };
+        }),
     }),
     {
       name: 'feather-shader-graph',
       partialize: (s) => ({
+        activeWorkspaceId: s.activeWorkspaceId,
+        workspaces: {
+          ...s.workspaces,
+          [s.activeWorkspaceId]: shaderGraphWorkspaceSnapshot(s),
+        },
         nodes: s.nodes,
         edges: s.edges,
         subgraphs: s.subgraphs,
@@ -584,6 +711,21 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
         hasInitializedExample: s.hasInitializedExample,
         cleanGraphHash: s.cleanGraphHash,
       }),
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<ShaderGraphStore> | undefined;
+        const activeWorkspaceId = saved?.activeWorkspaceId ?? DEFAULT_WORKSPACE_ID;
+        const workspaces = saved?.workspaces ?? {};
+        const workspace = workspaces[activeWorkspaceId];
+        return {
+          ...current,
+          ...saved,
+          activeWorkspaceId,
+          workspaces,
+          ...(workspace ? applyShaderGraphWorkspace(workspace) : {}),
+          undoStack: [],
+          redoStack: [],
+        };
+      },
     },
   ),
 );

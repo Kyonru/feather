@@ -1651,6 +1651,38 @@ test('texture lab is available without a connected session in the app', async ({
   await expect(textureHeader.getByRole('button', { name: /export png/i })).toBeVisible();
 });
 
+test('creative sessions unlock local creative tools and persist as workspace tabs', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+  });
+  await page.goto('/');
+
+  await page.getByTitle('Add session or workspace').click();
+  await page.getByRole('menuitem', { name: 'New creative workspace' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New creative workspace' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Name').fill('Local FX');
+  await dialog.getByRole('button', { name: 'Create' }).click();
+
+  await expect(page.getByRole('button', { name: /Local FX/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/shader-graph$/);
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+  await expect(page.getByText('Local workspace')).toBeVisible();
+  await expect(page.getByText('Shader Graph is disabled')).toHaveCount(0);
+
+  await page.getByTestId('sidebar-tool-particle-system-playground').getByRole('link', { name: 'Particles Playground' }).click();
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await expect(page.getByTestId('love-js-preview-floating')).toBeVisible();
+  await expect(page.getByRole('button', { name: /show in game/i })).toHaveCount(0);
+
+  await page.goto('/');
+  await expect(page.getByText('Select a session')).toBeVisible();
+  await expect(page.getByText('Choose a game session from the header before opening Feather tools.')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('button', { name: /Local FX/ })).toBeVisible();
+});
+
 test('opens redesigned about modal from the sidebar', async ({ page }) => {
   await seedNoSession(page);
   await page.goto('/');

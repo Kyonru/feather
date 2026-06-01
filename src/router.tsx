@@ -34,7 +34,7 @@ import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
 import { useWsConnection } from './hooks/use-ws-connection';
-import { useSessionStore } from './store/session';
+import { isCreativeSession, sessionCanOpenRuntimePages, sessionSupportsRuntime, useSessionStore } from './store/session';
 import { useSettingsStore } from './store/settings';
 import { copyToClipboardWithMeta } from './utils/strings';
 import { openUrl } from './utils/linking';
@@ -120,10 +120,11 @@ const runtimeRefreshCommandsForPath = (pathname: string): Array<Record<string, u
 
 function RuntimeInterestBridge() {
   const sessionId = useSessionStore((state) => state.sessionId);
+  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
   const { pathname } = useLocation();
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || !sessionSupportsRuntime(activeSession)) return;
     sendCommand(sessionId, {
       type: 'cmd:runtime:interest',
       data: {
@@ -133,7 +134,7 @@ function RuntimeInterestBridge() {
     for (const command of runtimeRefreshCommandsForPath(pathname)) {
       sendCommand(sessionId, command).catch(() => {});
     }
-  }, [pathname, sessionId]);
+  }, [activeSession, pathname, sessionId]);
 
   return null;
 }
@@ -228,9 +229,14 @@ function SessionEmptyState() {
   );
 }
 
-function RequireSession({ children }: { children: React.ReactNode }) {
-  const sessionId = useSessionStore((state) => state.sessionId);
-  return sessionId ? children : <SessionEmptyState />;
+function RequireRuntimeSession({ children }: { children: React.ReactNode }) {
+  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
+  return sessionCanOpenRuntimePages(activeSession) ? children : <SessionEmptyState />;
+}
+
+function RequireWorkspaceSession({ children }: { children: React.ReactNode }) {
+  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
+  return activeSession || isCreativeSession(activeSession) ? children : <SessionEmptyState />;
 }
 
 export const Router = () => {
@@ -263,73 +269,73 @@ export const Router = () => {
               <Route
                 path="/"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <Logs />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
               <Route
                 path="/performance"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <Performance />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
               <Route
                 path="/observability"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <Observability />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
               <Route
                 path="/console"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <Console />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
               <Route
                 path="/debugger"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <Debugger />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
               <Route
                 path="/time-travel"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <TimeTravel />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
               <Route
                 path="/session-replay"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <SessionReplay />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
               <Route
                 path="/assets"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <Assets />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
               <Route
                 path="/particle-system-playground"
                 element={
-                  <RequireSession>
+                  <RequireWorkspaceSession>
                     <ParticleSystemPlayground />
-                  </RequireSession>
+                  </RequireWorkspaceSession>
                 }
               />
               <Route
@@ -341,9 +347,9 @@ export const Router = () => {
               <Route
                 path="/session"
                 element={
-                  <RequireSession>
+                  <RequireRuntimeSession>
                     <SessionPage />
-                  </RequireSession>
+                  </RequireRuntimeSession>
                 }
               />
 
@@ -351,9 +357,9 @@ export const Router = () => {
                 <Route
                   path=":plugin"
                   element={
-                    <RequireSession>
+                    <RequireRuntimeSession>
                       <Plugins />
-                    </RequireSession>
+                    </RequireRuntimeSession>
                   }
                 />
               </Route>

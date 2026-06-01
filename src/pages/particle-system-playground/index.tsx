@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePluginControl } from '@/hooks/use-plugin-control';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
+import { useLocalParticlePlayground } from '@/showcase/use-local-particle-playground';
+import { isCreativeSession, useSessionStore } from '@/store/session';
 import { CompositeSelector } from './components/CompositeSelector';
 import { EmitterList } from './components/EmitterList';
 import { ExportPanel } from './components/ExportPanel';
@@ -49,9 +51,13 @@ export default function ParticleSystemPlaygroundPage({
   playgroundOverride?: ParticleSystemPlaygroundController;
   standalone?: boolean;
 } = {}) {
+  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
+  const creativeSession = isCreativeSession(activeSession);
   const livePlayground = useParticleSystemPlayground();
-  const playground = playgroundOverride ?? livePlayground;
+  const localPlayground = useLocalParticlePlayground(creativeSession ? activeSession?.id : undefined);
+  const playground = playgroundOverride ?? (creativeSession ? localPlayground : livePlayground);
   const pluginControl = usePluginControl('particle-system-playground');
+  const localMode = standalone || creativeSession;
   const composite = playground.composite;
   const system = playground.activeSystem;
   const isGameComposite = composite?.compositeType === 'game';
@@ -114,7 +120,7 @@ export default function ParticleSystemPlaygroundPage({
     }
   };
 
-  if (!playground.available) {
+  if (!localMode && !playground.available) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center p-8">
         <div className="grid max-w-md justify-items-center gap-3 text-center">
@@ -128,7 +134,7 @@ export default function ParticleSystemPlaygroundPage({
     );
   }
 
-  if (!playground.enabled) {
+  if (!localMode && !playground.enabled) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center p-8">
         <div className="grid max-w-md justify-items-center gap-3 text-center">
@@ -306,8 +312,9 @@ export default function ParticleSystemPlaygroundPage({
 
                 <ParticlePreviewMonitor
                   playground={playground}
-                  standalone={standalone}
+                  standalone={standalone || creativeSession}
                   isGameComposite={isGameComposite}
+                  allowGamePreview={!creativeSession}
                   gamePreviewActive={gamePreviewActive}
                   onGamePreviewActiveChange={setGamePreviewActive}
                 />

@@ -1,13 +1,25 @@
 import { toast } from 'sonner';
+import { useEffect } from 'react';
 import { TextureLabActionControls, TextureLabPanel } from './TextureLabPanel';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
+import { useLocalParticlePlayground } from '@/showcase/use-local-particle-playground';
 import { useShaderGraphStore } from '@/store/shader-graph';
+import { useSettingsStore } from '@/store/settings';
+import { isCreativeSession, useSessionStore } from '@/store/session';
 import type { GeneratedTextureResult } from '@/types/texture-lab';
 
 const SHADER_TEXTURE_NODE_TYPES = new Set(['TextureInput', 'TextureUniformColor', 'TextureParameter']);
 
 export default function TextureLab() {
-  const playground = useParticleSystemPlayground();
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
+  const creativeSession = isCreativeSession(activeSession);
+  const livePlayground = useParticleSystemPlayground();
+  const localPlayground = useLocalParticlePlayground(creativeSession ? activeSession?.id : undefined);
+  const playground = creativeSession ? localPlayground : livePlayground;
+  const workspaceId = sessionId ?? 'default';
+  const activateShaderWorkspace = useShaderGraphStore((state) => state.activateWorkspace);
+  const activateTextureLabWorkspace = useSettingsStore((state) => state.activateTextureLabWorkspace);
   const shaderNodes = useShaderGraphStore((state) => state.nodes);
   const selectedShaderNodeId = useShaderGraphStore((state) => state.selectedNodeId);
   const setShaderTextureUpload = useShaderGraphStore((state) => state.setTextureUpload);
@@ -15,6 +27,11 @@ export default function TextureLab() {
   const selectedShaderNode = shaderNodes.find((node) => node.id === selectedShaderNodeId) ?? null;
   const canUseParticleEmitter = !!playground.activeSystem && playground.composite?.compositeType === 'scratch';
   const canUseShaderTexture = !!selectedShaderNode && SHADER_TEXTURE_NODE_TYPES.has(selectedShaderNode.data.nodeType);
+
+  useEffect(() => {
+    activateShaderWorkspace(workspaceId);
+    activateTextureLabWorkspace(workspaceId);
+  }, [activateShaderWorkspace, activateTextureLabWorkspace, workspaceId]);
 
   function useTexture(texture: GeneratedTextureResult) {
     if (canUseParticleEmitter) {
