@@ -46,6 +46,7 @@ test('texture lab normalizes unknown persisted values', () => {
     seed: -10,
     colorRamp: 'unknown',
     alphaMode: 'nope',
+    solidColor: 'also-bad',
     backgroundColor: 'bad-color',
     backgroundAlpha: 9,
   });
@@ -54,6 +55,7 @@ test('texture lab normalizes unknown persisted values', () => {
   assert.equal(recipe.seed, 1);
   assert.equal(recipe.colorRamp, DEFAULT_TEXTURE_LAB_RECIPE.colorRamp);
   assert.equal(recipe.alphaMode, DEFAULT_TEXTURE_LAB_RECIPE.alphaMode);
+  assert.equal(recipe.solidColor, '#ffffff');
   assert.equal(recipe.backgroundColor, '#000000');
   assert.equal(recipe.backgroundAlpha, 1);
 });
@@ -101,6 +103,19 @@ test('background color composites behind transparent texture pixels', () => {
   });
   assert.equal(alphaAt(transparent, 0, 0), 0);
   assert.deepEqual(rgbaAt(backed, 0, 0), [51, 102, 153, 255]);
+});
+
+test('solid color ramp uses the selected color', () => {
+  const result = renderTextureLabPixels({
+    ...DEFAULT_TEXTURE_LAB_RECIPE,
+    generator: 'soft-circle',
+    size: 32,
+    colorRamp: 'solid',
+    solidColor: '#336699',
+  });
+  const center = rgbaAt(result, 16, 16);
+  assert.deepEqual(center.slice(0, 3), [51, 102, 153]);
+  assert.ok(center[3] > 200);
 });
 
 test('texture lab filenames include generator size and seed', () => {

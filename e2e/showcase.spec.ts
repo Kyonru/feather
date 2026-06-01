@@ -327,6 +327,13 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await expect(page.getByLabel('Texture background color')).toHaveValue('#000000');
   await expect(page.getByLabel('Texture background alpha')).toHaveValue('0');
   const preview = page.getByTestId('texture-lab-preview');
+  await page.getByLabel('Texture color ramp').click();
+  await page.getByRole('option', { name: 'Solid Color' }).click();
+  await expect(page.getByLabel('Texture solid color')).toHaveValue('#ffffff');
+  const solidBefore = await preview.getAttribute('src');
+  await page.getByLabel('Texture solid color').fill('#ff3366');
+  await expect(page.getByLabel('Texture solid color')).toHaveValue('#ff3366');
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(solidBefore);
   const before = await preview.getAttribute('src');
   await page.getByTitle('Randomize seed').click();
   await expect.poll(() => preview.getAttribute('src')).not.toBe(before);

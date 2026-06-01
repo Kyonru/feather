@@ -114,6 +114,7 @@ const SPLINE_OVERLAP_LABELS: Record<TextureLabSplineOverlapMode, string> = {
 };
 
 function formatLabel(value: string): string {
+  if (value === 'solid') return 'Solid Color';
   return value
     .split('-')
     .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
@@ -647,6 +648,18 @@ export function TextureLabPanel({
                 </SelectContent>
               </Select>
             </div>
+            {recipe.colorRamp === 'solid' && (
+              <div className="grid gap-1">
+                <Label className="text-[10px] text-muted-foreground">Solid color</Label>
+                <Input
+                  aria-label="Texture solid color"
+                  className="h-8 cursor-pointer p-1"
+                  type="color"
+                  value={recipe.solidColor}
+                  onChange={(event) => patch({ solidColor: event.target.value })}
+                />
+              </div>
+            )}
             <div className="grid gap-1">
               <Label className="text-[10px] text-muted-foreground">Background</Label>
               <Input

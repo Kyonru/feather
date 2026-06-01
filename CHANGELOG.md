@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Texture Lab, a shared procedural PNG generator for particle sprites, masks, noise maps, pixel patterns, gradients, and trail textures that can feed Particle Playground and Shader Graph texture slots.
 - Added editable Texture Lab spline path generators for trails, ribbons, masks, and lightning strokes.
 - Added Texture Lab background color and alpha controls for baking generated PNGs onto transparent, solid, or translucent backgrounds.
+- Added a Texture Lab Solid Color ramp with a color picker for baking one chosen color into generated sprites, masks, and spline textures.
 - Added Texture Lab spline overlap resolution controls so self-crossing paths can merge, bridge, or stack additively.
 - Texture Lab reset now restores generator-specific alpha defaults, using luminance or inverted alpha where masks and noise presets benefit from it.
 - Texture Lab spline points now use explicit fill, border color, and border width styles with a separate selected-point highlight, and Texture Lab includes a quick reset for the current generator values.
@@ -35,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused Texture Lab generator tests plus app/showcase coverage for the generator page and creative texture picker workflows.
 - Added focused spline generator coverage plus app/showcase checks for editing Texture Lab path points.
 - Added focused Texture Lab background compositing coverage plus app/showcase checks for the transparent default.
+- Added focused/app/showcase Texture Lab coverage for the Solid Color ramp and selected color picker.
 - Added focused spline overlap coverage plus app/showcase checks for the overlap selector.
 - Added focused Texture Lab coverage for generator-specific reset alpha defaults.
 - Added focused/app/showcase coverage for Texture Lab generator resets and spline point styling.

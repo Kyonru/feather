@@ -181,6 +181,7 @@ export const DEFAULT_TEXTURE_LAB_RECIPE: TextureLabRecipe = {
   pixelated: false,
   alphaMode: 'shape',
   colorRamp: 'white',
+  solidColor: '#ffffff',
   backgroundColor: '#000000',
   backgroundAlpha: 0,
 };
@@ -574,6 +575,7 @@ function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRe
     pixelated: source.pixelated === true,
     alphaMode,
     colorRamp,
+    solidColor: normalizeHexColor(source.solidColor, DEFAULT_TEXTURE_LAB_RECIPE.solidColor),
     backgroundColor: normalizeHexColor(source.backgroundColor, DEFAULT_TEXTURE_LAB_RECIPE.backgroundColor),
     backgroundAlpha: clamp(Number(source.backgroundAlpha ?? DEFAULT_TEXTURE_LAB_RECIPE.backgroundAlpha), 0, 1),
     spline: normalizeSplineRecipe(source.spline, generator),
@@ -641,7 +643,11 @@ function rampStops(ramp: TextureLabColorRamp): Array<[number, number, number, nu
   }
 }
 
-function sampleRamp(ramp: TextureLabColorRamp, value: number): [number, number, number, number] {
+function sampleRamp(ramp: TextureLabColorRamp, value: number, solidColor: string): [number, number, number, number] {
+  if (ramp === 'solid') {
+    const [red, green, blue] = hexToRgb(solidColor);
+    return [red, green, blue, 1];
+  }
   const stops = rampStops(ramp);
   const t = clamp01(value) * (stops.length - 1);
   const index = Math.min(stops.length - 2, Math.floor(t));
@@ -1011,7 +1017,7 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
 
       const value = generatorValue(recipe, u, v, x, y, splinePath);
       const colorT = contrast(value.colorT, recipe.contrast);
-      const color = sampleRamp(recipe.colorRamp, colorT);
+      const color = sampleRamp(recipe.colorRamp, colorT, recipe.solidColor);
       let alpha = clamp01(value.alpha);
       if (recipe.alphaMode === 'opaque') alpha = 1;
       if (recipe.alphaMode === 'luminance') alpha = colorT;

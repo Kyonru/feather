@@ -14,7 +14,7 @@ Texture Lab includes focused generators for common LÖVE effects:
 - **Pixel patterns**: checkers, dithers, scanlines, and palette ramps.
 - **Spline paths**: editable trails, ribbons, stroke masks, and lightning paths.
 
-Choosing a generator or spline path preset loads that preset's default controls. Use the shared controls to adjust size, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp.
+Choosing a generator or spline path preset loads that preset's default controls. Use the shared controls to adjust size, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp. Choose **Solid Color** in Color ramp to bake a single selected color into the generated shape.
 Use **Reset values** to restore the current generator's default controls and seed.
 
 ## Spline Paths

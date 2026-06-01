@@ -31,6 +31,7 @@ export const TEXTURE_LAB_GENERATOR_IDS = [
 ] as const;
 
 export const TEXTURE_LAB_COLOR_RAMPS = [
+  'solid',
   'white',
   'fire',
   'smoke',
@@ -83,6 +84,7 @@ export type TextureLabRecipe = {
   pixelated: boolean;
   alphaMode: TextureLabAlphaMode;
   colorRamp: TextureLabColorRamp;
+  solidColor: string;
   backgroundColor: string;
   backgroundAlpha: number;
   spline?: TextureLabSplineRecipe;
