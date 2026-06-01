@@ -334,6 +334,15 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await page.getByLabel('Texture solid color').fill('#ff3366');
   await expect(page.getByLabel('Texture solid color')).toHaveValue('#ff3366');
   await expect.poll(() => preview.getAttribute('src')).not.toBe(solidBefore);
+  await page.getByLabel('Saved recipe name').fill('Blue Spark');
+  await page.getByRole('button', { name: 'Save recipe' }).click();
+  await expect(page.getByRole('button', { name: 'Load saved recipe Blue Spark' })).toBeVisible();
+  await page.getByLabel('Texture generator').click();
+  await page.getByRole('option', { name: 'Cloud Noise' }).click();
+  await expect(page.getByLabel('Texture generator')).toHaveText(/Cloud Noise/);
+  await page.getByRole('button', { name: 'Load saved recipe Blue Spark' }).click();
+  await expect(page.getByLabel('Texture generator')).toHaveText(/Soft Circle/);
+  await expect(page.getByLabel('Texture solid color')).toHaveValue('#ff3366');
   const before = await preview.getAttribute('src');
   await page.getByTitle('Randomize seed').click();
   await expect.poll(() => preview.getAttribute('src')).not.toBe(before);

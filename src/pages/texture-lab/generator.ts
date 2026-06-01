@@ -13,6 +13,7 @@ import {
   type TextureLabGeneratedPixels,
   type TextureLabGeneratorId,
   type TextureLabRecipe,
+  type TextureLabSavedRecipe,
   type TextureLabShapeBlendMode,
   type TextureLabShapeElement,
   type TextureLabShapeElementKind,
@@ -386,6 +387,7 @@ const SHAPE_REPEAT_SET = new Set<string>(TEXTURE_LAB_SHAPE_REPEAT_MODES);
 const SHAPE_BLEND_SET = new Set<string>(TEXTURE_LAB_SHAPE_BLEND_MODES);
 const SHAPE_LAYER_LIMIT = 8;
 const SHAPE_POINT_LIMIT = 24;
+export const TEXTURE_LAB_SAVED_RECIPE_LIMIT = 32;
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -1547,6 +1549,54 @@ function generatorValue(
 
 export function normalizeTextureLabRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRecipe {
   return normalizeRecipe(input);
+}
+
+function normalizeSavedRecipeName(name: unknown, fallback: string): string {
+  const value = typeof name === 'string' ? name.trim().replace(/\s+/g, ' ') : '';
+  return (value || fallback).slice(0, 64);
+}
+
+function normalizeSavedRecipeId(id: unknown, index: number): string {
+  const value = typeof id === 'string' ? id.trim() : '';
+  return value || `saved-recipe-${index + 1}`;
+}
+
+function normalizeSavedRecipeTime(value: unknown): number {
+  const time = Number(value);
+  return Number.isFinite(time) && time >= 0 ? time : 0;
+}
+
+export function normalizeTextureLabSavedRecipes(input?: unknown): TextureLabSavedRecipe[] {
+  if (!Array.isArray(input)) return [];
+  const names = new Set<string>();
+  const ids = new Set<string>();
+  const recipes: TextureLabSavedRecipe[] = [];
+
+  for (const [index, item] of input.entries()) {
+    if (!item || typeof item !== 'object') continue;
+    const source = item as Partial<TextureLabSavedRecipe>;
+    const recipe = normalizeTextureLabRecipe(source.recipe);
+    const name = normalizeSavedRecipeName(source.name, `Recipe ${index + 1}`);
+    const nameKey = name.toLowerCase();
+    if (names.has(nameKey)) continue;
+    names.add(nameKey);
+
+    const baseId = normalizeSavedRecipeId(source.id, index);
+    let id = baseId;
+    let suffix = 2;
+    while (ids.has(id)) {
+      id = `${baseId}-${suffix}`;
+      suffix += 1;
+    }
+    ids.add(id);
+
+    const createdAt = normalizeSavedRecipeTime(source.createdAt);
+    const updatedAt = Math.max(createdAt, normalizeSavedRecipeTime(source.updatedAt));
+    recipes.push({ id, name, recipe, createdAt, updatedAt });
+    if (recipes.length >= TEXTURE_LAB_SAVED_RECIPE_LIMIT) break;
+  }
+
+  return recipes;
 }
 
 export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null): TextureLabGeneratedPixels {

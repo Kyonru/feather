@@ -13,8 +13,13 @@ import {
 } from '@/constants/shader-graph';
 import { normalizeThemePreference, type ThemePreference } from '@/assets/theme/registry';
 import type { NodeCategory } from '@/types/shader-graph';
-import type { TextureLabRecipe } from '@/types/texture-lab';
-import { DEFAULT_TEXTURE_LAB_RECIPE, normalizeTextureLabRecipe } from '@/pages/texture-lab/generator';
+import type { TextureLabRecipe, TextureLabSavedRecipe } from '@/types/texture-lab';
+import {
+  DEFAULT_TEXTURE_LAB_RECIPE,
+  normalizeTextureLabRecipe,
+  normalizeTextureLabSavedRecipes,
+  TEXTURE_LAB_SAVED_RECIPE_LIMIT,
+} from '@/pages/texture-lab/generator';
 
 type SettingsStoreState = {
   open: boolean;
@@ -38,6 +43,7 @@ type SettingsStoreState = {
   particleTimelineZoom: number;
   particleTimelineSnap: boolean;
   textureLabRecipe: TextureLabRecipe;
+  textureLabSavedRecipes: TextureLabSavedRecipe[];
   showHiddenMainFeaturesInCommandCenter: boolean;
   assetSourceDir: string;
 };
@@ -66,6 +72,8 @@ type SettingsStoreActions = {
   setParticleTimelineZoom: (zoom: number) => void;
   setParticleTimelineSnap: (snap: boolean) => void;
   setTextureLabRecipe: (recipe: Partial<TextureLabRecipe>) => void;
+  saveTextureLabRecipe: (name: string, recipe?: Partial<TextureLabRecipe>) => void;
+  deleteTextureLabSavedRecipe: (id: string) => void;
   setShowHiddenMainFeaturesInCommandCenter: (show: boolean) => void;
   setAssetSourceDir: (dir: string) => void;
   reset: () => void;
@@ -78,6 +86,17 @@ function createAppId(): string {
     return `feather-app-${crypto.randomUUID()}`;
   }
   return `feather-app-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function createSavedTextureRecipeId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `texture-recipe-${crypto.randomUUID()}`;
+  }
+  return `texture-recipe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function normalizeTextureLabSavedName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').slice(0, 64);
 }
 
 function normalizePinnedSidebarTools(toolIds?: unknown): SidebarToolId[] {
@@ -123,6 +142,7 @@ const defaultSettings: SettingsStoreState = {
   particleTimelineZoom: 1,
   particleTimelineSnap: true,
   textureLabRecipe: DEFAULT_TEXTURE_LAB_RECIPE,
+  textureLabSavedRecipes: [],
   showHiddenMainFeaturesInCommandCenter: false,
   assetSourceDir: '',
 };
@@ -194,6 +214,32 @@ export const useSettingsStore = create<SettingsStore>()(
       setParticleTimelineSnap: (particleTimelineSnap: boolean) => set({ particleTimelineSnap }),
       setTextureLabRecipe: (textureLabRecipe: Partial<TextureLabRecipe>) =>
         set((state) => ({ textureLabRecipe: normalizeTextureLabRecipe({ ...state.textureLabRecipe, ...textureLabRecipe }) })),
+      saveTextureLabRecipe: (name: string, textureLabRecipe?: Partial<TextureLabRecipe>) =>
+        set((state) => {
+          const savedName = normalizeTextureLabSavedName(name);
+          if (!savedName) return {};
+          const now = Date.now();
+          const recipe = normalizeTextureLabRecipe(textureLabRecipe ?? state.textureLabRecipe);
+          const existing = state.textureLabSavedRecipes.find(
+            (item) => item.name.toLowerCase() === savedName.toLowerCase(),
+          );
+          const nextSavedRecipe: TextureLabSavedRecipe = {
+            id: existing?.id ?? createSavedTextureRecipeId(),
+            name: savedName,
+            recipe,
+            createdAt: existing?.createdAt ?? now,
+            updatedAt: now,
+          };
+          const rest = state.textureLabSavedRecipes.filter((item) => item.id !== nextSavedRecipe.id);
+          return {
+            textureLabSavedRecipes: normalizeTextureLabSavedRecipes([
+              nextSavedRecipe,
+              ...rest,
+            ]).slice(0, TEXTURE_LAB_SAVED_RECIPE_LIMIT),
+          };
+        }),
+      deleteTextureLabSavedRecipe: (id: string) =>
+        set((state) => ({ textureLabSavedRecipes: state.textureLabSavedRecipes.filter((item) => item.id !== id) })),
       setShowHiddenMainFeaturesInCommandCenter: (showHiddenMainFeaturesInCommandCenter: boolean) =>
         set({ showHiddenMainFeaturesInCommandCenter }),
       togglePinnedSidebarTool: (toolId: SidebarToolId) =>
@@ -250,6 +296,7 @@ export const useSettingsStore = create<SettingsStore>()(
               ? persisted.particleTimelineSnap
               : currentState.particleTimelineSnap,
           textureLabRecipe: normalizeTextureLabRecipe(persisted?.textureLabRecipe),
+          textureLabSavedRecipes: normalizeTextureLabSavedRecipes(persisted?.textureLabSavedRecipes),
         };
       },
     },

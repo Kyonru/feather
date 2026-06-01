@@ -137,6 +137,14 @@ export type TextureLabRecipe = {
   shape?: TextureLabShapeRecipe;
 };
 
+export type TextureLabSavedRecipe = {
+  id: string;
+  name: string;
+  recipe: TextureLabRecipe;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type TextureLabGeneratedPixels = {
   width: number;
   height: number;

@@ -9,6 +9,7 @@ import {
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  BookmarkIcon,
   CopyIcon,
   Dice5Icon,
   DownloadIcon,
@@ -20,6 +21,7 @@ import {
   PlusIcon,
   RotateCcwIcon,
   RefreshCwIcon,
+  SaveIcon,
   SendIcon,
   SparklesIcon,
   Trash2Icon,
@@ -70,6 +72,7 @@ import {
   TEXTURE_LAB_GENERATORS,
   TEXTURE_LAB_SHAPE_PRESETS,
   TEXTURE_LAB_SPLINE_PRESETS,
+  TEXTURE_LAB_SAVED_RECIPE_LIMIT,
   textureLabShapeElement,
   textureLabShapePreset,
   textureLabSplinePreset,
@@ -174,6 +177,14 @@ function formatLabel(value: string): string {
     .split('-')
     .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function textureLabGeneratorLabel(recipe: TextureLabRecipe): string {
+  return TEXTURE_LAB_GENERATORS.find((generator) => generator.id === recipe.generator)?.label ?? formatLabel(recipe.generator);
+}
+
+function normalizeSavedRecipeInput(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').slice(0, 64);
 }
 
 function randomSeed(): number {
@@ -821,7 +832,11 @@ export function TextureLabPanel({
   onApply,
 }: TextureLabPanelProps) {
   const [presetsOpen, setPresetsOpen] = useState(false);
+  const [savedRecipeName, setSavedRecipeName] = useState('');
   const { recipe, setRecipe, patch } = useTextureLabRecipe();
+  const savedRecipes = useSettingsStore((state) => state.textureLabSavedRecipes);
+  const saveTextureLabRecipe = useSettingsStore((state) => state.saveTextureLabRecipe);
+  const deleteTextureLabSavedRecipe = useSettingsStore((state) => state.deleteTextureLabSavedRecipe);
   const pixels = useMemo(() => renderTextureLabPixels(recipe), [recipe]);
   const dataUrl = useMemo(() => textureLabPixelsToDataUrl(pixels), [pixels]);
   const selectedGenerator =
@@ -831,6 +846,7 @@ export function TextureLabPanel({
   const spline = recipe.spline;
   const shape = recipe.shape;
   const selectedShapeLayer = shape?.layers.find((layer) => layer.id === shape.selectedLayerId) ?? shape?.layers[0];
+  const suggestedSavedRecipeName = `${selectedGenerator.label} ${recipe.size} ${recipe.seed}`;
   const groupedGenerators = useMemo(
     () =>
       TEXTURE_LAB_GENERATORS.reduce<Record<string, typeof TEXTURE_LAB_GENERATORS>>((groups, generator) => {
@@ -909,6 +925,25 @@ export function TextureLabPanel({
       ...defaultTextureLabRecipeForGenerator('shape-composer'),
       shape: textureLabShapePreset(presetId),
     });
+  };
+  const saveCurrentRecipe = () => {
+    const name = normalizeSavedRecipeInput(savedRecipeName) || suggestedSavedRecipeName;
+    const willUpdate = savedRecipes.some((savedRecipe) => savedRecipe.name.toLowerCase() === name.toLowerCase());
+    saveTextureLabRecipe(name, recipe);
+    setSavedRecipeName('');
+    toast.success(`${name} ${willUpdate ? 'updated' : 'saved'}`);
+  };
+  const loadSavedRecipe = (id: string) => {
+    const savedRecipe = savedRecipes.find((item) => item.id === id);
+    if (!savedRecipe) return;
+    setRecipe(savedRecipe.recipe);
+    setSavedRecipeName(savedRecipe.name);
+    toast.success(`${savedRecipe.name} loaded`);
+  };
+  const deleteSavedRecipe = (id: string) => {
+    const savedRecipe = savedRecipes.find((item) => item.id === id);
+    deleteTextureLabSavedRecipe(id);
+    if (savedRecipe) toast.success(`${savedRecipe.name} removed`);
   };
 
   return (
@@ -990,6 +1025,79 @@ export function TextureLabPanel({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid gap-2 rounded-md border border-border/70 p-2" data-testid="texture-lab-saved-recipes">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <BookmarkIcon className="size-3.5" />
+                Saved recipes
+              </Label>
+              <span className="text-[10px] text-muted-foreground">
+                {savedRecipes.length}/{TEXTURE_LAB_SAVED_RECIPE_LIMIT}
+              </span>
+            </div>
+            <div className="flex min-w-0 gap-2">
+              <Input
+                aria-label="Saved recipe name"
+                className="h-8 min-w-0 text-xs"
+                placeholder={suggestedSavedRecipeName}
+                value={savedRecipeName}
+                maxLength={64}
+                onChange={(event) => setSavedRecipeName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return;
+                  event.preventDefault();
+                  saveCurrentRecipe();
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0 gap-1.5 px-2 text-xs"
+                aria-label="Save recipe"
+                title="Save recipe"
+                onClick={saveCurrentRecipe}
+              >
+                <SaveIcon className="size-3.5" />
+                Save
+              </Button>
+            </div>
+            {savedRecipes.length === 0 ? (
+              <div className="rounded border border-dashed border-border/70 px-2 py-2 text-[10px] text-muted-foreground">
+                Save recipes like blue spark, rain slash thin, or water mask noise for quick reuse.
+              </div>
+            ) : (
+              <div className="grid max-h-44 gap-1.5 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+                {savedRecipes.map((savedRecipe) => (
+                  <div key={savedRecipe.id} className="flex min-w-0 items-center gap-1 rounded border border-border/60 p-1">
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 rounded px-1.5 py-1 text-left text-xs transition-colors hover:bg-muted/60"
+                      aria-label={`Load saved recipe ${savedRecipe.name}`}
+                      onClick={() => loadSavedRecipe(savedRecipe.id)}
+                    >
+                      <span className="block truncate font-medium">{savedRecipe.name}</span>
+                      <span className="block truncate text-[10px] text-muted-foreground">
+                        {textureLabGeneratorLabel(savedRecipe.recipe)} - {savedRecipe.recipe.size} x {savedRecipe.recipe.size}
+                      </span>
+                    </button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-7 shrink-0"
+                      aria-label={`Delete saved recipe ${savedRecipe.name}`}
+                      title={`Delete ${savedRecipe.name}`}
+                      onClick={() => deleteSavedRecipe(savedRecipe.id)}
+                    >
+                      <Trash2Icon className="size-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2">

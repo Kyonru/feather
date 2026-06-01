@@ -6,8 +6,10 @@ import {
   TEXTURE_LAB_GENERATORS,
   defaultTextureLabRecipeForGenerator,
   normalizeTextureLabRecipe,
+  normalizeTextureLabSavedRecipes,
   renderTextureLabPixels,
   TEXTURE_LAB_SHAPE_PRESETS,
+  TEXTURE_LAB_SAVED_RECIPE_LIMIT,
   textureLabShapePreset,
   textureLabShapeElement,
   textureLabSplinePreset,
@@ -151,6 +153,36 @@ test('texture lab reset applies generator-specific alpha defaults', () => {
   assert.equal(defaultTextureLabRecipeForGenerator('dissolve-noise').alphaMode, 'inverted');
   assert.equal(defaultTextureLabRecipeForGenerator('threshold-noise-mask').alphaMode, 'inverted');
   assert.equal(defaultTextureLabRecipeForGenerator('spline-mask').alphaMode, 'luminance');
+});
+
+test('texture lab saved recipes normalize names, recipes, duplicates, and limits', () => {
+  const saved = normalizeTextureLabSavedRecipes([
+    {
+      id: 'spark',
+      name: '  Blue   Spark  ',
+      createdAt: 10,
+      updatedAt: 12,
+      recipe: { generator: 'spark', size: 128, seed: 7 },
+    },
+    {
+      id: 'duplicate',
+      name: 'blue spark',
+      recipe: { generator: 'cloud-noise' },
+    },
+    ...Array.from({ length: TEXTURE_LAB_SAVED_RECIPE_LIMIT + 4 }, (_, index) => ({
+      id: `recipe-${index}`,
+      name: `Recipe ${index}`,
+      recipe: { generator: index % 2 === 0 ? 'rain-slash' : 'water-noise', seed: index + 1 },
+    })),
+  ]);
+  assert.equal(saved.length, TEXTURE_LAB_SAVED_RECIPE_LIMIT);
+  assert.equal(saved[0].name, 'Blue Spark');
+  assert.equal(saved[0].recipe.generator, 'spark');
+  assert.equal(saved[0].recipe.size, 128);
+  assert.equal(saved[0].createdAt, 10);
+  assert.equal(saved[0].updatedAt, 12);
+  assert.equal(saved.filter((recipe) => recipe.name.toLowerCase() === 'blue spark').length, 1);
+  assert.ok(saved.every((recipe) => recipe.recipe.seed >= 1));
 });
 
 test('shape composer normalizes layers, points, repeat controls, and selection', () => {

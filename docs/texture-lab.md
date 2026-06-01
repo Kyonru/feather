@@ -18,6 +18,12 @@ Texture Lab includes focused generators for common LÖVE effects:
 Choosing a generator or spline path preset loads that preset's default controls. Use the shared controls to adjust size, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp. Choose **Solid Color** in Color ramp to bake a single selected color into the generated shape.
 Use **Reset values** to restore the current generator's default controls and seed.
 
+## Saved Recipes
+
+Use **Saved recipes** to keep named local favorites such as `blue spark`, `rain slash thin`, or `water mask noise`. Saving stores the full editable recipe in app settings, including spline points, shape layers, colors, seed, size, and alpha controls. Saving with an existing name updates that recipe; loading restores it into the current Texture Lab editor.
+
+Saved recipes are local convenience presets. Export the generated PNG when you need a portable asset, and save or export project files separately when using the texture in Particle Playground or Shader Graph.
+
 ## Spline Paths
 
 Choose **Spline Trail**, **Spline Ribbon**, **Spline Mask**, or **Spline Lightning** when a texture needs a custom path. Drag points in the preview editor, double-click to add a point, and press Delete or Backspace to remove the selected point when the path has more than two points.
