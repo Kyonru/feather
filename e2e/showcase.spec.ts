@@ -222,6 +222,26 @@ async function expectTextureProbePayload(page: Page) {
     });
 }
 
+async function expectShaderPreviewFrameReady(iframe: Locator) {
+  await expect(iframe).toBeVisible();
+  const handle = await iframe.elementHandle();
+  const frame = await handle?.contentFrame();
+  expect(frame).not.toBeNull();
+  await expect
+    .poll(
+      async () =>
+        frame!.evaluate(() => {
+          type StatusLike = { error?: string; hasProgram?: boolean; shader?: boolean; drawable?: boolean };
+          const status = (window as Window & { _featherShaderPreviewStatus?: StatusLike })._featherShaderPreviewStatus;
+          if (!status) return 'pending';
+          if (status.error) return `error:${status.error}`;
+          return status.hasProgram || status.shader ? 'ready' : 'pending';
+        }),
+      { timeout: 10_000 },
+    )
+    .toBe('ready');
+}
+
 test('standalone showcase loads the landing page and tools', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /complete developer toolkit/i })).toBeVisible();
@@ -1137,8 +1157,14 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
       {
         id: 'out',
         type: 'shaderNode',
-        position: { x: 1400, y: 150 },
+        position: { x: 1680, y: 150 },
         data: { label: 'Final Color', nodeType: 'FragmentOutput' },
+      },
+      {
+        id: 'probe',
+        type: 'shaderNode',
+        position: { x: 1400, y: 130 },
+        data: { label: 'Fake 3D Probe', nodeType: 'Preview' },
       },
     ],
     edges: [
@@ -1196,8 +1222,15 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
         targetHandle: 'b',
       },
       {
-        id: 'composite:out->out:color',
+        id: 'composite:out->probe:color',
         source: 'composite',
+        sourceHandle: 'out',
+        target: 'probe',
+        targetHandle: 'color',
+      },
+      {
+        id: 'probe:out->out:color',
+        source: 'probe',
         sourceHandle: 'out',
         target: 'out',
         targetHandle: 'color',
@@ -1218,6 +1251,14 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
   await expect(page.getByText(/vec2 v_billboard_uv =/i)).toBeVisible();
   await expect(page.getByText(/vec4 v_sample_rgba = Texel\(tex/i)).toBeVisible();
   await expect(page.getByText(/vec4 v_shade_rgba =/i)).toBeVisible();
+
+  const finalPreviewFrame = page.locator('iframe[title="Shader Preview"]');
+  await expectShaderPreviewFrameReady(finalPreviewFrame);
+
+  const probe = page.locator('.react-flow__node').filter({ hasText: 'Fake 3D Probe' });
+  await probe.click();
+  const probeFrame = probe.locator('iframe[title="Fake 3D Probe love.js preview"]');
+  await expectShaderPreviewFrameReady(probeFrame);
 });
 
 test('shader graph surfaces compiler diagnostics for broken imports', async ({ page }) => {

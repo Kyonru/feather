@@ -112,8 +112,29 @@ function PreviewRuntime.normalizeShape(shape)
   return shape
 end
 
+local function shaderUsesDerivatives(source)
+  source = tostring(source or "")
+  return source:find("dFdx%s*%(") ~= nil or source:find("dFdy%s*%(") ~= nil or source:find("fwidth%s*%(") ~= nil
+end
+
+local function isWebRuntime()
+  if not love or not love.system or type(love.system.getOS) ~= "function" then
+    return false
+  end
+  local ok, osName = pcall(love.system.getOS)
+  return ok and tostring(osName or ""):lower() == "web"
+end
+
+function PreviewRuntime.prepareShaderSource(source)
+  source = tostring(source or "")
+  if isWebRuntime() and shaderUsesDerivatives(source) and not source:find("GL_OES_standard_derivatives", 1, true) then
+    return "#extension GL_OES_standard_derivatives : enable\n" .. source
+  end
+  return source
+end
+
 function PreviewRuntime.buildShader(pixelSource, vertexSource, allowPixelFallback)
-  pixelSource = pixelSource or ""
+  pixelSource = PreviewRuntime.prepareShaderSource(pixelSource)
   vertexSource = vertexSource or ""
 
   local pixelOk, pixelShaderOrErr = pcall(function()
@@ -338,7 +359,7 @@ function PreviewRuntime.sendShaderParameters(shader, parameters, options)
 end
 
 function PreviewRuntime.compileShader(params)
-  local pixelSource = params.pixelSource or ""
+  local pixelSource = PreviewRuntime.prepareShaderSource(params.pixelSource)
   local vertexSource = params.vertexSource or ""
   local pixelError = nil
   local vertexError = nil

@@ -3,6 +3,7 @@
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl', { alpha: false, antialias: true });
   document.body.appendChild(canvas);
+  const derivativeExtension = gl?.getExtension('OES_standard_derivatives') || null;
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -28,6 +29,24 @@
   let previewTextureSize = { width: 256, height: 256 };
   let textureCacheKey = '';
   let textureCache = new Map();
+
+  const statusOverlay = document.createElement('div');
+  statusOverlay.style.cssText = [
+    'position:fixed',
+    'left:0',
+    'right:0',
+    'bottom:0',
+    'display:none',
+    'padding:6px 8px',
+    'background:rgba(127,29,29,0.94)',
+    'color:white',
+    'font:11px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace',
+    'line-height:1.35',
+    'pointer-events:none',
+    'z-index:1000',
+    'white-space:pre-wrap',
+  ].join(';');
+  document.body.appendChild(statusOverlay);
 
   const VERT_SRC = `
 attribute vec2 a_position;
@@ -100,6 +119,8 @@ void main() {
     let src = srcText;
     src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?Image\s+/g, 'uniform $1sampler2D ');
     src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?number\s+/g, 'uniform $1float ');
+    src = src.replace(/\bextern\s+(?:(?:lowp|mediump|highp)\s+)?bool\s+/g, 'uniform bool ');
+    src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?int\s+/g, 'uniform $1int ');
     src = src.replace(/\bextern\s+/g, 'uniform ');
     src = src.replace(/\bImage\b/g, 'sampler2D');
     src = src.replace(/\bTexel\s*\(/g, 'texture2D(');
@@ -107,7 +128,11 @@ void main() {
       /\bvec4\s+effect\s*\([^)]+\)\s*\{/,
       `vec4 feather_effect(vec4 ${colorP}, sampler2D ${texP}, vec2 ${uvP}, vec2 ${screenP}) {`,
     );
+    const derivativeHeader = loveShaderUsesDerivatives(srcText)
+      ? ['#extension GL_OES_standard_derivatives : enable']
+      : [];
     return [
+      ...derivativeHeader,
       'precision mediump float;',
       'varying vec2 v_texCoord;',
       'varying vec2 v_screenCoord;',
@@ -122,6 +147,28 @@ void main() {
       '  gl_FragColor = feather_effect(u_color, u_tex, v_texCoord, v_screenCoord);',
       '}',
     ].join('\n');
+  }
+
+  function loveShaderUsesDerivatives(source) {
+    return /\b(?:dFdx|dFdy|fwidth)\s*\(/.test(String(source || ''));
+  }
+
+  function updateShaderStatus() {
+    const status = {
+      error: shaderError || '',
+      hasProgram: Boolean(shaderProgram),
+      shader: Boolean(shaderProgram),
+      drawable: Boolean(previewTexture || whiteTexture),
+      textureCount: textureCache.size,
+      sourceKey: shaderSourceKey,
+    };
+    window._featherShaderPreviewStatus = status;
+    if (shaderError) {
+      statusOverlay.textContent = `Shader preview error:\n${shaderError}`;
+      statusOverlay.style.display = 'block';
+    } else {
+      statusOverlay.style.display = 'none';
+    }
   }
 
   function compile(type, src) {
@@ -309,6 +356,8 @@ void main() {
         previewTextureSize = { width: 256, height: 256 };
         quadBufferKey = '';
         uploadTextureSource(makeShapeCanvas());
+        shaderError = `Could not load preview texture${base?.filename ? `: ${base.filename}` : ''}.`;
+        updateShaderStatus();
       };
       image.src = dataUrlForUpload(base);
       return previewTexture;
@@ -327,11 +376,17 @@ void main() {
     shaderProgram = null;
     shaderSourceKey = key;
     shaderError = null;
+    if (loveShaderUsesDerivatives(pixel) && !derivativeExtension) {
+      shaderError = 'This browser WebGL preview does not expose OES_standard_derivatives, required by dFdx/dFdy/fwidth nodes.';
+      updateShaderStatus();
+      return null;
+    }
     try {
       shaderProgram = linkProgram(adaptLoveShader(pixel));
     } catch (error) {
       shaderError = error instanceof Error ? error.message : String(error);
     }
+    updateShaderStatus();
     return shaderProgram;
   }
 
@@ -480,10 +535,16 @@ void main() {
       image.onload = () => {
         gl.bindTexture(gl.TEXTURE_2D, texture);
         uploadTextureSource(image);
+        updateShaderStatus();
+      };
+      image.onerror = () => {
+        shaderError = `Could not load texture uniform ${upload.uniform}${upload.filename ? ` (${upload.filename})` : ''}.`;
+        updateShaderStatus();
       };
       image.src = dataUrlForUpload(upload);
       textureCache.set(upload.uniform, texture);
     });
+    updateShaderStatus();
   }
 
   function bindTextures(program) {
@@ -518,6 +579,7 @@ void main() {
   function drawShader(width, height) {
     const program = ensureShaderProgram();
     if (!program) {
+      updateShaderStatus();
       drawPreviewSurface(width, height);
       return;
     }
@@ -535,6 +597,7 @@ void main() {
     if (uColor) gl.uniform4fv(uColor, rgbaFromHex(payload.previewColor));
     bindTextures(program);
     setParameterUniforms(program);
+    updateShaderStatus();
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -891,6 +954,7 @@ void main() {
     window._featherPayload = payload;
     if (payload.tool !== 'particle-system-playground') particlePayloadKey = '';
     shaderError = null;
+    updateShaderStatus();
   });
   window.parent?.postMessage({ source: 'feather-showcase', type: 'preview:ready' }, '*');
 

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { codegen } from '../../src/pages/shader-graph/codegen.ts';
+import { adaptLoveShader } from '../../src/pages/shader-graph/webglPreview.ts';
 
 if (typeof globalThis.btoa === 'undefined') {
   globalThis.btoa = (value) => Buffer.from(value, 'binary').toString('base64');
@@ -95,4 +96,30 @@ test('fake 3d sprite illusion nodes emit expected GLSL outputs', () => {
     const generated = codegen(item.nodes, item.edges);
     expectSnippets(generated.pixel, item.snippets, item.label);
   }
+});
+
+test('webgl preview adapter enables derivatives for fake 3d nodes', () => {
+  const generated = codegen(
+    [
+      node('uv', 'TextureCoords'),
+      node('billboard', 'BillboardUV'),
+      node('sample', 'SpriteTextureSample'),
+      node('shade', 'FakeDepthShade'),
+      node('out', 'FragmentOutput'),
+    ],
+    [
+      edge('uv', 'out', 'billboard', 'uv'),
+      edge('billboard', 'uv', 'sample', 'uv'),
+      edge('billboard', 'mask', 'sample', 'mask'),
+      edge('sample', 'rgba', 'shade', 'color'),
+      edge('billboard', 'depth', 'shade', 'depth'),
+      edge('billboard', 'mask', 'shade', 'mask'),
+      edge('shade', 'rgba', 'out', 'color'),
+    ],
+  );
+  const adapted = adaptLoveShader(generated.pixel);
+
+  assert.match(generated.pixel, /\bdFdx\s*\(/);
+  assert.match(generated.pixel, /\bdFdy\s*\(/);
+  assert.match(adapted, /#extension GL_OES_standard_derivatives : enable/);
 });

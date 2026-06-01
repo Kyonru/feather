@@ -10,6 +10,10 @@ void main() {
 }
 `.trim();
 
+export function loveShaderUsesDerivatives(source: string): boolean {
+  return /\b(?:dFdx|dFdy|fwidth)\s*\(/.test(source);
+}
+
 // Convert Love2D GLSL pixel shader to WebGL fragment shader
 export function adaptLoveShader(lovePixel: string): string {
   // Extract parameter names from effect() signature
@@ -24,6 +28,8 @@ export function adaptLoveShader(lovePixel: string): string {
   let src = lovePixel;
   src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?Image\s+/g, 'uniform $1sampler2D ');
   src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?number\s+/g, 'uniform $1float ');
+  src = src.replace(/\bextern\s+(?:(?:lowp|mediump|highp)\s+)?bool\s+/g, 'uniform bool ');
+  src = src.replace(/\bextern\s+((?:lowp|mediump|highp)\s+)?int\s+/g, 'uniform $1int ');
   src = src.replace(/\bextern\s+/g, 'uniform ');
   src = src.replace(/\bImage\b/g, 'sampler2D');
   src = src.replace(/\bTexel\s*\(/g, 'texture2D(');
@@ -34,6 +40,7 @@ export function adaptLoveShader(lovePixel: string): string {
   );
 
   const preamble = [
+    ...(loveShaderUsesDerivatives(lovePixel) ? ['#extension GL_OES_standard_derivatives : enable'] : []),
     'precision mediump float;',
     'varying vec2 v_texCoord;',
     'varying vec2 v_screenCoord;',
@@ -109,6 +116,13 @@ export type WebGLPreview = {
 export function createWebGLPreview(canvas: HTMLCanvasElement, lovePixelGlsl: string): WebGLPreview {
   const gl = canvas.getContext('webgl');
   if (!gl) return { render: () => {}, destroy: () => {}, error: 'WebGL not available' };
+  if (loveShaderUsesDerivatives(lovePixelGlsl) && !gl.getExtension('OES_standard_derivatives')) {
+    return {
+      render: () => {},
+      destroy: () => {},
+      error: 'WebGL preview needs OES_standard_derivatives for dFdx/dFdy/fwidth nodes.',
+    };
+  }
 
   const fragSrc = adaptLoveShader(lovePixelGlsl);
   const prog = linkProgram(gl, VERT_SRC, fragSrc);

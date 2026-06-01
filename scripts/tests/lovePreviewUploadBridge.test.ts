@@ -118,7 +118,7 @@ test('generated love.js target includes a WebGL node-preview fallback', async ()
     const html = await readFile(path.join(outDir, 'webgl.html'), 'utf8');
     const player = await readFile(path.join(outDir, 'webgl-player.js'), 'utf8');
 
-    assert.match(html, /webgl-player\.js\?featherPreview=webgl-preview-v1/);
+    assert.match(html, /webgl-player\.js\?featherPreview=webgl-preview-v2/);
     assert.match(player, /window\._featherPayload/);
   } finally {
     await rm(dir, { recursive: true, force: true });

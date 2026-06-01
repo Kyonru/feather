@@ -17,7 +17,7 @@ type Props = {
 };
 
 const NODE_PREVIEW_ASPECT_CLASS = 'aspect-video w-full';
-const PREVIEW_ASSET_VERSION = 'shader-node-preview-v10';
+const PREVIEW_ASSET_VERSION = 'shader-node-preview-v11';
 
 function colorFromHex(value: string): [number, number, number, number] {
   const match = value.match(/^#?([0-9a-f]{6})$/i);
