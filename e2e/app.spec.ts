@@ -3128,13 +3128,13 @@ test('particle playground timeline toggles emitters and moves grouped items in t
 
   const firstClip = page.getByTestId('particle-timeline-clip-1').nth(0);
   const secondClip = page.getByTestId('particle-timeline-clip-1').nth(1);
-  await firstClip.click({ force: true, position: { x: 4, y: 10 } });
+  await firstClip.click({ force: true, position: { x: 12, y: 10 } });
   await secondClip.click({ force: true, modifiers: [multiSelectModifier()] });
   await dragLocatorBy(page, secondClip, strip1!.width * (0.4 / 3));
   await expect(page.locator('[title="Fire: 0.40s to 1.10s"]').first()).toBeVisible();
   await expect(page.locator('[title="Fire: 1.60s to 2.40s"]').first()).toBeVisible();
 
-  await firstClip.click({ force: true, position: { x: 4, y: 10 } });
+  await firstClip.click({ force: true, position: { x: 12, y: 10 } });
   await secondClip.click({ force: true, modifiers: [multiSelectModifier()] });
   await dragLocatorBy(page, secondClip, strip1!.width);
   await expect(page.locator('[title="Fire: 1.00s to 1.70s"]').first()).toBeVisible();
