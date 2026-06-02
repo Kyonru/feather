@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Shader Graph embedded previews for Fake 3D and other derivative-based nodes so Preview nodes/showcase previews match the game runtime instead of falling back silently.
 - Fixed Texture Lab Shapes & Polygons so Spline layers can be edited in the preview point editor.
 - Fixed Texture Lab generator and spline preset switching so each preset restores its default controls instead of inheriting stale values from the previous recipe.
+- Fixed Texture Lab atlas editing so previews update without blocking normal controls and the left panel has more room.
 - Fixed Particle Playground timeline drags so focused numeric clip editors cannot write stale values back over direct clip movement.
 - Fixed local Particle Playground previews so web and creative-session playback follow authored timeline timing.
 

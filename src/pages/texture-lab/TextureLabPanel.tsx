@@ -95,7 +95,6 @@ import {
   normalizeTextureLabAtlasSettings,
   renderTextureLabAtlasPixelsAsync,
   renderTextureLabCustomAtlasPixels,
-  renderTextureLabAtlasPixels,
   renderTextureLabPixels,
   renderTextureLabPixelsAsync,
   textureLabPixelsToDataUrl,
@@ -1381,20 +1380,19 @@ export function TextureLabPanel({
   const customAtlasEnabled = isTextureLabCustomAtlas(recipe);
   const imageMaskGenerator = isTextureLabImageMaskGenerator(recipe.generator);
   const imageMaskReady = imageMaskGenerator && !!recipe.imageMask?.dataBase64;
-  const pixels = useMemo(
-    () => (atlasEnabled && !customAtlasEnabled ? renderTextureLabAtlasPixels(recipe) : renderTextureLabPixels(recipe)),
-    [atlasEnabled, customAtlasEnabled, recipe],
-  );
+  const pixels = useMemo(() => renderTextureLabPixels(recipe), [recipe]);
   const visiblePixels = asyncPreviewPixels ?? pixels;
   const fallbackDataUrl = useMemo(() => textureLabPixelsToDataUrl(visiblePixels), [visiblePixels]);
   const dataUrl = useMemo(
     () => (customAtlasEnabled && customAtlasPixels ? textureLabPixelsToDataUrl(customAtlasPixels) : fallbackDataUrl),
     [customAtlasEnabled, customAtlasPixels, fallbackDataUrl],
   );
+  const asyncAtlasPixels =
+    asyncPreviewPixels && 'atlas' in asyncPreviewPixels ? (asyncPreviewPixels as TextureLabAtlasPixels) : null;
   const atlasPixels = customAtlasEnabled
     ? customAtlasPixels
     : atlasEnabled
-      ? (visiblePixels as TextureLabAtlasPixels)
+      ? asyncAtlasPixels
       : null;
   const atlasFrame =
     atlasPixels?.frames[Math.min(selectedAtlasFrame, Math.max(0, atlasPixels.frames.length - 1))] ?? null;
@@ -1410,6 +1408,24 @@ export function TextureLabPanel({
     : undefined;
   const selectedCustomFrameIsUploaded = customAtlasEnabled && !!selectedCustomFrame && !selectedCustomFrame.recipe;
   const selectedCustomFrameIsEditable = customAtlasEnabled && !!selectedCustomFrame?.recipe;
+  const previousCustomFrameDataUrl = useMemo(
+    () =>
+      customAtlasEnabled && atlasSettings.onionSkin
+        ? customAtlasFramePreviewDataUrl(previousCustomFrame, textureDimensionFields)
+        : '',
+    [atlasSettings.onionSkin, customAtlasEnabled, previousCustomFrame, textureDimensionFields],
+  );
+  const nextCustomFrameDataUrl = useMemo(
+    () =>
+      customAtlasEnabled && atlasSettings.onionSkin
+        ? customAtlasFramePreviewDataUrl(nextCustomFrame, textureDimensionFields)
+        : '',
+    [atlasSettings.onionSkin, customAtlasEnabled, nextCustomFrame, textureDimensionFields],
+  );
+  const atlasFrameStyles = useMemo(
+    () => atlasPixels?.frames.map((frame) => atlasFrameBackgroundStyle(dataUrl, atlasPixels.atlas, frame.index)) ?? [],
+    [atlasPixels, dataUrl],
+  );
   const selectedGenerator =
     TEXTURE_LAB_GENERATORS.find((item) => item.id === recipe.generator) ?? TEXTURE_LAB_GENERATORS[0];
   const isSpline = isTextureLabSplineGenerator(recipe.generator);
@@ -1713,18 +1729,21 @@ export function TextureLabPanel({
       return;
     }
     let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      void renderTextureLabCustomAtlasPixels(recipe)
+        .then((nextPixels) => {
+          if (!cancelled) setCustomAtlasPixels(nextPixels);
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setCustomAtlasPixels(null);
+          setCustomAtlasError(error instanceof Error ? error.message : 'Custom atlas preview failed');
+        });
+    }, 90);
     setCustomAtlasError(null);
-    void renderTextureLabCustomAtlasPixels(recipe)
-      .then((nextPixels) => {
-        if (!cancelled) setCustomAtlasPixels(nextPixels);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setCustomAtlasPixels(null);
-        setCustomAtlasError(error instanceof Error ? error.message : 'Custom atlas preview failed');
-      });
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
     };
   }, [customAtlasEnabled, recipe]);
 
@@ -1781,7 +1800,7 @@ export function TextureLabPanel({
           : cn(
               'h-full grid-rows-[minmax(0,1fr)_minmax(0,1fr)] overflow-hidden lg:grid-rows-1',
               atlasEnabled
-                ? 'lg:grid-cols-[minmax(14.5rem,16rem)_minmax(0,1fr)_minmax(15rem,17rem)] xl:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)_minmax(16rem,18rem)]'
+                ? 'lg:grid-cols-[minmax(18rem,20rem)_minmax(0,1fr)_minmax(13rem,15rem)] xl:grid-cols-[minmax(20rem,22rem)_minmax(0,1fr)_minmax(14rem,16rem)]'
                 : 'lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)] xl:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]',
             ),
       )}
@@ -2813,12 +2832,12 @@ export function TextureLabPanel({
                 </span>
               </div>
               <div className="relative grid aspect-square place-items-center overflow-hidden rounded-sm border bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:14px_14px] bg-[position:0_0,0_7px,7px_-7px,-7px_0px] p-2">
-                {customAtlasEnabled && atlasSettings.onionSkin && previousCustomFrame && (
+                {customAtlasEnabled && atlasSettings.onionSkin && previousCustomFrameDataUrl && (
                   <img
                     data-testid="texture-lab-onion-past"
                     alt=""
                     aria-hidden="true"
-                    src={customAtlasFramePreviewDataUrl(previousCustomFrame, textureDimensionFields)}
+                    src={previousCustomFrameDataUrl}
                     className={cn(
                       'absolute inset-2 size-[calc(100%-1rem)] object-contain opacity-35 mix-blend-multiply [filter:brightness(0)_saturate(100%)_invert(23%)_sepia(99%)_saturate(3848%)_hue-rotate(342deg)_brightness(98%)_contrast(95%)]',
                       recipe.pixelated && '[image-rendering:pixelated]',
@@ -2835,12 +2854,12 @@ export function TextureLabPanel({
                     )}
                   />
                 )}
-                {customAtlasEnabled && atlasSettings.onionSkin && nextCustomFrame && (
+                {customAtlasEnabled && atlasSettings.onionSkin && nextCustomFrameDataUrl && (
                   <img
                     data-testid="texture-lab-onion-future"
                     alt=""
                     aria-hidden="true"
-                    src={customAtlasFramePreviewDataUrl(nextCustomFrame, textureDimensionFields)}
+                    src={nextCustomFrameDataUrl}
                     className={cn(
                       'absolute inset-2 size-[calc(100%-1rem)] object-contain opacity-35 mix-blend-multiply [filter:brightness(0)_saturate(100%)_invert(61%)_sepia(76%)_saturate(1162%)_hue-rotate(84deg)_brightness(96%)_contrast(96%)]',
                       recipe.pixelated && '[image-rendering:pixelated]',
@@ -2872,7 +2891,10 @@ export function TextureLabPanel({
                   Onion skin
                 </label>
               </div>
-              <div className="grid grid-cols-4 gap-1.5" data-testid="texture-lab-atlas-frame-grid">
+              <div
+                className="grid max-h-72 grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1.5 overflow-y-auto pr-1 [content-visibility:auto] [scrollbar-gutter:stable]"
+                data-testid="texture-lab-atlas-frame-grid"
+              >
                 {atlasPixels?.frames.map((frame) => {
                   const customFrame = customAtlasFrameAt(atlasSettings, frame.index, false);
                   return (
@@ -2885,7 +2907,7 @@ export function TextureLabPanel({
                           ? 'border-primary ring-2 ring-primary/30'
                           : 'border-border/70 hover:border-primary/60',
                       )}
-                      style={atlasFrameBackgroundStyle(dataUrl, atlasPixels.atlas, frame.index)}
+                      style={atlasFrameStyles[frame.index]}
                       aria-label={`Select atlas frame ${frame.index + 1}`}
                       onClick={() => selectAtlasFrame(frame.index)}
                     >
