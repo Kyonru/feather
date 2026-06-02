@@ -39,6 +39,7 @@ import {
 export type TextureLabGeneratorCategory =
   | 'Particle sprites'
   | 'Masks'
+  | 'SDF / glow'
   | 'Noise / maps'
   | 'Shader maps'
   | 'Pixel patterns'
@@ -163,6 +164,42 @@ export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
     label: 'Image Edge Mask',
     category: 'Masks',
     description: 'Finds image outlines and contrast edges for shader masks.',
+  },
+  {
+    id: 'sdf-circle',
+    label: 'SDF Circle',
+    category: 'SDF / glow',
+    description: 'A signed-distance-style circle field for crisp scalable masks.',
+  },
+  {
+    id: 'sdf-ring',
+    label: 'SDF Ring',
+    category: 'SDF / glow',
+    description: 'A grayscale ring distance field for ripples, UI rings, and shader thresholds.',
+  },
+  {
+    id: 'sdf-soft-outline',
+    label: 'Soft Outline',
+    category: 'SDF / glow',
+    description: 'A soft circular outline sprite/mask with controllable thickness.',
+  },
+  {
+    id: 'sdf-inner-glow',
+    label: 'Inner Glow',
+    category: 'SDF / glow',
+    description: 'An inward glow mask for rims, shields, and UI accents.',
+  },
+  {
+    id: 'sdf-outer-glow',
+    label: 'Outer Glow',
+    category: 'SDF / glow',
+    description: 'An outward glow mask for halos, selection rings, and VFX sprites.',
+  },
+  {
+    id: 'sdf-spline-stroke',
+    label: 'Spline SDF Stroke',
+    category: 'SDF / glow',
+    description: 'An editable spline stroke rendered as a distance-style field.',
   },
   {
     id: 'cloud-noise',
@@ -303,6 +340,12 @@ const TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS: Partial<Record<TextureLabGeneratorI
   'image-threshold-mask': { alphaMode: 'opaque', threshold: 0.5, softness: 0.08, colorRamp: 'grayscale' },
   'image-color-key-mask': { alphaMode: 'opaque', threshold: 0.16, softness: 0.12, colorRamp: 'grayscale' },
   'image-edge-mask': { alphaMode: 'opaque', threshold: 0.18, softness: 0.08, contrast: 1.5, colorRamp: 'grayscale' },
+  'sdf-circle': { alphaMode: 'opaque', threshold: 0.58, softness: 0.18, contrast: 1.1, colorRamp: 'grayscale', tileable: false },
+  'sdf-ring': { alphaMode: 'opaque', threshold: 0.58, softness: 0.16, contrast: 1.1, colorRamp: 'grayscale', tileable: false },
+  'sdf-soft-outline': { alphaMode: 'shape', threshold: 0.55, softness: 0.22, falloff: 1.2, colorRamp: 'white', tileable: false },
+  'sdf-inner-glow': { alphaMode: 'shape', threshold: 0.62, softness: 0.32, falloff: 1.8, colorRamp: 'white', tileable: false },
+  'sdf-outer-glow': { alphaMode: 'shape', threshold: 0.5, softness: 0.34, falloff: 1.6, colorRamp: 'white', tileable: false },
+  'sdf-spline-stroke': { alphaMode: 'opaque', softness: 0.2, falloff: 1.2, colorRamp: 'grayscale', tileable: false },
   'cloud-noise': { alphaMode: 'luminance' },
   'cellular-spots': { alphaMode: 'luminance' },
   'dissolve-noise': { alphaMode: 'inverted' },
@@ -345,6 +388,16 @@ export const TEXTURE_LAB_SPLINE_GENERATOR_IDS = [
   'spline-ribbon',
   'spline-mask',
   'spline-lightning',
+  'sdf-spline-stroke',
+] as const satisfies readonly TextureLabGeneratorId[];
+
+export const TEXTURE_LAB_SDF_GENERATOR_IDS = [
+  'sdf-circle',
+  'sdf-ring',
+  'sdf-soft-outline',
+  'sdf-inner-glow',
+  'sdf-outer-glow',
+  'sdf-spline-stroke',
 ] as const satisfies readonly TextureLabGeneratorId[];
 
 export const TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS = [
@@ -494,6 +547,7 @@ const GENERATOR_SET = new Set<string>(TEXTURE_LAB_GENERATOR_IDS);
 const RAMP_SET = new Set<string>(TEXTURE_LAB_COLOR_RAMPS);
 const ALPHA_SET = new Set<string>(TEXTURE_LAB_ALPHA_MODES);
 const SPLINE_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SPLINE_GENERATOR_IDS);
+const SDF_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SDF_GENERATOR_IDS);
 const SHADER_MAP_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS);
 const IMAGE_MASK_GENERATOR_SET = new Set<string>(TEXTURE_LAB_IMAGE_MASK_GENERATOR_IDS);
 const SPLINE_OVERLAP_SET = new Set<string>(TEXTURE_LAB_SPLINE_OVERLAP_MODES);
@@ -613,6 +667,10 @@ export function isTextureLabSplineGenerator(generator: TextureLabGeneratorId): b
   return SPLINE_GENERATOR_SET.has(generator);
 }
 
+export function isTextureLabSdfGenerator(generator: TextureLabGeneratorId): boolean {
+  return SDF_GENERATOR_SET.has(generator);
+}
+
 export function isTextureLabShaderMapGenerator(generator: TextureLabGeneratorId): boolean {
   return SHADER_MAP_GENERATOR_SET.has(generator);
 }
@@ -651,6 +709,11 @@ function defaultSplineForGenerator(generator: TextureLabGeneratorId): TextureLab
   if (generator === 'spline-lightning') {
     return cloneSplineRecipe(
       TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'lightning')?.spline ?? DEFAULT_TRAIL_SPLINE,
+    );
+  }
+  if (generator === 'sdf-spline-stroke') {
+    return cloneSplineRecipe(
+      TEXTURE_LAB_SPLINE_PRESETS.find((preset) => preset.id === 'ellipse-border')?.spline ?? DEFAULT_TRAIL_SPLINE,
     );
   }
   return cloneSplineRecipe(DEFAULT_TRAIL_SPLINE);
@@ -1299,6 +1362,18 @@ function shapeFalloff(distance: number, radius: number, softness: number, fallof
   return Math.pow(1 - smoothstep(radius - edge, radius + edge, distance), falloff);
 }
 
+function sdfRadius(recipe: TextureLabRecipe): number {
+  return clamp(0.18 + recipe.threshold * 0.78, 0.18, 0.92);
+}
+
+function sdfSpread(recipe: TextureLabRecipe, scale = 0.5): number {
+  return Math.max(0.002, recipe.softness * scale + 0.015);
+}
+
+function sdfCircleField(distance: number, radius: number, spread: number): number {
+  return clamp01(0.5 - (distance - radius) / spread);
+}
+
 function roundedRectMask(x: number, y: number, radius: number): number {
   const bx = 0.68;
   const by = 0.5;
@@ -1430,6 +1505,11 @@ function splineSegmentValue(
   let alpha = 1 - smoothstep(radius, radius + feather, distance);
   alpha = Math.pow(clamp01(alpha), recipe.falloff);
 
+  if (recipe.generator === 'sdf-spline-stroke') {
+    const spread = Math.max(0.002, recipe.softness * 0.28 + feather);
+    const field = clamp01(0.5 - (distance - radius) / spread);
+    return { colorT: contrast(field, recipe.contrast), alpha: 1 };
+  }
   if (recipe.generator === 'spline-ribbon') {
     const pulse = 0.65 + Math.sin(progress * Math.PI * 2) * 0.15;
     return { colorT: pulse, alpha };
@@ -1967,6 +2047,40 @@ function generatorValue(
     }
     case 'threshold-noise-mask': {
       const value = n >= recipe.threshold ? 1 : 0;
+      return { colorT: value, alpha: value };
+    }
+    case 'sdf-circle': {
+      const value = sdfCircleField(d, sdfRadius(recipe), sdfSpread(recipe));
+      return { colorT: contrast(value, recipe.contrast), alpha: 1 };
+    }
+    case 'sdf-ring': {
+      const radius = sdfRadius(recipe);
+      const width = 0.035 + recipe.softness * 0.18;
+      const spread = sdfSpread(recipe, 0.35);
+      const value = clamp01(0.5 - (Math.abs(d - radius) - width) / spread);
+      return { colorT: contrast(value, recipe.contrast), alpha: 1 };
+    }
+    case 'sdf-soft-outline': {
+      const radius = sdfRadius(recipe);
+      const width = 0.035 + recipe.threshold * 0.15;
+      const spread = sdfSpread(recipe, 0.42);
+      const value = Math.pow(clamp01(1 - smoothstep(width, width + spread, Math.abs(d - radius))), recipe.falloff);
+      return { colorT: value, alpha: value };
+    }
+    case 'sdf-inner-glow': {
+      const radius = sdfRadius(recipe);
+      const spread = sdfSpread(recipe, 0.7);
+      const rim = smoothstep(radius - spread, radius, d);
+      const inside = 1 - smoothstep(radius, radius + 0.01, d);
+      const value = Math.pow(clamp01(rim * inside), recipe.falloff);
+      return { colorT: value, alpha: value };
+    }
+    case 'sdf-outer-glow': {
+      const radius = sdfRadius(recipe);
+      const spread = sdfSpread(recipe, 0.82);
+      const outside = smoothstep(radius - 0.01, radius + 0.01, d);
+      const fade = 1 - smoothstep(radius, radius + spread, d);
+      const value = Math.pow(clamp01(outside * fade), recipe.falloff);
       return { colorT: value, alpha: value };
     }
     case 'cloud-noise':

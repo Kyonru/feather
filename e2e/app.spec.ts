@@ -1567,6 +1567,12 @@ test('texture lab is available without a connected session in the app', async ({
   await page.getByTestId('texture-lab-image-mask-input').setInputFiles(shaderPreviewTextureFiles().water);
   await expect(page.getByTestId('texture-lab-image-mask').getByText(/water\.png/)).toBeVisible();
   await expect.poll(() => preview.getAttribute('src')).not.toBe(imageMaskBefore);
+  const imageMaskPreview = await preview.getAttribute('src');
+  await page.getByLabel('Texture generator').click();
+  await page.getByRole('option', { name: 'Soft Outline' }).click();
+  await expect(page.getByLabel('Texture generator')).toHaveText(/Soft Outline/);
+  await expect(page.getByLabel('Texture alpha mode')).toHaveText(/Shape/);
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(imageMaskPreview);
   await page.getByRole('button', { name: 'Load saved recipe Blue Spark' }).click();
   await expect(page.getByLabel('Texture generator')).toHaveText(/Soft Circle/);
   await expect(page.getByLabel('Texture solid color')).toHaveValue('#ff3366');

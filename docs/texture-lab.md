@@ -10,6 +10,7 @@ Texture Lab includes focused generators for common LÖVE effects:
 
 - **Particle sprites**: soft circles, sparks, streaks, rings, smoke puffs, stars, trail blobs, and rain slashes.
 - **Masks**: circles, ellipses, rounded rectangles, radial masks, thresholded noise masks, and image-to-mask conversion.
+- **SDF and glow**: circle and ring distance fields, soft outlines, inner/outer glow masks, and editable spline distance strokes.
 - **Noise and maps**: clouds, cellular spots, dissolve noise, water noise, height-style grayscale maps, and directional gradients.
 - **Shader maps**: height-derived normal maps, flow maps, radial swirl flow, water ripple normals, and directional distortion maps.
 - **Pixel patterns**: checkers, dithers, scanlines, and palette ramps.
@@ -24,6 +25,12 @@ Use **Reset values** to restore the current generator's default controls and see
 Choose an image mask generator to import a PNG/JPG/WebP/BMP and turn it into a mask texture. Texture Lab can extract source alpha, luminance, thresholded brightness, a color-key selection, or an outline/edge mask. Threshold acts as tolerance, Softness blends the edge, and the Color Key mask includes a color picker for the keyed source color.
 
 Alpha masks write transparency into the output alpha channel. Luminance, threshold, color-key, and edge masks bake opaque grayscale PNGs, which makes them useful as Shader Graph mask textures for color-key, masked water, shimmer, heat haze, and distortion workflows.
+
+## SDF, Glow, And Outline Masks
+
+Choose an SDF / glow generator when you need scalable masks or VFX glow sprites. **SDF Circle**, **SDF Ring**, and **Spline SDF Stroke** bake opaque grayscale distance-style fields that are useful for shader thresholding, soft rings, ripple masks, and crisp UI/game VFX. **Soft Outline**, **Inner Glow**, and **Outer Glow** bake alpha-shaped sprites for halos, selection rings, shield rims, and particle accents.
+
+Threshold controls the base radius, Softness controls the distance spread or glow width, and Falloff shapes glow intensity. **Spline SDF Stroke** uses the normal spline editor, so you can drag points, use path presets, and still export/apply the result as a generated PNG.
 
 ## Atlas And Flipbook Export
 

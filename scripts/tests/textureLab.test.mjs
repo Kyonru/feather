@@ -23,6 +23,8 @@ import {
   isTextureLabShaderMapGenerator,
   TEXTURE_LAB_IMAGE_MASK_GENERATOR_IDS,
   isTextureLabImageMaskGenerator,
+  TEXTURE_LAB_SDF_GENERATOR_IDS,
+  isTextureLabSdfGenerator,
   renderTextureLabImageMaskPixels,
 } from '../../src/pages/texture-lab/generator.ts';
 
@@ -208,6 +210,112 @@ test('texture lab exposes shader map generators with opaque reset defaults', () 
     assert.equal(recipe.colorRamp, 'white');
   }
   assert.equal(defaultTextureLabRecipeForGenerator('radial-swirl-flow').tileable, false);
+});
+
+test('texture lab exposes sdf and glow generators with useful reset defaults', () => {
+  const generatorById = new Map(TEXTURE_LAB_GENERATORS.map((generator) => [generator.id, generator]));
+  assert.deepEqual(TEXTURE_LAB_SDF_GENERATOR_IDS, [
+    'sdf-circle',
+    'sdf-ring',
+    'sdf-soft-outline',
+    'sdf-inner-glow',
+    'sdf-outer-glow',
+    'sdf-spline-stroke',
+  ]);
+
+  for (const generatorId of TEXTURE_LAB_SDF_GENERATOR_IDS) {
+    const metadata = generatorById.get(generatorId);
+    const recipe = defaultTextureLabRecipeForGenerator(generatorId);
+    assert.equal(metadata?.category, 'SDF / glow');
+    assert.equal(isTextureLabSdfGenerator(generatorId), true);
+    assert.equal(recipe.tileable, false);
+  }
+  assert.equal(defaultTextureLabRecipeForGenerator('sdf-circle').alphaMode, 'opaque');
+  assert.equal(defaultTextureLabRecipeForGenerator('sdf-ring').alphaMode, 'opaque');
+  assert.equal(defaultTextureLabRecipeForGenerator('sdf-spline-stroke').alphaMode, 'opaque');
+  assert.equal(defaultTextureLabRecipeForGenerator('sdf-soft-outline').alphaMode, 'shape');
+  assert.equal(defaultTextureLabRecipeForGenerator('sdf-outer-glow').alphaMode, 'shape');
+  assert.equal(defaultTextureLabRecipeForGenerator('sdf-spline-stroke').spline.closed, true);
+});
+
+test('texture lab sdf circle and ring render opaque distance-style fields', () => {
+  const circle = renderTextureLabPixels({
+    ...defaultTextureLabRecipeForGenerator('sdf-circle'),
+    size: 64,
+    width: 64,
+    height: 64,
+  });
+  assert.equal(rgbaAt(circle, 32, 32)[3], 255);
+  assert.equal(rgbaAt(circle, 0, 0)[3], 255);
+  assert.ok(rgbaAt(circle, 32, 32)[0] > rgbaAt(circle, 0, 0)[0]);
+  assert.ok(rgbaAt(circle, 48, 32)[0] > rgbaAt(circle, 63, 32)[0]);
+
+  const ring = renderTextureLabPixels({
+    ...defaultTextureLabRecipeForGenerator('sdf-ring'),
+    size: 64,
+    width: 64,
+    height: 64,
+  });
+  assert.equal(rgbaAt(ring, 32, 32)[3], 255);
+  assert.equal(rgbaAt(ring, 32, 11)[3], 255);
+  assert.ok(rgbaAt(ring, 32, 11)[0] > rgbaAt(ring, 32, 32)[0]);
+  assert.ok(rgbaAt(ring, 32, 11)[0] > rgbaAt(ring, 0, 0)[0]);
+});
+
+test('texture lab glow and outline generators render alpha-shaped masks', () => {
+  const outline = renderTextureLabPixels({
+    ...defaultTextureLabRecipeForGenerator('sdf-soft-outline'),
+    size: 64,
+    width: 64,
+    height: 64,
+  });
+  assert.ok(alphaAt(outline, 32, 11) > alphaAt(outline, 32, 32));
+  assert.ok(alphaAt(outline, 32, 11) > alphaAt(outline, 0, 0));
+
+  const inner = renderTextureLabPixels({
+    ...defaultTextureLabRecipeForGenerator('sdf-inner-glow'),
+    size: 64,
+    width: 64,
+    height: 64,
+  });
+  assert.ok(alphaAt(inner, 48, 32) > alphaAt(inner, 32, 32));
+  assert.equal(alphaAt(inner, 0, 0), 0);
+
+  const outer = renderTextureLabPixels({
+    ...defaultTextureLabRecipeForGenerator('sdf-outer-glow'),
+    size: 64,
+    width: 64,
+    height: 64,
+  });
+  assert.ok(alphaAt(outer, 52, 32) > alphaAt(outer, 32, 32));
+  assert.equal(alphaAt(outer, 0, 0), 0);
+});
+
+test('texture lab spline sdf stroke uses editable spline distance fields', () => {
+  const result = renderTextureLabPixels({
+    ...defaultTextureLabRecipeForGenerator('sdf-spline-stroke'),
+    size: 64,
+    width: 64,
+    height: 64,
+    spline: {
+      points: [
+        { x: 0.15, y: 0.5 },
+        { x: 0.85, y: 0.5 },
+      ],
+      closed: false,
+      tension: 0,
+      strokeWidth: 0.18,
+      feather: 0.1,
+      taperStart: 0,
+      taperEnd: 0,
+      jitter: 0,
+      samples: 48,
+      overlapMode: 'merge',
+    },
+  });
+  assert.equal(rgbaAt(result, 32, 32)[3], 255);
+  assert.equal(rgbaAt(result, 32, 8)[3], 255);
+  assert.ok(rgbaAt(result, 32, 32)[0] > rgbaAt(result, 32, 8)[0]);
 });
 
 test('texture lab shader normal maps encode opaque RGB normals', () => {
