@@ -21,6 +21,9 @@ import {
   textureLabFilename,
   TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS,
   isTextureLabShaderMapGenerator,
+  TEXTURE_LAB_IMAGE_MASK_GENERATOR_IDS,
+  isTextureLabImageMaskGenerator,
+  renderTextureLabImageMaskPixels,
 } from '../../src/pages/texture-lab/generator.ts';
 
 function checksum(pixels) {
@@ -39,6 +42,10 @@ function alphaAt(result, x, y) {
 function rgbaAt(result, x, y) {
   const offset = (y * result.width + x) * 4;
   return Array.from(result.pixels.slice(offset, offset + 4));
+}
+
+function imageSource(width, height, pixels) {
+  return { width, height, pixels: new Uint8ClampedArray(pixels) };
 }
 
 test('texture lab output is deterministic for a recipe', () => {
@@ -240,6 +247,98 @@ test('texture lab flow and distortion maps encode signed vectors in color channe
     assert.ok(samples.some((sample) => Math.abs(sample[0] - 128) > 8 || Math.abs(sample[1] - 128) > 8));
     assert.ok(new Set(samples.map((sample) => `${sample[0]}:${sample[1]}:${sample[2]}`)).size > 1);
   }
+});
+
+test('texture lab exposes image-to-mask generators with useful reset defaults', () => {
+  const generatorById = new Map(TEXTURE_LAB_GENERATORS.map((generator) => [generator.id, generator]));
+  assert.deepEqual(TEXTURE_LAB_IMAGE_MASK_GENERATOR_IDS, [
+    'image-alpha-mask',
+    'image-luminance-mask',
+    'image-threshold-mask',
+    'image-color-key-mask',
+    'image-edge-mask',
+  ]);
+
+  for (const generatorId of TEXTURE_LAB_IMAGE_MASK_GENERATOR_IDS) {
+    const metadata = generatorById.get(generatorId);
+    const recipe = defaultTextureLabRecipeForGenerator(generatorId);
+    assert.equal(metadata?.category, 'Masks');
+    assert.equal(isTextureLabImageMaskGenerator(generatorId), true);
+    assert.equal(recipe.colorRamp === 'white' || recipe.colorRamp === 'grayscale', true);
+  }
+  assert.equal(defaultTextureLabRecipeForGenerator('image-alpha-mask').alphaMode, 'shape');
+  assert.equal(defaultTextureLabRecipeForGenerator('image-color-key-mask').alphaMode, 'opaque');
+});
+
+test('texture lab normalizes image mask source metadata', () => {
+  const recipe = normalizeTextureLabRecipe({
+    generator: 'image-color-key-mask',
+    imageMask: {
+      dataBase64: ' abc123 ',
+      mimeType: 'image/gif',
+      name: '  mask   source.png  ',
+      width: 99999,
+      height: -10,
+      colorKey: 'f03',
+    },
+  });
+  assert.equal(recipe.imageMask.dataBase64, 'abc123');
+  assert.equal(recipe.imageMask.mimeType, 'image/png');
+  assert.equal(recipe.imageMask.name, 'mask source.png');
+  assert.equal(recipe.imageMask.width, 4096);
+  assert.equal(recipe.imageMask.height, 1);
+  assert.equal(recipe.imageMask.colorKey, '#ff0033');
+  assert.equal(normalizeTextureLabRecipe({ generator: 'soft-circle', imageMask: { dataBase64: 'abc' } }).imageMask, undefined);
+});
+
+test('texture lab image-to-mask generators derive masks from source pixels', () => {
+  const source = imageSource(3, 3, [
+    0, 0, 0, 0, 255, 255, 255, 128, 0, 0, 0, 255,
+    0, 0, 0, 255, 255, 0, 0, 255, 0, 0, 0, 255,
+    0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255,
+  ]);
+
+  const alpha = renderTextureLabImageMaskPixels(
+    normalizeTextureLabRecipe({ generator: 'image-alpha-mask', size: 3, width: 3, height: 3 }),
+    source,
+  );
+  assert.equal(rgbaAt(alpha, 0, 0)[3], 0);
+  assert.equal(rgbaAt(alpha, 1, 0)[3], 128);
+
+  const luminance = renderTextureLabImageMaskPixels(
+    normalizeTextureLabRecipe({ generator: 'image-luminance-mask', size: 3, width: 3, height: 3 }),
+    source,
+  );
+  assert.ok(rgbaAt(luminance, 1, 2)[0] > rgbaAt(luminance, 0, 1)[0]);
+  assert.equal(rgbaAt(luminance, 1, 2)[3], 255);
+
+  const threshold = renderTextureLabImageMaskPixels(
+    normalizeTextureLabRecipe({ generator: 'image-threshold-mask', size: 3, width: 3, height: 3, threshold: 0.5, softness: 0 }),
+    source,
+  );
+  assert.equal(rgbaAt(threshold, 1, 2)[0], 255);
+  assert.equal(rgbaAt(threshold, 0, 1)[0], 0);
+
+  const colorKey = renderTextureLabImageMaskPixels(
+    normalizeTextureLabRecipe({
+      generator: 'image-color-key-mask',
+      size: 3,
+      width: 3,
+      height: 3,
+      threshold: 0.05,
+      softness: 0.01,
+      imageMask: { dataBase64: 'abc', colorKey: '#ff0000', width: 3, height: 3 },
+    }),
+    source,
+  );
+  assert.equal(rgbaAt(colorKey, 1, 1)[0], 255);
+  assert.equal(rgbaAt(colorKey, 1, 2)[0], 0);
+
+  const edge = renderTextureLabImageMaskPixels(
+    normalizeTextureLabRecipe({ generator: 'image-edge-mask', size: 3, width: 3, height: 3, threshold: 0.05, softness: 0.01 }),
+    source,
+  );
+  assert.ok(rgbaAt(edge, 1, 1)[0] > 0);
 });
 
 test('tileable shader maps repeat texture edges', () => {

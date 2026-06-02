@@ -9,7 +9,7 @@ Open **Texture Lab** from the Creative sidebar group, Command Center, or the sta
 Texture Lab includes focused generators for common LÖVE effects:
 
 - **Particle sprites**: soft circles, sparks, streaks, rings, smoke puffs, stars, trail blobs, and rain slashes.
-- **Masks**: circles, ellipses, rounded rectangles, radial masks, and thresholded noise masks.
+- **Masks**: circles, ellipses, rounded rectangles, radial masks, thresholded noise masks, and image-to-mask conversion.
 - **Noise and maps**: clouds, cellular spots, dissolve noise, water noise, height-style grayscale maps, and directional gradients.
 - **Shader maps**: height-derived normal maps, flow maps, radial swirl flow, water ripple normals, and directional distortion maps.
 - **Pixel patterns**: checkers, dithers, scanlines, and palette ramps.
@@ -18,6 +18,12 @@ Texture Lab includes focused generators for common LÖVE effects:
 
 Choosing a generator or spline path preset loads that preset's default controls. Use the shared controls to adjust dimensions, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp. Size presets include tiny pixel-friendly outputs such as `4 x 4`, `8 x 8`, and `16 x 16`, plus larger square sizes and a Custom mode for explicit width and height. Choose **Solid Color** in Color ramp to bake a single selected color into the generated shape.
 Use **Reset values** to restore the current generator's default controls and seed.
+
+## Image-To-Mask
+
+Choose an image mask generator to import a PNG/JPG/WebP/BMP and turn it into a mask texture. Texture Lab can extract source alpha, luminance, thresholded brightness, a color-key selection, or an outline/edge mask. Threshold acts as tolerance, Softness blends the edge, and the Color Key mask includes a color picker for the keyed source color.
+
+Alpha masks write transparency into the output alpha channel. Luminance, threshold, color-key, and edge masks bake opaque grayscale PNGs, which makes them useful as Shader Graph mask textures for color-key, masked water, shimmer, heat haze, and distortion workflows.
 
 ## Atlas And Flipbook Export
 

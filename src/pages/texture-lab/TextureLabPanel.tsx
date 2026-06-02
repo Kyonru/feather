@@ -71,6 +71,8 @@ import {
   type TextureLabAtlasPreset,
   type TextureLabAtlasSettings,
   type TextureLabAtlasPixels,
+  type TextureLabGeneratedPixels,
+  type TextureLabImageMaskRecipe,
   type TextureLabRecipe,
   type TextureLabShapeElement,
   type TextureLabShapeElementKind,
@@ -88,11 +90,14 @@ import {
   generateTextureLabAtlasBundleAsync,
   generateTextureLabTextureAsync,
   isTextureLabCustomAtlas,
+  isTextureLabImageMaskGenerator,
   isTextureLabSplineGenerator,
   normalizeTextureLabAtlasSettings,
+  renderTextureLabAtlasPixelsAsync,
   renderTextureLabCustomAtlasPixels,
   renderTextureLabAtlasPixels,
   renderTextureLabPixels,
+  renderTextureLabPixelsAsync,
   textureLabPixelsToDataUrl,
   textureLabRecipeWithoutAtlas,
   textureLabAtlasFrameFromRecipe,
@@ -401,6 +406,24 @@ async function textureLabFrameFromFile(file: File, index: number): Promise<Textu
   };
 }
 
+async function textureLabImageMaskFromFile(file: File): Promise<TextureLabImageMaskRecipe> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error('Texture Lab could not read that file.'));
+    reader.readAsDataURL(file);
+  });
+  const { width, height } = await loadTextureLabFrameDimensions(dataUrl);
+  return {
+    dataBase64: dataUrl.split(',', 2)[1] ?? '',
+    mimeType: file.type || 'image/png',
+    name: file.name || 'source-image.png',
+    width,
+    height,
+    colorKey: '#000000',
+  };
+}
+
 function useTextureLabRecipe() {
   const recipe = useSettingsStore((state) => state.textureLabRecipe);
   const setRecipe = useSettingsStore((state) => state.setTextureLabRecipe);
@@ -468,7 +491,12 @@ export function TextureLabActionControls({
     });
   };
   const resetValues = () => {
-    patch(defaultTextureLabRecipeForGenerator(recipe.generator));
+    const nextRecipe = defaultTextureLabRecipeForGenerator(recipe.generator);
+    patch(
+      isTextureLabImageMaskGenerator(recipe.generator) && recipe.imageMask
+        ? { ...nextRecipe, imageMask: recipe.imageMask }
+        : nextRecipe,
+    );
   };
   const exportTexture = async () => {
     setIsWorking(true);
@@ -1326,7 +1354,12 @@ export function TextureLabPanel({
   const [atlasConfirmAction, setAtlasConfirmAction] = useState<AtlasConfirmAction | null>(null);
   const [customAtlasPixels, setCustomAtlasPixels] = useState<TextureLabAtlasPixels | null>(null);
   const [customAtlasError, setCustomAtlasError] = useState<string | null>(null);
+  const [asyncPreviewPixels, setAsyncPreviewPixels] = useState<TextureLabGeneratedPixels | TextureLabAtlasPixels | null>(
+    null,
+  );
+  const [asyncPreviewError, setAsyncPreviewError] = useState<string | null>(null);
   const customFrameInputRef = useRef<HTMLInputElement | null>(null);
+  const imageMaskInputRef = useRef<HTMLInputElement | null>(null);
   const { recipe, setRecipe, patch: patchRecipeStore } = useTextureLabRecipe();
   const textureDimensions = useMemo(() => textureLabRecipeDimensions(recipe), [recipe]);
   const textureDimensionFields = useMemo(
@@ -1346,16 +1379,23 @@ export function TextureLabPanel({
   const atlasSettings = useMemo(() => normalizeTextureLabAtlasSettings(recipe.atlas), [recipe.atlas]);
   const atlasEnabled = recipe.atlas?.enabled === true;
   const customAtlasEnabled = isTextureLabCustomAtlas(recipe);
+  const imageMaskGenerator = isTextureLabImageMaskGenerator(recipe.generator);
+  const imageMaskReady = imageMaskGenerator && !!recipe.imageMask?.dataBase64;
   const pixels = useMemo(
     () => (atlasEnabled && !customAtlasEnabled ? renderTextureLabAtlasPixels(recipe) : renderTextureLabPixels(recipe)),
     [atlasEnabled, customAtlasEnabled, recipe],
   );
-  const fallbackDataUrl = useMemo(() => textureLabPixelsToDataUrl(pixels), [pixels]);
+  const visiblePixels = asyncPreviewPixels ?? pixels;
+  const fallbackDataUrl = useMemo(() => textureLabPixelsToDataUrl(visiblePixels), [visiblePixels]);
   const dataUrl = useMemo(
     () => (customAtlasEnabled && customAtlasPixels ? textureLabPixelsToDataUrl(customAtlasPixels) : fallbackDataUrl),
     [customAtlasEnabled, customAtlasPixels, fallbackDataUrl],
   );
-  const atlasPixels = customAtlasEnabled ? customAtlasPixels : atlasEnabled ? (pixels as TextureLabAtlasPixels) : null;
+  const atlasPixels = customAtlasEnabled
+    ? customAtlasPixels
+    : atlasEnabled
+      ? (visiblePixels as TextureLabAtlasPixels)
+      : null;
   const atlasFrame =
     atlasPixels?.frames[Math.min(selectedAtlasFrame, Math.max(0, atlasPixels.frames.length - 1))] ?? null;
   const atlasFrameDataUrl = useMemo(() => (atlasFrame ? textureLabPixelsToDataUrl(atlasFrame) : ''), [atlasFrame]);
@@ -1507,6 +1547,27 @@ export function TextureLabPanel({
       toast.success(`Frame ${selectedAtlasFrame + 1} replaced`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Frame upload failed');
+    }
+  };
+  const uploadImageMaskSource = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !imageMaskGenerator) return;
+    try {
+      const imageMask = await textureLabImageMaskFromFile(file);
+      const width = Math.round(clampRange(imageMask.width, TEXTURE_LAB_MIN_DIMENSION, TEXTURE_LAB_MAX_DIMENSION));
+      const height = Math.round(clampRange(imageMask.height, TEXTURE_LAB_MIN_DIMENSION, TEXTURE_LAB_MAX_DIMENSION));
+      commitEditorRecipe({
+        ...recipe,
+        size: Math.max(width, height),
+        width,
+        height,
+        imageMask,
+      });
+      setCustomDimensionsOpen(!TEXTURE_LAB_SIZES.some((size) => size === width && size === height));
+      toast.success(`${imageMask.name} loaded for masking`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Image mask upload failed');
     }
   };
   const copySelectedCustomFrameToAll = async () => {
@@ -1668,6 +1729,29 @@ export function TextureLabPanel({
   }, [customAtlasEnabled, recipe]);
 
   useEffect(() => {
+    if (customAtlasEnabled || !imageMaskReady) {
+      setAsyncPreviewPixels(null);
+      setAsyncPreviewError(null);
+      return;
+    }
+    let cancelled = false;
+    setAsyncPreviewError(null);
+    const render = atlasEnabled ? renderTextureLabAtlasPixelsAsync(recipe) : renderTextureLabPixelsAsync(recipe);
+    void render
+      .then((nextPixels) => {
+        if (!cancelled) setAsyncPreviewPixels(nextPixels);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setAsyncPreviewPixels(null);
+        setAsyncPreviewError(error instanceof Error ? error.message : 'Image mask preview failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [atlasEnabled, customAtlasEnabled, imageMaskReady, recipe]);
+
+  useEffect(() => {
     if (!atlasEnabled) return;
     setSelectedAtlasFrame((frame) => Math.min(frame, Math.max(0, atlasSettings.frameCount - 1)));
   }, [atlasEnabled, atlasSettings.frameCount]);
@@ -1795,6 +1879,74 @@ export function TextureLabPanel({
                 </SelectContent>
               </Select>
             </div>
+
+            {imageMaskGenerator && (
+              <div className="grid gap-2 rounded-md border border-border/70 p-2" data-testid="texture-lab-image-mask">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <Label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <ImageIcon className="size-3.5" />
+                      Image source
+                    </Label>
+                    <div className="truncate text-[10px] text-muted-foreground">
+                      {recipe.imageMask
+                        ? `${recipe.imageMask.name} - ${recipe.imageMask.width} x ${recipe.imageMask.height}`
+                        : 'Import an image to extract a mask.'}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 shrink-0 gap-1.5 px-2 text-xs"
+                    onClick={() => imageMaskInputRef.current?.click()}
+                  >
+                    <UploadIcon className="size-3.5" />
+                    {recipe.imageMask ? 'Replace' : 'Upload'}
+                  </Button>
+                  <input
+                    ref={imageMaskInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/png,image/jpeg,image/webp,image/bmp"
+                    data-testid="texture-lab-image-mask-input"
+                    onChange={(event) => void uploadImageMaskSource(event)}
+                  />
+                </div>
+                {recipe.generator === 'image-color-key-mask' && (
+                  <div className="grid gap-1">
+                    <Label className="text-[10px] text-muted-foreground">Color key</Label>
+                    <Input
+                      aria-label="Image mask color key"
+                      className="h-8 cursor-pointer p-1"
+                      type="color"
+                      value={recipe.imageMask?.colorKey ?? '#000000'}
+                      onChange={(event) =>
+                        patch({
+                          imageMask: {
+                            dataBase64: recipe.imageMask?.dataBase64 ?? '',
+                            mimeType: recipe.imageMask?.mimeType ?? 'image/png',
+                            name: recipe.imageMask?.name ?? 'source-image.png',
+                            width: recipe.imageMask?.width ?? textureDimensions.width,
+                            height: recipe.imageMask?.height ?? textureDimensions.height,
+                            colorKey: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+                <div className="text-[10px] text-muted-foreground">
+                  Use Threshold as tolerance and Softness as the edge blend. Edge masks use Contrast for stronger
+                  outlines.
+                </div>
+                {asyncPreviewError && (
+                  <div className="rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
+                    {asyncPreviewError}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid gap-2 rounded-md border border-border/70 p-2" data-testid="texture-lab-saved-recipes">
               <div className="flex items-center justify-between gap-2">

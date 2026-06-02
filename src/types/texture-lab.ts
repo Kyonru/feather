@@ -14,6 +14,11 @@ export const TEXTURE_LAB_GENERATOR_IDS = [
   'rounded-rect-mask',
   'radial-mask',
   'threshold-noise-mask',
+  'image-alpha-mask',
+  'image-luminance-mask',
+  'image-threshold-mask',
+  'image-color-key-mask',
+  'image-edge-mask',
   'cloud-noise',
   'cellular-spots',
   'dissolve-noise',
@@ -134,6 +139,15 @@ export type TextureLabShapeRecipe = {
   layers: TextureLabShapeElement[];
 };
 
+export type TextureLabImageMaskRecipe = {
+  dataBase64: string;
+  mimeType: string;
+  name: string;
+  width: number;
+  height: number;
+  colorKey: string;
+};
+
 export type TextureLabAtlasSettings = {
   enabled: boolean;
   mode: TextureLabAtlasMode;
@@ -200,6 +214,7 @@ export type TextureLabRecipe = {
   solidColor: string;
   backgroundColor: string;
   backgroundAlpha: number;
+  imageMask?: TextureLabImageMaskRecipe;
   spline?: TextureLabSplineRecipe;
   shape?: TextureLabShapeRecipe;
   atlas?: TextureLabAtlasSettings;

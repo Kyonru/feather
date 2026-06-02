@@ -23,6 +23,7 @@ import {
   type TextureLabColorRamp,
   type TextureLabGeneratedPixels,
   type TextureLabGeneratorId,
+  type TextureLabImageMaskRecipe,
   type TextureLabRecipe,
   type TextureLabSavedRecipe,
   type TextureLabShapeBlendMode,
@@ -132,6 +133,36 @@ export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
     label: 'Noise Mask',
     category: 'Masks',
     description: 'A thresholded procedural noise mask.',
+  },
+  {
+    id: 'image-alpha-mask',
+    label: 'Image Alpha Mask',
+    category: 'Masks',
+    description: 'Extracts source image transparency into an editable alpha mask.',
+  },
+  {
+    id: 'image-luminance-mask',
+    label: 'Image Luminance Mask',
+    category: 'Masks',
+    description: 'Converts imported image brightness into a grayscale shader mask.',
+  },
+  {
+    id: 'image-threshold-mask',
+    label: 'Image Threshold Mask',
+    category: 'Masks',
+    description: 'Thresholds imported image brightness into a hard or softened mask.',
+  },
+  {
+    id: 'image-color-key-mask',
+    label: 'Image Color Key Mask',
+    category: 'Masks',
+    description: 'Keys an imported color with tolerance and softness controls.',
+  },
+  {
+    id: 'image-edge-mask',
+    label: 'Image Edge Mask',
+    category: 'Masks',
+    description: 'Finds image outlines and contrast edges for shader masks.',
   },
   {
     id: 'cloud-noise',
@@ -267,6 +298,11 @@ const TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS: Partial<Record<TextureLabGeneratorI
   'rounded-rect-mask': { alphaMode: 'luminance' },
   'radial-mask': { alphaMode: 'luminance' },
   'threshold-noise-mask': { alphaMode: 'inverted' },
+  'image-alpha-mask': { alphaMode: 'shape', threshold: 0.5, softness: 0.12, colorRamp: 'white' },
+  'image-luminance-mask': { alphaMode: 'opaque', contrast: 1.1, colorRamp: 'grayscale' },
+  'image-threshold-mask': { alphaMode: 'opaque', threshold: 0.5, softness: 0.08, colorRamp: 'grayscale' },
+  'image-color-key-mask': { alphaMode: 'opaque', threshold: 0.16, softness: 0.12, colorRamp: 'grayscale' },
+  'image-edge-mask': { alphaMode: 'opaque', threshold: 0.18, softness: 0.08, contrast: 1.5, colorRamp: 'grayscale' },
   'cloud-noise': { alphaMode: 'luminance' },
   'cellular-spots': { alphaMode: 'luminance' },
   'dissolve-noise': { alphaMode: 'inverted' },
@@ -317,6 +353,14 @@ export const TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS = [
   'radial-swirl-flow',
   'water-ripple-normal',
   'directional-distortion-map',
+] as const satisfies readonly TextureLabGeneratorId[];
+
+export const TEXTURE_LAB_IMAGE_MASK_GENERATOR_IDS = [
+  'image-alpha-mask',
+  'image-luminance-mask',
+  'image-threshold-mask',
+  'image-color-key-mask',
+  'image-edge-mask',
 ] as const satisfies readonly TextureLabGeneratorId[];
 
 const DEFAULT_TRAIL_SPLINE: TextureLabSplineRecipe = {
@@ -451,6 +495,7 @@ const RAMP_SET = new Set<string>(TEXTURE_LAB_COLOR_RAMPS);
 const ALPHA_SET = new Set<string>(TEXTURE_LAB_ALPHA_MODES);
 const SPLINE_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SPLINE_GENERATOR_IDS);
 const SHADER_MAP_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS);
+const IMAGE_MASK_GENERATOR_SET = new Set<string>(TEXTURE_LAB_IMAGE_MASK_GENERATOR_IDS);
 const SPLINE_OVERLAP_SET = new Set<string>(TEXTURE_LAB_SPLINE_OVERLAP_MODES);
 const SHAPE_KIND_SET = new Set<string>(TEXTURE_LAB_SHAPE_ELEMENT_KINDS);
 const SHAPE_REPEAT_SET = new Set<string>(TEXTURE_LAB_SHAPE_REPEAT_MODES);
@@ -494,6 +539,7 @@ export const TEXTURE_LAB_ATLAS_FILL_PRESETS = TEXTURE_LAB_ATLAS_PRESETS.filter(
 
 const TEXTURE_LAB_RECIPE_FRAME_PLACEHOLDER =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lhvDkQAAAABJRU5ErkJggg==';
+const TEXTURE_LAB_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/bmp']);
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -525,6 +571,28 @@ function normalizeHexColor(value: unknown, fallback = '#000000'): string {
   return fallback;
 }
 
+function normalizeImageMaskRecipe(input: unknown, generator: TextureLabGeneratorId): TextureLabImageMaskRecipe | undefined {
+  if (!isTextureLabImageMaskGenerator(generator)) return undefined;
+  const source = input && typeof input === 'object' ? (input as Partial<TextureLabImageMaskRecipe>) : {};
+  const dataBase64 = typeof source.dataBase64 === 'string' ? source.dataBase64.trim() : '';
+  if (!dataBase64) return undefined;
+  const mimeType =
+    typeof source.mimeType === 'string' && TEXTURE_LAB_IMAGE_MIME_TYPES.has(source.mimeType)
+      ? source.mimeType
+      : 'image/png';
+  return {
+    dataBase64,
+    mimeType,
+    name:
+      typeof source.name === 'string' && source.name.trim()
+        ? source.name.trim().replace(/\s+/g, ' ').slice(0, 96)
+        : 'source-image.png',
+    width: Math.round(clamp(Number(source.width ?? 1), 1, 4096)),
+    height: Math.round(clamp(Number(source.height ?? 1), 1, 4096)),
+    colorKey: normalizeHexColor(source.colorKey, '#000000'),
+  };
+}
+
 function hexToRgb(value: string): [number, number, number] {
   const hex = normalizeHexColor(value).slice(1);
   return [
@@ -547,6 +615,10 @@ export function isTextureLabSplineGenerator(generator: TextureLabGeneratorId): b
 
 export function isTextureLabShaderMapGenerator(generator: TextureLabGeneratorId): boolean {
   return SHADER_MAP_GENERATOR_SET.has(generator);
+}
+
+export function isTextureLabImageMaskGenerator(generator: TextureLabGeneratorId): boolean {
+  return IMAGE_MASK_GENERATOR_SET.has(generator);
 }
 
 export function defaultTextureLabRecipeForGenerator(generator: TextureLabGeneratorId): TextureLabRecipe {
@@ -1136,6 +1208,7 @@ function normalizeRecipe(input?: Partial<TextureLabRecipe> | null): TextureLabRe
     solidColor: normalizeHexColor(source.solidColor, DEFAULT_TEXTURE_LAB_RECIPE.solidColor),
     backgroundColor: normalizeHexColor(source.backgroundColor, DEFAULT_TEXTURE_LAB_RECIPE.backgroundColor),
     backgroundAlpha: clamp(Number(source.backgroundAlpha ?? DEFAULT_TEXTURE_LAB_RECIPE.backgroundAlpha), 0, 1),
+    imageMask: normalizeImageMaskRecipe(source.imageMask, generator),
     spline: normalizeSplineRecipe(source.spline, generator),
     shape: normalizeShapeRecipe(source.shape, generator),
     atlas: source.atlas ? normalizeTextureLabAtlasSettings(source.atlas) : undefined,
@@ -1435,6 +1508,12 @@ type ShapePixel = {
   g: number;
   b: number;
   a: number;
+};
+
+export type TextureLabImageMaskSource = {
+  width: number;
+  height: number;
+  pixels: Uint8ClampedArray;
 };
 
 function distanceToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
@@ -1745,6 +1824,60 @@ function shaderMapPixel(
   return encodeShaderVector(Math.cos(angle) * magnitude, Math.sin(angle) * magnitude, detail);
 }
 
+function imageMaskSourceOffset(source: TextureLabImageMaskSource, x: number, y: number): number {
+  const safeX = Math.min(source.width - 1, Math.max(0, x));
+  const safeY = Math.min(source.height - 1, Math.max(0, y));
+  return (safeY * source.width + safeX) * 4;
+}
+
+function imageMaskLuminanceAt(source: TextureLabImageMaskSource, x: number, y: number): number {
+  const offset = imageMaskSourceOffset(source, x, y);
+  const alpha = source.pixels[offset + 3] / 255;
+  const red = source.pixels[offset] / 255;
+  const green = source.pixels[offset + 1] / 255;
+  const blue = source.pixels[offset + 2] / 255;
+  return clamp01((red * 0.299 + green * 0.587 + blue * 0.114) * alpha);
+}
+
+function imageMaskValue(recipe: TextureLabRecipe, source: TextureLabImageMaskSource, x: number, y: number): number {
+  const offset = imageMaskSourceOffset(source, x, y);
+  const alpha = source.pixels[offset + 3] / 255;
+  const luminance = contrast(imageMaskLuminanceAt(source, x, y), recipe.contrast);
+
+  if (recipe.generator === 'image-alpha-mask') return alpha;
+  if (recipe.generator === 'image-luminance-mask') return luminance;
+  if (recipe.generator === 'image-threshold-mask') {
+    const edge = Math.max(0.0001, recipe.softness * 0.5);
+    return smoothstep(recipe.threshold - edge, recipe.threshold + edge, luminance);
+  }
+  if (recipe.generator === 'image-color-key-mask') {
+    const [targetRed, targetGreen, targetBlue] = hexToRgb(recipe.imageMask?.colorKey ?? '#000000');
+    const red = source.pixels[offset] / 255;
+    const green = source.pixels[offset + 1] / 255;
+    const blue = source.pixels[offset + 2] / 255;
+    const distance = Math.hypot(red - targetRed, green - targetGreen, blue - targetBlue) / Math.sqrt(3);
+    return 1 - smoothstep(recipe.threshold, recipe.threshold + Math.max(0.0001, recipe.softness * 0.65), distance);
+  }
+
+  const left = imageMaskLuminanceAt(source, x - 1, y);
+  const right = imageMaskLuminanceAt(source, x + 1, y);
+  const up = imageMaskLuminanceAt(source, x, y - 1);
+  const down = imageMaskLuminanceAt(source, x, y + 1);
+  const edge = Math.hypot(right - left, down - up) * recipe.contrast * 1.6;
+  return smoothstep(recipe.threshold, recipe.threshold + Math.max(0.0001, recipe.softness * 0.7), edge);
+}
+
+function imageMaskPixel(
+  recipe: TextureLabRecipe,
+  source: TextureLabImageMaskSource,
+  x: number,
+  y: number,
+): { color: [number, number, number, number]; alpha: number } {
+  const value = clamp01(imageMaskValue(recipe, source, x, y));
+  if (recipe.generator === 'image-alpha-mask') return { color: [value, value, value, 1], alpha: value };
+  return { color: [value, value, value, 1], alpha: 1 };
+}
+
 function generatorValue(
   recipe: TextureLabRecipe,
   u: number,
@@ -1755,6 +1888,9 @@ function generatorValue(
 ): { colorT: number; alpha: number } {
   if (isTextureLabSplineGenerator(recipe.generator)) {
     return splineGeneratorValue(recipe, u, v, splinePath);
+  }
+  if (isTextureLabImageMaskGenerator(recipe.generator)) {
+    return { colorT: 0, alpha: 0 };
   }
 
   const cx = (u - 0.5) * 2;
@@ -2158,13 +2294,37 @@ export function renderTextureLabAtlasPixels(input?: Partial<TextureLabRecipe> | 
   };
 }
 
+function writeTextureLabPixel(
+  pixels: Uint8ClampedArray,
+  offset: number,
+  color: [number, number, number, number],
+  alpha: number,
+  recipe: TextureLabRecipe,
+): void {
+  const backgroundColor = hexToRgb(recipe.backgroundColor);
+  const backgroundAlpha = recipe.backgroundAlpha;
+  const foregroundAlpha = alpha * color[3];
+  const finalAlpha = foregroundAlpha + backgroundAlpha * (1 - foregroundAlpha);
+  const finalColor: [number, number, number] =
+    finalAlpha > 0
+      ? [
+          (color[0] * foregroundAlpha + backgroundColor[0] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+          (color[1] * foregroundAlpha + backgroundColor[1] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+          (color[2] * foregroundAlpha + backgroundColor[2] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
+        ]
+      : [color[0], color[1], color[2]];
+
+  pixels[offset] = Math.round(clamp01(finalColor[0]) * 255);
+  pixels[offset + 1] = Math.round(clamp01(finalColor[1]) * 255);
+  pixels[offset + 2] = Math.round(clamp01(finalColor[2]) * 255);
+  pixels[offset + 3] = Math.round(finalAlpha * 255);
+}
+
 export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null): TextureLabGeneratedPixels {
   const recipe = normalizeRecipe(input);
   const { width, height } = textureLabRecipeDimensions(recipe);
   const pixels = new Uint8ClampedArray(width * height * 4);
   const splinePath = buildSampledSplinePath(recipe);
-  const backgroundColor = hexToRgb(recipe.backgroundColor);
-  const backgroundAlpha = recipe.backgroundAlpha;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -2205,22 +2365,28 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
         if (recipe.alphaMode === 'inverted') alpha = 1 - alpha;
       }
 
-      const foregroundAlpha = alpha * color[3];
-      const finalAlpha = foregroundAlpha + backgroundAlpha * (1 - foregroundAlpha);
-      const finalColor: [number, number, number] =
-        finalAlpha > 0
-          ? [
-              (color[0] * foregroundAlpha + backgroundColor[0] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
-              (color[1] * foregroundAlpha + backgroundColor[1] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
-              (color[2] * foregroundAlpha + backgroundColor[2] * backgroundAlpha * (1 - foregroundAlpha)) / finalAlpha,
-            ]
-          : [color[0], color[1], color[2]];
-
       const offset = (y * width + x) * 4;
-      pixels[offset] = Math.round(clamp01(finalColor[0]) * 255);
-      pixels[offset + 1] = Math.round(clamp01(finalColor[1]) * 255);
-      pixels[offset + 2] = Math.round(clamp01(finalColor[2]) * 255);
-      pixels[offset + 3] = Math.round(finalAlpha * 255);
+      writeTextureLabPixel(pixels, offset, color, alpha, recipe);
+    }
+  }
+
+  return { width, height, pixels, recipe };
+}
+
+export function renderTextureLabImageMaskPixels(
+  input: Partial<TextureLabRecipe> | null | undefined,
+  source: TextureLabImageMaskSource,
+): TextureLabGeneratedPixels {
+  const recipe = normalizeRecipe(input);
+  const { width, height } = textureLabRecipeDimensions(recipe);
+  const pixels = new Uint8ClampedArray(width * height * 4);
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const sourceX = Math.round((x / Math.max(1, width - 1)) * Math.max(0, source.width - 1));
+      const sourceY = Math.round((y / Math.max(1, height - 1)) * Math.max(0, source.height - 1));
+      const { color, alpha } = imageMaskPixel(recipe, source, sourceX, sourceY);
+      writeTextureLabPixel(pixels, (y * width + x) * 4, color, alpha, recipe);
     }
   }
 
@@ -2264,6 +2430,41 @@ function loadTextureLabImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+function textureLabImageMaskDataUrl(recipe: TextureLabRecipe): string {
+  const imageMask = recipe.imageMask;
+  if (!imageMask?.dataBase64) return '';
+  if (imageMask.dataBase64.startsWith('data:image')) return imageMask.dataBase64;
+  return `data:${imageMask.mimeType};base64,${imageMask.dataBase64}`;
+}
+
+async function loadTextureLabImageMaskSource(recipe: TextureLabRecipe): Promise<TextureLabImageMaskSource> {
+  const src = textureLabImageMaskDataUrl(recipe);
+  if (!src) throw new Error('Upload an image before generating an image mask.');
+  const { width, height } = textureLabRecipeDimensions(recipe);
+  const image = await loadTextureLabImage(src);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Canvas 2D is not available');
+  context.imageSmoothingEnabled = !recipe.pixelated;
+  context.clearRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+  const imageData = context.getImageData(0, 0, width, height);
+  return { width, height, pixels: new Uint8ClampedArray(imageData.data) };
+}
+
+export async function renderTextureLabPixelsAsync(
+  input?: Partial<TextureLabRecipe> | null,
+): Promise<TextureLabGeneratedPixels> {
+  const recipe = normalizeRecipe(input);
+  if (isTextureLabImageMaskGenerator(recipe.generator) && recipe.imageMask?.dataBase64) {
+    const source = await loadTextureLabImageMaskSource(recipe);
+    return renderTextureLabImageMaskPixels(recipe, source);
+  }
+  return renderTextureLabPixels(recipe);
+}
+
 async function renderTextureLabCustomFramePixels(
   recipe: TextureLabRecipe,
   frame: TextureLabAtlasCustomFrame,
@@ -2271,7 +2472,7 @@ async function renderTextureLabCustomFramePixels(
 ): Promise<TextureLabAtlasFramePixels> {
   const { width: frameWidth, height: frameHeight } = textureLabRecipeDimensions(recipe);
   if (frame.recipe) {
-    const rendered = renderTextureLabPixels({
+    const rendered = await renderTextureLabPixelsAsync({
       ...frame.recipe,
       size: recipe.size,
       width: frameWidth,
@@ -2310,6 +2511,43 @@ async function renderTextureLabCustomFramePixels(
     recipe: normalizeRecipe({ ...recipe, atlas: undefined }),
     index,
     progress: 0,
+  };
+}
+
+export async function renderTextureLabAtlasPixelsAsync(
+  input?: Partial<TextureLabRecipe> | null,
+): Promise<TextureLabAtlasPixels> {
+  const recipe = normalizeRecipe(input);
+  const atlas = normalizeTextureLabAtlasSettings({ ...recipe.atlas, enabled: true });
+  const { width: frameWidth, height: frameHeight } = textureLabRecipeDimensions(recipe);
+  const metadata = atlasMetadata(atlas, frameWidth, frameHeight);
+  const pixels = new Uint8ClampedArray(metadata.width * metadata.height * 4);
+  const frames: TextureLabAtlasFramePixels[] = [];
+
+  for (let index = 0; index < atlas.frameCount; index += 1) {
+    const frameRecipe = textureLabAtlasFrameRecipe(recipe, atlas, index);
+    const frame = await renderTextureLabPixelsAsync(frameRecipe);
+    const frameX = (index % atlas.columns) * frameWidth;
+    const frameY = Math.floor(index / atlas.columns) * frameHeight;
+    for (let y = 0; y < frameHeight; y += 1) {
+      const targetOffset = ((frameY + y) * metadata.width + frameX) * 4;
+      const sourceOffset = y * frameWidth * 4;
+      pixels.set(frame.pixels.subarray(sourceOffset, sourceOffset + frameWidth * 4), targetOffset);
+    }
+    frames.push({
+      ...frame,
+      index,
+      progress: atlas.frameCount <= 1 ? 0 : index / (atlas.frameCount - 1),
+    });
+  }
+
+  return {
+    width: metadata.width,
+    height: metadata.height,
+    pixels,
+    recipe: { ...recipe, atlas },
+    atlas: metadata,
+    frames,
   };
 }
 
@@ -2403,7 +2641,30 @@ export async function generateTextureLabTextureAsync(
       atlas: pixels.atlas,
     };
   }
-  return generateTextureLabTexture(input);
+  const normalized = normalizeRecipe(input);
+  if (normalized.atlas?.enabled) {
+    const pixels = await renderTextureLabAtlasPixelsAsync(normalized);
+    const dataUrl = textureLabPixelsToDataUrl(pixels);
+    return {
+      filename: textureLabFilename(pixels.recipe),
+      dataBase64: dataUrl.split(',', 2)[1] ?? '',
+      dataUrl,
+      width: pixels.width,
+      height: pixels.height,
+      recipe: pixels.recipe,
+      atlas: pixels.atlas,
+    };
+  }
+  const pixels = await renderTextureLabPixelsAsync(normalized);
+  const dataUrl = textureLabPixelsToDataUrl(pixels);
+  return {
+    filename: textureLabFilename(pixels.recipe),
+    dataBase64: dataUrl.split(',', 2)[1] ?? '',
+    dataUrl,
+    width: pixels.width,
+    height: pixels.height,
+    recipe: pixels.recipe,
+  };
 }
 
 export function generateTextureLabAtlasBundle(input?: Partial<TextureLabRecipe> | null): TextureLabAtlasBundle {
@@ -2435,8 +2696,9 @@ export function generateTextureLabAtlasBundle(input?: Partial<TextureLabRecipe> 
 export async function generateTextureLabAtlasBundleAsync(
   input?: Partial<TextureLabRecipe> | null,
 ): Promise<TextureLabAtlasBundle> {
-  if (!isTextureLabCustomAtlas(input)) return generateTextureLabAtlasBundle(input);
-  const pixels = await renderTextureLabCustomAtlasPixels(input);
+  const pixels = isTextureLabCustomAtlas(input)
+    ? await renderTextureLabCustomAtlasPixels(input)
+    : await renderTextureLabAtlasPixelsAsync(input);
   const sheetDataUrl = textureLabPixelsToDataUrl(pixels);
   const texture: GeneratedTextureResult = {
     filename: textureLabFilename(pixels.recipe),

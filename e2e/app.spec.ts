@@ -1560,6 +1560,13 @@ test('texture lab is available without a connected session in the app', async ({
   await expect(page.getByLabel('Texture generator')).toHaveText(/Normal From Height/);
   await expect(page.getByLabel('Texture alpha mode')).toHaveText(/Opaque/);
   await expect.poll(() => preview.getAttribute('src')).not.toBe(cloudPreview);
+  await page.getByLabel('Texture generator').click();
+  await page.getByRole('option', { name: 'Image Luminance Mask' }).click();
+  await expect(page.getByTestId('texture-lab-image-mask')).toBeVisible();
+  const imageMaskBefore = await preview.getAttribute('src');
+  await page.getByTestId('texture-lab-image-mask-input').setInputFiles(shaderPreviewTextureFiles().water);
+  await expect(page.getByTestId('texture-lab-image-mask').getByText(/water\.png/)).toBeVisible();
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(imageMaskBefore);
   await page.getByRole('button', { name: 'Load saved recipe Blue Spark' }).click();
   await expect(page.getByLabel('Texture generator')).toHaveText(/Soft Circle/);
   await expect(page.getByLabel('Texture solid color')).toHaveValue('#ff3366');
@@ -1583,7 +1590,6 @@ test('texture lab is available without a connected session in the app', async ({
   await page.getByLabel('Texture softness').fill('0.12');
   await expect.poll(() => selectedAtlasFramePreview.getAttribute('src')).not.toBe(atlasFrameBeforeEdit);
   await page.getByTestId('texture-lab-custom-frame-input').setInputFiles(shaderPreviewTextureFiles().water);
-  await expect(page.getByText(/water\.png/)).toBeVisible();
   await expect(page.getByTestId('texture-lab-uploaded-frame-readonly')).toContainText(/replace-only/i);
   await page.getByRole('button', { name: /copy selected to all/i }).click();
   const copyFramesDialog = page.getByRole('dialog', { name: /copy selected frame to all/i });
