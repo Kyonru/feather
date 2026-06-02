@@ -6,7 +6,7 @@ import path from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
 
 export const LOVEJS_REPO = 'https://github.com/2dengine/love.js';
-const LOVEJS_PREVIEW_QUERY = 'g=showcase.love&v=11.6&featherPreview=preview-bridge-v8';
+const LOVEJS_PREVIEW_QUERY = 'g=showcase.love&v=11.7&featherPreview=preview-bridge-v9';
 
 export const loveJsContentTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],

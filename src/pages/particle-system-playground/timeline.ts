@@ -11,6 +11,7 @@ import {
   type ParticleTimelineKeyframe,
   type ParticleTimelineLane,
   type ParticleTimelineMode,
+  type ParticleTimelineState,
   type ParticleTimelineTrack,
 } from '@/types/particle-system-playground';
 import { easeParticleTimelineValue, normalizeParticleTimelineEasing } from './easing';
@@ -68,6 +69,41 @@ export function particleTimelineModeFromLoop(loop: boolean): ParticleTimelineMod
 
 export function particleTimelineLoopForMode(mode: ParticleTimelineMode): boolean {
   return mode === 'loop';
+}
+
+export function advanceParticleTimelineState(
+  timeline: Pick<ParticleTimeline, 'duration' | 'mode' | 'loop'> | null | undefined,
+  state: ParticleTimelineState | null | undefined,
+  dt: number,
+): ParticleTimelineState {
+  const duration = Math.max(0.01, finiteNumber(timeline?.duration, PARTICLE_TIMELINE_DEFAULT_DURATION));
+  const mode = normalizeParticleTimelineMode(timeline?.mode, timeline?.loop ? 'loop' : 'one-shot');
+  const previous = state ?? { time: 0, playing: false, scrubVersion: 0 };
+  const scrubVersion = finiteNumber(previous.scrubVersion, 0);
+  const time = clamp(finiteNumber(previous.time, 0), 0, duration);
+  const playing = previous.playing === true;
+  const elapsed = Math.max(0, finiteNumber(dt, 0));
+
+  if (!playing || elapsed <= 0) {
+    return { time, playing, scrubVersion };
+  }
+
+  let nextTime = time + elapsed;
+  let nextPlaying = true;
+  if (nextTime > duration) {
+    if (mode === 'loop') {
+      nextTime %= duration;
+    } else {
+      nextTime = duration;
+      nextPlaying = mode === 'ambient';
+    }
+  }
+
+  return {
+    time: clamp(nextTime, 0, duration),
+    playing: nextPlaying,
+    scrubVersion,
+  };
 }
 
 function makeTimeline(duration: number, mode: ParticleTimelineMode, tracks: ParticleTimelineTrack[]): ParticleTimeline {

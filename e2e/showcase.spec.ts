@@ -242,6 +242,32 @@ async function expectShaderPreviewFrameReady(iframe: Locator) {
     .toBe('ready');
 }
 
+async function particlePreviewFrame(page: Page) {
+  const iframe = page.locator('iframe[title="Particle Preview"]').first();
+  await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
+  const handle = await iframe.elementHandle();
+  const frame = await handle?.contentFrame();
+  expect(frame).not.toBeNull();
+  return frame!;
+}
+
+async function particlePreviewStatus(page: Page) {
+  const frame = await particlePreviewFrame(page);
+  return frame.evaluate(() => {
+    type StatusLike = { time?: number; playing?: boolean; mode?: string; particleCount?: number; lastBurstCount?: number };
+    type PayloadLike = { composite?: { timelineState?: { time?: number; playing?: boolean }; timeline?: { mode?: string } } };
+    const status = (window as Window & { _featherParticlePreviewStatus?: StatusLike })._featherParticlePreviewStatus;
+    const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
+    return {
+      time: status?.time ?? payload?.composite?.timelineState?.time,
+      playing: status?.playing ?? payload?.composite?.timelineState?.playing,
+      mode: status?.mode ?? payload?.composite?.timeline?.mode,
+      particleCount: status?.particleCount ?? 0,
+      lastBurstCount: status?.lastBurstCount ?? 0,
+    };
+  });
+}
+
 test('standalone showcase loads the landing page and tools', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /complete developer toolkit/i })).toBeVisible();
@@ -654,6 +680,33 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await page.getByRole('tab', { name: 'Timeline' }).click();
   await expect(page.getByText('150%')).toBeVisible();
   await expect(page.getByRole('button', { name: /snap off/i })).toBeVisible();
+});
+
+test('particle playground local preview follows timeline playback in the showcase', async ({ page }) => {
+  await page.goto('/particle-system-playground');
+  await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
+  await particlePreviewFrame(page);
+
+  await page.getByTestId('particle-timeline-track-1').click();
+  await page.getByLabel('Emit at').first().fill('0.8');
+  await page.getByLabel('Stop at').first().fill('1.4');
+  await page.getByTitle('Reset playhead').click();
+  await expect.poll(async () => (await particlePreviewStatus(page)).particleCount ?? -1).toBe(0);
+
+  await page.getByTitle('Play timeline').click();
+  await expect
+    .poll(async () => {
+      const status = await particlePreviewStatus(page);
+      const time = Number(status.time ?? 0);
+      return time > 0.08 && time < 0.8 && Number(status.particleCount ?? 0) === 0;
+    })
+    .toBe(true);
+
+  await expect.poll(async () => (await particlePreviewStatus(page)).time ?? 0, { timeout: 2500 }).toBeGreaterThan(0.85);
+  await expect.poll(async () => (await particlePreviewStatus(page)).particleCount ?? 0, { timeout: 2500 }).toBeGreaterThan(0);
+  await page.getByTitle('Pause timeline').click();
 });
 
 test('particle playground timeline toggles emitters and moves grouped items in the showcase', async ({ page }) => {

@@ -463,6 +463,7 @@ local particleState = {
   timelineState = { time = 0, playing = false },
   payloadSignature = "",
   lastScrubVersion = -1,
+  lastBurstCount = 0,
 }
 
 local TIMELINE_LANES = {
@@ -796,6 +797,46 @@ local function trackAllowsEmission(track, time, emitterLifetime, mode)
   return false
 end
 
+local function publishParticleStatus()
+  if not _jsEval then
+    return
+  end
+
+  local total = 0
+  local systems = {}
+  for _, entry in ipairs(particleState.systems) do
+    local count = 0
+    if entry.ps and type(entry.ps.getCount) == "function" then
+      local ok, value = pcall(entry.ps.getCount, entry.ps)
+      if ok then
+        count = tonumber(value) or 0
+      end
+    end
+    total = total + count
+    systems[#systems + 1] = string.format(
+      "{enabled:%s,particleCount:%d}",
+      entry.enabled ~= false and "true" or "false",
+      count
+    )
+  end
+
+  local mode = "one-shot"
+  if type(particleState.timeline) == "table" and type(particleState.timeline.mode) == "string" then
+    mode = particleState.timeline.mode
+  end
+  local state = particleState.timelineState or {}
+  local expression = string.format(
+    "window._featherParticlePreviewStatus={time:%.6f,playing:%s,mode:%s,particleCount:%d,lastBurstCount:%d,systems:[%s]}",
+    tonumber(state.time) or 0,
+    state.playing == true and "true" or "false",
+    jsString(mode),
+    total,
+    tonumber(particleState.lastBurstCount) or 0,
+    table.concat(systems, ",")
+  )
+  pcall(_jsEval, expression)
+end
+
 local function applyTimelineAt(time, allowEmission)
   local timeline = particleState.timeline
   if type(timeline) ~= "table" then
@@ -838,8 +879,9 @@ end
 local function emitTimelineStarts(previousTime, nextTime)
   local timeline = particleState.timeline
   if type(timeline) ~= "table" then
-    return
+    return 0
   end
+  local emitted = 0
   for index, track in ipairs(timeline.tracks or {}) do
     local entry = particleState.systems[index]
     if entry and entry.ps and entry.enabled then
@@ -852,11 +894,14 @@ local function emitTimelineStarts(previousTime, nextTime)
           pcall(entry.ps.start, entry.ps)
           if count > 0 then
             pcall(entry.ps.emit, entry.ps, count)
+            emitted = emitted + count
           end
         end
       end
     end
   end
+  particleState.lastBurstCount = (tonumber(particleState.lastBurstCount) or 0) + emitted
+  return emitted
 end
 
 local function emitTimelineStartsForAdvance(previousTime, elapsed, duration)
@@ -894,6 +939,7 @@ local function emitTimelineStartsForAdvance(previousTime, elapsed, duration)
 end
 
 local function resetParticleSystems()
+  particleState.lastBurstCount = 0
   for _, entry in ipairs(particleState.systems) do
     if entry.ps then
       pcall(entry.ps.reset, entry.ps)
@@ -1034,6 +1080,7 @@ local function applyParticlePayload(payload)
   local incomingState = type(composite.timelineState) == "table" and composite.timelineState or {}
   particleState.lastScrubVersion = tonumber(incomingState.scrubVersion) or -1
   seekParticleTimeline(tonumber(incomingState.time) or 0, incomingState.playing == true)
+  publishParticleStatus()
 end
 
 local function drawParticlePreview(w, h)
@@ -1135,6 +1182,7 @@ function love.update(dt)
     pollPayload()
   end
   if pollState.tool == "particle-system-playground" then
+    particleState.lastBurstCount = 0
     local timeline = particleState.timeline
     if type(timeline) == "table" and particleState.timelineState.playing then
       local duration = tonumber(timeline.duration) or 3
@@ -1163,6 +1211,7 @@ function love.update(dt)
         pcall(entry.ps.update, entry.ps, dt)
       end
     end
+    publishParticleStatus()
   end
 end
 

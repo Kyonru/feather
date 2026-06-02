@@ -28,11 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Texture Lab Shapes & Polygons so Spline layers can be edited in the preview point editor.
 - Fixed Texture Lab generator and spline preset switching so each preset restores its default controls instead of inheriting stale values from the previous recipe.
 - Fixed Particle Playground timeline drags so focused numeric clip editors cannot write stale values back over direct clip movement.
+- Fixed local Particle Playground previews so web and creative-session playback follow authored timeline timing.
 
 ### Tests
 
 - Added focused Shader Graph coverage for WebGL preview derivative support.
 - Added focused/Lua/app/showcase coverage for Particle Playground timeline grouping, undo/redo, atlas metadata, and export paths.
+- Added app/showcase coverage for local Particle Playground preview timeline playback.
 - Added focused Texture Lab dimension coverage alongside app/showcase coverage for generators, recipes, spline/shape editing, atlas workflows, layout, and confirmation dialogs.
 - Added focused/app coverage for creative session persistence and local creative-tool access without runtime commands.
 

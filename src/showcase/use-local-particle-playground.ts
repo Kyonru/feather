@@ -10,6 +10,7 @@ import type {
   ParticleSystemPlaygroundTemplate,
 } from '@/types/particle-system-playground';
 import {
+  advanceParticleTimelineState,
   migrateParticleProject,
   normalizeParticleTimeline,
   PARTICLE_PROJECT_TYPE,
@@ -526,6 +527,44 @@ export function useLocalParticlePlayground(workspaceId?: string) {
       };
     });
   }
+
+  const localTimeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
+  const localTimelineDuration = localTimeline?.duration ?? 0;
+  const localTimelineMode = normalizeParticleTimelineMode(localTimeline?.mode, localTimeline?.loop ? 'loop' : 'one-shot');
+  const localTimelinePlaying = data.data?.timelineState?.playing === true;
+
+  useEffect(() => {
+    const compositeName = data.activeComposite;
+    if (!compositeName || localTimelineDuration <= 0 || !localTimelinePlaying) return;
+
+    let last = performance.now();
+    const interval = window.setInterval(() => {
+      const now = performance.now();
+      const dt = Math.max(0, Math.min(0.12, (now - last) / 1000));
+      last = now;
+      setData((current) => {
+        if (current.activeComposite !== compositeName || !current.data) return current;
+        const previous = current.data.timelineState ?? { time: 0, playing: true, scrubVersion: 0 };
+        if (previous.playing !== true) return current;
+        const nextState = advanceParticleTimelineState(
+          { duration: localTimelineDuration, mode: localTimelineMode, loop: localTimelineMode === 'loop' },
+          previous,
+          dt,
+        );
+        const next = {
+          ...current,
+          data: {
+            ...current.data,
+            timelineState: nextState,
+          },
+        };
+        dataRef.current = next;
+        return next;
+      });
+    }, 33);
+
+    return () => window.clearInterval(interval);
+  }, [data.activeComposite, localTimelineDuration, localTimelineMode, localTimelinePlaying]);
 
   function createComposite(name?: string, template: ParticleSystemPlaygroundTemplate = 'fire') {
     const nextName = name?.trim() || `Showcase ${data.composites.length + 1}`;

@@ -16,6 +16,7 @@ import type {
   ParticleSystemPlaygroundTemplate,
 } from '@/types/particle-system-playground';
 import {
+  advanceParticleTimelineState,
   migrateParticleProject,
   PARTICLE_PROJECT_TYPE,
   normalizeParticleTimeline,
@@ -595,7 +596,7 @@ export function useParticleSystemPlayground() {
 
   const localTimeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
   const localTimelineDuration = localTimeline?.duration ?? 0;
-  const localTimelineLoop = localTimeline?.loop === true;
+  const localTimelineMode = normalizeParticleTimelineMode(localTimeline?.mode, localTimeline?.loop ? 'loop' : 'one-shot');
   const localTimelinePlaying = data.data?.timelineState?.playing === true;
 
   useEffect(() => {
@@ -611,30 +612,20 @@ export function useParticleSystemPlayground() {
       setLocalTimelineStates((current) => {
         const previous = current[composite] ?? initialTimelineState ?? { time: 0, playing: true, scrubVersion: 0 };
         if (previous.playing !== true) return current;
-        const duration = Math.max(0.01, localTimelineDuration);
-        let nextTime = (Number(previous.time) || 0) + dt;
-        let nextPlaying = true;
-        if (nextTime > duration) {
-          if (localTimelineLoop) {
-            nextTime %= duration;
-          } else {
-            nextTime = duration;
-            nextPlaying = false;
-          }
-        }
+        const next = advanceParticleTimelineState(
+          { duration: localTimelineDuration, mode: localTimelineMode, loop: localTimelineMode === 'loop' },
+          previous,
+          dt,
+        );
         return {
           ...current,
-          [composite]: {
-            ...previous,
-            time: nextTime,
-            playing: nextPlaying,
-          },
+          [composite]: next,
         };
       });
     }, 33);
 
     return () => window.clearInterval(interval);
-  }, [data.activeComposite, localTimelineDuration, localTimelineLoop, localTimelinePlaying]);
+  }, [data.activeComposite, localTimelineDuration, localTimelineMode, localTimelinePlaying]);
 
   const sendTimelineSeek = useMemo(
     () =>

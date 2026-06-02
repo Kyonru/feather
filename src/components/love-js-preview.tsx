@@ -9,7 +9,7 @@ const DEFAULT_W = 360;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const MIN_W = 220;
 const MAX_W = 720;
-const PREVIEW_ASSET_VERSION = 'preview-bridge-v8';
+const PREVIEW_ASSET_VERSION = 'preview-bridge-v9';
 
 type LoveJsPreviewProps = {
   title: string;
@@ -36,7 +36,7 @@ export function LoveJsPreview({
   const loadedRef = useRef(false);
   const payloadRef = useRef(payload);
   const [minimized, setMinimized] = useState(false);
-  const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/index.html?g=showcase.love&v=11.6&featherPreview=${PREVIEW_ASSET_VERSION}`;
+  const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/index.html?g=showcase.love&v=11.7&featherPreview=${PREVIEW_ASSET_VERSION}`;
 
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{ startMouseX: number; startMouseY: number; startTx: number; startTy: number } | null>(null);

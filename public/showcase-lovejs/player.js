@@ -22,6 +22,7 @@
   let particleTimelineTime = 0;
   let particleTimelinePlaying = false;
   let particleLastScrubVersion = -1;
+  let particleLastTimelineBurstCount = 0;
   let particleSystems = [];
   let whiteTexture = null;
   let previewTexture = null;
@@ -29,6 +30,14 @@
   let previewTextureSize = { width: 256, height: 256 };
   let textureCacheKey = '';
   let textureCache = new Map();
+  window._featherParticlePreviewStatus = {
+    time: 0,
+    playing: false,
+    mode: 'one-shot',
+    systems: [],
+    particleCount: 0,
+    lastBurstCount: 0,
+  };
 
   const statusOverlay = document.createElement('div');
   statusOverlay.style.cssText = [
@@ -481,9 +490,101 @@ void main() {
   function sortedKeyframes(points) {
     return Array.isArray(points)
       ? [...points]
-          .map((point) => ({ time: safeNumber(point?.time, 0), value: safeNumber(point?.value, 0) }))
+          .map((point) => ({
+            time: safeNumber(point?.time, 0),
+            value: safeNumber(point?.value, 0),
+            easing: typeof point?.easing === 'string' ? point.easing : 'linear',
+          }))
           .sort((a, b) => a.time - b.time)
       : [];
+  }
+
+  function easeOutBounce(x) {
+    const n1 = 7.5625;
+    const d1 = 2.75;
+    if (x < 1 / d1) return n1 * x * x;
+    if (x < 2 / d1) {
+      const shifted = x - 1.5 / d1;
+      return n1 * shifted * shifted + 0.75;
+    }
+    if (x < 2.5 / d1) {
+      const shifted = x - 2.25 / d1;
+      return n1 * shifted * shifted + 0.9375;
+    }
+    const shifted = x - 2.625 / d1;
+    return n1 * shifted * shifted + 0.984375;
+  }
+
+  function easeTimelineValue(easing, value) {
+    const t = Math.max(0, Math.min(1, value));
+    const c1 = 1.70158;
+    const c2 = c1 * 1.525;
+    const c3 = c1 + 1;
+    const c4 = (2 * Math.PI) / 3;
+    const c5 = (2 * Math.PI) / 4.5;
+    switch (easing) {
+      case 'hold':
+        return 0;
+      case 'inSine':
+        return 1 - Math.cos((t * Math.PI) / 2);
+      case 'outSine':
+        return Math.sin((t * Math.PI) / 2);
+      case 'inOutSine':
+        return -(Math.cos(Math.PI * t) - 1) / 2;
+      case 'inQuad':
+        return t * t;
+      case 'outQuad':
+        return 1 - (1 - t) * (1 - t);
+      case 'inOutQuad':
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      case 'inCubic':
+        return t * t * t;
+      case 'outCubic':
+        return 1 - Math.pow(1 - t, 3);
+      case 'inOutCubic':
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      case 'inQuart':
+        return t * t * t * t;
+      case 'outQuart':
+        return 1 - Math.pow(1 - t, 4);
+      case 'inOutQuart':
+        return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+      case 'inExpo':
+        return t === 0 ? 0 : Math.pow(2, 10 * t - 10);
+      case 'outExpo':
+        return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+      case 'inOutExpo':
+        if (t === 0 || t === 1) return t;
+        return t < 0.5 ? Math.pow(2, 20 * t - 10) / 2 : (2 - Math.pow(2, -20 * t + 10)) / 2;
+      case 'inBack':
+        return c3 * t * t * t - c1 * t * t;
+      case 'outBack':
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      case 'inOutBack':
+        return t < 0.5
+          ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
+          : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
+      case 'inElastic':
+        if (t === 0 || t === 1) return t;
+        return -Math.pow(2, 10 * t - 10) * Math.sin((t * 10 - 10.75) * c4);
+      case 'outElastic':
+        if (t === 0 || t === 1) return t;
+        return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+      case 'inOutElastic':
+        if (t === 0 || t === 1) return t;
+        return t < 0.5
+          ? -(Math.pow(2, 20 * t - 10) * Math.sin((20 * t - 11.125) * c5)) / 2
+          : (Math.pow(2, -20 * t + 10) * Math.sin((20 * t - 11.125) * c5)) / 2 + 1;
+      case 'inBounce':
+        return 1 - easeOutBounce(1 - t);
+      case 'outBounce':
+        return easeOutBounce(t);
+      case 'inOutBounce':
+        return t < 0.5 ? (1 - easeOutBounce(1 - 2 * t)) / 2 : (1 + easeOutBounce(2 * t - 1)) / 2;
+      case 'linear':
+      default:
+        return t;
+    }
   }
 
   function evaluateKeyframes(points, time, fallback) {
@@ -495,7 +596,11 @@ void main() {
       const next = keyframes[i + 1];
       if (time >= current.time && time <= next.time) {
         const span = Math.max(0.0001, next.time - current.time);
-        return interpolate(current.value, next.value, Math.max(0, Math.min(1, (time - current.time) / span)));
+        return interpolate(
+          current.value,
+          next.value,
+          easeTimelineValue(current.easing, Math.max(0, Math.min(1, (time - current.time) / span))),
+        );
       }
     }
     return keyframes[keyframes.length - 1].value;
@@ -673,12 +778,13 @@ void main() {
     particleTimelineTime = Math.max(0, safeNumber(state.time, 0));
     particleTimelinePlaying = state.playing === true;
     particleLastScrubVersion = safeNumber(state.scrubVersion, -1);
-    if (composite.timeline) emitTimelineBursts(-0.0001, particleTimelineTime, width, height);
+    if (composite.timeline) seekParticleTimeline(particleTimelineTime, width, height, particleTimelinePlaying);
     else {
       particleSystems.forEach((system) => {
         emitParticles(system, Math.min(80, Math.max(0, system.emitAtStart)), width, height);
       });
     }
+    updateParticlePreviewStatus();
   }
 
   function ensureParticleSystems(width, height) {
@@ -701,6 +807,23 @@ void main() {
     return timeline?.loop ? 'loop' : 'one-shot';
   }
 
+  function updateParticlePreviewStatus() {
+    const timeline = payload.composite?.timeline;
+    const systems = particleSystems.map((system) => ({
+      index: system.index,
+      enabled: system.enabled,
+      particleCount: system.particles.length,
+    }));
+    window._featherParticlePreviewStatus = {
+      time: particleTimelineTime,
+      playing: particleTimelinePlaying,
+      mode: particleTimelineMode(timeline),
+      systems,
+      particleCount: systems.reduce((sum, system) => sum + system.particleCount, 0),
+      lastBurstCount: particleLastTimelineBurstCount,
+    };
+  }
+
   function particleCanEmit(system, time) {
     const timeline = payload.composite?.timeline;
     if (!timeline || !Array.isArray(timeline.tracks)) return true;
@@ -719,17 +842,23 @@ void main() {
 
   function emitTimelineBursts(previous, nextTime, width, height) {
     const timeline = payload.composite?.timeline;
-    if (!timeline || !Array.isArray(timeline.tracks)) return;
+    if (!timeline || !Array.isArray(timeline.tracks)) return 0;
+    let emitted = 0;
     particleSystems.forEach((system) => {
       const track = particleTrackFor(system.index);
       const clips = Array.isArray(track?.clips) ? track.clips : [];
       clips.forEach((clip) => {
         const start = safeNumber(clip.start, 0);
-        if (start > previous && start <= nextTime) {
-          emitParticles(system, Math.max(0, safeNumber(clip.emit, system.emitAtStart)), width, height);
+        if (previous <= start && nextTime >= start) {
+          const count = Math.max(0, safeNumber(clip.emit, system.emitAtStart));
+          emitted += count;
+          system.emitAccumulator = 0;
+          emitParticles(system, count, width, height);
         }
       });
     });
+    particleLastTimelineBurstCount += emitted;
+    return emitted;
   }
 
   function particleOrigin(system, width, height) {
@@ -798,68 +927,22 @@ void main() {
     }
   }
 
-  function updateParticleSystems(dt, width, height) {
-    const composite = payload.composite || {};
-    if (composite.previewEnabled === false) {
-      particleSystems.forEach((system) => {
-        system.particles.length = 0;
-      });
-      return;
-    }
-
-    const timeline = composite.timeline;
-    const duration = Math.max(0.01, safeNumber(timeline?.duration, 3));
-    const incomingState = composite.timelineState || {};
-    const incomingTime = Math.max(0, safeNumber(incomingState.time, particleTimelineTime));
-    const incomingPlaying = incomingState.playing === true;
-    const wasPlaying = particleTimelinePlaying;
-    const scrubVersion = safeNumber(incomingState.scrubVersion, particleLastScrubVersion);
-    const explicitSeek = scrubVersion !== particleLastScrubVersion && !wasPlaying && !incomingPlaying;
-    particleTimelinePlaying = incomingPlaying;
-    particleLastScrubVersion = scrubVersion;
-
-    if (!particleTimelinePlaying && explicitSeek) {
-      particleTimelineTime = Math.min(duration, incomingTime);
-      particleSystems.forEach((system) => {
-        system.particles.length = 0;
-        system.emitAccumulator = 0;
-      });
-      if (timeline) emitTimelineBursts(-0.0001, particleTimelineTime, width, height);
-      else {
-        particleSystems.forEach((system) => {
-          emitParticles(system, Math.min(60, Math.max(0, system.emitAtStart)), width, height);
-        });
-      }
-    } else if (particleTimelinePlaying) {
-      const previous = particleTimelineTime;
-      particleTimelineTime += dt;
-      if (particleTimelineTime > duration) {
-        const mode = particleTimelineMode(timeline);
-        if (mode === 'loop') {
-          emitTimelineBursts(previous, duration, width, height);
-          particleTimelineTime %= duration;
-          emitTimelineBursts(0, particleTimelineTime, width, height);
-        } else if (mode === 'ambient') {
-          emitTimelineBursts(previous, duration, width, height);
-          particleTimelineTime = duration;
-          particleTimelinePlaying = true;
-        } else {
-          emitTimelineBursts(previous, duration, width, height);
-          particleTimelineTime = duration;
-          particleTimelinePlaying = false;
-        }
-      } else {
-        emitTimelineBursts(previous, particleTimelineTime, width, height);
-      }
-    } else {
-      particleTimelineTime = incomingTime;
-    }
-
-    applyParticleTimelineAt(particleTimelineTime);
-
+  function resetParticleSimulation() {
     particleSystems.forEach((system) => {
-      const shouldEmit = particleTimelinePlaying ? particleCanEmit(system, particleTimelineTime) : !timeline;
-      if (system.enabled && shouldEmit) {
+      system.particles.length = 0;
+      system.emitAccumulator = 0;
+    });
+    particleLastTimelineBurstCount = 0;
+  }
+
+  function stepParticleSystems(dt, width, height, allowContinuousEmission) {
+    const timeline = payload.composite?.timeline;
+    particleSystems.forEach((system) => {
+      const shouldEmit =
+        allowContinuousEmission &&
+        system.enabled &&
+        (!timeline || particleCanEmit(system, particleTimelineTime));
+      if (shouldEmit) {
         system.emitAccumulator += system.emissionRate * dt;
         const count = Math.min(80, Math.floor(system.emitAccumulator));
         system.emitAccumulator -= count;
@@ -875,6 +958,83 @@ void main() {
         return true;
       });
     });
+  }
+
+  function seekParticleTimeline(time, width, height, playing) {
+    const timeline = payload.composite?.timeline;
+    const duration = Math.max(0.01, safeNumber(timeline?.duration, 3));
+    const target = Math.max(0, Math.min(duration, safeNumber(time, 0)));
+    resetParticleSimulation();
+    particleTimelineTime = 0;
+    particleTimelinePlaying = playing === true;
+
+    let current = 0;
+    let steps = 0;
+    const step = 1 / 60;
+    while (current < target && steps < 600) {
+      const next = Math.min(target, current + step);
+      particleTimelineTime = next;
+      emitTimelineBursts(current, next, width, height);
+      applyParticleTimelineAt(next);
+      stepParticleSystems(next - current, width, height, true);
+      current = next;
+      steps += 1;
+    }
+
+    particleTimelineTime = target;
+    applyParticleTimelineAt(target);
+  }
+
+  function updateParticleSystems(dt, width, height) {
+    const composite = payload.composite || {};
+    if (composite.previewEnabled === false) {
+      particleSystems.forEach((system) => {
+        system.particles.length = 0;
+      });
+      updateParticlePreviewStatus();
+      return;
+    }
+
+    const timeline = composite.timeline;
+    particleLastTimelineBurstCount = 0;
+    const duration = Math.max(0.01, safeNumber(timeline?.duration, 3));
+    const incomingState = composite.timelineState || {};
+    const incomingTime = Math.max(0, safeNumber(incomingState.time, particleTimelineTime));
+    const incomingPlaying = incomingState.playing === true;
+    const scrubVersion = safeNumber(incomingState.scrubVersion, particleLastScrubVersion);
+    const explicitSeek = scrubVersion !== particleLastScrubVersion;
+    particleLastScrubVersion = scrubVersion;
+
+    if (timeline && explicitSeek) {
+      seekParticleTimeline(incomingTime, width, height, incomingPlaying);
+    } else if (timeline && incomingPlaying) {
+      const previous = particleTimelineTime;
+      const nextTime = Math.min(duration, incomingTime);
+      particleTimelinePlaying = true;
+      if (nextTime >= previous) {
+        if (nextTime > previous) emitTimelineBursts(previous, nextTime, width, height);
+        particleTimelineTime = nextTime;
+      } else {
+        const mode = particleTimelineMode(timeline);
+        if (mode === 'loop') {
+          emitTimelineBursts(previous, duration, width, height);
+          emitTimelineBursts(0, nextTime, width, height);
+          particleTimelineTime = nextTime;
+        } else {
+          seekParticleTimeline(nextTime, width, height, incomingPlaying);
+        }
+      }
+    } else if (timeline) {
+      particleTimelinePlaying = false;
+      particleTimelineTime = Math.min(duration, incomingTime);
+    } else {
+      particleTimelinePlaying = incomingPlaying;
+      particleTimelineTime = incomingTime;
+    }
+
+    applyParticleTimelineAt(particleTimelineTime);
+    stepParticleSystems(dt, width, height, particleTimelinePlaying || !timeline);
+    updateParticlePreviewStatus();
   }
 
   function drawParticlePreview(width, height, dt) {

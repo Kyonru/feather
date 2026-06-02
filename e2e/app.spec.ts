@@ -47,6 +47,32 @@ async function uploadShaderPreviewTexture(page: Page, trigger: Locator, file: { 
   }
 }
 
+async function particlePreviewFrame(page: Page) {
+  const iframe = page.locator('iframe[title="Particle Preview"]').first();
+  await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
+  const handle = await iframe.elementHandle();
+  const frame = await handle?.contentFrame();
+  expect(frame).not.toBeNull();
+  return frame!;
+}
+
+async function particlePreviewStatus(page: Page) {
+  const frame = await particlePreviewFrame(page);
+  return frame.evaluate(() => {
+    type StatusLike = { time?: number; playing?: boolean; mode?: string; particleCount?: number; lastBurstCount?: number };
+    type PayloadLike = { composite?: { timelineState?: { time?: number; playing?: boolean }; timeline?: { mode?: string } } };
+    const status = (window as Window & { _featherParticlePreviewStatus?: StatusLike })._featherParticlePreviewStatus;
+    const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
+    return {
+      time: status?.time ?? payload?.composite?.timelineState?.time,
+      playing: status?.playing ?? payload?.composite?.timelineState?.playing,
+      mode: status?.mode ?? payload?.composite?.timeline?.mode,
+      particleCount: status?.particleCount ?? 0,
+      lastBurstCount: status?.lastBurstCount ?? 0,
+    };
+  });
+}
+
 async function expectTextureProbePayload(page: Page) {
   const probe = page.locator('.react-flow__node').filter({ hasText: 'Texture Probe' });
   const iframe = probe.locator('iframe[title="Texture Probe love.js preview"]');
@@ -1673,7 +1699,19 @@ test('creative sessions unlock local creative tools and persist as workspace tab
   await page.getByTestId('sidebar-tool-particle-system-playground').getByRole('link', { name: 'Particles Playground' }).click();
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
   await expect(page.getByTestId('love-js-preview-floating')).toBeVisible();
+  await particlePreviewFrame(page);
   await expect(page.getByRole('button', { name: /show in game/i })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await page.getByTitle('Play timeline').click();
+  await expect.poll(async () => (await particlePreviewStatus(page)).time ?? 0, { timeout: 2500 }).toBeGreaterThan(0.05);
+  await expect.poll(async () => page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+      (item: { message?: { action?: string } }) =>
+        item.message?.action === 'timeline-control' || item.message?.action === 'runtime-preview',
+    ).length;
+  })).toBe(0);
+  await page.getByTitle('Pause timeline').click();
 
   await page.goto('/');
   await expect(page.getByText('Select a session')).toBeVisible();
