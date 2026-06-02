@@ -11,6 +11,7 @@ Texture Lab includes focused generators for common LÖVE effects:
 - **Particle sprites**: soft circles, sparks, streaks, rings, smoke puffs, stars, trail blobs, and rain slashes.
 - **Masks**: circles, ellipses, rounded rectangles, radial masks, and thresholded noise masks.
 - **Noise and maps**: clouds, cellular spots, dissolve noise, water noise, height-style grayscale maps, and directional gradients.
+- **Shader maps**: height-derived normal maps, flow maps, radial swirl flow, water ripple normals, and directional distortion maps.
 - **Pixel patterns**: checkers, dithers, scanlines, and palette ramps.
 - **Shapes and polygons**: layered polygons, stars, rings, spline strokes, dots, and seeded repeat/scatter patterns.
 - **Spline paths**: editable trails, ribbons, stroke masks, and lightning paths.
@@ -69,6 +70,7 @@ Shader Graph texture controls also include **Generate texture**:
 
 - Preview Texture can use generated sprites as the source image.
 - Texture Input, Texture Uniform Color, Texture Parameter, Template Controls, and Shader Controls can use generated PNGs as texture uniform uploads.
+- Shader map generators create opaque RGB data for water, heat haze, shimmer, and mask-driven offsets. Normal maps encode tangent-space normals in RGB; flow and distortion maps encode signed offsets in red/green.
 
 Generated shader textures are session uploads in v1. Export the PNG separately if you need to re-use it after importing a `.feathershgh` graph, because Shader Graph files do not embed texture bytes yet. Atlas sheets apply to Shader Graph as normal texture uploads; use the exported `atlas.json` metadata manually if a graph needs to know the sheet layout.
 

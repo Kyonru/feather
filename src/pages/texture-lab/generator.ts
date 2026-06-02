@@ -39,6 +39,7 @@ export type TextureLabGeneratorCategory =
   | 'Particle sprites'
   | 'Masks'
   | 'Noise / maps'
+  | 'Shader maps'
   | 'Pixel patterns'
   | 'Shapes / polygons'
   | 'Spline paths';
@@ -168,6 +169,36 @@ export const TEXTURE_LAB_GENERATORS: TextureLabGeneratorMeta[] = [
     category: 'Noise / maps',
     description: 'A simple left-to-right utility map.',
   },
+  {
+    id: 'normal-from-height',
+    label: 'Normal From Height',
+    category: 'Shader maps',
+    description: 'Converts seeded height-style noise into an RGB tangent-space normal map.',
+  },
+  {
+    id: 'flow-map',
+    label: 'Flow Map',
+    category: 'Shader maps',
+    description: 'Encodes procedural directional flow vectors in red and green.',
+  },
+  {
+    id: 'radial-swirl-flow',
+    label: 'Radial Swirl Flow',
+    category: 'Shader maps',
+    description: 'A centered swirl vector map for whirlpools, portals, and circular shimmer.',
+  },
+  {
+    id: 'water-ripple-normal',
+    label: 'Water Ripple Normal',
+    category: 'Shader maps',
+    description: 'A wave-driven normal map for water, glass, and shimmer effects.',
+  },
+  {
+    id: 'directional-distortion-map',
+    label: 'Directional Distortion',
+    category: 'Shader maps',
+    description: 'A biased vector distortion map for heat haze, wind, and mask-driven offsets.',
+  },
   { id: 'checker', label: 'Checker', category: 'Pixel patterns', description: 'A tileable checker texture.' },
   { id: 'dither', label: 'Dither', category: 'Pixel patterns', description: 'A deterministic ordered dither pattern.' },
   {
@@ -242,6 +273,25 @@ const TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS: Partial<Record<TextureLabGeneratorI
   'water-noise': { alphaMode: 'luminance' },
   'height-map': { alphaMode: 'luminance' },
   'directional-gradient': { alphaMode: 'luminance' },
+  'normal-from-height': { alphaMode: 'opaque', scale: 7, contrast: 1.25, distortion: 0.4, colorRamp: 'white' },
+  'flow-map': { alphaMode: 'opaque', scale: 5, contrast: 1.15, distortion: 0.55, colorRamp: 'white' },
+  'radial-swirl-flow': {
+    alphaMode: 'opaque',
+    scale: 4,
+    falloff: 1.8,
+    contrast: 1.1,
+    distortion: 0.7,
+    tileable: false,
+    colorRamp: 'white',
+  },
+  'water-ripple-normal': { alphaMode: 'opaque', scale: 9, contrast: 1.2, distortion: 0.45, colorRamp: 'white' },
+  'directional-distortion-map': {
+    alphaMode: 'opaque',
+    scale: 6,
+    contrast: 1.25,
+    distortion: 0.65,
+    colorRamp: 'white',
+  },
   dither: { alphaMode: 'luminance' },
   scanline: { alphaMode: 'luminance' },
   'spline-mask': { alphaMode: 'luminance' },
@@ -259,6 +309,14 @@ export const TEXTURE_LAB_SPLINE_GENERATOR_IDS = [
   'spline-ribbon',
   'spline-mask',
   'spline-lightning',
+] as const satisfies readonly TextureLabGeneratorId[];
+
+export const TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS = [
+  'normal-from-height',
+  'flow-map',
+  'radial-swirl-flow',
+  'water-ripple-normal',
+  'directional-distortion-map',
 ] as const satisfies readonly TextureLabGeneratorId[];
 
 const DEFAULT_TRAIL_SPLINE: TextureLabSplineRecipe = {
@@ -392,6 +450,7 @@ const GENERATOR_SET = new Set<string>(TEXTURE_LAB_GENERATOR_IDS);
 const RAMP_SET = new Set<string>(TEXTURE_LAB_COLOR_RAMPS);
 const ALPHA_SET = new Set<string>(TEXTURE_LAB_ALPHA_MODES);
 const SPLINE_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SPLINE_GENERATOR_IDS);
+const SHADER_MAP_GENERATOR_SET = new Set<string>(TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS);
 const SPLINE_OVERLAP_SET = new Set<string>(TEXTURE_LAB_SPLINE_OVERLAP_MODES);
 const SHAPE_KIND_SET = new Set<string>(TEXTURE_LAB_SHAPE_ELEMENT_KINDS);
 const SHAPE_REPEAT_SET = new Set<string>(TEXTURE_LAB_SHAPE_REPEAT_MODES);
@@ -486,15 +545,21 @@ export function isTextureLabSplineGenerator(generator: TextureLabGeneratorId): b
   return SPLINE_GENERATOR_SET.has(generator);
 }
 
+export function isTextureLabShaderMapGenerator(generator: TextureLabGeneratorId): boolean {
+  return SHADER_MAP_GENERATOR_SET.has(generator);
+}
+
 export function defaultTextureLabRecipeForGenerator(generator: TextureLabGeneratorId): TextureLabRecipe {
+  const generatorDefaults = TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS[generator];
+  const defaultTileable =
+    typeof generatorDefaults?.tileable === 'boolean'
+      ? generatorDefaults.tileable
+      : !(isTextureLabSplineGenerator(generator) || generator === 'shape-composer');
   return normalizeRecipe({
     ...DEFAULT_TEXTURE_LAB_RECIPE,
-    ...TEXTURE_LAB_GENERATOR_RECIPE_DEFAULTS[generator],
+    ...generatorDefaults,
     generator,
-    tileable:
-      isTextureLabSplineGenerator(generator) || generator === 'shape-composer'
-        ? false
-        : DEFAULT_TEXTURE_LAB_RECIPE.tileable,
+    tileable: defaultTileable,
     spline: isTextureLabSplineGenerator(generator) ? defaultSplineForGenerator(generator) : undefined,
     shape: generator === 'shape-composer' ? defaultShapeRecipe() : undefined,
   });
@@ -1589,6 +1654,97 @@ function shapeComposerPixel(recipe: TextureLabRecipe, u: number, v: number): Sha
   );
 }
 
+function shaderMapCoordinate(value: number, tileable: boolean): number {
+  return tileable ? fract(value + 1) : clamp01(value);
+}
+
+function shaderMapHeight(recipe: TextureLabRecipe, u: number, v: number): number {
+  const n = fbm(u, v, recipe.scale, recipe.seed, recipe.tileable);
+  if (recipe.generator === 'water-ripple-normal') {
+    const rippleA = 0.5 + 0.5 * Math.sin((u * recipe.scale + n * recipe.distortion * 4.5) * Math.PI * 2);
+    const rippleB =
+      0.5 +
+      0.5 *
+        Math.sin(((u + v * 0.62) * recipe.scale * 0.72 + n * recipe.distortion * 3.5) * Math.PI * 2 + 0.7);
+    const rippleC =
+      0.5 +
+      0.5 *
+        Math.sin(((v - u * 0.28) * recipe.scale * 0.55 + n * recipe.distortion * 2.25) * Math.PI * 2 + 1.3);
+    return contrast((rippleA * 0.42 + rippleB * 0.34 + rippleC * 0.18 + n * 0.18) / 1.14, recipe.contrast);
+  }
+  const detail = fbm(u + 0.37, v + 0.19, recipe.scale * 1.85, recipe.seed + 73, recipe.tileable);
+  return contrast(n * 0.76 + detail * 0.24, recipe.contrast);
+}
+
+function encodeSignedVector(value: number): number {
+  return clamp01(value * 0.5 + 0.5);
+}
+
+function encodeShaderVector(x: number, y: number, blue = 0.5): [number, number, number, number] {
+  return [encodeSignedVector(x), encodeSignedVector(y), clamp01(blue), 1];
+}
+
+function shaderNormalMapPixel(
+  recipe: TextureLabRecipe,
+  u: number,
+  v: number,
+  width: number,
+  height: number,
+): [number, number, number, number] {
+  const stepU = 1 / Math.max(2, width);
+  const stepV = 1 / Math.max(2, height);
+  const left = shaderMapHeight(recipe, shaderMapCoordinate(u - stepU, recipe.tileable), v);
+  const right = shaderMapHeight(recipe, shaderMapCoordinate(u + stepU, recipe.tileable), v);
+  const up = shaderMapHeight(recipe, u, shaderMapCoordinate(v - stepV, recipe.tileable));
+  const down = shaderMapHeight(recipe, u, shaderMapCoordinate(v + stepV, recipe.tileable));
+  const strength = 2 + recipe.distortion * 12;
+  const nx = (left - right) * strength;
+  const ny = (up - down) * strength;
+  const nz = 1;
+  const length = Math.hypot(nx, ny, nz) || 1;
+  return [nx / length * 0.5 + 0.5, ny / length * 0.5 + 0.5, nz / length * 0.5 + 0.5, 1];
+}
+
+function shaderMapPixel(
+  recipe: TextureLabRecipe,
+  u: number,
+  v: number,
+  width: number,
+  height: number,
+): [number, number, number, number] {
+  if (recipe.generator === 'normal-from-height' || recipe.generator === 'water-ripple-normal') {
+    return shaderNormalMapPixel(recipe, u, v, width, height);
+  }
+
+  const n = fbm(u, v, recipe.scale, recipe.seed, recipe.tileable);
+  const detail = fbm(u + 0.31, v + 0.47, recipe.scale * 1.7, recipe.seed + 191, recipe.tileable);
+  const strength = clamp01((0.2 + recipe.distortion * 0.8) * (0.65 + recipe.contrast * 0.35));
+
+  if (recipe.generator === 'radial-swirl-flow') {
+    const cx = u - 0.5;
+    const cy = v - 0.5;
+    const distance = Math.hypot(cx, cy);
+    const length = distance || 1;
+    const falloff = Math.pow(clamp01(1 - distance * 1.55), recipe.falloff);
+    const noise = (n - 0.5) * recipe.distortion * 0.45;
+    const x = (-cy / length + noise) * strength * falloff;
+    const y = (cx / length - noise) * strength * falloff;
+    return encodeShaderVector(x, y, falloff);
+  }
+
+  if (recipe.generator === 'directional-distortion-map') {
+    const direction = -0.18 + (detail - 0.5) * recipe.distortion * 1.2;
+    const magnitude = strength * (0.52 + contrast(n, recipe.contrast) * 0.48);
+    const x = Math.cos(direction) * magnitude;
+    const y = Math.sin(direction) * magnitude + (detail - 0.5) * strength * 0.42;
+    return encodeShaderVector(x, y, n);
+  }
+
+  const angle = (n * 2 + detail * 0.65) * Math.PI * 2;
+  const magnitude = strength * (0.35 + contrast(detail, recipe.contrast) * 0.65);
+  return encodeShaderVector(Math.cos(angle) * magnitude, Math.sin(angle) * magnitude, detail);
+}
+
 function generatorValue(
   recipe: TextureLabRecipe,
   u: number,
@@ -2014,7 +2170,12 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
     for (let x = 0; x < width; x += 1) {
       let u = recipe.tileable ? (x === width - 1 ? 0 : x / Math.max(1, width - 1)) : (x + 0.5) / width;
       let v = recipe.tileable ? (y === height - 1 ? 0 : y / Math.max(1, height - 1)) : (y + 0.5) / height;
-      if (recipe.distortion > 0 && !recipe.generator.includes('checker') && recipe.generator !== 'dither') {
+      if (
+        recipe.distortion > 0 &&
+        !recipe.generator.includes('checker') &&
+        recipe.generator !== 'dither' &&
+        !isTextureLabShaderMapGenerator(recipe.generator)
+      ) {
         const dx = fbm(u, v, recipe.scale, recipe.seed + 211, recipe.tileable) - 0.5;
         const dy = fbm(u, v, recipe.scale, recipe.seed + 307, recipe.tileable) - 0.5;
         u = recipe.tileable ? fract(u + dx * recipe.distortion * 0.12 + 1) : clamp01(u + dx * recipe.distortion * 0.12);
@@ -2023,7 +2184,10 @@ export function renderTextureLabPixels(input?: Partial<TextureLabRecipe> | null)
 
       let color: [number, number, number, number];
       let alpha: number;
-      if (recipe.generator === 'shape-composer') {
+      if (isTextureLabShaderMapGenerator(recipe.generator)) {
+        color = shaderMapPixel(recipe, u, v, width, height);
+        alpha = 1;
+      } else if (recipe.generator === 'shape-composer') {
         const shapePixel = shapeComposerPixel(recipe, u, v);
         color = [shapePixel.r, shapePixel.g, shapePixel.b, 1];
         const luminance = clamp01(shapePixel.r * 0.299 + shapePixel.g * 0.587 + shapePixel.b * 0.114);

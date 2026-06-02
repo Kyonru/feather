@@ -386,6 +386,12 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await page.getByLabel('Texture generator').click();
   await page.getByRole('option', { name: 'Cloud Noise' }).click();
   await expect(page.getByLabel('Texture generator')).toHaveText(/Cloud Noise/);
+  const cloudPreview = await preview.getAttribute('src');
+  await page.getByLabel('Texture generator').click();
+  await page.getByRole('option', { name: 'Normal From Height' }).click();
+  await expect(page.getByLabel('Texture generator')).toHaveText(/Normal From Height/);
+  await expect(page.getByLabel('Texture alpha mode')).toHaveText(/Opaque/);
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(cloudPreview);
   await page.getByRole('button', { name: 'Load saved recipe Blue Spark' }).click();
   await expect(page.getByLabel('Texture generator')).toHaveText(/Soft Circle/);
   await expect(page.getByLabel('Texture solid color')).toHaveValue('#ff3366');

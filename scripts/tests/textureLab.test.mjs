@@ -19,6 +19,8 @@ import {
   textureLabShapeElement,
   textureLabSplinePreset,
   textureLabFilename,
+  TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS,
+  isTextureLabShaderMapGenerator,
 } from '../../src/pages/texture-lab/generator.ts';
 
 function checksum(pixels) {
@@ -178,6 +180,85 @@ test('texture lab reset applies generator-specific alpha defaults', () => {
   assert.equal(defaultTextureLabRecipeForGenerator('dissolve-noise').alphaMode, 'inverted');
   assert.equal(defaultTextureLabRecipeForGenerator('threshold-noise-mask').alphaMode, 'inverted');
   assert.equal(defaultTextureLabRecipeForGenerator('spline-mask').alphaMode, 'luminance');
+});
+
+test('texture lab exposes shader map generators with opaque reset defaults', () => {
+  const generatorById = new Map(TEXTURE_LAB_GENERATORS.map((generator) => [generator.id, generator]));
+  assert.deepEqual(TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS, [
+    'normal-from-height',
+    'flow-map',
+    'radial-swirl-flow',
+    'water-ripple-normal',
+    'directional-distortion-map',
+  ]);
+
+  for (const generatorId of TEXTURE_LAB_SHADER_MAP_GENERATOR_IDS) {
+    const metadata = generatorById.get(generatorId);
+    const recipe = defaultTextureLabRecipeForGenerator(generatorId);
+    assert.equal(metadata?.category, 'Shader maps');
+    assert.equal(isTextureLabShaderMapGenerator(generatorId), true);
+    assert.equal(recipe.alphaMode, 'opaque');
+    assert.equal(recipe.colorRamp, 'white');
+  }
+  assert.equal(defaultTextureLabRecipeForGenerator('radial-swirl-flow').tileable, false);
+});
+
+test('texture lab shader normal maps encode opaque RGB normals', () => {
+  const result = renderTextureLabPixels({
+    ...defaultTextureLabRecipeForGenerator('normal-from-height'),
+    size: 32,
+    width: 32,
+    height: 32,
+    seed: 91,
+  });
+  const samples = [
+    rgbaAt(result, 4, 4),
+    rgbaAt(result, 12, 18),
+    rgbaAt(result, 24, 10),
+    rgbaAt(result, 28, 28),
+  ];
+  assert.ok(samples.every((sample) => sample[3] === 255));
+  assert.ok(samples.every((sample) => sample[2] > 150));
+  assert.ok(new Set(samples.map((sample) => `${sample[0]}:${sample[1]}`)).size > 1);
+});
+
+test('texture lab flow and distortion maps encode signed vectors in color channels', () => {
+  for (const generator of ['flow-map', 'radial-swirl-flow', 'directional-distortion-map']) {
+    const result = renderTextureLabPixels({
+      ...defaultTextureLabRecipeForGenerator(generator),
+      size: 32,
+      width: 32,
+      height: 32,
+      seed: 45,
+    });
+    const samples = [
+      rgbaAt(result, 5, 5),
+      rgbaAt(result, 16, 16),
+      rgbaAt(result, 26, 22),
+    ];
+    assert.ok(samples.every((sample) => sample[3] === 255));
+    assert.ok(samples.some((sample) => Math.abs(sample[0] - 128) > 8 || Math.abs(sample[1] - 128) > 8));
+    assert.ok(new Set(samples.map((sample) => `${sample[0]}:${sample[1]}:${sample[2]}`)).size > 1);
+  }
+});
+
+test('tileable shader maps repeat texture edges', () => {
+  for (const generator of ['normal-from-height', 'flow-map', 'water-ripple-normal', 'directional-distortion-map']) {
+    const result = renderTextureLabPixels({
+      ...defaultTextureLabRecipeForGenerator(generator),
+      size: 32,
+      width: 32,
+      height: 32,
+      seed: 53,
+      tileable: true,
+    });
+    for (let y = 0; y < result.height; y += 1) {
+      assert.deepEqual(rgbaAt(result, 0, y), rgbaAt(result, result.width - 1, y));
+    }
+    for (let x = 0; x < result.width; x += 1) {
+      assert.deepEqual(rgbaAt(result, x, 0), rgbaAt(result, x, result.height - 1));
+    }
+  }
 });
 
 test('texture lab saved recipes normalize names, recipes, duplicates, and limits', () => {
