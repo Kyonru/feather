@@ -875,6 +875,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#image-to-mask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image-To-Mask
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sdf-glow-and-outline-masks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SDF, Glow, And Outline Masks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#atlas-and-flipbook-export" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1775,6 +1797,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#image-to-mask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image-To-Mask
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sdf-glow-and-outline-masks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SDF, Glow, And Outline Masks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#atlas-and-flipbook-export" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1878,14 +1922,22 @@
 <p>Texture Lab includes focused generators for common LÖVE effects:</p>
 <ul>
 <li><strong>Particle sprites</strong>: soft circles, sparks, streaks, rings, smoke puffs, stars, trail blobs, and rain slashes.</li>
-<li><strong>Masks</strong>: circles, ellipses, rounded rectangles, radial masks, and thresholded noise masks.</li>
+<li><strong>Masks</strong>: circles, ellipses, rounded rectangles, radial masks, thresholded noise masks, and image-to-mask conversion.</li>
+<li><strong>SDF and glow</strong>: circle and ring distance fields, soft outlines, inner/outer glow masks, and editable spline distance strokes.</li>
 <li><strong>Noise and maps</strong>: clouds, cellular spots, dissolve noise, water noise, height-style grayscale maps, and directional gradients.</li>
+<li><strong>Shader maps</strong>: height-derived normal maps, flow maps, radial swirl flow, water ripple normals, and directional distortion maps.</li>
 <li><strong>Pixel patterns</strong>: checkers, dithers, scanlines, and palette ramps.</li>
 <li><strong>Shapes and polygons</strong>: layered polygons, stars, rings, spline strokes, dots, and seeded repeat/scatter patterns.</li>
 <li><strong>Spline paths</strong>: editable trails, ribbons, stroke masks, and lightning paths.</li>
 </ul>
 <p>Choosing a generator or spline path preset loads that preset's default controls. Use the shared controls to adjust dimensions, seed, softness, falloff, contrast, threshold, scale, distortion, tileability, pixelated preview, alpha mode, and color ramp. Size presets include tiny pixel-friendly outputs such as <code>4 x 4</code>, <code>8 x 8</code>, and <code>16 x 16</code>, plus larger square sizes and a Custom mode for explicit width and height. Choose <strong>Solid Color</strong> in Color ramp to bake a single selected color into the generated shape.
 Use <strong>Reset values</strong> to restore the current generator's default controls and seed.</p>
+<h2 id="image-to-mask">Image-To-Mask<a class="headerlink" href="#image-to-mask" title="Permanent link">&para;</a></h2>
+<p>Choose an image mask generator to import a PNG/JPG/WebP/BMP and turn it into a mask texture. Texture Lab can extract source alpha, luminance, thresholded brightness, a color-key selection, or an outline/edge mask. Threshold acts as tolerance, Softness blends the edge, and the Color Key mask includes a color picker for the keyed source color.</p>
+<p>Alpha masks write transparency into the output alpha channel. Luminance, threshold, color-key, and edge masks bake opaque grayscale PNGs, which makes them useful as Shader Graph mask textures for color-key, masked water, shimmer, heat haze, and distortion workflows.</p>
+<h2 id="sdf-glow-and-outline-masks">SDF, Glow, And Outline Masks<a class="headerlink" href="#sdf-glow-and-outline-masks" title="Permanent link">&para;</a></h2>
+<p>Choose an SDF / glow generator when you need scalable masks or VFX glow sprites. <strong>SDF Circle</strong>, <strong>SDF Ring</strong>, and <strong>Spline SDF Stroke</strong> bake opaque grayscale distance-style fields that are useful for shader thresholding, soft rings, ripple masks, and crisp UI/game VFX. <strong>Soft Outline</strong>, <strong>Inner Glow</strong>, and <strong>Outer Glow</strong> bake alpha-shaped sprites for halos, selection rings, shield rims, and particle accents.</p>
+<p>Threshold controls the base radius, Softness controls the distance spread or glow width, and Falloff shapes glow intensity. <strong>Spline SDF Stroke</strong> uses the normal spline editor, so you can drag points, use path presets, and still export/apply the result as a generated PNG.</p>
 <h2 id="atlas-and-flipbook-export">Atlas And Flipbook Export<a class="headerlink" href="#atlas-and-flipbook-export" title="Permanent link">&para;</a></h2>
 <p>Use <strong>Create Atlas</strong> when one PNG should contain multiple frames. Texture Lab opens a first-class atlas workspace: the normal generator controls stay on the left, the selected frame stays editable in the center preview/editor, and a right panel owns the frame grid, layout, playback, seeded fills, onion skin, and frame actions.</p>
 <p>Atlas controls set the layout, frame count, FPS, seed step, and Particle Playground playback mode:</p>
@@ -1920,6 +1972,7 @@ Use <strong>Reset values</strong> to restore the current generator's default con
 <ul>
 <li>Preview Texture can use generated sprites as the source image.</li>
 <li>Texture Input, Texture Uniform Color, Texture Parameter, Template Controls, and Shader Controls can use generated PNGs as texture uniform uploads.</li>
+<li>Shader map generators create opaque RGB data for water, heat haze, shimmer, and mask-driven offsets. Normal maps encode tangent-space normals in RGB; flow and distortion maps encode signed offsets in red/green.</li>
 </ul>
 <p>Generated shader textures are session uploads in v1. Export the PNG separately if you need to re-use it after importing a <code>.feathershgh</code> graph, because Shader Graph files do not embed texture bytes yet. Atlas sheets apply to Shader Graph as normal texture uploads; use the exported <code>atlas.json</code> metadata manually if a graph needs to know the sheet layout.</p>
 <h2 id="export">Export<a class="headerlink" href="#export" title="Permanent link">&para;</a></h2>
