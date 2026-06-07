@@ -1,7 +1,7 @@
 {
   "type": "love2d-library",
   "trust": "verified",
-  "description": "feedback sequencing library for making actions feel good",
+  "description": "feedback recipe runner for making game actions feel better.",
   "tags": [
     "animation",
     "tween",
@@ -15,26 +15,66 @@
   "license": "unknown",
   "source": {
     "repo": "kyonru/feel.lua",
-    "tag": "main",
-    "commitSha": "ad2d4a993a885573a2114a232f57f674cfac4e1e",
-    "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/ad2d4a993a885573a2114a232f57f674cfac4e1e/"
+    "tag": "v1.0.0",
+    "commitSha": "4ce759b3389ce0ff748c346e8a5b5f2b0c502219",
+    "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/4ce759b3389ce0ff748c346e8a5b5f2b0c502219/"
   },
   "install": {
     "files": [
       {
+        "name": "feel/feedbacks.lua",
+        "sha256": "748b46ee60c403be84831dd62d8e0e94d27330d5a92be436f24843e3cca96877",
+        "target": "lib/feel/feedbacks.lua"
+      },
+      {
+        "name": "feel/g3d.lua",
+        "sha256": "01bd77cd598ea1721009b1d0df492f4247e07d0e36d90430e9ac06208a1da72f",
+        "target": "lib/feel/g3d.lua"
+      },
+      {
         "name": "feel/init.lua",
-        "sha256": "e0eadb8573e7b0e635c7577665fccd7cfb76057a944601a115326f8caf6094c0",
+        "sha256": "f85d88c6d414ea0b19cc4025c07425f8ccd33897b314f967fab15046fb381210",
         "target": "lib/feel/init.lua"
       },
       {
         "name": "feel/love.lua",
-        "sha256": "ed3f18c4b19fbb903fca292dd127d711d6cc5de44eb6611fe025cbb8a3581b4e",
+        "sha256": "78f7aeac9359534cbe877b4640672eb0286c3b6fcd338c1520399f3d7c60a8e0",
         "target": "lib/feel/love.lua"
       },
       {
+        "name": "feel/presets.lua",
+        "sha256": "32453dcaa782cb4f2fc6a51b1dbd23c6690b035aeabda8850bc7e30661c3f08e",
+        "target": "lib/feel/presets.lua"
+      },
+      {
+        "name": "feel/validate.lua",
+        "sha256": "9a273e316d1484838a96750b8a10d8f8608147cc23c087c817b69daf0dd181b9",
+        "target": "lib/feel/validate.lua"
+      },
+      {
         "name": "feel/vendor/flux.lua",
-        "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5",
+        "sha256": "a8595b034f83aff86591d9d343abf0f7c0873ee4bb6036dfc5008503153e22fa",
         "target": "lib/feel/vendor/flux.lua"
+      },
+      {
+        "name": "types/feel-feedbacks.lua",
+        "sha256": "b7e1b89d26b2840e460637fd07431697143cfd816fac3d8ff46f1a0d2d931b43",
+        "target": "lib/feel/types/feel-feedbacks.lua"
+      },
+      {
+        "name": "types/feel-g3d.lua",
+        "sha256": "8939b3a2b7365c77892f84b2e5ace4845a6f9a915a3a763c97509979a9dd8df3",
+        "target": "lib/feel/types/feel-g3d.lua"
+      },
+      {
+        "name": "types/feel-love.lua",
+        "sha256": "6071ec680bc98cffc8ff2b918d4458193dc8fcc6ec88180cca8e3ba8e7b6301b",
+        "target": "lib/feel/types/feel-love.lua"
+      },
+      {
+        "name": "types/feel.lua",
+        "sha256": "55095d52fc6ad63f813cf1ec0e2c78cac73efe9372c8254ac6143ce5d30d997f",
+        "target": "lib/feel/types/feel.lua"
       }
     ]
   },
