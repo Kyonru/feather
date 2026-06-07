@@ -29,6 +29,7 @@ async function seedGoldenTauriSession(page: Page) {
       JSON.stringify({
         state: {
           apiKey: 'golden-api-key',
+          appId: 'golden-app-id',
           connectionTimeout: 0.2,
         },
         version: 0,
@@ -38,8 +39,16 @@ async function seedGoldenTauriSession(page: Page) {
       'session-storage',
       JSON.stringify({
         state: {
-          sessionId: 'stale-connecting',
+          __e2eLiveSessions: true,
+          sessionId: GOLDEN_SESSION_ID,
           sessions: {
+            [GOLDEN_SESSION_ID]: {
+              id: GOLDEN_SESSION_ID,
+              name: 'Golden Game',
+              os: 'MacOS',
+              connected: true,
+              connectedAt: Date.now(),
+            },
             'stale-connecting': {
               id: 'stale-connecting',
               name: 'Connecting game',
@@ -114,6 +123,7 @@ async function seedGoldenTauriSession(page: Page) {
     const callbacks = new Map<number, EventCallback>();
     const listeners = new Map<string, Map<number, number>>();
     const commands: TauriCommand[] = [];
+    const emittedSessionStarts = new Set<string>();
     let nextCallbackId = 1;
     let nextEventId = 1;
 
@@ -123,6 +133,14 @@ async function seedGoldenTauriSession(page: Page) {
       for (const [eventId, callbackId] of eventListeners.entries()) {
         callbacks.get(callbackId)?.({ id: eventId, event, payload });
       }
+    };
+
+    const emitSessionStart = (sessionId: string) => {
+      const eventListeners = listeners.get('feather://session-start');
+      if (!eventListeners || eventListeners.size === 0) return;
+      if (emittedSessionStarts.has(sessionId)) return;
+      emittedSessionStarts.add(sessionId);
+      emitTauriEvent('feather://session-start', sessionId);
     };
 
     const sendHello = (sessionId: string) => {
@@ -239,6 +257,9 @@ async function seedGoldenTauriSession(page: Page) {
           const eventListeners = listeners.get(event) ?? new Map<number, number>();
           eventListeners.set(eventId, handler);
           listeners.set(event, eventListeners);
+          if (event === 'feather://session-start') {
+            setTimeout(() => emitSessionStart(activeSessions[0]), 0);
+          }
           return Promise.resolve(eventId);
         }
         if (cmd === 'plugin:event|unlisten') {
@@ -268,7 +289,7 @@ async function seedGoldenTauriSession(page: Page) {
         ),
     };
 
-    setTimeout(() => emitTauriEvent('feather://session-start', activeSessions[0]), 0);
+    setTimeout(() => emitSessionStart(activeSessions[0]), 0);
   });
 }
 
