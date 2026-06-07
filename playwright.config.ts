@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const appE2EPort = Number(process.env.PLAYWRIGHT_PORT ?? 1420);
+const appE2EPort = Number(process.env.PLAYWRIGHT_PORT ?? 1421);
 const appE2EUrl = `http://127.0.0.1:${appE2EPort}`;
+const reuseExistingAppServer = process.env.PLAYWRIGHT_REUSE_SERVER === '1';
 
 export default defineConfig({
   testDir: './e2e',
@@ -20,7 +21,7 @@ export default defineConfig({
   webServer: {
     command: `npm run web -- --host 127.0.0.1 --port ${appE2EPort}`,
     url: appE2EUrl,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: reuseExistingAppServer,
     timeout: 120_000,
   },
   projects: [
