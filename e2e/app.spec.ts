@@ -1612,6 +1612,17 @@ test('texture lab is available without a connected session in the app', async ({
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Texture Lab' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Load saved recipe Blue Spark' })).toBeVisible();
+  await expect(textureHeader.getByRole('button', { name: /export png/i })).toBeVisible();
+});
+
+test('texture lab spline and shape editors stay responsive in the app', async ({ page }) => {
+  await seedNoSession(page);
+  await page.goto('/texture-lab');
+
+  await expect(page.getByRole('heading', { name: 'Texture Lab' })).toBeVisible();
+  const textureHeader = page.getByTestId('texture-lab-page').locator('header');
+  const preview = page.getByTestId('texture-lab-preview');
+  await expect(preview).toBeVisible();
   const before = await preview.getAttribute('src');
   await page.getByTitle('Randomize seed').click();
   await expect.poll(() => preview.getAttribute('src')).not.toBe(before);

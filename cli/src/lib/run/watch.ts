@@ -341,6 +341,8 @@ export async function notifySteamosDevkitBuild(
 function watchSource(sourceDir: string, outDir: string, debounceMs: number, onChange: () => void): SourceWatcher {
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let pollTimer: ReturnType<typeof setInterval> | undefined;
+  let startupPollTimer: ReturnType<typeof setInterval> | undefined;
+  let startupPollStopTimer: ReturnType<typeof setTimeout> | undefined;
   let watcher: ReturnType<typeof watch> | undefined;
   let sourceSnapshot = snapshotSource(sourceDir, outDir);
 
@@ -349,10 +351,27 @@ function watchSource(sourceDir: string, outDir: string, debounceMs: number, onCh
     debounceTimer = setTimeout(onChange, debounceMs);
   }
 
+  function pollSnapshotForChanges() {
+    const nextSnapshot = snapshotSource(sourceDir, outDir);
+    if (nextSnapshot !== sourceSnapshot) {
+      sourceSnapshot = nextSnapshot;
+      scheduleChange();
+    }
+  }
+
+  function stopStartupPolling() {
+    if (startupPollTimer) clearInterval(startupPollTimer);
+    if (startupPollStopTimer) clearTimeout(startupPollStopTimer);
+    startupPollTimer = undefined;
+    startupPollStopTimer = undefined;
+  }
+
   function onSourceChanged(filename?: string | Buffer | null) {
     if (!filename) return;
     const relativePath = filename.toString();
     if (shouldIgnoreWatchPath(relativePath, sourceDir, outDir)) return;
+    sourceSnapshot = snapshotSource(sourceDir, outDir);
+    stopStartupPolling();
     scheduleChange();
   }
 
@@ -360,19 +379,26 @@ function watchSource(sourceDir: string, outDir: string, debounceMs: number, onCh
     if (pollTimer) return;
     printWarning('Native file watching is unavailable; falling back to polling.');
     pollTimer = setInterval(() => {
-      const nextSnapshot = snapshotSource(sourceDir, outDir);
-      if (nextSnapshot !== sourceSnapshot) {
-        sourceSnapshot = nextSnapshot;
-        scheduleChange();
-      }
+      pollSnapshotForChanges();
     }, Math.max(250, debounceMs));
+  }
+
+  function startStartupPolling() {
+    startupPollTimer = setInterval(() => {
+      pollSnapshotForChanges();
+    }, Math.max(100, debounceMs));
+    startupPollStopTimer = setTimeout(stopStartupPolling, Math.max(1500, debounceMs * 4));
+    startupPollTimer.unref?.();
+    startupPollStopTimer.unref?.();
   }
 
   try {
     watcher = watch(sourceDir, { recursive: true }, (_event, filename) => onSourceChanged(filename));
+    startStartupPolling();
     watcher.on('error', (err: NodeJS.ErrnoException) => {
       watcher?.close();
       watcher = undefined;
+      stopStartupPolling();
       if (err.code === 'EMFILE' || err.code === 'ENOSPC' || err.code === 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM') {
         startPolling();
         return;
@@ -392,6 +418,7 @@ function watchSource(sourceDir: string, outDir: string, debounceMs: number, onCh
     close: () => {
       watcher?.close();
       if (pollTimer) clearInterval(pollTimer);
+      stopStartupPolling();
       if (debounceTimer) clearTimeout(debounceTimer);
     },
   };

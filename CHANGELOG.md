@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.2.0] - 2026-06-02 - The one with texture maps
+
+### Added
+
+- Added Texture Lab Shader map generators for normal, flow, ripple, and distortion PNGs.
+- Added Texture Lab image-to-mask and SDF/glow generators for masks, outlines, glows, and distance-field-style VFX textures.
+
+### Changed
+
+- Improved Texture Lab layout and atlas editing so side panels stay usable, previews have more room, and expensive atlas renders do not block controls.
+
+### Tests
+
+- Added focused/app/showcase coverage for Texture Lab Shader maps, image masks, SDF/glow generators, and atlas UI workflows.
+
 ## [v3.1.0] - 2026-06-01 - The one with particles improvements
 
 ### Added
@@ -14,11 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Texture Lab can send generated PNGs to Particle Playground emitters and Shader Graph texture slots.
 - Texture Lab supports saved recipes, solid/background color controls, generator-specific resets, spline overlap modes, and direct spline/shape editing.
 - Texture Lab dimensions now include `4 x 4`, `8 x 8`, `16 x 16`, and custom width/height outputs.
-- Texture Lab now includes Shader map generators for normal, flow, ripple, and distortion PNGs.
-- Texture Lab now includes image-to-mask generators for alpha, luminance, threshold, color-key, and edge masks.
-- Texture Lab now includes SDF/glow generators for circle/ring fields, soft outlines, inner/outer glows, and spline strokes.
 - Texture Lab atlas authoring now includes editable frames, seeded fills, onion skinning, uploaded-frame replacement, ZIP export, Particle Playground atlas metadata, and safe all-frame actions.
-- Texture Lab now uses a workspace layout with independent scrolling, collapsible presets, fixed header actions, compact side panels, and larger previews.
 - Added persisted local creative sessions for game-free Shader Graph, Particle Playground, and Texture Lab workspaces.
 
 ### Changed
@@ -30,9 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Shader Graph embedded previews for Fake 3D and other derivative-based nodes so Preview nodes/showcase previews match the game runtime instead of falling back silently.
 - Fixed Texture Lab Shapes & Polygons so Spline layers can be edited in the preview point editor.
 - Fixed Texture Lab generator and spline preset switching so each preset restores its default controls instead of inheriting stale values from the previous recipe.
-- Fixed Texture Lab atlas editing so previews update without blocking normal controls and the left panel has more room.
 - Fixed Particle Playground timeline drags so focused numeric clip editors cannot write stale values back over direct clip movement.
 - Fixed local Particle Playground previews so web and creative-session playback follow authored timeline timing.
+- Fixed CLI watch startup so immediate Android/iOS file edits are not missed while the native watcher settles.
 
 ### Tests
 
@@ -40,9 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added focused/Lua/app/showcase coverage for Particle Playground timeline grouping, undo/redo, atlas metadata, and export paths.
 - Added app/showcase coverage for local Particle Playground preview timeline playback.
 - Added focused Texture Lab dimension coverage alongside app/showcase coverage for generators, recipes, spline/shape editing, atlas workflows, layout, and confirmation dialogs.
-- Added focused/app/showcase coverage for Texture Lab Shader map generators.
-- Added focused/app/showcase coverage for Texture Lab image-to-mask generators.
-- Added focused/app/showcase coverage for Texture Lab SDF/glow generators.
 - Added focused/app coverage for creative session persistence and local creative-tool access without runtime commands.
 
 ## [v3.0.0] - 2026-05-31 - The one with core workflows
@@ -751,6 +759,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v3.2.0]: https://github.com/Kyonru/feather/compare/v3.1.0...v3.2.0
 [v3.1.0]: https://github.com/Kyonru/feather/compare/v3.0.0...v3.1.0
 [v3.0.0]: https://github.com/Kyonru/feather/compare/v2.0.0...v3.0.0
 [v2.0.0]: https://github.com/Kyonru/feather/compare/v1.5.0...v2.0.0
