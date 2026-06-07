@@ -18,6 +18,11 @@
   "install": {
     "files": [
       {
+        "name": "libs/json.lua",
+        "sha256": "0eaccda57fabc0330736de25f45cf589821a42b5e0fe02e4e3125f7dc0bf2b7e",
+        "target": "libs/json.lua"
+      },
+      {
         "name": "menori/init.lua",
         "sha256": "222957dbb8128a23e2322414602d688adf6b34955596f3f165f0447b2d2b4a84",
         "target": "lib/menori/init.lua"

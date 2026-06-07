@@ -1,0 +1,28 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "A lightweight JSON library for Lua",
+  "tags": [
+    "json",
+    "serialization"
+  ],
+  "homepage": "https://github.com/rxi/json.lua",
+  "license": "MIT",
+  "source": {
+    "repo": "rxi/json.lua",
+    "tag": "v0.1.2",
+    "commitSha": "d1e3b0f5d0f3d3493c7dadd0bb54135507fcebd7",
+    "baseUrl": "https://raw.githubusercontent.com/rxi/json.lua/d1e3b0f5d0f3d3493c7dadd0bb54135507fcebd7/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "json.lua",
+        "sha256": "b13df59b32c77db3bec7a1619280ea77ee5014e715ccffaa4876d857e3e9ab87",
+        "target": "lib/json.lua"
+      }
+    ]
+  },
+  "require": "lib.json",
+  "example": "local json = require('lib.json')"
+}

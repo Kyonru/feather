@@ -1199,6 +1199,34 @@
       "require": "lib.inspect",
       "example": "local inspect = require('lib.inspect')"
     },
+    "json": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "A lightweight JSON library for Lua",
+      "tags": [
+        "json",
+        "serialization"
+      ],
+      "homepage": "https://github.com/rxi/json.lua",
+      "license": "MIT",
+      "source": {
+        "repo": "rxi/json.lua",
+        "tag": "v0.1.2",
+        "commitSha": "d1e3b0f5d0f3d3493c7dadd0bb54135507fcebd7",
+        "baseUrl": "https://raw.githubusercontent.com/rxi/json.lua/d1e3b0f5d0f3d3493c7dadd0bb54135507fcebd7/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "json.lua",
+            "sha256": "b13df59b32c77db3bec7a1619280ea77ee5014e715ccffaa4876d857e3e9ab87",
+            "target": "lib/json.lua"
+          }
+        ]
+      },
+      "require": "lib.json",
+      "example": "local json = require('lib.json')"
+    },
     "knife.base": {
       "parent": "knife",
       "type": "love2d-library",
@@ -1986,6 +2014,11 @@
       },
       "install": {
         "files": [
+          {
+            "name": "libs/json.lua",
+            "sha256": "0eaccda57fabc0330736de25f45cf589821a42b5e0fe02e4e3125f7dc0bf2b7e",
+            "target": "libs/json.lua"
+          },
           {
             "name": "menori/init.lua",
             "sha256": "222957dbb8128a23e2322414602d688adf6b34955596f3f165f0447b2d2b4a84",
