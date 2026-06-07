@@ -1351,6 +1351,9 @@ export function TimelinePanel({
                             role="button"
                             tabIndex={0}
                             data-testid={`particle-timeline-clip-${system.index}`}
+                            data-clip-start={clip.start.toFixed(2)}
+                            data-clip-end={clip.end.toFixed(2)}
+                            data-selected={groupSelectedClip ? 'true' : 'false'}
                             className={[
                               'absolute inset-y-0 cursor-grab rounded-sm border border-primary/45 bg-primary/25 shadow-xs outline-none',
                               'focus-visible:ring-ring/50 focus-visible:ring-2 active:cursor-grabbing',

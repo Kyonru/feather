@@ -20,6 +20,32 @@ async function dragLocatorBy(page: Page, locator: Locator, dx: number, dy = 0) {
   await page.mouse.up();
 }
 
+async function waitForTimelineSelection(locator: Locator, selectedCount: number) {
+  await expect
+    .poll(() => locator.evaluateAll((items) => items.filter((item) => (item as HTMLElement).dataset.selected === 'true').length))
+    .toBe(selectedCount);
+}
+
+async function selectTimelineClipGroup(track: Locator, trackLabel: string, clips: Locator, additionalClip: Locator) {
+  await track.getByText(trackLabel).click();
+  await waitForTimelineSelection(clips, 1);
+  const box = await additionalClip.boundingBox();
+  expect(box).not.toBeNull();
+  await additionalClip.dispatchEvent('pointerdown', {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    buttons: 1,
+    clientX: box!.x + box!.width / 2,
+    clientY: box!.y + box!.height / 2,
+    ctrlKey: true,
+    isPrimary: true,
+    pointerId: 1,
+    pointerType: 'mouse',
+  });
+  await waitForTimelineSelection(clips, 2);
+}
+
 async function dragLocatorToX(page: Page, locator: Locator, x: number) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
@@ -27,6 +53,30 @@ async function dragLocatorToX(page: Page, locator: Locator, x: number) {
   await page.mouse.down();
   await page.mouse.move(x, box!.y + box!.height / 2, { steps: 6 });
   await page.mouse.up();
+}
+
+type TimelineClipTimes = { start: number; end: number };
+
+async function readTimelineClipTimes(locator: Locator): Promise<TimelineClipTimes[]> {
+  return locator.evaluateAll((items) =>
+    items.map((item) => ({
+      start: Number((item as HTMLElement).dataset.clipStart),
+      end: Number((item as HTMLElement).dataset.clipEnd),
+    })),
+  );
+}
+
+async function expectTimelineClipTimes(
+  locator: Locator,
+  predicate: (clips: TimelineClipTimes[]) => boolean,
+): Promise<TimelineClipTimes[]> {
+  await expect
+    .poll(async () => {
+      const clips = await readTimelineClipTimes(locator);
+      return predicate(clips) ? 'ready' : JSON.stringify(clips);
+    })
+    .toBe('ready');
+  return readTimelineClipTimes(locator);
 }
 
 function multiSelectModifier(): 'Control' | 'Meta' {
@@ -3155,19 +3205,31 @@ test('particle playground timeline toggles emitters and moves grouped items in t
   await page.getByTestId('particle-timeline-inspector').getByRole('button', { name: /add clip at playhead/i }).click();
   await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
 
-  const firstClip = page.getByTestId('particle-timeline-clip-1').nth(0);
-  const secondClip = page.getByTestId('particle-timeline-clip-1').nth(1);
-  await firstClip.click({ force: true, position: { x: 12, y: 10 } });
-  await secondClip.click({ force: true, modifiers: [multiSelectModifier()] });
+  const fireClips = page.getByTestId('particle-timeline-clip-1');
+  const secondClip = fireClips.nth(1);
+  const beforeGroupedMove = await readTimelineClipTimes(fireClips);
+  await selectTimelineClipGroup(page.getByTestId('particle-timeline-track-1'), 'Fire', fireClips, secondClip);
   await dragLocatorBy(page, secondClip, strip1!.width * (0.4 / 3));
-  await expect(page.locator('[title="Fire: 0.40s to 1.10s"]').first()).toBeVisible();
-  await expect(page.locator('[title="Fire: 1.60s to 2.40s"]').first()).toBeVisible();
+  const afterGroupedMove = await expectTimelineClipTimes(fireClips, (clips) => {
+    if (clips.length !== 2) return false;
+    const firstDelta = Number((clips[0].start - beforeGroupedMove[0].start).toFixed(1));
+    const secondDelta = Number((clips[1].start - beforeGroupedMove[1].start).toFixed(1));
+    return firstDelta > 0 && firstDelta === secondDelta && clips[0].end > beforeGroupedMove[0].end && clips[1].end > beforeGroupedMove[1].end;
+  });
 
-  await firstClip.click({ force: true, position: { x: 12, y: 10 } });
-  await secondClip.click({ force: true, modifiers: [multiSelectModifier()] });
+  await selectTimelineClipGroup(page.getByTestId('particle-timeline-track-1'), 'Fire', fireClips, secondClip);
   await dragLocatorBy(page, secondClip, strip1!.width);
-  await expect(page.locator('[title="Fire: 1.00s to 1.70s"]').first()).toBeVisible();
-  await expect(page.locator('[title="Fire: 2.20s to 3.00s"]').first()).toBeVisible();
+  await expectTimelineClipTimes(fireClips, (clips) => {
+    if (clips.length !== 2) return false;
+    const firstDelta = Number((clips[0].start - afterGroupedMove[0].start).toFixed(1));
+    const secondDelta = Number((clips[1].start - afterGroupedMove[1].start).toFixed(1));
+    return (
+      firstDelta > 0 &&
+      firstDelta === secondDelta &&
+      Math.abs(clips[1].end - 3) < 0.01 &&
+      Number((clips[1].start - clips[0].start).toFixed(1)) === Number((afterGroupedMove[1].start - afterGroupedMove[0].start).toFixed(1))
+    );
+  });
 });
 
 test('shader graph template presets expose public controls in the app', async ({ page }) => {
