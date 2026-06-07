@@ -1967,6 +1967,225 @@
       "require": "lib.lume",
       "example": "local lume = require('lib.lume')"
     },
+    "menori": {
+      "type": "love2d-library",
+      "trust": "verified",
+      "description": "Library for 3D rendering with LÖVE.",
+      "tags": [
+        "3d",
+        "rendering",
+        "glTF"
+      ],
+      "homepage": "https://github.com/rozenmad/Menori",
+      "license": "unknown",
+      "source": {
+        "repo": "rozenmad/Menori",
+        "tag": "dev",
+        "commitSha": "2374dc126be2f3816c2e282c3ccf5d78f649f3bd",
+        "baseUrl": "https://raw.githubusercontent.com/rozenmad/Menori/2374dc126be2f3816c2e282c3ccf5d78f649f3bd/"
+      },
+      "install": {
+        "files": [
+          {
+            "name": "menori/init.lua",
+            "sha256": "222957dbb8128a23e2322414602d688adf6b34955596f3f165f0447b2d2b4a84",
+            "target": "lib/menori/init.lua"
+          },
+          {
+            "name": "menori/modules/camera.lua",
+            "sha256": "f0524fffa7db07273f5bff125b590a54192cd0cf7ac10899b902d2d08d3073ed",
+            "target": "lib/menori/modules/camera.lua"
+          },
+          {
+            "name": "menori/modules/core3d/camera.lua",
+            "sha256": "50b74cb5ba0481f86229c3ea6e287ae8bb1ec3a4225542f51a2a20cfe4486e98",
+            "target": "lib/menori/modules/core3d/camera.lua"
+          },
+          {
+            "name": "menori/modules/core3d/environment.lua",
+            "sha256": "09b874dfec27799e816451bb277f112a5de610a97c4530ef442ad20047d485f3",
+            "target": "lib/menori/modules/core3d/environment.lua"
+          },
+          {
+            "name": "menori/modules/core3d/gltf.lua",
+            "sha256": "bf83721db98a4fc42e3020aa1f9f29df2966c45dcc5b33f0a579e33f93b06584",
+            "target": "lib/menori/modules/core3d/gltf.lua"
+          },
+          {
+            "name": "menori/modules/core3d/gltf_animations.lua",
+            "sha256": "94c8cfb8b64405a80de7797ac1e11094609d655203eddc96a0226ef9c7dacde9",
+            "target": "lib/menori/modules/core3d/gltf_animations.lua"
+          },
+          {
+            "name": "menori/modules/core3d/instanced_mesh.lua",
+            "sha256": "c41ca68de9021d72602399046f6906731583bc12a17c2f8dedd0099cc12ec031",
+            "target": "lib/menori/modules/core3d/instanced_mesh.lua"
+          },
+          {
+            "name": "menori/modules/core3d/material.lua",
+            "sha256": "a18d4be0e66594a6db787f601bf658a120c77362f63aa64483e77ce6813155bf",
+            "target": "lib/menori/modules/core3d/material.lua"
+          },
+          {
+            "name": "menori/modules/core3d/mesh.lua",
+            "sha256": "eff97a3f55c8b2ad47df1c755d31a361ca0d9165a6976e138e6abf2a1883e6d2",
+            "target": "lib/menori/modules/core3d/mesh.lua"
+          },
+          {
+            "name": "menori/modules/core3d/model_node.lua",
+            "sha256": "f2e1b1ba6eb50065a043a6e116c6b807f23b8d9d5959a7e76ddd0779052cdef7",
+            "target": "lib/menori/modules/core3d/model_node.lua"
+          },
+          {
+            "name": "menori/modules/core3d/node_tree_builder.lua",
+            "sha256": "bd13eb4838f29f39a2f059e7b051c4e577dc7a81c07082a4e9704f64c2cb0ae6",
+            "target": "lib/menori/modules/core3d/node_tree_builder.lua"
+          },
+          {
+            "name": "menori/modules/core3d/shapes/box.lua",
+            "sha256": "c76e5d6f01ccf6dcecb18feedd5321fd3bdfb7e5bb91875878dc33ae18f2efa2",
+            "target": "lib/menori/modules/core3d/shapes/box.lua"
+          },
+          {
+            "name": "menori/modules/core3d/shapes/capsule.lua",
+            "sha256": "23f17568e18061e61ca99d4f1d1cd9708ef6a842583928829c9840495dd483e5",
+            "target": "lib/menori/modules/core3d/shapes/capsule.lua"
+          },
+          {
+            "name": "menori/modules/core3d/shapes/plane.lua",
+            "sha256": "7a9690e8fd61d5c8b98ca5988558628811d7a79d81c7dc258c72c07ea8bad064",
+            "target": "lib/menori/modules/core3d/shapes/plane.lua"
+          },
+          {
+            "name": "menori/modules/core3d/shapes/sphere.lua",
+            "sha256": "dc2f5a0a95c65929feed9f24652c977d28a562cdf7a6ec98029f971fa98b25c3",
+            "target": "lib/menori/modules/core3d/shapes/sphere.lua"
+          },
+          {
+            "name": "menori/modules/core3d/shapes/triangle.lua",
+            "sha256": "217a088d44ada30f9a7203764412db9b0a818f797e6c30e907665db7aa07232b",
+            "target": "lib/menori/modules/core3d/shapes/triangle.lua"
+          },
+          {
+            "name": "menori/modules/core3d/shapes/vertexformat.lua",
+            "sha256": "a9e045aebb687e8097dd6d49696673fdd4211753285998df1302bac639edf4f5",
+            "target": "lib/menori/modules/core3d/shapes/vertexformat.lua"
+          },
+          {
+            "name": "menori/modules/core3d/uniform_list.lua",
+            "sha256": "f621fa02c60629d8f76dfaebafb04aef98347d523d4f8d3cb77212426dbb9c3d",
+            "target": "lib/menori/modules/core3d/uniform_list.lua"
+          },
+          {
+            "name": "menori/modules/deprecated/app.lua",
+            "sha256": "f5b9270790484db612000bf02fbd52948179b7065bc80edd9fbc0e21815d47dc",
+            "target": "lib/menori/modules/deprecated/app.lua"
+          },
+          {
+            "name": "menori/modules/deprecated/geometry_buffer.lua",
+            "sha256": "53f6cb2aad6947622acd4311897779df7fb831c154bc5e400d724e4bf33390a2",
+            "target": "lib/menori/modules/deprecated/geometry_buffer.lua"
+          },
+          {
+            "name": "menori/modules/libs/class.lua",
+            "sha256": "53e752578e005107094b4402de5020ef82664dc663cd535501cf4aad1a1b63bc",
+            "target": "lib/menori/modules/libs/class.lua"
+          },
+          {
+            "name": "menori/modules/libs/ffi.lua",
+            "sha256": "c809e6726ebd5e64e14e53a4e0136211a4fbc646accab99fcecaa5fcfc565f25",
+            "target": "lib/menori/modules/libs/ffi.lua"
+          },
+          {
+            "name": "menori/modules/libs/utils.lua",
+            "sha256": "59ecd65ad563a6e49ec1ec8846f6c6650be4c76d2555df6d960fd48ebad5d888",
+            "target": "lib/menori/modules/libs/utils.lua"
+          },
+          {
+            "name": "menori/modules/ml/init.lua",
+            "sha256": "a5750b97edca2fc09952b795afe5cec98e047b747de6c0c32250c760c925a2cb",
+            "target": "lib/menori/modules/ml/init.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/bound3.lua",
+            "sha256": "0ee7cc5108778113b38788792720c8c1a50d39aa3700837591958ba514b05eca",
+            "target": "lib/menori/modules/ml/modules/bound3.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/bvh.lua",
+            "sha256": "ed3df4b9a155b5e4e5dbe8cfa573434689eb525b211eb70439e7e5c234a43923",
+            "target": "lib/menori/modules/ml/modules/bvh.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/intersect.lua",
+            "sha256": "fba069c1ee57dbe50c7ad44fcd4942e0e2f1f7c869be71c95ff78ea2e1007032",
+            "target": "lib/menori/modules/ml/modules/intersect.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/mat4.lua",
+            "sha256": "0214791613fb418d583fcee2038c7ca0d1a06d66d93f2ac5d93d4ba041f23e60",
+            "target": "lib/menori/modules/ml/modules/mat4.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/quat.lua",
+            "sha256": "cf8733d199e394b86f4c32251df49b89bc9a9e7d0f3347daf202d7fbdafd34c2",
+            "target": "lib/menori/modules/ml/modules/quat.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/utils.lua",
+            "sha256": "1e702299b8d73f2e077e83f62d4e6fad0d022d862896ed93e2c1584c061ca978",
+            "target": "lib/menori/modules/ml/modules/utils.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/vec2.lua",
+            "sha256": "525f565c21a685ba51758c573a99bfded1a915fd44822850e01b71cb35b4adcc",
+            "target": "lib/menori/modules/ml/modules/vec2.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/vec3.lua",
+            "sha256": "0655b0002097edb910003390d13416fcbd510b3238334478393f09902357d5aa",
+            "target": "lib/menori/modules/ml/modules/vec3.lua"
+          },
+          {
+            "name": "menori/modules/ml/modules/vec4.lua",
+            "sha256": "5676ac336fbbc442ad7e76765c1e5ac098b7d9cca935e09eae4640423522a239",
+            "target": "lib/menori/modules/ml/modules/vec4.lua"
+          },
+          {
+            "name": "menori/modules/node.lua",
+            "sha256": "f2fb4094bad4082d1ecebd8992bb0d54ffac4d192bb4c060e1e99baf0921d0c2",
+            "target": "lib/menori/modules/node.lua"
+          },
+          {
+            "name": "menori/modules/scene.lua",
+            "sha256": "1a37fe0347559b7be8a082b2100b975781a48f3a3cc268628f42b9ac77685bb1",
+            "target": "lib/menori/modules/scene.lua"
+          },
+          {
+            "name": "menori/modules/scenemanager.lua",
+            "sha256": "40b88c2d45e9c8d526112fe873f39e4c1812a43ecc88808ba66c867bd4fd1c75",
+            "target": "lib/menori/modules/scenemanager.lua"
+          },
+          {
+            "name": "menori/modules/shaders/utils.lua",
+            "sha256": "c578cb1652514086cfed4172d21a69faabb698a5860f7c758a4dcdf1c84dbe76",
+            "target": "lib/menori/modules/shaders/utils.lua"
+          },
+          {
+            "name": "menori/modules/sprite.lua",
+            "sha256": "7572c03becfbe57e01751b51269abcd4ead93d123141ba3537b2ac9f499c57e7",
+            "target": "lib/menori/modules/sprite.lua"
+          },
+          {
+            "name": "menori/modules/spriteloader.lua",
+            "sha256": "b4d969a69a6a4424d29ee7a6f77930fb4d330bcfacd655299885d54db33da200",
+            "target": "lib/menori/modules/spriteloader.lua"
+          }
+        ]
+      },
+      "require": "lib.menori.init",
+      "example": "local menori = require('lib.menori.init')"
+    },
     "middleclass": {
       "type": "love2d-library",
       "trust": "verified",
