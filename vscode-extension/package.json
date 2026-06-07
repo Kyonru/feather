@@ -2,7 +2,7 @@
   "name": "feather-cli-vscode",
   "displayName": "Feather for LÖVE",
   "description": "Run, debug, and manage Feather for Love2D games from VS Code.",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "sponsor": {
     "url": "https://github.com/sponsors/kyonru"
   },
