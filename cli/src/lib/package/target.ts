@@ -23,9 +23,14 @@ export function resolveProjectTarget(projectDir: string, target: string): string
 export type PackageTargetPlanOptions = {
   targetOverride?: string;
   installDir?: string;
+  layout?: "relocatable" | "fixed";
 };
 
 export function planPackageTarget(file: { name: string; target: string }, opts: PackageTargetPlanOptions = {}): string {
+  if (opts.layout === "fixed") {
+    return file.target;
+  }
+
   if (opts.targetOverride) {
     return join(opts.targetOverride, basename(file.name));
   }

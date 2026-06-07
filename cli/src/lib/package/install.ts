@@ -71,8 +71,20 @@ export async function installPackage(
   const fileResults: InstallFileResult[] = [];
   const lockedFiles: LockfileEntry["files"] = [];
   const savedInstallDir = lockfile.packages[pkg.id]?.installDir;
-  const effectiveInstallDir = targetOverride ? undefined : (installDir ?? savedInstallDir);
-  const shouldSaveInstallDir = !targetOverride && (installDir ? !!saveInstallDir : !!savedInstallDir);
+  const layout = pkg.entry.install?.layout;
+  const fixedLayout = layout === "fixed";
+
+  if (fixedLayout && targetOverride) {
+    return {
+      id: pkg.id,
+      ok: false,
+      files: [],
+      error: `${pkg.id} has fixed runtime paths and cannot be flattened.`,
+    };
+  }
+
+  const effectiveInstallDir = targetOverride || fixedLayout ? undefined : (installDir ?? savedInstallDir);
+  const shouldSaveInstallDir = !targetOverride && !fixedLayout && (installDir ? !!saveInstallDir : !!savedInstallDir);
 
   const src = pkg.entry.source;
   const effectiveTag = pkg.versionOverride ?? src.tag ?? 'url';
@@ -83,7 +95,7 @@ export async function installPackage(
 
   const plannedFiles = pkg.files.map((file) => ({
     file,
-    relTarget: planPackageTarget(file, { targetOverride, installDir: effectiveInstallDir }),
+    relTarget: planPackageTarget(file, { targetOverride, installDir: effectiveInstallDir, layout }),
   }));
   const resolvedTargets: string[] = [];
 

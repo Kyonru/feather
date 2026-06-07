@@ -886,6 +886,66 @@ test('registry validation rejects targets outside the project', async () => {
   );
 });
 
+test('registry validation accepts fixed install layout', async () => {
+  const { validateRegistry } = await import('../../dist/lib/package/registry.js');
+  const registry = validateRegistry({
+    version: 1,
+    updatedAt: '2026-05-16',
+    packages: {
+      fixed: {
+        type: 'love2d-library',
+        trust: 'verified',
+        description: 'fixed layout',
+        tags: [],
+        source: {
+          repo: 'owner/repo',
+          tag: 'main',
+          baseUrl: 'https://raw.githubusercontent.com/owner/repo/0123456789abcdef0123456789abcdef01234567/',
+          commitSha: '0123456789abcdef0123456789abcdef01234567',
+        },
+        install: {
+          layout: 'fixed',
+          files: [{ name: 'libs/json.lua', target: 'libs/json.lua', sha256: 'a'.repeat(64) }],
+        },
+        require: 'libs.json',
+      },
+    },
+  });
+
+  assert.equal(registry.packages.fixed.install.layout, 'fixed');
+});
+
+test('registry validation rejects invalid install layout', async () => {
+  const { validateRegistry } = await import('../../dist/lib/package/registry.js');
+  assert.throws(
+    () =>
+      validateRegistry({
+        version: 1,
+        updatedAt: '2026-05-16',
+        packages: {
+          fixed: {
+            type: 'love2d-library',
+            trust: 'verified',
+            description: 'bad layout',
+            tags: [],
+            source: {
+              repo: 'owner/repo',
+              tag: 'main',
+              baseUrl: 'https://raw.githubusercontent.com/owner/repo/0123456789abcdef0123456789abcdef01234567/',
+              commitSha: '0123456789abcdef0123456789abcdef01234567',
+            },
+            install: {
+              layout: 'nested',
+              files: [{ name: 'mod.lua', target: 'lib/mod.lua', sha256: 'a'.repeat(64) }],
+            },
+            require: 'lib.mod',
+          },
+        },
+      }),
+    /install\.layout/,
+  );
+});
+
 test('init: --yes --mode auto patches main.lua with guarded markers', () => {
   const dir = makeTmp();
   writeGame(dir);
@@ -1519,6 +1579,68 @@ test('install package: installDir without save only records transformed file tar
       assert.equal(lockfile.packages.feel.files[0].target, 'vendor/feel/init.lua');
     },
   );
+});
+
+test('install package: fixed layout ignores installDir and records catalog targets', async () => {
+  const dir = makeTmp();
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const content = 'return "menori"';
+  const jsonContent = 'return "json"';
+  const pkg = {
+    id: 'menori',
+    entry: {
+      trust: 'verified',
+      install: { layout: 'fixed' },
+      source: { repo: 'rozenmad/Menori', tag: 'dev', baseUrl: 'https://example.com/' },
+    },
+    files: [
+      { name: 'libs/json.lua', target: 'libs/json.lua', sha256: sha256(jsonContent) },
+      { name: 'menori/init.lua', target: 'lib/menori/init.lua', sha256: sha256(content) },
+    ],
+  };
+
+  await withFetchMock(
+    async (url) => new Response(String(url).endsWith('/libs/json.lua') ? jsonContent : content),
+    async () => {
+      const lockfile = emptyLockfile();
+      const result = await installPackage(pkg, lockfile, {
+        projectDir: dir,
+        installDir: 'vendor',
+        saveInstallDir: true,
+      });
+
+      assert.equal(result.ok, true);
+      assert.equal(readFileSync(join(dir, 'libs', 'json.lua'), 'utf8'), jsonContent);
+      assert.equal(readFileSync(join(dir, 'lib', 'menori', 'init.lua'), 'utf8'), content);
+      assert.equal(lockfile.packages.menori.installDir, undefined);
+      assert.deepEqual(lockfile.packages.menori.files.map((file) => file.target), [
+        'libs/json.lua',
+        'lib/menori/init.lua',
+      ]);
+    },
+  );
+});
+
+test('install package: fixed layout cannot be flattened', async () => {
+  const dir = makeTmp();
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const pkg = {
+    id: 'menori',
+    entry: {
+      trust: 'verified',
+      install: { layout: 'fixed' },
+      source: { repo: 'rozenmad/Menori', tag: 'dev', baseUrl: 'https://example.com/' },
+    },
+    files: [{ name: 'menori/init.lua', target: 'lib/menori/init.lua', sha256: sha256('return {}') }],
+  };
+
+  const result = await installPackage(pkg, emptyLockfile(), {
+    projectDir: dir,
+    targetOverride: 'vendor',
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /fixed runtime paths and cannot be flattened/);
 });
 
 test('install package: saved installDir is reused by later installs', async () => {

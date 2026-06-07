@@ -225,6 +225,9 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   if (toInstall.length === 0) return;
 
   for (const pkg of toInstall) {
+    if (pkg.entry.install.layout === 'fixed' && opts.flatDir) {
+      fail(`${pkg.id} has fixed runtime paths and cannot be flattened.`);
+    }
     if (pkg.entry.trust === 'experimental' && !opts.allowUntrusted) {
       fail(`"${pkg.id}" requires --allow-untrusted (trust: experimental)`);
     }
@@ -241,6 +244,12 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     }
   }
 
+  for (const pkg of toInstall) {
+    if (pkg.entry.install.layout === 'fixed' && opts.installDir) {
+      printWarning(`${pkg.id} has fixed runtime paths; --install-dir is ignored for this package.`);
+    }
+  }
+
   if (opts.dryRun) {
     printBlank();
     for (const pkg of toInstall) {
@@ -250,7 +259,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       const savedInstallDir = lockfile.packages[pkg.id]?.installDir;
       const installDir = opts.installDir ?? savedInstallDir;
       for (const f of pkg.files) {
-        const target = planPackageTarget(f, { targetOverride: opts.flatDir, installDir });
+        const target = planPackageTarget(f, { targetOverride: opts.flatDir, installDir, layout: pkg.entry.install.layout });
         printLine(`    ${style.muted(f.name)}  →  ${target}`);
       }
       printBlank();

@@ -110,6 +110,9 @@ Options:
 `feather package install feel --install-dir vendor --save-install-dir` writes `vendor/feel/init.lua`
 and `vendor/feel/vendor/flux.lua`, then records `installDir: "vendor"` so future
 `feather package install feel` and `feather package update feel` runs keep using that location.
+Some curated packages have fixed runtime paths because upstream code requires project-root modules
+directly. For example, Menori requires `libs.json`, so Feather keeps `libs/json.lua` at the game
+root even if `--install-dir` is provided. Fixed-layout packages cannot be installed with `--flat-dir`.
 Use `--flat-dir` only when you deliberately want all catalog files flattened by basename, such as
 `feel/init.lua` → `vendor/init.lua`.
 
@@ -345,6 +348,7 @@ Each file in `packages/` is a standalone JSON manifest:
     "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/c1c12ec.../"
   },
   "install": {
+    "layout": "relocatable",
     "files": [{ "name": "anim8.lua", "sha256": "abc123...", "target": "lib/anim8.lua" }]
   },
   "require": "lib.anim8",
@@ -353,3 +357,5 @@ Each file in `packages/` is a standalone JSON manifest:
 ```
 
 The `commitSha` field pins downloads to the exact commit SHA of the selected tag or branch at curation time. `baseUrl` uses this SHA so fetches are immutable even if the tag is later moved. `scripts/generate-registry.mjs` assembles all package files into `cli/src/generated/registry.json`, which is bundled into the published CLI.
+
+`install.layout` is optional. Omit it for normal relocatable packages. Use `"fixed"` only when a package has hardcoded runtime paths that must be installed exactly as declared. Dependency/provides metadata is intentionally deferred; fixed layout is the current compatibility tool for libraries that expect project-root support files.

@@ -32,7 +32,7 @@ export type RegistryEntry = {
     commitSha?: string;
     baseUrl?: string;
   };
-  install: { files: PackageFile[] };
+  install: { layout?: "relocatable" | "fixed"; files: PackageFile[] };
   subpackages?: string[];
   require: string;
   example?: string;
@@ -92,6 +92,9 @@ export function validateRegistry(value: unknown): Registry {
     }
     if (!isObject(entry.install) || !Array.isArray(entry.install.files) || entry.install.files.length === 0) {
       throw new Error(`Package ${id} install.files is required`);
+    }
+    if (entry.install.layout !== undefined && entry.install.layout !== "relocatable" && entry.install.layout !== "fixed") {
+      throw new Error(`Package ${id} install.layout must be "relocatable" or "fixed"`);
     }
     for (const file of entry.install.files) {
       if (!isObject(file)) throw new Error(`Package ${id} install file must be an object`);

@@ -138,6 +138,7 @@ function InstallProgress({
         target: planPackageTarget(f, {
           targetOverride,
           installDir: installDir ?? lockfile.packages[pkg.id]?.installDir,
+          layout: pkg.entry.install?.layout,
         }),
         status: "pending",
         liveComputed: !!pkg.versionOverride,

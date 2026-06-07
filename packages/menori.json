@@ -16,6 +16,7 @@
     "baseUrl": "https://raw.githubusercontent.com/rozenmad/Menori/2374dc126be2f3816c2e282c3ccf5d78f649f3bd/"
   },
   "install": {
+    "layout": "fixed",
     "files": [
       {
         "name": "libs/json.lua",

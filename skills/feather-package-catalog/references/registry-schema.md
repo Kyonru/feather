@@ -14,6 +14,7 @@ Common fields:
 - `license`
 - `source`
 - `install.files`
+- optional `install.layout`: `fixed` keeps catalog targets exact for packages with hardcoded runtime paths; omitted means relocatable
 - `require`
 - `example`
 - optional `subpackages`
@@ -36,6 +37,8 @@ Each install file needs:
 - `name`: file path under `baseUrl`
 - `sha256`: expected file hash
 - `target`: project-relative install path
+
+`install.layout: "fixed"` is for curated packages whose upstream code expects specific project-root paths, such as `require("libs.json")`. Fixed-layout packages ignore `--install-dir` and cannot be flattened.
 
 ## Generated registry
 
