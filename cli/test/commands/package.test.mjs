@@ -946,6 +946,172 @@ test('registry validation rejects invalid install layout', async () => {
   );
 });
 
+test('registry validation rejects missing dependency ids', async () => {
+  const { validateRegistry } = await import('../../dist/lib/package/registry.js');
+  assert.throws(
+    () =>
+      validateRegistry({
+        version: 1,
+        updatedAt: '2026-05-16',
+        packages: {
+          app: {
+            type: 'love2d-library',
+            trust: 'verified',
+            description: 'depends on missing',
+            tags: [],
+            source: {
+              repo: 'owner/app',
+              tag: 'main',
+              baseUrl: 'https://raw.githubusercontent.com/owner/app/0123456789abcdef0123456789abcdef01234567/',
+              commitSha: '0123456789abcdef0123456789abcdef01234567',
+            },
+            install: {
+              files: [{ name: 'app.lua', target: 'lib/app.lua', sha256: 'a'.repeat(64) }],
+            },
+            dependencies: ['missing'],
+            require: 'lib.app',
+          },
+        },
+      }),
+    /dependency missing is missing/,
+  );
+});
+
+test('resolver expands exact dependencies in dependency-first order and dedupes shared dependencies', async () => {
+  const { resolveMany } = await import('../../dist/lib/package/resolve.js');
+  const pkg = (id, dependencies = []) => ({
+    type: 'love2d-library',
+    trust: 'verified',
+    description: id,
+    tags: [],
+    source: { repo: `owner/${id}`, tag: 'main', baseUrl: 'https://example.com/', commitSha: '0123456789abcdef0123456789abcdef01234567' },
+    install: { files: [{ name: `${id}.lua`, target: `lib/${id}.lua`, sha256: 'a'.repeat(64) }] },
+    dependencies,
+    require: `lib.${id}`,
+  });
+  const registry = {
+    version: 1,
+    updatedAt: '2026-05-16',
+    packages: {
+      root: pkg('root', ['left', 'right']),
+      left: pkg('left', ['shared']),
+      right: pkg('right', ['shared']),
+      shared: pkg('shared'),
+    },
+  };
+
+  const { resolved, errors } = resolveMany(['root'], registry);
+
+  assert.deepEqual(errors, []);
+  assert.deepEqual(resolved.map((item) => item.id), ['shared', 'left', 'right', 'root']);
+  assert.deepEqual(resolved.find((item) => item.id === 'shared').dependencyOf.sort(), ['left', 'right']);
+});
+
+test('resolver rejects dependency cycles', async () => {
+  const { resolveMany } = await import('../../dist/lib/package/resolve.js');
+  const pkg = (id, dependencies = []) => ({
+    type: 'love2d-library',
+    trust: 'verified',
+    description: id,
+    tags: [],
+    source: { repo: `owner/${id}`, tag: 'main', baseUrl: 'https://example.com/', commitSha: '0123456789abcdef0123456789abcdef01234567' },
+    install: { files: [{ name: `${id}.lua`, target: `lib/${id}.lua`, sha256: 'a'.repeat(64) }] },
+    dependencies,
+    require: `lib.${id}`,
+  });
+  const { errors } = resolveMany(['a'], {
+    version: 1,
+    updatedAt: '2026-05-16',
+    packages: {
+      a: pkg('a', ['b']),
+      b: pkg('b', ['a']),
+    },
+  });
+
+  assert.match(errors.join('\n'), /Package dependency cycle: a -> b -> a/);
+});
+
+test('resolver rejects conflicting direct override and exact dependency version', async () => {
+  const { resolveMany } = await import('../../dist/lib/package/resolve.js');
+  const pkg = (id, dependencies = []) => ({
+    type: 'love2d-library',
+    trust: 'verified',
+    description: id,
+    tags: [],
+    source: { repo: `owner/${id}`, tag: 'main', baseUrl: 'https://example.com/', commitSha: '0123456789abcdef0123456789abcdef01234567' },
+    install: { files: [{ name: `${id}.lua`, target: `lib/${id}.lua`, sha256: 'a'.repeat(64) }] },
+    dependencies,
+    require: `lib.${id}`,
+  });
+  const { errors } = resolveMany(['dep@other', 'root'], {
+    version: 1,
+    updatedAt: '2026-05-16',
+    packages: {
+      root: pkg('root', ['dep']),
+      dep: pkg('dep'),
+    },
+  });
+
+  assert.match(errors.join('\n'), /conflicting versions/);
+});
+
+test('resolver reports already-installed dependency conflicts', async () => {
+  const { dependencyInstallConflicts } = await import('../../dist/lib/package/resolve.js');
+  const pkg = {
+    id: 'dep',
+    entry: {
+      source: { tag: 'main' },
+    },
+    files: [],
+    dependencyOf: ['root'],
+  };
+
+  assert.deepEqual(
+    dependencyInstallConflicts([pkg], {
+      lockfileVersion: 1,
+      generatedAt: new Date(0).toISOString(),
+      packages: {
+        dep: {
+          version: 'old',
+          trust: 'verified',
+          source: { repo: 'owner/dep', tag: 'old' },
+          files: [],
+          installedAt: new Date(0).toISOString(),
+        },
+      },
+    }),
+    ['"dep" is required by root but is already installed as old. Remove or update it before installing dependent packages.'],
+  );
+});
+
+test('resolver reports experimental installed dependency conflicts', async () => {
+  const { dependencyInstallConflicts } = await import('../../dist/lib/package/resolve.js');
+  const pkg = {
+    id: 'dep',
+    entry: {
+      source: { tag: 'main' },
+    },
+    files: [],
+    dependencyOf: ['root'],
+  };
+
+  const conflicts = dependencyInstallConflicts([pkg], {
+    lockfileVersion: 1,
+    generatedAt: new Date(0).toISOString(),
+    packages: {
+      dep: {
+        version: 'main',
+        trust: 'experimental',
+        source: { repo: 'owner/dep', tag: 'main' },
+        files: [],
+        installedAt: new Date(0).toISOString(),
+      },
+    },
+  });
+
+  assert.equal(conflicts.length, 1);
+});
+
 test('init: --yes --mode auto patches main.lua with guarded markers', () => {
   const dir = makeTmp();
   writeGame(dir);

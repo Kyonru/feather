@@ -31,6 +31,7 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   printLine(`  Version:  ${entry.source.tag}`);
   printLine(`  Tags:     ${entry.tags.join(', ') || '—'}`);
   if (entry.install.layout === 'fixed') printLine(`  Layout:   fixed runtime paths`);
+  if (entry.dependencies?.length) printLine(`  Depends:  ${entry.dependencies.join(', ')}`);
   if (entry.license) printLine(`  License:  ${entry.license}`);
   if (entry.homepage) printLine(`  Docs:     ${style.info(entry.homepage)}`);
   if (installed) {

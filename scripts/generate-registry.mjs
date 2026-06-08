@@ -63,6 +63,7 @@ for (const file of packageFiles) {
             sub.files.includes(f.name)
           ),
         },
+        dependencies: sub.dependencies,
         require: sub.require,
         example: sub.example ?? `local ${subId.split(".").pop()} = require('${sub.require}')`,
       };
@@ -78,6 +79,7 @@ for (const file of packageFiles) {
     license: pkg.license,
     source: pkg.source,
     install: pkg.install,
+    dependencies: pkg.dependencies,
     subpackages: pkg.subpackages ? Object.keys(pkg.subpackages) : undefined,
     require: pkg.require,
     example: pkg.example,

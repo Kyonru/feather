@@ -145,12 +145,14 @@ export function ShaderCanvas() {
     items: LinkSuggestion[];
   } | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [dropAnimatingNodeIds, setDropAnimatingNodeIds] = useState<Set<string>>(new Set());
   const [subgraphDialogOpen, setSubgraphDialogOpen] = useState(false);
   const [subgraphName, setSubgraphName] = useState('Subgraph');
   const [canvasInteractionMode, setCanvasInteractionMode] = useState<CanvasInteractionMode>('select');
   const pasteOffsetRef = useRef(0);
   const suppressNextEmptySelectionRef = useRef(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const dropAnimationTimersRef = useRef<Map<string, number>>(new Map());
 
   // Captured via onInit — avoids calling useReactFlow() at the same level as <ReactFlow>
   const rfRef = useRef<ReactFlowInstance<Node<ShaderNodeData>> | null>(null);
@@ -161,7 +163,38 @@ export function ShaderCanvas() {
   useEffect(() => {
     suppressNextEmptySelectionRef.current = true;
     setSelectedNodeIds(new Set());
+    setDropAnimatingNodeIds(new Set());
   }, [activeSubgraphId]);
+
+  useEffect(
+    () => () => {
+      for (const timer of dropAnimationTimersRef.current.values()) {
+        window.clearTimeout(timer);
+      }
+      dropAnimationTimersRef.current.clear();
+    },
+    [],
+  );
+
+  const playDropAnimation = useCallback((nodeId: string) => {
+    const existingTimer = dropAnimationTimersRef.current.get(nodeId);
+    if (existingTimer) window.clearTimeout(existingTimer);
+    setDropAnimatingNodeIds((current) => {
+      const next = new Set(current);
+      next.add(nodeId);
+      return next;
+    });
+    const timer = window.setTimeout(() => {
+      dropAnimationTimersRef.current.delete(nodeId);
+      setDropAnimatingNodeIds((current) => {
+        if (!current.has(nodeId)) return current;
+        const next = new Set(current);
+        next.delete(nodeId);
+        return next;
+      });
+    }, 520);
+    dropAnimationTimersRef.current.set(nodeId, timer);
+  }, []);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<Node<ShaderNodeData>>[]) => {
@@ -205,10 +238,11 @@ export function ShaderCanvas() {
         position,
         data: defaultNodeData(nodeType, def.label),
       });
+      playDropAnimation(id);
       selectNode(id);
       setRightPanelTab('selection');
     },
-    [activeSubgraphId, addNode, selectNode, setRightPanelTab],
+    [activeSubgraphId, addNode, playDropAnimation, selectNode, setRightPanelTab],
   );
 
   const onNodeClick = useCallback(
@@ -654,6 +688,21 @@ export function ShaderCanvas() {
   }, []);
 
   const theme = useTheme();
+  const graphNodesForRender = useMemo(
+    () =>
+      graphNodes.map((node) =>
+        dropAnimatingNodeIds.has(node.id)
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                __dropAnimating: true,
+              },
+            }
+          : node,
+      ),
+    [dropAnimatingNodeIds, graphNodes],
+  );
 
   return (
     <div
@@ -670,7 +719,7 @@ export function ShaderCanvas() {
     >
       <ReactFlow
         key={activeSubgraphId ?? 'root'}
-        nodes={graphNodes}
+        nodes={graphNodesForRender}
         edges={graphEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}

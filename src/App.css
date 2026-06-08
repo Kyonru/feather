@@ -142,6 +142,38 @@
   }
 }
 
+@keyframes shader-node-drop-enter {
+  0% {
+    opacity: 0.72;
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--primary) 55%, transparent),
+      0 12px 28px color-mix(in oklab, var(--primary) 22%, transparent);
+    filter: saturate(1.18);
+  }
+  52% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 6px color-mix(in oklab, var(--primary) 0%, transparent),
+      0 10px 24px color-mix(in oklab, var(--primary) 15%, transparent);
+    filter: saturate(1.08);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 10%, transparent);
+    filter: saturate(1);
+  }
+}
+
+.shader-node-drop-enter {
+  animation: shader-node-drop-enter 520ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shader-node-drop-enter {
+    animation: none;
+  }
+}
+
 
 @layer utilities {
   /* Hide scrollbar for Chrome, Safari and Opera */

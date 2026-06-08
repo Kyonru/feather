@@ -15,6 +15,7 @@ Common fields:
 - `source`
 - `install.files`
 - optional `install.layout`: `fixed` keeps catalog targets exact for packages with hardcoded runtime paths; omitted means relocatable
+- optional `dependencies`: exact package IDs from the same catalog, installed before the dependent package
 - `require`
 - `example`
 - optional `subpackages`
@@ -39,6 +40,8 @@ Each install file needs:
 - `target`: project-relative install path
 
 `install.layout: "fixed"` is for curated packages whose upstream code expects specific project-root paths, such as `require("libs.json")`. Fixed-layout packages ignore `--install-dir` and cannot be flattened.
+
+`dependencies` is exact and catalog-local in v1. It does not support version ranges, module providers, or project overrides.
 
 ## Generated registry
 

@@ -2,7 +2,7 @@ import { auditLockfile } from '../../lib/package/audit.js';
 import { installFromUrl, restorePackage } from '../../lib/package/install.js';
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntryRequiresUntrustedRepair, lockfileEntrySourceSummary } from '../../lib/package/provenance.js';
-import { resolveMany } from '../../lib/package/resolve.js';
+import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { planPackageTarget, resolveProjectTarget } from '../../lib/package/target.js';
 import { fail } from '../../lib/command.js';
 import {
@@ -211,11 +211,16 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     fail('', { silent: true });
   }
 
+  const dependencyConflicts = dependencyInstallConflicts(resolved, lockfile);
+  if (dependencyConflicts.length > 0) {
+    fail(dependencyConflicts.join('\n'));
+  }
+
   const toInstall = resolved.filter((pkg) => {
     if (pkg.versionOverride) return true;
     const existing = lockfile.packages[pkg.id];
     if (existing && existing.version === pkg.entry.source.tag) {
-      if (opts.installDir) return true;
+      if (opts.installDir && (pkg.requested || !pkg.dependencyOf?.length)) return true;
       printMuted(`  ${pkg.id} is already installed at ${existing.version}`);
       return false;
     }

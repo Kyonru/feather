@@ -1,5 +1,5 @@
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
-import { resolveMany } from '../../lib/package/resolve.js';
+import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import { icon, printLine, printMuted, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
@@ -60,10 +60,23 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
     for (const e of errors) printLine(`  ${icon.error} ${style.danger(e)}`);
     fail('', { silent: true });
   }
+  const dependencyConflicts = dependencyInstallConflicts(resolved, lockfile);
+  if (dependencyConflicts.length > 0) {
+    fail(dependencyConflicts.join('\n'));
+  }
 
   if (result.action === 'remove') {
     await packageRemoveCommand(result.id, { dir: opts.dir });
     return;
+  }
+
+  for (const pkg of resolved) {
+    if (pkg.entry.trust === 'experimental') {
+      fail(`"${pkg.id}" requires --allow-untrusted (trust: experimental). Run \`feather package install ${pkg.id} --allow-untrusted\`.`);
+    }
+    if (pkg.versionOverride) {
+      fail(`"${pkg.id}@${pkg.versionOverride}" requires --allow-untrusted. Run \`feather package install ${pkg.id}@${pkg.versionOverride} --allow-untrusted\`.`);
+    }
   }
 
   const installResults = await showInstallProgress({ packages: resolved, lockfile, projectDir });

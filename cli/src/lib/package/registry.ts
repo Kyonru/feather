@@ -15,6 +15,7 @@ export type SubpackageEntry = {
   files: string[];
   require: string;
   example?: string;
+  dependencies?: string[];
 };
 
 export type RegistryEntry = {
@@ -33,6 +34,7 @@ export type RegistryEntry = {
     baseUrl?: string;
   };
   install: { layout?: "relocatable" | "fixed"; files: PackageFile[] };
+  dependencies?: string[];
   subpackages?: string[];
   require: string;
   example?: string;
@@ -108,6 +110,14 @@ export function validateRegistry(value: unknown): Registry {
       if (file.url !== undefined && typeof file.url !== "string") throw new Error(`Package ${id} file.url must be a string`);
     }
     if (typeof entry.require !== "string" || !entry.require) throw new Error(`Package ${id} require is required`);
+    if (entry.dependencies !== undefined) {
+      if (!Array.isArray(entry.dependencies) || entry.dependencies.some((dependency) => typeof dependency !== "string" || !dependency)) {
+        throw new Error(`Package ${id} dependencies must be non-empty strings`);
+      }
+      for (const dependency of entry.dependencies) {
+        if (!packages[dependency]) throw new Error(`Package ${id} dependency ${dependency} is missing`);
+      }
+    }
     if (entry.subpackages?.some((subpackage) => typeof subpackage !== "string" || packages[subpackage]?.parent !== id)) {
       throw new Error(`Package ${id} has invalid subpackage references`);
     }

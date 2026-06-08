@@ -12,15 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Texture Lab Shader map generators for normal, flow, ripple, and distortion PNGs.
 - Added Texture Lab image-to-mask and SDF/glow generators for masks, outlines, glows, and distance-field-style VFX textures.
 - Added fixed-layout package metadata for libraries that require project-root support files, including Menori's `libs/json.lua`.
+- Added exact catalog package dependencies with dependency-first install resolution.
 
 ### Changed
 
 - Improved Texture Lab layout and atlas editing so side panels stay usable, previews have more room, and expensive atlas renders do not block controls.
+- Shader Graph palette drops now briefly highlight the newly created node.
 
 ### Tests
 
 - Added focused/app/showcase coverage for Texture Lab Shader maps, image masks, SDF/glow generators, and atlas UI workflows.
 - Added package installer and package e2e coverage for fixed-layout package paths.
+- Added package resolver coverage for dependency ordering, cycles, missing deps, and install conflicts.
 
 ## [v3.1.0] - 2026-06-01 - The one with particles improvements
 

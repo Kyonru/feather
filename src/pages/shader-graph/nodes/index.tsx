@@ -18,12 +18,14 @@ export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData
   const activePreview = data.nodeType === 'Preview' && (selectedNodeId === id || pinnedPreview);
   const colorClass = CATEGORY_COLORS[def.category] ?? 'border-l-gray-500';
   const rows = Math.max(def.inputs.length, def.outputs.length, 1);
+  const dropAnimating = Boolean(data.__dropAnimating);
 
   return (
     <div
       className={cn(
         'relative min-w-28 rounded border border-l-2 bg-card px-3 py-2 shadow-sm',
         colorClass,
+        dropAnimating && 'shader-node-drop-enter',
         selected && 'ring-2 ring-primary',
       )}
     >

@@ -1,4 +1,5 @@
 import type { Registry, RegistryEntry, PackageFile } from "./registry.js";
+import type { Lockfile } from "./lockfile.js";
 
 export type ResolvedPackage = {
   id: string;
@@ -6,6 +7,10 @@ export type ResolvedPackage = {
   files: PackageFile[];
   /** Set when the user requested a version different from the registry pin (e.g. `anim8@v2.2.0`). */
   versionOverride?: string;
+  /** Set when this package was pulled in by one or more dependents. */
+  dependencyOf?: string[];
+  /** True when the package was requested directly by the user. */
+  requested?: boolean;
 };
 
 /**
@@ -30,31 +35,82 @@ export type ResolveResult =
  */
 export function resolvePackage(spec: string, registry: Registry): ResolveResult {
   const { id, version } = parseSpec(spec);
-
-  const entry = registry.packages[id];
-  if (!entry) {
-    return { ok: false, error: `Package "${id}" not found in the registry. Run \`feather package search ${id}\` to check.` };
-  }
-
-  const versionOverride = version && version !== entry.source.tag ? version : undefined;
-
-  return { ok: true, packages: [{ id, entry, files: entry.install.files, versionOverride }] };
+  return resolveGraph([{ id, version }], registry);
 }
 
 export function resolveMany(specs: string[], registry: Registry): { resolved: ResolvedPackage[]; errors: string[] } {
-  const resolved: ResolvedPackage[] = [];
+  const parsedSpecs = specs.map(parseSpec);
+  const result = resolveGraph(parsedSpecs, registry);
+  return result.ok ? { resolved: result.packages, errors: [] } : { resolved: [], errors: [result.error] };
+}
+
+function resolveGraph(
+  specs: Array<{ id: string; version: string | undefined }>,
+  registry: Registry,
+): ResolveResult {
   const errors: string[] = [];
+  const resolved = new Map<string, ResolvedPackage>();
+  const order: ResolvedPackage[] = [];
+  const visiting: string[] = [];
+
+  const addResolved = (
+    id: string,
+    entry: RegistryEntry,
+    versionOverride: string | undefined,
+    requested: boolean,
+    dependencyOf: string | undefined,
+  ) => {
+    const existing = resolved.get(id);
+    if (existing) {
+      if (existing.versionOverride !== versionOverride) {
+        errors.push(`Package "${id}" was requested with conflicting versions.`);
+        return;
+      }
+      existing.requested = existing.requested || requested;
+      if (dependencyOf && !existing.dependencyOf?.includes(dependencyOf)) {
+        existing.dependencyOf = [...(existing.dependencyOf ?? []), dependencyOf];
+      }
+      return;
+    }
+
+    const next: ResolvedPackage = {
+      id,
+      entry,
+      files: entry.install.files,
+      versionOverride,
+      ...(dependencyOf ? { dependencyOf: [dependencyOf] } : {}),
+      ...(requested ? { requested: true } : {}),
+    };
+    resolved.set(id, next);
+    order.push(next);
+  };
+
+  const visit = (id: string, version: string | undefined, requested: boolean, dependencyOf?: string) => {
+    const entry = registry.packages[id];
+    if (!entry) {
+      errors.push(`Package "${id}" not found in the registry. Run \`feather package search ${id}\` to check.`);
+      return;
+    }
+
+    if (visiting.includes(id)) {
+      errors.push(`Package dependency cycle: ${[...visiting.slice(visiting.indexOf(id)), id].join(" -> ")}`);
+      return;
+    }
+
+    const versionOverride = version && version !== entry.source.tag ? version : undefined;
+    visiting.push(id);
+    for (const dependency of entry.dependencies ?? []) {
+      visit(dependency, undefined, false, id);
+    }
+    visiting.pop();
+    addResolved(id, entry, versionOverride, requested, dependencyOf);
+  };
 
   for (const spec of specs) {
-    const result = resolvePackage(spec, registry);
-    if (result.ok) {
-      resolved.push(...result.packages);
-    } else {
-      errors.push(result.error);
-    }
+    visit(spec.id, spec.version, true);
   }
 
-  return { resolved, errors };
+  return errors.length > 0 ? { ok: false, error: errors.join("\n") } : { ok: true, packages: order };
 }
 
 export function filterTrust(
@@ -77,4 +133,18 @@ export function filterTrust(
 
 export function formatRequireHint(pkg: ResolvedPackage): string {
   return pkg.entry.example ?? `local ${pkg.id.replace(/\W/g, "_")} = require("${pkg.entry.require}")`;
+}
+
+export function dependencyInstallConflicts(packages: ResolvedPackage[], lockfile: Lockfile): string[] {
+  const conflicts: string[] = [];
+  for (const pkg of packages) {
+    const existing = lockfile.packages[pkg.id];
+    if (pkg.dependencyOf?.length && existing && (existing.version !== pkg.entry.source.tag || existing.trust === "experimental")) {
+      conflicts.push(
+        `"${pkg.id}" is required by ${pkg.dependencyOf.join(", ")} but is already installed as ${existing.version}. ` +
+          `Remove or update it before installing dependent packages.`,
+      );
+    }
+  }
+  return conflicts;
 }
