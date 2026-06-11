@@ -115,6 +115,10 @@ directly. For example, Menori requires `libs.json`, so Feather keeps `libs/json.
 root even if `--install-dir` is provided. Fixed-layout packages cannot be installed with `--flat-dir`.
 Catalog packages can also declare exact dependencies on other catalog packages. Dependencies install
 first, are deduplicated, and use the Feather-pinned registry version.
+Packages that expect a dependency at an upstream-specific require path can declare generated
+dependency aliases. Feather writes a tiny Lua shim at the expected path that returns the shared
+installed dependency, so libraries can share one dependency copy without vendoring or changing
+`package.path`.
 Use `--flat-dir` only when you deliberately want all catalog files flattened by basename, such as
 `feel/init.lua` → `vendor/init.lua`.
 
@@ -354,6 +358,7 @@ Each file in `packages/` is a standalone JSON manifest:
     "files": [{ "name": "anim8.lua", "sha256": "abc123...", "target": "lib/anim8.lua" }]
   },
   "dependencies": [],
+  "dependencyAliases": [],
   "require": "lib.anim8",
   "example": "local anim8 = require('lib.anim8')"
 }
@@ -361,4 +366,4 @@ Each file in `packages/` is a standalone JSON manifest:
 
 The `commitSha` field pins downloads to the exact commit SHA of the selected tag or branch at curation time. `baseUrl` uses this SHA so fetches are immutable even if the tag is later moved. `scripts/generate-registry.mjs` assembles all package files into `cli/src/generated/registry.json`, which is bundled into the published CLI.
 
-`install.layout` is optional. Omit it for normal relocatable packages. Use `"fixed"` only when a package has hardcoded runtime paths that must be installed exactly as declared. `dependencies` is also optional and currently supports exact catalog package IDs only; version ranges, module providers, and project overrides are intentionally deferred.
+`install.layout` is optional. Omit it for normal relocatable packages. Use `"fixed"` only when a package has hardcoded runtime paths that must be installed exactly as declared. `dependencies` is also optional and currently supports exact catalog package IDs only. `dependencyAliases` can point one of those dependencies at an expected `.lua` target; aliases are generated lockfile-managed files. Version ranges, module providers, and project overrides are intentionally deferred.

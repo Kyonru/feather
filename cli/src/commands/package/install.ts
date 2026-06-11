@@ -4,6 +4,7 @@ import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntryRequiresUntrustedRepair, lockfileEntrySourceSummary } from '../../lib/package/provenance.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { planPackageTarget, resolveProjectTarget } from '../../lib/package/target.js';
+import { planDependencyAliases } from '../../lib/package/aliases.js';
 import { fail } from '../../lib/command.js';
 import {
   createSpinner,
@@ -266,6 +267,12 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       for (const f of pkg.files) {
         const target = planPackageTarget(f, { targetOverride: opts.flatDir, installDir, layout: pkg.entry.install.layout });
         printLine(`    ${style.muted(f.name)}  →  ${target}`);
+      }
+      const aliases = planDependencyAliases(pkg, lockfile, { installDir, targetOverride: opts.flatDir, dryRun: true });
+      if (aliases.ok) {
+        for (const alias of aliases.aliases) {
+          printLine(`    ${style.muted(alias.name)}  →  ${alias.target}  ${style.muted(`requires ${alias.requirePath}`)}`);
+        }
       }
       printBlank();
     }

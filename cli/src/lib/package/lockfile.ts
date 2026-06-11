@@ -19,7 +19,16 @@ export type LockfileEntry = {
   version: string;
   trust: "verified" | "known" | "experimental";
   source: LockfileRepoSource | LockfileUrlSource;
-  files: { name: string; url?: string; target: string; sha256: string }[];
+  files: {
+    name: string;
+    url?: string;
+    target: string;
+    sha256: string;
+    generated?: {
+      type: "require-alias";
+      require: string;
+    };
+  }[];
   installDir?: string;
   installedAt: string;
 };

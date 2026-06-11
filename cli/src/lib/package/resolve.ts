@@ -1,10 +1,15 @@
-import type { Registry, RegistryEntry, PackageFile } from "./registry.js";
+import type { Registry, RegistryEntry, PackageDependencyAlias, PackageFile } from "./registry.js";
 import type { Lockfile } from "./lockfile.js";
+
+export type ResolvedDependencyAlias = PackageDependencyAlias & {
+  dependencyEntry: RegistryEntry;
+};
 
 export type ResolvedPackage = {
   id: string;
   entry: RegistryEntry;
   files: PackageFile[];
+  dependencyAliases?: ResolvedDependencyAlias[];
   /** Set when the user requested a version different from the registry pin (e.g. `anim8@v2.2.0`). */
   versionOverride?: string;
   /** Set when this package was pulled in by one or more dependents. */
@@ -77,6 +82,14 @@ function resolveGraph(
       id,
       entry,
       files: entry.install.files,
+      ...(entry.dependencyAliases?.length
+        ? {
+            dependencyAliases: entry.dependencyAliases.map((alias) => ({
+              ...alias,
+              dependencyEntry: registry.packages[alias.dependency],
+            })),
+          }
+        : {}),
       versionOverride,
       ...(dependencyOf ? { dependencyOf: [dependencyOf] } : {}),
       ...(requested ? { requested: true } : {}),

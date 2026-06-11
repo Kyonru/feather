@@ -52,11 +52,6 @@
         "target": "lib/feel/validate.lua"
       },
       {
-        "name": "feel/vendor/flux.lua",
-        "sha256": "a8595b034f83aff86591d9d343abf0f7c0873ee4bb6036dfc5008503153e22fa",
-        "target": "lib/feel/vendor/flux.lua"
-      },
-      {
         "name": "types/feel-feedbacks.lua",
         "sha256": "b7e1b89d26b2840e460637fd07431697143cfd816fac3d8ff46f1a0d2d931b43",
         "target": "lib/feel/types/feel-feedbacks.lua"
@@ -78,6 +73,15 @@
       }
     ]
   },
+  "dependencies": [
+    "flux"
+  ],
+  "dependencyAliases": [
+    {
+      "dependency": "flux",
+      "target": "lib/feel/vendor/flux.lua"
+    }
+  ],
   "require": "lib.feel",
   "example": "local feel = require('lib.feel')"
 }

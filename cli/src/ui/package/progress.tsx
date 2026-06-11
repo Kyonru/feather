@@ -133,16 +133,32 @@ function InstallProgress({
       version: pkg.versionOverride ?? pkg.entry.source.tag ?? 'url',
       liveComputed: !!pkg.versionOverride,
       status: "pending",
-      files: pkg.files.map((f) => ({
-        name: f.name,
-        target: planPackageTarget(f, {
-          targetOverride,
-          installDir: installDir ?? lockfile.packages[pkg.id]?.installDir,
-          layout: pkg.entry.install?.layout,
-        }),
-        status: "pending",
-        liveComputed: !!pkg.versionOverride,
-      })),
+      files: [
+        ...pkg.files.map((f) => ({
+          name: f.name,
+          target: planPackageTarget(f, {
+            targetOverride,
+            installDir: installDir ?? lockfile.packages[pkg.id]?.installDir,
+            layout: pkg.entry.install?.layout,
+          }),
+          status: "pending" as FileStatus,
+          liveComputed: !!pkg.versionOverride,
+        })),
+        ...(targetOverride
+          ? []
+          : (pkg.dependencyAliases ?? []).map((alias) => ({
+              name: alias.target,
+              target: planPackageTarget(
+                { name: alias.target, target: alias.target },
+                {
+                  installDir: installDir ?? lockfile.packages[pkg.id]?.installDir,
+                  layout: pkg.entry.install?.layout,
+                },
+              ),
+              status: "pending" as FileStatus,
+              liveComputed: false,
+            }))),
+      ],
     })),
   );
 

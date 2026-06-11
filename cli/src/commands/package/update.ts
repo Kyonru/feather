@@ -1,5 +1,5 @@
 import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
-import type { ResolvedPackage } from '../../lib/package/resolve.js';
+import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import { printLine, printMuted, printWarning, style } from '../../lib/output.js';
 import { showInstallProgress } from '../../ui/package/index.js';
@@ -31,7 +31,7 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
     fail(`"${name}" is not installed.`);
   }
 
-  const toUpdate: ResolvedPackage[] = [];
+  const updateIds: string[] = [];
   for (const [id, current] of targets) {
     if (current.trust === 'experimental') {
       printMuted(`  Skipping "${id}" (experimental — re-install with --from-url to update)`);
@@ -47,10 +47,28 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
       continue;
     }
     printLine(`  ${style.heading(id)}: ${current.version} → ${entry.source.tag}`);
-    toUpdate.push({ id, entry, files: entry.install.files });
+    updateIds.push(id);
   }
 
-  if (opts.dryRun || toUpdate.length === 0) return;
+  if (opts.dryRun || updateIds.length === 0) return;
+
+  const { resolved, errors } = resolveMany(updateIds, registry);
+  if (errors.length) {
+    fail(errors.join('\n'));
+  }
+  const dependencyConflicts = dependencyInstallConflicts(resolved, lockfile);
+  if (dependencyConflicts.length > 0) {
+    fail(dependencyConflicts.join('\n'));
+  }
+  const toUpdate = resolved.filter((pkg) => {
+    const current = lockfile.packages[pkg.id];
+    if (pkg.dependencyOf?.length && current?.version === pkg.entry.source.tag) {
+      printMuted(`  ${pkg.id} is already installed at ${current.version}`);
+      return false;
+    }
+    return true;
+  });
+  if (toUpdate.length === 0) return;
 
   const results = await showInstallProgress({ packages: toUpdate, lockfile, projectDir });
   if (results.every((r) => r.ok)) {

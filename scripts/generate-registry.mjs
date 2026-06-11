@@ -64,6 +64,7 @@ for (const file of packageFiles) {
           ),
         },
         dependencies: sub.dependencies,
+        dependencyAliases: sub.dependencyAliases,
         require: sub.require,
         example: sub.example ?? `local ${subId.split(".").pop()} = require('${sub.require}')`,
       };
@@ -80,6 +81,7 @@ for (const file of packageFiles) {
     source: pkg.source,
     install: pkg.install,
     dependencies: pkg.dependencies,
+    dependencyAliases: pkg.dependencyAliases,
     subpackages: pkg.subpackages ? Object.keys(pkg.subpackages) : undefined,
     require: pkg.require,
     example: pkg.example,

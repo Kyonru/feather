@@ -5,6 +5,7 @@ import { addToLockfile, type Lockfile, type LockfileEntry } from "./lockfile.js"
 import { lockfileFileUrl } from "./provenance.js";
 import { planPackageTarget, resolveProjectTarget } from "./target.js";
 import type { ResolvedPackage } from "./resolve.js";
+import { checkDependencyAliasTarget, packageDependencyAliasContent, planDependencyAliases } from "./aliases.js";
 
 export type InstallOptions = {
   projectDir: string;
@@ -97,6 +98,10 @@ export async function installPackage(
     file,
     relTarget: planPackageTarget(file, { targetOverride, installDir: effectiveInstallDir, layout }),
   }));
+  const aliasResult = planDependencyAliases(pkg, lockfile, { installDir, targetOverride, dryRun });
+  if (!aliasResult.ok) {
+    return { id: pkg.id, ok: false, files: [], error: aliasResult.error };
+  }
   const resolvedTargets: string[] = [];
 
   for (const { file, relTarget } of plannedFiles) {
@@ -110,6 +115,34 @@ export async function installPackage(
       };
     }
     resolvedTargets.push(absTarget);
+  }
+  for (const alias of aliasResult.aliases) {
+    if (plannedFiles.some((planned) => planned.relTarget === alias.target)) {
+      return {
+        id: pkg.id,
+        ok: false,
+        files: [{ name: alias.name, target: alias.target, sha256: alias.sha256, ok: false, error: "Dependency alias target overlaps an installed file" }],
+        error: "Dependency alias target overlaps an installed file",
+      };
+    }
+    const absTarget = resolveProjectTarget(projectDir, alias.target);
+    if (!absTarget) {
+      return {
+        id: pkg.id,
+        ok: false,
+        files: [{ name: alias.name, target: alias.target, sha256: "", ok: false, error: "Target path escapes project root" }],
+        error: "Target path escapes project root",
+      };
+    }
+    const collision = checkDependencyAliasTarget(projectDir, lockfile, pkg.id, alias);
+    if (collision) {
+      return {
+        id: pkg.id,
+        ok: false,
+        files: [{ name: alias.name, target: alias.target, sha256: alias.sha256, ok: false, error: collision }],
+        error: collision,
+      };
+    }
   }
 
   for (const [index, { file, relTarget }] of plannedFiles.entries()) {
@@ -151,6 +184,33 @@ export async function installPackage(
     onFileComplete?.(fileResult);
     fileResults.push(fileResult);
     lockedFiles.push({ name: file.name, target: relTarget, sha256: fileSha256 });
+  }
+
+  for (const alias of aliasResult.aliases) {
+    if (dryRun) {
+      fileResults.push({ name: alias.name, target: alias.target, sha256: alias.sha256, ok: true });
+      continue;
+    }
+
+    const absTarget = resolveProjectTarget(projectDir, alias.target);
+    if (!absTarget) {
+      const fileResult: InstallFileResult = { name: alias.name, target: alias.target, sha256: "", ok: false, error: "Target path escapes project root" };
+      onFileComplete?.(fileResult);
+      return { id: pkg.id, ok: false, files: fileResults, error: "Target path escapes project root" };
+    }
+
+    onFileStart?.(alias.name);
+    mkdirSync(dirname(absTarget), { recursive: true });
+    writeFileSync(absTarget, alias.content);
+    const fileResult: InstallFileResult = { name: alias.name, target: alias.target, sha256: alias.sha256, ok: true };
+    onFileComplete?.(fileResult);
+    fileResults.push(fileResult);
+    lockedFiles.push({
+      name: alias.name,
+      target: alias.target,
+      sha256: alias.sha256,
+      generated: { type: "require-alias", require: alias.requirePath },
+    });
   }
 
   const allOk = fileResults.every((f) => f.ok);
@@ -271,6 +331,22 @@ export async function restorePackage(
     }
 
     onFileStart?.(file.name);
+
+    if (file.generated?.type === "require-alias") {
+      const content = packageDependencyAliasContent(file.generated.require);
+      const actualSha = sha256Buffer(Buffer.from(content, "utf8"));
+      if (actualSha !== file.sha256) {
+        const fileResult: InstallFileResult = { name: file.name, target: file.target, sha256: "", ok: false, error: "Generated alias checksum mismatch" };
+        onFileComplete?.(fileResult);
+        return { id, ok: false, files: fileResults, error: fileResult.error };
+      }
+      mkdirSync(dirname(absTarget), { recursive: true });
+      writeFileSync(absTarget, content);
+      const fileResult: InstallFileResult = { name: file.name, target: file.target, sha256: file.sha256, ok: true };
+      onFileComplete?.(fileResult);
+      fileResults.push(fileResult);
+      continue;
+    }
 
     const url = lockfileFileUrl(entry, file);
 

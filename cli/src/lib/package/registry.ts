@@ -11,11 +11,18 @@ export type PackageFile = {
   target: string;
 };
 
+export type PackageDependencyAlias = {
+  dependency: string;
+  target: string;
+  require?: string;
+};
+
 export type SubpackageEntry = {
   files: string[];
   require: string;
   example?: string;
   dependencies?: string[];
+  dependencyAliases?: PackageDependencyAlias[];
 };
 
 export type RegistryEntry = {
@@ -35,6 +42,7 @@ export type RegistryEntry = {
   };
   install: { layout?: "relocatable" | "fixed"; files: PackageFile[] };
   dependencies?: string[];
+  dependencyAliases?: PackageDependencyAlias[];
   subpackages?: string[];
   require: string;
   example?: string;
@@ -116,6 +124,25 @@ export function validateRegistry(value: unknown): Registry {
       }
       for (const dependency of entry.dependencies) {
         if (!packages[dependency]) throw new Error(`Package ${id} dependency ${dependency} is missing`);
+      }
+    }
+    if (entry.dependencyAliases !== undefined) {
+      if (!Array.isArray(entry.dependencyAliases)) throw new Error(`Package ${id} dependencyAliases must be an array`);
+      for (const alias of entry.dependencyAliases) {
+        if (!isObject(alias)) throw new Error(`Package ${id} dependencyAlias must be an object`);
+        if (typeof alias.dependency !== "string" || !alias.dependency) {
+          throw new Error(`Package ${id} dependencyAlias.dependency is required`);
+        }
+        if (!packages[alias.dependency]) throw new Error(`Package ${id} dependencyAlias dependency ${alias.dependency} is missing`);
+        if (!entry.dependencies?.includes(alias.dependency)) {
+          throw new Error(`Package ${id} dependencyAlias ${alias.dependency} must also be listed in dependencies`);
+        }
+        if (typeof alias.target !== "string" || !alias.target.endsWith(".lua") || !resolveProjectTarget("/project", alias.target)) {
+          throw new Error(`Package ${id} dependencyAlias target must be a safe .lua path`);
+        }
+        if (alias.require !== undefined && (typeof alias.require !== "string" || !alias.require)) {
+          throw new Error(`Package ${id} dependencyAlias require must be a non-empty string`);
+        }
       }
     }
     if (entry.subpackages?.some((subpackage) => typeof subpackage !== "string" || packages[subpackage]?.parent !== id)) {

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.3.0] - 2026-06-08 - The one with package dependency
+
+### Added
+
+- Added exact catalog package dependencies with dependency-first install resolution.
+- Added generated package dependency aliases so shared Lua libraries can satisfy upstream-specific require paths without vendoring.
+
+### Tests
+
+- Added package resolver coverage for dependency ordering, cycles, missing deps, and install conflicts.
+- Added package installer coverage for generated dependency aliases, restore, audit, remove, and target collision handling.
+
 ## [v3.2.0] - 2026-06-02 - The one with texture maps
 
 ### Added
@@ -12,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Texture Lab Shader map generators for normal, flow, ripple, and distortion PNGs.
 - Added Texture Lab image-to-mask and SDF/glow generators for masks, outlines, glows, and distance-field-style VFX textures.
 - Added fixed-layout package metadata for libraries that require project-root support files, including Menori's `libs/json.lua`.
-- Added exact catalog package dependencies with dependency-first install resolution.
 
 ### Changed
 
@@ -23,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added focused/app/showcase coverage for Texture Lab Shader maps, image masks, SDF/glow generators, and atlas UI workflows.
 - Added package installer and package e2e coverage for fixed-layout package paths.
-- Added package resolver coverage for dependency ordering, cycles, missing deps, and install conflicts.
 
 ## [v3.1.0] - 2026-06-01 - The one with particles improvements
 
@@ -764,6 +774,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v3.3.0]: https://github.com/Kyonru/feather/compare/v3.2.0...v3.3.0
 [v3.2.0]: https://github.com/Kyonru/feather/compare/v3.1.0...v3.2.0
 [v3.1.0]: https://github.com/Kyonru/feather/compare/v3.0.0...v3.1.0
 [v3.0.0]: https://github.com/Kyonru/feather/compare/v2.0.0...v3.0.0

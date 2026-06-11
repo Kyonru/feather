@@ -16,6 +16,7 @@ Common fields:
 - `install.files`
 - optional `install.layout`: `fixed` keeps catalog targets exact for packages with hardcoded runtime paths; omitted means relocatable
 - optional `dependencies`: exact package IDs from the same catalog, installed before the dependent package
+- optional `dependencyAliases`: generated require shims for declared dependencies
 - `require`
 - `example`
 - optional `subpackages`
@@ -42,6 +43,9 @@ Each install file needs:
 `install.layout: "fixed"` is for curated packages whose upstream code expects specific project-root paths, such as `require("libs.json")`. Fixed-layout packages ignore `--install-dir` and cannot be flattened.
 
 `dependencies` is exact and catalog-local in v1. It does not support version ranges, module providers, or project overrides.
+
+`dependencyAliases` entries use `{ "dependency": "flux", "target": "lib/feel/vendor/flux.lua", "require": "lib.flux" }`.
+The `dependency` must also be listed in `dependencies`; `require` is optional and defaults to the dependency's effective installed require path. Alias targets must be safe `.lua` paths and are stored as generated lockfile-managed files.
 
 ## Generated registry
 

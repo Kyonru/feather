@@ -32,6 +32,12 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   printLine(`  Tags:     ${entry.tags.join(', ') || '—'}`);
   if (entry.install.layout === 'fixed') printLine(`  Layout:   fixed runtime paths`);
   if (entry.dependencies?.length) printLine(`  Depends:  ${entry.dependencies.join(', ')}`);
+  if (entry.dependencyAliases?.length) {
+    printLine('  Aliases:');
+    for (const alias of entry.dependencyAliases) {
+      printLine(`    ${alias.target} → ${alias.require ?? alias.dependency}`);
+    }
+  }
   if (entry.license) printLine(`  License:  ${entry.license}`);
   if (entry.homepage) printLine(`  Docs:     ${style.info(entry.homepage)}`);
   if (installed) {
@@ -44,6 +50,9 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   printLine('  Files to install:');
   for (const f of entry.install.files) {
     printLine(`    ${style.muted(f.name)}  →  ${f.target}`);
+  }
+  for (const alias of entry.dependencyAliases ?? []) {
+    printLine(`    ${style.muted(alias.target)}  →  ${alias.target}  ${style.muted('generated alias')}`);
   }
   printBlank();
   printLine('  Usage:');
