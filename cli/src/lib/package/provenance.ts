@@ -19,6 +19,9 @@ const TRUSTED_PACKAGE_URL_HOSTS = new Set(["raw.githubusercontent.com"]);
 export function lockfileFileUrl(entry: LockfileEntry, file: LockfileEntry["files"][number]): string {
   if (file.url) return file.url;
   if ("url" in entry.source) return entry.source.url;
+  if (entry.source.transport === "git") {
+    throw new Error(`Git-backed package file ${file.name} does not have a raw download URL.`);
+  }
 
   const ref = entry.source.resolvedRef ?? entry.source.commitSha ?? entry.source.tag;
   return `https://raw.githubusercontent.com/${entry.source.repo}/${ref}/${file.name}`;
@@ -45,8 +48,10 @@ export function assessPackageUrl(url: string): PackageUrlTrust {
 
 export function lockfileEntryUrlFindings(id: string, entry: LockfileEntry): LockfileUrlFinding[] {
   const findings: LockfileUrlFinding[] = [];
+  if ("repo" in entry.source && entry.source.transport === "git") return findings;
 
   for (const file of entry.files) {
+    if (file.generated) continue;
     const url = lockfileFileUrl(entry, file);
     const trust = assessPackageUrl(url);
     if (!trust.trusted) {
@@ -83,7 +88,8 @@ export function packageUrlSummary(url: string): string {
 
 export function lockfileEntrySourceSummary(id: string, entry: LockfileEntry): string {
   if ("url" in entry.source) return packageUrlSummary(entry.source.url);
-  if (entry.source.commitSha) return `${entry.source.repo}@${entry.source.commitSha}`;
+  const transport = entry.source.transport === "git" ? " (git)" : "";
+  if (entry.source.commitSha) return `${entry.source.repo}@${entry.source.commitSha}${transport}`;
   if (entry.source.resolvedRef) return `${entry.source.repo}@${entry.source.resolvedRef}`;
-  return `${entry.source.repo}@${entry.source.tag || id}`;
+  return `${entry.source.repo}@${entry.source.tag || id}${transport}`;
 }

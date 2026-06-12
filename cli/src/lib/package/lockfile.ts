@@ -6,6 +6,7 @@ export type LockfileRepoSource = {
   tag: string;
   commitSha?: string;
   resolvedRef?: string;
+  transport?: "raw" | "git";
 };
 
 export type LockfileUrlSource = {
@@ -59,6 +60,9 @@ export function validateLockfileSource(source: unknown): void {
     }
     if (source.resolvedRef !== undefined && typeof source.resolvedRef !== "string") {
       throw new Error("Lockfile source.resolvedRef must be a string");
+    }
+    if (source.transport !== undefined && source.transport !== "raw" && source.transport !== "git") {
+      throw new Error('Lockfile source.transport must be "raw" or "git"');
     }
     return;
   }

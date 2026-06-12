@@ -8,6 +8,7 @@ export function RepoConfirmStep({
   tag,
   selectedFiles,
   targetMap,
+  transport,
   onConfirm,
   onAbort,
 }: {
@@ -16,6 +17,7 @@ export function RepoConfirmStep({
   tag: string;
   selectedFiles: string[];
   targetMap: Record<string, string>;
+  transport?: 'raw' | 'git';
   onConfirm: () => void;
   onAbort: () => void;
 }) {
@@ -37,7 +39,7 @@ export function RepoConfirmStep({
           {'  '}Package: <Text color="cyan">{id}</Text>
         </Text>
         <Text>
-          {'  '}Source: <Text color="cyan">github.com/{repoName}</Text>
+          {'  '}Source: <Text color="cyan">{transport === 'git' ? repoName : `github.com/${repoName}`}</Text>
         </Text>
         <Text>
           {'  '}Version: <Text color="cyan">{tag}</Text> <Text dimColor>(commit SHA pinned)</Text>

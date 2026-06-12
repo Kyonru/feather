@@ -16,6 +16,7 @@ export type PackageAddRepoPlan = {
   tag: string;
   commitSha: string;
   baseUrl: string;
+  transport?: "raw" | "git";
   selectedFiles: string[];
   targetMap: Record<string, string>;
 };
@@ -48,6 +49,7 @@ export function toCustomRepoPackageInput(input: {
     tag: input.plan.tag,
     commitSha: input.plan.commitSha,
     baseUrl: input.plan.baseUrl,
+    ...(input.plan.transport ? { transport: input.plan.transport } : {}),
     selectedFiles: input.plan.selectedFiles,
     targetMap: input.plan.targetMap,
     projectDir: input.projectDir,

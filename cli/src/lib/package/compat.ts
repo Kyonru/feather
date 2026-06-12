@@ -5,6 +5,7 @@ import { readLockfile, type Lockfile } from "./lockfile.js";
 export const PACKAGE_LOCK_FEATURES = {
   packageDependencies: "package-dependencies",
   generatedRequireAliases: "generated-require-aliases",
+  gitPackageSources: "git-package-sources",
 } as const;
 
 export type PackageLockFeature = typeof PACKAGE_LOCK_FEATURES[keyof typeof PACKAGE_LOCK_FEATURES];

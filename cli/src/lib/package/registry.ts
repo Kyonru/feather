@@ -38,7 +38,9 @@ export type RegistryEntry = {
     repo?: string;
     tag?: string;
     commitSha?: string;
+    resolvedRef?: string;
     baseUrl?: string;
+    transport?: "raw" | "git";
   };
   install: { layout?: "relocatable" | "fixed"; files: PackageFile[] };
   dependencies?: string[];
@@ -87,17 +89,25 @@ export function validateRegistry(value: unknown): Registry {
       throw new Error(`Package ${id} tags must be strings`);
     }
     if (!isObject(entry.source)) throw new Error(`Package ${id} source is required`);
-    if (typeof entry.source.repo !== "string" || !/^[^/]+\/[^/]+$/.test(entry.source.repo)) {
+    if (entry.source.transport !== undefined && entry.source.transport !== "raw" && entry.source.transport !== "git") {
+      throw new Error(`Package ${id} source.transport must be "raw" or "git"`);
+    }
+    const gitTransport = entry.source.transport === "git";
+    if (typeof entry.source.repo !== "string" || (!gitTransport && !/^[^/]+\/[^/]+$/.test(entry.source.repo))) {
       throw new Error(`Package ${id} source.repo must be owner/repo`);
     }
     if (typeof entry.source.tag !== "string" || !entry.source.tag) throw new Error(`Package ${id} source.tag is required`);
-    if (typeof entry.source.baseUrl !== "string" || !entry.source.baseUrl.startsWith("https://raw.githubusercontent.com/")) {
+    const baseUrl = entry.source.baseUrl;
+    if (!gitTransport && (typeof baseUrl !== "string" || !baseUrl.startsWith("https://raw.githubusercontent.com/"))) {
       throw new Error(`Package ${id} source.baseUrl must be a raw GitHub URL`);
     }
     if (typeof entry.source.commitSha !== "string" || !/^[a-f0-9]{40}$/i.test(entry.source.commitSha)) {
       throw new Error(`Package ${id} source.commitSha must be a 40-character SHA`);
     }
-    if (!entry.source.baseUrl.includes(entry.source.commitSha)) {
+    if (entry.source.resolvedRef !== undefined && typeof entry.source.resolvedRef !== "string") {
+      throw new Error(`Package ${id} source.resolvedRef must be a string`);
+    }
+    if (!gitTransport && !baseUrl!.includes(entry.source.commitSha)) {
       throw new Error(`Package ${id} source.baseUrl must include source.commitSha`);
     }
     if (!isObject(entry.install) || !Array.isArray(entry.install.files) || entry.install.files.length === 0) {

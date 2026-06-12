@@ -13,6 +13,7 @@ import {
   FileMoreStep,
 } from '../components.js';
 import { fetchCommitSha, fetchLuaFiles } from '../../lib/github.js';
+import { listGitLuaFiles, listGitRefs, resolveGitRef } from '../../lib/package/git-source.js';
 import { fileNameFromUrl } from '../../lib/url.js';
 import { fetchRepoMeta, REPO_TOTAL, URL_TOTAL } from './add-helpers.js';
 import { RepoConfirmStep, UrlConfirmStep } from './add-steps.js';
@@ -38,7 +39,7 @@ type Step =
 function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: PackageAddPlan | null) => void }) {
   const { exit } = useApp();
   const [step, setStep] = useState<Step>('choose');
-  const [mode, setMode] = useState<'repo' | 'url' | null>(null);
+  const [mode, setMode] = useState<'repo' | 'git-repo' | 'url' | null>(null);
 
   // Shared
   const [id, setId] = useState('');
@@ -62,6 +63,7 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
   const [currentBuffer, setCurrentBuffer] = useState<Buffer>(Buffer.alloc(0));
 
   const [errorMsg, setErrorMsg] = useState('');
+  const repoMode = mode === 'repo' || mode === 'git-repo';
 
   const handleError = (msg: string) => {
     setErrorMsg(msg);
@@ -77,10 +79,14 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
     return (
       <SelectStep
         label="How do you want to add this package?"
-        options={['repo', 'url']}
-        labels={['From GitHub repository  (commit-SHA pinned, reproducible)', 'From direct URL(s)']}
+        options={['repo', 'git-repo', 'url']}
+        labels={[
+          'From public GitHub repository  (commit-SHA pinned, reproducible)',
+          'From Git repository using local git credentials',
+          'From direct URL(s)',
+        ]}
         onSelect={(v) => {
-          setMode(v as 'repo' | 'url');
+          setMode(v as 'repo' | 'git-repo' | 'url');
           setStep('id');
         }}
       />
@@ -92,7 +98,7 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
       <TextInputStep
         key="package-add-id"
         stepNum={1}
-        total={mode === 'repo' ? REPO_TOTAL : URL_TOTAL}
+        total={repoMode ? REPO_TOTAL : URL_TOTAL}
         label="Package name"
         hint="How this dependency will be tracked (e.g. my-helper, utils.vec)"
         validate={(v) => {
@@ -103,7 +109,7 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
         }}
         onSubmit={(v) => {
           setId(v);
-          setStep(mode === 'repo' ? 'repo' : 'file-url');
+          setStep(repoMode ? 'repo' : 'file-url');
         }}
       />
     );
@@ -119,7 +125,10 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
         hint="owner/repo  (e.g. kikito/anim8)"
         validate={(v) => {
           if (!v) return 'Required';
-          if (!/^[^/]+\/[^/]+$/.test(v)) return 'Must be owner/repo format';
+          if (mode === 'repo' && !/^[^/]+\/[^/]+$/.test(v)) return 'Must be owner/repo format';
+          if (mode === 'git-repo' && !/^(?:[^/]+\/[^/]+|https?:\/\/.+|ssh:\/\/.+|git@.+:.+)$/.test(v)) {
+            return 'Use owner/repo, https://..., ssh://..., or git@host:owner/repo.git';
+          }
           return null;
         }}
         onSubmit={(v) => {
@@ -136,7 +145,13 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
         key="fetch-tags"
         label={`Fetching tags for ${repoName}…`}
         run={async () => {
-          const { values, labels } = await fetchRepoMeta(repoName);
+          const { values, labels } = mode === 'git-repo'
+            ? (() => {
+                const result = listGitRefs(repoName);
+                if (!result.ok) throw new Error(result.error);
+                return { values: result.refs.map((ref) => ref.value), labels: result.refs.map((ref) => ref.label) };
+              })()
+            : await fetchRepoMeta(repoName);
           if (values.length === 0) throw new Error('No tags or branches found.');
           setTagOptions(values);
           setTagLabels(labels);
@@ -170,9 +185,15 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
         key="resolve-commit"
         label={`Resolving ${tag} to commit SHA…`}
         run={async () => {
-          const sha = await fetchCommitSha(repoName, tag);
+          const sha = mode === 'git-repo'
+            ? (() => {
+                const result = resolveGitRef(repoName, tag);
+                if (!result.ok) throw new Error(result.error);
+                return result.commitSha;
+              })()
+            : await fetchCommitSha(repoName, tag);
           setCommitSha(sha);
-          setBaseUrl(`https://raw.githubusercontent.com/${repoName}/${sha}/`);
+          setBaseUrl(mode === 'git-repo' ? '' : `https://raw.githubusercontent.com/${repoName}/${sha}/`);
           setStep('fetch-files');
         }}
         onError={handleError}
@@ -186,7 +207,13 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
         key="fetch-files"
         label={`Fetching file list for ${repoName}@${commitSha.slice(0, 12)}…`}
         run={async () => {
-          const files = await fetchLuaFiles(repoName, commitSha);
+          const files = mode === 'git-repo'
+            ? (() => {
+                const result = listGitLuaFiles({ repo: repoName, tag, commitSha });
+                if (!result.ok) throw new Error(result.error);
+                return result.files;
+              })()
+            : await fetchLuaFiles(repoName, commitSha);
           if (files.length === 0) throw new Error('No .lua files found at this ref.');
           setLuaFiles(files);
           setStep('files');
@@ -229,13 +256,13 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
 
   if (step === 'require') {
     const firstTarget =
-      mode === 'repo' ? (Object.values(targetMap)[0] ?? `lib/${id}.lua`) : (urlFiles[0]?.target ?? `lib/${id}.lua`);
+      repoMode ? (Object.values(targetMap)[0] ?? `lib/${id}.lua`) : (urlFiles[0]?.target ?? `lib/${id}.lua`);
     const suggested = firstTarget.replace(/\.lua$/, '').replace(/\//g, '.');
     return (
       <TextInputStep
         key="package-add-require"
-        stepNum={mode === 'repo' ? 6 : 3}
-        total={mode === 'repo' ? REPO_TOTAL : URL_TOTAL}
+        stepNum={repoMode ? 6 : 3}
+        total={repoMode ? REPO_TOTAL : URL_TOTAL}
         label="Require path"
         hint="How to require this package in your game"
         defaultValue={suggested}
@@ -249,7 +276,7 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
   }
 
   if (step === 'confirm') {
-    if (mode === 'repo') {
+    if (repoMode) {
       return (
         <RepoConfirmStep
           id={id}
@@ -257,6 +284,7 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
           tag={tag}
           selectedFiles={selectedFiles}
           targetMap={targetMap}
+          transport={mode === 'git-repo' ? 'git' : 'raw'}
           onConfirm={() =>
             finishWithPlan({
               kind: 'repo',
@@ -266,6 +294,7 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
               tag,
               commitSha,
               baseUrl,
+              ...(mode === 'git-repo' ? { transport: 'git' as const } : {}),
               selectedFiles,
               targetMap,
             })

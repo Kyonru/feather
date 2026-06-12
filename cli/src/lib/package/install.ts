@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { sha256Buffer } from "./checksum.js";
 import { PACKAGE_LOCK_FEATURE_REQUIREMENT, PACKAGE_LOCK_FEATURES } from "./compat.js";
 import { addToLockfile, markLockfileFeature, type Lockfile, type LockfileEntry } from "./lockfile.js";
+import { fetchGitPackageFiles } from "./git-source.js";
 import { lockfileFileUrl } from "./provenance.js";
 import { planPackageTarget, resolveProjectTarget } from "./target.js";
 import type { ResolvedPackage } from "./resolve.js";
@@ -64,6 +65,10 @@ async function downloadLive(url: string, repo: string, version: string): Promise
   return Buffer.from(await res.arrayBuffer());
 }
 
+function isGitTransport(source: { transport?: "raw" | "git" }): boolean {
+  return source.transport === "git";
+}
+
 export async function installPackage(
   pkg: ResolvedPackage,
   lockfile: Lockfile,
@@ -89,6 +94,7 @@ export async function installPackage(
   const shouldSaveInstallDir = !targetOverride && !fixedLayout && (installDir ? !!saveInstallDir : !!savedInstallDir);
 
   const src = pkg.entry.source;
+  const gitTransport = isGitTransport(src);
   const effectiveTag = pkg.versionOverride ?? src.tag ?? 'url';
   const baseUrl =
     pkg.versionOverride && src.baseUrl && src.tag
@@ -146,45 +152,71 @@ export async function installPackage(
     }
   }
 
-  for (const [index, { file, relTarget }] of plannedFiles.entries()) {
-    const absTarget = resolvedTargets[index]!;
-
-    const url = file.url ?? baseUrl + file.name;
-
-    if (dryRun) {
+  if (dryRun) {
+    for (const { file, relTarget } of plannedFiles) {
       fileResults.push({ name: file.name, target: relTarget, sha256: file.sha256, ok: true });
-      continue;
     }
-
-    onFileStart?.(file.name);
-
-    let fileSha256: string;
-    if (pkg.versionOverride) {
-      const result = await downloadLive(url, src.repo ?? pkg.id, pkg.versionOverride);
-      if ("error" in result) {
-        const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: "", ok: false, error: result.error };
-        onFileComplete?.(fileResult);
-        return { id: pkg.id, ok: false, files: fileResults, error: result.error };
-      }
-      fileSha256 = sha256Buffer(result);
-      mkdirSync(dirname(absTarget), { recursive: true });
-      writeFileSync(absTarget, result);
-    } else {
-      const result = await downloadVerified(url, file.sha256);
-      if ("error" in result) {
-        const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: "", ok: false, error: result.error };
-        onFileComplete?.(fileResult);
-        return { id: pkg.id, ok: false, files: fileResults, error: result.error };
-      }
-      fileSha256 = file.sha256;
-      mkdirSync(dirname(absTarget), { recursive: true });
-      writeFileSync(absTarget, result);
+  } else if (gitTransport) {
+    const result = fetchGitPackageFiles(
+      {
+        repo: src.repo ?? pkg.id,
+        tag: effectiveTag,
+        ...(!pkg.versionOverride && src.commitSha ? { commitSha: src.commitSha } : {}),
+        ...(!pkg.versionOverride && src.resolvedRef ? { resolvedRef: src.resolvedRef } : {}),
+      },
+      plannedFiles.map(({ file }) => ({ name: file.name, sha256: pkg.versionOverride ? undefined : file.sha256 })),
+    );
+    if (!result.ok) {
+      return { id: pkg.id, ok: false, files: fileResults, error: result.error };
     }
+    for (const [index, { file, relTarget }] of plannedFiles.entries()) {
+      const absTarget = resolvedTargets[index]!;
+      const fetched = result.files[index]!;
+      onFileStart?.(file.name);
+      mkdirSync(dirname(absTarget), { recursive: true });
+      writeFileSync(absTarget, fetched.buffer);
+      const fileSha256 = pkg.versionOverride ? fetched.sha256 : file.sha256;
+      const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: fileSha256, ok: true };
+      onFileComplete?.(fileResult);
+      fileResults.push(fileResult);
+      lockedFiles.push({ name: file.name, target: relTarget, sha256: fileSha256 });
+    }
+  } else {
+    for (const [index, { file, relTarget }] of plannedFiles.entries()) {
+      const absTarget = resolvedTargets[index]!;
 
-    const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: fileSha256, ok: true };
-    onFileComplete?.(fileResult);
-    fileResults.push(fileResult);
-    lockedFiles.push({ name: file.name, target: relTarget, sha256: fileSha256 });
+      const url = file.url ?? baseUrl + file.name;
+
+      onFileStart?.(file.name);
+
+      let fileSha256: string;
+      if (pkg.versionOverride) {
+        const result = await downloadLive(url, src.repo ?? pkg.id, pkg.versionOverride);
+        if ("error" in result) {
+          const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: "", ok: false, error: result.error };
+          onFileComplete?.(fileResult);
+          return { id: pkg.id, ok: false, files: fileResults, error: result.error };
+        }
+        fileSha256 = sha256Buffer(result);
+        mkdirSync(dirname(absTarget), { recursive: true });
+        writeFileSync(absTarget, result);
+      } else {
+        const result = await downloadVerified(url, file.sha256);
+        if ("error" in result) {
+          const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: "", ok: false, error: result.error };
+          onFileComplete?.(fileResult);
+          return { id: pkg.id, ok: false, files: fileResults, error: result.error };
+        }
+        fileSha256 = file.sha256;
+        mkdirSync(dirname(absTarget), { recursive: true });
+        writeFileSync(absTarget, result);
+      }
+
+      const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: fileSha256, ok: true };
+      onFileComplete?.(fileResult);
+      fileResults.push(fileResult);
+      lockedFiles.push({ name: file.name, target: relTarget, sha256: fileSha256 });
+    }
   }
 
   for (const alias of aliasResult.aliases) {
@@ -223,6 +255,9 @@ export async function installPackage(
     if (lockedFiles.some((file) => file.generated?.type === "require-alias")) {
       markLockfileFeature(lockfile, PACKAGE_LOCK_FEATURES.generatedRequireAliases, PACKAGE_LOCK_FEATURE_REQUIREMENT);
     }
+    if (gitTransport) {
+      markLockfileFeature(lockfile, PACKAGE_LOCK_FEATURES.gitPackageSources, PACKAGE_LOCK_FEATURE_REQUIREMENT);
+    }
     addToLockfile(lockfile, pkg.id, {
       parent: pkg.entry.parent,
       version: effectiveTag,
@@ -230,6 +265,7 @@ export async function installPackage(
       source: {
         repo: src.repo ?? pkg.id,
         tag: effectiveTag,
+        ...(gitTransport ? { transport: "git" as const } : {}),
         ...(!pkg.versionOverride && src.commitSha ? { resolvedRef: src.commitSha, commitSha: src.commitSha } : {}),
       },
       files: lockedFiles,
@@ -319,6 +355,59 @@ export async function restorePackage(
       };
     }
     resolvedTargets.push(absTarget);
+  }
+
+  if ("repo" in entry.source && isGitTransport(entry.source)) {
+    const pendingGitFiles: Array<{ file: LockfileEntry["files"][number]; absTarget: string }> = [];
+
+    for (const [index, file] of entry.files.entries()) {
+      const absTarget = resolvedTargets[index]!;
+      if (!dryRun && existsSync(absTarget) && sha256Buffer(readFileSync(absTarget)) === file.sha256) {
+        fileResults.push({ name: file.name, target: file.target, sha256: file.sha256, ok: true });
+        continue;
+      }
+      if (dryRun) {
+        fileResults.push({ name: file.name, target: file.target, sha256: file.sha256, ok: true });
+        continue;
+      }
+      if (file.generated?.type === "require-alias") {
+        onFileStart?.(file.name);
+        const content = packageDependencyAliasContent(file.generated.require);
+        const actualSha = sha256Buffer(Buffer.from(content, "utf8"));
+        if (actualSha !== file.sha256) {
+          const fileResult: InstallFileResult = { name: file.name, target: file.target, sha256: "", ok: false, error: "Generated alias checksum mismatch" };
+          onFileComplete?.(fileResult);
+          return { id, ok: false, files: fileResults, error: fileResult.error };
+        }
+        mkdirSync(dirname(absTarget), { recursive: true });
+        writeFileSync(absTarget, content);
+        const fileResult: InstallFileResult = { name: file.name, target: file.target, sha256: file.sha256, ok: true };
+        onFileComplete?.(fileResult);
+        fileResults.push(fileResult);
+        continue;
+      }
+      pendingGitFiles.push({ file, absTarget });
+    }
+
+    if (pendingGitFiles.length > 0) {
+      const result = fetchGitPackageFiles(
+        entry.source,
+        pendingGitFiles.map(({ file }) => ({ name: file.name, sha256: file.sha256 })),
+      );
+      if (!result.ok) return { id, ok: false, files: fileResults, error: result.error };
+
+      for (const [index, item] of pendingGitFiles.entries()) {
+        const fetched = result.files[index]!;
+        onFileStart?.(item.file.name);
+        mkdirSync(dirname(item.absTarget), { recursive: true });
+        writeFileSync(item.absTarget, fetched.buffer);
+        const fileResult: InstallFileResult = { name: item.file.name, target: item.file.target, sha256: item.file.sha256, ok: true };
+        onFileComplete?.(fileResult);
+        fileResults.push(fileResult);
+      }
+    }
+
+    return { id, ok: fileResults.every((f) => f.ok), files: fileResults };
   }
 
   for (const [index, file] of entry.files.entries()) {

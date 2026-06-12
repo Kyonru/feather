@@ -14,8 +14,10 @@
  */
 
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -31,6 +33,7 @@ async function sha256FromUrl(url) {
 
 async function checkPackageFile(filePath) {
   const pkg = JSON.parse(readFileSync(filePath, "utf8"));
+  if (pkg.source?.transport === "git") return checkGitPackageFile(pkg);
   const baseUrl = pkg.source?.baseUrl;
   if (!baseUrl) return [];
 
@@ -44,6 +47,55 @@ async function checkPackageFile(filePath) {
     results.push(result);
   }
   return results;
+}
+
+function gitRepoUrl(repo) {
+  if (/^(?:https?:\/\/|ssh:\/\/|git@)/i.test(repo)) return repo;
+  if (repo.startsWith("/") || repo.startsWith("./") || repo.startsWith("../") || /^[A-Za-z]:[\\/]/.test(repo)) return repo;
+  return `https://github.com/${repo}.git`;
+}
+
+function runGit(args, cwd) {
+  const result = spawnSync("git", args, { cwd, encoding: "utf8", stdio: "pipe" });
+  if (result.status !== 0 || result.error) {
+    throw new Error(result.error?.message || result.stderr || result.stdout || `git ${args.join(" ")} failed`);
+  }
+  return result.stdout.trim();
+}
+
+function safeInside(root, path) {
+  const absolute = resolve(root, path);
+  return absolute === root || absolute.startsWith(`${root}/`) ? absolute : null;
+}
+
+function checkGitPackageFile(pkg) {
+  const tempDir = mkdtempSync(join(tmpdir(), "feather-package-checksum-git-"));
+  try {
+    runGit(["init", "--quiet"], tempDir);
+    runGit(["remote", "add", "origin", gitRepoUrl(pkg.source.repo)], tempDir);
+    runGit(["fetch", "--depth=1", "--filter=blob:none", "origin", pkg.source.commitSha ?? pkg.source.tag], tempDir);
+    runGit(["checkout", "--quiet", "--detach", "FETCH_HEAD"], tempDir);
+    const commitSha = runGit(["rev-parse", "HEAD"], tempDir);
+    if (pkg.source.commitSha && commitSha.toLowerCase() !== pkg.source.commitSha.toLowerCase()) {
+      throw new Error(`expected ${pkg.source.commitSha}, got ${commitSha}`);
+    }
+
+    return (pkg.install?.files ?? []).map((file) => {
+      const path = safeInside(tempDir, file.name);
+      if (!path) return { name: file.name, error: "file escapes checkout" };
+      const buf = readFileSync(path);
+      const sha256 = createHash("sha256").update(buf).digest("hex");
+      return {
+        name: file.name,
+        sha256,
+        size: buf.byteLength,
+        expected: file.sha256,
+        match: sha256 === file.sha256,
+      };
+    });
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 }
 
 const args = process.argv.slice(2);

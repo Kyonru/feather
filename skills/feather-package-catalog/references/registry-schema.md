@@ -28,11 +28,16 @@ Example source shape for a GitHub-backed package:
   "source": {
     "repo": "owner/repo",
     "tag": "v1.0.0",
+    "transport": "raw",
     "baseUrl": "https://raw.githubusercontent.com/owner/repo/<commit>/",
     "commitSha": "<commit>"
   }
 }
 ```
+
+Private or terminal-authenticated Git packages may use `"transport": "git"` and omit `baseUrl`.
+Those packages are restored through the user's configured `git` credentials and still require
+`commitSha` plus per-file SHA-256 values. Lockfiles must not contain credentials or signed URLs.
 
 Each install file needs:
 

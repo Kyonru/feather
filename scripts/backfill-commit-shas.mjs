@@ -24,7 +24,24 @@ const packagesDir = join(root, 'packages');
 const force = process.argv.includes('--force');
 const GH_HEADERS = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
 
-async function resolveCommitSha(repo, ref) {
+function gitRepoUrl(repo) {
+  if (/^(?:https?:\/\/|ssh:\/\/|git@)/i.test(repo)) return repo;
+  if (repo.startsWith("/") || repo.startsWith("./") || repo.startsWith("../") || /^[A-Za-z]:[\\/]/.test(repo)) return repo;
+  return `https://github.com/${repo}.git`;
+}
+
+async function resolveCommitSha(repo, ref, transport) {
+  if (transport === 'git' || /^(?:https?:\/\/|ssh:\/\/|git@|\/|\.\/|\.\.\/)/i.test(repo)) {
+    const result = spawnSync('git', ['ls-remote', gitRepoUrl(repo), ref, `refs/heads/${ref}`, `refs/tags/${ref}`, `refs/tags/${ref}^{}`], {
+      encoding: 'utf8',
+    });
+    if (result.status !== 0 || result.error) {
+      throw new Error(result.error?.message || result.stderr || result.stdout || `git ls-remote failed for ${repo}@${ref}`);
+    }
+    const sha = result.stdout.trim().split(/\s+/)[0];
+    if (!/^[a-f0-9]{40}$/i.test(sha)) throw new Error(`Git ref ${ref} was not found for ${repo}`);
+    return sha;
+  }
   const url = `https://api.github.com/repos/${repo}/commits/${encodeURIComponent(ref)}`;
   const res = await fetch(url, { headers: GH_HEADERS });
   if (!res.ok) throw new Error(`GitHub API ${res.status} for ${repo}@${ref}`);
@@ -56,9 +73,11 @@ for (const file of files) {
 
   process.stdout.write(`  ...   ${id} (${pkg.source.repo}@${pkg.source.tag})`);
   try {
-    const sha = await resolveCommitSha(pkg.source.repo, pkg.source.tag);
+    const sha = await resolveCommitSha(pkg.source.repo, pkg.source.tag, pkg.source.transport);
     pkg.source.commitSha = sha;
-    pkg.source.baseUrl = `https://raw.githubusercontent.com/${pkg.source.repo}/${sha}/`;
+    if (pkg.source.transport !== 'git') {
+      pkg.source.baseUrl = `https://raw.githubusercontent.com/${pkg.source.repo}/${sha}/`;
+    }
     writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
     process.stdout.write(`  →  ${sha.slice(0, 7)}\n`);
     updated++;

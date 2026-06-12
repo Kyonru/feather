@@ -124,6 +124,10 @@ Packages that expect a dependency at an upstream-specific require path can decla
 dependency aliases. Feather writes a tiny Lua shim at the expected path that returns the shared
 installed dependency, so libraries can share one dependency copy without vendoring or changing
 `package.path`.
+Private or otherwise non-public Git repositories can use Git transport. Feather shells out to the
+`git` on your `PATH`, so SSH keys, credential helpers, and GitHub CLI credential managers work the
+same way they do in your terminal. Lockfiles store only repo/ref/checksum metadata; they never store
+credentials. Restoring these packages requires the same Git access in local shells or CI.
 Use `--flat-dir` only when you deliberately want all catalog files flattened by basename, such as
 `feel/init.lua` → `vendor/init.lua`.
 
@@ -178,6 +182,7 @@ If the requested version does not exist on GitHub, the install aborts with a cle
 Install a Lua library that is not in the Feather catalog. Launches an interactive wizard and first asks how you want to add the package:
 
 - **From GitHub repository** — commit-SHA pinned, reproducible. The wizard fetches the repo's tags and branches, lets you pick one, resolves it to an exact commit SHA, shows all `.lua` files in the tree, and lets you select which ones to install and where.
+- **From Git repository using local git credentials** — same package shape, but repo access goes through your configured `git` credentials for private repositories.
 - **From direct URL(s)** — for libraries not on GitHub or without versioned releases. Each URL is downloaded immediately and its SHA-256 is computed before you confirm.
 
 Both flows share the same steps for naming the package, setting install paths, entering a require path, and reviewing before anything is written.
@@ -210,7 +215,7 @@ feather package add --dir path/to/my-game
 > [!CAUTION]
 > Packages installed this way have `trust: experimental` — they have not been reviewed by the Feather team. Only install files from sources you trust. The SHA-256 of each file is recorded in the lockfile so future `feather package audit` runs will detect any tampering.
 >
-> Repo installs store the selected repo/tag and resolved commit SHA when available. URL installs store the primary URL, all selected URLs, per-file URLs, and per-file SHA-256 values.
+> Repo installs store the selected repo/tag and resolved commit SHA when available. Git-transport installs store no credentials or raw file URLs. URL installs store the primary URL, all selected URLs, per-file URLs, and per-file SHA-256 values.
 
 ### `feather package install --from-url <url> --target-path <path>`
 
@@ -356,6 +361,7 @@ Each file in `packages/` is a standalone JSON manifest:
     "repo": "kikito/anim8",
     "tag": "v2.3.1",
     "commitSha": "c1c12ec...",
+    "transport": "raw",
     "baseUrl": "https://raw.githubusercontent.com/kikito/anim8/c1c12ec.../"
   },
   "install": {
@@ -369,6 +375,6 @@ Each file in `packages/` is a standalone JSON manifest:
 }
 ```
 
-The `commitSha` field pins downloads to the exact commit SHA of the selected tag or branch at curation time. `baseUrl` uses this SHA so fetches are immutable even if the tag is later moved. `scripts/generate-registry.mjs` assembles all package files into `cli/src/generated/registry.json`, which is bundled into the published CLI.
+The `commitSha` field pins downloads to the exact commit SHA of the selected tag or branch at curation time. Public packages usually omit `transport` or use `"raw"` with `baseUrl` so fetches are immutable even if the tag is later moved. Private packages can use `"transport": "git"` and omit `baseUrl`; Feather restores them through local Git credentials and still verifies each file checksum. In CI, configure an SSH deploy key or Git credential helper before running `feather package install`.
 
 `install.layout` is optional. Omit it for normal relocatable packages. Use `"fixed"` only when a package has hardcoded runtime paths that must be installed exactly as declared. `dependencies` is also optional and currently supports exact catalog package IDs only. `dependencyAliases` can point one of those dependencies at an expected `.lua` target; aliases are generated lockfile-managed files. Version ranges, module providers, and project overrides are intentionally deferred.

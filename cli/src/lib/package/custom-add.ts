@@ -1,7 +1,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { sha256Buffer } from "./checksum.js";
-import { addToLockfile, type Lockfile, writeLockfile } from "./lockfile.js";
+import { PACKAGE_LOCK_FEATURE_REQUIREMENT, PACKAGE_LOCK_FEATURES } from "./compat.js";
+import { fetchGitPackageFiles } from "./git-source.js";
+import { addToLockfile, markLockfileFeature, type Lockfile, writeLockfile } from "./lockfile.js";
 import { resolveProjectTarget } from "./target.js";
 
 export type CustomPackageFile = {
@@ -23,6 +25,7 @@ export type CustomRepoPackageInput = {
   tag: string;
   commitSha?: string;
   baseUrl: string;
+  transport?: "raw" | "git";
   selectedFiles: string[];
   targetMap: Record<string, string>;
   projectDir: string;
@@ -71,32 +74,56 @@ export async function installCustomRepoPackage(input: CustomRepoPackageInput): P
 
   const lockedFiles: CustomPackageFile[] = [];
 
-  for (const [index, file] of plannedFiles.entries()) {
-    input.onFileStart?.(file.name);
-
-    const url = input.baseUrl + file.name;
-    let res: Response;
-    try {
-      res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-    } catch (err) {
-      return { ok: false, files: lockedFiles, error: `Network error: ${(err as Error).message}` };
+  if (input.transport === "git") {
+    const result = fetchGitPackageFiles(
+      {
+        repo: input.repoName,
+        tag: input.tag,
+        ...(input.commitSha ? { commitSha: input.commitSha } : {}),
+      },
+      plannedFiles.map((file) => ({ name: file.name })),
+    );
+    if (!result.ok) return { ok: false, files: lockedFiles, error: result.error };
+    for (const [index, file] of plannedFiles.entries()) {
+      input.onFileStart?.(file.name);
+      const fetched = result.files[index]!;
+      const absoluteTarget = targets[index]!;
+      mkdirSync(dirname(absoluteTarget), { recursive: true });
+      writeFileSync(absoluteTarget, fetched.buffer);
+      lockedFiles.push({ name: file.name, target: file.target, sha256: fetched.sha256 });
     }
-    if (!res.ok) return { ok: false, files: lockedFiles, error: `HTTP ${res.status} fetching ${url}` };
+  } else {
+    for (const [index, file] of plannedFiles.entries()) {
+      input.onFileStart?.(file.name);
 
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const sha256 = sha256Buffer(buffer);
-    const absoluteTarget = targets[index]!;
-    mkdirSync(dirname(absoluteTarget), { recursive: true });
-    writeFileSync(absoluteTarget, buffer);
-    lockedFiles.push({ name: file.name, url, target: file.target, sha256 });
+      const url = input.baseUrl + file.name;
+      let res: Response;
+      try {
+        res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      } catch (err) {
+        return { ok: false, files: lockedFiles, error: `Network error: ${(err as Error).message}` };
+      }
+      if (!res.ok) return { ok: false, files: lockedFiles, error: `HTTP ${res.status} fetching ${url}` };
+
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const sha256 = sha256Buffer(buffer);
+      const absoluteTarget = targets[index]!;
+      mkdirSync(dirname(absoluteTarget), { recursive: true });
+      writeFileSync(absoluteTarget, buffer);
+      lockedFiles.push({ name: file.name, url, target: file.target, sha256 });
+    }
   }
 
+  if (input.transport === "git") {
+    markLockfileFeature(input.lockfile, PACKAGE_LOCK_FEATURES.gitPackageSources, PACKAGE_LOCK_FEATURE_REQUIREMENT);
+  }
   addToLockfile(input.lockfile, input.id, {
     version: input.tag,
     trust: "experimental",
     source: {
       repo: input.repoName,
       tag: input.tag,
+      ...(input.transport === "git" ? { transport: "git" as const } : {}),
       ...(input.commitSha ? { resolvedRef: input.commitSha, commitSha: input.commitSha } : {}),
     },
     files: lockedFiles,

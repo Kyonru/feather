@@ -81,6 +81,24 @@ end
   );
 }
 
+function git(args, cwd) {
+  return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+}
+
+function makeGitPackageRepo(files = { 'init.lua': 'return "git package"\n' }) {
+  const dir = makeTmp();
+  git(['init', '--quiet'], dir);
+  for (const [file, content] of Object.entries(files)) {
+    const target = join(dir, file);
+    mkdirSync(target.slice(0, target.lastIndexOf('/')), { recursive: true });
+    writeFileSync(target, content);
+  }
+  git(['add', '.'], dir);
+  git(['-c', 'user.name=Feather Test', '-c', 'user.email=feather@example.test', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'init'], dir);
+  git(['-c', 'tag.gpgSign=false', 'tag', 'v1.0.0'], dir);
+  return { dir, commitSha: git(['rev-parse', 'HEAD'], dir), files };
+}
+
 test('package project resolver: nested game dir resolves parent project metadata', async () => {
   const dir = makeTmp();
   const gameDir = join(dir, 'game');
@@ -251,6 +269,18 @@ test('package lock compatibility: generated alias fixture restores and audits al
   const tampered = run(['package', 'audit', '--dir', dir]);
   assert.equal(tampered.exitCode, 1);
   assert.ok(outputOf(tampered).includes('MODIFIED'));
+});
+
+test('package lock compatibility: git source feature fixture is accepted by audit', () => {
+  const dir = makeTmp();
+  writeLockFixture(dir, 'git-source.json');
+  mkdirSync(join(dir, 'lib', 'privatepkg'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'privatepkg', 'init.lua'), 'return {}');
+
+  const result = run(['package', 'audit', '--dir', dir]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.ok(outputOf(result).includes('All packages verified'));
 });
 
 test('package lock compatibility: future features fail early across package commands', () => {
@@ -998,6 +1028,64 @@ test('registry validation accepts fixed install layout', async () => {
   assert.equal(registry.packages.fixed.install.layout, 'fixed');
 });
 
+test('registry validation accepts git package transport without raw baseUrl', async () => {
+  const { validateRegistry } = await import('../../dist/lib/package/registry.js');
+  const registry = validateRegistry({
+    version: 1,
+    updatedAt: '2026-05-16',
+    packages: {
+      privatepkg: {
+        type: 'love2d-library',
+        trust: 'experimental',
+        description: 'private package',
+        tags: [],
+        source: {
+          repo: 'owner/privatepkg',
+          tag: 'main',
+          transport: 'git',
+          commitSha: '0123456789abcdef0123456789abcdef01234567',
+        },
+        install: {
+          files: [{ name: 'init.lua', target: 'lib/privatepkg/init.lua', sha256: 'a'.repeat(64) }],
+        },
+        require: 'lib.privatepkg',
+      },
+    },
+  });
+
+  assert.equal(registry.packages.privatepkg.source.transport, 'git');
+});
+
+test('registry validation rejects invalid source transport', async () => {
+  const { validateRegistry } = await import('../../dist/lib/package/registry.js');
+  assert.throws(
+    () =>
+      validateRegistry({
+        version: 1,
+        updatedAt: '2026-05-16',
+        packages: {
+          privatepkg: {
+            type: 'love2d-library',
+            trust: 'experimental',
+            description: 'private package',
+            tags: [],
+            source: {
+              repo: 'owner/privatepkg',
+              tag: 'main',
+              transport: 'magic',
+              commitSha: '0123456789abcdef0123456789abcdef01234567',
+            },
+            install: {
+              files: [{ name: 'init.lua', target: 'lib/privatepkg/init.lua', sha256: 'a'.repeat(64) }],
+            },
+            require: 'lib.privatepkg',
+          },
+        },
+      }),
+    /source\.transport/,
+  );
+});
+
 test('registry validation rejects invalid install layout', async () => {
   const { validateRegistry } = await import('../../dist/lib/package/registry.js');
   assert.throws(
@@ -1583,6 +1671,38 @@ test('package add: repo plan converts to custom install input', async () => {
   });
 });
 
+test('package add: git repo plan preserves git transport metadata', async () => {
+  const { toCustomRepoPackageInput } = await import('../../dist/lib/package/add-plan.js');
+  const lockfile = emptyLockfile();
+  const commitSha = '0123456789abcdef0123456789abcdef01234567';
+  const plan = {
+    kind: 'repo',
+    id: 'privatepkg',
+    requirePath: 'lib.privatepkg',
+    repoName: 'git@github.com:me/privatepkg.git',
+    tag: 'v1.0.0',
+    commitSha,
+    baseUrl: '',
+    transport: 'git',
+    selectedFiles: ['init.lua'],
+    targetMap: { 'init.lua': 'lib/privatepkg/init.lua' },
+  };
+
+  assert.deepEqual(toCustomRepoPackageInput({ plan, projectDir: '/tmp/game', lockfile }), {
+    id: 'privatepkg',
+    repoName: 'git@github.com:me/privatepkg.git',
+    tag: 'v1.0.0',
+    commitSha,
+    baseUrl: '',
+    transport: 'git',
+    selectedFiles: ['init.lua'],
+    targetMap: { 'init.lua': 'lib/privatepkg/init.lua' },
+    projectDir: '/tmp/game',
+    lockfile,
+    onFileStart: undefined,
+  });
+});
+
 test('package add: url plan converts to custom install input', async () => {
   const { packageAddPlanFiles, toCustomUrlPackageInput } = await import('../../dist/lib/package/add-plan.js');
   const lockfile = emptyLockfile();
@@ -1967,6 +2087,76 @@ test('install package: dependency-only installs mark dependency lock feature', a
   );
 });
 
+test('install package: git transport installs through local git and marks lock feature', async () => {
+  const dir = makeTmp();
+  const repo = makeGitPackageRepo({ 'init.lua': 'return "git package"\n', 'nested/util.lua': 'return "util"\n' });
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const lockfile = emptyLockfile();
+  const pkg = {
+    id: 'privatepkg',
+    entry: {
+      trust: 'experimental',
+      source: { repo: repo.dir, tag: 'v1.0.0', commitSha: repo.commitSha, transport: 'git' },
+      install: {},
+    },
+    files: [
+      { name: 'init.lua', target: 'lib/privatepkg/init.lua', sha256: sha256(repo.files['init.lua']) },
+      { name: 'nested/util.lua', target: 'lib/privatepkg/util.lua', sha256: sha256(repo.files['nested/util.lua']) },
+    ],
+  };
+
+  const result = await installPackage(pkg, lockfile, { projectDir: dir });
+
+  assert.equal(result.ok, true);
+  assert.equal(readFileSync(join(dir, 'lib', 'privatepkg', 'init.lua'), 'utf8'), repo.files['init.lua']);
+  assert.equal(lockfile.packages.privatepkg.source.transport, 'git');
+  assert.equal(lockfile.packages.privatepkg.source.commitSha, repo.commitSha);
+  assert.equal(lockfile.requiresFeather, LOCK_FEATURE_REQUIREMENT);
+  assert.ok(lockfile.features.includes('git-package-sources'));
+});
+
+test('install package: git transport refuses ref mismatches before writing files', async () => {
+  const dir = makeTmp();
+  const repo = makeGitPackageRepo({ 'init.lua': 'return "git package"\n' });
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const pkg = {
+    id: 'privatepkg',
+    entry: {
+      trust: 'experimental',
+      source: { repo: repo.dir, tag: 'v1.0.0', commitSha: '0123456789abcdef0123456789abcdef01234567', transport: 'git' },
+      install: {},
+    },
+    files: [{ name: 'init.lua', target: 'lib/privatepkg/init.lua', sha256: sha256(repo.files['init.lua']) }],
+  };
+
+  const result = await installPackage(pkg, emptyLockfile(), { projectDir: dir });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Git ref mismatch/);
+  assert.equal(existsSync(join(dir, 'lib', 'privatepkg', 'init.lua')), false);
+});
+
+test('install package: git transport still verifies checksums', async () => {
+  const dir = makeTmp();
+  const repo = makeGitPackageRepo({ 'init.lua': 'return "git package"\n' });
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const pkg = {
+    id: 'privatepkg',
+    entry: {
+      trust: 'experimental',
+      source: { repo: repo.dir, tag: 'v1.0.0', commitSha: repo.commitSha, transport: 'git' },
+      install: {},
+    },
+    files: [{ name: 'init.lua', target: 'lib/privatepkg/init.lua', sha256: sha256('wrong') }],
+  };
+
+  const result = await installPackage(pkg, emptyLockfile(), { projectDir: dir });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Checksum mismatch/);
+  assert.equal(existsSync(join(dir, 'lib', 'privatepkg', 'init.lua')), false);
+});
+
 test('install package: dependency aliases use dependency installDir require path', async () => {
   const dir = makeTmp();
   const { installPackage } = await import('../../dist/lib/package/install.js');
@@ -2254,6 +2444,52 @@ test('restore: old repo lockfiles without commitSha remain compatible', async ()
       assert.equal(readFileSync(join(dir, 'lib', 'init.lua'), 'utf8'), content);
     },
   );
+});
+
+test('restore: git transport restores through local git without raw fetch', async () => {
+  const dir = makeTmp();
+  const repo = makeGitPackageRepo({ 'init.lua': 'return "git restore"\n' });
+  const { restorePackage } = await import('../../dist/lib/package/install.js');
+  const entry = {
+    version: 'v1.0.0',
+    trust: 'experimental',
+    source: { repo: repo.dir, tag: 'v1.0.0', commitSha: repo.commitSha, transport: 'git' },
+    files: [{ name: 'init.lua', target: 'lib/privatepkg/init.lua', sha256: sha256(repo.files['init.lua']) }],
+    installedAt: new Date(0).toISOString(),
+  };
+
+  await withFetchMock(
+    async () => {
+      throw new Error('git transport should not fetch raw URLs');
+    },
+    async () => {
+      const result = await restorePackage('privatepkg', entry, { projectDir: dir });
+      assert.equal(result.ok, true);
+      assert.equal(readFileSync(join(dir, 'lib', 'privatepkg', 'init.lua'), 'utf8'), repo.files['init.lua']);
+    },
+  );
+});
+
+test('git package helper reports missing git clearly', async () => {
+  const { fetchGitPackageFiles } = await import('../../dist/lib/package/git-source.js');
+  const result = fetchGitPackageFiles(
+    { repo: 'owner/privatepkg', tag: 'main' },
+    [{ name: 'init.lua' }],
+    {
+      runner: () => ({
+        status: null,
+        signal: null,
+        output: [],
+        pid: 0,
+        stdout: '',
+        stderr: '',
+        error: Object.assign(new Error('spawn git ENOENT'), { code: 'ENOENT' }),
+      }),
+    },
+  );
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /git is required/);
 });
 
 test('restore and audit: generated dependency aliases are recreated and verified', async () => {
