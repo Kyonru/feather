@@ -1,5 +1,6 @@
 import { existsSync, rmSync } from 'node:fs';
-import { readLockfile, removeFromLockfile, writeLockfile } from '../../lib/package/lockfile.js';
+import { readCompatibleLockfile } from '../../lib/package/compat.js';
+import { removeFromLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { fail } from '../../lib/command.js';
 import { icon, printLine, printMuted, style } from '../../lib/output.js';
 import { confirmAction } from '../../ui/confirm.js';
@@ -13,7 +14,7 @@ export type PackageRemoveOptions = {
 
 export async function packageRemoveCommand(name: string, opts: PackageRemoveOptions = {}): Promise<void> {
   const projectDir = resolvePackageProjectDir(opts.dir);
-  const lockfile = readLockfile(projectDir);
+  const lockfile = readCompatibleLockfile(projectDir);
 
   const entry = lockfile.packages[name];
   if (!entry) {

@@ -1,5 +1,5 @@
 import { auditLockfile } from '../../lib/package/audit.js';
-import { readLockfile } from '../../lib/package/lockfile.js';
+import { readCompatibleLockfile } from '../../lib/package/compat.js';
 import { fail } from '../../lib/command.js';
 import {
   createSpinner,
@@ -22,7 +22,7 @@ export type PackageAuditOptions = {
 
 export async function packageAuditCommand(opts: PackageAuditOptions = {}): Promise<void> {
   const projectDir = resolvePackageProjectDir(opts.dir);
-  const lockfile = readLockfile(projectDir);
+  const lockfile = readCompatibleLockfile(projectDir);
 
   const entries = Object.values(lockfile.packages);
   if (entries.length === 0) {

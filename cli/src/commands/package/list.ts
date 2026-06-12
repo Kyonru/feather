@@ -1,4 +1,5 @@
-import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
+import { readCompatibleLockfile } from '../../lib/package/compat.js';
+import { writeLockfile } from '../../lib/package/lockfile.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import { icon, printLine, printMuted, style } from '../../lib/output.js';
@@ -19,7 +20,7 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
   const projectDir = resolvePackageProjectDir(opts.dir);
 
   if (opts.installed) {
-    const lockfile = readLockfile(projectDir);
+    const lockfile = readCompatibleLockfile(projectDir);
     const entries = Object.entries(lockfile.packages);
     if (entries.length === 0) {
       printMuted('No packages installed. Run `feather package install <name>`.');
@@ -39,7 +40,7 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
   });
   if (!registry) return;
 
-  const lockfile = readLockfile(projectDir);
+  const lockfile = readCompatibleLockfile(projectDir);
 
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     const entries = Object.entries(registry.packages).filter(([, e]) => !e.parent);

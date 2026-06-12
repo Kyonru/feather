@@ -1,0 +1,24 @@
+{
+  "lockfileVersion": 1,
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "packages": {
+    "custom-helper": {
+      "version": "0.0.0",
+      "trust": "experimental",
+      "source": {
+        "kind": "url",
+        "url": "https://example.com/helper.lua",
+        "urls": ["https://example.com/helper.lua"]
+      },
+      "files": [
+        {
+          "name": "helper.lua",
+          "url": "https://example.com/helper.lua",
+          "target": "lib/helper.lua",
+          "sha256": "7df8f0cd9e1cd0b204a760783671c0ccca4a3258dc7c51f59e9e2295c6c25315"
+        }
+      ],
+      "installedAt": "1970-01-01T00:00:00.000Z"
+    }
+  }
+}

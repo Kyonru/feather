@@ -11,11 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added exact catalog package dependencies with dependency-first install resolution.
 - Added generated package dependency aliases so shared Lua libraries can satisfy upstream-specific require paths without vendoring.
+- Added package-lock compatibility metadata and early update guidance for unsupported future lockfile features.
 
 ### Tests
 
 - Added package resolver coverage for dependency ordering, cycles, missing deps, and install conflicts.
 - Added package installer coverage for generated dependency aliases, restore, audit, remove, and target collision handling.
+- Added package-lock compatibility fixture coverage for old locks, generated aliases, future-feature guards, and doctor output.
 
 ## [v3.2.0] - 2026-06-02 - The one with texture maps
 

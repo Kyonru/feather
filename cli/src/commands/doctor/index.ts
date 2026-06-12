@@ -20,6 +20,7 @@ import {
 import { androidProductId, iosBundleIdentifier, validateBuildConfigForTarget } from '../../lib/build/validation.js';
 import { fastlanePath } from '../../lib/build/release.js';
 import { auditLockfile } from '../../lib/package/audit.js';
+import { checkPackageLockCompatibility } from '../../lib/package/compat.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntrySourceSummary, lockfileUrlFindings } from '../../lib/package/provenance.js';
 import { loadRegistry } from '../../lib/package/registry.js';
@@ -595,6 +596,10 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   if (existsSync(lockfilePath)) {
     try {
       const lockfile = readLockfile(projectDir);
+      const compatibility = checkPackageLockCompatibility(lockfile);
+      if (!compatibility.ok) {
+        add(checks, 'Packages', 'Package lockfile', 'fail', compatibility.message, 'Update Feather before restoring packages.');
+      } else {
       const auditResults = await auditLockfile(projectDir, lockfile);
       const badPackages = new Set(auditResults.filter((result) => result.status !== 'verified').map((result) => result.id));
       const registry = await loadRegistry({ offline: true });
@@ -684,6 +689,7 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
             `Run \`feather package update ${id} --dir ${projectDirArg}\`.`,
           );
         }
+      }
       }
     } catch (err) {
       add(checks, 'Packages', 'Package lockfile', 'fail', (err as Error).message, 'Fix or delete feather.lock.json and reinstall packages.');

@@ -1,4 +1,4 @@
-import { readLockfile } from '../../lib/package/lockfile.js';
+import { readCompatibleLockfile } from '../../lib/package/compat.js';
 import { fail } from '../../lib/command.js';
 import { printBlank, printLine, printMuted, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
@@ -12,7 +12,7 @@ export type PackageInfoOptions = {
 
 export async function packageInfoCommand(name: string, opts: PackageInfoOptions = {}): Promise<void> {
   const projectDir = resolvePackageProjectDir(opts.dir);
-  const lockfile = readLockfile(projectDir);
+  const lockfile = readCompatibleLockfile(projectDir);
 
   const registry = await loadRegistryOrExit({ offline: opts.offline, registryUrl: opts.registryUrl });
   if (!registry) return;

@@ -35,6 +35,8 @@ export type LockfileEntry = {
 
 export type Lockfile = {
   lockfileVersion: 1;
+  requiresFeather?: string;
+  features?: string[];
   generatedAt: string;
   packages: Record<string, LockfileEntry>;
 };
@@ -98,6 +100,29 @@ export function addToLockfile(
 ): void {
   validateLockfileSource(entry.source);
   lockfile.packages[id] = { ...entry, installedAt: new Date().toISOString() };
+}
+
+export function markLockfileFeature(lockfile: Lockfile, feature: string, requiresFeather?: string): void {
+  lockfile.features = [...new Set([...(lockfile.features ?? []), feature])].sort();
+  if (requiresFeather) lockfile.requiresFeather = maxRequiredFeather(lockfile.requiresFeather, requiresFeather);
+}
+
+function parseMinimumVersion(requirement: string | undefined): [number, number, number] | null {
+  if (!requirement) return null;
+  const match = requirement.trim().match(/^>=\s*(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function maxRequiredFeather(current: string | undefined, next: string): string {
+  const currentVersion = parseMinimumVersion(current);
+  const nextVersion = parseMinimumVersion(next);
+  if (!currentVersion || !nextVersion) return next;
+  for (let i = 0; i < 3; i += 1) {
+    if (nextVersion[i]! > currentVersion[i]!) return next;
+    if (nextVersion[i]! < currentVersion[i]!) return current!;
+  }
+  return current!;
 }
 
 export function removeFromLockfile(lockfile: Lockfile, id: string): boolean {

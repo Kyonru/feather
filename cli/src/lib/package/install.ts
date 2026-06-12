@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { sha256Buffer } from "./checksum.js";
-import { addToLockfile, type Lockfile, type LockfileEntry } from "./lockfile.js";
+import { PACKAGE_LOCK_FEATURE_REQUIREMENT, PACKAGE_LOCK_FEATURES } from "./compat.js";
+import { addToLockfile, markLockfileFeature, type Lockfile, type LockfileEntry } from "./lockfile.js";
 import { lockfileFileUrl } from "./provenance.js";
 import { planPackageTarget, resolveProjectTarget } from "./target.js";
 import type { ResolvedPackage } from "./resolve.js";
@@ -216,6 +217,12 @@ export async function installPackage(
   const allOk = fileResults.every((f) => f.ok);
 
   if (allOk && !dryRun) {
+    if (pkg.entry.dependencies?.length || pkg.dependencyOf?.length || pkg.dependencyAliases?.length) {
+      markLockfileFeature(lockfile, PACKAGE_LOCK_FEATURES.packageDependencies, PACKAGE_LOCK_FEATURE_REQUIREMENT);
+    }
+    if (lockedFiles.some((file) => file.generated?.type === "require-alias")) {
+      markLockfileFeature(lockfile, PACKAGE_LOCK_FEATURES.generatedRequireAliases, PACKAGE_LOCK_FEATURE_REQUIREMENT);
+    }
     addToLockfile(lockfile, pkg.id, {
       parent: pkg.entry.parent,
       version: effectiveTag,

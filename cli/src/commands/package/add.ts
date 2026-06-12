@@ -1,6 +1,6 @@
 import { fail } from '../../lib/command.js';
 import { installPackageAddPlan, packageAddPlanFiles } from '../../lib/package/add-plan.js';
-import { readLockfile } from '../../lib/package/lockfile.js';
+import { readCompatibleLockfile } from '../../lib/package/compat.js';
 import { createSpinner, printBlank, printKeyValues, printMuted, style } from '../../lib/output.js';
 import { showAddWizard } from '../../ui/package/index.js';
 import { ensurePackageAddInteractive, resolvePackageProjectDir } from './shared.js';
@@ -13,7 +13,7 @@ export async function packageAddCommand(opts: PackageAddOptions = {}): Promise<v
   if (!ensurePackageAddInteractive()) return;
 
   const projectDir = resolvePackageProjectDir(opts.dir);
-  const lockfile = readLockfile(projectDir);
+  const lockfile = readCompatibleLockfile(projectDir);
   const plan = await showAddWizard({ projectDir, lockfile });
   if (!plan) {
     printMuted('Package add cancelled.');

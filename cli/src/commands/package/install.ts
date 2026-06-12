@@ -1,6 +1,7 @@
 import { auditLockfile } from '../../lib/package/audit.js';
+import { readCompatibleLockfile } from '../../lib/package/compat.js';
 import { installFromUrl, restorePackage } from '../../lib/package/install.js';
-import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
+import { writeLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntryRequiresUntrustedRepair, lockfileEntrySourceSummary } from '../../lib/package/provenance.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { planPackageTarget, resolveProjectTarget } from '../../lib/package/target.js';
@@ -97,7 +98,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     }
 
     const spinner = createSpinner(`Fetching ${opts.fromUrl}…`).start();
-    const lockfile = readLockfile(projectDir);
+    const lockfile = readCompatibleLockfile(projectDir);
     const result = await installFromUrl(lockfile, {
       projectDir,
       url: opts.fromUrl,
@@ -136,7 +137,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   }
 
   if (names.length === 0) {
-    const lockfile = readLockfile(projectDir);
+    const lockfile = readCompatibleLockfile(projectDir);
     const entries = Object.entries(lockfile.packages).filter(([, e]) => !e.parent);
 
     if (entries.length === 0) {
@@ -204,7 +205,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
   const registry = await loadRegistryOrExit({ offline: opts.offline, registryUrl: opts.registryUrl });
   if (!registry) return;
 
-  const lockfile = readLockfile(projectDir);
+  const lockfile = readCompatibleLockfile(projectDir);
   const { resolved, errors } = resolveMany(names, registry);
 
   if (errors.length) {

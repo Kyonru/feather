@@ -24,6 +24,11 @@ Every install, update, or remove updates `feather.lock.json` in your project roo
 
 Custom GitHub repo installs also record the resolved commit SHA when available. Custom URL installs record the primary URL plus the selected URL list, and every custom file records its own URL and SHA-256. Older lockfiles remain compatible.
 
+Newer lockfile capabilities may add top-level metadata such as `features` and `requiresFeather`.
+Current Feather versions fail early with a clear update message when a project uses package-lock
+features they cannot safely restore, such as generated dependency aliases from a newer CLI.
+Old lockfiles without this metadata remain supported.
+
 `feather doctor` includes lockfile verification and warns when package file URLs point outside trusted raw GitHub HTTPS sources:
 
 ```sh

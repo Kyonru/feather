@@ -1,4 +1,5 @@
-import { readLockfile, writeLockfile } from '../../lib/package/lockfile.js';
+import { readCompatibleLockfile } from '../../lib/package/compat.js';
+import { writeLockfile } from '../../lib/package/lockfile.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import { printLine, printMuted, printWarning, style } from '../../lib/output.js';
@@ -14,7 +15,7 @@ export type PackageUpdateOptions = {
 
 export async function packageUpdateCommand(name: string | undefined, opts: PackageUpdateOptions = {}): Promise<void> {
   const projectDir = resolvePackageProjectDir(opts.dir);
-  const lockfile = readLockfile(projectDir);
+  const lockfile = readCompatibleLockfile(projectDir);
 
   const installed = Object.entries(lockfile.packages);
   if (installed.length === 0) {
