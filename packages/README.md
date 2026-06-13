@@ -107,6 +107,7 @@ Options:
 | `--target-path <path>`  | Destination path for `--from-url` installs                          |
 | `--install-dir <dir>`   | Install catalog package files under a custom base directory         |
 | `--save-install-dir`    | Save `--install-dir` in `feather.lock.json` for future installs     |
+| `--include-licenses`    | Install catalog-declared license files alongside package files      |
 | `--offline`             | Use the bundled registry snapshot instead of fetching               |
 | `--allow-untrusted`     | Required for `experimental` packages and version overrides          |
 | `--allow-non-lua-files` | Allow installing packages that include non-Lua files (e.g. shaders) |
@@ -128,6 +129,22 @@ Private or otherwise non-public Git repositories can use Git transport. Feather 
 `git` on your `PATH`, so SSH keys, credential helpers, and GitHub CLI credential managers work the
 same way they do in your terminal. Lockfiles store only repo/ref/checksum metadata; they never store
 credentials. Restoring these packages requires the same Git access in local shells or CI.
+Packages with curated license metadata can install upstream license files beside the library when
+you pass `--include-licenses`. To make this the project default, add:
+
+```lua
+-- feather.config.lua
+return {
+  packages = {
+    installLicenses = true,
+  },
+}
+```
+
+Single-file modules get sidecar license files such as `lib/anim8.LICENSE`; folder-style packages
+get license files inside the package directory such as `lib/feel/LICENSE`. License files are stored
+in `feather.lock.json`, restored by `feather package install`, verified by `feather package audit`,
+and removed with the owning package.
 Use `--flat-dir` only when you deliberately want all catalog files flattened by basename, such as
 `feel/init.lua` → `vendor/init.lua`.
 
@@ -366,7 +383,8 @@ Each file in `packages/` is a standalone JSON manifest:
   },
   "install": {
     "layout": "relocatable",
-    "files": [{ "name": "anim8.lua", "sha256": "abc123...", "target": "lib/anim8.lua" }]
+    "files": [{ "name": "anim8.lua", "sha256": "abc123...", "target": "lib/anim8.lua" }],
+    "licenses": [{ "name": "LICENSE", "sha256": "def456..." }]
   },
   "dependencies": [],
   "dependencyAliases": [],
@@ -377,4 +395,4 @@ Each file in `packages/` is a standalone JSON manifest:
 
 The `commitSha` field pins downloads to the exact commit SHA of the selected tag or branch at curation time. Public packages usually omit `transport` or use `"raw"` with `baseUrl` so fetches are immutable even if the tag is later moved. Private packages can use `"transport": "git"` and omit `baseUrl`; Feather restores them through local Git credentials and still verifies each file checksum. In CI, configure an SSH deploy key or Git credential helper before running `feather package install`.
 
-`install.layout` is optional. Omit it for normal relocatable packages. Use `"fixed"` only when a package has hardcoded runtime paths that must be installed exactly as declared. `dependencies` is also optional and currently supports exact catalog package IDs only. `dependencyAliases` can point one of those dependencies at an expected `.lua` target; aliases are generated lockfile-managed files. Version ranges, module providers, and project overrides are intentionally deferred.
+`install.layout` is optional. Omit it for normal relocatable packages. Use `"fixed"` only when a package has hardcoded runtime paths that must be installed exactly as declared. `install.licenses` is optional and must list explicit upstream license files with SHA-256 values; Feather does not auto-detect licenses. `dependencies` is also optional and currently supports exact catalog package IDs only. `dependencyAliases` can point one of those dependencies at an expected `.lua` target; aliases are generated lockfile-managed files. Version ranges, module providers, and project overrides are intentionally deferred.

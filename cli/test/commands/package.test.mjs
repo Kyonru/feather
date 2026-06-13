@@ -568,6 +568,30 @@ test('audit --json: outputs valid JSON', () => {
   assert.equal(parsed[0].status, 'verified');
 });
 
+test('audit: package license files are verified like package files', () => {
+  const dir = makeTmp();
+  const content = 'return {}';
+  const license = 'MIT license text\n';
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'anim8.lua'), content);
+  writeFileSync(join(dir, 'lib', 'anim8.LICENSE'), license);
+  writeLock(dir, {
+    anim8: {
+      version: 'v2.3.1',
+      trust: 'verified',
+      source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
+      files: [
+        { name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256(content) },
+        { name: 'LICENSE', target: 'lib/anim8.LICENSE', sha256: sha256(license), role: 'license' },
+      ],
+    },
+  });
+  const { stdout, exitCode } = run(['package', 'audit', '--dir', dir]);
+  assert.equal(exitCode, 0, `unexpected failure:\n${stdout}`);
+  assert.ok(stdout.includes('anim8.LICENSE'));
+  assert.ok(stdout.includes('verified'));
+});
+
 test('remove: not installed exits 1 with message', () => {
   const dir = makeTmp();
   const result = run(['package', 'remove', 'anim8', '--dir', dir]);
@@ -610,6 +634,28 @@ test('remove: deletes file and removes lockfile entry', () => {
   assert.ok(!existsSync(join(dir, 'lib', 'anim8.lua')), 'file should be deleted');
   const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
   assert.ok(!lock.packages.anim8, 'lockfile entry should be removed');
+});
+
+test('remove: deletes package license files with the owning package', () => {
+  const dir = makeTmp();
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'lib', 'anim8.lua'), 'return {}');
+  writeFileSync(join(dir, 'lib', 'anim8.LICENSE'), 'license');
+  writeLock(dir, {
+    anim8: {
+      version: 'v2.3.1',
+      trust: 'verified',
+      source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
+      files: [
+        { name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'any' },
+        { name: 'LICENSE', target: 'lib/anim8.LICENSE', sha256: 'any', role: 'license' },
+      ],
+    },
+  });
+  const { exitCode } = run(['package', 'remove', 'anim8', '--dir', dir, '--yes']);
+  assert.equal(exitCode, 0);
+  assert.ok(!existsSync(join(dir, 'lib', 'anim8.lua')), 'module should be deleted');
+  assert.ok(!existsSync(join(dir, 'lib', 'anim8.LICENSE')), 'license should be deleted');
 });
 
 test('remove: does not touch files belonging to other packages', () => {
@@ -1026,6 +1072,66 @@ test('registry validation accepts fixed install layout', async () => {
   });
 
   assert.equal(registry.packages.fixed.install.layout, 'fixed');
+});
+
+test('registry validation accepts package license metadata', async () => {
+  const { validateRegistry } = await import('../../dist/lib/package/registry.js');
+  const registry = validateRegistry({
+    version: 1,
+    updatedAt: '2026-05-16',
+    packages: {
+      licensed: {
+        type: 'love2d-library',
+        trust: 'verified',
+        description: 'licensed package',
+        tags: [],
+        source: {
+          repo: 'owner/repo',
+          tag: 'main',
+          baseUrl: 'https://raw.githubusercontent.com/owner/repo/0123456789abcdef0123456789abcdef01234567/',
+          commitSha: '0123456789abcdef0123456789abcdef01234567',
+        },
+        install: {
+          files: [{ name: 'init.lua', target: 'lib/licensed/init.lua', sha256: 'a'.repeat(64) }],
+          licenses: [{ name: 'LICENSE', sha256: 'b'.repeat(64) }],
+        },
+        require: 'lib.licensed',
+      },
+    },
+  });
+
+  assert.equal(registry.packages.licensed.install.licenses[0].name, 'LICENSE');
+});
+
+test('registry validation rejects unsafe package license targets', async () => {
+  const { validateRegistry } = await import('../../dist/lib/package/registry.js');
+  assert.throws(
+    () =>
+      validateRegistry({
+        version: 1,
+        updatedAt: '2026-05-16',
+        packages: {
+          licensed: {
+            type: 'love2d-library',
+            trust: 'verified',
+            description: 'licensed package',
+            tags: [],
+            source: {
+              repo: 'owner/repo',
+              tag: 'main',
+              baseUrl: 'https://raw.githubusercontent.com/owner/repo/0123456789abcdef0123456789abcdef01234567/',
+              commitSha: '0123456789abcdef0123456789abcdef01234567',
+            },
+            install: {
+              files: [{ name: 'init.lua', target: 'lib/licensed/init.lua', sha256: 'a'.repeat(64) }],
+              licenses: [{ name: 'LICENSE', target: '../LICENSE', sha256: 'b'.repeat(64) }],
+            },
+            require: 'lib.licensed',
+          },
+        },
+      }),
+    /license target escapes project root/,
+  );
 });
 
 test('registry validation accepts git package transport without raw baseUrl', async () => {
@@ -2013,6 +2119,114 @@ test('install package: installDir without save only records transformed file tar
   );
 });
 
+test('install package: includeLicenses writes single-file sidecar licenses', async () => {
+  const dir = makeTmp();
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const content = 'return "anim8"';
+  const license = 'MIT license text\n';
+  const pkg = {
+    id: 'anim8',
+    entry: {
+      trust: 'verified',
+      source: { repo: 'kikito/anim8', tag: 'v2.3.1', baseUrl: 'https://example.com/' },
+      install: {
+        licenses: [{ name: 'LICENSE', sha256: sha256(license) }],
+      },
+    },
+    files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256(content) }],
+  };
+
+  await withFetchMock(
+    async (url) => new Response(String(url).endsWith('/LICENSE') ? license : content),
+    async () => {
+      const lockfile = emptyLockfile();
+      const result = await installPackage(pkg, lockfile, { projectDir: dir, includeLicenses: true });
+
+      assert.equal(result.ok, true);
+      assert.equal(readFileSync(join(dir, 'lib', 'anim8.LICENSE'), 'utf8'), license);
+      const licenseFile = lockfile.packages.anim8.files.find((file) => file.role === 'license');
+      assert.equal(licenseFile.name, 'LICENSE');
+      assert.equal(licenseFile.target, 'lib/anim8.LICENSE');
+      assert.equal(licenseFile.sha256, sha256(license));
+    },
+  );
+});
+
+test('install package: includeLicenses writes folder licenses for multi-file packages', async () => {
+  const dir = makeTmp();
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const init = 'return "feel"';
+  const helper = 'return "helper"';
+  const license = 'Feel license\n';
+  const pkg = {
+    id: 'feel',
+    entry: {
+      trust: 'verified',
+      source: { repo: 'kyonru/feel.lua', tag: 'main', baseUrl: 'https://example.com/' },
+      install: {
+        licenses: [{ name: 'LICENSE.md', sha256: sha256(license) }],
+      },
+    },
+    files: [
+      { name: 'feel/init.lua', target: 'lib/feel/init.lua', sha256: sha256(init) },
+      { name: 'feel/helper.lua', target: 'lib/feel/helper.lua', sha256: sha256(helper) },
+    ],
+  };
+
+  await withFetchMock(
+    async (url) => {
+      if (String(url).endsWith('/LICENSE.md')) return new Response(license);
+      return new Response(String(url).endsWith('/feel/helper.lua') ? helper : init);
+    },
+    async () => {
+      const lockfile = emptyLockfile();
+      const result = await installPackage(pkg, lockfile, { projectDir: dir, includeLicenses: true });
+
+      assert.equal(result.ok, true);
+      assert.equal(readFileSync(join(dir, 'lib', 'feel', 'LICENSE.md'), 'utf8'), license);
+      assert.equal(lockfile.packages.feel.files.find((file) => file.role === 'license').target, 'lib/feel/LICENSE.md');
+    },
+  );
+});
+
+test('install package: licenses are omitted unless requested', async () => {
+  const dir = makeTmp();
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const content = 'return "anim8"';
+  const license = 'MIT license text\n';
+  const pkg = {
+    id: 'anim8',
+    entry: {
+      trust: 'verified',
+      source: { repo: 'kikito/anim8', tag: 'v2.3.1', baseUrl: 'https://example.com/' },
+      install: {
+        licenses: [{ name: 'LICENSE', sha256: sha256(license) }],
+      },
+    },
+    files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256(content) }],
+  };
+
+  await withFetchMock(
+    async () => new Response(content),
+    async () => {
+      const lockfile = emptyLockfile();
+      const result = await installPackage(pkg, lockfile, { projectDir: dir });
+
+      assert.equal(result.ok, true);
+      assert.equal(existsSync(join(dir, 'lib', 'anim8.LICENSE')), false);
+      assert.equal(lockfile.packages.anim8.files.some((file) => file.role === 'license'), false);
+    },
+  );
+});
+
+test('package config: parses package license opt-in', async () => {
+  const dir = makeTmp();
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { packages = { installLicenses = true } }\n');
+  const { loadConfig } = await import('../../dist/lib/config.js');
+  const config = loadConfig(dir);
+  assert.equal(config.packages.installLicenses, true);
+});
+
 test('install package: dependency aliases write generated shims and lock metadata', async () => {
   const dir = makeTmp();
   const { installPackage } = await import('../../dist/lib/package/install.js');
@@ -2113,6 +2327,30 @@ test('install package: git transport installs through local git and marks lock f
   assert.equal(lockfile.packages.privatepkg.source.commitSha, repo.commitSha);
   assert.equal(lockfile.requiresFeather, LOCK_FEATURE_REQUIREMENT);
   assert.ok(lockfile.features.includes('git-package-sources'));
+});
+
+test('install package: git transport installs license files from checkout', async () => {
+  const dir = makeTmp();
+  const repo = makeGitPackageRepo({ 'init.lua': 'return "git package"\n', 'LICENSE': 'Private license\n' });
+  const { installPackage } = await import('../../dist/lib/package/install.js');
+  const lockfile = emptyLockfile();
+  const pkg = {
+    id: 'privatepkg',
+    entry: {
+      trust: 'experimental',
+      source: { repo: repo.dir, tag: 'v1.0.0', commitSha: repo.commitSha, transport: 'git' },
+      install: {
+        licenses: [{ name: 'LICENSE', sha256: sha256(repo.files.LICENSE) }],
+      },
+    },
+    files: [{ name: 'init.lua', target: 'lib/privatepkg/init.lua', sha256: sha256(repo.files['init.lua']) }],
+  };
+
+  const result = await installPackage(pkg, lockfile, { projectDir: dir, includeLicenses: true });
+
+  assert.equal(result.ok, true);
+  assert.equal(readFileSync(join(dir, 'lib', 'privatepkg', 'LICENSE'), 'utf8'), repo.files.LICENSE);
+  assert.equal(lockfile.packages.privatepkg.files.find((file) => file.role === 'license').target, 'lib/privatepkg/LICENSE');
 });
 
 test('install package: git transport refuses ref mismatches before writing files', async () => {
@@ -2442,6 +2680,44 @@ test('restore: old repo lockfiles without commitSha remain compatible', async ()
 
       assert.equal(result.ok, true);
       assert.equal(readFileSync(join(dir, 'lib', 'init.lua'), 'utf8'), content);
+    },
+  );
+});
+
+test('restore: locked package license files are restored', async () => {
+  const dir = makeTmp();
+  const { restorePackage } = await import('../../dist/lib/package/install.js');
+  const content = 'return "repo"';
+  const license = 'MIT license text\n';
+  const fetched = [];
+
+  await withFetchMock(
+    async (url) => {
+      fetched.push(String(url));
+      return new Response(String(url).endsWith('/LICENSE') ? license : content);
+    },
+    async () => {
+      const result = await restorePackage(
+        'my-pkg',
+        {
+          version: 'main',
+          trust: 'experimental',
+          source: { repo: 'me/pkg', tag: 'main' },
+          files: [
+            { name: 'init.lua', target: 'lib/init.lua', sha256: sha256(content) },
+            { name: 'LICENSE', target: 'lib/init.LICENSE', sha256: sha256(license), role: 'license' },
+          ],
+          installedAt: new Date(0).toISOString(),
+        },
+        { projectDir: dir },
+      );
+
+      assert.equal(result.ok, true);
+      assert.deepEqual(fetched, [
+        'https://raw.githubusercontent.com/me/pkg/main/init.lua',
+        'https://raw.githubusercontent.com/me/pkg/main/LICENSE',
+      ]);
+      assert.equal(readFileSync(join(dir, 'lib', 'init.LICENSE'), 'utf8'), license);
     },
   );
 });

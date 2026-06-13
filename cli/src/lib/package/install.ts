@@ -8,6 +8,7 @@ import { lockfileFileUrl } from "./provenance.js";
 import { planPackageTarget, resolveProjectTarget } from "./target.js";
 import type { ResolvedPackage } from "./resolve.js";
 import { checkDependencyAliasTarget, packageDependencyAliasContent, planDependencyAliases } from "./aliases.js";
+import { planPackageLicenses } from "./licenses.js";
 
 export type InstallOptions = {
   projectDir: string;
@@ -15,6 +16,7 @@ export type InstallOptions = {
   targetOverride?: string;
   installDir?: string;
   saveInstallDir?: boolean;
+  includeLicenses?: boolean;
   onFileStart?: (name: string) => void;
   onFileComplete?: (result: InstallFileResult) => void;
 };
@@ -101,17 +103,28 @@ export async function installPackage(
       ? src.baseUrl.replace(src.tag, pkg.versionOverride)
       : (src.baseUrl ?? '');
 
-  const plannedFiles = pkg.files.map((file) => ({
-    file,
-    relTarget: planPackageTarget(file, { targetOverride, installDir: effectiveInstallDir, layout }),
-  }));
+  const plannedFiles = [
+    ...pkg.files.map((file) => ({
+      file,
+      relTarget: planPackageTarget(file, { targetOverride, installDir: effectiveInstallDir, layout }),
+      role: undefined,
+    })),
+    ...(opts.includeLicenses
+      ? planPackageLicenses(pkg.id, pkg.files, pkg.entry.install?.licenses, {
+          targetOverride,
+          installDir: effectiveInstallDir,
+          layout,
+        }).map((file) => ({ file, relTarget: file.target, role: file.role }))
+      : []),
+  ];
   const aliasResult = planDependencyAliases(pkg, lockfile, { installDir, targetOverride, dryRun });
   if (!aliasResult.ok) {
     return { id: pkg.id, ok: false, files: [], error: aliasResult.error };
   }
   const resolvedTargets: string[] = [];
+  const seenTargets = new Set<string>();
 
-  for (const { file, relTarget } of plannedFiles) {
+  for (const { file, relTarget, role } of plannedFiles) {
     const absTarget = resolveProjectTarget(projectDir, relTarget);
     if (!absTarget) {
       return {
@@ -121,6 +134,15 @@ export async function installPackage(
         error: "Target path escapes project root",
       };
     }
+    if (seenTargets.has(relTarget)) {
+      return {
+        id: pkg.id,
+        ok: false,
+        files: [{ name: file.name, target: relTarget, sha256: file.sha256, ok: false, error: "Package file target overlaps another installed file" }],
+        error: role === "license" ? "License target overlaps another installed file" : "Package file target overlaps another installed file",
+      };
+    }
+    seenTargets.add(relTarget);
     resolvedTargets.push(absTarget);
   }
   for (const alias of aliasResult.aliases) {
@@ -169,7 +191,7 @@ export async function installPackage(
     if (!result.ok) {
       return { id: pkg.id, ok: false, files: fileResults, error: result.error };
     }
-    for (const [index, { file, relTarget }] of plannedFiles.entries()) {
+    for (const [index, { file, relTarget, role }] of plannedFiles.entries()) {
       const absTarget = resolvedTargets[index]!;
       const fetched = result.files[index]!;
       onFileStart?.(file.name);
@@ -179,10 +201,10 @@ export async function installPackage(
       const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: fileSha256, ok: true };
       onFileComplete?.(fileResult);
       fileResults.push(fileResult);
-      lockedFiles.push({ name: file.name, target: relTarget, sha256: fileSha256 });
+      lockedFiles.push({ name: file.name, target: relTarget, sha256: fileSha256, ...(role ? { role } : {}) });
     }
   } else {
-    for (const [index, { file, relTarget }] of plannedFiles.entries()) {
+    for (const [index, { file, relTarget, role }] of plannedFiles.entries()) {
       const absTarget = resolvedTargets[index]!;
 
       const url = file.url ?? baseUrl + file.name;
@@ -215,7 +237,7 @@ export async function installPackage(
       const fileResult: InstallFileResult = { name: file.name, target: relTarget, sha256: fileSha256, ok: true };
       onFileComplete?.(fileResult);
       fileResults.push(fileResult);
-      lockedFiles.push({ name: file.name, target: relTarget, sha256: fileSha256 });
+      lockedFiles.push({ name: file.name, target: relTarget, sha256: fileSha256, ...(role ? { role } : {}) });
     }
   }
 

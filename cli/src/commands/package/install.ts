@@ -6,6 +6,8 @@ import { lockfileEntryRequiresUntrustedRepair, lockfileEntrySourceSummary } from
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { planPackageTarget, resolveProjectTarget } from '../../lib/package/target.js';
 import { planDependencyAliases } from '../../lib/package/aliases.js';
+import { planPackageLicenses } from '../../lib/package/licenses.js';
+import { loadConfig } from '../../lib/config.js';
 import { fail } from '../../lib/command.js';
 import {
   createSpinner,
@@ -33,6 +35,7 @@ export type PackageInstallOptions = {
   targetPath?: string;
   installDir?: string;
   saveInstallDir?: boolean;
+  includeLicenses?: boolean;
   fromUrl?: string;
   dir?: string;
   offline?: boolean;
@@ -42,6 +45,8 @@ export type PackageInstallOptions = {
 
 export async function packageInstallCommand(names: string[], opts: PackageInstallOptions = {}): Promise<void> {
   const projectDir = resolvePackageProjectDir(opts.dir);
+  const config = loadConfig(projectDir);
+  const includeLicenses = opts.includeLicenses === true || config?.packages?.installLicenses === true;
 
   if (opts.fromUrl && (opts.installDir || opts.saveInstallDir || opts.flatDir)) {
     fail('--from-url uses --target-path <path>; --install-dir and --flat-dir are only supported for catalog packages.');
@@ -223,6 +228,11 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     const existing = lockfile.packages[pkg.id];
     if (existing && existing.version === pkg.entry.source.tag) {
       if (opts.installDir && (pkg.requested || !pkg.dependencyOf?.length)) return true;
+      if (
+        includeLicenses
+        && pkg.entry.install.licenses?.length
+        && existing.files.filter((file) => file.role === 'license').length < pkg.entry.install.licenses.length
+      ) return true;
       printMuted(`  ${pkg.id} is already installed at ${existing.version}`);
       return false;
     }
@@ -269,6 +279,15 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
         const target = planPackageTarget(f, { targetOverride: opts.flatDir, installDir, layout: pkg.entry.install.layout });
         printLine(`    ${style.muted(f.name)}  →  ${target}`);
       }
+      if (includeLicenses) {
+        for (const license of planPackageLicenses(pkg.id, pkg.files, pkg.entry.install.licenses, {
+          targetOverride: opts.flatDir,
+          installDir,
+          layout: pkg.entry.install.layout,
+        })) {
+          printLine(`    ${style.muted(license.name)}  →  ${license.target}  ${style.muted('license')}`);
+        }
+      }
       const aliases = planDependencyAliases(pkg, lockfile, { installDir, targetOverride: opts.flatDir, dryRun: true });
       if (aliases.ok) {
         for (const alias of aliases.aliases) {
@@ -288,6 +307,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     targetOverride: opts.flatDir,
     installDir: opts.installDir,
     saveInstallDir: opts.saveInstallDir,
+    includeLicenses,
   });
   if (results.every((r) => r.ok)) {
     writeLockfile(projectDir, lockfile);

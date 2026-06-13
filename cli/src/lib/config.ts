@@ -7,6 +7,9 @@ export interface FeatherConfig {
   managed?: string;
   include?: string[];
   exclude?: string[];
+  packages?: {
+    installLicenses?: boolean;
+  };
   pluginOptions?: Record<string, Record<string, unknown>>;
   host?: string;
   port?: number;
@@ -97,6 +100,14 @@ function parseLuaTable(src: string): Record<string, unknown> {
   const pluginOptions = parsePluginOptions(body);
   if (Object.keys(pluginOptions).length > 0) {
     result.pluginOptions = pluginOptions;
+  }
+
+  const packagesBody = findTableBody(body, 'packages');
+  if (packagesBody) {
+    const packages = parseOptionsObject(packagesBody);
+    if (typeof packages.installLicenses === 'boolean') {
+      result.packages = { installLicenses: packages.installLicenses };
+    }
   }
 
   return result;

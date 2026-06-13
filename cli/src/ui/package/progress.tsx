@@ -4,6 +4,7 @@ import { SPINNER_FRAMES } from "../components.js";
 import { installPackage } from "../../lib/package/install.js";
 import { formatRequireHint } from "../../lib/package/resolve.js";
 import { planPackageTarget } from "../../lib/package/target.js";
+import { planPackageLicenses } from "../../lib/package/licenses.js";
 import type { ResolvedPackage } from "../../lib/package/resolve.js";
 import type { Lockfile } from "../../lib/package/lockfile.js";
 import type { InstallResult } from "../../lib/package/install.js";
@@ -113,6 +114,7 @@ function InstallProgress({
   installDir,
   saveInstallDir,
   dryRun,
+  includeLicenses,
   onComplete,
 }: {
   packages: ResolvedPackage[];
@@ -122,6 +124,7 @@ function InstallProgress({
   installDir?: string;
   saveInstallDir?: boolean;
   dryRun?: boolean;
+  includeLicenses?: boolean;
   onComplete: (results: InstallResult[]) => void;
 }) {
   const { exit } = useApp();
@@ -144,6 +147,18 @@ function InstallProgress({
           status: "pending" as FileStatus,
           liveComputed: !!pkg.versionOverride,
         })),
+        ...(includeLicenses
+          ? planPackageLicenses(pkg.id, pkg.files, pkg.entry.install?.licenses, {
+              targetOverride,
+              installDir: installDir ?? lockfile.packages[pkg.id]?.installDir,
+              layout: pkg.entry.install?.layout,
+            }).map((file) => ({
+              name: file.name,
+              target: file.target,
+              status: "pending" as FileStatus,
+              liveComputed: !!pkg.versionOverride,
+            }))
+          : []),
         ...(targetOverride
           ? []
           : (pkg.dependencyAliases ?? []).map((alias) => ({
@@ -192,6 +207,7 @@ function InstallProgress({
           installDir,
           saveInstallDir,
           dryRun,
+          includeLicenses,
           onFileStart: (name) => {
             if (!cancelled) updateFile(i, name, { status: "downloading" });
           },
@@ -249,6 +265,7 @@ export async function showInstallProgress(input: {
   installDir?: string;
   saveInstallDir?: boolean;
   dryRun?: boolean;
+  includeLicenses?: boolean;
 }): Promise<InstallResult[]> {
   return new Promise((resolve) => {
     render(<InstallProgress {...input} onComplete={resolve} />);

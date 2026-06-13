@@ -45,6 +45,12 @@ for (const file of packageFiles) {
       warnings++;
     }
   }
+  for (const f of pkg.install?.licenses ?? []) {
+    if (!f.sha256 || f.sha256 === "TODO") {
+      console.warn(`  WARN  ${id}/${f.name}: missing license sha256 — run scripts/compute-checksums.mjs --all`);
+      warnings++;
+    }
+  }
 
   // Register subpackages as top-level aliases pointing to parent
   if (pkg.subpackages) {
@@ -62,6 +68,7 @@ for (const file of packageFiles) {
           files: (pkg.install?.files ?? []).filter((f) =>
             sub.files.includes(f.name)
           ),
+          licenses: pkg.install?.licenses,
         },
         dependencies: sub.dependencies,
         dependencyAliases: sub.dependencyAliases,

@@ -2,6 +2,7 @@ import { readCompatibleLockfile } from '../../lib/package/compat.js';
 import { writeLockfile } from '../../lib/package/lockfile.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
+import { loadConfig } from '../../lib/config.js';
 import { printLine, printMuted, printWarning, style } from '../../lib/output.js';
 import { showInstallProgress } from '../../ui/package/index.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
@@ -15,6 +16,8 @@ export type PackageUpdateOptions = {
 
 export async function packageUpdateCommand(name: string | undefined, opts: PackageUpdateOptions = {}): Promise<void> {
   const projectDir = resolvePackageProjectDir(opts.dir);
+  const config = loadConfig(projectDir);
+  const includeLicenses = config?.packages?.installLicenses === true;
   const lockfile = readCompatibleLockfile(projectDir);
 
   const installed = Object.entries(lockfile.packages);
@@ -71,7 +74,7 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
   });
   if (toUpdate.length === 0) return;
 
-  const results = await showInstallProgress({ packages: toUpdate, lockfile, projectDir });
+  const results = await showInstallProgress({ packages: toUpdate, lockfile, projectDir, includeLicenses });
   if (results.every((r) => r.ok)) {
     writeLockfile(projectDir, lockfile);
   } else {

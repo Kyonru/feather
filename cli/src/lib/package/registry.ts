@@ -11,6 +11,12 @@ export type PackageFile = {
   target: string;
 };
 
+export type PackageLicenseFile = {
+  name: string;
+  sha256: string;
+  target?: string;
+};
+
 export type PackageDependencyAlias = {
   dependency: string;
   target: string;
@@ -42,7 +48,7 @@ export type RegistryEntry = {
     baseUrl?: string;
     transport?: "raw" | "git";
   };
-  install: { layout?: "relocatable" | "fixed"; files: PackageFile[] };
+  install: { layout?: "relocatable" | "fixed"; files: PackageFile[]; licenses?: PackageLicenseFile[] };
   dependencies?: string[];
   dependencyAliases?: PackageDependencyAlias[];
   subpackages?: string[];
@@ -126,6 +132,19 @@ export function validateRegistry(value: unknown): Registry {
         throw new Error(`Package ${id} file ${file.name} has invalid sha256`);
       }
       if (file.url !== undefined && typeof file.url !== "string") throw new Error(`Package ${id} file.url must be a string`);
+    }
+    if (entry.install.licenses !== undefined) {
+      if (!Array.isArray(entry.install.licenses)) throw new Error(`Package ${id} install.licenses must be an array`);
+      for (const license of entry.install.licenses) {
+        if (!isObject(license)) throw new Error(`Package ${id} license file must be an object`);
+        if (typeof license.name !== "string" || !license.name) throw new Error(`Package ${id} license.name is required`);
+        if (typeof license.sha256 !== "string" || !SHA256_RE.test(license.sha256)) {
+          throw new Error(`Package ${id} license ${license.name} has invalid sha256`);
+        }
+        if (license.target !== undefined && (typeof license.target !== "string" || !resolveProjectTarget("/project", license.target))) {
+          throw new Error(`Package ${id} license target escapes project root: ${license.target}`);
+        }
+      }
     }
     if (typeof entry.require !== "string" || !entry.require) throw new Error(`Package ${id} require is required`);
     if (entry.dependencies !== undefined) {

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-12",
+  "updatedAt": "2026-06-13",
   "packages": {
     "anim8": {
       "type": "love2d-library",

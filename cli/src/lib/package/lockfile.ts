@@ -25,6 +25,7 @@ export type LockfileEntry = {
     url?: string;
     target: string;
     sha256: string;
+    role?: "license";
     generated?: {
       type: "require-alias";
       require: string;

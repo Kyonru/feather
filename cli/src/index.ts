@@ -731,6 +731,7 @@ export function createProgram(): Command {
     .option('--target-path <path>', 'Destination path for --from-url installs')
     .option('--install-dir <dir>', 'Install catalog package files under a custom base directory')
     .option('--save-install-dir', 'Save --install-dir in feather.lock.json for future installs and updates')
+    .option('--include-licenses', 'Install catalog-declared license files alongside packages')
     .option('--from-url <url>', 'Install a single file from an arbitrary URL (requires --allow-untrusted)')
     .addOption(new Option('--target <path>', 'Deprecated alias for --target-path with --from-url or --flat-dir for catalog installs').hideHelp())
     .option('--offline', 'Use bundled registry snapshot')
@@ -747,6 +748,7 @@ export function createProgram(): Command {
           targetPath: (opts.targetPath ?? (opts.fromUrl ? opts.target : undefined)) as string | undefined,
           installDir: opts.installDir as string | undefined,
           saveInstallDir: opts.saveInstallDir as boolean | undefined,
+          includeLicenses: opts.includeLicenses as boolean | undefined,
           fromUrl: opts.fromUrl as string | undefined,
           offline: opts.offline as boolean | undefined,
           dir: opts.dir as string | undefined,

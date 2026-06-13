@@ -38,7 +38,7 @@ async function checkPackageFile(filePath) {
   if (!baseUrl) return [];
 
   const results = [];
-  for (const file of pkg.install?.files ?? []) {
+  for (const file of [...(pkg.install?.files ?? []), ...(pkg.install?.licenses ?? [])]) {
     const url = baseUrl + file.name;
     const result = await sha256FromUrl(url);
     result.name = file.name;
@@ -80,7 +80,7 @@ function checkGitPackageFile(pkg) {
       throw new Error(`expected ${pkg.source.commitSha}, got ${commitSha}`);
     }
 
-    return (pkg.install?.files ?? []).map((file) => {
+    return [...(pkg.install?.files ?? []), ...(pkg.install?.licenses ?? [])].map((file) => {
       const path = safeInside(tempDir, file.name);
       if (!path) return { name: file.name, error: "file escapes checkout" };
       const buf = readFileSync(path);

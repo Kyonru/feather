@@ -14,6 +14,7 @@ Common fields:
 - `license`
 - `source`
 - `install.files`
+- optional `install.licenses`: explicit upstream license files to install when users opt in
 - optional `install.layout`: `fixed` keeps catalog targets exact for packages with hardcoded runtime paths; omitted means relocatable
 - optional `dependencies`: exact package IDs from the same catalog, installed before the dependent package
 - optional `dependencyAliases`: generated require shims for declared dependencies
@@ -44,6 +45,11 @@ Each install file needs:
 - `name`: file path under `baseUrl`
 - `sha256`: expected file hash
 - `target`: project-relative install path
+
+`install.licenses` entries use `{ "name": "LICENSE", "sha256": "<hash>", "target": "optional/path" }`.
+License targets are optional: single-file modules get sidecars such as `lib/anim8.LICENSE`,
+and folder-style packages get files such as `lib/feel/LICENSE`. License files are only
+installed when users pass `--include-licenses` or set `packages.installLicenses = true`.
 
 `install.layout: "fixed"` is for curated packages whose upstream code expects specific project-root paths, such as `require("libs.json")`. Fixed-layout packages ignore `--install-dir` and cannot be flattened.
 
