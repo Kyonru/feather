@@ -20,6 +20,21 @@ async function dragLocatorBy(page: Page, locator: Locator, dx: number, dy = 0) {
   await page.mouse.up();
 }
 
+async function keepNotificationsFromBlockingPointers(page: Page) {
+  await page.evaluate(() => {
+    const win = window as Window & { __FEATHER_E2E_NONBLOCKING_NOTIFICATIONS__?: boolean };
+    if (win.__FEATHER_E2E_NONBLOCKING_NOTIFICATIONS__) return;
+    win.__FEATHER_E2E_NONBLOCKING_NOTIFICATIONS__ = true;
+    const apply = () => {
+      for (const element of document.querySelectorAll('[data-sonner-toaster], [data-sonner-toaster] *')) {
+        if (element instanceof HTMLElement) element.style.pointerEvents = 'none';
+      }
+    };
+    apply();
+    new MutationObserver(apply).observe(document.body, { childList: true, subtree: true });
+  });
+}
+
 async function waitForTimelineSelection(locator: Locator, selectedCount: number) {
   await expect
     .poll(() =>
@@ -3368,6 +3383,7 @@ test('particle playground undo redo history works in the app', async ({ page }) 
 test('particle playground timeline toggles emitters and moves grouped items in the app', async ({ page }) => {
   await seedSession(page);
   await page.goto('/');
+  await keepNotificationsFromBlockingPointers(page);
   await seedParticlePlaygroundConfig(page);
   await page.getByRole('button', { name: /Demo Session/ }).click();
   await page
