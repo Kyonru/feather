@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-07",
+  "updatedAt": "2026-06-14",
   "packages": {
     "anim8": {
       "type": "love2d-library",
@@ -24,6 +24,12 @@
             "name": "anim8.lua",
             "sha256": "c6581c30225a4297924a4f27e56edbc12894fb2e168232fa3a19d21ac149e83f",
             "target": "lib/anim8.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "MIT-LICENSE.txt",
+            "sha256": "78e3e82c7437456fb0dbddcfa0111b9d6cc372df3d752b45d6491e062865e5f6"
           }
         ]
       },
@@ -55,6 +61,12 @@
             "name": "baton.lua",
             "sha256": "5dee8e0984badef516d1a42f5996b8fae332363399940241fb82abeb5ae648f7",
             "target": "lib/baton.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "license.md",
+            "sha256": "52dc4b6c2c1fa0f0a070832a176dfd35dff72f32607dadde78902a44cfefb06e"
           }
         ]
       },
@@ -110,6 +122,12 @@
             "sha256": "80ee98a5a1f8fd302bb2b0452b145051c4094cd4f776453eb0df7a10aef2ae15",
             "target": "lib/beehive/sequence.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "39e8b1fc9d8328e8777b266019967e04398236f7f97dac94a0885f95dac8b8d6"
+          }
         ]
       },
       "require": "lib.beehive.fail",
@@ -138,6 +156,12 @@
             "sha256": "380a27cb1fed09f0f7c136d1ceed3b619f0192b331daae34f9d7e7a733a5eaef",
             "target": "lib/bitser.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE.txt",
+            "sha256": "5571a1fd6b556d501dd6cfb29851fe4189d509d94d45cc1f55d58c21e74293f4"
+          }
         ]
       },
       "require": "lib.bitser",
@@ -165,6 +189,12 @@
             "name": "bump.lua",
             "sha256": "b947cc4449554816831d5c45b61a169e1559548139478d980c8eef14c7b362a6",
             "target": "lib/bump.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "MIT-LICENSE.txt",
+            "sha256": "04a19830e33a974e3244c8200c54d6a41be32fc8517fb54fad921d290478d970"
           }
         ]
       },
@@ -443,6 +473,12 @@
             "sha256": "f39d7fe8ea9027aaee9ef60274473c135a75b0a5aebd4f0cd1f7823223d428fe",
             "target": "lib/busted/utils.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "7aabfeeb9d9909e0aee4940ddee92c11f8c7f035a6e30008acfd8b6f895848f3"
+          }
         ]
       },
       "require": "lib.busted",
@@ -471,6 +507,12 @@
             "name": "cargo.lua",
             "sha256": "50749991281b9052e8f449c55d5bda0c5855f73c9264adb3f42077cf3ff0ab96",
             "target": "lib/cargo.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "25bc81ec68037d875383c013f3fc8b5024af82b7ea1811eedeec7bc778a1db07"
           }
         ]
       },
@@ -501,6 +543,12 @@
             "sha256": "c3bf87dc4450f9c25d503020e377bd6b658ded950c1096617a4a8e5fc575472c",
             "target": "lib/cdata.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE.md",
+            "sha256": "c11b1bf41ba37c79d0a963659daaba657a2ab57109c2653d40ab3ee489eca109"
+          }
         ]
       },
       "require": "lib.cdata",
@@ -529,6 +577,12 @@
             "sha256": "52827561440f22ff3f34f926b2f4bdc1b74cbbaafa3b3b8252b530b12387d48b",
             "target": "lib/classic.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "9337ea0466e26005b2e86ea144aa0dd279442c5751d41d097712e11138a545a7"
+          }
         ]
       },
       "require": "lib.classic",
@@ -548,18 +602,18 @@
         "postprocessing"
       ],
       "homepage": "https://github.com/kyonru/feel.lua",
-      "license": "unknown",
+      "license": "MIT",
       "source": {
         "repo": "kyonru/feel.lua",
-        "tag": "v1.0.0",
-        "commitSha": "4ce759b3389ce0ff748c346e8a5b5f2b0c502219",
-        "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/4ce759b3389ce0ff748c346e8a5b5f2b0c502219/"
+        "tag": "v1.3.0",
+        "commitSha": "321004ece914d2975c82711fe7b64a0bb91ffa32",
+        "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/321004ece914d2975c82711fe7b64a0bb91ffa32/"
       },
       "install": {
         "files": [
           {
             "name": "feel/feedbacks.lua",
-            "sha256": "748b46ee60c403be84831dd62d8e0e94d27330d5a92be436f24843e3cca96877",
+            "sha256": "0e5fcb0644bfaca767b55e04492cc18f0d3b6ec65a16e9c7be8b3b914aa85d7f",
             "target": "lib/feel/feedbacks.lua"
           },
           {
@@ -569,13 +623,18 @@
           },
           {
             "name": "feel/init.lua",
-            "sha256": "f85d88c6d414ea0b19cc4025c07425f8ccd33897b314f967fab15046fb381210",
+            "sha256": "a44ae523ed8e6b06e6b295b4d4df462c24d837530a8f065f2fd6c31f7db16bb6",
             "target": "lib/feel/init.lua"
           },
           {
             "name": "feel/love.lua",
-            "sha256": "78f7aeac9359534cbe877b4640672eb0286c3b6fcd338c1520399f3d7c60a8e0",
+            "sha256": "a8ef00afd1c0d8ff9b3aae781c8d40595dba81d956b85e601d32ffe0846cab34",
             "target": "lib/feel/love.lua"
+          },
+          {
+            "name": "feel/menori.lua",
+            "sha256": "5953dc1f55fc809a7a4d8b236c26ad1b85fb6f1393df57cf86a17f0f7126e7aa",
+            "target": "lib/feel/menori.lua"
           },
           {
             "name": "feel/presets.lua",
@@ -584,7 +643,7 @@
           },
           {
             "name": "feel/validate.lua",
-            "sha256": "9a273e316d1484838a96750b8a10d8f8608147cc23c087c817b69daf0dd181b9",
+            "sha256": "0d5c57fc075a0976dddaf28226b2d5def0a987d7bd47416c1be9b124217ef215",
             "target": "lib/feel/validate.lua"
           },
           {
@@ -594,7 +653,7 @@
           },
           {
             "name": "types/feel-feedbacks.lua",
-            "sha256": "b7e1b89d26b2840e460637fd07431697143cfd816fac3d8ff46f1a0d2d931b43",
+            "sha256": "7ad405bf7ad40410d16c2474e92df2a5ed69731b8806775d0c1f09a282a7bf2e",
             "target": "lib/feel/types/feel-feedbacks.lua"
           },
           {
@@ -608,8 +667,13 @@
             "target": "lib/feel/types/feel-love.lua"
           },
           {
+            "name": "types/feel-menori.lua",
+            "sha256": "38b17ffdd7c4f7c42d3be6ce1c118fb68009026da206f943890dfae6b0dbb147",
+            "target": "lib/feel/types/feel-menori.lua"
+          },
+          {
             "name": "types/feel.lua",
-            "sha256": "55095d52fc6ad63f813cf1ec0e2c78cac73efe9372c8254ac6143ce5d30d997f",
+            "sha256": "397b018877efe83217368454341b6d9fc9a6f5fc436e7b0b9a1683eadf03b380",
             "target": "lib/feel/types/feel.lua"
           }
         ]
@@ -819,6 +883,12 @@
             "sha256": "5e55e37f994fb0571fb93e9d74128d36c00a58fe7c6afcddab9fa8d348a106d3",
             "target": "lib/flexlove/themes/space.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "905a25829809c83fbd8179940be83370b87a9f02287cf6c02dab7badbdc31342"
+          }
         ]
       },
       "require": "lib.flexlove.FlexLove",
@@ -846,6 +916,12 @@
             "name": "flux.lua",
             "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5",
             "target": "lib/flux.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "504727cc20e477470296b326f3dd57c3ee2ef9dddb42d334c62e85a78c2c36ca"
           }
         ]
       },
@@ -910,6 +986,12 @@
             "sha256": "7fe1e42594b73c15af3899dc71ace5c9cf5436a83f2f0c6ce4864654394f31bd",
             "target": "lib/g3d/g3d.vert"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "f40ff914c68ee59ac4d37eeecdb9a18456313c5c82ba28f5bfe0306a1b012f19"
+          }
         ]
       },
       "require": "lib.g3d",
@@ -941,6 +1023,12 @@
             "name": "camera.lua",
             "sha256": "b5f0c086fc652f7f97eef84b6be358f889ab9b8d28cf7f295b46d48638014099",
             "target": "lib/hump/camera.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "70b56eadb0085687893e70f79a98f64647fd0e931588dbd1c1504b3cf0ae2320"
           }
         ]
       },
@@ -974,6 +1062,12 @@
             "sha256": "8931203b027ecce889692e67323e7f333881fb230ed9dd735c785f5e3a7def03",
             "target": "lib/hump/timer.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "70b56eadb0085687893e70f79a98f64647fd0e931588dbd1c1504b3cf0ae2320"
+          }
         ]
       },
       "require": "lib.hump.timer",
@@ -1005,6 +1099,12 @@
             "name": "signal.lua",
             "sha256": "4f311197119177453d8759add39531905da2d3590a7e3a7befc618e46f31b051",
             "target": "lib/hump/signal.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "70b56eadb0085687893e70f79a98f64647fd0e931588dbd1c1504b3cf0ae2320"
           }
         ]
       },
@@ -1038,6 +1138,12 @@
             "sha256": "b0b97bb7cc51b9234dfe3dce0f6da12beaebbb6335eaeaa38de8e537a157cb4e",
             "target": "lib/hump/class.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "70b56eadb0085687893e70f79a98f64647fd0e931588dbd1c1504b3cf0ae2320"
+          }
         ]
       },
       "require": "lib.hump.class",
@@ -1070,6 +1176,12 @@
             "sha256": "70a4d9437e0c7bdf718160eb4a3464f54705129b854f1c9bd60a5adea8d197cc",
             "target": "lib/hump/vector.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "70b56eadb0085687893e70f79a98f64647fd0e931588dbd1c1504b3cf0ae2320"
+          }
         ]
       },
       "require": "lib.hump.vector",
@@ -1101,6 +1213,12 @@
             "name": "gamestate.lua",
             "sha256": "7e11c9f4909ececc3b61fa4313b001b25f33b5ac36bc96b641aedff0328a4406",
             "target": "lib/hump/gamestate.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "70b56eadb0085687893e70f79a98f64647fd0e931588dbd1c1504b3cf0ae2320"
           }
         ]
       },
@@ -1158,6 +1276,12 @@
             "sha256": "7e11c9f4909ececc3b61fa4313b001b25f33b5ac36bc96b641aedff0328a4406",
             "target": "lib/hump/gamestate.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "70b56eadb0085687893e70f79a98f64647fd0e931588dbd1c1504b3cf0ae2320"
+          }
         ]
       },
       "subpackages": [
@@ -1194,6 +1318,12 @@
             "sha256": "656e4be83802750cfe13156810f7990d49893c86518ed5d882f0709d2901dfc5",
             "target": "lib/inspect.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "MIT-LICENSE.txt",
+            "sha256": "63b70945acf23f644c0d2d0f150a2b05630d47f0d5d720203bf8b27bc9fb6885"
+          }
         ]
       },
       "require": "lib.inspect",
@@ -1221,6 +1351,12 @@
             "name": "json.lua",
             "sha256": "b13df59b32c77db3bec7a1619280ea77ee5014e715ccffaa4876d857e3e9ab87",
             "target": "lib/json.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "95b967e071f379efe4f7b64a49a1b4877c3de0438b2fe1de8f775a4730782849"
           }
         ]
       },
@@ -1263,6 +1399,12 @@
             "sha256": "9cdc89da1a37296aa0f57c1f28c4123be6052604ca2b60306a98e926666e2fd1",
             "target": "lib/knife/base.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
+          }
         ]
       },
       "require": "lib.knife.base",
@@ -1303,6 +1445,12 @@
             "name": "knife/behavior.lua",
             "sha256": "9ee69bf0b7966061e75716811727138772dc766ba8d03ed6a5d98df3491967e4",
             "target": "lib/knife/behavior.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
           }
         ]
       },
@@ -1345,6 +1493,12 @@
             "sha256": "01923de7538a127d4bdc23ec6dccea9c791928e88dcd61dd4cd7cc97287c639a",
             "target": "lib/knife/bind.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
+          }
         ]
       },
       "require": "lib.knife.bind",
@@ -1385,6 +1539,12 @@
             "name": "knife/chain.lua",
             "sha256": "70143d8618f7be18025da8cc073714fe1c3c3a2d173c2d04f415e9d0d85bd964",
             "target": "lib/knife/chain.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
           }
         ]
       },
@@ -1427,6 +1587,12 @@
             "sha256": "76c1862861999b8523cb060c964fded1986dbcd04c08610e9547bddcef751776",
             "target": "lib/knife/convoke.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
+          }
         ]
       },
       "require": "lib.knife.convoke",
@@ -1467,6 +1633,12 @@
             "name": "knife/event.lua",
             "sha256": "962e2f6b47fc6a81cdc07d28d5fef6cd40132dcb28fd3d34c834616cd15be74f",
             "target": "lib/knife/event.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
           }
         ]
       },
@@ -1509,6 +1681,12 @@
             "sha256": "45c857737cf3b3c4e7bd3994c882a142761153932ba4695b57aa4eb9198ccfd0",
             "target": "lib/knife/memoize.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
+          }
         ]
       },
       "require": "lib.knife.memoize",
@@ -1549,6 +1727,12 @@
             "name": "knife/serialize.lua",
             "sha256": "472901fa35c502af4bfddc2ee0cc723dc91fb5ffbd06ddde22fa512bd94c4870",
             "target": "lib/knife/serialize.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
           }
         ]
       },
@@ -1591,6 +1775,12 @@
             "sha256": "bc9d8981679bdb752f4e1b2031f42b6e08a40f411981f23f6f148588edb23ea2",
             "target": "lib/knife/system.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
+          }
         ]
       },
       "require": "lib.knife.system",
@@ -1632,6 +1822,12 @@
             "sha256": "581c6c679cf5b711068880b36c242da9a4648c1525a9d615bbaeed0f79b4dbcd",
             "target": "lib/knife/test.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
+          }
         ]
       },
       "require": "lib.knife.test",
@@ -1672,6 +1868,12 @@
             "name": "knife/timer.lua",
             "sha256": "6c0a1f59404f7c1e3612afc80fb443b543546a5aa14a1d200a679e8684b5aaac",
             "target": "lib/knife/timer.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
           }
         ]
       },
@@ -1762,6 +1964,12 @@
             "name": "knife/timer.lua",
             "sha256": "6c0a1f59404f7c1e3612afc80fb443b543546a5aa14a1d200a679e8684b5aaac",
             "target": "lib/knife/timer.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "license",
+            "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
           }
         ]
       },
@@ -1872,6 +2080,12 @@
             "sha256": "5dc1d9f7a01d9f2e92aff9647ba43742cebb4095c17a4a48a2d698b9c638cebd",
             "target": "lib/love-dialogue/plugins/DebugPlugin.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "43edb0335d331d0a9f893a756f3d901ad9715d122f3dd1574ffa3e316f894c5a"
+          }
         ]
       },
       "require": "lib.love-dialogue",
@@ -1904,6 +2118,12 @@
             "sha256": "fe3bb0fa97f79c0ff8e32810a16473bbe7677b1d21b753aeec1e35ac8f86b00c",
             "target": "lib/lovebpm.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "504727cc20e477470296b326f3dd57c3ee2ef9dddb42d334c62e85a78c2c36ca"
+          }
         ]
       },
       "require": "lib.lovebpm",
@@ -1932,6 +2152,12 @@
             "name": "statemachine.lua",
             "sha256": "95affa1ad7a9e2a4629cce4b321fbf49cf521cce6e9be5e92f035f7e64f9275c",
             "target": "lib/statemachine.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "4421dc0a6495e212632b404bea2323650f6bbcba4eaeaf39a5f56ea26e7e0c5d"
           }
         ]
       },
@@ -1962,6 +2188,12 @@
             "sha256": "57fb301fb8a7d559659edbe9bb3f6695188bfae5c957ad7872b1a65d84f71d77",
             "target": "lib/lue.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "0c042fa4d529818e24f29b89b95d278cc145d8de791657d37d2d7464dcf9cd2d"
+          }
         ]
       },
       "require": "lib.lue",
@@ -1989,6 +2221,12 @@
             "name": "lume.lua",
             "sha256": "fb2856d60eb48516c8aa04de1e8b58b355a56fb7a05fd1170cfe330f8ad69b1a",
             "target": "lib/lume.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "e91de14a15c126e70df8d30132529199211b47c5c899f82285a2ee943748f6f2"
           }
         ]
       },
@@ -2215,6 +2453,12 @@
             "sha256": "b4d969a69a6a4424d29ee7a6f77930fb4d330bcfacd655299885d54db33da200",
             "target": "lib/menori/modules/spriteloader.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "6fce801ed844f8addcace2d6994120c5a5c83da56fc702158c5d4f83c3278b7a"
+          }
         ]
       },
       "require": "lib.menori.init",
@@ -2242,6 +2486,12 @@
             "name": "middleclass.lua",
             "sha256": "b4f0060e16daa070a0da33b6808f6e4cb9ee819205321d019a8e770af5e77c07",
             "target": "lib/middleclass.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "MIT-LICENSE.txt",
+            "sha256": "78e3e82c7437456fb0dbddcfa0111b9d6cc372df3d752b45d6491e062865e5f6"
           }
         ]
       },
@@ -2356,6 +2606,12 @@
             "sha256": "eb4d06b0cc803b1c92ed96a2b87f39a907a8d520a34931f4a1081e8d3603e0ec",
             "target": "lib/moonshine/vignette.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "README.md",
+            "sha256": "af10e8e452ade31bb6bab6628c137e009e4dd4c3e0c7dca129f1e050724991ae"
+          }
         ]
       },
       "require": "lib.moonshine",
@@ -2383,6 +2639,12 @@
             "name": "push.lua",
             "sha256": "c5702771a3275ce3e3909a8414d1fe76024b30ca3943382d06a9b54f5ee3c517",
             "target": "lib/push.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "9b72562e85fb3e5f8ab0c96ea54b3e2094d039dee6ef5ed36daf3b0989fc4e59"
           }
         ]
       },
@@ -2412,6 +2674,12 @@
             "name": "ripple.lua",
             "sha256": "a12ed1b4fafa0f2e0d84a3bdf63ecfd5f69ce9d3451c8499558ceb8382fb3734",
             "target": "lib/ripple.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "82d5a7aa872a2c1f6146085bf0fe0ae184c77a62c22a6ab8276ed38547285071"
           }
         ]
       },
@@ -2455,6 +2723,12 @@
             "name": "shove.lua",
             "sha256": "151b3bb65aa33114189bd7a2abe23b61acb58bd0530e4a3a92531ee0502e4903",
             "target": "lib/shove/init.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "f42ddab59b53300c46c850e23951766b826d2306693c10e970fdbd43ac086239"
           }
         ]
       },
@@ -2816,6 +3090,12 @@
             "sha256": "ddce105b16d971515b4e72dfc31ca037bd4a3da7e829ce07c794a4ffde9a5b4f",
             "target": "lib/smiti18n/version.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "474c735fa7fcc7904f3ebc3af965e8ca1554e1bb76f0fe9f92dd8bcf9d592fbd"
+          }
         ]
       },
       "require": "lib.smiti18n",
@@ -2866,6 +3146,12 @@
             "sha256": "6993cfde776ec0d1dae4ee53cec8df36fe37801dcf6858f51e443fe65f4ad4c9",
             "target": "lib/sti/utils.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE.md",
+            "sha256": "569edbadc1b411fac3c7dc4a9e44f2eca36b7e7fff4eac2fbf95c05b6803f93e"
+          }
         ]
       },
       "require": "lib.sti",
@@ -2912,6 +3198,12 @@
             "sha256": "10134b45499d925de5b177ae13874fd026dfc476f1eae5ba1b64874a49ec4ad9",
             "target": "lib/sysl-text/slog-text.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE",
+            "sha256": "2221c0cfdda8a7c5ceec8a4eca710127b7f2aa8cdd59fb6f32c94f6c14ed58c9"
+          }
         ]
       },
       "require": "lib.sysl-text.slog-text",
@@ -2947,6 +3239,12 @@
             "sha256": "a766b6a35949546746d041e9f4806a4ea068605b9657e2c7dedbc636c2cdf805",
             "target": "lib/tiny-ecs/tiny.lua"
           }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE.txt",
+            "sha256": "596102029644c0b8d60e6a3f0ad824257ed173e2803a2a1a62355e040afd3643"
+          }
         ]
       },
       "require": "lib.tiny-ecs",
@@ -2977,6 +3275,12 @@
             "name": "tween.lua",
             "sha256": "d53824850f1a771667bb8a190af506e935aeedbcfc3ecc379138c653b7886e15",
             "target": "lib/tween.lua"
+          }
+        ],
+        "licenses": [
+          {
+            "name": "LICENSE.txt",
+            "sha256": "59d48819b6d45146787bda33ae20ca519ea932f3606191a33bee4bfc0e252b76"
           }
         ]
       },
