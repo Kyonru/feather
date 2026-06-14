@@ -31,7 +31,17 @@ async function waitForTimelineSelection(locator: Locator, selectedCount: number)
 async function selectTimelineClipGroup(track: Locator, trackLabel: string, clips: Locator, additionalClip: Locator) {
   await track.getByText(trackLabel).click();
   await waitForTimelineSelection(clips, 1);
-  await additionalClip.click({ force: true, modifiers: [multiSelectModifier()] });
+  await additionalClip.evaluate((element, modifier) => {
+    element.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        ctrlKey: modifier === 'Control',
+        metaKey: modifier === 'Meta',
+      }),
+    );
+  }, multiSelectModifier());
   await waitForTimelineSelection(clips, 2);
 }
 
