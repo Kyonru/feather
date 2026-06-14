@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 
+- Update feather version to the expected v3.3.1
+
 ## [v3.3.0] - 2026-06-08 - The one with package dependency
 
 ### Added
