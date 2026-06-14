@@ -83,6 +83,12 @@
         "sha256": "6c0a1f59404f7c1e3612afc80fb443b543546a5aa14a1d200a679e8684b5aaac",
         "target": "lib/knife/timer.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "license",
+        "sha256": "9d3c08a9887b6ece0f153e04df868d458399b2b640430c6f8aa5ba7506d44ac8"
+      }
     ]
   },
   "require": "lib.knife.base",

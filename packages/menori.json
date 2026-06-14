@@ -218,6 +218,12 @@
         "sha256": "b4d969a69a6a4424d29ee7a6f77930fb4d330bcfacd655299885d54db33da200",
         "target": "lib/menori/modules/spriteloader.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "README.md",
+        "sha256": "6fce801ed844f8addcace2d6994120c5a5c83da56fc702158c5d4f83c3278b7a"
+      }
     ]
   },
   "require": "lib.menori.init",

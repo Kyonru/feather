@@ -47,6 +47,12 @@
         "sha256": "80ee98a5a1f8fd302bb2b0452b145051c4094cd4f776453eb0df7a10aef2ae15",
         "target": "lib/beehive/sequence.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "39e8b1fc9d8328e8777b266019967e04398236f7f97dac94a0885f95dac8b8d6"
+      }
     ]
   },
   "require": "lib.beehive.fail",

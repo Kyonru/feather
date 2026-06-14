@@ -47,6 +47,7 @@
     "package:add-url": "npm run package:add-url --workspace=cli",
     "package:update": "npm run package:update --workspace=cli",
     "package:remove": "npm run package:remove --workspace=cli",
+    "package:licenses": "node scripts/backfill-license-files.mjs",
     "generate:registry": "node scripts/generate-registry.mjs",
     "check:registry": "npm run generate:registry && git diff --exit-code cli/src/generated/registry.json",
     "verify:packages": "node scripts/compute-checksums.mjs --all",

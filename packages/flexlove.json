@@ -2,7 +2,14 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "A Löve Gui based on Flexbox",
-  "tags": ["ui", "layout", "component", "theme", "animation", "grid"],
+  "tags": [
+    "ui",
+    "layout",
+    "component",
+    "theme",
+    "animation",
+    "grid"
+  ],
   "homepage": "https://github.com/mikefreno/FlexLove",
   "license": "MIT",
   "source": {
@@ -192,6 +199,12 @@
         "name": "themes/space.lua",
         "sha256": "5e55e37f994fb0571fb93e9d74128d36c00a58fe7c6afcddab9fa8d348a106d3",
         "target": "lib/flexlove/themes/space.lua"
+      }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "905a25829809c83fbd8179940be83370b87a9f02287cf6c02dab7badbdc31342"
       }
     ]
   },

@@ -24,6 +24,12 @@
         "sha256": "d53824850f1a771667bb8a190af506e935aeedbcfc3ecc379138c653b7886e15",
         "target": "lib/tween.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE.txt",
+        "sha256": "59d48819b6d45146787bda33ae20ca519ea932f3606191a33bee4bfc0e252b76"
+      }
     ]
   },
   "require": "lib.tween",

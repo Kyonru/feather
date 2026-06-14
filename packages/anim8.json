@@ -21,6 +21,12 @@
         "sha256": "c6581c30225a4297924a4f27e56edbc12894fb2e168232fa3a19d21ac149e83f",
         "target": "lib/anim8.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "MIT-LICENSE.txt",
+        "sha256": "78e3e82c7437456fb0dbddcfa0111b9d6cc372df3d752b45d6491e062865e5f6"
+      }
     ]
   },
   "require": "lib.anim8",

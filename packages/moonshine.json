@@ -106,6 +106,12 @@
         "sha256": "eb4d06b0cc803b1c92ed96a2b87f39a907a8d520a34931f4a1081e8d3603e0ec",
         "target": "lib/moonshine/vignette.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "README.md",
+        "sha256": "af10e8e452ade31bb6bab6628c137e009e4dd4c3e0c7dca129f1e050724991ae"
+      }
     ]
   },
   "require": "lib.moonshine",

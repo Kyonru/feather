@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added package-lock compatibility metadata and early update guidance for unsupported future lockfile features.
 - Added Git-transport package sources for private repositories using the user's configured terminal Git credentials.
 - Added opt-in package license file installation with checksum, audit, restore, and remove support.
+- Added a package catalog license backfill script for discovering upstream license files.
 
 ### Tests
 

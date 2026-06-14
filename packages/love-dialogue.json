@@ -89,6 +89,12 @@
         "sha256": "5dc1d9f7a01d9f2e92aff9647ba43742cebb4095c17a4a48a2d698b9c638cebd",
         "target": "lib/love-dialogue/plugins/DebugPlugin.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "README.md",
+        "sha256": "43edb0335d331d0a9f893a756f3d901ad9715d122f3dd1574ffa3e316f894c5a"
+      }
     ]
   },
   "require": "lib.love-dialogue",

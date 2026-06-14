@@ -28,6 +28,12 @@
         "sha256": "a766b6a35949546746d041e9f4806a4ea068605b9657e2c7dedbc636c2cdf805",
         "target": "lib/tiny-ecs/tiny.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE.txt",
+        "sha256": "596102029644c0b8d60e6a3f0ad824257ed173e2803a2a1a62355e040afd3643"
+      }
     ]
   },
   "require": "lib.tiny-ecs",

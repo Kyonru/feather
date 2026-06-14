@@ -21,6 +21,12 @@
         "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5",
         "target": "lib/flux.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "504727cc20e477470296b326f3dd57c3ee2ef9dddb42d334c62e85a78c2c36ca"
+      }
     ]
   },
   "require": "lib.flux",

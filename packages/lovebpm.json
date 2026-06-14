@@ -25,6 +25,12 @@
         "sha256": "fe3bb0fa97f79c0ff8e32810a16473bbe7677b1d21b753aeec1e35ac8f86b00c",
         "target": "lib/lovebpm.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "504727cc20e477470296b326f3dd57c3ee2ef9dddb42d334c62e85a78c2c36ca"
+      }
     ]
   },
   "require": "lib.lovebpm",

@@ -22,6 +22,12 @@
         "sha256": "50749991281b9052e8f449c55d5bda0c5855f73c9264adb3f42077cf3ff0ab96",
         "target": "lib/cargo.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "25bc81ec68037d875383c013f3fc8b5024af82b7ea1811eedeec7bc778a1db07"
+      }
     ]
   },
   "require": "lib.cargo",

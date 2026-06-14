@@ -43,6 +43,12 @@
         "sha256": "6993cfde776ec0d1dae4ee53cec8df36fe37801dcf6858f51e443fe65f4ad4c9",
         "target": "lib/sti/utils.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE.md",
+        "sha256": "569edbadc1b411fac3c7dc4a9e44f2eca36b7e7fff4eac2fbf95c05b6803f93e"
+      }
     ]
   },
   "require": "lib.sti",

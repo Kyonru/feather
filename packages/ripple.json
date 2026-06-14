@@ -22,6 +22,12 @@
         "sha256": "a12ed1b4fafa0f2e0d84a3bdf63ecfd5f69ce9d3451c8499558ceb8382fb3734",
         "target": "lib/ripple.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "82d5a7aa872a2c1f6146085bf0fe0ae184c77a62c22a6ab8276ed38547285071"
+      }
     ]
   },
   "require": "lib.ripple",

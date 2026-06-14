@@ -21,6 +21,12 @@
         "sha256": "656e4be83802750cfe13156810f7990d49893c86518ed5d882f0709d2901dfc5",
         "target": "lib/inspect.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "MIT-LICENSE.txt",
+        "sha256": "63b70945acf23f644c0d2d0f150a2b05630d47f0d5d720203bf8b27bc9fb6885"
+      }
     ]
   },
   "require": "lib.inspect",

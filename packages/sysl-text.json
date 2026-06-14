@@ -39,6 +39,12 @@
         "sha256": "10134b45499d925de5b177ae13874fd026dfc476f1eae5ba1b64874a49ec4ad9",
         "target": "lib/sysl-text/slog-text.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "2221c0cfdda8a7c5ceec8a4eca710127b7f2aa8cdd59fb6f32c94f6c14ed58c9"
+      }
     ]
   },
   "require": "lib.sysl-text.slog-text",

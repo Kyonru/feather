@@ -24,6 +24,12 @@
         "sha256": "5dee8e0984badef516d1a42f5996b8fae332363399940241fb82abeb5ae648f7",
         "target": "lib/baton.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "license.md",
+        "sha256": "52dc4b6c2c1fa0f0a070832a176dfd35dff72f32607dadde78902a44cfefb06e"
+      }
     ]
   },
   "require": "lib.baton",

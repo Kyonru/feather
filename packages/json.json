@@ -21,6 +21,12 @@
         "sha256": "b13df59b32c77db3bec7a1619280ea77ee5014e715ccffaa4876d857e3e9ab87",
         "target": "lib/json.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "95b967e071f379efe4f7b64a49a1b4877c3de0438b2fe1de8f775a4730782849"
+      }
     ]
   },
   "require": "lib.json",

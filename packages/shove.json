@@ -36,6 +36,12 @@
         "sha256": "151b3bb65aa33114189bd7a2abe23b61acb58bd0530e4a3a92531ee0502e4903",
         "target": "lib/shove/init.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "f42ddab59b53300c46c850e23951766b826d2306693c10e970fdbd43ac086239"
+      }
     ]
   },
   "require": "lib.shove",

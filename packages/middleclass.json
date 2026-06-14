@@ -21,6 +21,12 @@
         "sha256": "b4f0060e16daa070a0da33b6808f6e4cb9ee819205321d019a8e770af5e77c07",
         "target": "lib/middleclass.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "MIT-LICENSE.txt",
+        "sha256": "78e3e82c7437456fb0dbddcfa0111b9d6cc372df3d752b45d6491e062865e5f6"
+      }
     ]
   },
   "require": "lib.middleclass",

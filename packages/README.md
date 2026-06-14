@@ -348,6 +348,7 @@ npm run package:add       # add from GitHub repo (tag or branch)
 npm run package:add-url   # add from direct file URL(s)
 npm run package:update    # edit an existing package entry
 npm run package:remove    # remove a package from the catalog
+npm run package:licenses  # discover and backfill install.licenses entries
 ```
 
 `package:add` fetches the repo's tags and branches from GitHub, lets you select one, resolves it to an exact commit SHA (for reproducible downloads), walks through trust level, description, tags, file selection, install targets, require path, and optional submodule definitions, then writes `packages/<id>.json` and regenerates the registry.
@@ -357,10 +358,20 @@ npm run package:remove    # remove a package from the catalog
 ### Verifying checksums
 
 ```sh
+npm run package:licenses -- --dry-run                 # preview discovered license files
+npm run package:licenses                              # write install.licenses and regenerate registry
+npm run package:licenses -- --package packages/anim8.json --license MIT-LICENSE.txt
 node scripts/compute-checksums.mjs --all            # re-verify all package files against their stored SHA-256
 node scripts/compute-checksums.mjs https://raw.githubusercontent.com/example/lib/main/lib.lua
 node scripts/compute-checksums.mjs --package packages/anim8.json
 ```
+
+`package:licenses` checks common root-level upstream license filenames such as `LICENSE`,
+`LICENSE.md`, `COPYING`, and `UNLICENSE`. It writes the first match as explicit
+`install.licenses` metadata with a SHA-256 checksum. Use `--force` to replace existing license
+metadata for packages whose upstream license file moved or changed. For packages with unusual
+license filenames, use `--package` with `--license <upstream-path>` to pin that exact file from
+the package's current catalog source commit.
 
 ### Package format
 

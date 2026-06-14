@@ -21,6 +21,12 @@
         "sha256": "b947cc4449554816831d5c45b61a169e1559548139478d980c8eef14c7b362a6",
         "target": "lib/bump.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "MIT-LICENSE.txt",
+        "sha256": "04a19830e33a974e3244c8200c54d6a41be32fc8517fb54fad921d290478d970"
+      }
     ]
   },
   "require": "lib.bump",

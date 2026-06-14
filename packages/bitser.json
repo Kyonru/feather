@@ -21,6 +21,12 @@
         "sha256": "380a27cb1fed09f0f7c136d1ceed3b619f0192b331daae34f9d7e7a733a5eaef",
         "target": "lib/bitser.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE.txt",
+        "sha256": "5571a1fd6b556d501dd6cfb29851fe4189d509d94d45cc1f55d58c21e74293f4"
+      }
     ]
   },
   "require": "lib.bitser",

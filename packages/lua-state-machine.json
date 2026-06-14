@@ -22,6 +22,12 @@
         "sha256": "95affa1ad7a9e2a4629cce4b321fbf49cf521cce6e9be5e92f035f7e64f9275c",
         "target": "lib/statemachine.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "4421dc0a6495e212632b404bea2323650f6bbcba4eaeaf39a5f56ea26e7e0c5d"
+      }
     ]
   },
   "require": "lib.statemachine",

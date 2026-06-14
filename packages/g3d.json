@@ -2,7 +2,10 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "Simple and easy 3D engine for LÖVE.",
-  "tags": ["3d", "engine"],
+  "tags": [
+    "3d",
+    "engine"
+  ],
   "homepage": "https://github.com/groverburger/g3d",
   "license": "MIT",
   "source": {
@@ -52,6 +55,12 @@
         "name": "g3d/g3d.vert",
         "sha256": "7fe1e42594b73c15af3899dc71ace5c9cf5436a83f2f0c6ce4864654394f31bd",
         "target": "lib/g3d/g3d.vert"
+      }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "f40ff914c68ee59ac4d37eeecdb9a18456313c5c82ba28f5bfe0306a1b012f19"
       }
     ]
   },

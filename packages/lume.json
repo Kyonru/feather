@@ -21,6 +21,12 @@
         "sha256": "fb2856d60eb48516c8aa04de1e8b58b355a56fb7a05fd1170cfe330f8ad69b1a",
         "target": "lib/lume.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "e91de14a15c126e70df8d30132529199211b47c5c899f82285a2ee943748f6f2"
+      }
     ]
   },
   "require": "lib.lume",

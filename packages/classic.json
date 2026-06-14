@@ -21,6 +21,12 @@
         "sha256": "52827561440f22ff3f34f926b2f4bdc1b74cbbaafa3b3b8252b530b12387d48b",
         "target": "lib/classic.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "9337ea0466e26005b2e86ea144aa0dd279442c5751d41d097712e11138a545a7"
+      }
     ]
   },
   "require": "lib.classic",

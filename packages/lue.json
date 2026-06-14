@@ -22,6 +22,12 @@
         "sha256": "57fb301fb8a7d559659edbe9bb3f6695188bfae5c957ad7872b1a65d84f71d77",
         "target": "lib/lue.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "0c042fa4d529818e24f29b89b95d278cc145d8de791657d37d2d7464dcf9cd2d"
+      }
     ]
   },
   "require": "lib.lue",

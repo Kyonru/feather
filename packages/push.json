@@ -21,6 +21,12 @@
         "sha256": "c5702771a3275ce3e3909a8414d1fe76024b30ca3943382d06a9b54f5ee3c517",
         "target": "lib/push.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "9b72562e85fb3e5f8ab0c96ea54b3e2094d039dee6ef5ed36daf3b0989fc4e59"
+      }
     ]
   },
   "require": "lib.push",

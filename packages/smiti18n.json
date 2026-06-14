@@ -2,7 +2,12 @@
   "type": "love2d-library",
   "trust": "verified",
   "description": "A very complete internationalization library for Lua with LÖVE support 🌕💕",
-  "tags": ["i18n", "l10n", "luajit", "translations"],
+  "tags": [
+    "i18n",
+    "l10n",
+    "luajit",
+    "translations"
+  ],
   "homepage": "https://github.com/Oval-Tutu/smiti18n",
   "license": "MIT",
   "source": {
@@ -347,6 +352,12 @@
         "name": "smiti18n/version.lua",
         "sha256": "ddce105b16d971515b4e72dfc31ca037bd4a3da7e829ce07c794a4ffde9a5b4f",
         "target": "lib/smiti18n/version.lua"
+      }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "474c735fa7fcc7904f3ebc3af965e8ca1554e1bb76f0fe9f92dd8bcf9d592fbd"
       }
     ]
   },

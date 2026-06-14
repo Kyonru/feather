@@ -49,6 +49,12 @@
         "sha256": "7e11c9f4909ececc3b61fa4313b001b25f33b5ac36bc96b641aedff0328a4406",
         "target": "lib/hump/gamestate.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "README.md",
+        "sha256": "70b56eadb0085687893e70f79a98f64647fd0e931588dbd1c1504b3cf0ae2320"
+      }
     ]
   },
   "subpackages": {

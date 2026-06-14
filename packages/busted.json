@@ -270,6 +270,12 @@
         "sha256": "f39d7fe8ea9027aaee9ef60274473c135a75b0a5aebd4f0cd1f7823223d428fe",
         "target": "lib/busted/utils.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "7aabfeeb9d9909e0aee4940ddee92c11f8c7f035a6e30008acfd8b6f895848f3"
+      }
     ]
   },
   "require": "lib.busted",

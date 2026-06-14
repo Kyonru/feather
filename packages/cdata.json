@@ -22,6 +22,12 @@
         "sha256": "c3bf87dc4450f9c25d503020e377bd6b658ded950c1096617a4a8e5fc575472c",
         "target": "lib/cdata.lua"
       }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE.md",
+        "sha256": "c11b1bf41ba37c79d0a963659daaba657a2ab57109c2653d40ab3ee489eca109"
+      }
     ]
   },
   "require": "lib.cdata",
