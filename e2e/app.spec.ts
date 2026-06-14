@@ -22,27 +22,16 @@ async function dragLocatorBy(page: Page, locator: Locator, dx: number, dy = 0) {
 
 async function waitForTimelineSelection(locator: Locator, selectedCount: number) {
   await expect
-    .poll(() => locator.evaluateAll((items) => items.filter((item) => (item as HTMLElement).dataset.selected === 'true').length))
+    .poll(() =>
+      locator.evaluateAll((items) => items.filter((item) => (item as HTMLElement).dataset.selected === 'true').length),
+    )
     .toBe(selectedCount);
 }
 
 async function selectTimelineClipGroup(track: Locator, trackLabel: string, clips: Locator, additionalClip: Locator) {
   await track.getByText(trackLabel).click();
   await waitForTimelineSelection(clips, 1);
-  const box = await additionalClip.boundingBox();
-  expect(box).not.toBeNull();
-  await additionalClip.dispatchEvent('pointerdown', {
-    bubbles: true,
-    cancelable: true,
-    button: 0,
-    buttons: 1,
-    clientX: box!.x + box!.width / 2,
-    clientY: box!.y + box!.height / 2,
-    ctrlKey: true,
-    isPrimary: true,
-    pointerId: 1,
-    pointerType: 'mouse',
-  });
+  await additionalClip.click({ force: true, modifiers: [multiSelectModifier()] });
   await waitForTimelineSelection(clips, 2);
 }
 
@@ -80,10 +69,16 @@ async function expectTimelineClipTimes(
 }
 
 function multiSelectModifier(): 'Control' | 'Meta' {
+  // @ts-expect-error process not defined
   return process.platform === 'darwin' ? 'Meta' : 'Control';
 }
 
-async function uploadShaderPreviewTexture(page: Page, trigger: Locator, file: { name: string; mimeType: string; buffer: Buffer }) {
+async function uploadShaderPreviewTexture(
+  page: Page,
+  trigger: Locator,
+  // @ts-expect-error Buffer not defined
+  file: { name: string; mimeType: string; buffer: Buffer },
+) {
   const fileChooserPromise = page.waitForEvent('filechooser', { timeout: 1000 }).catch(() => null);
   await trigger.click({ force: true });
   const fileChooser = await fileChooserPromise;
@@ -109,8 +104,16 @@ async function particlePreviewFrame(page: Page) {
 async function particlePreviewStatus(page: Page) {
   const frame = await particlePreviewFrame(page);
   return frame.evaluate(() => {
-    type StatusLike = { time?: number; playing?: boolean; mode?: string; particleCount?: number; lastBurstCount?: number };
-    type PayloadLike = { composite?: { timelineState?: { time?: number; playing?: boolean }; timeline?: { mode?: string } } };
+    type StatusLike = {
+      time?: number;
+      playing?: boolean;
+      mode?: string;
+      particleCount?: number;
+      lastBurstCount?: number;
+    };
+    type PayloadLike = {
+      composite?: { timelineState?: { time?: number; playing?: boolean }; timeline?: { mode?: string } };
+    };
     const status = (window as Window & { _featherParticlePreviewStatus?: StatusLike })._featherParticlePreviewStatus;
     const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
     return {
@@ -130,108 +133,155 @@ async function expectTextureProbePayload(page: Page) {
   const frameHandle = await iframe.elementHandle();
   const frame = await frameHandle?.contentFrame();
   expect(frame).not.toBeNull();
-  await expect.poll(async () => frame!.evaluate(() => {
-    type UploadLike = { dataBase64?: string; dataKey?: string };
-    type PayloadLike = {
-      tool?: unknown;
-      pixel?: string;
-      baseTexture?: UploadLike;
-      textures?: UploadLike[];
-      textureUniforms?: unknown[];
-    };
-    type StatusLike = { textureCount?: number; error?: string };
-    const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
-    const status = (window as Window & { _featherShaderPreviewStatus?: StatusLike })._featherShaderPreviewStatus;
-    return {
-      tool: payload?.tool,
-      hasPixel: typeof payload?.pixel === 'string' && payload.pixel.includes('noiseTexture') && payload.pixel.includes('maskTexture'),
-      hasBaseTexture: Boolean(payload?.baseTexture?.dataBase64 || payload?.baseTexture?.dataKey),
-      baseTextureBytes: payload?.baseTexture?.dataBase64?.length
-        || (payload?.baseTexture?.dataKey && (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache?.[payload.baseTexture.dataKey]?.length)
-        || (payload?.baseTexture?.dataKey && (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> }).__featherPreviewUploadCache?.[payload.baseTexture.dataKey]?.length)
-        || 0,
-      textureCount: Array.isArray(payload?.textures)
-        ? payload.textures.filter((texture) => texture?.dataBase64 || texture?.dataKey).length
-        : 0,
-      textureBytes: Array.isArray(payload?.textures)
-        ? payload.textures.map((texture) => texture?.dataBase64?.length
-          || (texture?.dataKey && (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache?.[texture.dataKey]?.length)
-          || (texture?.dataKey && (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> }).__featherPreviewUploadCache?.[texture.dataKey]?.length)
-          || 0)
-        : [],
-      uniformCount: Array.isArray(payload?.textureUniforms) ? payload.textureUniforms.length : 0,
-      runtimeTextureCount: typeof status?.textureCount === 'number' ? status.textureCount : 2,
-      runtimeError: status?.error ?? '',
-    };
-  }), { timeout: 10_000 }).toMatchObject({
-    tool: 'shader-graph',
-    hasPixel: true,
-    hasBaseTexture: true,
-    baseTextureBytes: expect.any(Number),
-    textureCount: 2,
-    textureBytes: [expect.any(Number), expect.any(Number)],
-    uniformCount: 2,
-    runtimeTextureCount: 2,
-    runtimeError: '',
-  });
+  await expect
+    .poll(
+      async () =>
+        frame!.evaluate(() => {
+          type UploadLike = { dataBase64?: string; dataKey?: string };
+          type PayloadLike = {
+            tool?: unknown;
+            pixel?: string;
+            baseTexture?: UploadLike;
+            textures?: UploadLike[];
+            textureUniforms?: unknown[];
+          };
+          type StatusLike = { textureCount?: number; error?: string };
+          const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
+          const status = (window as Window & { _featherShaderPreviewStatus?: StatusLike })._featherShaderPreviewStatus;
+          return {
+            tool: payload?.tool,
+            hasPixel:
+              typeof payload?.pixel === 'string' &&
+              payload.pixel.includes('noiseTexture') &&
+              payload.pixel.includes('maskTexture'),
+            hasBaseTexture: Boolean(payload?.baseTexture?.dataBase64 || payload?.baseTexture?.dataKey),
+            baseTextureBytes:
+              payload?.baseTexture?.dataBase64?.length ||
+              (payload?.baseTexture?.dataKey &&
+                (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache?.[
+                  payload.baseTexture.dataKey
+                ]?.length) ||
+              (payload?.baseTexture?.dataKey &&
+                (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> })
+                  .__featherPreviewUploadCache?.[payload.baseTexture.dataKey]?.length) ||
+              0,
+            textureCount: Array.isArray(payload?.textures)
+              ? payload.textures.filter((texture) => texture?.dataBase64 || texture?.dataKey).length
+              : 0,
+            textureBytes: Array.isArray(payload?.textures)
+              ? payload.textures.map(
+                  (texture) =>
+                    texture?.dataBase64?.length ||
+                    (texture?.dataKey &&
+                      (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache?.[
+                        texture.dataKey
+                      ]?.length) ||
+                    (texture?.dataKey &&
+                      (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> })
+                        .__featherPreviewUploadCache?.[texture.dataKey]?.length) ||
+                    0,
+                )
+              : [],
+            uniformCount: Array.isArray(payload?.textureUniforms) ? payload.textureUniforms.length : 0,
+            runtimeTextureCount: typeof status?.textureCount === 'number' ? status.textureCount : 2,
+            runtimeError: status?.error ?? '',
+          };
+        }),
+      { timeout: 10_000 },
+    )
+    .toMatchObject({
+      tool: 'shader-graph',
+      hasPixel: true,
+      hasBaseTexture: true,
+      baseTextureBytes: expect.any(Number),
+      textureCount: 2,
+      textureBytes: [expect.any(Number), expect.any(Number)],
+      uniformCount: 2,
+      runtimeTextureCount: 2,
+      runtimeError: '',
+    });
   const payloadStats = await frame!.evaluate(() => {
     type UploadLike = { dataBase64?: string; dataKey?: string };
     type PayloadLike = { baseTexture?: UploadLike; textures?: UploadLike[] };
     const payload = (window as Window & { _featherPayload?: PayloadLike })._featherPayload;
     const iframeCache = (window as Window & { _featherUploadCache?: Record<string, string> })._featherUploadCache;
-    const parentCache = (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> }).__featherPreviewUploadCache;
+    const parentCache = (window.parent as Window & { __featherPreviewUploadCache?: Record<string, string> })
+      .__featherPreviewUploadCache;
     return {
-      baseTextureBytes: payload?.baseTexture?.dataBase64?.length
-        || (payload?.baseTexture?.dataKey && iframeCache?.[payload.baseTexture.dataKey]?.length)
-        || (payload?.baseTexture?.dataKey && parentCache?.[payload.baseTexture.dataKey]?.length)
-        || 0,
+      baseTextureBytes:
+        payload?.baseTexture?.dataBase64?.length ||
+        (payload?.baseTexture?.dataKey && iframeCache?.[payload.baseTexture.dataKey]?.length) ||
+        (payload?.baseTexture?.dataKey && parentCache?.[payload.baseTexture.dataKey]?.length) ||
+        0,
       textureBytes: Array.isArray(payload?.textures)
-        ? payload.textures.map((texture) => texture?.dataBase64?.length || (texture?.dataKey && iframeCache?.[texture.dataKey]?.length) || (texture?.dataKey && parentCache?.[texture.dataKey]?.length) || 0)
+        ? payload.textures.map(
+            (texture) =>
+              texture?.dataBase64?.length ||
+              (texture?.dataKey && iframeCache?.[texture.dataKey]?.length) ||
+              (texture?.dataKey && parentCache?.[texture.dataKey]?.length) ||
+              0,
+          )
         : [],
     };
   });
   expect(payloadStats.baseTextureBytes).toBeGreaterThan(0);
   expect(payloadStats.textureBytes.every((length) => length > 0)).toBe(true);
-  await expect.poll(async () => frame!.evaluate(async () => {
-    const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
-    if (!canvas || canvas.width === 0 || canvas.height === 0) return { colorBuckets: 0, texturedBuckets: 0 };
-    const image = new Image();
-    const loaded = new Promise<HTMLImageElement>((resolve, reject) => {
-      image.onload = () => resolve(image);
-      image.onerror = reject;
+  await expect
+    .poll(
+      async () =>
+        frame!.evaluate(async () => {
+          const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+          if (!canvas || canvas.width === 0 || canvas.height === 0) return { colorBuckets: 0, texturedBuckets: 0 };
+          const image = new Image();
+          const loaded = new Promise<HTMLImageElement>((resolve, reject) => {
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+          });
+          image.src = canvas.toDataURL('image/png');
+          await loaded;
+          const sampleCanvas = document.createElement('canvas');
+          const width = Math.min(canvas.width, 96);
+          const height = Math.min(canvas.height, 96);
+          sampleCanvas.width = width;
+          sampleCanvas.height = height;
+          const context = sampleCanvas.getContext('2d');
+          if (!context) return { colorBuckets: 0, texturedBuckets: 0 };
+          context.drawImage(
+            image,
+            Math.max(0, Math.floor((canvas.width - width) / 2)),
+            Math.max(0, Math.floor((canvas.height - height) / 2)),
+            width,
+            height,
+            0,
+            0,
+            width,
+            height,
+          );
+          const pixels = context.getImageData(0, 0, width, height).data;
+          const buckets = new Set<string>();
+          const textured = new Set<string>();
+          for (let index = 0; index < pixels.length; index += 4) {
+            const r = pixels[index];
+            const g = pixels[index + 1];
+            const b = pixels[index + 2];
+            if (r + g + b < 48) continue;
+            const bucket = `${r >> 4}:${g >> 4}:${b >> 4}`;
+            buckets.add(bucket);
+            if (Math.abs(r - g) > 16 || Math.abs(g - b) > 16 || Math.abs(r - b) > 16) textured.add(bucket);
+          }
+          return {
+            colorBuckets: buckets.size,
+            texturedBuckets: textured.size,
+            textureVisible: buckets.size > 6 && textured.size > 4,
+          };
+        }),
+      { timeout: 10_000 },
+    )
+    .toMatchObject({
+      colorBuckets: expect.any(Number),
+      texturedBuckets: expect.any(Number),
+      textureVisible: true,
     });
-    image.src = canvas.toDataURL('image/png');
-    await loaded;
-    const sampleCanvas = document.createElement('canvas');
-    const width = Math.min(canvas.width, 96);
-    const height = Math.min(canvas.height, 96);
-    sampleCanvas.width = width;
-    sampleCanvas.height = height;
-    const context = sampleCanvas.getContext('2d');
-    if (!context) return { colorBuckets: 0, texturedBuckets: 0 };
-    context.drawImage(image, Math.max(0, Math.floor((canvas.width - width) / 2)), Math.max(0, Math.floor((canvas.height - height) / 2)), width, height, 0, 0, width, height);
-    const pixels = context.getImageData(0, 0, width, height).data;
-    const buckets = new Set<string>();
-    const textured = new Set<string>();
-    for (let index = 0; index < pixels.length; index += 4) {
-      const r = pixels[index];
-      const g = pixels[index + 1];
-      const b = pixels[index + 2];
-      if (r + g + b < 48) continue;
-      const bucket = `${r >> 4}:${g >> 4}:${b >> 4}`;
-      buckets.add(bucket);
-      if (Math.abs(r - g) > 16 || Math.abs(g - b) > 16 || Math.abs(r - b) > 16) textured.add(bucket);
-    }
-    return {
-      colorBuckets: buckets.size,
-      texturedBuckets: textured.size,
-      textureVisible: buckets.size > 6 && textured.size > 4,
-    };
-  }), { timeout: 10_000 }).toMatchObject({
-    colorBuckets: expect.any(Number),
-    texturedBuckets: expect.any(Number),
-    textureVisible: true,
-  });
 }
 
 async function seedNoSession(page: Page) {
@@ -407,8 +457,9 @@ async function seedTauriConnectedGame(page: Page) {
         callbacks.delete(id);
       },
       invoke(cmd: string, args: Record<string, unknown> = {}) {
-        const sourceFiles = ((window as unknown as { __FEATHER_E2E_SOURCE_FILES__?: Record<string, string> })
-          .__FEATHER_E2E_SOURCE_FILES__) ?? {};
+        const sourceFiles =
+          (window as unknown as { __FEATHER_E2E_SOURCE_FILES__?: Record<string, string> })
+            .__FEATHER_E2E_SOURCE_FILES__ ?? {};
         if (cmd === 'plugin:fs|read_text_file' || cmd === 'read_text_file') {
           const path = String(args.path ?? '');
           const source = sourceFiles[path];
@@ -1036,42 +1087,45 @@ async function seedNoisySessionHubConfig(page: Page) {
         },
       },
     });
-    client?.setQueryData(['demo', 'performance'], [
-      {
-        time: 1,
-        gameTime: 1,
-        vsyncEnabled: true,
-        supported: {
-          multicanvasformats: true,
-          clampzero: true,
-          lighten: true,
-          fullnpot: true,
-          pixelshaderhighp: true,
-          shaderderivatives: true,
-          glsl3: true,
-          instancing: true,
+    client?.setQueryData(
+      ['demo', 'performance'],
+      [
+        {
+          time: 1,
+          gameTime: 1,
+          vsyncEnabled: true,
+          supported: {
+            multicanvasformats: true,
+            clampzero: true,
+            lighten: true,
+            fullnpot: true,
+            pixelshaderhighp: true,
+            shaderderivatives: true,
+            glsl3: true,
+            instancing: true,
+          },
+          fps: 24,
+          frameTime: 0.04,
+          frameTimeMin: 0.01,
+          frameTimeMax: 0.05,
+          frameTimeAvg: 0.035,
+          memory: 300,
+          peakMemory: 310,
+          diskUsage: 0,
+          sysInfo: { arch: 'arm64', cpuCount: 8, os: 'Web' },
+          stats: {
+            drawcallsbatched: 10,
+            canvasswitches: 2,
+            shaderswitches: 4,
+            canvases: 2,
+            images: 12,
+            fonts: 2,
+            texturememory: 160,
+            drawcalls: 1400,
+          },
         },
-        fps: 24,
-        frameTime: 0.04,
-        frameTimeMin: 0.01,
-        frameTimeMax: 0.05,
-        frameTimeAvg: 0.035,
-        memory: 300,
-        peakMemory: 310,
-        diskUsage: 0,
-        sysInfo: { arch: 'arm64', cpuCount: 8, os: 'Web' },
-        stats: {
-          drawcallsbatched: 10,
-          canvasswitches: 2,
-          shaderswitches: 4,
-          canvases: 2,
-          images: 12,
-          fonts: 2,
-          texturememory: 160,
-          drawcalls: 1400,
-        },
-      },
-    ]);
+      ],
+    );
   });
 }
 
@@ -1080,10 +1134,13 @@ async function seedPartialCompareData(page: Page) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
     client?.setQueryData(['demo', 'observers'], [{ key: 'player.health', value: '100', type: 'number' }]);
-    client?.setQueryData(['other', 'observers'], [
-      { key: 'player.health', value: '100', type: 'number' },
-      { key: 'only.other', value: 'right' },
-    ]);
+    client?.setQueryData(
+      ['other', 'observers'],
+      [
+        { key: 'player.health', value: '100', type: 'number' },
+        { key: 'only.other', value: 'right' },
+      ],
+    );
     client?.setQueryData(['demo', 'performance'], [{ time: 1, fps: 60, frameTime: 0.016 }]);
     client?.setQueryData(['other', 'performance'], [{ time: 2 }]);
   });
@@ -1114,54 +1171,66 @@ async function seedCompareData(page: Page) {
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
-    client?.setQueryData(['demo', 'observers'], [
-      { key: 'player.health', value: '100', type: 'number' },
-      { key: 'player.state', value: 'idle', type: 'string' },
-      { key: 'enemy.count', value: '3', type: 'number' },
-      { key: 'only.demo', value: 'left', type: 'string' },
-    ]);
-    client?.setQueryData(['other', 'observers'], [
-      { key: 'player.health', value: '85', type: 'number' },
-      { key: 'player.state', value: 'idle', type: 'string' },
-      { key: 'enemy.count', value: '3', type: 'number' },
-      { key: 'only.other', value: 'right', type: 'string' },
-    ]);
-    client?.setQueryData(['demo', 'performance'], [
-      {
-        ...basePerf,
-        fps: 60,
-        frameTime: 0.016,
-        memory: 50,
-        stats: {
-          drawcallsbatched: 10,
-          canvasswitches: 1,
-          shaderswitches: 2,
-          canvases: 1,
-          images: 4,
-          fonts: 1,
-          texturememory: 20,
-          drawcalls: 100,
+    client?.setQueryData(
+      ['demo', 'observers'],
+      [
+        { key: 'player.health', value: '100', type: 'number' },
+        { key: 'player.state', value: 'idle', type: 'string' },
+        { key: 'enemy.count', value: '3', type: 'number' },
+        { key: 'only.demo', value: 'left', type: 'string' },
+      ],
+    );
+    client?.setQueryData(
+      ['other', 'observers'],
+      [
+        { key: 'player.health', value: '85', type: 'number' },
+        { key: 'player.state', value: 'idle', type: 'string' },
+        { key: 'enemy.count', value: '3', type: 'number' },
+        { key: 'only.other', value: 'right', type: 'string' },
+      ],
+    );
+    client?.setQueryData(
+      ['demo', 'performance'],
+      [
+        {
+          ...basePerf,
+          fps: 60,
+          frameTime: 0.016,
+          memory: 50,
+          stats: {
+            drawcallsbatched: 10,
+            canvasswitches: 1,
+            shaderswitches: 2,
+            canvases: 1,
+            images: 4,
+            fonts: 1,
+            texturememory: 20,
+            drawcalls: 100,
+          },
         },
-      },
-    ]);
-    client?.setQueryData(['other', 'performance'], [
-      {
-        ...basePerf,
-        fps: 45,
-        frameTime: 0.024,
-        memory: 45,
-        stats: {
-          drawcallsbatched: 12,
-          canvasswitches: 3,
-          shaderswitches: 5,
-          canvases: 2,
-          images: 5,
-          fonts: 1,
-          texturememory: 18,
-          drawcalls: 140,
+      ],
+    );
+    client?.setQueryData(
+      ['other', 'performance'],
+      [
+        {
+          ...basePerf,
+          fps: 45,
+          frameTime: 0.024,
+          memory: 45,
+          stats: {
+            drawcallsbatched: 12,
+            canvasswitches: 3,
+            shaderswitches: 5,
+            canvases: 2,
+            images: 5,
+            fonts: 1,
+            texturememory: 18,
+            drawcalls: 140,
+          },
         },
-      },
-    ]);
+      ],
+    );
   });
 }
 
@@ -1169,19 +1238,22 @@ async function seedPartialPerformanceData(page: Page) {
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
-    client?.setQueryData(['demo', 'performance'], [
-      {
-        time: 1,
-        fps: 58,
-      },
-      {
-        time: 2,
-        frameTime: 0.018,
-        stats: {
-          drawcalls: 180,
+    client?.setQueryData(
+      ['demo', 'performance'],
+      [
+        {
+          time: 1,
+          fps: 58,
         },
-      },
-    ]);
+        {
+          time: 2,
+          frameTime: 0.018,
+          stats: {
+            drawcalls: 180,
+          },
+        },
+      ],
+    );
   });
 }
 
@@ -1206,64 +1278,94 @@ async function seedPerformanceData(page: Page) {
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
-    client?.setQueryData(['demo', 'performance'], [
-      {
-        ...base,
-        time: 1,
-        fps: 60,
-        frameTime: 0.016,
-        frameTimeMin: 0.014,
-        frameTimeMax: 0.017,
-        frameTimeAvg: 0.016,
-        memory: 40,
-        stats: { drawcallsbatched: 20, canvasswitches: 0, shaderswitches: 0, canvases: 1, images: 4, fonts: 1, texturememory: 60, drawcalls: 220 },
-      },
-      {
-        ...base,
-        time: 2,
-        fps: 52,
-        frameTime: 0.019,
-        frameTimeMin: 0.014,
-        frameTimeMax: 0.021,
-        frameTimeAvg: 0.018,
-        memory: 50,
-        stats: { drawcallsbatched: 25, canvasswitches: 2, shaderswitches: 1, canvases: 2, images: 5, fonts: 1, texturememory: 90, drawcalls: 500 },
-      },
-      {
-        ...base,
-        time: 3,
-        fps: 28,
-        frameTime: 0.04,
-        frameTimeMin: 0.014,
-        frameTimeMax: 0.045,
-        frameTimeAvg: 0.032,
-        memory: 75,
-        peakMemory: 90,
-        stats: { drawcallsbatched: 80, canvasswitches: 10, shaderswitches: 6, canvases: 4, images: 10, fonts: 2, texturememory: 180, drawcalls: 1600 },
-        featherOverhead: {
-          windowSeconds: 1,
-          frameCount: 60,
-          avgMsPerFrame: 0.18,
-          messages: 5,
-          serializedBytes: 4096,
-          binaryBytes: 512,
-          deferredTasks: 2,
-          budgetMisses: { time: 1, bytes: 1 },
-          budget: {
-            maxFrameMs: 0.5,
-            maxMessagesPerFrame: 20,
-            maxSerializedBytesPerFrame: 32768,
+    client?.setQueryData(
+      ['demo', 'performance'],
+      [
+        {
+          ...base,
+          time: 1,
+          fps: 60,
+          frameTime: 0.016,
+          frameTimeMin: 0.014,
+          frameTimeMax: 0.017,
+          frameTimeAvg: 0.016,
+          memory: 40,
+          stats: {
+            drawcallsbatched: 20,
+            canvasswitches: 0,
+            shaderswitches: 0,
+            canvases: 1,
+            images: 4,
+            fonts: 1,
+            texturememory: 60,
+            drawcalls: 220,
           },
-          plugins: [
-            {
-              id: 'runtime-snapshot',
-              update: { totalMs: 0.25, avgMs: 0.05, maxMs: 0.1, count: 5 },
-              payload: { totalMs: 0.75, avgMs: 0.75, maxMs: 0.75, count: 1 },
-            },
-          ],
         },
-      },
-    ]);
+        {
+          ...base,
+          time: 2,
+          fps: 52,
+          frameTime: 0.019,
+          frameTimeMin: 0.014,
+          frameTimeMax: 0.021,
+          frameTimeAvg: 0.018,
+          memory: 50,
+          stats: {
+            drawcallsbatched: 25,
+            canvasswitches: 2,
+            shaderswitches: 1,
+            canvases: 2,
+            images: 5,
+            fonts: 1,
+            texturememory: 90,
+            drawcalls: 500,
+          },
+        },
+        {
+          ...base,
+          time: 3,
+          fps: 28,
+          frameTime: 0.04,
+          frameTimeMin: 0.014,
+          frameTimeMax: 0.045,
+          frameTimeAvg: 0.032,
+          memory: 75,
+          peakMemory: 90,
+          stats: {
+            drawcallsbatched: 80,
+            canvasswitches: 10,
+            shaderswitches: 6,
+            canvases: 4,
+            images: 10,
+            fonts: 2,
+            texturememory: 180,
+            drawcalls: 1600,
+          },
+          featherOverhead: {
+            windowSeconds: 1,
+            frameCount: 60,
+            avgMsPerFrame: 0.18,
+            messages: 5,
+            serializedBytes: 4096,
+            binaryBytes: 512,
+            deferredTasks: 2,
+            budgetMisses: { time: 1, bytes: 1 },
+            budget: {
+              maxFrameMs: 0.5,
+              maxMessagesPerFrame: 20,
+              maxSerializedBytesPerFrame: 32768,
+            },
+            plugins: [
+              {
+                id: 'runtime-snapshot',
+                update: { totalMs: 0.25, avgMs: 0.05, maxMs: 0.1, count: 5 },
+                payload: { totalMs: 0.75, avgMs: 0.75, maxMs: 0.75, count: 1 },
+              },
+            ],
+          },
+        },
+      ],
+    );
   });
 }
 
@@ -1531,8 +1633,22 @@ async function seedConsoleSession(page: Page) {
                     handle: 'r1',
                     path: [],
                     fields: [
-                      { key: 'health', type: 'number', typeName: 'number', preview: '100', summary: '100', path: ['health'] },
-                      { key: 'state', type: 'string', typeName: 'string', preview: '"idle"', summary: 'idle', path: ['state'] },
+                      {
+                        key: 'health',
+                        type: 'number',
+                        typeName: 'number',
+                        preview: '100',
+                        summary: '100',
+                        path: ['health'],
+                      },
+                      {
+                        key: 'state',
+                        type: 'string',
+                        typeName: 'string',
+                        preview: '"idle"',
+                        summary: 'idle',
+                        path: ['state'],
+                      },
                     ],
                   },
                 ],
@@ -1695,13 +1811,15 @@ test('texture lab spline and shape editors stay responsive in the app', async ({
   expect(firstPointStyle.stroke).toBeTruthy();
   expect(Number(firstPointStyle.strokeWidth)).toBeGreaterThan(0);
   await page.getByTestId('texture-lab-spline-point-1').click();
-  await expect.poll(() =>
-    page.getByTestId('texture-lab-spline-point-1').evaluate((point) => ({
-      fill: point.getAttribute('fill'),
-      stroke: point.getAttribute('stroke'),
-      strokeWidth: point.getAttribute('stroke-width'),
-    })),
-  ).toEqual({ fill: '#facc15', stroke: '#111827', strokeWidth: '3' });
+  await expect
+    .poll(() =>
+      page.getByTestId('texture-lab-spline-point-1').evaluate((point) => ({
+        fill: point.getAttribute('fill'),
+        stroke: point.getAttribute('stroke'),
+        strokeWidth: point.getAttribute('stroke-width'),
+      })),
+    )
+    .toEqual({ fill: '#facc15', stroke: '#111827', strokeWidth: '3' });
   const splineBefore = await preview.getAttribute('src');
   const splinePoint = await page.getByTestId('texture-lab-spline-point-1').boundingBox();
   expect(splinePoint).not.toBeNull();
@@ -1742,9 +1860,13 @@ test('texture lab spline and shape editors stay responsive in the app', async ({
   expect(shapeSplinePoint).not.toBeNull();
   await shapeSplinePointLocator.hover();
   await page.mouse.down();
-  await page.mouse.move(shapeSplinePoint!.x + shapeSplinePoint!.width / 2 + 40, shapeSplinePoint!.y + shapeSplinePoint!.height / 2 + 30, {
-    steps: 8,
-  });
+  await page.mouse.move(
+    shapeSplinePoint!.x + shapeSplinePoint!.width / 2 + 40,
+    shapeSplinePoint!.y + shapeSplinePoint!.height / 2 + 30,
+    {
+      steps: 8,
+    },
+  );
   await page.mouse.up();
   await expect.poll(() => shapeSplinePointLocator.getAttribute('data-point')).not.toBe(shapeSplinePointBefore);
   await page.getByRole('button', { name: 'Scatter Dots' }).click();
@@ -1775,7 +1897,10 @@ test('creative sessions unlock local creative tools and persist as workspace tab
   await expect(page.getByText('Local workspace')).toBeVisible();
   await expect(page.getByText('Shader Graph is disabled')).toHaveCount(0);
 
-  await page.getByTestId('sidebar-tool-particle-system-playground').getByRole('link', { name: 'Particles Playground' }).click();
+  await page
+    .getByTestId('sidebar-tool-particle-system-playground')
+    .getByRole('link', { name: 'Particles Playground' })
+    .click();
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
   await expect(page.getByTestId('love-js-preview-floating')).toBeVisible();
   await particlePreviewFrame(page);
@@ -1783,13 +1908,17 @@ test('creative sessions unlock local creative tools and persist as workspace tab
   await page.getByRole('tab', { name: 'Timeline' }).click();
   await page.getByTitle('Play timeline').click();
   await expect.poll(async () => (await particlePreviewStatus(page)).time ?? 0, { timeout: 2500 }).toBeGreaterThan(0.05);
-  await expect.poll(async () => page.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
-      (item: { message?: { action?: string } }) =>
-        item.message?.action === 'timeline-control' || item.message?.action === 'runtime-preview',
-    ).length;
-  })).toBe(0);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+          (item: { message?: { action?: string } }) =>
+            item.message?.action === 'timeline-control' || item.message?.action === 'runtime-preview',
+        ).length;
+      }),
+    )
+    .toBe(0);
   await page.getByTitle('Pause timeline').click();
 
   await page.goto('/');
@@ -1937,13 +2066,15 @@ test('persists expanded theme variants and can return to system mode', async ({ 
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'noctis-uva');
   await expect(page.locator('html')).toHaveClass(/\bdark\b/);
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
     .toBe('#292640');
 
   await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Close' }).first().click();
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'noctis-uva');
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
     .toBe('#292640');
 
   await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
@@ -1953,7 +2084,8 @@ test('persists expanded theme variants and can return to system mode', async ({ 
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'vs-cpp-2017-light');
   await expect(page.locator('html')).toHaveClass(/\blight\b/);
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
     .toBe('#ffffff');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
@@ -1961,7 +2093,8 @@ test('persists expanded theme variants and can return to system mode', async ({ 
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'tokyo-night-light');
   await expect(page.locator('html')).toHaveClass(/\blight\b/);
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
     .toBe('#e6e7ed');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
@@ -1969,7 +2102,8 @@ test('persists expanded theme variants and can return to system mode', async ({ 
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'rainglow-absent-light');
   await expect(page.locator('html')).toHaveClass(/\blight\b/);
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
     .toBe('#228a96');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
@@ -1977,7 +2111,8 @@ test('persists expanded theme variants and can return to system mode', async ({ 
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'rainglow-codecourse-contrast');
   await expect(page.locator('html')).toHaveClass(/\bdark\b/);
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
     .toBe('#1ea8fc');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
@@ -1985,7 +2120,8 @@ test('persists expanded theme variants and can return to system mode', async ({ 
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'github-light-high-contrast');
   await expect(page.locator('html')).toHaveClass(/\blight\b/);
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()))
     .toBe('#0349b4');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
@@ -1993,7 +2129,8 @@ test('persists expanded theme variants and can return to system mode', async ({ 
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'github-dark-dimmed');
   await expect(page.locator('html')).toHaveClass(/\bdark\b/);
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim()))
     .toBe('#22272e');
 
   await page.getByRole('combobox', { name: 'App Theme' }).click();
@@ -2010,7 +2147,9 @@ test('keeps tool routes gated until a session is selected', async ({ page }) => 
   await page.goto('/assets');
 
   await expect(page.getByText('No session connected')).toBeVisible();
-  await expect(page.getByTestId('sidebar-tool-assets').getByRole('button', { name: 'Assets', exact: true })).toBeDisabled();
+  await expect(
+    page.getByTestId('sidebar-tool-assets').getByRole('button', { name: 'Assets', exact: true }),
+  ).toBeDisabled();
   await expect(page.getByTestId('sidebar-tool-compare')).toHaveCount(0);
   await expectNoBrokenText(page);
 });
@@ -2053,7 +2192,9 @@ test('session health hub tolerates partial config and degraded plugin state', as
   await expectNarrowStable(page, 'session-health-partial-narrow.png', ['Recommended Next Actions', 'Plugins']);
 });
 
-test('session health hub surfaces security, debugger, plugin, hot reload, and performance actions', async ({ page }) => {
+test('session health hub surfaces security, debugger, plugin, hot reload, and performance actions', async ({
+  page,
+}) => {
   await seedSessionHubState(page);
   await page.setViewportSize({ width: 1180, height: 780 });
   await page.goto('/');
@@ -2393,7 +2534,9 @@ test('profiler run comparison drawer compares exact function executions', async 
   await page.getByRole('tab', { name: 'Profiler' }).click();
   await page.getByTestId('profiler-hotspot-love.keypressed').click();
   await expect(page.getByTestId('profiler-run-comparison-drawer')).toBeVisible();
-  await expect(page.getByTestId('profiler-run-comparison-drawer').getByRole('heading', { name: 'love.keypressed' })).toBeVisible();
+  await expect(
+    page.getByTestId('profiler-run-comparison-drawer').getByRole('heading', { name: 'love.keypressed' }),
+  ).toBeVisible();
   const runStrip = page.getByTestId('profiler-run-strip-scroll');
   await expect(runStrip).toBeVisible();
   await expect.poll(() => runStrip.evaluate((element) => element.scrollWidth > element.clientWidth + 20)).toBe(true);
@@ -2512,7 +2655,10 @@ test('profiler action responses refresh visible capture data', async ({ page }) 
   await page.getByRole('button', { name: 'Save Snapshot' }).click();
   await expect(page.getByRole('dialog', { name: 'Save Profiler Snapshot' })).toBeVisible();
   await page.getByLabel('Snapshot label').fill('Regression capture');
-  await page.getByRole('dialog', { name: 'Save Profiler Snapshot' }).getByRole('button', { name: 'Save Snapshot' }).click();
+  await page
+    .getByRole('dialog', { name: 'Save Profiler Snapshot' })
+    .getByRole('button', { name: 'Save Snapshot' })
+    .click();
 
   await expect
     .poll(async () =>
@@ -2572,34 +2718,37 @@ test('observability triage controls filter and open observer details', async ({ 
   await page.getByRole('button', { name: /Demo Session/ }).click();
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(['demo', 'observers'], [
-      {
-        key: 'player.health',
-        value: '100',
-        previous: '85',
-        type: 'number',
-        group: 'player',
-        changed: true,
-        changeCount: 2,
-        firstSeen: Date.now() - 10_000,
-        lastSeen: Date.now(),
-        lastChanged: Date.now(),
-        history: ['85'],
-        valueLength: 3,
-      },
-      {
-        key: 'enemy.count',
-        value: '3',
-        type: 'number',
-        group: 'enemy',
-        changed: false,
-        changeCount: 0,
-        firstSeen: Date.now() - 10_000,
-        lastSeen: Date.now(),
-        history: [],
-        valueLength: 1,
-      },
-    ]);
+    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(
+      ['demo', 'observers'],
+      [
+        {
+          key: 'player.health',
+          value: '100',
+          previous: '85',
+          type: 'number',
+          group: 'player',
+          changed: true,
+          changeCount: 2,
+          firstSeen: Date.now() - 10_000,
+          lastSeen: Date.now(),
+          lastChanged: Date.now(),
+          history: ['85'],
+          valueLength: 3,
+        },
+        {
+          key: 'enemy.count',
+          value: '3',
+          type: 'number',
+          group: 'enemy',
+          changed: false,
+          changeCount: 0,
+          firstSeen: Date.now() - 10_000,
+          lastSeen: Date.now(),
+          history: [],
+          valueLength: 1,
+        },
+      ],
+    );
   });
 
   await expect(page.getByText('Observers 2')).toBeVisible();
@@ -2628,13 +2777,16 @@ test('observability degraded matrix handles empty and partial observers', async 
 
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(['demo', 'observers'], [
-      {
-        key: 'partial.value',
-        value: 'ready',
-        type: 'string',
-      },
-    ]);
+    (window as any).__FEATHER_QUERY_CLIENT__?.setQueryData(
+      ['demo', 'observers'],
+      [
+        {
+          key: 'partial.value',
+          value: 'ready',
+          type: 'string',
+        },
+      ],
+    );
   });
   await expect(page.getByText('Observers 1')).toBeVisible();
   await expect(page.getByText('partial.value')).toBeVisible();
@@ -2706,16 +2858,19 @@ test('log type badges keep readable foreground colors in dark themes', async ({ 
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
-    client?.setQueryData(['demo', 'logs'], [
-      {
-        id: 'feather-start-contrast',
-        count: 1,
-        time: Date.now() / 1000,
-        type: 'feather:start',
-        str: 'Feather started',
-        trace: '',
-      },
-    ]);
+    client?.setQueryData(
+      ['demo', 'logs'],
+      [
+        {
+          id: 'feather-start-contrast',
+          count: 1,
+          time: Date.now() / 1000,
+          type: 'feather:start',
+          str: 'Feather started',
+          trace: '',
+        },
+      ],
+    );
   });
 
   const badge = page.locator('[data-slot="badge"]').filter({ hasText: 'feather:start' }).first();
@@ -2877,9 +3032,7 @@ test('live game reconnect promotes stale connecting sessions to the real game se
       ).length;
     });
 
-  await expect
-    .poll(requestConfigCount)
-    .toBeGreaterThan(0);
+  await expect.poll(requestConfigCount).toBeGreaterThan(0);
 
   await page.waitForTimeout(2400);
   const stableCount = await requestConfigCount();
@@ -2938,53 +3091,76 @@ test('runtime interest follows active app panels', async ({ page }) => {
   await page.goto('/performance');
   await expect(page.getByRole('button', { name: /CLI Example/ })).toBeVisible();
 
-  await expect.poll(async () => page.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
-    return commands.some((item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
-      item.message?.type === 'cmd:runtime:interest' && item.message.data?.features?.profiler === true,
-    );
-  })).toBe(true);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+        return commands.some(
+          (item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
+            item.message?.type === 'cmd:runtime:interest' && item.message.data?.features?.profiler === true,
+        );
+      }),
+    )
+    .toBe(true);
 
   await page.getByTestId('sidebar-tool-assets').getByRole('link', { name: 'Assets' }).click();
-  await expect.poll(async () => page.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
-    const lastInterest = [...commands]
-      .reverse()
-      .find((item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
-        item.message?.type === 'cmd:runtime:interest',
-      );
-    return lastInterest?.message?.data?.features;
-  })).toMatchObject({ assets: true, observers: false });
-  await expect.poll(async () => page.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
-    return commands.some((item: { message?: { type?: string } }) => item.message?.type === 'req:assets');
-  })).toBe(true);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const lastInterest = [...commands]
+          .reverse()
+          .find(
+            (item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
+              item.message?.type === 'cmd:runtime:interest',
+          );
+        return lastInterest?.message?.data?.features;
+      }),
+    )
+    .toMatchObject({ assets: true, observers: false });
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+        return commands.some((item: { message?: { type?: string } }) => item.message?.type === 'req:assets');
+      }),
+    )
+    .toBe(true);
 
   await page
     .getByTestId('sidebar-tool-particle-system-playground')
     .getByRole('link', { name: 'Particles Playground' })
     .click();
-  await expect.poll(async () => page.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
-    const lastInterest = [...commands]
-      .reverse()
-      .find((item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
-        item.message?.type === 'cmd:runtime:interest',
-      );
-    return lastInterest?.message?.data?.features;
-  })).toMatchObject({
-    particlePlayground: true,
-    pluginIds: expect.arrayContaining(['particle-system-playground']),
-  });
-  await expect.poll(async () => page.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
-    return commands.some((item: { message?: { type?: string } }) => item.message?.type === 'req:plugins');
-  })).toBe(true);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const lastInterest = [...commands]
+          .reverse()
+          .find(
+            (item: { message?: { type?: string; data?: { features?: Record<string, unknown> } } }) =>
+              item.message?.type === 'cmd:runtime:interest',
+          );
+        return lastInterest?.message?.data?.features;
+      }),
+    )
+    .toMatchObject({
+      particlePlayground: true,
+      pluginIds: expect.arrayContaining(['particle-system-playground']),
+    });
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const commands = (window as any).__FEATHER_E2E_TAURI__?.commands ?? [];
+        return commands.some((item: { message?: { type?: string } }) => item.message?.type === 'req:plugins');
+      }),
+    )
+    .toBe(true);
 });
 
 test('particle playground uses connected-game preview on demand in the app', async ({ page }) => {
@@ -3002,7 +3178,9 @@ test('particle playground uses connected-game preview on demand in the app', asy
   await expect(page.getByRole('button', { name: /^Play$/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Emit$/ })).toHaveCount(0);
   const mainViewport = page.getByTestId('particle-playground-main').locator('[data-slot="scroll-area-viewport"]');
-  await expect.poll(async () => mainViewport.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  await expect
+    .poll(async () => mainViewport.evaluate((element) => element.scrollHeight > element.clientHeight))
+    .toBe(true);
   await expect
     .poll(async () =>
       mainViewport.evaluate((element) => {
@@ -3202,7 +3380,10 @@ test('particle playground timeline toggles emitters and moves grouped items in t
   await expect(page.getByLabel('Stop at').first()).toHaveValue('0.7');
   await page.getByTestId('particle-timeline-playhead').fill('1.2');
   await page.getByTestId('particle-timeline-playhead').dispatchEvent('change');
-  await page.getByTestId('particle-timeline-inspector').getByRole('button', { name: /add clip at playhead/i }).click();
+  await page
+    .getByTestId('particle-timeline-inspector')
+    .getByRole('button', { name: /add clip at playhead/i })
+    .click();
   await expect(page.getByTestId('particle-timeline-clip-1')).toHaveCount(2);
 
   const fireClips = page.getByTestId('particle-timeline-clip-1');
@@ -3214,7 +3395,12 @@ test('particle playground timeline toggles emitters and moves grouped items in t
     if (clips.length !== 2) return false;
     const firstDelta = Number((clips[0].start - beforeGroupedMove[0].start).toFixed(1));
     const secondDelta = Number((clips[1].start - beforeGroupedMove[1].start).toFixed(1));
-    return firstDelta > 0 && firstDelta === secondDelta && clips[0].end > beforeGroupedMove[0].end && clips[1].end > beforeGroupedMove[1].end;
+    return (
+      firstDelta > 0 &&
+      firstDelta === secondDelta &&
+      clips[0].end > beforeGroupedMove[0].end &&
+      clips[1].end > beforeGroupedMove[1].end
+    );
   });
 
   await selectTimelineClipGroup(page.getByTestId('particle-timeline-track-1'), 'Fire', fireClips, secondClip);
@@ -3227,7 +3413,8 @@ test('particle playground timeline toggles emitters and moves grouped items in t
       firstDelta > 0 &&
       firstDelta === secondDelta &&
       Math.abs(clips[1].end - 3) < 0.01 &&
-      Number((clips[1].start - clips[0].start).toFixed(1)) === Number((afterGroupedMove[1].start - afterGroupedMove[0].start).toFixed(1))
+      Number((clips[1].start - clips[0].start).toFixed(1)) ===
+        Number((afterGroupedMove[1].start - afterGroupedMove[0].start).toFixed(1))
     );
   });
 });
@@ -3269,11 +3456,17 @@ test('shader graph right panel exposes root shader controls in the app', async (
 
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 260, y: 260 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('float parameter');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^float parameter input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^float parameter input$/i })
+    .click();
 
   await page.getByTestId('shader-canvas').click({ button: 'right', position: { x: 420, y: 260 } });
   await page.getByTestId('shader-node-picker').getByPlaceholder('Search nodes').fill('color parameter');
-  await page.getByTestId('shader-node-picker').getByRole('button', { name: /^color parameter input$/i }).click();
+  await page
+    .getByTestId('shader-node-picker')
+    .getByRole('button', { name: /^color parameter input$/i })
+    .click();
 
   const controls = page.getByTestId('shader-controls-panel');
   await expect(controls).toBeVisible();
@@ -3285,17 +3478,19 @@ test('shader graph right panel exposes root shader controls in the app', async (
   await controls.getByLabel('Color Parameter label').fill('Tint');
   await controls.getByLabel('Tint alpha').fill('0.6');
 
-  await expect.poll(async () => {
-    return page.evaluate(() => {
-      const state = JSON.parse(localStorage.getItem('feather-shader-graph') || '{}')?.state;
-      const strength = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Strength');
-      const tint = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Tint');
-      return {
-        strength: strength?.data?.values?.val,
-        tintAlpha: tint?.data?.values?.val?.[3],
-      };
-    });
-  }).toEqual({ strength: 0.5, tintAlpha: 0.6 });
+  await expect
+    .poll(async () => {
+      return page.evaluate(() => {
+        const state = JSON.parse(localStorage.getItem('feather-shader-graph') || '{}')?.state;
+        const strength = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Strength');
+        const tint = state?.nodes?.find((node: { data?: { label?: string } }) => node.data?.label === 'Tint');
+        return {
+          strength: strength?.data?.values?.val,
+          tintAlpha: tint?.data?.values?.val?.[3],
+        };
+      });
+    })
+    .toEqual({ strength: 0.5, tintAlpha: 0.6 });
 
   await openShaderOutput(page);
   await page.locator('.react-flow__node').filter({ hasText: 'Strength' }).first().click();
@@ -3346,13 +3541,21 @@ test('shader graph preview probes render texture-heavy uploads in the app', asyn
   const noiseNode = page.locator('.react-flow__node').filter({ hasText: 'Noise Texture' });
   await noiseNode.click();
   await page.getByRole('tab', { name: 'Selection' }).click();
-  await uploadShaderPreviewTexture(page, page.getByTestId('shader-right-panel-selection').getByTitle('Upload texture file'), files.noise);
+  await uploadShaderPreviewTexture(
+    page,
+    page.getByTestId('shader-right-panel-selection').getByTitle('Upload texture file'),
+    files.noise,
+  );
   await expect(page.getByTestId('shader-right-panel-selection').getByText('simplex-noise-64.png')).toBeVisible();
 
   const maskNode = page.locator('.react-flow__node').filter({ hasText: 'Mask Texture' });
   await maskNode.click();
   await page.getByRole('tab', { name: 'Selection' }).click();
-  await uploadShaderPreviewTexture(page, page.getByTestId('shader-right-panel-selection').getByTitle('Upload texture file'), files.mask);
+  await uploadShaderPreviewTexture(
+    page,
+    page.getByTestId('shader-right-panel-selection').getByTitle('Upload texture file'),
+    files.mask,
+  );
   await expect(page.getByTestId('shader-right-panel-selection').getByText('3-mask.png')).toBeVisible();
 
   const probe = page.locator('.react-flow__node').filter({ hasText: 'Texture Probe' });
@@ -3375,8 +3578,12 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
   await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
   const mode = page.getByTestId('particle-timeline-mode');
   await expect(mode.getByRole('button', { name: 'Loop' })).toHaveAttribute('aria-pressed', 'true');
-  const mainWidth = await page.getByTestId('particle-playground-main').evaluate((element) => element.getBoundingClientRect().width);
-  const panelWidth = await page.getByTestId('particle-timeline-panel').evaluate((element) => element.getBoundingClientRect().width);
+  const mainWidth = await page
+    .getByTestId('particle-playground-main')
+    .evaluate((element) => element.getBoundingClientRect().width);
+  const panelWidth = await page
+    .getByTestId('particle-timeline-panel')
+    .evaluate((element) => element.getBoundingClientRect().width);
   expect(panelWidth).toBeGreaterThan(mainWidth * 0.85);
 
   const timelineScroll = page.getByTestId('particle-timeline-scroll');
@@ -3385,9 +3592,7 @@ test('particle playground timeline is editable in the app', async ({ page }) => 
 
   const playhead = page.getByTestId('particle-timeline-playhead');
   await page.getByTitle('Play timeline').click();
-  await expect
-    .poll(async () => Number(await playhead.inputValue()), { timeout: 1500 })
-    .toBeGreaterThan(0.05);
+  await expect.poll(async () => Number(await playhead.inputValue()), { timeout: 1500 }).toBeGreaterThan(0.05);
   const animatedTime = Number(await playhead.inputValue());
   expect(animatedTime).toBeLessThan(1);
   await page.getByTitle('Pause timeline').click();
@@ -3545,9 +3750,14 @@ test('debugger profiler probes sync and cycle from the gutter', async ({ page })
   await expect
     .poll(async () =>
       page.evaluate(() => {
-        const commands = (window as unknown as {
-          __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }> };
-        }).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const commands =
+          (
+            window as unknown as {
+              __FEATHER_E2E_TAURI__?: {
+                commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }>;
+              };
+            }
+          ).__FEATHER_E2E_TAURI__?.commands ?? [];
         const command = commands.find((item) => item.message?.type === 'cmd:debugger:set_profiler_probes');
         return command?.message?.data?.probes;
       }),
@@ -3563,9 +3773,14 @@ test('debugger profiler probes sync and cycle from the gutter', async ({ page })
   await expect
     .poll(async () =>
       page.evaluate(() => {
-        const commands = (window as unknown as {
-          __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }> };
-        }).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const commands =
+          (
+            window as unknown as {
+              __FEATHER_E2E_TAURI__?: {
+                commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }>;
+              };
+            }
+          ).__FEATHER_E2E_TAURI__?.commands ?? [];
         const probeCommands = commands.filter((item) => item.message?.type === 'cmd:debugger:set_profiler_probes');
         return probeCommands.at(-1)?.message?.data?.probes;
       }),
@@ -3591,9 +3806,14 @@ test('debugger profiler probes sync and cycle from the gutter', async ({ page })
   await expect
     .poll(async () =>
       page.evaluate(() => {
-        const commands = (window as unknown as {
-          __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }> };
-        }).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const commands =
+          (
+            window as unknown as {
+              __FEATHER_E2E_TAURI__?: {
+                commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }>;
+              };
+            }
+          ).__FEATHER_E2E_TAURI__?.commands ?? [];
         const probeCommands = commands.filter((item) => item.message?.type === 'cmd:debugger:set_profiler_probes');
         return probeCommands.at(-1)?.message?.data?.probes;
       }),
@@ -3612,9 +3832,14 @@ test('debugger profiler probes sync and cycle from the gutter', async ({ page })
   await expect
     .poll(async () =>
       page.evaluate(() => {
-        const commands = (window as unknown as {
-          __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }> };
-        }).__FEATHER_E2E_TAURI__?.commands ?? [];
+        const commands =
+          (
+            window as unknown as {
+              __FEATHER_E2E_TAURI__?: {
+                commands?: Array<{ message?: { type?: string; data?: { probes?: unknown[] } } }>;
+              };
+            }
+          ).__FEATHER_E2E_TAURI__?.commands ?? [];
         const probeCommands = commands.filter((item) => item.message?.type === 'cmd:debugger:set_profiler_probes');
         return probeCommands.at(-1)?.message?.data?.probes;
       }),
@@ -3656,9 +3881,10 @@ test('console renders transcript actions, snippets, and history search', async (
         },
       ],
     });
-    client?.setQueryData(['demo', 'observers'], [
-      { key: 'console.player_health', value: '100', type: 'number', changed: false, history: [], group: 'console' },
-    ]);
+    client?.setQueryData(
+      ['demo', 'observers'],
+      [{ key: 'console.player_health', value: '100', type: 'number', changed: false, history: [], group: 'console' }],
+    );
   });
 
   const header = page.getByTestId('console-header');
@@ -3737,7 +3963,9 @@ test('command center discovers hidden features, plugins, snippets, and safe acti
 
   await pressCommandCenterShortcut(page);
   await page.getByLabel('Command Center search').fill('feel inspector');
-  await expect(page.getByTestId('command-center-row').filter({ hasText: '/plugins/feel-inspector' }).first()).toBeVisible();
+  await expect(
+    page.getByTestId('command-center-row').filter({ hasText: '/plugins/feel-inspector' }).first(),
+  ).toBeVisible();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/plugins\/feel-inspector$/);
 
@@ -3759,7 +3987,10 @@ test('command center discovers hidden features, plugins, snippets, and safe acti
   await expect(page.getByTestId('command-center-row').filter({ hasText: 'Disabled Tool' })).toHaveCount(0);
 
   await page.getByLabel('Command Center search').fill('second session');
-  const secondSessionRow = page.getByTestId('command-center-row').filter({ hasText: 'Switch to Second Session' }).first();
+  const secondSessionRow = page
+    .getByTestId('command-center-row')
+    .filter({ hasText: 'Switch to Second Session' })
+    .first();
   await expect(secondSessionRow).toHaveAttribute('data-selected', 'true');
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('command-center')).toBeHidden();
