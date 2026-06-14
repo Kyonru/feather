@@ -12,18 +12,18 @@
     "postprocessing"
   ],
   "homepage": "https://github.com/kyonru/feel.lua",
-  "license": "unknown",
+  "license": "MIT",
   "source": {
     "repo": "kyonru/feel.lua",
-    "tag": "v1.0.0",
-    "commitSha": "4ce759b3389ce0ff748c346e8a5b5f2b0c502219",
-    "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/4ce759b3389ce0ff748c346e8a5b5f2b0c502219/"
+    "tag": "v1.3.0",
+    "commitSha": "321004ece914d2975c82711fe7b64a0bb91ffa32",
+    "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/321004ece914d2975c82711fe7b64a0bb91ffa32/"
   },
   "install": {
     "files": [
       {
         "name": "feel/feedbacks.lua",
-        "sha256": "748b46ee60c403be84831dd62d8e0e94d27330d5a92be436f24843e3cca96877",
+        "sha256": "0e5fcb0644bfaca767b55e04492cc18f0d3b6ec65a16e9c7be8b3b914aa85d7f",
         "target": "lib/feel/feedbacks.lua"
       },
       {
@@ -33,13 +33,18 @@
       },
       {
         "name": "feel/init.lua",
-        "sha256": "f85d88c6d414ea0b19cc4025c07425f8ccd33897b314f967fab15046fb381210",
+        "sha256": "a44ae523ed8e6b06e6b295b4d4df462c24d837530a8f065f2fd6c31f7db16bb6",
         "target": "lib/feel/init.lua"
       },
       {
         "name": "feel/love.lua",
-        "sha256": "78f7aeac9359534cbe877b4640672eb0286c3b6fcd338c1520399f3d7c60a8e0",
+        "sha256": "a8ef00afd1c0d8ff9b3aae781c8d40595dba81d956b85e601d32ffe0846cab34",
         "target": "lib/feel/love.lua"
+      },
+      {
+        "name": "feel/menori.lua",
+        "sha256": "5953dc1f55fc809a7a4d8b236c26ad1b85fb6f1393df57cf86a17f0f7126e7aa",
+        "target": "lib/feel/menori.lua"
       },
       {
         "name": "feel/presets.lua",
@@ -48,12 +53,17 @@
       },
       {
         "name": "feel/validate.lua",
-        "sha256": "9a273e316d1484838a96750b8a10d8f8608147cc23c087c817b69daf0dd181b9",
+        "sha256": "0d5c57fc075a0976dddaf28226b2d5def0a987d7bd47416c1be9b124217ef215",
         "target": "lib/feel/validate.lua"
       },
       {
+        "name": "feel/vendor/flux.lua",
+        "sha256": "a8595b034f83aff86591d9d343abf0f7c0873ee4bb6036dfc5008503153e22fa",
+        "target": "lib/feel/vendor/flux.lua"
+      },
+      {
         "name": "types/feel-feedbacks.lua",
-        "sha256": "b7e1b89d26b2840e460637fd07431697143cfd816fac3d8ff46f1a0d2d931b43",
+        "sha256": "7ad405bf7ad40410d16c2474e92df2a5ed69731b8806775d0c1f09a282a7bf2e",
         "target": "lib/feel/types/feel-feedbacks.lua"
       },
       {
@@ -67,21 +77,17 @@
         "target": "lib/feel/types/feel-love.lua"
       },
       {
+        "name": "types/feel-menori.lua",
+        "sha256": "38b17ffdd7c4f7c42d3be6ce1c118fb68009026da206f943890dfae6b0dbb147",
+        "target": "lib/feel/types/feel-menori.lua"
+      },
+      {
         "name": "types/feel.lua",
-        "sha256": "55095d52fc6ad63f813cf1ec0e2c78cac73efe9372c8254ac6143ce5d30d997f",
+        "sha256": "397b018877efe83217368454341b6d9fc9a6f5fc436e7b0b9a1683eadf03b380",
         "target": "lib/feel/types/feel.lua"
       }
     ]
   },
-  "dependencies": [
-    "flux"
-  ],
-  "dependencyAliases": [
-    {
-      "dependency": "flux",
-      "target": "lib/feel/vendor/flux.lua"
-    }
-  ],
   "require": "lib.feel",
   "example": "local feel = require('lib.feel')"
 }
