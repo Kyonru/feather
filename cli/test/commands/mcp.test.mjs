@@ -1,10 +1,10 @@
 /* eslint-disable no-undef */
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { assert, outputOf, spawnCli, stopChild, test, waitForOutput } from './helpers.mjs';
+import { assert, envWithPath, existsSync, outputOf, readFileSync, run, spawnCli, stopChild, test, waitForOutput, writeFakeCommand } from './helpers.mjs';
 
 const TOKEN = 'test-mcp-token';
 
@@ -341,6 +341,295 @@ async function freePort() {
   await new Promise((resolve) => server.close(resolve));
   return port;
 }
+
+function writeSharedMcpConfig(home, values = {}) {
+  const featherDir = join(home, '.feather');
+  mkdirSync(featherDir, { recursive: true });
+  writeFileSync(
+    join(featherDir, 'mcp.json'),
+    JSON.stringify({
+      enabled: true,
+      token: TOKEN,
+      bridgeUrl: 'http://127.0.0.1:4005',
+      ...values,
+    }, null, 2),
+  );
+}
+
+function runOk(args, extra = {}) {
+  const result = run(args, extra);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  return result;
+}
+
+function parseJsonResult(result) {
+  assert.equal(result.stderr, '', outputOf(result));
+  return JSON.parse(result.stdout);
+}
+
+test('mcp setup configures Codex without copying the MCP token', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const env = { ...process.env, HOME: home, NO_COLOR: '1', FORCE_COLOR: '0' };
+  writeSharedMcpConfig(home);
+  const codexConfig = join(home, '.codex', 'config.toml');
+
+  const payload = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'codex', '--codex-config', codexConfig, '--command', 'feather', '--json'], { env }),
+  );
+  assert.equal(payload.client, 'codex');
+  assert.equal(payload.action, 'create');
+  assert.equal(payload.changed, true);
+  assert.equal(payload.sharedConfig.hasToken, true);
+  assert.equal(payload.restartRequired, true);
+
+  const content = readFileSync(codexConfig, 'utf8');
+  assert.match(content, /\[mcp_servers\.feather\]/);
+  assert.match(content, /command = "feather"/);
+  assert.match(content, /args = \["mcp"\]/);
+  assert.doesNotMatch(content, /FEATHER_MCP_TOKEN|test-mcp-token/);
+
+  const second = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'codex', '--codex-config', codexConfig, '--command', 'feather', '--json'], { env }),
+  );
+  assert.equal(second.action, 'unchanged');
+  assert.equal(second.changed, false);
+});
+
+test('mcp setup dry-run leaves Codex config untouched', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const env = { ...process.env, HOME: home, NO_COLOR: '1', FORCE_COLOR: '0' };
+  writeSharedMcpConfig(home);
+  const codexConfig = join(home, '.codex', 'config.toml');
+
+  const payload = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'codex', '--codex-config', codexConfig, '--command', 'feather', '--dry-run', '--json'], { env }),
+  );
+
+  assert.equal(payload.dryRun, true);
+  assert.equal(payload.changed, true);
+  assert.equal(payload.action, 'create');
+  assert.equal(existsSync(codexConfig), false);
+});
+
+test('mcp setup falls back to this CLI when global feather lacks mcp', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const toolDir = mkdtempSync(join(tmpdir(), 'feather-old-cli-'));
+  const { binDir } = writeFakeCommand(toolDir, 'feather', `
+const args = process.argv.slice(2);
+if (args[0] === '--version') {
+  console.log('3.3.1');
+  process.exit(0);
+}
+if (args[0] === 'mcp' && args[1] === '--help') {
+  console.log('Usage: feather [options] [command]');
+  console.log('Commands:');
+  console.log('  run [options] [game-path]');
+  process.exit(0);
+}
+console.error("error: unknown command '" + args[0] + "'");
+process.exit(1);
+`);
+  const env = envWithPath(binDir, { HOME: home });
+  writeSharedMcpConfig(home);
+  const codexConfig = join(home, '.codex', 'config.toml');
+
+  const payload = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'codex', '--codex-config', codexConfig, '--json'], { env }),
+  );
+
+  assert.notEqual(payload.server.command, 'feather');
+  assert.equal(payload.server.args.at(-1), 'mcp');
+  const content = readFileSync(codexConfig, 'utf8');
+  assert.doesNotMatch(content, /command = "feather"/);
+  assert.match(content, /args = \[.*"mcp"\]/);
+});
+
+test('mcp setup replaces an existing Feather MCP block and preserves other servers', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const env = { ...process.env, HOME: home, NO_COLOR: '1', FORCE_COLOR: '0' };
+  writeSharedMcpConfig(home);
+  const codexConfig = join(home, '.codex', 'config.toml');
+  mkdirSync(join(home, '.codex'), { recursive: true });
+  writeFileSync(
+    codexConfig,
+    [
+      '[projects."/tmp/game"]',
+      'trust_level = "trusted"',
+      '',
+      '[mcp_servers.expo]',
+      'url = "https://mcp.expo.dev/mcp"',
+      '',
+      '[mcp_servers.feather]',
+      'command = "old-feather"',
+      'args = ["mcp", "--token", "test-mcp-token"]',
+      '',
+      '[mcp_servers.feather.env]',
+      'FEATHER_MCP_TOKEN = "test-mcp-token"',
+      '',
+      '[mcp_servers.other]',
+      'command = "other"',
+      'args = []',
+      '',
+    ].join('\n'),
+  );
+
+  const payload = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'codex', '--codex-config', codexConfig, '--command', 'feather', '--json'], { env }),
+  );
+  assert.equal(payload.action, 'update');
+
+  const content = readFileSync(codexConfig, 'utf8');
+  assert.match(content, /\[projects\."\/tmp\/game"\]/);
+  assert.match(content, /\[mcp_servers\.expo\]/);
+  assert.match(content, /\[mcp_servers\.other\]/);
+  assert.match(content, /\[mcp_servers\.feather\]/);
+  assert.match(content, /command = "feather"/);
+  assert.doesNotMatch(content, /old-feather|FEATHER_MCP_TOKEN|test-mcp-token/);
+});
+
+test('mcp setup configures Claude user config without copying the MCP token', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const env = { ...process.env, HOME: home, NO_COLOR: '1', FORCE_COLOR: '0' };
+  writeSharedMcpConfig(home);
+  const claudeConfig = join(home, '.claude.json');
+
+  const payload = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'claude', '--claude-config', claudeConfig, '--command', 'feather', '--json'], { env }),
+  );
+  assert.equal(payload.client, 'claude');
+  assert.equal(payload.configKind, 'claude-json');
+  assert.equal(payload.scope, 'user');
+  assert.equal(payload.action, 'create');
+  assert.equal(payload.changed, true);
+  assert.equal(payload.restartRequired, true);
+
+  const content = readFileSync(claudeConfig, 'utf8');
+  const config = JSON.parse(content);
+  assert.deepEqual(config.mcpServers.feather, {
+    type: 'stdio',
+    command: 'feather',
+    args: ['mcp'],
+  });
+  assert.doesNotMatch(content, /FEATHER_MCP_TOKEN|test-mcp-token/);
+
+  const second = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'claude', '--claude-config', claudeConfig, '--command', 'feather', '--json'], { env }),
+  );
+  assert.equal(second.action, 'unchanged');
+  assert.equal(second.changed, false);
+});
+
+test('mcp setup configures Claude project .mcp.json', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const projectDir = mkdtempSync(join(tmpdir(), 'feather-mcp-project-'));
+  const env = { ...process.env, HOME: home, NO_COLOR: '1', FORCE_COLOR: '0' };
+  writeSharedMcpConfig(home);
+  const projectConfig = join(projectDir, '.mcp.json');
+
+  const payload = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'claude', '--scope', 'project', '--command', 'feather', '--json'], {
+      cwd: projectDir,
+      env,
+    }),
+  );
+
+  assert.equal(payload.client, 'claude');
+  assert.equal(payload.scope, 'project');
+  assert.equal(payload.configPath.endsWith('/.mcp.json'), true);
+  assert.equal(payload.action, 'create');
+  assert.equal(existsSync(projectConfig), true);
+
+  const config = JSON.parse(readFileSync(payload.configPath, 'utf8'));
+  assert.deepEqual(config.mcpServers.feather, {
+    type: 'stdio',
+    command: 'feather',
+    args: ['mcp'],
+  });
+});
+
+test('mcp setup configures Claude local project scope', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const projectDir = mkdtempSync(join(tmpdir(), 'feather-mcp-project-'));
+  const env = { ...process.env, HOME: home, NO_COLOR: '1', FORCE_COLOR: '0' };
+  writeSharedMcpConfig(home);
+  const claudeConfig = join(home, '.claude.json');
+
+  const payload = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'claude', '--scope', 'local', '--command', 'feather', '--json'], {
+      cwd: projectDir,
+      env,
+    }),
+  );
+
+  assert.equal(payload.client, 'claude');
+  assert.equal(payload.scope, 'local');
+  assert.equal(payload.configPath, claudeConfig);
+  assert.ok(payload.projectPath);
+
+  const config = JSON.parse(readFileSync(claudeConfig, 'utf8'));
+  assert.deepEqual(config.projects[payload.projectPath].mcpServers.feather, {
+    type: 'stdio',
+    command: 'feather',
+    args: ['mcp'],
+  });
+});
+
+test('mcp setup replaces an existing Claude Feather server and preserves other servers', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const env = { ...process.env, HOME: home, NO_COLOR: '1', FORCE_COLOR: '0' };
+  writeSharedMcpConfig(home);
+  const claudeConfig = join(home, '.claude.json');
+  writeFileSync(
+    claudeConfig,
+    JSON.stringify({
+      theme: 'dark',
+      mcpServers: {
+        expo: {
+          type: 'http',
+          url: 'https://mcp.expo.dev/mcp',
+        },
+        feather: {
+          type: 'stdio',
+          command: 'old-feather',
+          args: ['mcp', '--token', 'test-mcp-token'],
+          env: {
+            FEATHER_MCP_TOKEN: 'test-mcp-token',
+          },
+        },
+      },
+    }, null, 2),
+  );
+
+  const payload = parseJsonResult(
+    runOk(['mcp', 'setup', '--client', 'claude', '--claude-config', claudeConfig, '--command', 'feather', '--json'], { env }),
+  );
+  assert.equal(payload.action, 'update');
+
+  const content = readFileSync(claudeConfig, 'utf8');
+  const config = JSON.parse(content);
+  assert.equal(config.theme, 'dark');
+  assert.deepEqual(config.mcpServers.expo, {
+    type: 'http',
+    url: 'https://mcp.expo.dev/mcp',
+  });
+  assert.deepEqual(config.mcpServers.feather, {
+    type: 'stdio',
+    command: 'feather',
+    args: ['mcp'],
+  });
+  assert.doesNotMatch(content, /old-feather|FEATHER_MCP_TOKEN|test-mcp-token/);
+});
+
+test('mcp setup rejects unsupported clients', () => {
+  const home = mkdtempSync(join(tmpdir(), 'feather-mcp-setup-'));
+  const result = run(['mcp', 'setup', '--client', 'cursor'], {
+    env: { ...process.env, HOME: home, NO_COLOR: '1', FORCE_COLOR: '0' },
+  });
+
+  assert.equal(result.exitCode, 1);
+  assert.match(result.stderr, /Unsupported MCP setup client/);
+  assert.match(result.stderr, /--client codex or --client claude/);
+});
 
 test('mcp: stdio initializes, lists tools, and calls the fake bridge without stdout logs', async () => {
   const bridge = await startFakeBridge();

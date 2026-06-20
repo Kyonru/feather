@@ -517,6 +517,8 @@ Run Feather as a local [Model Context Protocol](https://modelcontextprotocol.io/
 feather mcp                         # stdio transport for local MCP clients
 feather mcp --transport http        # Streamable HTTP on 127.0.0.1:4006/mcp
 feather mcp --transport http --port 4010
+feather mcp setup --client codex    # install Codex MCP client config
+feather mcp setup --client claude   # install Claude Code MCP client config
 ```
 
 Enable **Settings → Security → MCP Access** in the Feather desktop app first. The desktop writes a token to `~/.feather/mcp.json`, which the CLI reads automatically. You can also pass a token explicitly:
@@ -535,6 +537,17 @@ feather mcp --token feather-mcp-... --transport http
 | `--port <port>`       | HTTP port. Defaults to `4006`.                                              |
 | `--desktop-url <url>` | Feather desktop MCP bridge URL. Defaults to `http://127.0.0.1:4005`.       |
 | `--token <token>`     | MCP bridge token; overrides `FEATHER_MCP_TOKEN` and `~/.feather/mcp.json`. |
+
+Use `feather mcp setup` to add or refresh the Feather server in a local MCP client config. The setup command writes only the client launch command, not the MCP token; `feather mcp` reads the token from `~/.feather/mcp.json` at runtime. Restart the client after setup so the new MCP server is loaded.
+
+```bash
+feather mcp setup --client codex
+feather mcp setup --client claude
+feather mcp setup --client claude --scope project
+feather mcp setup --client codex --dry-run --json
+```
+
+Codex setup updates `~/.codex/config.toml`. Claude setup defaults to user scope and updates `~/.claude.json`; use `--scope project` to write `.mcp.json` in the current project, or `--scope local` to add a project-local entry under `~/.claude.json`. Use `--codex-config` or `--claude-config` to write a specific config path.
 
 Resources include `feather://sessions` and `feather://sessions/{id}/{section}` for `config`, `logs`, `performance`, `debugger`, `plugins`, `assets`, `observers`, and `session-replay`; `feather://plugins/catalog` and `feather://plugins/{id}` for built-in plugin metadata; live `feather://sessions/{id}/plugins/{pluginId}` payloads; and creative snapshots for Shader Graph, Particles Playground, and Texture Lab. Tools cover session snapshots, refresh requests, runtime suspend/resume, agent-friendly step debugging with breakpoints/source context/logs, Console eval/globals/pins, plugin catalog/live state/actions/params/enabling, high-level shader/particle/texture creation, Shader Graph compile/preview/import/export, Particle Playground authoring/export actions, Texture Lab recipe/generation actions, Time Travel, Session Replay state/record/playback/import/delete workflows, and the advanced `feather_send_command` escape hatch.
 

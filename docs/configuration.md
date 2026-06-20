@@ -205,9 +205,13 @@ Feather can expose live desktop sessions to AI clients through a local Model Con
 ```bash
 feather mcp
 feather mcp --transport http
+feather mcp setup --client codex
+feather mcp setup --client claude
 ```
 
 Enable **Feather → Settings → Security → MCP Access** first. The desktop bridge binds to `127.0.0.1:4005`, is disabled by default, and requires a generated bearer token. The CLI reads that token from `~/.feather/mcp.json`, or from `FEATHER_MCP_TOKEN` / `--token`.
+
+Use `feather mcp setup --client codex` to install the Feather MCP server entry into `~/.codex/config.toml`. Use `feather mcp setup --client claude` to install the Claude Code user entry into `~/.claude.json`, or add `--scope project` to write a project `.mcp.json`. Restart the client after setup so the tools are loaded.
 
 MCP resources expose sanitized JSON snapshots such as sessions, config, logs, performance, debugger state, plugin catalog/live payloads, assets, observers, Shader Graph, Particles Playground, and Texture Lab. MCP tools can control runtime/debugger/plugin workflows, Shader Graph compile/preview/import/export, Particle Playground authoring/export actions, and Texture Lab recipe/generation actions. Console eval still works only when the existing Console gates are satisfied (`console` included, `evalEnabled = true`, and matching `apiKey`). See [MCP](mcp.md) for setup, resource/tool lists, and troubleshooting.
 

@@ -17,6 +17,15 @@ feather mcp
 
 `feather mcp` defaults to stdio, which is the best transport for local desktop AI clients.
 
+For Codex or Claude Code, Feather can install the persistent MCP client entry:
+
+```bash
+feather mcp setup --client codex
+feather mcp setup --client claude
+```
+
+Codex setup updates `~/.codex/config.toml`. Claude setup defaults to user scope and updates `~/.claude.json`; use `--scope project` to write `.mcp.json` in the current project, or `--scope local` to add a project-local entry under `~/.claude.json`. Setup does not copy the MCP token into client config; the CLI reads the token from `~/.feather/mcp.json` when the client starts the server. Restart the client after setup.
+
 For clients that require Streamable HTTP:
 
 ```bash
@@ -50,10 +59,29 @@ Example local client config:
   "mcpServers": {
     "feather": {
       "command": "feather",
-      "args": ["mcp"],
-      "env": {
-        "FEATHER_MCP_TOKEN": "feather-mcp-..."
-      }
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+The Codex setup command writes the equivalent TOML server entry:
+
+```toml
+[mcp_servers.feather]
+command = "feather"
+args = ["mcp"]
+```
+
+Claude setup writes the JSON server entry with `type = "stdio"` in the selected scope:
+
+```json
+{
+  "mcpServers": {
+    "feather": {
+      "type": "stdio",
+      "command": "feather",
+      "args": ["mcp"]
     }
   }
 }

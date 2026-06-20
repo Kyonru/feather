@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `feather mcp` with stdio and localhost Streamable HTTP transports for token-protected MCP access to live Feather desktop sessions.
+- Added `feather mcp setup --client codex|claude` to install or refresh the Feather MCP server entry in Codex or Claude Code config without copying MCP tokens into client config.
 - Added desktop Settings → Security → MCP Access controls for enabling the local MCP bridge, copying client config, and regenerating the bridge token.
 - Added MCP resources and tools for plugin catalog/live state, Shader Graph, Particles Playground, and Texture Lab recipe/generation workflows.
 - Added high-level MCP creation tools for shaders, particle systems, and Texture Lab textures.
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
+- Added CLI coverage for Codex and Claude MCP setup, dry-runs, idempotent config updates, and stale Feather MCP block replacement.
 - Added MCP creative-tool coverage for plugin resources, creative tool discovery, bridge request handling, and Texture Lab generation routing.
 - Added MCP CLI coverage for agent step-debugging tools, source context, breakpoint setting, stepping, and continuing execution.
 - Added MCP CLI coverage for Session Replay recording, loading, playback, and seeking tools.

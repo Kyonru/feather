@@ -14,6 +14,7 @@ import { buildCommand } from './commands/build.js';
 import { releaseInitCommand, releaseRunCommand } from './commands/release.js';
 import { replayInitCommand } from './commands/replay.js';
 import { mcpCommand } from './commands/mcp.js';
+import { mcpSetupCommand } from './commands/mcp-setup.js';
 import { skillsInfoCommand, skillsInstallCommand, skillsListCommand, skillsRemoveCommand } from './commands/skills.js';
 import { watchCommand } from './commands/watch.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
@@ -237,7 +238,7 @@ export function createProgram(): Command {
       ),
     );
 
-  program
+  const mcp = program
     .command('mcp')
     .description('Run a local Model Context Protocol server for Feather desktop sessions')
     .option('--transport <transport>', 'MCP transport: stdio or http', 'stdio')
@@ -253,6 +254,30 @@ export function createProgram(): Command {
           port: opts.port as number | undefined,
           desktopUrl: opts.desktopUrl as string | undefined,
           token: opts.token as string | undefined,
+        }),
+      ),
+    );
+
+  mcp
+    .command('setup')
+    .description('Configure a local MCP client to launch Feather MCP')
+    .option('--client <client>', 'MCP client to configure: codex or claude', 'codex')
+    .option('--codex-config <path>', 'Path to Codex config.toml')
+    .option('--claude-config <path>', 'Path to Claude config JSON (.claude.json or .mcp.json)')
+    .option('--scope <scope>', 'Claude setup scope: user, project, or local', 'user')
+    .option('--command <command>', 'Command the MCP client should run for Feather MCP (default: feather, or this CLI in dev)')
+    .option('--dry-run', 'Show the planned config change without writing files')
+    .option('--json', 'Output machine-readable JSON')
+    .action((opts) =>
+      runCliAction(() =>
+        mcpSetupCommand({
+          client: opts.client as string | undefined,
+          codexConfig: opts.codexConfig as string | undefined,
+          claudeConfig: opts.claudeConfig as string | undefined,
+          scope: opts.scope as string | undefined,
+          command: opts.command as string | undefined,
+          dryRun: opts.dryRun as boolean | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );
