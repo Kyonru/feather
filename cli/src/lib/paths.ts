@@ -13,6 +13,15 @@ export function bundledLuaRoot(): string {
   return resolve(MODULE_DIR, '../../lua');
 }
 
+export function bundledSkillsRoot(): string {
+  // Standalone binaries ship skills/ next to the executable.
+  const execDir = dirname(process.execPath);
+  const sibling = join(execDir, 'skills');
+  if (existsSync(join(sibling, 'catalog.json'))) return sibling;
+  // Fallback for npm/node: dist/lib/paths.js → ../../skills
+  return resolve(MODULE_DIR, '../../skills');
+}
+
 export function repoLuaRoot(): string | null {
   const candidate = resolve(MODULE_DIR, '../../../src-lua');
   return existsSync(join(candidate, 'feather', 'init.lua')) ? candidate : null;

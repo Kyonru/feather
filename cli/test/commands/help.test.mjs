@@ -17,6 +17,7 @@ test('help: core commands render help text', () => {
   assert.match(runOk(['doctor', '--help']), /doctor/);
   assert.match(runOk(['plugin', '--help']), /plugin/);
   assert.match(runOk(['mcp', '--help']), /Model Context Protocol/);
+  assert.match(runOk(['skills', '--help']), /Install Feather agent skills/);
 });
 
 test('help: symlinked global bin executes CLI', () => {

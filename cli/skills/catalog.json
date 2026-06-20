@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "id": "feather-project-context",
+      "title": "Feather Project Context",
+      "description": "Gather Feather project setup, runtime config, installed plugins, build targets, and connected-session context before editing a Love2D game.",
+      "tags": ["context", "love2d", "feather"],
+      "directory": "feather-project-context"
+    },
+    {
+      "id": "feather-mcp-live-sessions",
+      "title": "Feather MCP Live Sessions",
+      "description": "Use Feather MCP to inspect and control running desktop sessions through the secure local bridge.",
+      "tags": ["mcp", "sessions", "runtime"],
+      "directory": "feather-mcp-live-sessions"
+    },
+    {
+      "id": "feather-step-debugging",
+      "title": "Feather Step Debugging",
+      "description": "Set breakpoints, get source-line context, inspect paused Lua state, step, and continue through Feather MCP debugger tools.",
+      "tags": ["debugging", "breakpoints", "lua"],
+      "directory": "feather-step-debugging"
+    },
+    {
+      "id": "feather-logs-observability",
+      "title": "Feather Logs And Observability",
+      "description": "Read logs, observer snapshots, runtime messages, and telemetry before diagnosing game behavior.",
+      "tags": ["logs", "observability", "diagnostics"],
+      "directory": "feather-logs-observability"
+    },
+    {
+      "id": "feather-performance-profiling",
+      "title": "Feather Performance Profiling",
+      "description": "Profile frame timing, runtime overhead, hotspots, memory, and performance regressions in live Feather sessions.",
+      "tags": ["performance", "profiling", "optimization"],
+      "directory": "feather-performance-profiling"
+    },
+    {
+      "id": "feather-session-replay-qa",
+      "title": "Feather Session Replay QA",
+      "description": "Record, load, inspect, and replay game sessions for QA and regression investigation.",
+      "tags": ["qa", "session-replay", "regression"],
+      "directory": "feather-session-replay-qa"
+    },
+    {
+      "id": "feather-shader-graph",
+      "title": "Feather Shader Graph",
+      "description": "Create, compile, preview, import, and export Love2D shaders through Feather MCP Shader Graph tools.",
+      "tags": ["shader", "creative", "graphics"],
+      "directory": "feather-shader-graph"
+    },
+    {
+      "id": "feather-particle-effects",
+      "title": "Feather Particle Effects",
+      "description": "Create and iterate particle systems with Feather MCP Particle Playground tools and runtime previews.",
+      "tags": ["particles", "creative", "vfx"],
+      "directory": "feather-particle-effects"
+    },
+    {
+      "id": "feather-texture-lab",
+      "title": "Feather Texture Lab",
+      "description": "Generate procedural textures, atlas frames, particle sprites, masks, and shader maps through Feather MCP Texture Lab tools.",
+      "tags": ["textures", "creative", "procedural"],
+      "directory": "feather-texture-lab"
+    },
+    {
+      "id": "feather-plugin-iteration",
+      "title": "Feather Plugin Iteration",
+      "description": "Inspect built-in plugins, read live plugin payloads, and route plugin actions through Feather MCP.",
+      "tags": ["plugins", "mcp", "iteration"],
+      "directory": "feather-plugin-iteration"
+    },
+    {
+      "id": "feather-debug-builds",
+      "title": "Feather Debug Builds",
+      "description": "Build and run debug-oriented desktop, web, Android, and iOS game loops with Feather runtime support.",
+      "tags": ["builds", "debug", "platforms"],
+      "directory": "feather-debug-builds"
+    },
+    {
+      "id": "feather-release-builds",
+      "title": "Feather Release Builds",
+      "description": "Prepare Feather-free release builds, production safety checks, and store/upload workflows.",
+      "tags": ["release", "builds", "shipping"],
+      "directory": "feather-release-builds"
+    },
+    {
+      "id": "feather-qa-playtester",
+      "title": "Feather QA Playtester",
+      "description": "Act as a QA engineer using Feather sessions, replay, logs, debugger state, plugins, and platform builds.",
+      "tags": ["qa", "playtesting", "sessions"],
+      "directory": "feather-qa-playtester"
+    }
+  ]
+}

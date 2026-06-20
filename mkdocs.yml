@@ -36,6 +36,7 @@ nav:
   - Usage: usage.md
   - Configuration: configuration.md
   - MCP: mcp.md
+  - Agent Skills: skills.md
   - Session: session.md
   - Logs: logs.md
   - Observability: observability.md

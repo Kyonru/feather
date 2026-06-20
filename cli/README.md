@@ -532,6 +532,43 @@ Resources include `feather://sessions` and `feather://sessions/{id}/{section}` f
 
 ---
 
+### `feather skills`
+
+Install bundled Feather agent skills into a project-local `.agents/skills` directory. These are small `SKILL.md` playbooks for agents that need to debug games, inspect live sessions, profile, create shaders/particles/textures, iterate with plugins, build platform artifacts, or act as QA.
+
+```bash
+feather skills list
+feather skills info feather-step-debugging
+feather skills install feather-step-debugging feather-texture-lab
+feather skills install --all --dir path/to/my-game
+feather skills install feather-shader-graph --target .codex/skills
+feather skills remove feather-step-debugging --dir path/to/my-game
+```
+
+**Commands:**
+
+| Command                  | Description                                                                 |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `skills list [--json]`   | List bundled skills.                                                        |
+| `skills info <id>`       | Show metadata, source path, and default install path for one bundled skill. |
+| `skills install [ids...]` | Copy selected skills, or the full catalog with `--all`.                    |
+| `skills remove <ids...>` | Remove installed catalog-known skills from the target directory.            |
+
+**Install options:**
+
+| Option            | Description                                                                 |
+| ----------------- | --------------------------------------------------------------------------- |
+| `--all`           | Install every bundled skill.                                                |
+| `--dir <path>`    | Resolve the project root from this path.                                    |
+| `--target <path>` | Install directory. Relative paths stay inside the project root. Defaults to `.agents/skills`. |
+| `--force`         | Overwrite existing installed skills.                                        |
+| `--dry-run`       | Report planned writes or removals without changing files.                  |
+| `--json`          | Emit machine-readable summaries.                                            |
+
+The installer only copies skills declared in the bundled catalog and skips existing files unless `--force` is passed. V1 does not install remote or third-party skills.
+
+---
+
 ### `feather build <target>`
 
 Build a LÖVE game into local artifacts. Supported targets are `love`, `web`, `android`, `ios`, `windows`, `macos`, `linux`, and `steamos`. Android and iOS default to development builds from local native template checkouts; `--release` produces signed/store-oriented mobile artifacts without embedding Feather's debugger runtime.

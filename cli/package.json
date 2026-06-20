@@ -27,11 +27,12 @@
   },
   "files": [
     "dist",
-    "lua"
+    "lua",
+    "skills"
   ],
   "scripts": {
     "build": "tsc && cp src/generated/registry.json dist/generated/registry.json",
-    "build:binary": "bun build ./dist/index.js --compile --outfile bin/feather --target bun-darwin-arm64 && bun build ./dist/index.js --compile --outfile bin/feather-darwin-x64 --target bun-darwin-x64 && bun build ./dist/index.js --compile --outfile bin/feather-win-x64.exe --target bun-windows-x64 && bun build ./dist/index.js --compile --outfile bin/feather-linux-x64 --target bun-linux-x64",
+    "build:binary": "bun build ./dist/index.js --compile --outfile bin/feather --target bun-darwin-arm64 && bun build ./dist/index.js --compile --outfile bin/feather-darwin-x64 --target bun-darwin-x64 && bun build ./dist/index.js --compile --outfile bin/feather-win-x64.exe --target bun-windows-x64 && bun build ./dist/index.js --compile --outfile bin/feather-linux-x64 --target bun-linux-x64 && rm -rf bin/skills && cp -R skills bin/skills",
     "dev": "cp src/generated/registry.json dist/generated/registry.json 2>/dev/null; tsc --watch",
     "bundle:lua": "bash ../scripts/bundle-lua.sh",
     "prepack": "npm run bundle:lua && npm run build",

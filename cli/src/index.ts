@@ -14,6 +14,7 @@ import { buildCommand } from './commands/build.js';
 import { releaseInitCommand, releaseRunCommand } from './commands/release.js';
 import { replayInitCommand } from './commands/replay.js';
 import { mcpCommand } from './commands/mcp.js';
+import { skillsInfoCommand, skillsInstallCommand, skillsListCommand, skillsRemoveCommand } from './commands/skills.js';
 import { watchCommand } from './commands/watch.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
 import { buildTargets } from './lib/build/config.js';
@@ -250,6 +251,70 @@ export function createProgram(): Command {
           port: opts.port as number | undefined,
           desktopUrl: opts.desktopUrl as string | undefined,
           token: opts.token as string | undefined,
+        }),
+      ),
+    );
+
+  const skills = program.command('skills').description('Install Feather agent skills into the current project');
+
+  skills
+    .command('list')
+    .description('List bundled Feather agent skills')
+    .option('--json', 'Output machine-readable JSON')
+    .action((opts) =>
+      runCliAction(() =>
+        skillsListCommand({
+          json: opts.json as boolean | undefined,
+        }),
+      ),
+    );
+
+  skills
+    .command('info <id>')
+    .description('Show metadata for a bundled Feather agent skill')
+    .option('--json', 'Output machine-readable JSON')
+    .action((id: string, opts) =>
+      runCliAction(() =>
+        skillsInfoCommand(id, {
+          json: opts.json as boolean | undefined,
+        }),
+      ),
+    );
+
+  skills
+    .command('install [ids...]')
+    .description('Install bundled Feather agent skills into .agents/skills')
+    .option('--all', 'Install all bundled Feather skills')
+    .option('--dir <path>', 'Project directory (default: current project)')
+    .option('--target <path>', 'Skills directory inside the project (default: .agents/skills)')
+    .option('--force', 'Overwrite existing installed skills')
+    .option('--dry-run', 'Show planned skill installs without writing files')
+    .option('--json', 'Output machine-readable JSON')
+    .action((ids: string[], opts) =>
+      runCliAction(() =>
+        skillsInstallCommand(ids ?? [], {
+          all: opts.all as boolean | undefined,
+          dir: opts.dir as string | undefined,
+          target: opts.target as string | undefined,
+          force: opts.force as boolean | undefined,
+          dryRun: opts.dryRun as boolean | undefined,
+          json: opts.json as boolean | undefined,
+        }),
+      ),
+    );
+
+  skills
+    .command('remove <ids...>')
+    .description('Remove installed Feather agent skills from .agents/skills')
+    .option('--dir <path>', 'Project directory (default: current project)')
+    .option('--dry-run', 'Show planned skill removals without deleting files')
+    .option('--json', 'Output machine-readable JSON')
+    .action((ids: string[], opts) =>
+      runCliAction(() =>
+        skillsRemoveCommand(ids, {
+          dir: opts.dir as string | undefined,
+          dryRun: opts.dryRun as boolean | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );

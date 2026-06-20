@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added high-level MCP creation tools for shaders, particle systems, and Texture Lab textures.
 - Added MCP step-debugging tools for breakpoint management, paused source context, frame inspection, logs, stepping, and continuing execution.
 - Added dedicated MCP Session Replay tools for replay state, recording, loading/exporting payloads, playback, seeking, import, and deletion.
+- Added `feather skills` for installing bundled Feather agent skills into project-local `.agents/skills` directories.
 
 ### Tests
 
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added MCP creative-tool coverage for plugin resources, creative tool discovery, bridge request handling, and Texture Lab generation routing.
 - Added MCP CLI coverage for agent step-debugging tools, source context, breakpoint setting, stepping, and continuing execution.
 - Added MCP CLI coverage for Session Replay recording, loading, playback, and seeking tools.
+- Added CLI coverage for listing, inspecting, installing, force-overwriting, dry-running, installing all, and removing bundled Feather agent skills.
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 
