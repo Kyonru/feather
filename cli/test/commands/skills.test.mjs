@@ -189,6 +189,8 @@ test('skills install --all installs the full catalog', () => {
   for (const id of EXPECTED_SKILLS) {
     for (const client of Object.keys(CLIENT_DIRS)) {
       assert.equal(existsSync(installedSkillPath(dir, id, client)), true, `${client}:${id}`);
+      const referencePath = id === 'feather-shader-graph' ? 'references/graph-schema.md' : 'references/workflow.md';
+      assert.equal(existsSync(installedSkillFile(dir, id, referencePath, client)), true, `${client}:${id}:${referencePath}`);
     }
   }
 });

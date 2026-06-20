@@ -23,3 +23,7 @@ description: Use when an agent should create procedural textures, particle sprit
 ## Use Cases
 
 Good first targets are particle sprites, normal/flow/ripple/distortion maps, masks, SDF-style glows, gradients, slash trails, and atlas frames.
+
+## References
+
+- Read `references/workflow.md` for generator selection, recipe fields, atlas handoff, shader maps, and artifact reporting.

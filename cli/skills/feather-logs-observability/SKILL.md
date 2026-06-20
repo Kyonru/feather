@@ -21,3 +21,7 @@ description: Use when an agent needs to diagnose Love2D behavior from Feather lo
 ## Output
 
 Summarize the timeline: what changed first, what the runtime reported, which observer or log confirms it, and the next concrete check.
+
+## References
+
+- Read `references/workflow.md` for evidence collection, timeline construction, observers, and stale-snapshot handling.

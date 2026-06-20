@@ -25,3 +25,7 @@ description: Use when an agent needs line-aware Lua debugging with breakpoints, 
 ## Safety
 
 Console eval is a fallback only. Use it only when the Console plugin, `evalEnabled`, and API-key gates are already intentionally enabled.
+
+## References
+
+- Read `references/workflow.md` for breakpoint placement, stepping strategy, paused-frame inspection, and debugger report format.

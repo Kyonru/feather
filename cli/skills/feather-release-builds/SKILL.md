@@ -25,3 +25,7 @@ description: Use when an agent should prepare production-safe Feather-free artif
 ## Guardrails
 
 Never carry Console, Hot Reload, weak API keys, insecure networking, or embedded debugger runtime into a release path without calling it out as a blocker.
+
+## References
+
+- Read `references/workflow.md` for production gates, platform release commands, upload checks, artifacts, and blocker reporting.

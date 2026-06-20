@@ -29,3 +29,7 @@ description: Use when an agent should inspect or control a running Feather deskt
 ## Safety
 
 Never expose app IDs, API keys, bearer tokens, or MCP bridge tokens in notes, tool arguments, resources, or generated artifacts.
+
+## References
+
+- Read `references/workflow.md` for MCP session discovery, resource selection, command safety, and unavailable-bridge handling.

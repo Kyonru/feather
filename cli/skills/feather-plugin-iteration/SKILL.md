@@ -22,3 +22,7 @@ description: Use when an agent should inspect, configure, enable, or invoke Feat
 ## Limits
 
 Do not install, update, or remove plugins through MCP. Use `feather plugin install`, `feather plugin update`, and `feather plugin remove` for project file changes.
+
+## References
+
+- Read `references/workflow.md` for catalog/live-state inspection, plugin action safety, dedicated-tool routing, and output format.

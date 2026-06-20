@@ -22,3 +22,7 @@ description: Use when an agent needs to understand a Feather Love2D project befo
 ## Output
 
 Report concrete project facts first: launch command, session status, enabled plugins, risky opt-ins, build targets, and the smallest next action.
+
+## References
+
+- Read `references/workflow.md` for the project inventory checklist, risk posture, and report template.

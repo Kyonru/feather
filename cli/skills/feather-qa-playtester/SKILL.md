@@ -21,3 +21,7 @@ description: Use when an agent should act as a QA engineer for a Feather-enabled
 ## Bias
 
 Look for user-visible regressions first: crashes, hangs, broken input, incorrect visuals, audio issues, save/load loss, performance spikes, and release-blocking configuration.
+
+## References
+
+- Read `references/workflow.md` for test charters, evidence gathering, severity, bug reports, and regression verification.

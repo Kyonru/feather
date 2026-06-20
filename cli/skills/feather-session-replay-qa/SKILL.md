@@ -22,3 +22,7 @@ description: Use when an agent should record, inspect, replay, seek, import, exp
 ## Scope
 
 Session Replay is for deterministic investigation when the game supports the recorded signals. If a runtime cannot replay a behavior, say exactly which missing input, plugin, or session state prevents reproduction.
+
+## References
+
+- Read `references/workflow.md` for recording, replay inspection, seek strategy, import/export handling, and QA output format.

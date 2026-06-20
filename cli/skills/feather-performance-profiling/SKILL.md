@@ -23,3 +23,7 @@ description: Use when an agent needs to profile frame time, memory, runtime over
 ## Guardrails
 
 Do not optimize from one frame. Use repeatable captures, and call out when a result is noisy because the game, platform, or session changed.
+
+## References
+
+- Read `references/workflow.md` for baseline metrics, capture strategy, common hotspots, fixes, and re-measurement format.

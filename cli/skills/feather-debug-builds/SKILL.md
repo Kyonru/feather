@@ -25,3 +25,7 @@ description: Use when an agent should prepare or run debug-oriented Feather buil
 ## Output
 
 Give exact commands, missing tools, expected artifact paths, and whether the build includes Feather runtime/debug support.
+
+## References
+
+- Read `references/workflow.md` for target-specific debug commands, vendor setup, device loops, and troubleshooting.

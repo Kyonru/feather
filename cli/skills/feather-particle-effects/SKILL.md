@@ -22,3 +22,7 @@ description: Use when an agent should create, preview, tune, export, or QA parti
 ## Quality Bar
 
 Name the intended feel of the effect, the important parameters changed, and how it should be triggered in game code.
+
+## References
+
+- Read `references/workflow.md` for particle effect recipes, parameter tuning, preview/export checks, and performance guardrails.
