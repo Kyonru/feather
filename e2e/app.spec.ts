@@ -2087,6 +2087,7 @@ test('settings exposes MCP access controls with browser fallback state', async (
   await page.getByRole('tab', { name: 'Security' }).click();
 
   await expect(page.getByText('Expose live Feather sessions to local MCP clients with token-protected full-control tools.')).toBeVisible();
+  await expect(page.getByText('Sessions, plugin catalog/live state, Shader Graph, Particles Playground, and Texture Lab')).toBeVisible();
   await expect(page.getByLabel('Enable MCP access')).toBeDisabled();
   await expect(page.getByText('Unavailable')).toBeVisible();
 });

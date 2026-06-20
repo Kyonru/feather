@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `feather mcp` with stdio and localhost Streamable HTTP transports for token-protected MCP access to live Feather desktop sessions.
 - Added desktop Settings → Security → MCP Access controls for enabling the local MCP bridge, copying client config, and regenerating the bridge token.
+- Added MCP resources and tools for plugin catalog/live state, Shader Graph, Particles Playground, and Texture Lab recipe/generation workflows.
 
 ### Tests
 
 - Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
+- Added MCP creative-tool coverage for plugin resources, creative tool discovery, bridge request handling, and Texture Lab generation routing.
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 

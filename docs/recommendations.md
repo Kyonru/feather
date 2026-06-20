@@ -64,6 +64,7 @@ When enabled, the desktop bridge:
 - binds only to `127.0.0.1` on port `4005` by default;
 - requires the generated bearer token written to `~/.feather/mcp.json`;
 - redacts `appId`, `apiKey`, tokens, passwords, and secrets from exposed MCP resources;
+- exposes Shader Graph, Particles Playground, Texture Lab, and plugin catalog/live state as local development surfaces;
 - keeps Console eval behind the normal Console plugin, `evalEnabled`, and `apiKey` gates.
 
 Use stdio for local AI clients when possible:
@@ -77,6 +78,8 @@ Use Streamable HTTP only when the MCP host needs it, and keep the default localh
 ```bash
 feather mcp --transport http
 ```
+
+See [MCP](mcp.md) for the complete resource/tool list and client setup examples.
 
 ---
 

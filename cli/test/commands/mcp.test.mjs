@@ -7,6 +7,7 @@ const TOKEN = 'test-mcp-token';
 
 function startFakeBridge() {
   const commands = [];
+  const creativeActions = [];
   const server = createServer(async (req, res) => {
     if (req.headers.authorization !== `Bearer ${TOKEN}`) {
       res.writeHead(401, { 'content-type': 'application/json' });
@@ -22,7 +23,60 @@ function startFakeBridge() {
 
     if (req.method === 'GET' && req.url === '/sessions/s1') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ id: 's1', connected: true, config: { sessionName: 'Test Game' }, logs: [] }));
+      res.end(JSON.stringify({
+        id: 's1',
+        connected: true,
+        config: { sessionName: 'Test Game' },
+        logs: [],
+        plugins: {
+          'particle-system-playground': {
+            type: 'particle-system-playground',
+            activeComposite: 'Spark',
+          },
+          'shader-graph': {
+            type: 'shader-graph',
+            preview: { active: true },
+          },
+        },
+      }));
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/creative/shader-graph') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ type: 'shader-graph', shaderName: 'Test Shader' }));
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/creative/texture-lab') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ type: 'texture-lab', recipe: { generator: 'soft-circle' } }));
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/creative/particle-system-playground') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ type: 'particle-system-playground', sessionId: 's1' }));
+      return;
+    }
+
+    const creativeMatch = req.url?.match(/^\/creative\/([^/]+)\/action$/);
+    if (req.method === 'POST' && creativeMatch) {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(Buffer.from(chunk));
+      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      creativeActions.push({ tool: decodeURIComponent(creativeMatch[1]), body });
+      const responseByAction = {
+        generators: { generators: [{ id: 'soft-circle', label: 'Soft Circle' }] },
+        snapshot: { type: creativeMatch[1] },
+        compile: { glsl: { pixel: 'vec4 effect(){return vec4(1.0);}', vertex: '' }, diagnostics: [] },
+        'preview-params': { pixelSource: 'vec4 effect(){return vec4(1.0);}', vertexSource: '', shape: 'circle', color: [1, 1, 1, 1] },
+        export: { filename: 'test.feathershgh', content: '{}' },
+        generate: { filename: 'soft-circle.png', width: 32, height: 32, dataBase64: 'abc', recipe: { generator: 'soft-circle' } },
+        'generate-atlas': { texture: { filename: 'atlas.png', width: 64, height: 64, dataBase64: 'abc' }, frames: [], atlas: { frameCount: 1 } },
+      };
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, response: responseByAction[body.action] ?? { ok: true } }));
       return;
     }
 
@@ -46,6 +100,7 @@ function startFakeBridge() {
       resolve({
         url: `http://127.0.0.1:${address.port}`,
         commands,
+        creativeActions,
         close: () => new Promise((closeResolve) => server.close(closeResolve)),
       });
     });
@@ -131,6 +186,15 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     sendRpc(child, { jsonrpc: '2.0', id: 2, method: 'tools/list' });
     const tools = await waitForRpc(child, 2);
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_list_sessions'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_list_plugins'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_shader_graph_compile'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_particles_export_zip'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_texture_lab_generate'));
+
+    sendRpc(child, { jsonrpc: '2.0', id: 4, method: 'resources/list' });
+    const resources = await waitForRpc(child, 4);
+    assert.ok(resources.result.resources.some((resource) => resource.uri === 'feather://plugins/catalog'));
+    assert.ok(resources.result.resources.some((resource) => resource.uri === 'feather://creative/texture-lab'));
 
     sendRpc(child, {
       jsonrpc: '2.0',
@@ -140,6 +204,16 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     });
     const result = await waitForRpc(child, 3);
     assert.match(result.result.content[0].text, /Test Game/);
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 5,
+      method: 'tools/call',
+      params: { name: 'feather_texture_lab_generate', arguments: { recipe: { generator: 'soft-circle' } } },
+    });
+    const texture = await waitForRpc(child, 5);
+    assert.match(texture.result.content[0].text, /soft-circle\.png/);
+    assert.equal(bridge.creativeActions.at(-1).tool, 'texture-lab');
   } finally {
     await stopChild(child);
     await bridge.close();

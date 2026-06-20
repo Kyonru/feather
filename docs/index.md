@@ -101,6 +101,7 @@ See [CLI](cli.md) for `feather run`, `feather doctor`, `feather build`, and `fea
 - [VS Code Extension](vscode-extension.md) — Run, doctor, build, plugin, package, and project settings from the editor
 - [Usage](usage.md) — Quick tour of the desktop app and common workflows
 - [Configuration](configuration.md) — Runtime options, auth, runtime budgets, connecting, mobile debugging
+- [MCP](mcp.md) — Local AI client access to sessions, plugins, Shader Graph, Particles Playground, and Texture Lab
 - [Session](session.md) — Connection health, auth/config status, suspend/resume, session switching
 - [Logs](logs.md) — Live logs, follow-tail, persistence, filters, `.featherlog` files
 - [Observability](observability.md) — `observe`, `watch`, diffs, history, exports, and payload-cost guidance

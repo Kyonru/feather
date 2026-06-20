@@ -24,6 +24,7 @@ use uuid::Uuid;
 
 use crate::ws_server::{AppId, Sessions};
 use axum::extract::ws::Message;
+use tauri::{AppHandle, Emitter};
 
 const DEFAULT_BRIDGE_PORT: u16 = 4005;
 const MAX_LOGS: usize = 500;
@@ -40,10 +41,13 @@ pub struct McpBridgeState {
 struct McpBridgeInner {
     sessions: Sessions,
     app_id: AppId,
+    app_handle: Mutex<Option<AppHandle>>,
     settings: Mutex<McpBridgeSettings>,
     api_keys: Mutex<ApiKeys>,
     snapshots: Mutex<HashMap<String, SessionSnapshot>>,
     waiters: Mutex<Vec<ResponseWaiter>>,
+    creative_snapshots: Mutex<HashMap<String, Value>>,
+    creative_waiters: Mutex<HashMap<String, oneshot::Sender<CreativeActionResponse>>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -167,6 +171,14 @@ pub struct CommandRequest {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CreativeActionRequest {
+    action: String,
+    params: Option<Value>,
+    timeout_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WaitCondition {
     #[serde(rename = "type")]
     message_type: Option<String>,
@@ -180,6 +192,23 @@ struct ResponseWaiter {
     session_id: String,
     condition: WaitCondition,
     sender: oneshot::Sender<Value>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreativeActionEvent {
+    id: String,
+    tool: String,
+    action: String,
+    params: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreativeActionResponse {
+    ok: bool,
+    response: Option<Value>,
+    error: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -230,10 +259,13 @@ pub fn new_state(sessions: Sessions, app_id: AppId) -> McpBridgeState {
         inner: Arc::new(McpBridgeInner {
             sessions,
             app_id,
+            app_handle: Mutex::new(None),
             settings: Mutex::new(settings),
             api_keys: Mutex::new(ApiKeys::default()),
             snapshots: Mutex::new(HashMap::new()),
             waiters: Mutex::new(Vec::new()),
+            creative_snapshots: Mutex::new(HashMap::new()),
+            creative_waiters: Mutex::new(HashMap::new()),
         }),
     };
 
@@ -260,6 +292,8 @@ pub fn router(state: McpBridgeState) -> Router {
         .route("/sessions", get(list_sessions))
         .route("/sessions/{session_id}", get(get_session))
         .route("/sessions/{session_id}/command", post(send_command_to_session))
+        .route("/creative/{tool}", get(get_creative_snapshot))
+        .route("/creative/{tool}/action", post(send_creative_action))
         .with_state(state)
 }
 
@@ -292,7 +326,32 @@ pub fn set_mcp_api_keys(
     state.set_api_keys(api_key, session_api_keys);
 }
 
+#[tauri::command]
+pub fn set_mcp_creative_snapshot(
+    tool: String,
+    snapshot: Value,
+    state: tauri::State<McpBridgeState>,
+) {
+    state.set_creative_snapshot(&tool, snapshot);
+}
+
+#[tauri::command]
+pub fn resolve_mcp_creative_request(
+    id: String,
+    ok: bool,
+    response: Option<Value>,
+    error: Option<String>,
+    state: tauri::State<McpBridgeState>,
+) {
+    state.resolve_creative_request(&id, CreativeActionResponse { ok, response, error });
+}
+
 impl McpBridgeState {
+    pub fn set_app_handle(&self, app_handle: AppHandle) {
+        let mut handle = self.inner.app_handle.lock().unwrap_or_else(|e| e.into_inner());
+        *handle = Some(app_handle);
+    }
+
     pub fn settings(&self) -> McpBridgeSettings {
         self.inner
             .settings
@@ -323,6 +382,28 @@ impl McpBridgeState {
         let mut keys = self.inner.api_keys.lock().unwrap_or_else(|e| e.into_inner());
         keys.default_api_key = default_api_key;
         keys.session_api_keys = session_api_keys;
+    }
+
+    pub fn set_creative_snapshot(&self, tool: &str, mut snapshot: Value) {
+        redact_secrets(&mut snapshot);
+        let mut snapshots = self
+            .inner
+            .creative_snapshots
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        snapshots.insert(tool.to_string(), snapshot);
+    }
+
+    pub fn resolve_creative_request(&self, id: &str, response: CreativeActionResponse) {
+        let sender = self
+            .inner
+            .creative_waiters
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(id);
+        if let Some(sender) = sender {
+            let _ = sender.send(response);
+        }
     }
 
     pub fn session_started(&self, session_id: &str) {
@@ -556,6 +637,75 @@ impl McpBridgeState {
         }
     }
 
+    async fn dispatch_creative_action(
+        &self,
+        tool: String,
+        request: CreativeActionRequest,
+    ) -> Result<CreativeActionResponse, Response> {
+        if tool.trim().is_empty() || request.action.trim().is_empty() {
+            return Err(error_response(StatusCode::BAD_REQUEST, "creative tool and action are required"));
+        }
+
+        let app_handle = self
+            .inner
+            .app_handle
+            .lock()
+            .map_err(|e| error_response(StatusCode::INTERNAL_SERVER_ERROR, &format!("app handle lock failed: {e}")))?
+            .clone()
+            .ok_or_else(|| error_response(StatusCode::SERVICE_UNAVAILABLE, "creative executor is not available"))?;
+
+        let request_id = format!("mcp-creative-{}", Uuid::new_v4());
+        let (sender, receiver) = oneshot::channel();
+        self.inner
+            .creative_waiters
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(request_id.clone(), sender);
+
+        let mut params = request.params.unwrap_or(Value::Object(Default::default()));
+        redact_secrets(&mut params);
+        let event = CreativeActionEvent {
+            id: request_id.clone(),
+            tool,
+            action: request.action,
+            params,
+        };
+
+        if let Err(err) = app_handle.emit("feather://mcp-creative-request", event) {
+            self.inner
+                .creative_waiters
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .remove(&request_id);
+            return Err(error_response(
+                StatusCode::SERVICE_UNAVAILABLE,
+                &format!("creative executor event failed: {err}"),
+            ));
+        }
+
+        let wait_ms = request.timeout_ms.unwrap_or(10_000).min(MAX_WAIT_MS);
+        match timeout(Duration::from_millis(wait_ms), receiver).await {
+            Ok(Ok(response)) => Ok(response),
+            Ok(Err(_)) => Ok(CreativeActionResponse {
+                ok: false,
+                response: None,
+                error: Some("creative executor was cancelled".to_string()),
+            }),
+            Err(_) => {
+                self.inner
+                    .creative_waiters
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .remove(&request_id);
+                Ok(CreativeActionResponse {
+                    ok: false,
+                    response: None,
+                    error: Some("creative executor timed out".to_string()),
+                })
+            }
+        }
+    }
+
     fn attach_command_auth(&self, session_id: &str, message: &mut Value) {
         let Some(object) = message.as_object_mut() else {
             return;
@@ -677,6 +827,40 @@ async fn send_command_to_session(
         return response;
     }
     match state.dispatch_command(&session_id, request).await {
+        Ok(response) => Json(response).into_response(),
+        Err(response) => response,
+    }
+}
+
+async fn get_creative_snapshot(
+    headers: HeaderMap,
+    State(state): State<McpBridgeState>,
+    Path(tool): Path<String>,
+) -> Response {
+    if let Err(response) = authorize(&headers, &state) {
+        return response;
+    }
+    let snapshots = state
+        .inner
+        .creative_snapshots
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let Some(snapshot) = snapshots.get(&tool) else {
+        return error_response(StatusCode::NOT_FOUND, "creative snapshot is not available");
+    };
+    Json(snapshot).into_response()
+}
+
+async fn send_creative_action(
+    headers: HeaderMap,
+    State(state): State<McpBridgeState>,
+    Path(tool): Path<String>,
+    Json(request): Json<CreativeActionRequest>,
+) -> Response {
+    if let Err(response) = authorize(&headers, &state) {
+        return response;
+    }
+    match state.dispatch_creative_action(tool, request).await {
         Ok(response) => Json(response).into_response(),
         Err(response) => response,
     }
@@ -900,5 +1084,62 @@ mod tests {
         });
         state.record_message(r#"{"_session":"s1","type":"eval:response","id":"eval-1","status":"success"}"#);
         assert_eq!(rx.try_recv().unwrap()["status"], "success");
+    }
+
+    #[test]
+    fn creative_snapshots_are_sanitized() {
+        let (state, _) = test_state();
+        state.set_creative_snapshot(
+            "texture-lab",
+            json!({
+                "recipe": { "generator": "soft-circle" },
+                "token": "secret",
+                "nested": { "apiKey": "secret" }
+            }),
+        );
+        let snapshots = state.inner.creative_snapshots.lock().unwrap();
+        let snapshot = snapshots.get("texture-lab").unwrap();
+        assert_eq!(snapshot["token"], "[redacted]");
+        assert_eq!(snapshot["nested"]["apiKey"], "[redacted]");
+    }
+
+    #[tokio::test]
+    async fn creative_action_requires_executor() {
+        let (state, _) = test_state();
+        let response = state
+            .dispatch_creative_action(
+                "texture-lab".to_string(),
+                CreativeActionRequest {
+                    action: "generate".to_string(),
+                    params: Some(json!({ "recipe": { "generator": "soft-circle" } })),
+                    timeout_ms: Some(10),
+                },
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[test]
+    fn creative_waiters_resolve_response_shape() {
+        let (state, _) = test_state();
+        let (tx, mut rx) = oneshot::channel();
+        state
+            .inner
+            .creative_waiters
+            .lock()
+            .unwrap()
+            .insert("creative-1".to_string(), tx);
+        state.resolve_creative_request(
+            "creative-1",
+            CreativeActionResponse {
+                ok: true,
+                response: Some(json!({ "filename": "texture.png" })),
+                error: None,
+            },
+        );
+        let response = rx.try_recv().unwrap();
+        assert!(response.ok);
+        assert_eq!(response.response.unwrap()["filename"], "texture.png");
     }
 }

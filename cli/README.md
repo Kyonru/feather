@@ -525,7 +525,7 @@ feather mcp --token feather-mcp-... --transport http
 | `--desktop-url <url>` | Feather desktop MCP bridge URL. Defaults to `http://127.0.0.1:4005`.       |
 | `--token <token>`     | MCP bridge token; overrides `FEATHER_MCP_TOKEN` and `~/.feather/mcp.json`. |
 
-Resources include `feather://sessions` and `feather://sessions/{id}/{section}` for `config`, `logs`, `performance`, `debugger`, `plugins`, `assets`, and `observers`. Tools cover session snapshots, refresh requests, runtime suspend/resume, debugger controls, Console eval/globals/pins, plugin actions/params/enabling, Time Travel, Session Replay, and the advanced `feather_send_command` escape hatch.
+Resources include `feather://sessions` and `feather://sessions/{id}/{section}` for `config`, `logs`, `performance`, `debugger`, `plugins`, `assets`, and `observers`; `feather://plugins/catalog` and `feather://plugins/{id}` for built-in plugin metadata; live `feather://sessions/{id}/plugins/{pluginId}` payloads; and creative snapshots for Shader Graph, Particles Playground, and Texture Lab. Tools cover session snapshots, refresh requests, runtime suspend/resume, debugger controls, Console eval/globals/pins, plugin catalog/live state/actions/params/enabling, Shader Graph compile/preview/import/export, Particle Playground authoring/export actions, Texture Lab recipe/generation actions, Time Travel, Session Replay, and the advanced `feather_send_command` escape hatch.
 
 > [!WARNING]
 > MCP full-control tools can execute powerful live-debug actions. The desktop bridge is disabled by default, binds only to localhost, requires a bearer token, and still relies on existing runtime gates such as Console `evalEnabled` and `apiKey`.

@@ -84,6 +84,7 @@ pub fn run() {
         .manage(mcp_bridge.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
+            mcp_bridge.set_app_handle(handle.clone());
             let port: u16 = std::env::var("FEATHER_PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())
@@ -105,6 +106,8 @@ pub fn run() {
             mcp_bridge::set_mcp_bridge_enabled,
             mcp_bridge::regenerate_mcp_bridge_token,
             mcp_bridge::set_mcp_api_keys,
+            mcp_bridge::set_mcp_creative_snapshot,
+            mcp_bridge::resolve_mcp_creative_request,
             get_local_ips,
             get_cli_status,
             get_cli_project_status,

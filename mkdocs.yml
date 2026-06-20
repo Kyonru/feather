@@ -35,6 +35,7 @@ nav:
   - VS Code Extension: vscode-extension.md
   - Usage: usage.md
   - Configuration: configuration.md
+  - MCP: mcp.md
   - Session: session.md
   - Logs: logs.md
   - Observability: observability.md

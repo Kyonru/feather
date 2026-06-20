@@ -34,6 +34,7 @@ import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
 import { useWsConnection } from './hooks/use-ws-connection';
+import { useMcpCreativeBridge } from './hooks/use-mcp-creative-bridge';
 import { isCreativeSession, sessionCanOpenRuntimePages, sessionSupportsRuntime, useSessionStore } from './store/session';
 import { useSettingsStore } from './store/settings';
 import { copyToClipboardWithMeta } from './utils/strings';
@@ -46,6 +47,7 @@ const CLI_DOCS_URL = 'https://kyonru.github.io/feather/cli/';
 const Modals = () => {
   const disconnected = useConfigStore((state) => state.disconnected);
   useWsConnection();
+  useMcpCreativeBridge();
 
   useEffect(() => {
     if (disconnected) {

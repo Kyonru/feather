@@ -810,6 +810,14 @@ function McpAccessPanel() {
         <SettingsMetric icon={KeyRoundIcon} label="Token" value={token ? 'Generated' : 'Missing'} tone={token ? 'good' : 'warn'} />
       </SettingsMetrics>
 
+      <div className="rounded-md border bg-muted/20 px-3 py-2">
+        <p className="text-xs font-medium">MCP Surface</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Sessions, plugin catalog/live state, Shader Graph, Particles Playground, and Texture Lab are available to
+          authenticated local MCP clients.
+        </p>
+      </div>
+
       <div className="grid gap-2">
         <Label htmlFor="setting-mcp-token">MCP Token</Label>
         <div className="flex gap-2">

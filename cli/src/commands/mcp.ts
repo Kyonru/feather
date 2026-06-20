@@ -6,6 +6,7 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
+import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { fail } from '../lib/command.js';
 import { printErrorLine } from '../lib/output.js';
 
@@ -13,6 +14,40 @@ const DEFAULT_DESKTOP_URL = 'http://127.0.0.1:4005';
 const DEFAULT_HTTP_HOST = '127.0.0.1';
 const DEFAULT_HTTP_PORT = 4006;
 const RESOURCE_SECTIONS = ['config', 'logs', 'performance', 'debugger', 'plugins', 'assets', 'observers'] as const;
+const CREATIVE_TOOLS = ['shader-graph', 'particle-system-playground', 'texture-lab'] as const;
+const PLUGIN_ACTION_NOTES: Record<string, { actions: string[]; notes: string }> = {
+  'shader-graph': {
+    actions: ['compile-shader', 'preview-shader', 'clear-preview'],
+    notes: 'Used by Shader Graph MCP tools for runtime validation and in-game previews.',
+  },
+  'particle-system-playground': {
+    actions: [
+      'new-composite',
+      'select-composite',
+      'select-system',
+      'runtime-preview',
+      'import-project',
+      'delete-composite',
+      'add-system',
+      'remove-system',
+      'reorder-system',
+      'restore-composite',
+      'set-timeline',
+      'timeline-control',
+      'set-texture',
+      'set-shader',
+      'export-project',
+      'emit',
+      'emit-all',
+      'reset',
+      'reset-all',
+      'kick-start',
+      'export-code',
+      'export-zip',
+    ],
+    notes: 'Used by Particle Playground MCP tools for live composite authoring and exports.',
+  },
+};
 
 type McpTransport = 'stdio' | 'http';
 
@@ -40,6 +75,12 @@ type BridgeCommandRequest = {
   };
 };
 
+type CreativeActionRequest = {
+  action: string;
+  params?: Record<string, unknown>;
+  timeoutMs?: number;
+};
+
 type SessionSummary = {
   id: string;
   connected?: boolean;
@@ -65,6 +106,17 @@ class DesktopBridgeClient {
 
   async getSession(sessionId: string): Promise<unknown> {
     return this.request(`/sessions/${encodeURIComponent(sessionId)}`);
+  }
+
+  async getCreative(tool: string): Promise<unknown> {
+    return this.request(`/creative/${encodeURIComponent(tool)}`);
+  }
+
+  async runCreativeAction(tool: string, body: CreativeActionRequest): Promise<unknown> {
+    return this.request(`/creative/${encodeURIComponent(tool)}/action`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   }
 
   async sendCommand(sessionId: string, body: BridgeCommandRequest): Promise<unknown> {
@@ -179,6 +231,95 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
     },
   );
 
+  server.registerResource(
+    'feather-plugin-catalog',
+    'feather://plugins/catalog',
+    {
+      title: 'Feather Plugin Catalog',
+      description: 'Built-in Feather plugin catalog metadata.',
+      mimeType: 'application/json',
+    },
+    async (uri) => jsonResource(uri.href, { plugins: pluginCatalog.map(pluginWithActionNotes) }),
+  );
+
+  server.registerResource(
+    'feather-plugin-catalog-entry',
+    new ResourceTemplate('feather://plugins/{pluginId}', {
+      list: async () => ({
+        resources: pluginCatalog.map((plugin) => ({
+          name: `feather-plugin-${plugin.id}`,
+          uri: `feather://plugins/${plugin.id}`,
+          mimeType: 'application/json',
+        })),
+      }),
+    }),
+    {
+      title: 'Feather Plugin Catalog Entry',
+      description: 'Built-in metadata for a Feather plugin.',
+      mimeType: 'application/json',
+    },
+    async (uri, variables) => {
+      const pluginId = String(variables.pluginId ?? '');
+      return jsonResource(uri.href, getPluginCatalogEntry(pluginId));
+    },
+  );
+
+  server.registerResource(
+    'feather-session-plugin',
+    new ResourceTemplate('feather://sessions/{sessionId}/plugins/{pluginId}', {
+      list: async () => {
+        const sessions = (await bridge.listSessions()).sessions ?? [];
+        const resources = [];
+        for (const session of sessions) {
+          const snapshot = await bridge.getSession(session.id).catch(() => null);
+          const plugins = isRecord(snapshot) && isRecord(snapshot.plugins) ? Object.keys(snapshot.plugins) : [];
+          for (const plugin of plugins) {
+            resources.push({
+              name: `feather-${session.id}-plugin-${plugin}`,
+              uri: `feather://sessions/${session.id}/plugins/${plugin}`,
+              mimeType: 'application/json',
+            });
+          }
+        }
+        return { resources };
+      },
+    }),
+    {
+      title: 'Feather Live Plugin State',
+      description: 'Live plugin payload for a Feather session.',
+      mimeType: 'application/json',
+    },
+    async (uri, variables) => {
+      const snapshot = await bridge.getSession(String(variables.sessionId ?? ''));
+      return jsonResource(uri.href, getLivePluginState(snapshot, String(variables.pluginId ?? '')));
+    },
+  );
+
+  server.registerResource(
+    'feather-creative-tool',
+    new ResourceTemplate('feather://creative/{tool}', {
+      list: async () => ({
+        resources: CREATIVE_TOOLS.map((tool) => ({
+          name: `feather-creative-${tool}`,
+          uri: `feather://creative/${tool}`,
+          mimeType: 'application/json',
+        })),
+      }),
+    }),
+    {
+      title: 'Feather Creative Tool Snapshot',
+      description: 'Desktop-local Shader Graph, Particle Playground, or Texture Lab snapshot.',
+      mimeType: 'application/json',
+    },
+    async (uri, variables) => {
+      const tool = String(variables.tool ?? '');
+      if (!CREATIVE_TOOLS.includes(tool as typeof CREATIVE_TOOLS[number])) {
+        throw new Error(`Unknown Feather creative resource: ${tool}`);
+      }
+      return jsonResource(uri.href, await bridge.getCreative(tool));
+    },
+  );
+
   server.registerTool(
     'feather_list_sessions',
     {
@@ -219,6 +360,368 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
       } satisfies Record<typeof area, string>;
       return jsonTool(await bridge.sendCommand(id, { message: { type: typeByArea[area] } }));
     },
+  );
+
+  server.registerTool(
+    'feather_list_plugins',
+    {
+      title: 'List Feather Plugins',
+      description: 'List built-in Feather plugin catalog entries and known MCP action notes.',
+    },
+    async () => jsonTool({ plugins: pluginCatalog.map(pluginWithActionNotes) }),
+  );
+
+  server.registerTool(
+    'feather_get_plugin',
+    {
+      title: 'Get Plugin Metadata',
+      description: 'Get built-in catalog metadata and known action notes for a Feather plugin.',
+      inputSchema: { plugin: z.string() },
+    },
+    async ({ plugin }) => jsonTool(getPluginCatalogEntry(plugin)),
+  );
+
+  server.registerTool(
+    'feather_get_live_plugin_state',
+    {
+      title: 'Get Live Plugin State',
+      description: 'Get the latest live payload for a plugin in a Feather session.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        plugin: z.string(),
+      },
+    },
+    async ({ sessionId, plugin }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      return jsonTool(getLivePluginState(await bridge.getSession(id), plugin));
+    },
+  );
+
+  server.registerTool(
+    'feather_refresh_plugin',
+    {
+      title: 'Refresh Plugin Payloads',
+      description: 'Ask the runtime to push fresh plugin payloads, then return the selected plugin if provided.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        plugin: z.string().optional(),
+      },
+    },
+    async ({ sessionId, plugin }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      await bridge.sendCommand(id, { message: { type: 'req:plugins' } });
+      const snapshot = await bridge.getSession(id);
+      return jsonTool(plugin ? getLivePluginState(snapshot, plugin) : getSnapshotSection(snapshot, 'plugins'));
+    },
+  );
+
+  server.registerTool(
+    'feather_shader_graph_snapshot',
+    {
+      title: 'Shader Graph Snapshot',
+      description: 'Get the desktop-local Shader Graph workspace snapshot.',
+    },
+    async () => jsonTool(await bridge.getCreative('shader-graph')),
+  );
+
+  server.registerTool(
+    'feather_shader_graph_compile',
+    {
+      title: 'Compile Shader Graph',
+      description: 'Generate GLSL from the current or provided Shader Graph and optionally validate it in a live game.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        graph: z.record(z.string(), z.unknown()).optional(),
+        raw: z.string().optional(),
+        validateInGame: z.boolean().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ sessionId, graph, raw, validateInGame, timeoutMs }) => {
+      const compiled = await creativeResponse(bridge, 'shader-graph', 'compile', { graph, raw }, timeoutMs);
+      if (!validateInGame) return jsonTool(compiled);
+      const id = await resolveSessionId(bridge, sessionId);
+      const glsl = isRecord(compiled) && isRecord(compiled.glsl) ? compiled.glsl : {};
+      const runtime = await bridge.sendCommand(id, {
+        message: {
+          type: 'cmd:plugin:action',
+          plugin: 'shader-graph',
+          action: 'compile-shader',
+          params: {
+            pixelSource: typeof glsl.pixel === 'string' ? glsl.pixel : '',
+            vertexSource: typeof glsl.vertex === 'string' ? glsl.vertex : '',
+          },
+        },
+        waitFor: { type: 'plugin:action:response', plugin: 'shader-graph', action: 'compile-shader', timeoutMs },
+      });
+      return jsonTool({ compiled, runtime });
+    },
+  );
+
+  server.registerTool(
+    'feather_shader_graph_preview',
+    {
+      title: 'Preview Shader Graph',
+      description: 'Compile current Shader Graph preview params and show the shader preview in a live game.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        graph: z.record(z.string(), z.unknown()).optional(),
+        raw: z.string().optional(),
+        shape: z.enum(['circle', 'line', 'rectangle']).optional(),
+        color: z.string().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ sessionId, graph, raw, shape, color, timeoutMs }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      const params = await creativeResponse(bridge, 'shader-graph', 'preview-params', { graph, raw, shape, color }, timeoutMs);
+      const previewParams = isRecord(params) ? withoutKeys(params, ['diagnostics', 'hasBlockingDiagnostics']) : {};
+      const runtime = await bridge.sendCommand(id, {
+        message: {
+          type: 'cmd:plugin:action',
+          plugin: 'shader-graph',
+          action: 'preview-shader',
+          params: previewParams,
+        },
+        waitFor: { type: 'plugin:action:response', plugin: 'shader-graph', action: 'preview-shader', timeoutMs },
+      });
+      return jsonTool({ preview: params, runtime });
+    },
+  );
+
+  server.registerTool(
+    'feather_shader_graph_clear_preview',
+    {
+      title: 'Clear Shader Graph Preview',
+      description: 'Clear the Shader Graph runtime preview in a live game.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ sessionId, timeoutMs }) => {
+      await creativeResponse(bridge, 'shader-graph', 'clear-preview', {}, timeoutMs).catch(() => ({ ok: false }));
+      const id = await resolveSessionId(bridge, sessionId);
+      return jsonTool(await bridge.sendCommand(id, {
+        message: { type: 'cmd:plugin:action', plugin: 'shader-graph', action: 'clear-preview', params: {} },
+        waitFor: { type: 'plugin:action:response', plugin: 'shader-graph', action: 'clear-preview', timeoutMs },
+      }));
+    },
+  );
+
+  server.registerTool(
+    'feather_shader_graph_import',
+    {
+      title: 'Import Shader Graph',
+      description: 'Import a Shader Graph JSON payload into the desktop workspace.',
+      inputSchema: {
+        graph: z.record(z.string(), z.unknown()).optional(),
+        raw: z.string().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ graph, raw, timeoutMs }) => jsonTool(await creativeResponse(bridge, 'shader-graph', 'import', { graph, raw }, timeoutMs)),
+  );
+
+  server.registerTool(
+    'feather_shader_graph_export',
+    {
+      title: 'Export Shader Graph',
+      description: 'Export the current Shader Graph workspace as JSON content.',
+      inputSchema: { timeoutMs: z.number().int().positive().max(10_000).optional() },
+    },
+    async ({ timeoutMs }) => jsonTool(await creativeResponse(bridge, 'shader-graph', 'export', {}, timeoutMs)),
+  );
+
+  server.registerTool(
+    'feather_particles_snapshot',
+    {
+      title: 'Particle Playground Snapshot',
+      description: 'Get the live Particle Playground plugin payload for a session.',
+      inputSchema: { sessionId: z.string().optional() },
+    },
+    async ({ sessionId }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      return jsonTool(getLivePluginState(await bridge.getSession(id), 'particle-system-playground'));
+    },
+  );
+
+  server.registerTool(
+    'feather_particles_new_composite',
+    {
+      title: 'Create Particle Composite',
+      description: 'Create a Particle Playground scratch composite.',
+      inputSchema: particleToolSchema({ name: z.string().optional(), template: z.string().optional() }),
+    },
+    async ({ sessionId, timeoutMs, ...params }) => particleActionTool(bridge, sessionId, 'new-composite', params, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_particles_select',
+    {
+      title: 'Select Particle Composite Or Emitter',
+      description: 'Select a Particle Playground composite and/or emitter index.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        composite: z.string().optional(),
+        systemIndex: z.number().int().positive().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ sessionId, composite, systemIndex, timeoutMs }) => {
+      if (composite) await particleAction(bridge, sessionId, 'select-composite', { composite }, timeoutMs);
+      if (systemIndex) return particleActionTool(bridge, sessionId, 'select-system', { composite, systemIndex }, timeoutMs);
+      return jsonTool({ ok: true });
+    },
+  );
+
+  server.registerTool(
+    'feather_particles_set_params',
+    {
+      title: 'Set Particle Parameters',
+      description: 'Update Particle Playground params for the active or selected composite/emitter.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        params: z.record(z.string(), z.unknown()),
+      },
+    },
+    async ({ sessionId, params }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      return jsonTool(await bridge.sendCommand(id, {
+        message: { type: 'cmd:plugin:params', plugin: 'particle-system-playground', params },
+      }));
+    },
+  );
+
+  server.registerTool(
+    'feather_particles_action',
+    {
+      title: 'Run Particle Playground Action',
+      description: 'Run any Particle Playground plugin action with params.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        action: z.string(),
+        params: z.record(z.string(), z.unknown()).optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ sessionId, action, params, timeoutMs }) => particleActionTool(bridge, sessionId, action, params ?? {}, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_particles_export_project',
+    {
+      title: 'Export Particle Project',
+      description: 'Export the active Particle Playground composite as a .featherparticles payload.',
+      inputSchema: particleToolSchema({ composite: z.string().optional() }),
+    },
+    async ({ sessionId, timeoutMs, ...params }) => particleActionTool(bridge, sessionId, 'export-project', params, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_particles_export_code',
+    {
+      title: 'Export Particle Lua Code',
+      description: 'Export the active Particle Playground composite as Lua source text.',
+      inputSchema: particleToolSchema({ composite: z.string().optional() }),
+    },
+    async ({ sessionId, timeoutMs, ...params }) => particleActionTool(bridge, sessionId, 'export-code', params, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_particles_export_zip',
+    {
+      title: 'Export Particle ZIP Payload',
+      description: 'Export the active Particle Playground composite as base64 ZIP asset payload metadata.',
+      inputSchema: particleToolSchema({ composite: z.string().optional() }),
+    },
+    async ({ sessionId, timeoutMs, ...params }) => particleActionTool(bridge, sessionId, 'export-zip', params, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_texture_lab_generators',
+    {
+      title: 'Texture Lab Generators',
+      description: 'List Texture Lab procedural generator metadata.',
+      inputSchema: { timeoutMs: z.number().int().positive().max(10_000).optional() },
+    },
+    async ({ timeoutMs }) => jsonTool(await creativeResponse(bridge, 'texture-lab', 'generators', {}, timeoutMs)),
+  );
+
+  server.registerTool(
+    'feather_texture_lab_snapshot',
+    {
+      title: 'Texture Lab Snapshot',
+      description: 'Get the desktop-local Texture Lab workspace snapshot.',
+    },
+    async () => jsonTool(await bridge.getCreative('texture-lab')),
+  );
+
+  server.registerTool(
+    'feather_texture_lab_set_recipe',
+    {
+      title: 'Set Texture Lab Recipe',
+      description: 'Merge recipe fields into the current Texture Lab workspace.',
+      inputSchema: {
+        recipe: z.record(z.string(), z.unknown()),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ recipe, timeoutMs }) => jsonTool(await creativeResponse(bridge, 'texture-lab', 'set-recipe', { recipe }, timeoutMs)),
+  );
+
+  server.registerTool(
+    'feather_texture_lab_save_recipe',
+    {
+      title: 'Save Texture Lab Recipe',
+      description: 'Save a named Texture Lab recipe in the desktop workspace.',
+      inputSchema: {
+        name: z.string(),
+        recipe: z.record(z.string(), z.unknown()).optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ name, recipe, timeoutMs }) => jsonTool(await creativeResponse(bridge, 'texture-lab', 'save-recipe', { name, recipe }, timeoutMs)),
+  );
+
+  server.registerTool(
+    'feather_texture_lab_delete_recipe',
+    {
+      title: 'Delete Texture Lab Recipe',
+      description: 'Delete a saved Texture Lab recipe by id.',
+      inputSchema: {
+        id: z.string(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ id, timeoutMs }) => jsonTool(await creativeResponse(bridge, 'texture-lab', 'delete-recipe', { id }, timeoutMs)),
+  );
+
+  server.registerTool(
+    'feather_texture_lab_generate',
+    {
+      title: 'Generate Texture Lab Texture',
+      description: 'Generate a Texture Lab PNG payload as base64 metadata without writing files.',
+      inputSchema: {
+        recipe: z.record(z.string(), z.unknown()).optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ recipe, timeoutMs }) => jsonTool(await creativeResponse(bridge, 'texture-lab', 'generate', { recipe }, timeoutMs)),
+  );
+
+  server.registerTool(
+    'feather_texture_lab_generate_atlas',
+    {
+      title: 'Generate Texture Lab Atlas',
+      description: 'Generate a Texture Lab atlas sheet and frame payloads as base64 metadata without writing files.',
+      inputSchema: {
+        recipe: z.record(z.string(), z.unknown()).optional(),
+        atlas: z.record(z.string(), z.unknown()).optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ recipe, atlas, timeoutMs }) => jsonTool(await creativeResponse(bridge, 'texture-lab', 'generate-atlas', { recipe, atlas }, timeoutMs)),
   );
 
   server.registerTool(
@@ -514,6 +1017,100 @@ async function resolveSessionId(bridge: DesktopBridgeClient, sessionId?: string)
   if (sessions.length === 1) return sessions[0]!.id;
   if (sessions.length === 0) throw new Error('No connected Feather sessions');
   throw new Error(`Multiple Feather sessions are connected; pass sessionId. Sessions: ${sessions.map((s) => s.id).join(', ')}`);
+}
+
+function pluginWithActionNotes(plugin: typeof pluginCatalog[number]) {
+  return {
+    ...plugin,
+    mcp: PLUGIN_ACTION_NOTES[plugin.id] ?? null,
+  };
+}
+
+function getPluginCatalogEntry(pluginId: string): unknown {
+  const plugin = pluginCatalog.find((entry) => entry.id === pluginId);
+  if (!plugin) throw new Error(`Unknown Feather plugin: ${pluginId}`);
+  return pluginWithActionNotes(plugin);
+}
+
+function getLivePluginState(snapshot: unknown, pluginId: string): unknown {
+  if (!isRecord(snapshot) || !isRecord(snapshot.plugins)) {
+    return { plugin: pluginId, state: null };
+  }
+  return {
+    plugin: pluginId,
+    catalog: pluginCatalog.find((entry) => entry.id === pluginId) ? getPluginCatalogEntry(pluginId) : null,
+    state: snapshot.plugins[pluginId] ?? null,
+  };
+}
+
+function particleToolSchema<T extends z.ZodRawShape>(shape: T) {
+  return {
+    sessionId: z.string().optional(),
+    ...shape,
+    timeoutMs: z.number().int().positive().max(10_000).optional(),
+  };
+}
+
+async function particleAction(
+  bridge: DesktopBridgeClient,
+  sessionId: string | undefined,
+  action: string,
+  params: Record<string, unknown>,
+  timeoutMs?: number,
+): Promise<unknown> {
+  const id = await resolveSessionId(bridge, sessionId);
+  return bridge.sendCommand(id, {
+    message: {
+      type: 'cmd:plugin:action',
+      plugin: 'particle-system-playground',
+      action,
+      params,
+    },
+    waitFor: {
+      type: 'plugin:action:response',
+      plugin: 'particle-system-playground',
+      action,
+      timeoutMs,
+    },
+  });
+}
+
+async function particleActionTool(
+  bridge: DesktopBridgeClient,
+  sessionId: string | undefined,
+  action: string,
+  params: Record<string, unknown>,
+  timeoutMs?: number,
+) {
+  return jsonTool(await particleAction(bridge, sessionId, action, stripUndefined(params), timeoutMs));
+}
+
+async function creativeResponse(
+  bridge: DesktopBridgeClient,
+  tool: string,
+  action: string,
+  params: Record<string, unknown>,
+  timeoutMs?: number,
+): Promise<unknown> {
+  const result = await bridge.runCreativeAction(tool, {
+    action,
+    params: stripUndefined(params),
+    timeoutMs,
+  });
+  if (!isRecord(result)) return result;
+  if (result.ok === false) {
+    throw new Error(typeof result.error === 'string' ? result.error : `Creative action failed: ${tool}/${action}`);
+  }
+  return Object.prototype.hasOwnProperty.call(result, 'response') ? result.response : result;
+}
+
+function stripUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
+}
+
+function withoutKeys(value: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+  const skipped = new Set(keys);
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !skipped.has(key)));
 }
 
 function jsonTool(value: unknown) {
