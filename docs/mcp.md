@@ -107,6 +107,9 @@ Plugin tools:
 
 Creative tools:
 
+- `feather_create_shader`
+- `feather_create_particle_system`
+- `feather_create_texture`
 - `feather_shader_graph_snapshot`
 - `feather_shader_graph_compile`
 - `feather_shader_graph_preview`
@@ -130,6 +133,16 @@ Creative tools:
 - `feather_texture_lab_generate_atlas`
 
 Texture Lab and Particle Playground binary outputs are returned as JSON/base64 payload metadata. MCP does not write generated files automatically.
+
+## Creating Creative Assets
+
+Use the high-level creation tools first:
+
+- `feather_create_shader` creates a Shader Graph workspace shader from Feather graph JSON or standalone GLSL. Pass `validateInGame: true` to route it through the live `shader-graph` plugin compiler, or `previewInGame: true` to show it in a connected Love2D session.
+- `feather_create_particle_system` creates a Particle Playground composite in a live session, then can apply emitter params, attach texture/shader payloads, emit a burst, and return project/code/ZIP exports.
+- `feather_create_texture` creates a Texture Lab PNG or atlas payload from a recipe, generator, and dimensions. It returns base64 metadata and can optionally save the recipe in the desktop workspace.
+
+The lower-level Shader Graph, Particle Playground, Texture Lab, and generic plugin tools remain available when an MCP client needs precise step-by-step control.
 
 ## Security
 

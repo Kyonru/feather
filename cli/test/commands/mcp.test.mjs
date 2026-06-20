@@ -65,10 +65,16 @@ function startFakeBridge() {
       const chunks = [];
       for await (const chunk of req) chunks.push(Buffer.from(chunk));
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      creativeActions.push({ tool: decodeURIComponent(creativeMatch[1]), body });
+      const tool = decodeURIComponent(creativeMatch[1]);
+      creativeActions.push({ tool, body });
       const responseByAction = {
         generators: { generators: [{ id: 'soft-circle', label: 'Soft Circle' }] },
-        snapshot: { type: creativeMatch[1] },
+        snapshot: { type: tool },
+        create: {
+          mode: 'source',
+          shaderName: body.params?.shaderName ?? 'MCP Shader',
+          glsl: { pixel: body.params?.pixelSource ?? 'vec4 effect(){return vec4(1.0);}', vertex: null, hash: 'test' },
+        },
         compile: { glsl: { pixel: 'vec4 effect(){return vec4(1.0);}', vertex: '' }, diagnostics: [] },
         'preview-params': { pixelSource: 'vec4 effect(){return vec4(1.0);}', vertexSource: '', shape: 'circle', color: [1, 1, 1, 1] },
         export: { filename: 'test.feathershgh', content: '{}' },
@@ -85,8 +91,20 @@ function startFakeBridge() {
       for await (const chunk of req) chunks.push(Buffer.from(chunk));
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       commands.push(body);
+      const message = body.message ?? {};
+      let response = null;
+      if (message.type === 'cmd:plugin:action' && message.plugin === 'particle-system-playground') {
+        response = {
+          type: 'plugin:action:response',
+          plugin: 'particle-system-playground',
+          action: message.action,
+          data: message.action === 'new-composite'
+            ? { composite: message.params?.name ?? 'Scratch Composite' }
+            : { ok: true },
+        };
+      }
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, response: null }));
+      res.end(JSON.stringify({ ok: true, response }));
       return;
     }
 
@@ -187,6 +205,9 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     const tools = await waitForRpc(child, 2);
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_list_sessions'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_list_plugins'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_create_shader'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_create_particle_system'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_create_texture'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_shader_graph_compile'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_particles_export_zip'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_texture_lab_generate'));
@@ -214,6 +235,58 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     const texture = await waitForRpc(child, 5);
     assert.match(texture.result.content[0].text, /soft-circle\.png/);
     assert.equal(bridge.creativeActions.at(-1).tool, 'texture-lab');
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 6,
+      method: 'tools/call',
+      params: {
+        name: 'feather_create_shader',
+        arguments: {
+          shaderName: 'MCP Shader',
+          pixelSource: 'vec4 effect(vec4 color, Image tex, vec2 uv, vec2 screen){ return vec4(1.0); }',
+          previewInGame: true,
+          previewShape: 'rectangle',
+        },
+      },
+    });
+    const shader = await waitForRpc(child, 6);
+    assert.match(shader.result.content[0].text, /MCP Shader/);
+    assert.equal(bridge.creativeActions.at(-1).tool, 'shader-graph');
+    assert.equal(bridge.creativeActions.at(-1).body.action, 'create');
+    assert.ok(bridge.commands.some((command) => command.message?.plugin === 'shader-graph' && command.message?.action === 'preview-shader'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 7,
+      method: 'tools/call',
+      params: {
+        name: 'feather_create_texture',
+        arguments: { generator: 'soft-circle', width: 32, height: 32 },
+      },
+    });
+    const createdTexture = await waitForRpc(child, 7);
+    assert.match(createdTexture.result.content[0].text, /soft-circle\.png/);
+    assert.equal(bridge.creativeActions.at(-1).body.action, 'generate');
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 8,
+      method: 'tools/call',
+      params: {
+        name: 'feather_create_particle_system',
+        arguments: {
+          name: 'MCP Spark',
+          params: { emissionRate: 40, emitAtStart: 80 },
+          exportCode: true,
+        },
+      },
+    });
+    const particle = await waitForRpc(child, 8);
+    assert.match(particle.result.content[0].text, /MCP Spark/);
+    assert.ok(bridge.commands.some((command) => command.message?.action === 'new-composite'));
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:plugin:params'));
+    assert.ok(bridge.commands.some((command) => command.message?.action === 'export-code'));
   } finally {
     await stopChild(child);
     await bridge.close();

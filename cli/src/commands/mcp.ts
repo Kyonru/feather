@@ -416,6 +416,177 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
   );
 
   server.registerTool(
+    'feather_create_shader',
+    {
+      title: 'Create Shader',
+      description: 'Create a Shader Graph workspace shader from graph JSON or standalone GLSL, with optional live-game validation.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        shaderName: z.string().optional(),
+        graph: z.record(z.string(), z.unknown()).optional(),
+        raw: z.string().optional(),
+        pixelSource: z.string().optional(),
+        vertexSource: z.string().optional(),
+        parameters: z.array(z.record(z.string(), z.unknown())).optional(),
+        textures: z.array(z.record(z.string(), z.unknown())).optional(),
+        previewShape: z.enum(['circle', 'line', 'rectangle']).optional(),
+        previewColor: z.string().optional(),
+        validateInGame: z.boolean().optional(),
+        previewInGame: z.boolean().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ sessionId, validateInGame, previewInGame, timeoutMs, ...params }) => {
+      const created = await creativeResponse(bridge, 'shader-graph', 'create', params, timeoutMs);
+      if (!validateInGame && !previewInGame) return jsonTool(created);
+
+      const glsl = extractShaderGlsl(created);
+      if (!glsl.pixel) {
+        throw new Error('Created shader did not return pixel GLSL for runtime use');
+      }
+      const id = await resolveSessionId(bridge, sessionId);
+      const runtime: Record<string, unknown> = {};
+      if (validateInGame) {
+        runtime.validation = await bridge.sendCommand(id, {
+          message: {
+            type: 'cmd:plugin:action',
+            plugin: 'shader-graph',
+            action: 'compile-shader',
+            params: {
+              pixelSource: glsl.pixel,
+              vertexSource: glsl.vertex ?? '',
+            },
+          },
+          waitFor: { type: 'plugin:action:response', plugin: 'shader-graph', action: 'compile-shader', timeoutMs },
+        });
+      }
+      if (previewInGame) {
+        runtime.preview = await bridge.sendCommand(id, {
+          message: {
+            type: 'cmd:plugin:action',
+            plugin: 'shader-graph',
+            action: 'preview-shader',
+            params: stripUndefined({
+              pixelSource: glsl.pixel,
+              vertexSource: glsl.vertex ?? '',
+              shape: params.previewShape,
+              color: params.previewColor,
+            }),
+          },
+          waitFor: { type: 'plugin:action:response', plugin: 'shader-graph', action: 'preview-shader', timeoutMs },
+        });
+      }
+      return jsonTool({ created, runtime });
+    },
+  );
+
+  server.registerTool(
+    'feather_create_particle_system',
+    {
+      title: 'Create Particle System',
+      description: 'Create a Particle Playground composite, optionally apply params/assets, emit it, and return exports.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        name: z.string().optional(),
+        template: z.string().optional(),
+        params: z.record(z.string(), z.unknown()).optional(),
+        texture: z.record(z.string(), z.unknown()).optional(),
+        shader: z.record(z.string(), z.unknown()).optional(),
+        emitCount: z.number().int().positive().optional(),
+        exportProject: z.boolean().optional(),
+        exportCode: z.boolean().optional(),
+        exportZip: z.boolean().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({
+      sessionId,
+      name,
+      template,
+      params,
+      texture,
+      shader,
+      emitCount,
+      exportProject,
+      exportCode,
+      exportZip,
+      timeoutMs,
+    }) => {
+      const created = await particleAction(bridge, sessionId, 'new-composite', stripUndefined({ name, template }), timeoutMs);
+      const composite = extractParticleComposite(created, name);
+      const target: Record<string, unknown> = composite ? { composite } : {};
+      const result: Record<string, unknown> = { created, composite: composite ?? null };
+
+      if (params) {
+        const id = await resolveSessionId(bridge, sessionId);
+        result.params = await bridge.sendCommand(id, {
+          message: {
+            type: 'cmd:plugin:params',
+            plugin: 'particle-system-playground',
+            params: stripUndefined({ ...target, ...params }),
+          },
+        });
+      }
+      if (texture) {
+        result.texture = await particleAction(bridge, sessionId, 'set-texture', stripUndefined({ ...target, ...texture }), timeoutMs);
+      }
+      if (shader) {
+        result.shader = await particleAction(bridge, sessionId, 'set-shader', stripUndefined({ ...target, ...shader }), timeoutMs);
+      }
+      if (emitCount) {
+        result.emit = await particleAction(bridge, sessionId, 'emit', stripUndefined({ ...target, count: emitCount }), timeoutMs);
+      }
+      if (exportProject) {
+        result.project = await particleAction(bridge, sessionId, 'export-project', target, timeoutMs);
+      }
+      if (exportCode) {
+        result.code = await particleAction(bridge, sessionId, 'export-code', target, timeoutMs);
+      }
+      if (exportZip) {
+        result.zip = await particleAction(bridge, sessionId, 'export-zip', target, timeoutMs);
+      }
+
+      return jsonTool(result);
+    },
+  );
+
+  server.registerTool(
+    'feather_create_texture',
+    {
+      title: 'Create Texture',
+      description: 'Create a Texture Lab PNG or atlas payload from a recipe without writing files.',
+      inputSchema: {
+        recipe: z.record(z.string(), z.unknown()).optional(),
+        generator: z.string().optional(),
+        width: z.number().int().positive().optional(),
+        height: z.number().int().positive().optional(),
+        atlas: z.record(z.string(), z.unknown()).optional(),
+        saveAs: z.string().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ recipe, generator, width, height, atlas, saveAs, timeoutMs }) => {
+      const nextRecipe = stripUndefined({
+        ...(recipe ?? {}),
+        generator,
+        width,
+        height,
+      });
+      const savedRecipe = saveAs
+        ? await creativeResponse(bridge, 'texture-lab', 'save-recipe', { name: saveAs, recipe: nextRecipe }, timeoutMs)
+        : null;
+      const generated = await creativeResponse(
+        bridge,
+        'texture-lab',
+        atlas ? 'generate-atlas' : 'generate',
+        atlas ? { recipe: nextRecipe, atlas } : { recipe: nextRecipe },
+        timeoutMs,
+      );
+      return jsonTool({ generated, savedRecipe });
+    },
+  );
+
+  server.registerTool(
     'feather_shader_graph_snapshot',
     {
       title: 'Shader Graph Snapshot',
@@ -1041,6 +1212,41 @@ function getLivePluginState(snapshot: unknown, pluginId: string): unknown {
     catalog: pluginCatalog.find((entry) => entry.id === pluginId) ? getPluginCatalogEntry(pluginId) : null,
     state: snapshot.plugins[pluginId] ?? null,
   };
+}
+
+function extractShaderGlsl(value: unknown): { pixel?: string; vertex?: string } {
+  const glsl = findRecordField(value, 'glsl');
+  return {
+    pixel: typeof glsl?.pixel === 'string' ? glsl.pixel : undefined,
+    vertex: typeof glsl?.vertex === 'string' ? glsl.vertex : undefined,
+  };
+}
+
+function extractParticleComposite(value: unknown, fallback?: string): string | undefined {
+  const composite = findStringField(value, 'composite');
+  if (composite) return composite;
+  return fallback?.trim() || undefined;
+}
+
+function findRecordField(value: unknown, field: string, depth = 0): Record<string, unknown> | undefined {
+  if (depth > 5 || !isRecord(value)) return undefined;
+  if (isRecord(value[field])) return value[field];
+  for (const key of ['response', 'data', 'result', 'created', 'compiled']) {
+    const found = findRecordField(value[key], field, depth + 1);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function findStringField(value: unknown, field: string, depth = 0): string | undefined {
+  if (depth > 5 || !isRecord(value)) return undefined;
+  const direct = value[field];
+  if (typeof direct === 'string' && direct.trim()) return direct;
+  for (const key of ['response', 'data', 'result', 'created']) {
+    const found = findStringField(value[key], field, depth + 1);
+    if (found) return found;
+  }
+  return undefined;
 }
 
 function particleToolSchema<T extends z.ZodRawShape>(shape: T) {

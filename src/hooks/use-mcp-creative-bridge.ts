@@ -225,6 +225,60 @@ function importShaderGraph(params: Record<string, unknown>) {
   };
 }
 
+function createShader(params: Record<string, unknown>) {
+  const graph = shaderGraphFromParams(params);
+  if (graph) {
+    const imported = importShaderGraph(params);
+    const compiled = compileShaderGraph({ graph });
+    useShaderGraphStore.getState().setLastGlsl(compiled.glsl);
+    return {
+      mode: 'graph',
+      imported,
+      compiled,
+      export: exportShaderGraph(),
+      snapshot: shaderGraphSnapshot(),
+    };
+  }
+
+  const pixelSource = typeof params.pixelSource === 'string' ? params.pixelSource : '';
+  if (!pixelSource.trim()) {
+    throw new Error('Shader creation requires graph/raw shader graph JSON or pixelSource GLSL');
+  }
+
+  const state = useShaderGraphStore.getState();
+  const shaderName = typeof params.shaderName === 'string' && params.shaderName.trim()
+    ? params.shaderName.trim()
+    : state.shaderName || 'mcp-shader';
+  const vertexSource = typeof params.vertexSource === 'string' && params.vertexSource.trim()
+    ? params.vertexSource
+    : null;
+  const glsl: GeneratedGlsl = {
+    pixel: pixelSource,
+    vertex: vertexSource,
+    hash: `mcp-${Date.now().toString(36)}`,
+    parameters: Array.isArray(params.parameters) ? params.parameters as GeneratedGlsl['parameters'] : undefined,
+    textures: Array.isArray(params.textures) ? params.textures as GeneratedGlsl['textures'] : undefined,
+  };
+  const previewShape = params.previewShape ?? params.shape;
+  const previewColor = params.previewColor ?? params.color;
+
+  state.setShaderName(shaderName);
+  state.setLastGlsl(glsl);
+  if (previewShape === 'circle' || previewShape === 'line' || previewShape === 'rectangle') {
+    state.setPreviewShape(previewShape);
+  }
+  if (typeof previewColor === 'string') {
+    state.setPreviewColor(previewColor);
+  }
+
+  return {
+    mode: 'source',
+    shaderName,
+    glsl,
+    snapshot: shaderGraphSnapshot(),
+  };
+}
+
 function shaderPreviewParams(params: Record<string, unknown>) {
   const state = useShaderGraphStore.getState();
   const compiled = compileShaderGraph(params);
@@ -312,6 +366,7 @@ async function handleCreativeRequest(request: McpCreativeRequest, queryClient: R
   if (request.tool === SHADER_GRAPH_TOOL) {
     if (request.action === 'snapshot') return shaderGraphSnapshot();
     if (request.action === 'export') return exportShaderGraph();
+    if (request.action === 'create') return createShader(params);
     if (request.action === 'import') return importShaderGraph(params);
     if (request.action === 'compile') return compileShaderGraph(params);
     if (request.action === 'preview-params') return shaderPreviewParams(params);
