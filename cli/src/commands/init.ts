@@ -17,7 +17,7 @@ import { defaultIncludedPluginIds } from '../ui/init/model.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { resolveLocalLuaRoot } from '../lib/paths.js';
 import { fail } from '../lib/command.js';
-import { createSpinner, icon, printBanner, printLine, printMuted, printWarning, style } from '../lib/output.js';
+import { createSpinner, icon, printBanner, printJson, printLine, printMuted, printWarning, style } from '../lib/output.js';
 import { assertSafeProjectTarget } from '../lib/path-safety.js';
 
 export interface InitOptions {
@@ -33,6 +33,7 @@ export interface InitOptions {
   appId?: string;
   sessionName?: string;
   hotReloadAllow?: string[];
+  json?: boolean;
 }
 
 const knownPlugins = pluginCatalog.map((plugin) => plugin.id);
@@ -124,7 +125,7 @@ function patchMainLuaForManual(mainPath: string): boolean {
 }
 
 export async function initCommand(dir: string, opts: InitOptions): Promise<void> {
-  if (!opts.yes) printBanner();
+  if (!opts.yes && !opts.json) printBanner();
   const target = resolve(dir);
   const defaultMode: InitMode = 'cli';
 
@@ -185,11 +186,22 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
     if (!pluginsDisabled && (pluginIds.includes('hot-reload') || (opts.hotReloadAllow && opts.hotReloadAllow.length > 0))) {
       addHotReloadConfig(setup.config, opts.hotReloadAllow ?? []);
     }
-    writeConfig(target, setup.config, {
+    const configCreated = writeConfig(target, setup.config, {
       mode,
       installDir,
       source: useRemote ? `github:${setup.branch || opts.branch || 'main'}` : 'local',
-    });
+    }, opts.json);
+    if (opts.json) {
+      printJson({
+        projectDir: target,
+        mode,
+        installDir,
+        source: useRemote ? `github:${setup.branch || opts.branch || 'main'}` : 'local',
+        configCreated,
+        plugins: pluginIds,
+      });
+      return;
+    }
     printLine(`\n${style.heading('Done!')} Run this project through Feather CLI.\n`);
     printMuted(`  feather run ${dir}`);
     printMuted('  Use `--config <path>` if feather.config.lua lives elsewhere.\n');
@@ -308,12 +320,25 @@ export async function initCommand(dir: string, opts: InitOptions): Promise<void>
     }
   }
 
-  writeConfig(target, setup.config, {
+  const configCreated = writeConfig(target, setup.config, {
     mode,
     installDir,
     source: useRemote ? `github:${branch}` : 'local',
     manualEntrypoint: mode === 'manual' ? 'feather.debugger.lua' : undefined,
-  });
+  }, opts.json);
+
+  if (opts.json) {
+    printJson({
+      projectDir: target,
+      mode,
+      installDir,
+      source: useRemote ? `github:${branch}` : 'local',
+      configCreated,
+      plugins: installedPluginIds,
+      manualEntrypoint: mode === 'manual' ? 'feather.debugger.lua' : undefined,
+    });
+    return;
+  }
 
   printLine(`\n${style.heading('Done!')} Start the Feather desktop app, then run your game.\n`);
 
@@ -328,14 +353,16 @@ function writeConfig(
   target: string,
   config: Record<string, unknown> = {},
   context: { mode?: string; installDir?: string; source?: string; manualEntrypoint?: string } = {},
-): void {
+  quiet = false,
+): boolean {
   const configPath = assertSafeProjectTarget(target, 'feather.config.lua', 'Config write target');
   if (!existsSync(configPath)) {
     writeFileSync(configPath, configTemplate(config, context));
-    printLine(`${icon.success} Created feather.config.lua`);
-  } else {
-    printMuted('  feather.config.lua already exists — skipped');
+    if (!quiet) printLine(`${icon.success} Created feather.config.lua`);
+    return true;
   }
+  if (!quiet) printMuted('  feather.config.lua already exists — skipped');
+  return false;
 }
 
 function writeManualDebugger(target: string, config: Record<string, unknown>, pluginIds: string[], installDir: string): boolean {

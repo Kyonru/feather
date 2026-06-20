@@ -3,6 +3,7 @@ use serde_json::Value;
 use std::{
     env,
     ffi::OsStr,
+    fs,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -69,6 +70,15 @@ pub fn status(cli_path: Option<String>) -> CliStatus {
         install_docs_url: INSTALL_DOCS_URL.to_string(),
         cli_docs_url: CLI_DOCS_URL.to_string(),
     }
+}
+
+pub fn resolve_cli_path(cli_path: Option<String>) -> Option<String> {
+    for (candidate, _) in cli_candidates(cli_path) {
+        if command_first_line(candidate.as_os_str(), &["--version"]).is_some() {
+            return Some(candidate.to_string_lossy().to_string());
+        }
+    }
+    None
 }
 
 pub fn project_status(project_dir: String, cli_path: Option<String>) -> CliProjectStatus {
@@ -157,6 +167,11 @@ fn cli_candidates(cli_path: Option<String>) -> Vec<(PathBuf, String)> {
         candidates.push((PathBuf::from(path), "configured".to_string()));
     }
 
+    candidates.extend(
+        bundled_cli_candidates()
+            .into_iter()
+            .map(|path| (path, "bundled".to_string())),
+    );
     candidates.push((PathBuf::from("feather"), "PATH".to_string()));
     for dir in common_bin_dirs() {
         candidates.push((
@@ -166,6 +181,45 @@ fn cli_candidates(cli_path: Option<String>) -> Vec<(PathBuf, String)> {
     }
 
     dedupe_candidates(candidates)
+}
+
+fn bundled_cli_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Ok(exe) = env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join(executable_name("feather")));
+            candidates.push(dir.join(executable_name("feather-cli")));
+            candidates.push(dir.join("resources").join(executable_name("feather")));
+            candidates.push(dir.join("resources").join(executable_name("feather-cli")));
+            candidates.push(dir.join("../Resources").join(executable_name("feather")));
+            candidates.push(
+                dir.join("../Resources")
+                    .join(executable_name("feather-cli")),
+            );
+            candidates.extend(scan_sidecar_dir(&dir.join("resources")));
+            candidates.extend(scan_sidecar_dir(&dir.join("../Resources")));
+        }
+    }
+    candidates
+}
+
+fn scan_sidecar_dir(dir: &Path) -> Vec<PathBuf> {
+    fs::read_dir(dir)
+        .ok()
+        .into_iter()
+        .flat_map(|entries| entries.filter_map(Result::ok))
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| {
+                    name == executable_name("feather")
+                        || name == executable_name("feather-cli")
+                        || name.starts_with("feather-cli-")
+                })
+                .unwrap_or(false)
+        })
+        .collect()
 }
 
 fn common_bin_dirs() -> Vec<PathBuf> {
@@ -287,7 +341,7 @@ fn canonical_dir<P: AsRef<Path>>(path: P, label: &str) -> Result<PathBuf, String
 
 #[cfg(test)]
 mod tests {
-    use super::{resolve_source_location, validate_editor_path};
+    use super::{cli_candidates, dedupe_candidates, resolve_source_location, validate_editor_path};
     use std::{fs, path::PathBuf};
 
     fn temp_dir(name: &str) -> PathBuf {
@@ -296,6 +350,35 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn cli_candidates_prefer_configured_then_bundled_then_path() {
+        let candidates = cli_candidates(Some("/custom/feather".to_string()));
+        assert_eq!(
+            candidates.first().map(|(_, source)| source.as_str()),
+            Some("configured")
+        );
+        assert!(candidates.iter().any(|(_, source)| source == "bundled"));
+        let bundled_index = candidates
+            .iter()
+            .position(|(_, source)| source == "bundled")
+            .unwrap();
+        let path_index = candidates
+            .iter()
+            .position(|(_, source)| source == "PATH")
+            .unwrap();
+        assert!(bundled_index < path_index);
+    }
+
+    #[test]
+    fn dedupe_candidates_keeps_first_source() {
+        let candidates = dedupe_candidates(vec![
+            (PathBuf::from("/bin/feather"), "configured".to_string()),
+            (PathBuf::from("/bin/feather"), "PATH".to_string()),
+        ]);
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].1, "configured");
     }
 
     #[test]

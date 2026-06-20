@@ -2,7 +2,7 @@ import { existsSync, rmSync } from 'node:fs';
 import { readCompatibleLockfile } from '../../lib/package/compat.js';
 import { removeFromLockfile, writeLockfile } from '../../lib/package/lockfile.js';
 import { fail } from '../../lib/command.js';
-import { icon, printLine, printMuted, style } from '../../lib/output.js';
+import { icon, printJson, printLine, printMuted, style } from '../../lib/output.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { resolvePackageProjectDir } from './shared.js';
 import { resolveProjectTarget } from '../../lib/package/target.js';
@@ -10,6 +10,7 @@ import { resolveProjectTarget } from '../../lib/package/target.js';
 export type PackageRemoveOptions = {
   dir?: string;
   yes?: boolean;
+  json?: boolean;
 };
 
 export async function packageRemoveCommand(name: string, opts: PackageRemoveOptions = {}): Promise<void> {
@@ -59,5 +60,16 @@ export async function packageRemoveCommand(name: string, opts: PackageRemoveOpti
 
   removeFromLockfile(lockfile, name);
   writeLockfile(projectDir, lockfile);
+  if (opts.json) {
+    printJson({
+      projectDir,
+      removed: {
+        id: name,
+        files: entry.files.map((file) => file.target),
+        existingFiles: existingFiles.map((file) => file.target),
+      },
+    });
+    return;
+  }
   printLine(`  ${icon.success} ${style.heading(name)} removed.`);
 }

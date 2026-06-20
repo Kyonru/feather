@@ -41,6 +41,17 @@ npm run feather -- --help
 
 `npm install` links the workspace package into `node_modules/@kyonru/feather` and exposes `node_modules/.bin/feather` for local CLI testing.
 
+### Desktop CLI Backend
+
+The Feather desktop app uses the CLI as its project backend for setup-oriented workflows. In packaged desktop builds, Feather ships a same-version `feather` CLI sidecar. Settings resolves the CLI in this order:
+
+1. CLI path override from Settings.
+2. Bundled desktop sidecar.
+3. `feather` on `PATH`.
+4. Common npm bin locations.
+
+React does not import CLI TypeScript directly and the desktop does not expose a generic terminal. Settings → CLI & Project Actions sends typed requests to Tauri, Rust maps each action to fixed CLI argv, and mutating actions run a `--dry-run --json` preview before requiring confirmation.
+
 ---
 
 ## How injection works
@@ -933,6 +944,8 @@ If a plugin is already installed, `feather plugin install` skips it and continue
 | Option                 | Description                                                   |
 | ---------------------- | ------------------------------------------------------------- |
 | `--force`              | Overwrite already-installed plugins without prompting.        |
+| `--dry-run`            | Show planned changes without writing files when supported.    |
+| `--json`               | Emit machine-readable summaries for desktop/automation use.   |
 | `--remote`             | Download from GitHub instead of the local/bundled runtime.    |
 | `--branch <branch>`    | GitHub branch or tag when using `--remote` (default: `main`). |
 | `--local-src <path>`   | Copy from a local `src-lua` style directory.                  |
@@ -987,6 +1000,8 @@ feather config plugins --include console --exclude runtime-snapshot --dir path/t
 | `--include <ids>` | Comma-separated plugin IDs to add to `include`.         |
 | `--exclude <ids>` | Comma-separated plugin IDs to add to `exclude`.         |
 | `--dir <path>`    | Project directory (default: current directory).         |
+| `--dry-run`       | Report planned config changes without writing files.    |
+| `--json`          | Emit a machine-readable summary.                        |
 
 #### `feather config hot-reload`
 

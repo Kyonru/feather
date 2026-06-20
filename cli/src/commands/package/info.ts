@@ -1,13 +1,15 @@
 import { readCompatibleLockfile } from '../../lib/package/compat.js';
 import { fail } from '../../lib/command.js';
-import { printBlank, printLine, printMuted, style } from '../../lib/output.js';
+import { printBlank, printJson, printLine, printMuted, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
+import { packageCatalogJson, packageLockJson } from './json.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageInfoOptions = {
   offline?: boolean;
   dir?: string;
   registryUrl?: string;
+  json?: boolean;
 };
 
 export async function packageInfoCommand(name: string, opts: PackageInfoOptions = {}): Promise<void> {
@@ -23,6 +25,18 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   }
 
   const installed = lockfile.packages[name];
+  if (opts.json) {
+    printJson({
+      projectDir,
+      package: packageCatalogJson(name, entry, installed),
+      installed: installed ? packageLockJson(name, installed) : null,
+      files: entry.install.files,
+      dependencyAliases: entry.dependencyAliases ?? [],
+      usage: entry.example ?? `local lib = require("${entry.require}")`,
+    });
+    return;
+  }
+
   printBlank();
   printLine(`${style.heading(name)}  ${trustBadge(entry.trust)}`);
   printMuted(entry.description);

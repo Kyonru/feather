@@ -1,6 +1,6 @@
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readCompatibleLockfile } from '../../lib/package/compat.js';
-import { installFromUrl, restorePackage } from '../../lib/package/install.js';
+import { installFromUrl, installPackage, restorePackage } from '../../lib/package/install.js';
 import { writeLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntryRequiresUntrustedRepair, lockfileEntrySourceSummary } from '../../lib/package/provenance.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
@@ -14,6 +14,7 @@ import {
   icon,
   printBlank,
   printDanger,
+  printJson,
   printKeyValues,
   printLine,
   printMuted,
@@ -25,6 +26,7 @@ import {
 import { trustBadge } from '../../lib/trust.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { showInstallProgress } from '../../ui/package/index.js';
+import { resolvedPackageJson } from './json.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageInstallOptions = {
@@ -41,6 +43,7 @@ export type PackageInstallOptions = {
   offline?: boolean;
   yes?: boolean;
   registryUrl?: string;
+  json?: boolean;
 };
 
 export async function packageInstallCommand(names: string[], opts: PackageInstallOptions = {}): Promise<void> {
@@ -114,6 +117,22 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     if (!result.ok) {
       spinner.fail(result.error ?? 'Install failed');
       fail(result.error ?? 'Install failed', { silent: true });
+    }
+
+    if (opts.json) {
+      spinner.stop();
+      printJson({
+        projectDir,
+        dryRun: opts.dryRun === true,
+        fromUrl: opts.fromUrl,
+        target: result.target,
+        sha256: result.sha256,
+        size: result.size,
+        installed: opts.dryRun ? [] : [{ url: opts.fromUrl, target: result.target }],
+        planned: [{ url: opts.fromUrl, target: result.target }],
+      });
+      if (!opts.dryRun) writeLockfile(projectDir, lockfile);
+      return;
     }
 
     if (opts.dryRun) {
@@ -233,13 +252,31 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
         && pkg.entry.install.licenses?.length
         && existing.files.filter((file) => file.role === 'license').length < pkg.entry.install.licenses.length
       ) return true;
-      printMuted(`  ${pkg.id} is already installed at ${existing.version}`);
+      if (!opts.json) printMuted(`  ${pkg.id} is already installed at ${existing.version}`);
       return false;
     }
     return true;
   });
 
-  if (toInstall.length === 0) return;
+  const skipped = resolved.filter((pkg) => !toInstall.includes(pkg));
+
+  if (toInstall.length === 0) {
+    if (opts.json) {
+      printJson({
+        projectDir,
+        dryRun: opts.dryRun === true,
+        requested: names,
+        installed: [],
+        planned: [],
+        skipped: skipped.map((pkg) => ({
+          id: pkg.id,
+          reason: 'already-installed',
+          version: lockfile.packages[pkg.id]?.version,
+        })),
+      });
+    }
+    return;
+  }
 
   for (const pkg of toInstall) {
     if (pkg.entry.install.layout === 'fixed' && opts.flatDir) {
@@ -265,6 +302,62 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     if (pkg.entry.install.layout === 'fixed' && opts.installDir) {
       printWarning(`${pkg.id} has fixed runtime paths; --install-dir is ignored for this package.`);
     }
+  }
+
+  if (opts.json) {
+    const planned = toInstall.map((pkg) =>
+      resolvedPackageJson(pkg, lockfile, {
+        targetOverride: opts.flatDir,
+        installDir: opts.installDir,
+        includeLicenses,
+      }),
+    );
+    if (opts.dryRun) {
+      printJson({
+        projectDir,
+        dryRun: true,
+        requested: names,
+        installed: [],
+        planned,
+        skipped: skipped.map((pkg) => ({
+          id: pkg.id,
+          reason: 'already-installed',
+          version: lockfile.packages[pkg.id]?.version,
+        })),
+      });
+      return;
+    }
+
+    const results = [];
+    for (const pkg of toInstall) {
+      results.push(
+        await installPackage(pkg, lockfile, {
+          projectDir,
+          targetOverride: opts.flatDir,
+          installDir: opts.installDir,
+          saveInstallDir: opts.saveInstallDir,
+          includeLicenses,
+        }),
+      );
+    }
+    if (results.every((result) => result.ok)) {
+      writeLockfile(projectDir, lockfile);
+    }
+    printJson({
+      projectDir,
+      dryRun: false,
+      requested: names,
+      installed: results.filter((result) => result.ok),
+      failed: results.filter((result) => !result.ok),
+      planned,
+      skipped: skipped.map((pkg) => ({
+        id: pkg.id,
+        reason: 'already-installed',
+        version: lockfile.packages[pkg.id]?.version,
+      })),
+    });
+    if (results.some((result) => !result.ok)) fail('', { silent: true });
+    return;
   }
 
   if (opts.dryRun) {

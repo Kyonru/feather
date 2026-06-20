@@ -64,6 +64,8 @@ Actions that need a live session or enabled plugin stay visible but disabled wit
 
 Settings is organized into **Connection**, **General**, **Security**, and **CLI** areas. Each area shows a short summary at the top, and changes are saved as soon as you make them.
 
+Open **Settings → CLI** for CLI & Project Actions. The desktop resolves the configured CLI path first, then the bundled sidecar, then `PATH`/common npm bin locations. Project actions such as Doctor, build vendor setup, package install/remove, plugin include/exclude, skills install, and CLI-managed init run through a Tauri allowlist instead of a generic terminal. Mutating actions use dry-run previews and require confirmation before writing files.
+
 Open **Settings → General → Appearance** to choose the app theme. Feather keeps the default **System**, **Feather Light**, and **Feather Dark** options, and also includes all Noctis variants: Lux, Hibernus, Lilac, Noctis, Azureus, Bordo, Obscuro, Sereno, Uva, Viola, and Minimus. Tokyo Night variants are available as Light, Night, and Storm, Rainglow includes a curated selection grouped into Light, Dark, and Contrast options, GitHub includes Light Default, Light High Contrast, Light Colorblind, Dark Default, Dark High Contrast, Dark Colorblind, Dark Dimmed, and classic Light, and the Microsoft Visual Studio C/C++ set includes Light, Dark, 2017 Light, and 2017 Dark.
 
 Theme choices update the app chrome and syntax-highlighted code surfaces, including Console output, Debugger source views, shader code, and Lua/GLSL editors.

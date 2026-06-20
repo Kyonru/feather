@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev:tauri",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run prepare:tauri-cli-sidecar && npm run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -36,6 +36,9 @@
       "icons/icon.ico"
     ],
     "macOS": {
-    }
+    },
+    "externalBin": [
+      "binaries/feather-cli"
+    ]
   }
 }

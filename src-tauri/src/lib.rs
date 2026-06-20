@@ -1,3 +1,4 @@
+mod cli_actions;
 mod cli_status;
 mod mcp_bridge;
 mod ws_server;
@@ -74,14 +75,17 @@ pub fn run() {
     let sessions: Sessions = Arc::new(Mutex::new(HashMap::new()));
     let app_id: AppId = Arc::new(Mutex::new(String::new()));
     let mcp_bridge = mcp_bridge::new_state(sessions.clone(), app_id.clone());
+    let cli_actions = cli_actions::CliActionState::default();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_shell::init())
         .manage(sessions.clone())
         .manage(app_id.clone())
         .manage(mcp_bridge.clone())
+        .manage(cli_actions)
         .setup(move |app| {
             let handle = app.handle().clone();
             mcp_bridge.set_app_handle(handle.clone());
@@ -93,7 +97,13 @@ pub fn run() {
                 .ok()
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(4005);
-            ws_server::start(handle, port, sessions.clone(), app_id.clone(), mcp_bridge.clone());
+            ws_server::start(
+                handle,
+                port,
+                sessions.clone(),
+                app_id.clone(),
+                mcp_bridge.clone(),
+            );
             mcp_bridge::start(mcp_bridge.clone(), mcp_port);
             Ok(())
         })
@@ -108,6 +118,9 @@ pub fn run() {
             mcp_bridge::set_mcp_api_keys,
             mcp_bridge::set_mcp_creative_snapshot,
             mcp_bridge::resolve_mcp_creative_request,
+            cli_actions::start_cli_job,
+            cli_actions::get_cli_job,
+            cli_actions::cancel_cli_job,
             get_local_ips,
             get_cli_status,
             get_cli_project_status,

@@ -159,6 +159,7 @@ export function createProgram(): Command {
     .option('--app-id <id>', 'Desktop App ID allowed to send commands to this game')
     .option('--mode <mode>', 'Setup mode: cli, auto, or manual', parseInitMode)
     .option('-y, --yes', 'Skip confirmation prompts')
+    .option('--json', 'Output machine-readable JSON')
     .option(
       '--allow-insecure-connection',
       'Set __DANGEROUS_INSECURE_CONNECTION__ in feather.config.lua (required with --yes if appId is not configured)',
@@ -175,6 +176,7 @@ export function createProgram(): Command {
           hotReloadAllow: parseCommaList(opts.hotReloadAllow as string | undefined),
           mode: opts.mode as InitMode | undefined,
           yes: opts.yes as boolean,
+          json: opts.json as boolean | undefined,
           allowInsecureConnection: opts.allowInsecureConnection as boolean | undefined,
           appId: opts.appId as string | undefined,
           sessionName: opts.sessionName as string | undefined,
@@ -347,12 +349,16 @@ export function createProgram(): Command {
     .option('--dir <path>', 'Project directory (default: current directory)')
     .option('--include <ids>', 'Comma-separated plugin IDs to include and enable')
     .option('--exclude <ids>', 'Comma-separated plugin IDs to exclude')
+    .option('--dry-run', 'Show planned config changes without writing files')
+    .option('--json', 'Output machine-readable JSON')
     .action((opts) =>
       runCliAction(() =>
         configPluginsCommand({
           dir: opts.dir as string | undefined,
           include: opts.include as string | undefined,
           exclude: opts.exclude as string | undefined,
+          dryRun: opts.dryRun as boolean | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );
@@ -669,6 +675,7 @@ export function createProgram(): Command {
     .description('List installed plugins')
     .option('--install-dir <path>', 'Feather install directory', 'feather')
     .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
+    .option('--json', 'Output machine-readable JSON')
     .action((dir: string | undefined, opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
@@ -676,6 +683,7 @@ export function createProgram(): Command {
           dir ?? (merged.dir as string | undefined),
           merged.installDir as string,
           merged.managed as string | undefined,
+          { json: merged.json as boolean | undefined },
         );
       }),
     );
@@ -690,6 +698,8 @@ export function createProgram(): Command {
     .option('--install-dir <path>', 'Feather install directory', 'feather')
     .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
     .option('--force', 'Overwrite already-installed plugins without prompting')
+    .option('--dry-run', 'Show planned plugin changes without writing files when supported')
+    .option('--json', 'Output machine-readable JSON')
     .action((ids: string[], opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
@@ -701,6 +711,8 @@ export function createProgram(): Command {
           localSrc: merged.localSrc as string | undefined,
           managed: merged.managed as string | undefined,
           force: merged.force as boolean | undefined,
+          dryRun: merged.dryRun as boolean | undefined,
+          json: merged.json as boolean | undefined,
         });
       }),
     );
@@ -712,6 +724,8 @@ export function createProgram(): Command {
     .option('--install-dir <path>', 'Feather install directory', 'feather')
     .option('-y, --yes', 'Skip interactive confirmation')
     .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
+    .option('--dry-run', 'Show planned plugin removal without deleting files')
+    .option('--json', 'Output machine-readable JSON')
     .action((id: string, opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
@@ -720,6 +734,8 @@ export function createProgram(): Command {
           installDir: merged.installDir as string,
           yes: merged.yes as boolean | undefined,
           managed: merged.managed as string | undefined,
+          dryRun: merged.dryRun as boolean | undefined,
+          json: merged.json as boolean | undefined,
         });
       }),
     );
@@ -734,6 +750,8 @@ export function createProgram(): Command {
     .option('--install-dir <path>', 'Feather install directory', 'feather')
     .option('-y, --yes', 'Skip interactive selection and update all installed plugins when no id is given')
     .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
+    .option('--dry-run', 'Show planned plugin updates without writing files')
+    .option('--json', 'Output machine-readable JSON')
     .action((id: string | undefined, opts) =>
       runCliAction(() => {
         const merged = pluginCommandOptions(opts);
@@ -745,6 +763,8 @@ export function createProgram(): Command {
           localSrc: merged.localSrc as string | undefined,
           yes: merged.yes as boolean | undefined,
           managed: merged.managed as string | undefined,
+          dryRun: merged.dryRun as boolean | undefined,
+          json: merged.json as boolean | undefined,
         });
       }),
     );
@@ -779,6 +799,7 @@ export function createProgram(): Command {
     .option('--refresh', 'Force a fresh registry fetch ignoring cache')
     .option('--dir <path>', 'Project directory')
     .option('--registry <url>', 'Override registry URL')
+    .option('--json', 'Output machine-readable JSON')
     .action((opts) =>
       runCliAction(() =>
         packageListCommand({
@@ -787,6 +808,7 @@ export function createProgram(): Command {
           refresh: opts.refresh as boolean | undefined,
           dir: opts.dir as string | undefined,
           registryUrl: opts.registry as string | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );
@@ -797,12 +819,14 @@ export function createProgram(): Command {
     .option('--offline', 'Use bundled registry snapshot')
     .option('--dir <path>', 'Project directory')
     .option('--registry <url>', 'Override registry URL')
+    .option('--json', 'Output machine-readable JSON')
     .action((name: string, opts) =>
       runCliAction(() =>
         packageInfoCommand(name, {
           offline: opts.offline as boolean | undefined,
           dir: opts.dir as string | undefined,
           registryUrl: opts.registry as string | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );
@@ -824,6 +848,7 @@ export function createProgram(): Command {
     .option('--dir <path>', 'Project directory')
     .option('-y, --yes', 'Skip confirmation prompts')
     .option('--registry <url>', 'Override registry URL')
+    .option('--json', 'Output machine-readable JSON')
     .action((names: string[], opts) =>
       runCliAction(() =>
         packageInstallCommand(names, {
@@ -840,6 +865,7 @@ export function createProgram(): Command {
           dir: opts.dir as string | undefined,
           yes: opts.yes as boolean | undefined,
           registryUrl: opts.registry as string | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );
@@ -851,6 +877,7 @@ export function createProgram(): Command {
     .option('--offline', 'Use bundled registry snapshot')
     .option('--dir <path>', 'Project directory')
     .option('--registry <url>', 'Override registry URL')
+    .option('--json', 'Output machine-readable JSON')
     .action((name: string | undefined, opts) =>
       runCliAction(() =>
         packageUpdateCommand(name, {
@@ -858,6 +885,7 @@ export function createProgram(): Command {
           offline: opts.offline as boolean | undefined,
           dir: opts.dir as string | undefined,
           registryUrl: opts.registry as string | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );
@@ -867,11 +895,13 @@ export function createProgram(): Command {
     .description('Remove an installed package')
     .option('--dir <path>', 'Project directory')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--json', 'Output machine-readable JSON')
     .action((name: string, opts) =>
       runCliAction(() =>
         packageRemoveCommand(name, {
           dir: opts.dir as string | undefined,
           yes: opts.yes as boolean | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );

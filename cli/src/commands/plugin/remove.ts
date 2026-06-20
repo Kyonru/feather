@@ -2,16 +2,17 @@ import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fail } from '../../lib/command.js';
 import { normalizeInstallDir } from '../../lib/install.js';
-import { icon, printLine, printMuted } from '../../lib/output.js';
+import { icon, printJson, printLine, printMuted } from '../../lib/output.js';
 import { assertSafeProjectTarget } from '../../lib/path-safety.js';
 import { pluginIdToSourceDir } from '../../lib/plugin-utils.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { configPluginsCommand } from '../config.js';
+import { pluginSummaryJson } from './json.js';
 import { resolveManaged, resolvePluginProjectDir } from './shared.js';
 
 export async function pluginRemoveCommand(
   pluginId: string,
-  opts: { dir?: string; installDir?: string; yes?: boolean; managed?: string },
+  opts: { dir?: string; installDir?: string; yes?: boolean; managed?: string; dryRun?: boolean; json?: boolean },
 ): Promise<void> {
   const projectDir = resolvePluginProjectDir(opts.dir);
   const installDir = normalizeInstallDir(opts.installDir);
@@ -33,7 +34,7 @@ export async function pluginRemoveCommand(
         return;
       }
     }
-    await configPluginsCommand({ dir: projectDir, exclude: pluginId });
+    await configPluginsCommand({ dir: projectDir, exclude: pluginId, dryRun: opts.dryRun, json: opts.json });
     return;
   }
 
@@ -70,6 +71,15 @@ export async function pluginRemoveCommand(
     }
   }
 
-  rmSync(pluginDir, { recursive: true, force: true });
+  if (!opts.dryRun) rmSync(pluginDir, { recursive: true, force: true });
+  if (opts.json) {
+    printJson({
+      projectDir,
+      dryRun: opts.dryRun === true,
+      removed: pluginSummaryJson(pluginId),
+      target: pluginDir,
+    });
+    return;
+  }
   printLine(`${icon.success} Removed ${pluginId}`);
 }

@@ -2092,6 +2092,231 @@ test('settings exposes MCP access controls with browser fallback state', async (
   await expect(page.getByText('Unavailable')).toBeVisible();
 });
 
+test('settings CLI project actions use the Tauri job bridge with previews, confirmation, failures, and cancellation', async ({
+  page,
+}) => {
+  await seedNoSession(page);
+  await page.addInitScript(() => {
+    type EventCallback = (event: { id: number; event: string; payload: unknown }) => void;
+    type CliJob = {
+      id: string;
+      kind: string;
+      status: string;
+      commandPreview: string;
+      projectDir: string;
+      startedAt: string;
+      endedAt?: string;
+      exitCode?: number;
+      stdoutTail: string;
+      stderrTail: string;
+      json?: unknown;
+      error?: string;
+    };
+
+    localStorage.setItem(
+      'settings-storage',
+      JSON.stringify({
+        state: {
+          cliProjectDir: '/tmp/feather-cli-project',
+        },
+        version: 0,
+      }),
+    );
+
+    const callbacks = new Map<number, EventCallback>();
+    const listeners = new Map<string, Map<number, number>>();
+    const requests: Array<Record<string, unknown>> = [];
+    const jobs = new Map<string, CliJob>();
+    let nextCallbackId = 1;
+    let nextEventId = 1;
+    let nextJobId = 1;
+
+    window.confirm = () => true;
+
+    const cli = {
+      installed: true,
+      path: '/Applications/Feather.app/Contents/MacOS/feather-cli',
+      version: '3.3.1',
+      source: 'bundled',
+      nodeVersion: 'v24.0.0',
+      npmVersion: '11.0.0',
+      error: null,
+      installDocsUrl: 'https://kyonru.github.io/feather/installation/',
+      cliDocsUrl: 'https://kyonru.github.io/feather/cli/',
+    };
+
+    const emitTauriEvent = (event: string, payload: unknown) => {
+      const eventListeners = listeners.get(event);
+      if (!eventListeners) return;
+      for (const [eventId, callbackId] of eventListeners.entries()) {
+        callbacks.get(callbackId)?.({ id: eventId, event, payload });
+      }
+    };
+
+    const updateJob = (job: CliJob) => {
+      jobs.set(job.id, job);
+      emitTauriEvent('feather://cli-job', job);
+    };
+
+    const makeJob = (request: Record<string, unknown>): CliJob => {
+      const kind = String(request.kind ?? 'doctor');
+      const projectDir = String(request.projectDir ?? '/tmp/feather-cli-project');
+      const id = `job-${nextJobId++}`;
+      return {
+        id,
+        kind,
+        status: 'running',
+        commandPreview: `feather ${kind} --json`,
+        projectDir,
+        startedAt: String(Date.now()),
+        stdoutTail: '',
+        stderrTail: '',
+      };
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+      unregisterListener(event: string, eventId: number) {
+        listeners.get(event)?.delete(eventId);
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__TAURI_INTERNALS__ = {
+      transformCallback(callback: EventCallback) {
+        const id = nextCallbackId;
+        nextCallbackId += 1;
+        callbacks.set(id, callback);
+        return id;
+      },
+      unregisterCallback(id: number) {
+        callbacks.delete(id);
+      },
+      invoke(cmd: string, args: Record<string, unknown> = {}) {
+        if (cmd === 'plugin:event|listen') {
+          const event = String(args.event ?? '');
+          const handler = Number(args.handler);
+          const eventId = nextEventId;
+          nextEventId += 1;
+          const eventListeners = listeners.get(event) ?? new Map<number, number>();
+          eventListeners.set(eventId, handler);
+          listeners.set(event, eventListeners);
+          return Promise.resolve(eventId);
+        }
+        if (cmd === 'plugin:event|unlisten') {
+          const event = String(args.event ?? '');
+          const eventId = Number(args.eventId);
+          listeners.get(event)?.delete(eventId);
+          return Promise.resolve();
+        }
+        if (cmd === 'get_cli_status') return Promise.resolve(cli);
+        if (cmd === 'get_local_ips') return Promise.resolve([]);
+        if (cmd === 'get_cli_project_status') {
+          return Promise.resolve({
+            cli,
+            projectDir: '/tmp/feather-cli-project',
+            doctor: { warnings: 1, failures: 0, checks: [{ severity: 'warn', group: 'Runtime', label: 'Config', detail: 'Needs review' }] },
+            buildDoctor: { warnings: 0, failures: 0, checks: [] },
+            vendors: { vendors: [{ target: 'web', valid: false, exists: false }] },
+            errors: [],
+          });
+        }
+        if (cmd === 'start_cli_job') {
+          const request = (args.request ?? {}) as Record<string, unknown>;
+          requests.push(request);
+          const job = makeJob(request);
+          jobs.set(job.id, job);
+          if (request.kind === 'packageInstall') {
+            setTimeout(() => {
+              updateJob({
+                ...job,
+                status: 'succeeded',
+                endedAt: String(Date.now()),
+                exitCode: 0,
+                json: { dryRun: request.dryRun === true, installed: request.dryRun ? [] : [{ id: 'anim8' }] },
+              });
+            }, 0);
+          } else if (request.kind === 'doctor') {
+            setTimeout(() => {
+              updateJob({
+                ...job,
+                status: 'failed',
+                endedAt: String(Date.now()),
+                exitCode: 1,
+                stderrTail: 'doctor failed',
+                error: 'Doctor failed',
+              });
+            }, 0);
+          }
+          return Promise.resolve(job);
+        }
+        if (cmd === 'cancel_cli_job') {
+          const jobId = String(args.jobId ?? '');
+          const job = jobs.get(jobId);
+          const cancelled: CliJob = {
+            ...(job ?? makeJob({ kind: 'skillsInstall' })),
+            id: jobId,
+            status: 'cancelled',
+            endedAt: String(Date.now()),
+            error: 'CLI job cancelled.',
+          };
+          updateJob(cancelled);
+          return Promise.resolve(cancelled);
+        }
+        return Promise.resolve(null);
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_CLI_ACTION_E2E__ = { requests };
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
+  await page.getByRole('tab', { name: 'CLI' }).click();
+
+  await expect(page.getByRole('heading', { name: 'CLI Backend' })).toBeVisible();
+  await expect(page.getByText('CLI installed')).toBeVisible();
+  await expect(page.getByText('bundled')).toBeVisible();
+  await expect(page.getByLabel('Project Directory')).toHaveValue('/tmp/feather-cli-project');
+  await expect(page.getByText('Build Vendors', { exact: true })).toBeVisible();
+  await expect(page.getByText('web')).toBeVisible();
+
+  const packages = page.getByTestId('cli-action-card-packages');
+  const jobsPanel = page.getByTestId('cli-jobs-panel');
+  await packages.locator('input').first().fill('anim8');
+  await packages.getByRole('button', { name: 'Plan' }).click();
+  await expect(jobsPanel.getByText('succeeded')).toBeVisible();
+  await jobsPanel.locator('details').first().evaluate((details) => {
+    (details as HTMLDetailsElement).open = true;
+  });
+  await expect(jobsPanel.locator('pre').first()).toContainText('"dryRun": true');
+
+  await packages.getByRole('button', { name: 'Install' }).click();
+  await jobsPanel.locator('details').first().evaluate((details) => {
+    (details as HTMLDetailsElement).open = true;
+  });
+  await expect(jobsPanel.locator('pre').first()).toContainText('"id": "anim8"');
+
+  await page.getByTestId('cli-action-card-health').getByRole('button', { name: 'Doctor' }).click();
+  await expect(jobsPanel.getByText('Doctor failed', { exact: true })).toBeVisible();
+
+  await page.getByTestId('cli-action-card-plugins-skills').getByRole('button', { name: 'Skill Plan' }).click();
+  await expect(jobsPanel.getByText('running', { exact: true })).toBeVisible();
+  await jobsPanel.getByRole('button', { name: 'Cancel' }).click();
+  await expect(jobsPanel.getByText('cancelled', { exact: true })).toBeVisible();
+
+  const requests = await page.evaluate(
+    () => (window as unknown as { __FEATHER_CLI_ACTION_E2E__?: { requests: Array<Record<string, unknown>> } }).__FEATHER_CLI_ACTION_E2E__?.requests ?? [],
+  );
+  expect(requests).toContainEqual(
+    expect.objectContaining({ kind: 'packageInstall', projectDir: '/tmp/feather-cli-project', dryRun: true }),
+  );
+  expect(requests).toContainEqual(
+    expect.objectContaining({ kind: 'packageInstall', projectDir: '/tmp/feather-cli-project', confirmed: true }),
+  );
+});
+
 test('persists expanded theme variants and can return to system mode', async ({ page }) => {
   await seedNoSession(page);
   await page.goto('/');

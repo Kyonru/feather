@@ -14,6 +14,8 @@ export type PluginSourceOptions = {
   localSrc?: string;
   managed?: string;
   force?: boolean;
+  dryRun?: boolean;
+  json?: boolean;
 };
 
 /**

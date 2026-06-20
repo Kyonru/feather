@@ -67,6 +67,23 @@ test('config plugins: exclude removes included plugin and writes exclude list', 
   assert.match(config, /capabilities\s*=\s*\{\s*"filesystem",\s*"input"\s*\}/);
 });
 
+test('config plugins --dry-run --json: reports planned changes without mutating config', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const original = 'return { include = { "shader-graph" }, capabilities = { "draw" } }\n';
+  writeFileSync(join(dir, 'feather.config.lua'), original);
+
+  const result = run(['config', 'plugins', '--dir', dir, '--include', 'console', '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.projectDir, dir);
+  assert.equal(payload.dryRun, true);
+  assert.deepEqual(payload.requested.include, ['console']);
+  assert.deepEqual(payload.include, ['console', 'shader-graph']);
+  assert.ok(payload.capabilities.includes('filesystem'));
+  assert.equal(readFileSync(join(dir, 'feather.config.lua'), 'utf8'), original);
+});
+
 test('config plugins: missing config fails with init guidance', () => {
   const dir = makeTmp();
   writeGame(dir);

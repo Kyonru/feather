@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { Button, CopyButton } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +58,7 @@ import {
   NetworkIcon,
   PaletteIcon,
   RefreshCwIcon,
+  SquareIcon,
   Settings2Icon,
   ShieldIcon,
   SmartphoneIcon,
@@ -118,6 +120,47 @@ type CliProjectStatus = {
   buildDoctor?: DoctorResult | null;
   vendors?: VendorResult | null;
   errors: string[];
+};
+
+type CliActionKind =
+  | 'doctor'
+  | 'buildVendorList'
+  | 'buildVendorAdd'
+  | 'skillsList'
+  | 'skillsInstall'
+  | 'packageList'
+  | 'packageInstall'
+  | 'packageRemove'
+  | 'packageAudit'
+  | 'pluginList'
+  | 'pluginInstall'
+  | 'init'
+  | 'configPlugins';
+
+type CliJobStatus = 'running' | 'succeeded' | 'failed' | 'cancelled';
+
+type CliJobSnapshot = {
+  id: string;
+  kind: CliActionKind;
+  status: CliJobStatus;
+  commandPreview: string;
+  projectDir?: string | null;
+  startedAt: string;
+  endedAt?: string | null;
+  exitCode?: number | null;
+  stdoutTail: string;
+  stderrTail: string;
+  json?: unknown;
+  error?: string | null;
+};
+
+type CliActionRequest = {
+  kind: CliActionKind;
+  projectDir?: string;
+  cliPath?: string;
+  options?: Record<string, unknown>;
+  dryRun?: boolean;
+  confirmed?: boolean;
 };
 
 type McpBridgeSettings = {
@@ -986,6 +1029,79 @@ function SeverityBadge({ severity }: { severity: DoctorCheck['severity'] }) {
   );
 }
 
+function cliJobTone(status: CliJobStatus): string {
+  if (status === 'succeeded') return 'border-emerald-500 text-emerald-600';
+  if (status === 'failed') return 'border-red-500 text-red-600';
+  if (status === 'cancelled') return 'border-amber-500 text-amber-600';
+  return 'text-muted-foreground';
+}
+
+function CliActionCard({
+  title,
+  description,
+  testId,
+  children,
+}: {
+  title: string;
+  description: string;
+  testId?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid gap-2 rounded border p-3" data-testid={testId}>
+      <div className="grid gap-0.5">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+function CliJobsPanel({
+  jobs,
+  onCancel,
+}: {
+  jobs: CliJobSnapshot[];
+  onCancel: (jobId: string) => void;
+}) {
+  if (jobs.length === 0) {
+    return <p className="text-xs text-muted-foreground">No CLI jobs run from this window yet.</p>;
+  }
+
+  return (
+    <div className="grid gap-2" data-testid="cli-jobs-panel">
+      {jobs.slice(0, 5).map((job) => (
+        <div key={job.id} className="grid gap-1 rounded border p-2 text-xs">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={`h-5 px-1.5 font-mono text-[10px] uppercase ${cliJobTone(job.status)}`}>
+              {job.status}
+            </Badge>
+            <span className="font-medium">{job.kind}</span>
+            {job.status === 'running' && (
+              <Button type="button" variant="ghost" size="sm" className="ml-auto h-6 px-2" onClick={() => onCancel(job.id)}>
+                <SquareIcon className="size-3" />
+                Cancel
+              </Button>
+            )}
+          </div>
+          <code className="truncate rounded bg-muted px-1.5 py-1 font-mono text-[11px]">{job.commandPreview}</code>
+          {job.error && <p className="text-red-600">{job.error}</p>}
+          {job.stderrTail && <p className="line-clamp-2 text-muted-foreground">{job.stderrTail}</p>}
+          {job.json !== undefined && (
+            <details>
+              <summary className="cursor-pointer text-muted-foreground">JSON result</summary>
+              <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted p-2 text-[10px]">
+                {JSON.stringify(job.json, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CliStatusPanel() {
   const cliPath = useSettingsStore((state) => state.cliPath);
   const setCliPath = useSettingsStore((state) => state.setCliPath);
@@ -995,6 +1111,12 @@ function CliStatusPanel() {
   const [status, setStatus] = useState<CliStatus | null>(null);
   const [projectStatus, setProjectStatus] = useState<CliProjectStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [jobs, setJobs] = useState<CliJobSnapshot[]>([]);
+  const [packageNames, setPackageNames] = useState('');
+  const [removePackageName, setRemovePackageName] = useState('');
+  const [pluginIncludeIds, setPluginIncludeIds] = useState('');
+  const [pluginExcludeIds, setPluginExcludeIds] = useState('');
+  const [skillIds, setSkillIds] = useState('feather-project-context,feather-mcp-live-sessions');
 
   const projectDir = cliProjectDir || sourceDir;
   const doctorChecks = projectStatus?.doctor?.checks ?? [];
@@ -1033,11 +1155,69 @@ function CliStatusPanel() {
     refresh();
   }, []);
 
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    listen<CliJobSnapshot>('feather://cli-job', (event) => {
+      if (disposed) return;
+      setJobs((current) => [event.payload, ...current.filter((job) => job.id !== event.payload.id)].slice(0, 20));
+    })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unlisten = cleanup;
+      })
+      .catch(() => undefined);
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
+
   const chooseProjectDir = async () => {
     const selected = await openFolderDialog({ directory: true, multiple: false });
     if (typeof selected === 'string') {
       setCliProjectDir(selected);
       setProjectStatus(null);
+    }
+  };
+
+  const splitIds = (value: string) =>
+    value
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+  const startJob = async (request: Omit<CliActionRequest, 'cliPath' | 'projectDir'> & { projectDir?: string }) => {
+    const requestProjectDir = request.projectDir ?? projectDir;
+    if (request.kind !== 'skillsList' && !requestProjectDir) {
+      toast.error('Choose a project directory before running CLI project actions.', { position: 'bottom-center' });
+      return;
+    }
+    try {
+      const job = await invoke<CliJobSnapshot>('start_cli_job', {
+        request: {
+          ...request,
+          projectDir: requestProjectDir || undefined,
+          cliPath: cliPath || undefined,
+        },
+      });
+      setJobs((current) => [job, ...current.filter((item) => item.id !== job.id)].slice(0, 20));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error), { position: 'bottom-center' });
+    }
+  };
+
+  const confirmAndStart = (message: string, request: Omit<CliActionRequest, 'cliPath' | 'projectDir'>) => {
+    if (!window.confirm(message)) return;
+    void startJob({ ...request, confirmed: true });
+  };
+
+  const cancelJob = async (jobId: string) => {
+    try {
+      const job = await invoke<CliJobSnapshot>('cancel_cli_job', { jobId });
+      setJobs((current) => [job, ...current.filter((item) => item.id !== job.id)].slice(0, 20));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error), { position: 'bottom-center' });
     }
   };
 
@@ -1127,6 +1307,223 @@ function CliStatusPanel() {
         <FieldDescription>
           Used for read-only doctor and vendor checks. The active session source directory is used when this is empty.
         </FieldDescription>
+      </div>
+
+      <div className="grid gap-2">
+        <Label>CLI & Project Actions</Label>
+        <div className="grid gap-2 md:grid-cols-2">
+          <CliActionCard
+            title="Project health"
+            description="Run structured doctor, vendor, package, and plugin checks."
+            testId="cli-action-card-health"
+          >
+            <Button type="button" variant="outline" size="sm" onClick={() => void startJob({ kind: 'doctor' })}>
+              <RefreshCwIcon className="size-4" />
+              Doctor
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => void startJob({ kind: 'buildVendorList' })}>
+              <TerminalIcon className="size-4" />
+              Vendors
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => void startJob({ kind: 'packageAudit' })}>
+              <CheckCircle2Icon className="size-4" />
+              Audit
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void startJob({ kind: 'pluginList', options: { managed: 'cli' } })}
+            >
+              <CodeIcon className="size-4" />
+              Plugins
+            </Button>
+          </CliActionCard>
+
+          <CliActionCard
+            title="Initialize project"
+            description="Create CLI-managed Feather config through the CLI backend."
+            testId="cli-action-card-init"
+          >
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                confirmAndStart('Initialize this project with CLI-managed Feather config?', {
+                  kind: 'init',
+                  options: { mode: 'cli' },
+                })
+              }
+            >
+              <TerminalIcon className="size-4" />
+              Init CLI Mode
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void startJob({ kind: 'buildVendorAdd', dryRun: true, options: { targets: ['all'] } })}
+            >
+              <EyeIcon className="size-4" />
+              Vendor Plan
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                confirmAndStart('Install or refresh all configured build vendors?', {
+                  kind: 'buildVendorAdd',
+                  options: { targets: ['all'] },
+                })
+              }
+            >
+              <CheckCircle2Icon className="size-4" />
+              Add Vendors
+            </Button>
+          </CliActionCard>
+
+          <CliActionCard
+            title="Packages"
+            description="Install or remove catalog packages through project-local lockfiles."
+            testId="cli-action-card-packages"
+          >
+            <Input
+              value={packageNames}
+              placeholder="anim8,bump"
+              onChange={(event) => setPackageNames(event.target.value)}
+              className="h-8 min-w-44 flex-1 font-mono text-xs"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                void startJob({ kind: 'packageInstall', dryRun: true, options: { names: splitIds(packageNames), offline: true } })
+              }
+            >
+              <EyeIcon className="size-4" />
+              Plan
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                confirmAndStart('Install selected packages into this project?', {
+                  kind: 'packageInstall',
+                  options: { names: splitIds(packageNames), offline: true },
+                })
+              }
+            >
+              <CheckCircle2Icon className="size-4" />
+              Install
+            </Button>
+            <Input
+              value={removePackageName}
+              placeholder="package-to-remove"
+              onChange={(event) => setRemovePackageName(event.target.value)}
+              className="h-8 min-w-44 flex-1 font-mono text-xs"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                confirmAndStart('Remove this package and its installed files?', {
+                  kind: 'packageRemove',
+                  options: { name: removePackageName.trim() },
+                })
+              }
+            >
+              <XIcon className="size-4" />
+              Remove
+            </Button>
+          </CliActionCard>
+
+          <CliActionCard
+            title="Plugins and skills"
+            description="Update config includes/excludes and install local agent skills."
+            testId="cli-action-card-plugins-skills"
+          >
+            <Input
+              value={pluginIncludeIds}
+              placeholder="console,shader-graph"
+              onChange={(event) => setPluginIncludeIds(event.target.value)}
+              className="h-8 min-w-44 flex-1 font-mono text-xs"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                void startJob({
+                  kind: 'configPlugins',
+                  dryRun: true,
+                  options: { include: splitIds(pluginIncludeIds), exclude: splitIds(pluginExcludeIds) },
+                })
+              }
+            >
+              <EyeIcon className="size-4" />
+              Plugin Plan
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                confirmAndStart('Apply plugin include/exclude changes to feather.config.lua?', {
+                  kind: 'configPlugins',
+                  options: { include: splitIds(pluginIncludeIds), exclude: splitIds(pluginExcludeIds) },
+                })
+              }
+            >
+              <CheckCircle2Icon className="size-4" />
+              Apply
+            </Button>
+            <Input
+              value={pluginExcludeIds}
+              placeholder="plugins to exclude"
+              onChange={(event) => setPluginExcludeIds(event.target.value)}
+              className="h-8 min-w-44 flex-1 font-mono text-xs"
+            />
+            <Input
+              value={skillIds}
+              placeholder="feather-step-debugging,feather-qa-playtester"
+              onChange={(event) => setSkillIds(event.target.value)}
+              className="h-8 min-w-44 flex-1 font-mono text-xs"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void startJob({ kind: 'skillsInstall', dryRun: true, options: { ids: splitIds(skillIds) } })}
+            >
+              <EyeIcon className="size-4" />
+              Skill Plan
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                confirmAndStart('Install selected Feather skills into this project?', {
+                  kind: 'skillsInstall',
+                  options: { ids: splitIds(skillIds) },
+                })
+              }
+            >
+              <CheckCircle2Icon className="size-4" />
+              Install Skills
+            </Button>
+          </CliActionCard>
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        <Label>Recent CLI Jobs</Label>
+        <CliJobsPanel jobs={jobs} onCancel={(jobId) => void cancelJob(jobId)} />
       </div>
 
       {currentStatus && (
@@ -1365,12 +1762,12 @@ export function SettingsModal() {
 
             <SettingsTabContent
               value="cli"
-              title="CLI"
-              description="Check the detected CLI, inspect the current project, and jump to setup docs when needed."
+              title="CLI & Project Actions"
+              description="Run safe CLI-backed setup, package, plugin, vendor, and skills workflows through Tauri."
             >
               <Section
                 icon={TerminalIcon}
-                title="CLI Health"
+                title="CLI Backend"
                 description="Refresh reads local tool and project status."
               >
                 <CliStatusPanel />

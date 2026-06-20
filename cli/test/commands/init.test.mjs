@@ -121,6 +121,38 @@ test('init e2e: defaults to cli mode and creates config without embedding runtim
   }
 });
 
+test('init e2e: cli mode --json returns structured result without embedding runtime', () => {
+  const workspace = makeTmp();
+  const project = join(workspace, 'cli-json-game');
+
+  try {
+    writeE2eGame(project);
+
+    const result = run([
+      'init',
+      project,
+      '--mode',
+      'cli',
+      '--no-plugins',
+      '--yes',
+      '--allow-insecure-connection',
+      '--json',
+    ]);
+    assert.equal(result.exitCode, 0, outputOf(result));
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.projectDir, project);
+    assert.equal(payload.mode, 'cli');
+    assert.equal(payload.configCreated, true);
+    assert.deepEqual(payload.plugins, []);
+    assert.equal(existsSync(join(project, 'feather.config.lua')), true);
+    assert.equal(existsSync(join(project, 'feather')), false);
+  } finally {
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  }
+});
+
 test('init e2e: auto mode writes managed = "auto" as parseable Lua field', () => {
   const workspace = makeTmp();
   const project = join(workspace, 'auto-managed-game');

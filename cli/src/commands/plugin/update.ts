@@ -8,21 +8,31 @@ import {
   installPluginsFromLocal,
 } from '../../lib/install.js';
 import { fail } from '../../lib/command.js';
-import { createSpinner, printMuted } from '../../lib/output.js';
+import { createSpinner, printJson, printMuted } from '../../lib/output.js';
 import { resolveLocalLuaRoot } from '../../lib/paths.js';
 import { assertValidPluginId, pluginIdToSourceDir } from '../../lib/plugin-utils.js';
 import { choosePluginUpdateWorkflow } from '../../ui/plugin-workflow.js';
+import { pluginSummaryJson } from './json.js';
 import { getInstalledPluginIds, pluginsDir, resolveManaged, resolvePluginProjectDir, warnDangerousPlugin } from './shared.js';
 
 export async function pluginUpdateCommand(
   pluginId: string | undefined,
-  opts: { dir?: string; branch?: string; installDir?: string; remote?: boolean; localSrc?: string; yes?: boolean; managed?: string },
+  opts: { dir?: string; branch?: string; installDir?: string; remote?: boolean; localSrc?: string; yes?: boolean; managed?: string; dryRun?: boolean; json?: boolean },
 ): Promise<void> {
   const projectDir = resolvePluginProjectDir(opts.dir);
   const branch = opts.branch ?? 'main';
   const installDir = opts.installDir ?? 'feather';
 
   if (resolveManaged(projectDir, installDir, opts.managed) === 'cli') {
+    if (opts.json) {
+      printJson({
+        projectDir,
+        managed: 'cli',
+        updated: [],
+        skipped: [{ reason: 'cli-managed', detail: 'Update the Feather CLI to get latest bundled plugins.' }],
+      });
+      return;
+    }
     printMuted('CLI-managed project: plugins are bundled in the Feather CLI binary. Update the CLI to get the latest plugins.');
     return;
   }
@@ -75,27 +85,32 @@ export async function pluginUpdateCommand(
       fail(`Unknown plugin: ${pluginId}`, { details: ['Available: ' + available.join(', ')] });
     }
 
+    const updated: string[] = [];
     for (const id of ids) {
-      const s = createSpinner(`Updating ${id}…`).start();
+      const s = opts.json ? null : createSpinner(`Updating ${id}…`).start();
       try {
-        installPluginsFromLocal([id], sourceRoot, projectDir, installDir, undefined, true);
-        s.succeed(`Updated ${id}`);
-        warnDangerousPlugin(id);
+        if (!opts.dryRun) installPluginsFromLocal([id], sourceRoot, projectDir, installDir, undefined, true);
+        s?.succeed(`Updated ${id}`);
+        updated.push(id);
+        if (!opts.json) warnDangerousPlugin(id);
       } catch (err) {
-        s.fail(`${id}: ${(err as Error).message}`);
+        s?.fail(`${id}: ${(err as Error).message}`);
         if (pluginId) fail((err as Error).message, { cause: err, silent: true });
       }
+    }
+    if (opts.json) {
+      printJson({ projectDir, dryRun: opts.dryRun === true, updated: updated.map((id) => pluginSummaryJson(id)) });
     }
     return;
   }
 
-  const spinner = createSpinner('Fetching manifest…').start();
+  const spinner = opts.json ? null : createSpinner('Fetching manifest…').start();
   let entries: Awaited<ReturnType<typeof fetchManifest>>;
   try {
     entries = await fetchManifest(branch);
-    spinner.succeed('Manifest loaded');
+    spinner?.succeed('Manifest loaded');
   } catch (err) {
-    spinner.fail((err as Error).message);
+    spinner?.fail((err as Error).message);
     fail((err as Error).message, { cause: err, silent: true });
   }
 
@@ -103,15 +118,20 @@ export async function pluginUpdateCommand(
     existsSync(join(dirPath, id.replace(/\./g, '/')))
   );
 
+  const updated: string[] = [];
   for (const id of ids) {
-    const s = createSpinner(`Updating ${id}…`).start();
+    const s = opts.json ? null : createSpinner(`Updating ${id}…`).start();
     try {
-      await installPlugin(id, entries, projectDir, branch, undefined, installDir, true);
-      s.succeed(`Updated ${id}`);
-      warnDangerousPlugin(id);
+      if (!opts.dryRun) await installPlugin(id, entries, projectDir, branch, undefined, installDir, true);
+      s?.succeed(`Updated ${id}`);
+      updated.push(id);
+      if (!opts.json) warnDangerousPlugin(id);
     } catch (err) {
-      s.fail(`${id}: ${(err as Error).message}`);
+      s?.fail(`${id}: ${(err as Error).message}`);
       if (pluginId) fail((err as Error).message, { cause: err, silent: true });
     }
+  }
+  if (opts.json) {
+    printJson({ projectDir, dryRun: opts.dryRun === true, remote: true, updated: updated.map((id) => pluginSummaryJson(id)) });
   }
 }

@@ -5,13 +5,15 @@ import { loadConfig, luaValue, type FeatherConfig } from '../lib/config.js';
 import { assertSafeProjectTarget } from '../lib/path-safety.js';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { mergeCapabilities } from '../ui/init/config.js';
-import { icon, printLine } from '../lib/output.js';
+import { icon, printJson, printLine } from '../lib/output.js';
 import { findConfigDir } from '../lib/paths.js';
 
 export type ConfigPluginsOptions = {
   dir?: string;
   include?: string;
   exclude?: string;
+  dryRun?: boolean;
+  json?: boolean;
 };
 
 export type ConfigManagedOptions = {
@@ -225,7 +227,24 @@ export async function configPluginsCommand(opts: ConfigPluginsOptions = {}): Pro
   nextSource = upsertTopLevelValue(nextSource, 'exclude', config.exclude);
   nextSource = upsertTopLevelValue(nextSource, 'capabilities', config.capabilities);
 
-  writeFileSync(configPath, nextSource);
+  const result = {
+    projectDir,
+    configPath,
+    dryRun: opts.dryRun === true,
+    include: [...include].sort(),
+    exclude: [...exclude].sort(),
+    requested: {
+      include: includeIds,
+      exclude: excludeIds,
+    },
+    capabilities: Array.isArray(config.capabilities) ? config.capabilities : config.capabilities ?? null,
+  };
+
+  if (!opts.dryRun) writeFileSync(configPath, nextSource);
+  if (opts.json) {
+    printJson(result);
+    return;
+  }
   printLine(`${icon.success} Updated feather.config.lua plugin settings`);
 }
 

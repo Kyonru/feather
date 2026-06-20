@@ -168,6 +168,26 @@ test('list --installed: shows installed package with version', () => {
   assert.ok(stdout.includes('v2.3.1'));
 });
 
+test('list --json: returns catalog and installed package metadata', () => {
+  const dir = makeTmp();
+  writeLock(dir, {
+    anim8: {
+      version: 'v2.3.1',
+      trust: 'verified',
+      source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
+      files: [],
+      installedAt: '2026-01-01T00:00:00.000Z',
+    },
+  });
+
+  const result = run(['package', 'list', '--offline', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.projectDir, dir);
+  assert.equal(payload.installedOnly, false);
+  assert.ok(payload.packages.some((pkg) => pkg.id === 'anim8' && pkg.installedVersion === 'v2.3.1'));
+});
+
 test('info: shows package details for known package', () => {
   const dir = makeTmp();
   const { stdout, exitCode } = run(['package', 'info', 'anim8', '--offline', '--dir', dir]);
@@ -176,6 +196,15 @@ test('info: shows package details for known package', () => {
   assert.ok(stdout.includes('kikito/anim8'));
   assert.ok(stdout.includes('anim8.lua'));
   assert.ok(stdout.includes('lib/anim8.lua'));
+});
+
+test('info --json: returns package details without human output', () => {
+  const dir = makeTmp();
+  const result = run(['package', 'info', 'anim8', '--offline', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.package.id, 'anim8');
+  assert.ok(payload.files.some((file) => file.target === 'lib/anim8.lua'));
 });
 
 test('info: unknown package exits 1 with message', () => {
@@ -197,6 +226,45 @@ test('install: no names + empty lockfile prints hint', () => {
   const { stdout, exitCode } = run(['package', 'install', '--offline', '--dir', dir]);
   assert.equal(exitCode, 0);
   assert.ok(stdout.includes('empty'));
+});
+
+test('install --dry-run --json: reports planned files without writing', () => {
+  const dir = makeTmp();
+  const result = run(['package', 'install', 'anim8', '--offline', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.dryRun, true);
+  assert.equal(payload.planned[0].id, 'anim8');
+  assert.equal(existsSync(join(dir, 'lib', 'anim8.lua')), false);
+});
+
+test('remove --json: removes lockfile entry and reports deleted files', () => {
+  const dir = makeTmp();
+  writeLock(dir, {
+    anim8: {
+      version: 'v2.3.1',
+      trust: 'verified',
+      source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
+      files: [],
+      installedAt: '2026-01-01T00:00:00.000Z',
+    },
+  });
+
+  const result = run(['package', 'remove', 'anim8', '--dir', dir, '--yes', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.removed.id, 'anim8');
+  const lock = JSON.parse(readFileSync(join(dir, 'feather.lock.json'), 'utf8'));
+  assert.equal(lock.packages.anim8, undefined);
+});
+
+test('update --dry-run --json: reports empty update state for no installed packages', () => {
+  const dir = makeTmp();
+  const result = run(['package', 'update', '--offline', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.deepEqual(payload.updates, []);
+  assert.deepEqual(payload.installed, []);
 });
 
 test('install: no names + all verified skips restore', () => {

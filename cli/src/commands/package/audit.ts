@@ -26,6 +26,10 @@ export async function packageAuditCommand(opts: PackageAuditOptions = {}): Promi
 
   const entries = Object.values(lockfile.packages);
   if (entries.length === 0) {
+    if (opts.json) {
+      printJson([]);
+      return;
+    }
     printMuted('No packages installed.');
     return;
   }

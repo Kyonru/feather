@@ -39,6 +39,8 @@ feather doctor --security --json
 
 ## Commands
 
+Most package commands that the desktop app uses also support `--json` for stable automation output. Mutating commands support `--dry-run --json` where practical so Settings → CLI & Project Actions can show a preview before writing project files.
+
 ### `feather package search [query]`
 
 Search the catalog by name, description, or tag.
@@ -57,6 +59,7 @@ List all packages in the catalog. Add `--installed` to show only what's in your 
 feather package list
 feather package list --installed
 feather package list --refresh   # force re-fetch the registry
+feather package list --json
 ```
 
 ### `feather package info <name>`
@@ -66,6 +69,7 @@ Show full details for a package: description, trust, source, files, and usage sn
 ```sh
 feather package info anim8
 feather package info hump
+feather package info anim8 --json
 ```
 
 ### `feather package install`
@@ -103,6 +107,7 @@ Options:
 | Flag                    | Description                                                         |
 | ----------------------- | ------------------------------------------------------------------- |
 | `--dry-run`             | Show what would be installed without writing files                  |
+| `--json`                | Emit machine-readable install or dry-run output                     |
 | `--flat-dir <dir>`      | Flatten catalog package files into a directory                      |
 | `--target-path <path>`  | Destination path for `--from-url` installs                          |
 | `--install-dir <dir>`   | Install catalog package files under a custom base directory         |
@@ -256,6 +261,7 @@ Update an installed package to the latest version in the registry. Omit the name
 feather package update anim8
 feather package update          # update all
 feather package update --dry-run
+feather package update --dry-run --json
 ```
 
 `experimental` packages (installed via `feather package add` or `--from-url`) cannot be updated through the registry — use `feather package add` again to replace them.
@@ -267,6 +273,7 @@ Remove an installed package and its files. Updates the lockfile.
 ```sh
 feather package remove anim8
 feather package remove hump.camera
+feather package remove anim8 --yes --json
 ```
 
 ### `feather package audit`

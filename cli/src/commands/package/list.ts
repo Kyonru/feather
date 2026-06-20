@@ -2,10 +2,11 @@ import { readCompatibleLockfile } from '../../lib/package/compat.js';
 import { writeLockfile } from '../../lib/package/lockfile.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
-import { icon, printLine, printMuted, style } from '../../lib/output.js';
+import { icon, printJson, printLine, printMuted, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { showInstallProgress, showPackageBrowser } from '../../ui/package/index.js';
 import { packageRemoveCommand } from './remove.js';
+import { packageCatalogJson, packageLockJson } from './json.js';
 import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageListOptions = {
@@ -14,6 +15,7 @@ export type PackageListOptions = {
   refresh?: boolean;
   dir?: string;
   registryUrl?: string;
+  json?: boolean;
 };
 
 export async function packageListCommand(opts: PackageListOptions = {}): Promise<void> {
@@ -22,6 +24,15 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
   if (opts.installed) {
     const lockfile = readCompatibleLockfile(projectDir);
     const entries = Object.entries(lockfile.packages);
+    if (opts.json) {
+      printJson({
+        projectDir,
+        installedOnly: true,
+        count: entries.length,
+        packages: entries.map(([id, entry]) => packageLockJson(id, entry)),
+      });
+      return;
+    }
     if (entries.length === 0) {
       printMuted('No packages installed. Run `feather package install <name>`.');
       return;
@@ -41,9 +52,21 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
   if (!registry) return;
 
   const lockfile = readCompatibleLockfile(projectDir);
+  const entries = Object.entries(registry.packages).filter(([, e]) => !e.parent);
+
+  if (opts.json) {
+    printJson({
+      projectDir,
+      installedOnly: false,
+      count: entries.length,
+      packages: entries
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([id, entry]) => packageCatalogJson(id, entry, lockfile.packages[id])),
+    });
+    return;
+  }
 
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    const entries = Object.entries(registry.packages).filter(([, e]) => !e.parent);
     for (const [id, entry] of entries.sort(([a], [b]) => a.localeCompare(b))) {
       const installed = lockfile.packages[id];
       const installedLabel = installed ? style.info(` (installed ${installed.version})`) : '';

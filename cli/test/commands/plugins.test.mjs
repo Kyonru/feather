@@ -192,6 +192,50 @@ test('plugin install: CLI mode accepts multiple ids and adds all to include list
   assert.ok(config.includes('"input-replay"'), config);
 });
 
+test('plugin list --json: reports CLI-managed included plugins from config', () => {
+  const dir = makeTmp();
+  writeFileSync(join(dir, 'main.lua'), 'function love.draw() end\n');
+  writeFileSync(join(dir, 'feather.config.lua'), 'return { managed = "cli", include = { "console" } }\n');
+
+  const result = run(['plugin', 'list', '--dir', dir, '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.projectDir, dir);
+  assert.equal(payload.managed, 'cli');
+  assert.equal(payload.count, 1);
+  assert.equal(payload.plugins[0].id, 'console');
+});
+
+test('plugin install --dry-run --json: reports CLI-managed config change without writing', () => {
+  const dir = makeTmp();
+  writeFileSync(join(dir, 'main.lua'), 'function love.draw() end\n');
+  const original = 'return { managed = "cli", include = { "shader-graph" } }\n';
+  writeFileSync(join(dir, 'feather.config.lua'), original);
+
+  const result = run(['plugin', 'install', 'console', '--dir', dir, '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.dryRun, true);
+  assert.deepEqual(payload.requested.include, ['console']);
+  assert.deepEqual(payload.include, ['console', 'shader-graph']);
+  assert.equal(readFileSync(join(dir, 'feather.config.lua'), 'utf8'), original);
+});
+
+test('plugin remove --dry-run --json: reports CLI-managed removal without writing', () => {
+  const dir = makeTmp();
+  writeFileSync(join(dir, 'main.lua'), 'function love.draw() end\n');
+  const original = 'return { managed = "cli", include = { "console", "shader-graph" } }\n';
+  writeFileSync(join(dir, 'feather.config.lua'), original);
+
+  const result = run(['plugin', 'remove', 'console', '--dir', dir, '--yes', '--dry-run', '--json']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.dryRun, true);
+  assert.deepEqual(payload.requested.exclude, ['console']);
+  assert.deepEqual(payload.include, ['shader-graph']);
+  assert.equal(readFileSync(join(dir, 'feather.config.lua'), 'utf8'), original);
+});
+
 test('plugin list: malformed manifests do not crash and use directory fallback id', () => {
   const dir = makeTmp();
   const pluginDir = join(dir, 'feather', 'plugins', 'bad-plugin');
