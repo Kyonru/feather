@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed MCP `resources/list` so static plugin catalog and creative resource URIs remain discoverable when the desktop bridge is unavailable.
+- Fixed the Shader Graph GLSL code input by replacing the mirrored textarea/highlighter stack with a CodeMirror editor that keeps selection, wrapping, caret positioning, and richer keyword/function/variable/number/parameter highlighting in one editing surface.
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 
