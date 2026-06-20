@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a desktop CLI action bridge with bundled sidecar resolution, Settings → CLI & Project Actions workflows, typed job events, dry-run previews, and confirmation-gated project mutations.
 - Added stable JSON output for CLI package/plugin/config/init commands used by the desktop project-action bridge.
 - Added `feather skills --client` and `--global` targeting so bundled skills can be installed into Codex, Claude, neutral `.agents`, or user-level skill directories.
+- Added bundled Shader Graph skill references for graph schema, node selection, effect recipes, and visual QA guidance.
 
 ### Changed
 
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added MCP CLI coverage for agent step-debugging tools, source context, breakpoint setting, stepping, and continuing execution.
 - Added MCP CLI coverage for Session Replay recording, loading, playback, and seeking tools.
 - Added CLI coverage for listing, inspecting, installing, force-overwriting, dry-running, installing all, and removing bundled Feather agent skills.
+- Added CLI coverage proving bundled skill reference files install with the skill folder.
 - Added CLI/Rust coverage for desktop-backed JSON project actions, dry-run behavior, sidecar resolution precedence, typed action argv mapping, and secret redaction.
 - Added MCP CLI coverage for resource discovery when the desktop bridge is unavailable.
 

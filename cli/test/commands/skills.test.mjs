@@ -49,6 +49,10 @@ function installedSkillPath(dir, id, client = 'agents') {
   return join(dir, CLIENT_DIRS[client], 'skills', id, 'SKILL.md');
 }
 
+function installedSkillFile(dir, id, relativePath, client = 'agents') {
+  return join(dir, CLIENT_DIRS[client], 'skills', id, ...relativePath.split('/'));
+}
+
 test('skills list shows all bundled skills as JSON', () => {
   const result = runOk(['skills', 'list', '--json']);
   const payload = parseJson(result);
@@ -90,6 +94,22 @@ test('skills install writes SKILL.md into project-local agent directories', () =
     assert.equal(existsSync(installedSkillPath(dir, 'feather-step-debugging', client)), true, client);
     assert.match(readFileSync(installedSkillPath(dir, 'feather-step-debugging', client), 'utf8'), /# Feather Step Debugging/);
   }
+});
+
+test('skills install copies bundled references with the skill folder', () => {
+  const dir = makeTmp();
+  runOk(['skills', 'install', 'feather-shader-graph', '--client', 'codex', '--dir', dir, '--json']);
+
+  const skill = installedSkillPath(dir, 'feather-shader-graph', 'codex');
+  const graphSchema = installedSkillFile(dir, 'feather-shader-graph', 'references/graph-schema.md', 'codex');
+  const cookbook = installedSkillFile(dir, 'feather-shader-graph', 'references/effect-cookbook.md', 'codex');
+
+  assert.equal(existsSync(skill), true);
+  assert.equal(existsSync(graphSchema), true);
+  assert.equal(existsSync(cookbook), true);
+  assert.match(readFileSync(skill, 'utf8'), /references\/graph-schema\.md/);
+  assert.match(readFileSync(graphSchema, 'utf8'), /Shader Graph Schema/);
+  assert.match(readFileSync(cookbook, 'utf8'), /Falling Flower Petals/);
 });
 
 test('skills install can target a single client directory', () => {
