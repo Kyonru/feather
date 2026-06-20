@@ -43,6 +43,32 @@ function startFakeBridge() {
     locals: { dt: '0.016', x: '1' },
     upvalues: {},
   };
+  let sessionReplayStatus = {
+    recording: false,
+    replaying: false,
+    replayId: 'replay-1',
+    duration: 1.25,
+    inputCount: 2,
+    stateCount: 3,
+    initialStateCount: 1,
+    checkpointCount: 1,
+    streamCount: 1,
+    missingRestorers: [],
+  };
+  let sessionReplayRecording = null;
+  let sessionReplayList = {
+    selectedId: 'replay-1',
+    replays: [{
+      id: 'replay-1',
+      status: 'stopped',
+      duration: 1.25,
+      inputCount: 2,
+      stateCount: 3,
+      initialStateCount: 1,
+      checkpointCount: 1,
+      streamCount: 1,
+    }],
+  };
   const server = createServer(async (req, res) => {
     if (req.headers.authorization !== `Bearer ${TOKEN}`) {
       res.writeHead(401, { 'content-type': 'application/json' });
@@ -65,6 +91,9 @@ function startFakeBridge() {
         logs,
         debuggerStatus,
         debuggerPaused,
+        sessionReplay: sessionReplayStatus,
+        sessionReplayRecording,
+        sessionReplayList,
         plugins: {
           'particle-system-playground': {
             type: 'particle-system-playground',
@@ -171,6 +200,68 @@ function startFakeBridge() {
             upvalues: {},
           },
         };
+      }
+      if (message.type?.startsWith('cmd:session_replay:')) {
+        const action = message.type.replace('cmd:session_replay:', '');
+        if (action === 'start') {
+          sessionReplayStatus = {
+            ...sessionReplayStatus,
+            recording: true,
+            replaying: false,
+            replayId: message.data?.id ?? 'mcp-replay',
+            duration: 0,
+            inputCount: 0,
+            stateCount: 0,
+          };
+          response = { type: 'session_replay:status', data: sessionReplayStatus };
+        } else if (action === 'stop') {
+          sessionReplayStatus = { ...sessionReplayStatus, recording: false, duration: 2.5 };
+          sessionReplayList = {
+            selectedId: sessionReplayStatus.replayId,
+            replays: [{ id: sessionReplayStatus.replayId, status: 'stopped', duration: 2.5, inputCount: 1, stateCount: 1, streamCount: 1 }],
+          };
+          response = { type: 'session_replay:status', data: sessionReplayStatus };
+        } else if (action === 'request') {
+          const id = message.data?.id ?? sessionReplayStatus.replayId ?? 'replay-1';
+          sessionReplayRecording = {
+            manifest: { id, duration: 2.5 },
+            files: [
+              { path: 'manifest.json', content: JSON.stringify({ id, duration: 2.5 }) },
+              { path: 'inputs.jsonl', content: '' },
+            ],
+          };
+          response = { type: 'session_replay:recording', data: sessionReplayRecording };
+        } else if (action === 'list') {
+          response = { type: 'session_replay:list', data: sessionReplayList };
+        } else if (action === 'play') {
+          sessionReplayStatus = {
+            ...sessionReplayStatus,
+            recording: false,
+            replaying: true,
+            replayId: message.data?.id ?? sessionReplayStatus.replayId,
+          };
+          response = { type: 'session_replay:status', data: sessionReplayStatus };
+        } else if (action === 'seek') {
+          sessionReplayStatus = {
+            ...sessionReplayStatus,
+            replaying: message.data?.play === true,
+            seekTarget: message.data?.target ?? message.data?.seekTo,
+          };
+          response = { type: 'session_replay:status', data: sessionReplayStatus };
+        } else if (action === 'stop_replay') {
+          sessionReplayStatus = { ...sessionReplayStatus, replaying: false };
+          response = { type: 'session_replay:status', data: sessionReplayStatus };
+        } else if (action === 'import') {
+          const manifest = JSON.parse(message.data?.files?.[0]?.content ?? '{"id":"imported-replay"}');
+          sessionReplayList = {
+            selectedId: manifest.id,
+            replays: [{ id: manifest.id, status: 'imported', duration: 0, inputCount: 0, stateCount: 0, streamCount: 0 }],
+          };
+          response = { type: 'session_replay:status', data: sessionReplayStatus };
+        } else if (action === 'delete') {
+          sessionReplayList = { selectedId: null, replays: [] };
+          response = { type: 'session_replay:status', data: sessionReplayStatus };
+        }
       }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, response }));
@@ -284,6 +375,11 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_debugger_step'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_debugger_continue'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_debugger_line_context'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_session_replay_state'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_session_replay_start'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_session_replay_load'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_session_replay_play'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_session_replay_seek'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_shader_graph_compile'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_particles_export_zip'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_texture_lab_generate'));
@@ -406,6 +502,65 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     const continueResult = await waitForRpc(child, 12);
     assert.match(continueResult.result.content[0].text, /debugger:resumed/);
     assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:debugger:continue'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 13,
+      method: 'tools/call',
+      params: { name: 'feather_session_replay_state', arguments: {} },
+    });
+    const replayState = await waitForRpc(child, 13);
+    assert.match(replayState.result.content[0].text, /replay-1/);
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 14,
+      method: 'tools/call',
+      params: { name: 'feather_session_replay_start', arguments: { id: 'mcp-run' } },
+    });
+    const replayStart = await waitForRpc(child, 14);
+    assert.match(replayStart.result.content[0].text, /"recording": true/);
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:session_replay:start'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 15,
+      method: 'tools/call',
+      params: { name: 'feather_session_replay_stop', arguments: {} },
+    });
+    const replayStop = await waitForRpc(child, 15);
+    assert.match(replayStop.result.content[0].text, /"recording": false/);
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:session_replay:stop'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 16,
+      method: 'tools/call',
+      params: { name: 'feather_session_replay_load', arguments: { id: 'mcp-run' } },
+    });
+    const replayLoad = await waitForRpc(child, 16);
+    assert.match(replayLoad.result.content[0].text, /manifest\.json/);
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:session_replay:request'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 17,
+      method: 'tools/call',
+      params: { name: 'feather_session_replay_play', arguments: { id: 'mcp-run', seekTo: 0 } },
+    });
+    const replayPlay = await waitForRpc(child, 17);
+    assert.match(replayPlay.result.content[0].text, /"replaying": true/);
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:session_replay:play'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 18,
+      method: 'tools/call',
+      params: { name: 'feather_session_replay_seek', arguments: { target: '0', play: false } },
+    });
+    const replaySeek = await waitForRpc(child, 18);
+    assert.match(replaySeek.result.content[0].text, /"seekTarget": "0"/);
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:session_replay:seek'));
   } finally {
     await stopChild(child);
     await bridge.close();

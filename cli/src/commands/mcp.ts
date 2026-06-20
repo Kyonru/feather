@@ -13,7 +13,7 @@ import { printErrorLine } from '../lib/output.js';
 const DEFAULT_DESKTOP_URL = 'http://127.0.0.1:4005';
 const DEFAULT_HTTP_HOST = '127.0.0.1';
 const DEFAULT_HTTP_PORT = 4006;
-const RESOURCE_SECTIONS = ['config', 'logs', 'performance', 'debugger', 'plugins', 'assets', 'observers'] as const;
+const RESOURCE_SECTIONS = ['config', 'logs', 'performance', 'debugger', 'plugins', 'assets', 'observers', 'session-replay'] as const;
 const CREATIVE_TOOLS = ['shader-graph', 'particle-system-playground', 'texture-lab'] as const;
 const PLUGIN_ACTION_NOTES: Record<string, { actions: string[]; notes: string }> = {
   'shader-graph': {
@@ -1282,6 +1282,130 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
   );
 
   server.registerTool(
+    'feather_session_replay_state',
+    {
+      title: 'Get Session Replay State',
+      description: 'Get Session Replay status, selected recording metadata, loaded recording payload, and replay list.',
+      inputSchema: { sessionId: z.string().optional() },
+    },
+    async ({ sessionId }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      return jsonTool(sessionReplayStatePayload(id, await bridge.getSession(id)));
+    },
+  );
+
+  server.registerTool(
+    'feather_session_replay_list',
+    {
+      title: 'List Session Replays',
+      description: 'Refresh and return available Session Replay recordings for a live session.',
+      inputSchema: sessionReplayToolSchema(),
+    },
+    async ({ sessionId, timeoutMs }) => sessionReplayCommandTool(bridge, sessionId, 'list', {}, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_session_replay_start',
+    {
+      title: 'Start Session Replay Recording',
+      description: 'Start a Session Replay recording with optional recording options such as id or initialStates.',
+      inputSchema: sessionReplayToolSchema({
+        id: z.string().optional(),
+        options: z.record(z.string(), z.unknown()).optional(),
+      }),
+    },
+    async ({ sessionId, timeoutMs, id, options }) =>
+      sessionReplayCommandTool(bridge, sessionId, 'start', stripUndefined({ ...(options ?? {}), id }), timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_session_replay_stop',
+    {
+      title: 'Stop Session Replay Recording',
+      description: 'Stop the active Session Replay recording and return updated replay state.',
+      inputSchema: sessionReplayToolSchema(),
+    },
+    async ({ sessionId, timeoutMs }) => sessionReplayCommandTool(bridge, sessionId, 'stop', {}, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_session_replay_load',
+    {
+      title: 'Load Session Replay Recording',
+      description: 'Load a Session Replay recording payload by id/path and return its files as JSON/base64 metadata.',
+      inputSchema: sessionReplayToolSchema({
+        id: z.string().optional(),
+        path: z.string().optional(),
+      }),
+    },
+    async ({ sessionId, timeoutMs, id, path }) =>
+      sessionReplayCommandTool(bridge, sessionId, 'request', stripUndefined({ id, path }), timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_session_replay_play',
+    {
+      title: 'Play Session Replay',
+      description: 'Start playback for the selected or provided Session Replay recording.',
+      inputSchema: sessionReplayToolSchema({
+        id: z.string().optional(),
+        path: z.string().optional(),
+        seekTo: z.union([z.string(), z.number()]).optional(),
+      }),
+    },
+    async ({ sessionId, timeoutMs, id, path, seekTo }) =>
+      sessionReplayCommandTool(bridge, sessionId, 'play', stripUndefined({ id, path, seekTo }), timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_session_replay_seek',
+    {
+      title: 'Seek Session Replay',
+      description: 'Seek by time, checkpoint id, or checkpoint label, optionally resuming playback after the seek.',
+      inputSchema: sessionReplayToolSchema({
+        target: z.union([z.string(), z.number()]),
+        play: z.boolean().optional(),
+      }),
+    },
+    async ({ sessionId, timeoutMs, target, play }) =>
+      sessionReplayCommandTool(bridge, sessionId, 'seek', stripUndefined({ target, play }), timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_session_replay_stop_playback',
+    {
+      title: 'Stop Session Replay Playback',
+      description: 'Stop active Session Replay playback and return updated replay state.',
+      inputSchema: sessionReplayToolSchema(),
+    },
+    async ({ sessionId, timeoutMs }) => sessionReplayCommandTool(bridge, sessionId, 'stop_replay', {}, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_session_replay_import',
+    {
+      title: 'Import Session Replay',
+      description: 'Import a Session Replay payload made of replay files. MCP does not write files directly.',
+      inputSchema: sessionReplayToolSchema({
+        files: z.array(z.record(z.string(), z.unknown())),
+      }),
+    },
+    async ({ sessionId, timeoutMs, files }) => sessionReplayCommandTool(bridge, sessionId, 'import', { files }, timeoutMs),
+  );
+
+  server.registerTool(
+    'feather_session_replay_delete',
+    {
+      title: 'Delete Session Replay',
+      description: 'Delete a Session Replay recording by id, or the current selected replay if id is omitted.',
+      inputSchema: sessionReplayToolSchema({
+        id: z.string().optional(),
+      }),
+    },
+    async ({ sessionId, timeoutMs, id }) => sessionReplayCommandTool(bridge, sessionId, 'delete', stripUndefined({ id }), timeoutMs),
+  );
+
+  server.registerTool(
     'feather_session_replay',
     {
       title: 'Session Replay',
@@ -1597,6 +1721,53 @@ function boundedInt(value: unknown, fallback: number, max: number): number {
   return Math.max(0, Math.min(max, Math.floor(next)));
 }
 
+function sessionReplayToolSchema<T extends z.ZodRawShape = Record<string, never>>(shape?: T) {
+  return {
+    sessionId: z.string().optional(),
+    ...(shape ?? {} as T),
+    timeoutMs: z.number().int().positive().max(10_000).optional(),
+  };
+}
+
+async function sessionReplayCommandTool(
+  bridge: DesktopBridgeClient,
+  sessionId: string | undefined,
+  action: string,
+  data: Record<string, unknown>,
+  timeoutMs?: number,
+) {
+  const id = await resolveSessionId(bridge, sessionId);
+  const response = await bridge.sendCommand(id, {
+    message: { type: `cmd:session_replay:${action}`, data: stripUndefined(data) },
+    waitFor: { type: sessionReplayResponseType(action), timeoutMs },
+  });
+  return jsonTool({
+    response,
+    state: sessionReplayStatePayload(id, await bridge.getSession(id)),
+  });
+}
+
+function sessionReplayResponseType(action: string): string {
+  if (action === 'list') return 'session_replay:list';
+  if (action === 'request') return 'session_replay:recording';
+  return 'session_replay:status';
+}
+
+function sessionReplayStatePayload(sessionId: string, snapshot: unknown) {
+  const status = isRecord(snapshot) && isRecord(snapshot.sessionReplay) ? snapshot.sessionReplay : null;
+  const recording = isRecord(snapshot) && isRecord(snapshot.sessionReplayRecording) ? snapshot.sessionReplayRecording : null;
+  const list = isRecord(snapshot) && isRecord(snapshot.sessionReplayList) ? snapshot.sessionReplayList : null;
+  const replays = Array.isArray(list?.replays) ? list.replays : [];
+  return {
+    sessionId,
+    status,
+    recording,
+    list,
+    selectedId: typeof list?.selectedId === 'string' ? list.selectedId : null,
+    replayCount: replays.length,
+  };
+}
+
 function extractShaderGlsl(value: unknown): { pixel?: string; vertex?: string } {
   const glsl = findRecordField(value, 'glsl');
   return {
@@ -1731,6 +1902,13 @@ function getSnapshotSection(snapshot: unknown, section: string): unknown {
     return {
       status: snapshot.debuggerStatus,
       paused: snapshot.debuggerPaused,
+    };
+  }
+  if (section === 'session-replay') {
+    return {
+      status: snapshot.sessionReplay,
+      recording: snapshot.sessionReplayRecording,
+      list: snapshot.sessionReplayList,
     };
   }
   if (section === 'observers') return snapshot.observers;

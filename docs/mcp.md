@@ -74,6 +74,7 @@ Feather MCP resources are JSON-only snapshots. Secret-like fields such as `appId
 | `feather://sessions/{id}/plugins/{pluginId}` | Live payload for one plugin. |
 | `feather://sessions/{id}/assets` | Asset catalog metadata. |
 | `feather://sessions/{id}/observers` | Observability payloads. |
+| `feather://sessions/{id}/session-replay` | Session Replay status, loaded recording, and replay list. |
 | `feather://plugins/catalog` | Built-in plugin catalog metadata. |
 | `feather://plugins/{pluginId}` | Built-in metadata for one plugin. |
 | `feather://creative/shader-graph` | Desktop-local Shader Graph snapshot. |
@@ -99,6 +100,16 @@ Session and runtime tools:
 - `feather_console_eval`
 - `feather_console`
 - `feather_time_travel`
+- `feather_session_replay_state`
+- `feather_session_replay_list`
+- `feather_session_replay_start`
+- `feather_session_replay_stop`
+- `feather_session_replay_load`
+- `feather_session_replay_play`
+- `feather_session_replay_seek`
+- `feather_session_replay_stop_playback`
+- `feather_session_replay_import`
+- `feather_session_replay_delete`
 - `feather_session_replay`
 - `feather_send_command`
 
@@ -164,6 +175,23 @@ Use the debugger-specific tools when an MCP client needs to drive a paused Love2
 - `feather_debugger_line_context` reads source context for the current pause, a stack frame, or an explicit file/line inside the game source root.
 
 The generic `feather_debugger` tool is still available for raw debugger actions, but the dedicated tools are the recommended MCP path for agent-led debugging.
+
+## Session Replay
+
+Use the Session Replay tools when an MCP client needs to record or reproduce a run:
+
+- `feather_session_replay_state` returns current recording/playback status, loaded recording payload metadata, and the replay list.
+- `feather_session_replay_list` refreshes saved replay summaries.
+- `feather_session_replay_start` starts recording with optional Session Replay options such as `id` or `initialStates`.
+- `feather_session_replay_stop` stops recording and returns updated status/list state.
+- `feather_session_replay_load` loads a replay payload by `id` or `path`, returning replay files as JSON/base64 metadata.
+- `feather_session_replay_play` starts playback for the selected or provided replay, with optional `seekTo`.
+- `feather_session_replay_seek` jumps by time, checkpoint id, or checkpoint label, optionally resuming playback.
+- `feather_session_replay_stop_playback` stops playback.
+- `feather_session_replay_import` imports replay files supplied by the MCP client.
+- `feather_session_replay_delete` deletes a saved replay.
+
+Replay payloads are returned through MCP as JSON/base64 metadata. MCP does not write replay archives or files directly.
 
 ## Security
 
