@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added MCP CLI coverage for Session Replay recording, loading, playback, and seeking tools.
 - Added CLI coverage for listing, inspecting, installing, force-overwriting, dry-running, installing all, and removing bundled Feather agent skills.
 - Added CLI/Rust coverage for desktop-backed JSON project actions, dry-run behavior, sidecar resolution precedence, typed action argv mapping, and secret redaction.
+- Added MCP CLI coverage for resource discovery when the desktop bridge is unavailable.
+
+### Fixed
+
+- Fixed MCP `resources/list` so static plugin catalog and creative resource URIs remain discoverable when the desktop bridge is unavailable.
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 

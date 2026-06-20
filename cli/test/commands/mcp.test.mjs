@@ -567,6 +567,39 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
   }
 });
 
+test('mcp: resources/list keeps static resources discoverable when bridge is unavailable', async () => {
+  const port = await freePort();
+  const child = spawnCli(['mcp', '--transport', 'stdio', '--desktop-url', `http://127.0.0.1:${port}`], {
+    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_MCP_TOKEN: TOKEN },
+  });
+
+  try {
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2025-11-25',
+        capabilities: {},
+        clientInfo: { name: 'feather-test', version: '1.0.0' },
+      },
+    });
+    await waitForRpc(child, 1);
+
+    sendRpc(child, { jsonrpc: '2.0', method: 'notifications/initialized' });
+    sendRpc(child, { jsonrpc: '2.0', id: 2, method: 'resources/list' });
+    const resources = await waitForRpc(child, 2);
+
+    assert.ifError(resources.error);
+    assert.ok(resources.result.resources.some((resource) => resource.uri === 'feather://sessions'));
+    assert.ok(resources.result.resources.some((resource) => resource.uri === 'feather://plugins/catalog'));
+    assert.ok(resources.result.resources.some((resource) => resource.uri === 'feather://creative/shader-graph'));
+    assert.ok(resources.result.resources.some((resource) => resource.uri === 'feather://creative/texture-lab'));
+  } finally {
+    await stopChild(child);
+  }
+});
+
 test('mcp: HTTP transport requires bearer auth and accepts an authorized initialize', async () => {
   const bridge = await startFakeBridge();
   const port = await freePort();

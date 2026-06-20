@@ -203,7 +203,7 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
     'feather-session-section',
     new ResourceTemplate('feather://sessions/{sessionId}/{section}', {
       list: async () => {
-        const sessions = (await bridge.listSessions()).sessions ?? [];
+        const sessions = await listSessionsForResourceDiscovery(bridge);
         return {
           resources: sessions.flatMap((session) =>
             RESOURCE_SECTIONS.map((section) => ({
@@ -268,7 +268,7 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
     'feather-session-plugin',
     new ResourceTemplate('feather://sessions/{sessionId}/plugins/{pluginId}', {
       list: async () => {
-        const sessions = (await bridge.listSessions()).sessions ?? [];
+        const sessions = await listSessionsForResourceDiscovery(bridge);
         const resources = [];
         for (const session of sessions) {
           const snapshot = await bridge.getSession(session.id).catch(() => null);
@@ -1507,6 +1507,14 @@ async function resolveSessionId(bridge: DesktopBridgeClient, sessionId?: string)
   if (sessions.length === 1) return sessions[0]!.id;
   if (sessions.length === 0) throw new Error('No connected Feather sessions');
   throw new Error(`Multiple Feather sessions are connected; pass sessionId. Sessions: ${sessions.map((s) => s.id).join(', ')}`);
+}
+
+async function listSessionsForResourceDiscovery(bridge: DesktopBridgeClient): Promise<SessionSummary[]> {
+  try {
+    return (await bridge.listSessions()).sessions ?? [];
+  } catch {
+    return [];
+  }
 }
 
 function pluginWithActionNotes(plugin: typeof pluginCatalog[number]) {
