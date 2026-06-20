@@ -1,4 +1,5 @@
 mod cli_status;
+mod mcp_bridge;
 mod ws_server;
 
 use std::{
@@ -72,6 +73,7 @@ pub fn run() {
     // Shared session map and app ID between the WS server and Tauri commands
     let sessions: Sessions = Arc::new(Mutex::new(HashMap::new()));
     let app_id: AppId = Arc::new(Mutex::new(String::new()));
+    let mcp_bridge = mcp_bridge::new_state(sessions.clone(), app_id.clone());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -79,13 +81,19 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(sessions.clone())
         .manage(app_id.clone())
+        .manage(mcp_bridge.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
             let port: u16 = std::env::var("FEATHER_PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(4004);
-            ws_server::start(handle, port, sessions.clone(), app_id.clone());
+            let mcp_port: u16 = std::env::var("FEATHER_MCP_BRIDGE_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(4005);
+            ws_server::start(handle, port, sessions.clone(), app_id.clone(), mcp_bridge.clone());
+            mcp_bridge::start(mcp_bridge.clone(), mcp_port);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -93,6 +101,10 @@ pub fn run() {
             ws_server::get_active_sessions,
             ws_server::close_session,
             ws_server::set_app_id,
+            mcp_bridge::get_mcp_bridge_settings,
+            mcp_bridge::set_mcp_bridge_enabled,
+            mcp_bridge::regenerate_mcp_bridge_token,
+            mcp_bridge::set_mcp_api_keys,
             get_local_ips,
             get_cli_status,
             get_cli_project_status,

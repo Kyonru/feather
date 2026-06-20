@@ -198,6 +198,21 @@ return {
 
 Doctor reports whether the key is configured or weak, but does not print the key value.
 
+### MCP Access
+
+Feather can expose live desktop sessions to AI clients through a local Model Context Protocol server:
+
+```bash
+feather mcp
+feather mcp --transport http
+```
+
+Enable **Feather → Settings → Security → MCP Access** first. The desktop bridge binds to `127.0.0.1:4005`, is disabled by default, and requires a generated bearer token. The CLI reads that token from `~/.feather/mcp.json`, or from `FEATHER_MCP_TOKEN` / `--token`.
+
+MCP resources expose sanitized JSON snapshots such as sessions, config, logs, performance, debugger state, plugins, assets, and observers. MCP tools can control runtime/debugger/plugin workflows and can invoke Console eval only when the existing Console gates are satisfied (`console` included, `evalEnabled = true`, and matching `apiKey`).
+
+References: [MCP specification](https://modelcontextprotocol.io/specification/2025-06-18), [MCP architecture](https://modelcontextprotocol.io/docs/learn/architecture), and [MCP transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports).
+
 ---
 
 ## Connecting

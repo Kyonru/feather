@@ -120,6 +120,13 @@ type CliProjectStatus = {
   errors: string[];
 };
 
+type McpBridgeSettings = {
+  enabled: boolean;
+  token: string;
+  bridgeUrl: string;
+  configPath: string;
+};
+
 const settingsTabs = [
   {
     value: 'connection',
@@ -708,6 +715,162 @@ function SecurityOverview() {
   );
 }
 
+function McpAccessPanel() {
+  const [settings, setSettings] = useState<McpBridgeSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [visible, setVisible] = useState(false);
+
+  const refresh = () => {
+    setLoading(true);
+    invoke<McpBridgeSettings>('get_mcp_bridge_settings')
+      .then(setSettings)
+      .catch(() => {
+        setSettings(null);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const setEnabled = (enabled: boolean) => {
+    invoke<McpBridgeSettings>('set_mcp_bridge_enabled', { enabled })
+      .then((next) => {
+        setSettings(next);
+        toast.success(enabled ? 'MCP access enabled' : 'MCP access disabled');
+      })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Could not update MCP access');
+      });
+  };
+
+  const regenerate = () => {
+    invoke<McpBridgeSettings>('regenerate_mcp_bridge_token')
+      .then((next) => {
+        setSettings(next);
+        toast.success('MCP token regenerated');
+      })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Could not regenerate MCP token');
+      });
+  };
+
+  const copy = (value: string, label: string) => {
+    navigator.clipboard?.writeText(value).then(
+      () => toast.success(`${label} copied`),
+      () => toast.error(`Could not copy ${label.toLowerCase()}`),
+    );
+  };
+
+  const token = settings?.token ?? '';
+  const stdioConfig = token
+    ? JSON.stringify(
+        {
+          mcpServers: {
+            feather: {
+              command: 'feather',
+              args: ['mcp'],
+              env: { FEATHER_MCP_TOKEN: token },
+            },
+          },
+        },
+        null,
+        2,
+      )
+    : '';
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex items-start justify-between gap-4 rounded-md border bg-background/70 px-3 py-3">
+        <div className="min-w-0">
+          <Label htmlFor="setting-mcp-enabled">MCP Access</Label>
+          <FieldDescription>
+            Allows local MCP clients to inspect and control live Feather sessions through a token-protected localhost
+            bridge.
+          </FieldDescription>
+        </div>
+        <Checkbox
+          id="setting-mcp-enabled"
+          checked={settings?.enabled === true}
+          disabled={loading || !settings}
+          onCheckedChange={(checked) => setEnabled(checked === true)}
+          aria-label="Enable MCP access"
+        />
+      </div>
+
+      <SettingsMetrics>
+        <SettingsMetric
+          icon={ShieldIcon}
+          label="Bridge"
+          value={settings?.enabled ? 'Enabled' : loading ? 'Checking' : 'Disabled'}
+          tone={settings?.enabled ? 'good' : 'warn'}
+        />
+        <SettingsMetric icon={NetworkIcon} label="URL" value={settings?.bridgeUrl ?? 'Unavailable'} />
+        <SettingsMetric icon={KeyRoundIcon} label="Token" value={token ? 'Generated' : 'Missing'} tone={token ? 'good' : 'warn'} />
+      </SettingsMetrics>
+
+      <div className="grid gap-2">
+        <Label htmlFor="setting-mcp-token">MCP Token</Label>
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Input
+              id="setting-mcp-token"
+              value={token}
+              type={visible ? 'text' : 'password'}
+              disabled
+              className="font-mono text-sm pr-9"
+            />
+            <button
+              type="button"
+              onClick={() => setVisible((value) => !value)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label={visible ? 'Hide MCP token' : 'Show MCP token'}
+              disabled={!token}
+            >
+              {visible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+            </button>
+          </div>
+          <Button type="button" variant="outline" size="icon" onClick={() => token && copy(token, 'MCP token')} title="Copy MCP token">
+            <CopyIcon className="size-4" />
+          </Button>
+          <Button type="button" variant="outline" size="icon" onClick={regenerate} title="Generate a new MCP token">
+            <RefreshCwIcon className="size-4" />
+          </Button>
+        </div>
+        <FieldDescription>
+          The same token is written to <code className="font-mono">{settings?.configPath ?? '~/.feather/mcp.json'}</code>{' '}
+          so <code className="font-mono">feather mcp</code> can auto-discover it.
+        </FieldDescription>
+      </div>
+
+      {stdioConfig && (
+        <div className="grid gap-2">
+          <Label>Local MCP Client Config</Label>
+          <div className="grid gap-2 rounded-md border bg-muted/20 p-3">
+            <pre className="max-h-56 overflow-auto text-xs font-mono leading-relaxed">{stdioConfig}</pre>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => copy(stdioConfig, 'MCP config')}>
+                <CopyIcon className="mr-2 size-3.5" />
+                Copy config
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copy(`FEATHER_MCP_TOKEN=${token} feather mcp --transport http`, 'MCP HTTP command')}
+              >
+                <TerminalIcon className="mr-2 size-3.5" />
+                Copy HTTP command
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SessionApiKeyInput() {
   const sessionId = useSessionStore((state) => state.sessionId);
   const session = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
@@ -1182,6 +1345,13 @@ export function SettingsModal() {
                   <ApiKeyInput />
                   <SessionApiKeyInput />
                 </SettingsGrid>
+              </Section>
+              <Section
+                icon={TerminalIcon}
+                title="MCP Access"
+                description="Expose live Feather sessions to local MCP clients with token-protected full-control tools."
+              >
+                <McpAccessPanel />
               </Section>
             </SettingsTabContent>
 

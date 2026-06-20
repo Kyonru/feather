@@ -498,6 +498,40 @@ Doctor passed with 1 warning.
 
 ---
 
+### `feather mcp`
+
+Run Feather as a local [Model Context Protocol](https://modelcontextprotocol.io/specification/2025-06-18) server for AI clients. The MCP server exposes sanitized live session resources and full-control tools through the Feather desktop app's localhost bridge.
+
+```bash
+feather mcp                         # stdio transport for local MCP clients
+feather mcp --transport http        # Streamable HTTP on 127.0.0.1:4006/mcp
+feather mcp --transport http --port 4010
+```
+
+Enable **Settings → Security → MCP Access** in the Feather desktop app first. The desktop writes a token to `~/.feather/mcp.json`, which the CLI reads automatically. You can also pass a token explicitly:
+
+```bash
+FEATHER_MCP_TOKEN=feather-mcp-... feather mcp
+feather mcp --token feather-mcp-... --transport http
+```
+
+**Options:**
+
+| Option                | Description                                                                 |
+| --------------------- | --------------------------------------------------------------------------- |
+| `--transport <mode>`  | `stdio` or `http`. Defaults to `stdio`.                                     |
+| `--host <host>`       | HTTP host. Defaults to `127.0.0.1`; only localhost hosts are accepted.      |
+| `--port <port>`       | HTTP port. Defaults to `4006`.                                              |
+| `--desktop-url <url>` | Feather desktop MCP bridge URL. Defaults to `http://127.0.0.1:4005`.       |
+| `--token <token>`     | MCP bridge token; overrides `FEATHER_MCP_TOKEN` and `~/.feather/mcp.json`. |
+
+Resources include `feather://sessions` and `feather://sessions/{id}/{section}` for `config`, `logs`, `performance`, `debugger`, `plugins`, `assets`, and `observers`. Tools cover session snapshots, refresh requests, runtime suspend/resume, debugger controls, Console eval/globals/pins, plugin actions/params/enabling, Time Travel, Session Replay, and the advanced `feather_send_command` escape hatch.
+
+> [!WARNING]
+> MCP full-control tools can execute powerful live-debug actions. The desktop bridge is disabled by default, binds only to localhost, requires a bearer token, and still relies on existing runtime gates such as Console `evalEnabled` and `apiKey`.
+
+---
+
 ### `feather build <target>`
 
 Build a LÖVE game into local artifacts. Supported targets are `love`, `web`, `android`, `ios`, `windows`, `macos`, `linux`, and `steamos`. Android and iOS default to development builds from local native template checkouts; `--release` produces signed/store-oriented mobile artifacts without embedding Feather's debugger runtime.

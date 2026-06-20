@@ -55,6 +55,29 @@ return {
 > [!WARNING]
 > Do not include the Console plugin in builds shipped to users. It allows remote code execution and can be a serious security risk.
 
+### MCP Access
+
+Feather's MCP support is intended for local development automation. Keep **Settings → Security → MCP Access** disabled unless an MCP client is actively connected.
+
+When enabled, the desktop bridge:
+
+- binds only to `127.0.0.1` on port `4005` by default;
+- requires the generated bearer token written to `~/.feather/mcp.json`;
+- redacts `appId`, `apiKey`, tokens, passwords, and secrets from exposed MCP resources;
+- keeps Console eval behind the normal Console plugin, `evalEnabled`, and `apiKey` gates.
+
+Use stdio for local AI clients when possible:
+
+```bash
+feather mcp
+```
+
+Use Streamable HTTP only when the MCP host needs it, and keep the default localhost binding:
+
+```bash
+feather mcp --transport http
+```
+
 ---
 
 ## CLI-Managed Debugging

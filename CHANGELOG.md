@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v4.0.0] - 2026-06-14 - The one with MCPs
+
+### Added
+
+- Added `feather mcp` with stdio and localhost Streamable HTTP transports for token-protected MCP access to live Feather desktop sessions.
+- Added desktop Settings → Security → MCP Access controls for enabling the local MCP bridge, copying client config, and regenerating the bridge token.
+
+### Tests
+
+- Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
+
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
+
+### Changed
 
 - Update feather version to the expected v3.3.1
 

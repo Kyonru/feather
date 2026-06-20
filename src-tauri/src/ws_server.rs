@@ -18,8 +18,10 @@ use tauri::{AppHandle, Emitter};
 use tokio::{sync::mpsc, time::{timeout, Duration}};
 use uuid::Uuid;
 
+use crate::mcp_bridge::McpBridgeState;
+
 // Sender half for pushing commands from desktop → game
-type WsSender = mpsc::UnboundedSender<Message>;
+pub(crate) type WsSender = mpsc::UnboundedSender<Message>;
 
 /// The app ID the desktop expects games to present. Empty string means "accept any".
 pub type AppId = Arc<Mutex<String>>;
@@ -36,6 +38,7 @@ struct AppState {
     sessions: Sessions,
     app_id: AppId,
     events: Arc<dyn WsEventSink>,
+    mcp_bridge: McpBridgeState,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -74,11 +77,12 @@ impl WsEventSink for TauriEventSink {
 }
 
 /// Start the WebSocket server. Called once during Tauri setup.
-pub fn start(app_handle: AppHandle, port: u16, sessions: Sessions, app_id: AppId) {
+pub fn start(app_handle: AppHandle, port: u16, sessions: Sessions, app_id: AppId, mcp_bridge: McpBridgeState) {
     let state = AppState {
         sessions,
         app_id,
         events: Arc::new(TauriEventSink { app_handle }),
+        mcp_bridge,
     };
 
     tauri::async_runtime::spawn(async move {
@@ -235,6 +239,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     // Notify frontend — the game will send feather:hello on its own now that
     // auth:ok was delivered. The frontend can also send req:config as a nudge.
     state.events.session_start(session_id.clone());
+    state.mcp_bridge.session_started(&session_id);
 
     // Forward desktop→game commands to the WS socket
     let forward_session_id = session_id.clone();
@@ -256,6 +261,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                     if text.starts_with('{') {
                         let injected =
                             format!(r#"{{"_session":"{}",{}"#, session_id, &text[1..]);
+                        state.mcp_bridge.record_message(&injected);
                         state.events.message(injected);
                     }
                 }
@@ -276,6 +282,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     state.sessions.lock().unwrap().remove(&session_id);
     forward_task.abort();
 
+    state.mcp_bridge.session_ended(&session_id);
     state.events.session_end(session_id);
 }
 
@@ -332,6 +339,7 @@ mod tests {
         tokio::task::JoinHandle<()>,
     ) {
         let sessions: Sessions = Arc::new(Mutex::new(HashMap::new()));
+        let app_id: AppId = Arc::new(Mutex::new(String::new()));
         let (tx, rx) = mpsc::unbounded_channel();
         let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0)))
             .await
@@ -341,8 +349,9 @@ mod tests {
             .expect("test listener should have an addr");
         let state = AppState {
             sessions: sessions.clone(),
-            app_id: Arc::new(Mutex::new(String::new())), // empty = accept any
+            app_id: app_id.clone(), // empty = accept any
             events: Arc::new(CapturedEvents { tx }),
+            mcp_bridge: crate::mcp_bridge::new_state(sessions.clone(), app_id),
         };
         let task = tokio::spawn(async move { serve_ws(listener, state).await });
 

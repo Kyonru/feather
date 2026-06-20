@@ -16,6 +16,7 @@ test('help: core commands render help text', () => {
   assert.match(runOk(['--help']), /Usage:/);
   assert.match(runOk(['doctor', '--help']), /doctor/);
   assert.match(runOk(['plugin', '--help']), /plugin/);
+  assert.match(runOk(['mcp', '--help']), /Model Context Protocol/);
 });
 
 test('help: symlinked global bin executes CLI', () => {

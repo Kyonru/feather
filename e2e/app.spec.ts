@@ -2080,6 +2080,17 @@ test('persists settings changes across reloads', async ({ page }) => {
   await expect(page.getByLabel('Show hidden sidebar features in Command Center')).toBeChecked();
 });
 
+test('settings exposes MCP access controls with browser fallback state', async ({ page }) => {
+  await seedNoSession(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Connect a LÖVE project' }).click();
+  await page.getByRole('tab', { name: 'Security' }).click();
+
+  await expect(page.getByText('Expose live Feather sessions to local MCP clients with token-protected full-control tools.')).toBeVisible();
+  await expect(page.getByLabel('Enable MCP access')).toBeDisabled();
+  await expect(page.getByText('Unavailable')).toBeVisible();
+});
+
 test('persists expanded theme variants and can return to system mode', async ({ page }) => {
   await seedNoSession(page);
   await page.goto('/');

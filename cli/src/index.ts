@@ -13,6 +13,7 @@ import { updateCommand } from './commands/update.js';
 import { buildCommand } from './commands/build.js';
 import { releaseInitCommand, releaseRunCommand } from './commands/release.js';
 import { replayInitCommand } from './commands/replay.js';
+import { mcpCommand } from './commands/mcp.js';
 import { watchCommand } from './commands/watch.js';
 import { buildVendorAddCommand, buildVendorListCommand } from './commands/build-vendor.js';
 import { buildTargets } from './lib/build/config.js';
@@ -229,6 +230,26 @@ export function createProgram(): Command {
           buildTarget: (opts.target ?? opts.buildTarget) as string | undefined,
           uploadTarget: opts.uploadTarget as string | undefined,
           release: opts.release as boolean | undefined,
+        }),
+      ),
+    );
+
+  program
+    .command('mcp')
+    .description('Run a local Model Context Protocol server for Feather desktop sessions')
+    .option('--transport <transport>', 'MCP transport: stdio or http', 'stdio')
+    .option('--host <host>', 'Host for HTTP transport', '127.0.0.1')
+    .option('--port <port>', 'Port for HTTP transport', (value) => Number(value), 4006)
+    .option('--desktop-url <url>', 'Feather desktop MCP bridge URL', 'http://127.0.0.1:4005')
+    .option('--token <token>', 'MCP bridge and HTTP bearer token')
+    .action((opts) =>
+      runCliAction(() =>
+        mcpCommand({
+          transport: opts.transport as 'stdio' | 'http' | undefined,
+          host: opts.host as string | undefined,
+          port: opts.port as number | undefined,
+          desktopUrl: opts.desktopUrl as string | undefined,
+          token: opts.token as string | undefined,
         }),
       ),
     );

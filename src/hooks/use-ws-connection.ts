@@ -239,6 +239,8 @@ export const useWsConnection = () => {
   const setRuntimeSuspended = useSessionStore((state) => state.setRuntimeSuspended);
   const connectionTimeout = useSettingsStore((state) => state.connectionTimeout);
   const appId = useSettingsStore((state) => state.appId);
+  const apiKey = useSettingsStore((state) => state.apiKey);
+  const sessionApiKeys = useSettingsStore((state) => state.sessionApiKeys);
   const setPausedState = useDebuggerStore((state) => state.setPausedState);
   const setDebuggerEnabled = useDebuggerStore((state) => state.setEnabled);
   const lastMessageRef = useRef<number>(Date.now());
@@ -248,6 +250,11 @@ export const useWsConnection = () => {
   useEffect(() => {
     invoke('set_app_id', { appIdStr: appId }).catch(() => {});
   }, [appId]);
+
+  // Keep the native MCP bridge aligned with Console auth without exposing keys in bridge snapshots.
+  useEffect(() => {
+    invoke('set_mcp_api_keys', { apiKey, sessionApiKeys }).catch(() => {});
+  }, [apiKey, sessionApiKeys]);
 
 
   // Connection health monitor: if no message within timeout, mark disconnected

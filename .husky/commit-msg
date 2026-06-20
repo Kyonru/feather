@@ -5,7 +5,7 @@ message_file="$1"
 subject="$(sed -n '1p' "$message_file")"
 
 case "$subject" in
-  ci:*|cli:*|package:*|plugin:*|app:*|lua:*|tauri:*|feather:*|shadergraph:*|docs:*|vscode-extension:*|particles:*)
+  ci:*|cli:*|package:*|plugin:*|app:*|lua:*|tauri:*|feather:*|shadergraph:*|docs:*|vscode-extension:*|particles:*|mcp:*)
     exit 0
     ;;
 esac
@@ -25,6 +25,7 @@ Commit message must start with one of:
   shadergraph:
   particles:
   docs:
+  mcp:
   vscode-extension:
 
 Examples:
@@ -38,6 +39,7 @@ Examples:
   particles: Particles system
   docs: add contribution guidelines
   vscode-extension: update extension manifest
+  mcp: add any mcp related changes
 EOF
 
 exit 1

@@ -49,6 +49,10 @@ export function printLine(message = ''): void {
   console.log(redactSensitiveText(message));
 }
 
+export function printErrorLine(message = ''): void {
+  console.error(redactSensitiveText(message));
+}
+
 export function printBlank(): void {
   printLine();
 }
