@@ -1,6 +1,6 @@
 # Feather Agent Skills
 
-`feather skills` installs small Feather-authored agent skills into a project-local `.agents/skills` directory. Each skill is a folder with a `SKILL.md` file and optional supporting files, so Codex/Claude-style skill loaders can pick up project-specific Feather workflows.
+`feather skills` installs small Feather-authored agent skills into project-local agent skill directories. Each skill is a folder with a `SKILL.md` file and optional supporting files, so Codex/Claude-style skill loaders can pick up project-specific Feather workflows from their preferred locations.
 
 ## Commands
 
@@ -10,11 +10,14 @@ feather skills list --json
 feather skills info feather-step-debugging
 feather skills install feather-step-debugging feather-texture-lab
 feather skills install --all --dir path/to/my-game
-feather skills install feather-shader-graph --target .codex/skills
+feather skills install --all --client codex --global
+feather skills install --all --client claude --global
 feather skills remove feather-step-debugging --dir path/to/my-game
 ```
 
-The default install target is `.agents/skills` inside the detected project root. Use `--dir` to resolve the project root from a specific directory, and `--target` to install somewhere else inside that project.
+By default, project installs target `.agents/skills`, `.codex/skills`, and `.claude/skills` inside the detected project root. Use `--client agents`, `--client codex`, or `--client claude` to target only one client. Use `--global` to install into user-level skill directories such as `~/.agents/skills`, `~/.codex/skills`, or `~/.claude/skills`.
+
+Running agents usually load skills when a session starts, not while a session is already open. Start a new Codex/Claude session after installing skills.
 
 ## Bundled Skills
 

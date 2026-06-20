@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `feather skills` for installing bundled Feather agent skills into project-local `.agents/skills` directories.
 - Added a desktop CLI action bridge with bundled sidecar resolution, Settings → CLI & Project Actions workflows, typed job events, dry-run previews, and confirmation-gated project mutations.
 - Added stable JSON output for CLI package/plugin/config/init commands used by the desktop project-action bridge.
+- Added `feather skills --client` and `--global` targeting so bundled skills can be installed into Codex, Claude, neutral `.agents`, or user-level skill directories.
+
+### Changed
+
+- `feather skills install` now installs project-local skills into `.agents/skills`, `.codex/skills`, and `.claude/skills` by default so Codex/Claude-style loaders can discover them.
 
 ### Tests
 

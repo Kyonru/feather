@@ -545,14 +545,15 @@ Resources include `feather://sessions` and `feather://sessions/{id}/{section}` f
 
 ### `feather skills`
 
-Install bundled Feather agent skills into a project-local `.agents/skills` directory. These are small `SKILL.md` playbooks for agents that need to debug games, inspect live sessions, profile, create shaders/particles/textures, iterate with plugins, build platform artifacts, or act as QA.
+Install bundled Feather agent skills into project-local agent skill directories. These are small `SKILL.md` playbooks for agents that need to debug games, inspect live sessions, profile, create shaders/particles/textures, iterate with plugins, build platform artifacts, or act as QA.
 
 ```bash
 feather skills list
 feather skills info feather-step-debugging
 feather skills install feather-step-debugging feather-texture-lab
 feather skills install --all --dir path/to/my-game
-feather skills install feather-shader-graph --target .codex/skills
+feather skills install --all --client codex --global
+feather skills install --all --client claude --global
 feather skills remove feather-step-debugging --dir path/to/my-game
 ```
 
@@ -571,12 +572,14 @@ feather skills remove feather-step-debugging --dir path/to/my-game
 | ----------------- | --------------------------------------------------------------------------- |
 | `--all`           | Install every bundled skill.                                                |
 | `--dir <path>`    | Resolve the project root from this path.                                    |
-| `--target <path>` | Install directory. Relative paths stay inside the project root. Defaults to `.agents/skills`. |
+| `--client <name>` | Target `agents`, `codex`, `claude`, or `all`. Defaults to `all`.            |
+| `--global`        | Install into user-level skill directories such as `~/.codex/skills` or `~/.claude/skills`. |
+| `--target <path>` | Custom project-local install directory. Relative paths stay inside the project root. |
 | `--force`         | Overwrite existing installed skills.                                        |
 | `--dry-run`       | Report planned writes or removals without changing files.                  |
 | `--json`          | Emit machine-readable summaries.                                            |
 
-The installer only copies skills declared in the bundled catalog and skips existing files unless `--force` is passed. V1 does not install remote or third-party skills.
+By default, project installs write to `.agents/skills`, `.codex/skills`, and `.claude/skills` so Codex/Claude-style loaders can discover the same Feather playbooks from their preferred locations. Running agent sessions usually do not hot-reload newly installed skills; start a new Codex/Claude session after installing them. The installer only copies skills declared in the bundled catalog and skips existing files unless `--force` is passed. V1 does not install remote or third-party skills.
 
 ---
 

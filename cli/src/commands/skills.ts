@@ -1,4 +1,5 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fail } from '../lib/command.js';
 import { bundledSkillsRoot, findProjectDir } from '../lib/paths.js';
@@ -16,7 +17,16 @@ import {
   style,
 } from '../lib/output.js';
 
-const DEFAULT_SKILLS_TARGET = '.agents/skills';
+const DEFAULT_SKILL_CLIENT = 'all';
+const SKILL_CLIENT_TARGETS = {
+  agents: { project: '.agents/skills', user: join(homedir(), '.agents', 'skills') },
+  codex: { project: '.codex/skills', user: join(homedir(), '.codex', 'skills') },
+  claude: { project: '.claude/skills', user: join(homedir(), '.claude', 'skills') },
+} as const;
+
+type SkillClient = keyof typeof SKILL_CLIENT_TARGETS;
+type SkillClientSelection = SkillClient | 'all';
+type SkillScope = 'project' | 'user';
 
 type SkillCatalog = {
   version?: number;
@@ -35,6 +45,8 @@ type SkillInstallOptions = {
   all?: boolean;
   dir?: string;
   target?: string;
+  client?: string;
+  global?: boolean;
   force?: boolean;
   dryRun?: boolean;
   json?: boolean;
@@ -43,6 +55,8 @@ type SkillInstallOptions = {
 type SkillRemoveOptions = {
   dir?: string;
   target?: string;
+  client?: string;
+  global?: boolean;
   dryRun?: boolean;
   json?: boolean;
 };
@@ -59,8 +73,17 @@ type SkillPlanItem = {
   id: string;
   source: string;
   target: string;
+  targetDir: string;
+  client: SkillClient | 'custom';
+  scope: SkillScope;
   action: 'install' | 'overwrite' | 'skip' | 'remove' | 'missing';
   reason?: string;
+};
+
+type SkillTarget = {
+  client: SkillClient | 'custom';
+  scope: SkillScope;
+  targetDir: string;
 };
 
 function readSkillsCatalog(): SkillCatalogEntry[] {
@@ -155,12 +178,12 @@ function resolveSkillsProjectDir(dir?: string): string {
   return findProjectDir(start);
 }
 
-function resolveSkillsTarget(projectDir: string, target?: string): string {
+function resolveCustomSkillsTarget(projectDir: string, target?: string): string {
   const resolved = target
     ? isAbsolute(target)
       ? resolve(target)
       : resolve(projectDir, target)
-    : resolve(projectDir, DEFAULT_SKILLS_TARGET);
+    : resolve(projectDir, SKILL_CLIENT_TARGETS.agents.project);
   assertNoSymlinkEscape(projectDir, resolved, 'Skills install target');
   return resolved;
 }
@@ -182,11 +205,74 @@ function summarizePlanItem(item: SkillPlanItem, dryRun: boolean) {
   return {
     id: item.id,
     action: item.action,
+    client: item.client,
+    scope: item.scope,
     source: item.source,
     target: item.target,
     reason: item.reason,
     dryRun,
   };
+}
+
+function normalizeSkillClient(value?: string): SkillClientSelection {
+  const client = (value ?? DEFAULT_SKILL_CLIENT).trim().toLowerCase();
+  if (client === 'all' || client === 'agents' || client === 'codex' || client === 'claude') {
+    return client;
+  }
+  fail('Unknown skill client.', {
+    details: ['Use one of: agents, codex, claude, all.'],
+  });
+}
+
+function selectedSkillClients(value?: string): SkillClient[] {
+  const client = normalizeSkillClient(value);
+  return client === 'all' ? ['agents', 'codex', 'claude'] : [client];
+}
+
+function resolveSkillTargets(options: SkillInstallOptions | SkillRemoveOptions): { projectDir: string | null; targets: SkillTarget[] } {
+  if (options.target) {
+    if (options.client) {
+      fail('Use either --target or --client, not both.');
+    }
+    if (options.global) {
+      fail('Use either --target or --global, not both.');
+    }
+    const projectDir = resolveSkillsProjectDir(options.dir);
+    return {
+      projectDir,
+      targets: [{ client: 'custom', scope: 'project', targetDir: resolveCustomSkillsTarget(projectDir, options.target) }],
+    };
+  }
+
+  const clients = selectedSkillClients(options.client);
+  if (options.global) {
+    return {
+      projectDir: null,
+      targets: clients.map((client) => ({
+        client,
+        scope: 'user',
+        targetDir: SKILL_CLIENT_TARGETS[client].user,
+      })),
+    };
+  }
+
+  const projectDir = resolveSkillsProjectDir(options.dir);
+  return {
+    projectDir,
+    targets: clients.map((client) => ({
+      client,
+      scope: 'project',
+      targetDir: resolveCustomSkillsTarget(projectDir, SKILL_CLIENT_TARGETS[client].project),
+    })),
+  };
+}
+
+function summarizeTargets(targets: SkillTarget[]) {
+  return targets.map((target) => ({
+    client: target.client,
+    scope: target.scope,
+    targetDir: target.targetDir,
+  }));
 }
 
 export async function skillsListCommand(options: SkillListOptions = {}): Promise<void> {
@@ -211,11 +297,14 @@ export async function skillsListCommand(options: SkillListOptions = {}): Promise
 export async function skillsInfoCommand(id: string, options: SkillInfoOptions = {}): Promise<void> {
   const [entry] = resolveSkillEntries([id]);
   const projectDir = resolveSkillsProjectDir();
-  const installPath = skillInstallPath(resolveSkillsTarget(projectDir), entry);
+  const installPaths = Object.values(SKILL_CLIENT_TARGETS).map((target) =>
+    skillInstallPath(resolveCustomSkillsTarget(projectDir, target.project), entry),
+  );
   const value = {
     skill: summarizeEntry(entry),
     sourcePath: skillSourcePath(entry),
-    installPath,
+    installPath: installPaths[0],
+    installPaths,
   };
   if (options.json) {
     printJson(value);
@@ -226,7 +315,7 @@ export async function skillsInfoCommand(id: string, options: SkillInfoOptions = 
     ['ID', entry.id],
     ['Description', entry.description],
     ['Tags', entry.tags.join(', ')],
-    ['Install path', installPath],
+    ['Install paths', installPaths.join(', ')],
   ]);
 }
 
@@ -243,22 +332,23 @@ export async function skillsInstallCommand(ids: string[], options: SkillInstallO
   }
 
   const entries = options.all ? catalog : resolveSkillEntries(requested, catalog);
-  const projectDir = resolveSkillsProjectDir(options.dir);
-  const targetDir = resolveSkillsTarget(projectDir, options.target);
+  const { projectDir, targets } = resolveSkillTargets(options);
   const dryRun = options.dryRun === true;
   const force = options.force === true;
-  const plan: SkillPlanItem[] = entries.map((entry) => {
-    const source = skillSourcePath(entry);
-    const target = skillInstallPath(targetDir, entry);
-    assertNoSymlinkEscape(projectDir, target, `Skill target for ${entry.id}`);
-    if (existsSync(target) && !force) {
-      return { id: entry.id, source, target, action: 'skip', reason: 'exists' };
-    }
-    return { id: entry.id, source, target, action: existsSync(target) ? 'overwrite' : 'install' };
-  });
+  const plan: SkillPlanItem[] = targets.flatMap((targetSpec) =>
+    entries.map((entry) => {
+      const source = skillSourcePath(entry);
+      const target = skillInstallPath(targetSpec.targetDir, entry);
+      if (projectDir) assertNoSymlinkEscape(projectDir, target, `Skill target for ${entry.id}`);
+      if (existsSync(target) && !force) {
+        return { id: entry.id, source, target, ...targetSpec, action: 'skip', reason: 'exists' };
+      }
+      return { id: entry.id, source, target, ...targetSpec, action: existsSync(target) ? 'overwrite' : 'install' };
+    }),
+  );
 
   if (!dryRun) {
-    mkdirSync(targetDir, { recursive: true });
+    for (const target of targets) mkdirSync(target.targetDir, { recursive: true });
     for (const item of plan) {
       if (item.action === 'skip') continue;
       if (existsSync(item.target)) rmSync(item.target, { recursive: true, force: true });
@@ -269,7 +359,8 @@ export async function skillsInstallCommand(ids: string[], options: SkillInstallO
 
   const result = {
     projectDir,
-    targetDir,
+    targetDir: targets[0]?.targetDir ?? null,
+    targetDirs: summarizeTargets(targets),
     dryRun,
     force,
     installed: plan
@@ -284,32 +375,36 @@ export async function skillsInstallCommand(ids: string[], options: SkillInstallO
   }
   printHeading(dryRun ? '\nSkill install plan\n' : '\nSkill install result\n');
   for (const item of plan) {
-    if (item.action === 'skip') printWarning(`Skipped ${item.id}: ${item.reason}`);
-    else if (dryRun) printLine(`  ${item.action === 'overwrite' ? 'Would overwrite' : 'Would install'} ${style.info(item.id)} -> ${item.target}`);
-    else printSuccess(`${item.action === 'overwrite' ? 'Overwritten' : 'Installed'} ${item.id}`);
+    const label = item.client === 'custom' ? item.target : `${item.client}:${item.target}`;
+    if (item.action === 'skip') printWarning(`Skipped ${item.id} for ${item.client}: ${item.reason}`);
+    else if (dryRun) printLine(`  ${item.action === 'overwrite' ? 'Would overwrite' : 'Would install'} ${style.info(item.id)} -> ${label}`);
+    else printSuccess(`${item.action === 'overwrite' ? 'Overwritten' : 'Installed'} ${item.id} for ${item.client}`);
   }
   if (plan.length === 0) printMuted('No skills selected.');
-  printMuted(`Target: ${targetDir}`);
+  for (const target of targets) printMuted(`Target (${target.client}, ${target.scope}): ${target.targetDir}`);
+  if (!dryRun) printMuted('Start a new Codex/Claude session after installing skills; running agents may not hot-reload new SKILL.md files.');
 }
 
 export async function skillsRemoveCommand(ids: string[], options: SkillRemoveOptions = {}): Promise<void> {
   const requested = normalizeIds(ids);
   if (requested.length === 0) fail('Skill id is required.');
   const entries = resolveSkillEntries(requested);
-  const projectDir = resolveSkillsProjectDir(options.dir);
-  const targetDir = resolveSkillsTarget(projectDir, options.target);
+  const { projectDir, targets } = resolveSkillTargets(options);
   const dryRun = options.dryRun === true;
-  const plan: SkillPlanItem[] = entries.map((entry) => {
-    const target = skillInstallPath(targetDir, entry);
-    assertNoSymlinkEscape(projectDir, target, `Skill target for ${entry.id}`);
-    return {
-      id: entry.id,
-      source: skillSourcePath(entry),
-      target,
-      action: existsSync(target) ? 'remove' : 'missing',
-      reason: existsSync(target) ? undefined : 'missing',
-    };
-  });
+  const plan: SkillPlanItem[] = targets.flatMap((targetSpec) =>
+    entries.map((entry) => {
+      const target = skillInstallPath(targetSpec.targetDir, entry);
+      if (projectDir) assertNoSymlinkEscape(projectDir, target, `Skill target for ${entry.id}`);
+      return {
+        id: entry.id,
+        source: skillSourcePath(entry),
+        target,
+        ...targetSpec,
+        action: existsSync(target) ? 'remove' : 'missing',
+        reason: existsSync(target) ? undefined : 'missing',
+      };
+    }),
+  );
 
   if (!dryRun) {
     for (const item of plan) {
@@ -319,7 +414,8 @@ export async function skillsRemoveCommand(ids: string[], options: SkillRemoveOpt
 
   const result = {
     projectDir,
-    targetDir,
+    targetDir: targets[0]?.targetDir ?? null,
+    targetDirs: summarizeTargets(targets),
     dryRun,
     removed: plan.filter((item) => item.action === 'remove').map((item) => summarizePlanItem(item, dryRun)),
     skipped: plan.filter((item) => item.action === 'missing').map((item) => summarizePlanItem(item, dryRun)),
@@ -331,9 +427,9 @@ export async function skillsRemoveCommand(ids: string[], options: SkillRemoveOpt
   }
   printHeading(dryRun ? '\nSkill remove plan\n' : '\nSkill remove result\n');
   for (const item of plan) {
-    if (item.action === 'missing') printWarning(`Missing ${item.id}: ${item.reason}`);
-    else if (dryRun) printLine(`  Would remove ${style.info(item.id)} from ${item.target}`);
-    else printSuccess(`Removed ${item.id}`);
+    if (item.action === 'missing') printWarning(`Missing ${item.id} for ${item.client}: ${item.reason}`);
+    else if (dryRun) printLine(`  Would remove ${style.info(item.id)} from ${item.client}:${item.target}`);
+    else printSuccess(`Removed ${item.id} for ${item.client}`);
   }
-  printMuted(`Target: ${targetDir}`);
+  for (const target of targets) printMuted(`Target (${target.client}, ${target.scope}): ${target.targetDir}`);
 }

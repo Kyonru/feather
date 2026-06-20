@@ -285,10 +285,12 @@ export function createProgram(): Command {
 
   skills
     .command('install [ids...]')
-    .description('Install bundled Feather agent skills into .agents/skills')
+    .description('Install bundled Feather agent skills into project or user skill directories')
     .option('--all', 'Install all bundled Feather skills')
     .option('--dir <path>', 'Project directory (default: current project)')
-    .option('--target <path>', 'Skills directory inside the project (default: .agents/skills)')
+    .option('--target <path>', 'Custom skills directory inside the project')
+    .option('--client <client>', 'Target client: agents, codex, claude, or all (default: all)')
+    .option('--global', 'Install into user-level skill directories instead of the current project')
     .option('--force', 'Overwrite existing installed skills')
     .option('--dry-run', 'Show planned skill installs without writing files')
     .option('--json', 'Output machine-readable JSON')
@@ -298,6 +300,8 @@ export function createProgram(): Command {
           all: opts.all as boolean | undefined,
           dir: opts.dir as string | undefined,
           target: opts.target as string | undefined,
+          client: opts.client as string | undefined,
+          global: opts.global as boolean | undefined,
           force: opts.force as boolean | undefined,
           dryRun: opts.dryRun as boolean | undefined,
           json: opts.json as boolean | undefined,
@@ -307,14 +311,20 @@ export function createProgram(): Command {
 
   skills
     .command('remove <ids...>')
-    .description('Remove installed Feather agent skills from .agents/skills')
+    .description('Remove installed Feather agent skills from project or user skill directories')
     .option('--dir <path>', 'Project directory (default: current project)')
+    .option('--target <path>', 'Custom skills directory inside the project')
+    .option('--client <client>', 'Target client: agents, codex, claude, or all (default: all)')
+    .option('--global', 'Remove from user-level skill directories instead of the current project')
     .option('--dry-run', 'Show planned skill removals without deleting files')
     .option('--json', 'Output machine-readable JSON')
     .action((ids: string[], opts) =>
       runCliAction(() =>
         skillsRemoveCommand(ids, {
           dir: opts.dir as string | undefined,
+          target: opts.target as string | undefined,
+          client: opts.client as string | undefined,
+          global: opts.global as boolean | undefined,
           dryRun: opts.dryRun as boolean | undefined,
           json: opts.json as boolean | undefined,
         }),
