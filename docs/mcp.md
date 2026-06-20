@@ -88,6 +88,13 @@ Session and runtime tools:
 - `feather_get_session_snapshot`
 - `feather_refresh`
 - `feather_runtime`
+- `feather_debugger_state`
+- `feather_debugger_enable`
+- `feather_debugger_set_breakpoints`
+- `feather_debugger_step`
+- `feather_debugger_continue`
+- `feather_debugger_inspect_frame`
+- `feather_debugger_line_context`
 - `feather_debugger`
 - `feather_console_eval`
 - `feather_console`
@@ -143,6 +150,20 @@ Use the high-level creation tools first:
 - `feather_create_texture` creates a Texture Lab PNG or atlas payload from a recipe, generator, and dimensions. It returns base64 metadata and can optionally save the recipe in the desktop workspace.
 
 The lower-level Shader Graph, Particle Playground, Texture Lab, and generic plugin tools remain available when an MCP client needs precise step-by-step control.
+
+## Step Debugging
+
+Use the debugger-specific tools when an MCP client needs to drive a paused Love2D session:
+
+- `feather_debugger_state` returns debugger status, the paused frame, locals/upvalues, recent logs, and nearby source lines from the debugger `sourceRoot`.
+- `feather_debugger_enable` enables the step debugger and can set `pauseOnError`.
+- `feather_debugger_set_breakpoints` merges or replaces breakpoints and returns rejected breakpoint details from the runtime.
+- `feather_debugger_step` supports `over`, `into`, and `out`, waits for the next `debugger:paused` message, then returns updated state.
+- `feather_debugger_continue` resumes execution and waits for `debugger:resumed`.
+- `feather_debugger_inspect_frame` requests locals/upvalues for a stack frame.
+- `feather_debugger_line_context` reads source context for the current pause, a stack frame, or an explicit file/line inside the game source root.
+
+The generic `feather_debugger` tool is still available for raw debugger actions, but the dedicated tools are the recommended MCP path for agent-led debugging.
 
 ## Security
 

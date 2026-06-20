@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added desktop Settings → Security → MCP Access controls for enabling the local MCP bridge, copying client config, and regenerating the bridge token.
 - Added MCP resources and tools for plugin catalog/live state, Shader Graph, Particles Playground, and Texture Lab recipe/generation workflows.
 - Added high-level MCP creation tools for shaders, particle systems, and Texture Lab textures.
+- Added MCP step-debugging tools for breakpoint management, paused source context, frame inspection, logs, stepping, and continuing execution.
 
 ### Tests
 
 - Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
 - Added MCP creative-tool coverage for plugin resources, creative tool discovery, bridge request handling, and Texture Lab generation routing.
+- Added MCP CLI coverage for agent step-debugging tools, source context, breakpoint setting, stepping, and continuing execution.
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 

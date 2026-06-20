@@ -1,6 +1,9 @@
 /* eslint-disable no-undef */
 import { createServer } from 'node:http';
 import { once } from 'node:events';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { assert, outputOf, spawnCli, stopChild, test, waitForOutput } from './helpers.mjs';
 
 const TOKEN = 'test-mcp-token';
@@ -8,6 +11,38 @@ const TOKEN = 'test-mcp-token';
 function startFakeBridge() {
   const commands = [];
   const creativeActions = [];
+  const sourceRoot = mkdtempSync(join(tmpdir(), 'feather-mcp-debugger-'));
+  writeFileSync(
+    join(sourceRoot, 'main.lua'),
+    [
+      'function love.update(dt)',
+      '  local x = 1',
+      '  x = x + dt',
+      '  print(x)',
+      'end',
+      '',
+    ].join('\n'),
+  );
+  const logs = [
+    { level: 'info', message: 'booted test game' },
+    { level: 'warn', message: 'paused at breakpoint' },
+  ];
+  const debuggerStatus = {
+    enabled: true,
+    paused: true,
+    sourceRoot,
+    breakpointCount: 1,
+    breakpoints: [{ file: 'main.lua', line: 3 }],
+  };
+  let debuggerPaused = {
+    file: 'main.lua',
+    line: 3,
+    reason: 'breakpoint',
+    pauseId: 1,
+    stack: [{ index: 0, file: 'main.lua', line: 3, name: 'love.update', what: 'Lua' }],
+    locals: { dt: '0.016', x: '1' },
+    upvalues: {},
+  };
   const server = createServer(async (req, res) => {
     if (req.headers.authorization !== `Bearer ${TOKEN}`) {
       res.writeHead(401, { 'content-type': 'application/json' });
@@ -27,7 +62,9 @@ function startFakeBridge() {
         id: 's1',
         connected: true,
         config: { sessionName: 'Test Game' },
-        logs: [],
+        logs,
+        debuggerStatus,
+        debuggerPaused,
         plugins: {
           'particle-system-playground': {
             type: 'particle-system-playground',
@@ -103,6 +140,38 @@ function startFakeBridge() {
             : { ok: true },
         };
       }
+      if (message.type === 'cmd:debugger:enable') {
+        debuggerStatus.enabled = true;
+        response = { type: 'debugger:status', data: debuggerStatus };
+      }
+      if (message.type === 'cmd:debugger:set_breakpoints') {
+        debuggerStatus.breakpoints = message.data?.breakpoints ?? [];
+        debuggerStatus.breakpointCount = debuggerStatus.breakpoints.length;
+        response = { type: 'debugger:status', data: debuggerStatus };
+      }
+      if (message.type === 'cmd:debugger:step_over' || message.type === 'cmd:debugger:step_into' || message.type === 'cmd:debugger:step_out') {
+        debuggerPaused = { ...debuggerPaused, line: 4, reason: 'step', pauseId: 2 };
+        debuggerStatus.paused = true;
+        response = { type: 'debugger:paused', data: debuggerPaused };
+      }
+      if (message.type === 'cmd:debugger:continue') {
+        debuggerPaused = null;
+        debuggerStatus.paused = false;
+        response = { type: 'debugger:resumed', data: { reason: 'continue' } };
+      }
+      if (message.type === 'cmd:debugger:inspect_frame') {
+        response = {
+          type: 'debugger:frame',
+          data: {
+            pauseId: 1,
+            index: message.data?.index ?? 0,
+            file: 'main.lua',
+            line: 3,
+            locals: { dt: '0.016', inspected: 'true' },
+            upvalues: {},
+          },
+        };
+      }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, response }));
       return;
@@ -119,7 +188,9 @@ function startFakeBridge() {
         url: `http://127.0.0.1:${address.port}`,
         commands,
         creativeActions,
-        close: () => new Promise((closeResolve) => server.close(closeResolve)),
+        sourceRoot,
+        close: () => new Promise((closeResolve) => server.close(closeResolve))
+          .finally(() => rmSync(sourceRoot, { recursive: true, force: true })),
       });
     });
   });
@@ -208,6 +279,11 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_create_shader'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_create_particle_system'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_create_texture'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_debugger_state'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_debugger_set_breakpoints'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_debugger_step'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_debugger_continue'));
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_debugger_line_context'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_shader_graph_compile'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_particles_export_zip'));
     assert.ok(tools.result.tools.some((tool) => tool.name === 'feather_texture_lab_generate'));
@@ -287,6 +363,49 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     assert.ok(bridge.commands.some((command) => command.message?.action === 'new-composite'));
     assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:plugin:params'));
     assert.ok(bridge.commands.some((command) => command.message?.action === 'export-code'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 9,
+      method: 'tools/call',
+      params: { name: 'feather_debugger_state', arguments: { contextLines: 1 } },
+    });
+    const debuggerState = await waitForRpc(child, 9);
+    assert.match(debuggerState.result.content[0].text, /paused at breakpoint/);
+    assert.match(debuggerState.result.content[0].text, /x = x \+ dt/);
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 10,
+      method: 'tools/call',
+      params: {
+        name: 'feather_debugger_set_breakpoints',
+        arguments: { breakpoints: [{ file: 'main.lua', line: 4 }] },
+      },
+    });
+    const breakpointResult = await waitForRpc(child, 10);
+    assert.match(breakpointResult.result.content[0].text, /"line": 4/);
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:debugger:set_breakpoints'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 11,
+      method: 'tools/call',
+      params: { name: 'feather_debugger_step', arguments: { action: 'over', contextLines: 0 } },
+    });
+    const stepResult = await waitForRpc(child, 11);
+    assert.match(stepResult.result.content[0].text, /"reason": "step"/);
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:debugger:step_over'));
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 12,
+      method: 'tools/call',
+      params: { name: 'feather_debugger_continue', arguments: {} },
+    });
+    const continueResult = await waitForRpc(child, 12);
+    assert.match(continueResult.result.content[0].text, /debugger:resumed/);
+    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:debugger:continue'));
   } finally {
     await stopChild(child);
     await bridge.close();

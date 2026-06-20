@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -915,6 +915,201 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
   );
 
   server.registerTool(
+    'feather_debugger_state',
+    {
+      title: 'Get Debugger State',
+      description: 'Get debugger status, paused frame state, source-line context, and recent logs for a live session.',
+      inputSchema: debuggerStateSchema(),
+    },
+    async ({ sessionId, includeLogs, logLimit, includeSource, contextLines }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      return jsonTool(debuggerStatePayload(id, await bridge.getSession(id), {
+        includeLogs,
+        logLimit,
+        includeSource,
+        contextLines,
+      }));
+    },
+  );
+
+  server.registerTool(
+    'feather_debugger_enable',
+    {
+      title: 'Enable Debugger',
+      description: 'Enable the Feather step debugger and optionally set pause-on-error.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        pauseOnError: z.boolean().optional(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ sessionId, pauseOnError, timeoutMs }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      const enabled = await bridge.sendCommand(id, {
+        message: { type: 'cmd:debugger:enable' },
+        waitFor: { type: 'debugger:status', timeoutMs },
+      });
+      const options = pauseOnError === undefined ? null : await bridge.sendCommand(id, {
+        message: { type: 'cmd:debugger:set_options', data: { pauseOnError } },
+        waitFor: { type: 'debugger:status', timeoutMs },
+      });
+      return jsonTool({
+        enabled,
+        options,
+        state: debuggerStatePayload(id, await bridge.getSession(id), { includeLogs: true, includeSource: true }),
+      });
+    },
+  );
+
+  server.registerTool(
+    'feather_debugger_set_breakpoints',
+    {
+      title: 'Set Debugger Breakpoints',
+      description: 'Set or merge Lua breakpoints, then return debugger state with any rejected breakpoint details.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        mode: z.enum(['merge', 'replace']).optional(),
+        breakpoints: z.array(z.object({
+          file: z.string(),
+          line: z.number().int().positive(),
+          condition: z.string().optional(),
+          enabled: z.boolean().optional(),
+        })),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+      },
+    },
+    async ({ sessionId, mode, breakpoints, timeoutMs }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      const snapshot = await bridge.getSession(id);
+      const current = mode === 'replace' ? [] : currentDebuggerBreakpoints(snapshot);
+      const next = mergeBreakpoints(current, breakpoints);
+      const response = await bridge.sendCommand(id, {
+        message: { type: 'cmd:debugger:set_breakpoints', data: { breakpoints: next } },
+        waitFor: { type: 'debugger:status', timeoutMs },
+      });
+      return jsonTool({
+        response,
+        breakpoints: next,
+        state: debuggerStatePayload(id, await bridge.getSession(id), { includeLogs: true, includeSource: true }),
+      });
+    },
+  );
+
+  server.registerTool(
+    'feather_debugger_step',
+    {
+      title: 'Step Debugger',
+      description: 'Step over, into, or out from the current debugger pause and return the next paused state.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        action: z.enum(['over', 'into', 'out']),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+        includeLogs: z.boolean().optional(),
+        logLimit: z.number().int().positive().max(500).optional(),
+        includeSource: z.boolean().optional(),
+        contextLines: z.number().int().nonnegative().max(50).optional(),
+      },
+    },
+    async ({ sessionId, action, timeoutMs, includeLogs, logLimit, includeSource, contextLines }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      const commandType = {
+        over: 'cmd:debugger:step_over',
+        into: 'cmd:debugger:step_into',
+        out: 'cmd:debugger:step_out',
+      }[action];
+      const response = await bridge.sendCommand(id, {
+        message: { type: commandType },
+        waitFor: { type: 'debugger:paused', timeoutMs },
+      });
+      return jsonTool({
+        response,
+        state: debuggerStatePayload(id, await bridge.getSession(id), {
+          includeLogs,
+          logLimit,
+          includeSource,
+          contextLines,
+        }),
+      });
+    },
+  );
+
+  server.registerTool(
+    'feather_debugger_continue',
+    {
+      title: 'Continue Debugger',
+      description: 'Resume execution from the current debugger pause and return updated debugger state.',
+      inputSchema: debuggerCommandStateSchema(),
+    },
+    async ({ sessionId, timeoutMs, includeLogs, logLimit, includeSource, contextLines }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      const response = await bridge.sendCommand(id, {
+        message: { type: 'cmd:debugger:continue' },
+        waitFor: { type: 'debugger:resumed', timeoutMs },
+      });
+      return jsonTool({
+        response,
+        state: debuggerStatePayload(id, await bridge.getSession(id), {
+          includeLogs,
+          logLimit,
+          includeSource,
+          contextLines,
+        }),
+      });
+    },
+  );
+
+  server.registerTool(
+    'feather_debugger_inspect_frame',
+    {
+      title: 'Inspect Debugger Frame',
+      description: 'Request locals and upvalues for a paused stack frame, then return frame state and source context.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        index: z.number().int().nonnegative(),
+        timeoutMs: z.number().int().positive().max(10_000).optional(),
+        includeSource: z.boolean().optional(),
+        contextLines: z.number().int().nonnegative().max(50).optional(),
+      },
+    },
+    async ({ sessionId, index, timeoutMs, includeSource, contextLines }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      const response = await bridge.sendCommand(id, {
+        message: { type: 'cmd:debugger:inspect_frame', data: { index } },
+        waitFor: { type: 'debugger:frame', timeoutMs },
+      });
+      return jsonTool({
+        response,
+        state: debuggerStatePayload(id, await bridge.getSession(id), {
+          includeLogs: false,
+          includeSource,
+          contextLines,
+          frameIndex: index,
+        }),
+      });
+    },
+  );
+
+  server.registerTool(
+    'feather_debugger_line_context',
+    {
+      title: 'Get Debugger Line Context',
+      description: 'Read source lines around a paused debugger frame or an explicit file/line inside the game source root.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        file: z.string().optional(),
+        line: z.number().int().positive().optional(),
+        frameIndex: z.number().int().nonnegative().optional(),
+        contextLines: z.number().int().nonnegative().max(50).optional(),
+      },
+    },
+    async ({ sessionId, file, line, frameIndex, contextLines }) => {
+      const id = await resolveSessionId(bridge, sessionId);
+      const snapshot = await bridge.getSession(id);
+      return jsonTool(debuggerLineContext(snapshot, { file, line, frameIndex, contextLines }));
+    },
+  );
+
+  server.registerTool(
     'feather_debugger',
     {
       title: 'Control Debugger',
@@ -1212,6 +1407,194 @@ function getLivePluginState(snapshot: unknown, pluginId: string): unknown {
     catalog: pluginCatalog.find((entry) => entry.id === pluginId) ? getPluginCatalogEntry(pluginId) : null,
     state: snapshot.plugins[pluginId] ?? null,
   };
+}
+
+function debuggerStateSchema() {
+  return {
+    sessionId: z.string().optional(),
+    includeLogs: z.boolean().optional(),
+    logLimit: z.number().int().positive().max(500).optional(),
+    includeSource: z.boolean().optional(),
+    contextLines: z.number().int().nonnegative().max(50).optional(),
+  };
+}
+
+function debuggerCommandStateSchema() {
+  return {
+    ...debuggerStateSchema(),
+    timeoutMs: z.number().int().positive().max(10_000).optional(),
+  };
+}
+
+type McpBreakpoint = {
+  file: string;
+  line: number;
+  condition?: string;
+  enabled?: boolean;
+};
+
+function debuggerStatus(snapshot: unknown): Record<string, unknown> | null {
+  return isRecord(snapshot) && isRecord(snapshot.debuggerStatus) ? snapshot.debuggerStatus : null;
+}
+
+function debuggerPaused(snapshot: unknown): Record<string, unknown> | null {
+  return isRecord(snapshot) && isRecord(snapshot.debuggerPaused) ? snapshot.debuggerPaused : null;
+}
+
+function currentDebuggerBreakpoints(snapshot: unknown): McpBreakpoint[] {
+  const status = debuggerStatus(snapshot);
+  const breakpoints = Array.isArray(status?.breakpoints) ? status.breakpoints : [];
+  return breakpoints
+    .map((entry) => normalizeBreakpoint(entry))
+    .filter((entry): entry is McpBreakpoint => !!entry);
+}
+
+function normalizeBreakpoint(entry: unknown): McpBreakpoint | null {
+  if (!isRecord(entry) || typeof entry.file !== 'string') return null;
+  const line = Number(entry.line);
+  if (!Number.isFinite(line) || line < 1) return null;
+  const condition = typeof entry.condition === 'string' && entry.condition.trim() ? entry.condition : undefined;
+  return {
+    file: entry.file,
+    line: Math.floor(line),
+    ...(condition && { condition }),
+    ...(entry.enabled === false && { enabled: false }),
+  };
+}
+
+function mergeBreakpoints(current: unknown[], requested: unknown[]): McpBreakpoint[] {
+  const byKey = new Map<string, McpBreakpoint>();
+  for (const entry of [...current, ...requested]) {
+    const normalized = normalizeBreakpoint(entry);
+    if (!normalized || normalized.enabled === false) continue;
+    const active = { ...normalized };
+    delete active.enabled;
+    byKey.set(`${normalized.file}:${normalized.line}`, active);
+  }
+  return Array.from(byKey.values()).sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+}
+
+function debuggerStatePayload(
+  sessionId: string,
+  snapshot: unknown,
+  options: {
+    includeLogs?: boolean;
+    logLimit?: number;
+    includeSource?: boolean;
+    contextLines?: number;
+    frameIndex?: number;
+  } = {},
+) {
+  const status = debuggerStatus(snapshot);
+  const paused = debuggerPaused(snapshot);
+  const includeLogs = options.includeLogs !== false;
+  const includeSource = options.includeSource !== false;
+  return {
+    sessionId,
+    status,
+    paused,
+    lineContext: includeSource
+      ? debuggerLineContext(snapshot, {
+        contextLines: options.contextLines,
+        frameIndex: options.frameIndex,
+      })
+      : null,
+    logs: includeLogs ? tailLogs(snapshot, options.logLimit) : [],
+  };
+}
+
+function tailLogs(snapshot: unknown, limit?: number): unknown[] {
+  if (!isRecord(snapshot) || !Array.isArray(snapshot.logs)) return [];
+  return snapshot.logs.slice(-boundedInt(limit, 50, 500));
+}
+
+function debuggerLineContext(
+  snapshot: unknown,
+  options: {
+    file?: string;
+    line?: number;
+    frameIndex?: number;
+    contextLines?: number;
+  } = {},
+) {
+  const status = debuggerStatus(snapshot);
+  const paused = debuggerPaused(snapshot);
+  const sourceRoot = typeof status?.sourceRoot === 'string' ? status.sourceRoot : '';
+  const target = debuggerLineTarget(paused, options);
+  if (!sourceRoot.trim()) {
+    return { available: false, reason: 'Debugger sourceRoot is unavailable', target };
+  }
+  if (!target.file || !target.line) {
+    return { available: false, reason: 'No paused file/line or explicit file/line was provided', sourceRoot, target };
+  }
+  const path = resolveSourcePath(sourceRoot, target.file);
+  if (!path) {
+    return { available: false, reason: 'Requested file is outside debugger sourceRoot', sourceRoot, target };
+  }
+  if (!existsSync(path)) {
+    return { available: false, reason: 'Source file was not found on disk', sourceRoot, target };
+  }
+  try {
+    const lines = readFileSync(path, 'utf8').split(/\r?\n/);
+    const contextLines = boundedInt(options.contextLines, 5, 50);
+    const line = Math.max(1, Math.min(target.line, lines.length || 1));
+    const startLine = Math.max(1, line - contextLines);
+    const endLine = Math.min(lines.length, line + contextLines);
+    return {
+      available: true,
+      sourceRoot,
+      file: target.file,
+      line,
+      startLine,
+      endLine,
+      lines: lines.slice(startLine - 1, endLine).map((text, index) => {
+        const number = startLine + index;
+        return {
+          number,
+          text,
+          isTarget: number === line,
+        };
+      }),
+    };
+  } catch (error) {
+    return {
+      available: false,
+      reason: error instanceof Error ? error.message : String(error),
+      sourceRoot,
+      target,
+    };
+  }
+}
+
+function debuggerLineTarget(
+  paused: Record<string, unknown> | null,
+  options: { file?: string; line?: number; frameIndex?: number },
+): { file?: string; line?: number } {
+  if (options.file && options.line) return { file: options.file, line: options.line };
+  if (Number.isInteger(options.frameIndex) && Array.isArray(paused?.stack)) {
+    const frame = paused.stack.find((entry) => isRecord(entry) && Number(entry.index) === options.frameIndex);
+    if (isRecord(frame) && typeof frame.file === 'string' && Number.isFinite(Number(frame.line))) {
+      return { file: frame.file, line: Math.floor(Number(frame.line)) };
+    }
+  }
+  if (paused && typeof paused.file === 'string' && Number.isFinite(Number(paused.line))) {
+    return { file: paused.file, line: Math.floor(Number(paused.line)) };
+  }
+  return {};
+}
+
+function resolveSourcePath(sourceRoot: string, file: string): string | null {
+  const root = resolve(sourceRoot);
+  const candidate = isAbsolute(file) ? resolve(file) : resolve(root, file);
+  const rel = relative(root, candidate);
+  if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) return candidate;
+  return null;
+}
+
+function boundedInt(value: unknown, fallback: number, max: number): number {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return fallback;
+  return Math.max(0, Math.min(max, Math.floor(next)));
 }
 
 function extractShaderGlsl(value: unknown): { pixel?: string; vertex?: string } {
