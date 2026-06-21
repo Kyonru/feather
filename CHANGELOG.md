@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `feather skills --client` and `--global` targeting so bundled skills can be installed into Codex, Claude, neutral `.agents`, or user-level skill directories.
 - Added bundled Shader Graph skill references for graph schema, node selection, effect recipes, and visual QA guidance.
 - Added workflow references for the remaining bundled Feather skills so installed skills include focused subsystem guidance beyond `SKILL.md`.
+- Added an MCP-free agent CLI contract with `feather session status`, `feather logs export`, and `feather replay list` JSON commands for live-session shell access through the desktop bridge.
 
 ### Changed
 
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added CLI coverage for listing, inspecting, installing, force-overwriting, dry-running, installing all, and removing bundled Feather agent skills.
 - Added CLI coverage proving bundled skill reference files install with the skill folder.
 - Expanded bundled skills install coverage so `--all` verifies reference files for every skill.
+- Added CLI coverage for MCP-free agent session status, logs export, replay list refresh, and command help.
 - Added CLI/Rust coverage for desktop-backed JSON project actions, dry-run behavior, sidecar resolution precedence, typed action argv mapping, and secret redaction.
 - Added MCP CLI coverage for resource discovery when the desktop bridge is unavailable.
 

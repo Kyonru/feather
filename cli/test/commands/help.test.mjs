@@ -18,6 +18,9 @@ test('help: core commands render help text', () => {
   assert.match(runOk(['plugin', '--help']), /plugin/);
   assert.match(runOk(['mcp', '--help']), /Model Context Protocol/);
   assert.match(runOk(['mcp', 'setup', '--help']), /codex or claude/);
+  assert.match(runOk(['session', '--help']), /without MCP/);
+  assert.match(runOk(['logs', 'export', '--help']), /captured logs/);
+  assert.match(runOk(['replay', 'list', '--help']), /Session Replay recordings/);
   assert.match(runOk(['skills', '--help']), /Install Feather agent skills/);
 });
 

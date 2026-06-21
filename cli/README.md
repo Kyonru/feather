@@ -556,6 +556,56 @@ Resources include `feather://sessions` and `feather://sessions/{id}/{section}` f
 
 ---
 
+### MCP-free agent CLI contract
+
+Agents can use Feather through plain shell commands without starting an MCP server. The contract is:
+
+- use `--json` whenever a command supports it
+- use `--dry-run --json` before mutating project files, fetching vendors, building release artifacts, or uploading
+- prefer fixed CLI commands over parsing desktop UI state
+- treat live-session commands as localhost bridge reads unless an option explicitly says it sends a refresh command
+
+Useful read-only or preview commands:
+
+```bash
+feather doctor . --json
+feather doctor . --security --json
+feather skills list --json
+feather package list --installed --json
+feather plugin list --json
+feather build vendor list --json
+feather build web --dry-run --json
+feather upload itch web --dry-run --json
+```
+
+Live-session shell commands reuse the Feather desktop localhost bridge directly. They do not start an MCP server, but the bridge must still be enabled in **Settings → Security → MCP Access** so the desktop writes a token to `~/.feather/mcp.json`. You can also pass a token with `--token` or `FEATHER_MCP_TOKEN`.
+
+```bash
+feather session status --json
+feather session status <session-id> --json
+feather session status <session-id> --section debugger --json
+feather logs export --json --limit 200
+feather logs export <session-id> --json
+feather replay list --json
+feather replay list <session-id> --refresh --json
+```
+
+Live-session command options:
+
+| Option                | Description                                                                 |
+| --------------------- | --------------------------------------------------------------------------- |
+| `--desktop-url <url>` | Feather desktop bridge URL. Defaults to `http://127.0.0.1:4005` or the saved bridge URL. |
+| `--token <token>`     | Desktop bridge token; overrides `FEATHER_MCP_TOKEN` and `~/.feather/mcp.json`. |
+| `--json`              | Emit machine-readable output.                                               |
+| `--section <name>`    | `session status` section: `config`, `logs`, `performance`, `debugger`, `plugins`, `assets`, `observers`, or `session-replay`. |
+| `--limit <count>`     | `logs export` maximum entries. Defaults to `500`, bounded by the desktop snapshot cap. |
+| `--refresh`           | `replay list` asks the running game to refresh replay metadata before reading the snapshot. |
+| `--timeout-ms <ms>`   | Wait timeout for `replay list --refresh`.                                   |
+
+This covers project setup, package/plugin inspection, build previews, logs, session snapshots, and replay inventories for Codex/Claude-style agents with normal shell access. Use MCP when an agent needs full live-control tools such as debugger stepping, plugin actions, Console eval, creative previews, or import/export workflows.
+
+---
+
 ### `feather skills`
 
 Install bundled Feather agent skills into project-local agent skill directories. These are small skill folders with a `SKILL.md` playbook and optional bundled references for agents that need to debug games, inspect live sessions, profile, create shaders/particles/textures, iterate with plugins, build platform artifacts, or act as QA.

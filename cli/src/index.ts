@@ -13,6 +13,7 @@ import { updateCommand } from './commands/update.js';
 import { buildCommand } from './commands/build.js';
 import { releaseInitCommand, releaseRunCommand } from './commands/release.js';
 import { replayInitCommand } from './commands/replay.js';
+import { logsExportCommand, replayListCommand, sessionStatusCommand } from './commands/agent-live.js';
 import { mcpCommand } from './commands/mcp.js';
 import { mcpSetupCommand } from './commands/mcp-setup.js';
 import { skillsInfoCommand, skillsInstallCommand, skillsListCommand, skillsRemoveCommand } from './commands/skills.js';
@@ -56,6 +57,14 @@ function parseCommaList(value: unknown): string[] | undefined {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function parsePositiveInteger(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error('Value must be a positive integer');
+  }
+  return parsed;
 }
 
 export function createProgram(): Command {
@@ -282,6 +291,46 @@ export function createProgram(): Command {
       ),
     );
 
+  const session = program.command('session').description('Inspect live Feather desktop sessions without MCP');
+
+  session
+    .command('status [session-id]')
+    .description('List live Feather sessions, or print one session snapshot')
+    .option('--section <section>', 'Return one snapshot section: config, logs, performance, debugger, plugins, assets, observers, or session-replay')
+    .option('--desktop-url <url>', 'Feather desktop bridge URL (default: http://127.0.0.1:4005)')
+    .option('--token <token>', 'Desktop bridge token; overrides FEATHER_MCP_TOKEN and ~/.feather/mcp.json')
+    .option('--json', 'Output machine-readable JSON')
+    .action((sessionId: string | undefined, opts) =>
+      runCliAction(() =>
+        sessionStatusCommand(sessionId, {
+          section: opts.section as string | undefined,
+          desktopUrl: opts.desktopUrl as string | undefined,
+          token: opts.token as string | undefined,
+          json: opts.json as boolean | undefined,
+        }),
+      ),
+    );
+
+  const logs = program.command('logs').description('Export live Feather session logs without MCP');
+
+  logs
+    .command('export [session-id]')
+    .description('Export captured logs from a live Feather session snapshot')
+    .option('--limit <count>', 'Maximum log entries to print', parsePositiveInteger, 500)
+    .option('--desktop-url <url>', 'Feather desktop bridge URL (default: http://127.0.0.1:4005)')
+    .option('--token <token>', 'Desktop bridge token; overrides FEATHER_MCP_TOKEN and ~/.feather/mcp.json')
+    .option('--json', 'Output machine-readable JSON')
+    .action((sessionId: string | undefined, opts) =>
+      runCliAction(() =>
+        logsExportCommand(sessionId, {
+          limit: opts.limit as number | undefined,
+          desktopUrl: opts.desktopUrl as string | undefined,
+          token: opts.token as string | undefined,
+          json: opts.json as boolean | undefined,
+        }),
+      ),
+    );
+
   const skills = program.command('skills').description('Install Feather agent skills into the current project');
 
   skills
@@ -374,6 +423,26 @@ export function createProgram(): Command {
           path: opts.path as string | undefined,
           force: opts.force as boolean | undefined,
           config: opts.config as boolean | undefined,
+        }),
+      ),
+    );
+
+  replay
+    .command('list [session-id]')
+    .description('List Session Replay recordings from a live Feather session')
+    .option('--refresh', 'Ask the running game to refresh its replay list before reading the snapshot')
+    .option('--timeout-ms <ms>', 'Wait timeout for --refresh responses', parsePositiveInteger)
+    .option('--desktop-url <url>', 'Feather desktop bridge URL (default: http://127.0.0.1:4005)')
+    .option('--token <token>', 'Desktop bridge token; overrides FEATHER_MCP_TOKEN and ~/.feather/mcp.json')
+    .option('--json', 'Output machine-readable JSON')
+    .action((sessionId: string | undefined, opts) =>
+      runCliAction(() =>
+        replayListCommand(sessionId, {
+          refresh: opts.refresh as boolean | undefined,
+          timeoutMs: opts.timeoutMs as number | undefined,
+          desktopUrl: opts.desktopUrl as string | undefined,
+          token: opts.token as string | undefined,
+          json: opts.json as boolean | undefined,
         }),
       ),
     );

@@ -1,19 +1,30 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { fail } from '../lib/command.js';
+import {
+  DEFAULT_DESKTOP_BRIDGE_URL,
+  DESKTOP_BRIDGE_SECTIONS,
+  DesktopBridgeClient,
+  getSnapshotSection,
+  isRecord,
+  normalizeBaseUrl,
+  readSharedDesktopBridgeConfig,
+  resolveSessionId,
+  sessionReplayStatePayload,
+  stripUndefined,
+  tailLogs,
+  type SessionSummary,
+} from '../lib/desktop-bridge.js';
 import { printErrorLine } from '../lib/output.js';
 
-const DEFAULT_DESKTOP_URL = 'http://127.0.0.1:4005';
 const DEFAULT_HTTP_HOST = '127.0.0.1';
 const DEFAULT_HTTP_PORT = 4006;
-const RESOURCE_SECTIONS = ['config', 'logs', 'performance', 'debugger', 'plugins', 'assets', 'observers', 'session-replay'] as const;
 const CREATIVE_TOOLS = ['shader-graph', 'particle-system-playground', 'texture-lab'] as const;
 const PLUGIN_ACTION_NOTES: Record<string, { actions: string[]; notes: string }> = {
   'shader-graph': {
@@ -59,102 +70,15 @@ export type McpCommandOptions = {
   token?: string;
 };
 
-type SharedMcpConfig = {
-  token?: string;
-  bridgeUrl?: string;
-};
-
-type BridgeCommandRequest = {
-  message: Record<string, unknown>;
-  waitFor?: {
-    type?: string;
-    id?: string;
-    plugin?: string;
-    action?: string;
-    timeoutMs?: number;
-  };
-};
-
-type CreativeActionRequest = {
-  action: string;
-  params?: Record<string, unknown>;
-  timeoutMs?: number;
-};
-
-type SessionSummary = {
-  id: string;
-  connected?: boolean;
-};
-
-type SessionListResponse = {
-  sessions?: SessionSummary[];
-};
-
-class DesktopBridgeClient {
-  constructor(
-    private readonly baseUrl: string,
-    private readonly token: string,
-  ) {}
-
-  async health(): Promise<unknown> {
-    return this.request('/health');
-  }
-
-  async listSessions(): Promise<SessionListResponse> {
-    return this.request<SessionListResponse>('/sessions');
-  }
-
-  async getSession(sessionId: string): Promise<unknown> {
-    return this.request(`/sessions/${encodeURIComponent(sessionId)}`);
-  }
-
-  async getCreative(tool: string): Promise<unknown> {
-    return this.request(`/creative/${encodeURIComponent(tool)}`);
-  }
-
-  async runCreativeAction(tool: string, body: CreativeActionRequest): Promise<unknown> {
-    return this.request(`/creative/${encodeURIComponent(tool)}/action`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-  }
-
-  async sendCommand(sessionId: string, body: BridgeCommandRequest): Promise<unknown> {
-    return this.request(`/sessions/${encodeURIComponent(sessionId)}/command`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-  }
-
-  private async request<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${this.token}`,
-        ...(init.headers ?? {}),
-      },
-    });
-
-    const text = await response.text();
-    const body = text ? safeJson(text) : null;
-    if (!response.ok) {
-      const detail = isRecord(body) && typeof body.error === 'string' ? body.error : response.statusText;
-      throw new Error(`Desktop bridge ${response.status}: ${detail}`);
-    }
-    return body as T;
-  }
-}
-
 export async function mcpCommand(options: McpCommandOptions): Promise<void> {
   const transport = options.transport ?? 'stdio';
   if (transport !== 'stdio' && transport !== 'http') {
     fail('MCP transport must be one of: stdio, http');
   }
 
-  const sharedConfig = readSharedMcpConfig();
+  const sharedConfig = readSharedDesktopBridgeConfig();
   const token = options.token || process.env.FEATHER_MCP_TOKEN || sharedConfig?.token || '';
-  const desktopUrl = normalizeBaseUrl(options.desktopUrl || sharedConfig?.bridgeUrl || DEFAULT_DESKTOP_URL);
+  const desktopUrl = normalizeBaseUrl(options.desktopUrl || sharedConfig?.bridgeUrl || DEFAULT_DESKTOP_BRIDGE_URL);
 
   if (!token) {
     fail('MCP token is required', {
@@ -206,7 +130,7 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
         const sessions = await listSessionsForResourceDiscovery(bridge);
         return {
           resources: sessions.flatMap((session) =>
-            RESOURCE_SECTIONS.map((section) => ({
+            DESKTOP_BRIDGE_SECTIONS.map((section) => ({
               name: `feather-${session.id}-${section}`,
               uri: `feather://sessions/${session.id}/${section}`,
               mimeType: 'application/json',
@@ -223,7 +147,7 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
     async (uri, variables) => {
       const sessionId = String(variables.sessionId ?? '');
       const section = String(variables.section ?? '');
-      if (!RESOURCE_SECTIONS.includes(section as typeof RESOURCE_SECTIONS[number])) {
+      if (!DESKTOP_BRIDGE_SECTIONS.includes(section as typeof DESKTOP_BRIDGE_SECTIONS[number])) {
         throw new Error(`Unknown Feather resource section: ${section}`);
       }
       const snapshot = await bridge.getSession(sessionId);
@@ -1501,14 +1425,6 @@ async function runHttpMcpServer(
   await new Promise<void>((resolve) => httpServer.once('close', resolve));
 }
 
-async function resolveSessionId(bridge: DesktopBridgeClient, sessionId?: string): Promise<string> {
-  if (sessionId) return sessionId;
-  const sessions = (await bridge.listSessions()).sessions?.filter((session) => session.connected !== false) ?? [];
-  if (sessions.length === 1) return sessions[0]!.id;
-  if (sessions.length === 0) throw new Error('No connected Feather sessions');
-  throw new Error(`Multiple Feather sessions are connected; pass sessionId. Sessions: ${sessions.map((s) => s.id).join(', ')}`);
-}
-
 async function listSessionsForResourceDiscovery(bridge: DesktopBridgeClient): Promise<SessionSummary[]> {
   try {
     return (await bridge.listSessions()).sessions ?? [];
@@ -1635,11 +1551,6 @@ function debuggerStatePayload(
   };
 }
 
-function tailLogs(snapshot: unknown, limit?: number): unknown[] {
-  if (!isRecord(snapshot) || !Array.isArray(snapshot.logs)) return [];
-  return snapshot.logs.slice(-boundedInt(limit, 50, 500));
-}
-
 function debuggerLineContext(
   snapshot: unknown,
   options: {
@@ -1761,21 +1672,6 @@ function sessionReplayResponseType(action: string): string {
   return 'session_replay:status';
 }
 
-function sessionReplayStatePayload(sessionId: string, snapshot: unknown) {
-  const status = isRecord(snapshot) && isRecord(snapshot.sessionReplay) ? snapshot.sessionReplay : null;
-  const recording = isRecord(snapshot) && isRecord(snapshot.sessionReplayRecording) ? snapshot.sessionReplayRecording : null;
-  const list = isRecord(snapshot) && isRecord(snapshot.sessionReplayList) ? snapshot.sessionReplayList : null;
-  const replays = Array.isArray(list?.replays) ? list.replays : [];
-  return {
-    sessionId,
-    status,
-    recording,
-    list,
-    selectedId: typeof list?.selectedId === 'string' ? list.selectedId : null,
-    replayCount: replays.length,
-  };
-}
-
 function extractShaderGlsl(value: unknown): { pixel?: string; vertex?: string } {
   const glsl = findRecordField(value, 'glsl');
   return {
@@ -1872,10 +1768,6 @@ async function creativeResponse(
   return Object.prototype.hasOwnProperty.call(result, 'response') ? result.response : result;
 }
 
-function stripUndefined<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
-}
-
 function withoutKeys(value: Record<string, unknown>, keys: string[]): Record<string, unknown> {
   const skipped = new Set(keys);
   return Object.fromEntries(Object.entries(value).filter(([key]) => !skipped.has(key)));
@@ -1904,25 +1796,6 @@ function jsonResource(uri: string, value: unknown) {
   };
 }
 
-function getSnapshotSection(snapshot: unknown, section: string): unknown {
-  if (!isRecord(snapshot)) return null;
-  if (section === 'debugger') {
-    return {
-      status: snapshot.debuggerStatus,
-      paused: snapshot.debuggerPaused,
-    };
-  }
-  if (section === 'session-replay') {
-    return {
-      status: snapshot.sessionReplay,
-      recording: snapshot.sessionReplayRecording,
-      list: snapshot.sessionReplayList,
-    };
-  }
-  if (section === 'observers') return snapshot.observers;
-  return snapshot[section];
-}
-
 function stripCallerSecrets<T extends Record<string, unknown>>(message: T): T {
   const next = { ...message };
   for (const key of Object.keys(next)) {
@@ -1939,34 +1812,6 @@ function stripCallerSecrets<T extends Record<string, unknown>>(message: T): T {
     }
   }
   return next;
-}
-
-function readSharedMcpConfig(): SharedMcpConfig | null {
-  const explicit = process.env.FEATHER_MCP_CONFIG;
-  const path = explicit || join(homedir(), '.feather', 'mcp.json');
-  if (!existsSync(path)) return null;
-  try {
-    const value = JSON.parse(readFileSync(path, 'utf8')) as SharedMcpConfig;
-    return isRecord(value) ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-function normalizeBaseUrl(value: string): string {
-  return value.replace(/\/+$/, '');
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function safeJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
 }
 
 function isLocalHost(host: string): boolean {
