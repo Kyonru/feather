@@ -772,7 +772,7 @@ async function seedHealthySessionConfig(page: Page) {
       },
       root_path: '/tmp/demo',
       sourceDir: '/tmp/demo',
-      version: '3.3.1',
+      version: '4.0.0',
       API: 5,
       sampleRate: 1,
       outfile: '',
