@@ -16,7 +16,7 @@
         <link rel="prev" href="../usage/">
       
       
-        <link rel="next" href="../session/">
+        <link rel="next" href="../mcp/">
       
       
         
@@ -639,6 +639,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#mcp-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP Access
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -709,6 +720,60 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Skills
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1160,10 +1225,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_23" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_25" >
         
           
-          <label class="md-nav__link" for="__nav_23" id="__nav_23_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_25" id="__nav_25_label" tabindex="0">
             
   
   
@@ -1181,8 +1246,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_23_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_23">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_25_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_25">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1941,6 +2006,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#mcp-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP Access
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2365,6 +2441,17 @@ You can also toggle this for the current run from <strong>Session → Keep Runni
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">}</span>
 </code></pre></div>
 <p>Doctor reports whether the key is configured or weak, but does not print the key value.</p>
+<h3 id="mcp-access">MCP Access<a class="headerlink" href="#mcp-access" title="Permanent link">&para;</a></h3>
+<p>Feather can expose live desktop sessions to AI clients through a local Model Context Protocol server:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>feather<span class="w"> </span>mcp
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>feather<span class="w"> </span>mcp<span class="w"> </span>--transport<span class="w"> </span>http
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>codex
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>claude
+</code></pre></div>
+<p>Enable <strong>Feather → Settings → Security → MCP Access</strong> first. The desktop bridge binds to <code>127.0.0.1:4005</code>, is disabled by default, and requires a generated bearer token. The CLI reads that token from <code>~/.feather/mcp.json</code>, or from <code>FEATHER_MCP_TOKEN</code> / <code>--token</code>.</p>
+<p>Use <code>feather mcp setup --client codex</code> to install the Feather MCP server entry into <code>~/.codex/config.toml</code>. Use <code>feather mcp setup --client claude</code> to install the Claude Code user entry into <code>~/.claude.json</code>, or add <code>--scope project</code> to write a project <code>.mcp.json</code>. Restart the client after setup so the tools are loaded.</p>
+<p>MCP resources expose sanitized JSON snapshots such as sessions, config, logs, performance, debugger state, plugin catalog/live payloads, assets, observers, Shader Graph, Particles Playground, and Texture Lab. MCP tools can control runtime/debugger/plugin workflows, Shader Graph compile/preview/import/export, Particle Playground authoring/export actions, and Texture Lab recipe/generation actions. Console eval still works only when the existing Console gates are satisfied (<code>console</code> included, <code>evalEnabled = true</code>, and matching <code>apiKey</code>). See <a href="../mcp/">MCP</a> for setup, resource/tool lists, and troubleshooting.</p>
+<p>References: <a href="https://modelcontextprotocol.io/specification/2025-06-18">MCP specification</a>, <a href="https://modelcontextprotocol.io/docs/learn/architecture">MCP architecture</a>, and <a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/transports">MCP transports</a>.</p>
 <hr />
 <h2 id="connecting">Connecting<a class="headerlink" href="#connecting" title="Permanent link">&para;</a></h2>
 <p>Feather uses a <strong>push-based WebSocket architecture</strong>. The desktop app runs a WebSocket server (port 4004 by default), and your game connects to it as a client.</p>
@@ -2372,25 +2459,25 @@ You can also toggle this for the current run from <strong>Session → Keep Runni
 <li>Start the Feather desktop app from the <a href="https://github.com/Kyonru/feather/releases">releases page</a>.</li>
 <li>Run your game with Feather enabled — you'll see:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>[Feather] WS client created — connecting to 127.0.0.1:4004
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>[Feather] Connected — handshake complete
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>[Feather] WS client created — connecting to 127.0.0.1:4004
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>[Feather] Connected — handshake complete
 </code></pre></div>
 <p>The game automatically reconnects if the desktop app is restarted.</p>
 <hr />
 <h2 id="mobile-remote-devices">Mobile &amp; Remote Devices<a class="headerlink" href="#mobile-remote-devices" title="Permanent link">&para;</a></h2>
 <h3 id="android-usb-via-adb-reverse">Android (USB via ADB reverse)<a class="headerlink" href="#android-usb-via-adb-reverse" title="Permanent link">&para;</a></h3>
 <p>Forward the device's <code>localhost:4004</code> to your computer:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>adb<span class="w"> </span>reverse<span class="w"> </span>tcp:4004<span class="w"> </span>tcp:4004
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>adb<span class="w"> </span>reverse<span class="w"> </span>tcp:4004<span class="w"> </span>tcp:4004
 </code></pre></div>
 <p>Then use the default config — the game connects to <code>127.0.0.1:4004</code>, which ADB routes to your computer:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span><span class="w"> </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span><span class="w"> </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span>
 </code></pre></div>
 <h3 id="android-ios-wi-fi">Android / iOS (Wi-Fi)<a class="headerlink" href="#android-ios-wi-fi" title="Permanent link">&para;</a></h3>
 <p>Point <code>host</code> to your computer's local IP:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;192.168.1.42&quot;</span><span class="p">,</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;192.168.1.42&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="p">})</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
@@ -2398,10 +2485,10 @@ You can also toggle this for the current run from <strong>Session → Keep Runni
 </div>
 <h3 id="offline-disk-mode">Offline / disk mode<a class="headerlink" href="#offline-disk-mode" title="Permanent link">&para;</a></h3>
 <p>Skip WebSocket entirely and write only log files — useful when there's no shared network:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nv">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;disk&quot;</span><span class="p">,</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span><span class="nv">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;disk&quot;</span><span class="p">,</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="p">})</span>
 </code></pre></div>
 <p>Transfer the <code>.featherlog</code> file from the device and open it in the Feather app via <strong>Open Log File</strong>.</p>
 

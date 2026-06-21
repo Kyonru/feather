@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://kyonru.github.io/feather/debugger/">
+        <link rel="canonical" href="https://kyonru.github.io/feather/mcp/">
       
       
-        <link rel="prev" href="../profiler/">
+        <link rel="prev" href="../configuration/">
       
       
-        <link rel="next" href="../hot-reload/">
+        <link rel="next" href="../skills/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Debugger - Feather</title>
+        <title>MCP - Feather</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#step-debugger" class="md-skip">
+        <a href="#mcp" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Debugger
+              MCP
             
           </span>
         </div>
@@ -504,10 +504,37 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../mcp/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -523,6 +550,197 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tokens-and-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tokens And Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-creative-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating Creative Assets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step Debugging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#session-replay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session Replay
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mcp-token-is-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP token is required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#desktop-bridge-403-mcp-bridge-is-disabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Desktop bridge 403: MCP bridge is disabled
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connection-refused" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection refused
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-connected-feather-sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No connected Feather sessions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creative-executor-is-not-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        creative executor is not available
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -693,37 +911,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugger
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../debugger/" class="md-nav__link">
         
   
   
@@ -739,226 +930,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Setup
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#cli-managed-setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CLI-managed setup
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#manual-setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Manual setup
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setting-breakpoints" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Setting breakpoints
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setting breakpoints">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#profiler-probes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Profiler probes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#conditional-breakpoints" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Conditional breakpoints
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#pause-on-error" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pause on error
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#while-paused" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        While paused
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="While paused">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#call-stack" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Call stack
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#variables" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Variables
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#controls" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Controls
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#typical-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Typical workflow
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Typical workflow">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-tracking-down-a-wrong-jump-height" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example: tracking down a wrong jump height
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#mobile-remote-source-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Mobile / remote source files
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-it-works" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How it works
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-with-time-travel" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Integration with Time Travel
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1938,14 +1909,102 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Setup">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tokens-and-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tokens And Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-creative-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating Creative Assets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step Debugging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#session-replay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session Replay
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#cli-managed-setup" class="md-nav__link">
+  <a href="#mcp-token-is-required" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CLI-managed setup
+        MCP token is required
       
     </span>
   </a>
@@ -1953,10 +2012,43 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#manual-setup" class="md-nav__link">
+  <a href="#desktop-bridge-403-mcp-bridge-is-disabled" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manual setup
+        Desktop bridge 403: MCP bridge is disabled
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connection-refused" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection refused
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-connected-feather-sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No connected Feather sessions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creative-executor-is-not-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        creative executor is not available
       
     </span>
   </a>
@@ -1969,160 +2061,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#setting-breakpoints" class="md-nav__link">
+  <a href="#references" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Setting breakpoints
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setting breakpoints">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#profiler-probes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Profiler probes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#conditional-breakpoints" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Conditional breakpoints
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#pause-on-error" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pause on error
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#while-paused" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        While paused
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="While paused">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#call-stack" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Call stack
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#variables" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Variables
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#controls" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Controls
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#typical-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Typical workflow
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Typical workflow">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-tracking-down-a-wrong-jump-height" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example: tracking down a wrong jump height
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#mobile-remote-source-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Mobile / remote source files
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-it-works" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How it works
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-with-time-travel" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Integration with Time Travel
+        References
       
     </span>
   </a>
@@ -2149,181 +2091,300 @@
   
 
 
-<h1 id="step-debugger">Step Debugger<a class="headerlink" href="#step-debugger" title="Permanent link">&para;</a></h1>
-<p>The step debugger lets you pause game execution at any line, inspect local variables and the call stack, and resume with continue, step over, step into, or step out — all from the <strong>Debugger</strong> tab in the Feather desktop app.</p>
-<p>It also hosts Feather's opt-in <a href="../hot-reload/">Hot Reload</a> controls for selected Lua modules.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Hot reload sends Lua source from the app into the running game. Enable it only in trusted development sessions with a narrow module allowlist.</p>
-</div>
-<hr />
+<h1 id="mcp">MCP<a class="headerlink" href="#mcp" title="Permanent link">&para;</a></h1>
+<p>Feather can run as a local <a href="https://modelcontextprotocol.io/specification/2025-06-18">Model Context Protocol</a> server for AI clients. The MCP server exposes sanitized live session context, plugin state, and creative-tool workflows through the Feather desktop app.</p>
+<p>MCP is for local development automation. It is disabled by default and should stay disabled unless a local MCP client is actively connected.</p>
 <h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
-<h3 id="cli-managed-setup">CLI-managed setup<a class="headerlink" href="#cli-managed-setup" title="Permanent link">&para;</a></h3>
-<p>The debugger is controlled by the <code>debugger</code> config option, not the plugin system. Enable it in <code>feather.config.lua</code>, then run through the CLI:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">}</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>web
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>android
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>feather<span class="w"> </span>run<span class="w"> </span>path/to/my-game<span class="w"> </span>--target<span class="w"> </span>ios
-</code></pre></div>
-<h3 id="manual-setup">Manual setup<a class="headerlink" href="#manual-setup" title="Permanent link">&para;</a></h3>
-<p>Manual Lua integration is only needed for projects that intentionally vendor Feather themselves:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">FeatherDebugger</span><span class="p">({</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">debug</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">   </span><span class="c1">-- install the debug hook on startup</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">})</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="kr">function</span><span class="w"> </span><span class="nc">love</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nv">debugger</span><span class="p">:</span><span class="nf">update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="kr">end</span>
-</code></pre></div>
-<p>You can also leave <code>debugger = false</code> and toggle it on from the <strong>Debugger</strong> tab in the desktop app at any time without restarting the game.</p>
-<hr />
-<h2 id="setting-breakpoints">Setting breakpoints<a class="headerlink" href="#setting-breakpoints" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Open the <strong>Debugger</strong> tab.</li>
-<li>Browse your source files in the file tree on the left.</li>
-<li>Click any <strong>line number</strong> to add a breakpoint. Click again to remove it.</li>
+<li>Start the Feather desktop app.</li>
+<li>Open <strong>Settings → Security → MCP Access</strong>.</li>
+<li>Enable MCP access.</li>
+<li>Copy the generated client config or use the CLI directly:</li>
 </ol>
-<p>Breakpoints are shown as red dots in the gutter. They persist across desktop restarts and are synced to the game whenever the debugger is enabled or a breakpoint is changed.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Debugger expects the folder structure to be the same where the main.lua is located. Feather is capable of automatically detecting the directory, but if it doesn't, just open the project folder where your main.lua is located.</p>
-</div>
-<p>The toolbar shows how many enabled breakpoints the game accepted after path normalization. If a breakpoint path or line cannot be synced, Feather keeps the local breakpoint but reports it in the debugger status instead of failing silently.</p>
-<h3 id="profiler-probes">Profiler probes<a class="headerlink" href="#profiler-probes" title="Permanent link">&para;</a></h3>
-<p>Use the stopwatch gutter beside the breakpoint gutter to mark source lines that control the core profiler without pausing the game:</p>
-<ul>
-<li>Click an empty stopwatch slot to cycle <code>Start -&gt; Stop -&gt; Snapshot -&gt; Empty</code>.</li>
-<li>Right-click the stopwatch slot to choose <strong>Start profiling here</strong>, <strong>Stop profiling here</strong>, <strong>Snapshot here</strong>, <strong>Profile function here</strong>, or <strong>Remove probe</strong> directly.</li>
-<li>Snapshot probes use the saved label when present, otherwise they create a snapshot named <code>Debugger probe</code>.</li>
-<li><strong>Profile function here</strong> installs a <code>DEBUGGER.profiler:wrap(...)</code> wrapper for supported global/table functions such as <code>love.update</code>, <code>Game.update</code>, <code>Player:update</code>, or <code>Game.update = function(...)</code>. It does not start recording by itself.</li>
-</ul>
-<p>Profiler probes persist with debugger state and sync to the active session whenever the debugger is enabled. They run inside the same debugger line hook as breakpoints, so Feather does not install a second <code>debug.sethook</code> path. When a probe and breakpoint share a line, the probe action runs first and the breakpoint still pauses normally.</p>
-<p>Probe captures appear in <strong>Performance -&gt; Profiler</strong>. Use them for line-triggered capture windows around instrumented code, then inspect, diff, snapshot, or export the profiler rows from the Performance page.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Automatic function profiling only supports functions Feather can resolve from <code>_G</code> through table fields. Local functions, closures, and module-private returned tables still need manual instrumentation.</p>
-</div>
-<h3 id="conditional-breakpoints">Conditional breakpoints<a class="headerlink" href="#conditional-breakpoints" title="Permanent link">&para;</a></h3>
-<p>Right-click a breakpoint (or use the condition field) to add a Lua expression. The game only pauses when the expression evaluates to truthy:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- Only pause when the player takes damage</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">player</span><span class="p">.</span><span class="py">health</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">50</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1">-- Only pause on a specific enemy</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nv">enemy</span><span class="p">.</span><span class="py">id</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;boss_1&quot;</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1">-- Pause on the 10th iteration</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nv">i</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">10</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>feather<span class="w"> </span>mcp
 </code></pre></div>
-<p>The condition runs in the game's Lua context, so you can reference any global or local variable visible at that line.</p>
-<p>If the condition cannot compile or errors while evaluating, Feather reports the condition error in the toolbar and marks the breakpoint line so you can fix the expression.</p>
-<h3 id="pause-on-error">Pause on error<a class="headerlink" href="#pause-on-error" title="Permanent link">&para;</a></h3>
-<p>Enable <strong>Pause on Error</strong> in the Debugger toolbar, or set:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nv">debugger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nv">pauseOnError</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
+<p><code>feather mcp</code> defaults to stdio, which is the best transport for local desktop AI clients.</p>
+<p>For Codex or Claude Code, Feather can install the persistent MCP client entry:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>codex
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>claude
 </code></pre></div>
-<p>When a wrapped <code>love.*</code> callback crashes, Feather pauses before applying the configured crash behavior. By default the game still rethrows after you resume. If <code>continueOnGameError = true</code>, the game resumes after the pause and Feather keeps reporting the callback failure.</p>
-<hr />
-<h2 id="while-paused">While paused<a class="headerlink" href="#while-paused" title="Permanent link">&para;</a></h2>
-<p>When execution stops at a breakpoint, the desktop shows:</p>
-<h3 id="call-stack">Call stack<a class="headerlink" href="#call-stack" title="Permanent link">&para;</a></h3>
-<p>The full stack trace — file, line, and function name for each frame. Click a frame to navigate to it in the source view and load that frame's locals/upvalues. The highlighted frame is where execution is suspended.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>main.lua:42<span class="w">     </span>love.update
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>player.lua:18<span class="w">   </span>Player:update
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>player.lua:55<span class="w">   </span>Player:applyGravity<span class="w">   </span>←<span class="w"> </span>paused<span class="w"> </span>here
+<p>Codex setup updates <code>~/.codex/config.toml</code>. Claude setup defaults to user scope and updates <code>~/.claude.json</code>; use <code>--scope project</code> to write <code>.mcp.json</code> in the current project, or <code>--scope local</code> to add a project-local entry under <code>~/.claude.json</code>. Setup does not copy the MCP token into client config; the CLI reads the token from <code>~/.feather/mcp.json</code> when the client starts the server. Restart the client after setup.</p>
+<p>For clients that require Streamable HTTP:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>feather<span class="w"> </span>mcp<span class="w"> </span>--transport<span class="w"> </span>http
 </code></pre></div>
-<h3 id="variables">Variables<a class="headerlink" href="#variables" title="Permanent link">&para;</a></h3>
-<p>Locals and upvalues of the currently selected frame, expanded one level deep for tables:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">dt</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mf">0.016</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">self</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">142</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">320</span><span class="p">,</span><span class="w"> </span><span class="nv">health</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">75</span><span class="p">,</span><span class="w"> </span><span class="nv">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;jumping&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">…</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nv">velocity</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.5</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mf">8.1</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nv">onGround</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
-</code></pre></div>
-<h3 id="controls">Controls<a class="headerlink" href="#controls" title="Permanent link">&para;</a></h3>
+<p>HTTP listens on <code>127.0.0.1:4006/mcp</code> by default and requires the same bearer token as the desktop bridge.</p>
+<h2 id="tokens-and-options">Tokens And Options<a class="headerlink" href="#tokens-and-options" title="Permanent link">&para;</a></h2>
+<p>The desktop writes MCP settings to <code>~/.feather/mcp.json</code>. The CLI resolves the bridge token in this order:</p>
+<ol>
+<li><code>--token</code></li>
+<li><code>FEATHER_MCP_TOKEN</code></li>
+<li><code>~/.feather/mcp.json</code></li>
+</ol>
+<p>Useful options:</p>
 <table>
 <thead>
 <tr>
-<th>Button</th>
-<th>Shortcut</th>
+<th>Option</th>
+<th>Default</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Continue</td>
-<td><code>F8</code></td>
-<td>Resume freely until the next breakpoint</td>
+<td><code>--transport &lt;stdio\|http&gt;</code></td>
+<td><code>stdio</code></td>
+<td>MCP transport.</td>
 </tr>
 <tr>
-<td>Step Over</td>
-<td><code>F10</code></td>
-<td>Execute the next line; don't follow function calls</td>
+<td><code>--host &lt;host&gt;</code></td>
+<td><code>127.0.0.1</code></td>
+<td>HTTP host. Only localhost hosts are accepted.</td>
 </tr>
 <tr>
-<td>Step Into</td>
-<td><code>F11</code></td>
-<td>Follow the next function call into its body</td>
+<td><code>--port &lt;port&gt;</code></td>
+<td><code>4006</code></td>
+<td>HTTP MCP port.</td>
 </tr>
 <tr>
-<td>Step Out</td>
-<td><code>⇧F11</code></td>
-<td>Run until the current function returns</td>
+<td><code>--desktop-url &lt;url&gt;</code></td>
+<td><code>http://127.0.0.1:4005</code></td>
+<td>Desktop MCP bridge URL.</td>
+</tr>
+<tr>
+<td><code>--token &lt;token&gt;</code></td>
+<td></td>
+<td>Bridge and HTTP bearer token.</td>
 </tr>
 </tbody>
 </table>
-<hr />
-<h2 id="typical-workflow">Typical workflow<a class="headerlink" href="#typical-workflow" title="Permanent link">&para;</a></h2>
-<ol>
-<li><strong>Reproduce the bug</strong> — run the game and trigger the condition.</li>
-<li><strong>Set a breakpoint</strong> — on the line you suspect, or just before the crash.</li>
-<li><strong>Pause</strong> — the game freezes; desktop shows variables and call stack.</li>
-<li><strong>Inspect</strong> — read locals and upvalues to understand the state.</li>
-<li><strong>Step</strong> — use Step Over to walk through logic line by line.</li>
-<li><strong>Continue</strong> — resume and wait for the next pause.</li>
-</ol>
-<h3 id="example-tracking-down-a-wrong-jump-height">Example: tracking down a wrong jump height<a class="headerlink" href="#example-tracking-down-a-wrong-jump-height" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">-- player.lua, line 55</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kr">function</span><span class="w"> </span><span class="nc">Player</span><span class="p">:</span><span class="nf">applyGravity</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="kr">if</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">onGround</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">jumpForce</span><span class="w">   </span><span class="c1">-- ← breakpoint here</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="kr">end</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">GRAVITY</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nv">dt</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nv">self</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">self</span><span class="p">.</span><span class="py">velocity</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nv">dt</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="kr">end</span>
+<p>Example local client config:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">&quot;feather&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feather&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;mcp&quot;</span><span class="p">]</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
 </code></pre></div>
-<p>With a breakpoint on line 55, pause and check:</p>
+<p>The Codex setup command writes the equivalent TOML server entry:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[mcp_servers.feather]</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">command</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;feather&quot;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">args</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;mcp&quot;</span><span class="p">]</span>
+</code></pre></div>
+<p>Claude setup writes the JSON server entry with <code>type = "stdio"</code> in the selected scope:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nt">&quot;feather&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feather&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;mcp&quot;</span><span class="p">]</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">}</span>
+</code></pre></div>
+<h2 id="resources">Resources<a class="headerlink" href="#resources" title="Permanent link">&para;</a></h2>
+<p>Feather MCP resources are JSON-only snapshots. Secret-like fields such as <code>appId</code>, <code>apiKey</code>, bearer tokens, passwords, and secret fields are redacted.</p>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feather://sessions</code></td>
+<td>Connected and recently seen session summaries.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/config</code></td>
+<td>Sanitized runtime config snapshot.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/logs</code></td>
+<td>Recent logs.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/performance</code></td>
+<td>Recent performance metrics.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/debugger</code></td>
+<td>Debugger status and paused frame state.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/plugins</code></td>
+<td>Live plugin payload map.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/plugins/{pluginId}</code></td>
+<td>Live payload for one plugin.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/assets</code></td>
+<td>Asset catalog metadata.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/observers</code></td>
+<td>Observability payloads.</td>
+</tr>
+<tr>
+<td><code>feather://sessions/{id}/session-replay</code></td>
+<td>Session Replay status, loaded recording, and replay list.</td>
+</tr>
+<tr>
+<td><code>feather://plugins/catalog</code></td>
+<td>Built-in plugin catalog metadata.</td>
+</tr>
+<tr>
+<td><code>feather://plugins/{pluginId}</code></td>
+<td>Built-in metadata for one plugin.</td>
+</tr>
+<tr>
+<td><code>feather://creative/shader-graph</code></td>
+<td>Desktop-local Shader Graph snapshot.</td>
+</tr>
+<tr>
+<td><code>feather://creative/particle-system-playground</code></td>
+<td>Particle Playground snapshot.</td>
+</tr>
+<tr>
+<td><code>feather://creative/texture-lab</code></td>
+<td>Desktop-local Texture Lab snapshot.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tools">Tools<a class="headerlink" href="#tools" title="Permanent link">&para;</a></h2>
+<p>Session and runtime tools:</p>
 <ul>
-<li><code>self.jumpForce</code> — is it the expected value?</li>
-<li><code>self.onGround</code> — is the condition entering correctly?</li>
-<li><code>GRAVITY</code> — is it the global constant you expect?</li>
+<li><code>feather_list_sessions</code></li>
+<li><code>feather_get_session_snapshot</code></li>
+<li><code>feather_refresh</code></li>
+<li><code>feather_runtime</code></li>
+<li><code>feather_debugger_state</code></li>
+<li><code>feather_debugger_enable</code></li>
+<li><code>feather_debugger_set_breakpoints</code></li>
+<li><code>feather_debugger_step</code></li>
+<li><code>feather_debugger_continue</code></li>
+<li><code>feather_debugger_inspect_frame</code></li>
+<li><code>feather_debugger_line_context</code></li>
+<li><code>feather_debugger</code></li>
+<li><code>feather_console_eval</code></li>
+<li><code>feather_console</code></li>
+<li><code>feather_time_travel</code></li>
+<li><code>feather_session_replay_state</code></li>
+<li><code>feather_session_replay_list</code></li>
+<li><code>feather_session_replay_start</code></li>
+<li><code>feather_session_replay_stop</code></li>
+<li><code>feather_session_replay_load</code></li>
+<li><code>feather_session_replay_play</code></li>
+<li><code>feather_session_replay_seek</code></li>
+<li><code>feather_session_replay_stop_playback</code></li>
+<li><code>feather_session_replay_import</code></li>
+<li><code>feather_session_replay_delete</code></li>
+<li><code>feather_session_replay</code></li>
+<li><code>feather_send_command</code></li>
 </ul>
-<p>Step Over line by line to watch <code>self.velocity.y</code> and <code>self.y</code> update in real time.</p>
-<hr />
-<h2 id="mobile-remote-source-files">Mobile / remote source files<a class="headerlink" href="#mobile-remote-source-files" title="Permanent link">&para;</a></h2>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>If the game is running on a mobile device or in an environment where the desktop can't access the source files directly, click <strong>Open folder</strong> in the file tree header and select the directory where your <code>.lua</code> files live. The debugger will read files from there for display.</p>
-</div>
-<hr />
-<h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
-<p>Lua's <code>debug.sethook</code> line hook fires on every executed line. When a breakpoint or step condition is met, <code>love.update</code> blocks in a tight poll while the WS client keeps pumping — so the desktop stays connected and commands (continue, step) can arrive. Resuming any step command unblocks the loop and reinstalls the hook for the next pause.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code>debug.sethook</code> adds a small overhead to every executed Lua line. It is noticeable in CPU-heavy games. Enable the debugger only during active debugging sessions and disable it from the desktop when not in use.</p>
-</div>
-<p>Profiler probes also use this line hook. They are intentionally line-triggered start/stop/snapshot markers, not call/return hook profiling; heavier profile.lua-style call counting is deferred so the debugger remains the only hook owner.</p>
-<hr />
-<h2 id="integration-with-time-travel">Integration with Time Travel<a class="headerlink" href="#integration-with-time-travel" title="Permanent link">&para;</a></h2>
-<p>If the <strong>Time Travel</strong> plugin is recording when a breakpoint fires, Feather automatically pushes the frame buffer to the desktop. The debugger toolbar shows a <strong>Time Travel (N frames)</strong> button — clicking it navigates to the <a href="../time-travel/">Time Travel</a> timeline, pre-loaded with the observer history leading up to the pause.</p>
-<p>This lets you scrub backwards from a crash without re-running the game.</p>
+<p>Plugin tools:</p>
+<ul>
+<li><code>feather_list_plugins</code></li>
+<li><code>feather_get_plugin</code></li>
+<li><code>feather_get_live_plugin_state</code></li>
+<li><code>feather_refresh_plugin</code></li>
+<li><code>feather_plugin_action</code></li>
+<li><code>feather_plugin_params</code></li>
+<li><code>feather_plugin_set_enabled</code></li>
+</ul>
+<p>Creative tools:</p>
+<ul>
+<li><code>feather_create_shader</code></li>
+<li><code>feather_create_particle_system</code></li>
+<li><code>feather_create_texture</code></li>
+<li><code>feather_shader_graph_snapshot</code></li>
+<li><code>feather_shader_graph_compile</code></li>
+<li><code>feather_shader_graph_preview</code></li>
+<li><code>feather_shader_graph_clear_preview</code></li>
+<li><code>feather_shader_graph_import</code></li>
+<li><code>feather_shader_graph_export</code></li>
+<li><code>feather_particles_snapshot</code></li>
+<li><code>feather_particles_new_composite</code></li>
+<li><code>feather_particles_select</code></li>
+<li><code>feather_particles_set_params</code></li>
+<li><code>feather_particles_action</code></li>
+<li><code>feather_particles_export_project</code></li>
+<li><code>feather_particles_export_code</code></li>
+<li><code>feather_particles_export_zip</code></li>
+<li><code>feather_texture_lab_generators</code></li>
+<li><code>feather_texture_lab_snapshot</code></li>
+<li><code>feather_texture_lab_set_recipe</code></li>
+<li><code>feather_texture_lab_save_recipe</code></li>
+<li><code>feather_texture_lab_delete_recipe</code></li>
+<li><code>feather_texture_lab_generate</code></li>
+<li><code>feather_texture_lab_generate_atlas</code></li>
+</ul>
+<p>Texture Lab and Particle Playground binary outputs are returned as JSON/base64 payload metadata. MCP does not write generated files automatically.</p>
+<h2 id="creating-creative-assets">Creating Creative Assets<a class="headerlink" href="#creating-creative-assets" title="Permanent link">&para;</a></h2>
+<p>Use the high-level creation tools first:</p>
+<ul>
+<li><code>feather_create_shader</code> creates a Shader Graph workspace shader from Feather graph JSON or standalone GLSL. Pass <code>validateInGame: true</code> to route it through the live <code>shader-graph</code> plugin compiler, or <code>previewInGame: true</code> to show it in a connected Love2D session.</li>
+<li><code>feather_create_particle_system</code> creates a Particle Playground composite in a live session, then can apply emitter params, attach texture/shader payloads, emit a burst, and return project/code/ZIP exports.</li>
+<li><code>feather_create_texture</code> creates a Texture Lab PNG or atlas payload from a recipe, generator, and dimensions. It returns base64 metadata and can optionally save the recipe in the desktop workspace.</li>
+</ul>
+<p>The lower-level Shader Graph, Particle Playground, Texture Lab, and generic plugin tools remain available when an MCP client needs precise step-by-step control.</p>
+<h2 id="step-debugging">Step Debugging<a class="headerlink" href="#step-debugging" title="Permanent link">&para;</a></h2>
+<p>Use the debugger-specific tools when an MCP client needs to drive a paused Love2D session:</p>
+<ul>
+<li><code>feather_debugger_state</code> returns debugger status, the paused frame, locals/upvalues, recent logs, and nearby source lines from the debugger <code>sourceRoot</code>.</li>
+<li><code>feather_debugger_enable</code> enables the step debugger and can set <code>pauseOnError</code>.</li>
+<li><code>feather_debugger_set_breakpoints</code> merges or replaces breakpoints and returns rejected breakpoint details from the runtime.</li>
+<li><code>feather_debugger_step</code> supports <code>over</code>, <code>into</code>, and <code>out</code>, waits for the next <code>debugger:paused</code> message, then returns updated state.</li>
+<li><code>feather_debugger_continue</code> resumes execution and waits for <code>debugger:resumed</code>.</li>
+<li><code>feather_debugger_inspect_frame</code> requests locals/upvalues for a stack frame.</li>
+<li><code>feather_debugger_line_context</code> reads source context for the current pause, a stack frame, or an explicit file/line inside the game source root.</li>
+</ul>
+<p>The generic <code>feather_debugger</code> tool is still available for raw debugger actions, but the dedicated tools are the recommended MCP path for agent-led debugging.</p>
+<h2 id="session-replay">Session Replay<a class="headerlink" href="#session-replay" title="Permanent link">&para;</a></h2>
+<p>Use the Session Replay tools when an MCP client needs to record or reproduce a run:</p>
+<ul>
+<li><code>feather_session_replay_state</code> returns current recording/playback status, loaded recording payload metadata, and the replay list.</li>
+<li><code>feather_session_replay_list</code> refreshes saved replay summaries.</li>
+<li><code>feather_session_replay_start</code> starts recording with optional Session Replay options such as <code>id</code> or <code>initialStates</code>.</li>
+<li><code>feather_session_replay_stop</code> stops recording and returns updated status/list state.</li>
+<li><code>feather_session_replay_load</code> loads a replay payload by <code>id</code> or <code>path</code>, returning replay files as JSON/base64 metadata.</li>
+<li><code>feather_session_replay_play</code> starts playback for the selected or provided replay, with optional <code>seekTo</code>.</li>
+<li><code>feather_session_replay_seek</code> jumps by time, checkpoint id, or checkpoint label, optionally resuming playback.</li>
+<li><code>feather_session_replay_stop_playback</code> stops playback.</li>
+<li><code>feather_session_replay_import</code> imports replay files supplied by the MCP client.</li>
+<li><code>feather_session_replay_delete</code> deletes a saved replay.</li>
+</ul>
+<p>Replay payloads are returned through MCP as JSON/base64 metadata. MCP does not write replay archives or files directly.</p>
+<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
+<p>MCP access has two local servers:</p>
+<ul>
+<li>The desktop MCP bridge listens on <code>127.0.0.1:4005</code>.</li>
+<li><code>feather mcp --transport http</code> listens on <code>127.0.0.1:4006/mcp</code>.</li>
+</ul>
+<p>Both are localhost-only by default and token-protected. The desktop bridge rejects browser-origin requests except approved localhost origins.</p>
+<p>Console eval remains separately gated by the existing Console plugin, <code>evalEnabled</code>, and matching <code>apiKey</code>. MCP does not bypass those gates.</p>
+<p><code>feather_send_command</code> is an advanced escape hatch. The bridge strips caller-supplied <code>appId</code>, <code>apiKey</code>, token, authorization, password, and secret fields before forwarding commands through the same desktop authorization path.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="mcp-token-is-required"><code>MCP token is required</code><a class="headerlink" href="#mcp-token-is-required" title="Permanent link">&para;</a></h3>
+<p>Enable <strong>Settings → Security → MCP Access</strong>, pass <code>--token</code>, or set <code>FEATHER_MCP_TOKEN</code>.</p>
+<h3 id="desktop-bridge-403-mcp-bridge-is-disabled"><code>Desktop bridge 403: MCP bridge is disabled</code><a class="headerlink" href="#desktop-bridge-403-mcp-bridge-is-disabled" title="Permanent link">&para;</a></h3>
+<p>Enable MCP Access in the desktop app.</p>
+<h3 id="connection-refused">Connection refused<a class="headerlink" href="#connection-refused" title="Permanent link">&para;</a></h3>
+<p>Start the Feather desktop app. Live-session tools require the desktop bridge.</p>
+<h3 id="no-connected-feather-sessions"><code>No connected Feather sessions</code><a class="headerlink" href="#no-connected-feather-sessions" title="Permanent link">&para;</a></h3>
+<p>Start a game with <code>feather run path/to/game</code> or pass a specific <code>sessionId</code> when multiple sessions are connected.</p>
+<h3 id="creative-executor-is-not-available"><code>creative executor is not available</code><a class="headerlink" href="#creative-executor-is-not-available" title="Permanent link">&para;</a></h3>
+<p>Open the Feather desktop app UI. Texture Lab and desktop-local creative workflows are executed by the React app behind the authenticated bridge.</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://modelcontextprotocol.io/specification/2025-06-18">MCP specification</a></li>
+<li><a href="https://modelcontextprotocol.io/docs/learn/architecture">MCP architecture</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/transports">MCP transports</a></li>
+</ul>
 
 
 

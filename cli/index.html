@@ -433,6 +433,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#desktop-cli-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Desktop CLI Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -529,6 +546,39 @@
     <span class="md-ellipsis">
       
         feather doctor [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-mcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather mcp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-free-agent-cli-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP-free agent CLI contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-skills" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather skills
       
     </span>
   </a>
@@ -941,6 +991,60 @@
     
   
     Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Skills
   
 
     
@@ -1400,10 +1504,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_23" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_25" >
         
           
-          <label class="md-nav__link" for="__nav_23" id="__nav_23_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_25" id="__nav_25_label" tabindex="0">
             
   
   
@@ -1421,8 +1525,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_23_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_23">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_25_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_25">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2090,6 +2194,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#desktop-cli-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Desktop CLI Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2186,6 +2307,39 @@
     <span class="md-ellipsis">
       
         feather doctor [dir]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-mcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather mcp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-free-agent-cli-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP-free agent CLI contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feather-skills" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feather skills
       
     </span>
   </a>
@@ -2538,6 +2692,15 @@
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>npm<span class="w"> </span>run<span class="w"> </span>feather<span class="w"> </span>--<span class="w"> </span>--help
 </code></pre></div>
 <p><code>npm install</code> links the workspace package into <code>node_modules/@kyonru/feather</code> and exposes <code>node_modules/.bin/feather</code> for local CLI testing.</p>
+<h3 id="desktop-cli-backend">Desktop CLI Backend<a class="headerlink" href="#desktop-cli-backend" title="Permanent link">&para;</a></h3>
+<p>The Feather desktop app uses the CLI as its project backend for setup-oriented workflows. In packaged desktop builds, Feather ships a same-version <code>feather</code> CLI sidecar. Settings resolves the CLI in this order:</p>
+<ol>
+<li>CLI path override from Settings.</li>
+<li>Bundled desktop sidecar.</li>
+<li><code>feather</code> on <code>PATH</code>.</li>
+<li>Common npm bin locations.</li>
+</ol>
+<p>React does not import CLI TypeScript directly and the desktop does not expose a generic terminal. Settings → CLI &amp; Project Actions sends typed requests to Tauri, Rust maps each action to fixed CLI argv, and mutating actions run a <code>--dry-run --json</code> preview before requiring confirmation.</p>
 <hr />
 <h2 id="how-injection-works">How injection works<a class="headerlink" href="#how-injection-works" title="Permanent link">&para;</a></h2>
 <p><code>feather run</code> creates a temporary shim directory and passes it to love2d as the game source:</p>
@@ -3140,40 +3303,246 @@
 <a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>Doctor passed with 1 warning.
 </code></pre></div>
 <hr />
+<h3 id="feather-mcp"><code>feather mcp</code><a class="headerlink" href="#feather-mcp" title="Permanent link">&para;</a></h3>
+<p>Run Feather as a local <a href="https://modelcontextprotocol.io/specification/2025-06-18">Model Context Protocol</a> server for AI clients. The MCP server exposes sanitized live session resources and full-control tools through the Feather desktop app's localhost bridge.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>feather<span class="w"> </span>mcp<span class="w">                         </span><span class="c1"># stdio transport for local MCP clients</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>feather<span class="w"> </span>mcp<span class="w"> </span>--transport<span class="w"> </span>http<span class="w">        </span><span class="c1"># Streamable HTTP on 127.0.0.1:4006/mcp</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>feather<span class="w"> </span>mcp<span class="w"> </span>--transport<span class="w"> </span>http<span class="w"> </span>--port<span class="w"> </span><span class="m">4010</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>codex<span class="w">    </span><span class="c1"># install Codex MCP client config</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>claude<span class="w">   </span><span class="c1"># install Claude Code MCP client config</span>
+</code></pre></div>
+<p>Enable <strong>Settings → Security → MCP Access</strong> in the Feather desktop app first. The desktop writes a token to <code>~/.feather/mcp.json</code>, which the CLI reads automatically. You can also pass a token explicitly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nv">FEATHER_MCP_TOKEN</span><span class="o">=</span>feather-mcp-...<span class="w"> </span>feather<span class="w"> </span>mcp
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>feather<span class="w"> </span>mcp<span class="w"> </span>--token<span class="w"> </span>feather-mcp-...<span class="w"> </span>--transport<span class="w"> </span>http
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--transport &lt;mode&gt;</code></td>
+<td><code>stdio</code> or <code>http</code>. Defaults to <code>stdio</code>.</td>
+</tr>
+<tr>
+<td><code>--host &lt;host&gt;</code></td>
+<td>HTTP host. Defaults to <code>127.0.0.1</code>; only localhost hosts are accepted.</td>
+</tr>
+<tr>
+<td><code>--port &lt;port&gt;</code></td>
+<td>HTTP port. Defaults to <code>4006</code>.</td>
+</tr>
+<tr>
+<td><code>--desktop-url &lt;url&gt;</code></td>
+<td>Feather desktop MCP bridge URL. Defaults to <code>http://127.0.0.1:4005</code>.</td>
+</tr>
+<tr>
+<td><code>--token &lt;token&gt;</code></td>
+<td>MCP bridge token; overrides <code>FEATHER_MCP_TOKEN</code> and <code>~/.feather/mcp.json</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>feather mcp setup</code> to add or refresh the Feather server in a local MCP client config. The setup command writes only the client launch command, not the MCP token; <code>feather mcp</code> reads the token from <code>~/.feather/mcp.json</code> at runtime. Restart the client after setup so the new MCP server is loaded.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>codex
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>claude
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>project
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>feather<span class="w"> </span>mcp<span class="w"> </span>setup<span class="w"> </span>--client<span class="w"> </span>codex<span class="w"> </span>--dry-run<span class="w"> </span>--json
+</code></pre></div>
+<p>Codex setup updates <code>~/.codex/config.toml</code>. Claude setup defaults to user scope and updates <code>~/.claude.json</code>; use <code>--scope project</code> to write <code>.mcp.json</code> in the current project, or <code>--scope local</code> to add a project-local entry under <code>~/.claude.json</code>. Use <code>--codex-config</code> or <code>--claude-config</code> to write a specific config path.</p>
+<p>Resources include <code>feather://sessions</code> and <code>feather://sessions/{id}/{section}</code> for <code>config</code>, <code>logs</code>, <code>performance</code>, <code>debugger</code>, <code>plugins</code>, <code>assets</code>, <code>observers</code>, and <code>session-replay</code>; <code>feather://plugins/catalog</code> and <code>feather://plugins/{id}</code> for built-in plugin metadata; live <code>feather://sessions/{id}/plugins/{pluginId}</code> payloads; and creative snapshots for Shader Graph, Particles Playground, and Texture Lab. Tools cover session snapshots, refresh requests, runtime suspend/resume, agent-friendly step debugging with breakpoints/source context/logs, Console eval/globals/pins, plugin catalog/live state/actions/params/enabling, high-level shader/particle/texture creation, Shader Graph compile/preview/import/export, Particle Playground authoring/export actions, Texture Lab recipe/generation actions, Time Travel, Session Replay state/record/playback/import/delete workflows, and the advanced <code>feather_send_command</code> escape hatch.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>MCP full-control tools can execute powerful live-debug actions. The desktop bridge is disabled by default, binds only to localhost, requires a bearer token, and still relies on existing runtime gates such as Console <code>evalEnabled</code> and <code>apiKey</code>.</p>
+</div>
+<hr />
+<h3 id="mcp-free-agent-cli-contract">MCP-free agent CLI contract<a class="headerlink" href="#mcp-free-agent-cli-contract" title="Permanent link">&para;</a></h3>
+<p>Agents can use Feather through plain shell commands without starting an MCP server. The contract is:</p>
+<ul>
+<li>use <code>--json</code> whenever a command supports it</li>
+<li>use <code>--dry-run --json</code> before mutating project files, fetching vendors, building release artifacts, or uploading</li>
+<li>prefer fixed CLI commands over parsing desktop UI state</li>
+<li>treat live-session commands as localhost bridge reads unless an option explicitly says it sends a refresh command</li>
+</ul>
+<p>Useful read-only or preview commands:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>feather<span class="w"> </span>doctor<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>feather<span class="w"> </span>doctor<span class="w"> </span>.<span class="w"> </span>--security<span class="w"> </span>--json
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>feather<span class="w"> </span>skills<span class="w"> </span>list<span class="w"> </span>--json
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>feather<span class="w"> </span>package<span class="w"> </span>list<span class="w"> </span>--installed<span class="w"> </span>--json
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>feather<span class="w"> </span>plugin<span class="w"> </span>list<span class="w"> </span>--json
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>list<span class="w"> </span>--json
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>feather<span class="w"> </span>build<span class="w"> </span>web<span class="w"> </span>--dry-run<span class="w"> </span>--json
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>web<span class="w"> </span>--dry-run<span class="w"> </span>--json
+</code></pre></div>
+<p>Live-session shell commands reuse the Feather desktop localhost bridge directly. They do not start an MCP server, but the bridge must still be enabled in <strong>Settings → Security → MCP Access</strong> so the desktop writes a token to <code>~/.feather/mcp.json</code>. You can also pass a token with <code>--token</code> or <code>FEATHER_MCP_TOKEN</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>feather<span class="w"> </span>session<span class="w"> </span>status<span class="w"> </span>--json
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>feather<span class="w"> </span>session<span class="w"> </span>status<span class="w"> </span>&lt;session-id&gt;<span class="w"> </span>--json
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>feather<span class="w"> </span>session<span class="w"> </span>status<span class="w"> </span>&lt;session-id&gt;<span class="w"> </span>--section<span class="w"> </span>debugger<span class="w"> </span>--json
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>feather<span class="w"> </span>logs<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--json<span class="w"> </span>--limit<span class="w"> </span><span class="m">200</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>feather<span class="w"> </span>logs<span class="w"> </span><span class="nb">export</span><span class="w"> </span>&lt;session-id&gt;<span class="w"> </span>--json
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>feather<span class="w"> </span>replay<span class="w"> </span>list<span class="w"> </span>--json
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>feather<span class="w"> </span>replay<span class="w"> </span>list<span class="w"> </span>&lt;session-id&gt;<span class="w"> </span>--refresh<span class="w"> </span>--json
+</code></pre></div>
+<p>Live-session command options:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--desktop-url &lt;url&gt;</code></td>
+<td>Feather desktop bridge URL. Defaults to <code>http://127.0.0.1:4005</code> or the saved bridge URL.</td>
+</tr>
+<tr>
+<td><code>--token &lt;token&gt;</code></td>
+<td>Desktop bridge token; overrides <code>FEATHER_MCP_TOKEN</code> and <code>~/.feather/mcp.json</code>.</td>
+</tr>
+<tr>
+<td><code>--json</code></td>
+<td>Emit machine-readable output.</td>
+</tr>
+<tr>
+<td><code>--section &lt;name&gt;</code></td>
+<td><code>session status</code> section: <code>config</code>, <code>logs</code>, <code>performance</code>, <code>debugger</code>, <code>plugins</code>, <code>assets</code>, <code>observers</code>, or <code>session-replay</code>.</td>
+</tr>
+<tr>
+<td><code>--limit &lt;count&gt;</code></td>
+<td><code>logs export</code> maximum entries. Defaults to <code>500</code>, bounded by the desktop snapshot cap.</td>
+</tr>
+<tr>
+<td><code>--refresh</code></td>
+<td><code>replay list</code> asks the running game to refresh replay metadata before reading the snapshot.</td>
+</tr>
+<tr>
+<td><code>--timeout-ms &lt;ms&gt;</code></td>
+<td>Wait timeout for <code>replay list --refresh</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>This covers project setup, package/plugin inspection, build previews, logs, session snapshots, and replay inventories for Codex/Claude-style agents with normal shell access. Use MCP when an agent needs full live-control tools such as debugger stepping, plugin actions, Console eval, creative previews, or import/export workflows.</p>
+<hr />
+<h3 id="feather-skills"><code>feather skills</code><a class="headerlink" href="#feather-skills" title="Permanent link">&para;</a></h3>
+<p>Install bundled Feather agent skills into project-local agent skill directories. These are small skill folders with a <code>SKILL.md</code> playbook and optional bundled references for agents that need to debug games, inspect live sessions, profile, create shaders/particles/textures, iterate with plugins, build platform artifacts, or act as QA.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>feather<span class="w"> </span>skills<span class="w"> </span>list
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>feather<span class="w"> </span>skills<span class="w"> </span>info<span class="w"> </span>feather-step-debugging
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>feather<span class="w"> </span>skills<span class="w"> </span>install<span class="w"> </span>feather-step-debugging<span class="w"> </span>feather-texture-lab
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>feather<span class="w"> </span>skills<span class="w"> </span>install<span class="w"> </span>--all<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>feather<span class="w"> </span>skills<span class="w"> </span>install<span class="w"> </span>--all<span class="w"> </span>--client<span class="w"> </span>codex<span class="w"> </span>--global
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>feather<span class="w"> </span>skills<span class="w"> </span>install<span class="w"> </span>--all<span class="w"> </span>--client<span class="w"> </span>claude<span class="w"> </span>--global
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>feather<span class="w"> </span>skills<span class="w"> </span>remove<span class="w"> </span>feather-step-debugging<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+</code></pre></div>
+<p><strong>Commands:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>skills list [--json]</code></td>
+<td>List bundled skills.</td>
+</tr>
+<tr>
+<td><code>skills info &lt;id&gt;</code></td>
+<td>Show metadata, source path, and default install path for one bundled skill.</td>
+</tr>
+<tr>
+<td><code>skills install [ids...]</code></td>
+<td>Copy selected skill folders, or the full catalog with <code>--all</code>.</td>
+</tr>
+<tr>
+<td><code>skills remove &lt;ids...&gt;</code></td>
+<td>Remove installed catalog-known skills from the target directory.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Install options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--all</code></td>
+<td>Install every bundled skill.</td>
+</tr>
+<tr>
+<td><code>--dir &lt;path&gt;</code></td>
+<td>Resolve the project root from this path.</td>
+</tr>
+<tr>
+<td><code>--client &lt;name&gt;</code></td>
+<td>Target <code>agents</code>, <code>codex</code>, <code>claude</code>, or <code>all</code>. Defaults to <code>all</code>.</td>
+</tr>
+<tr>
+<td><code>--global</code></td>
+<td>Install into user-level skill directories such as <code>~/.codex/skills</code> or <code>~/.claude/skills</code>.</td>
+</tr>
+<tr>
+<td><code>--target &lt;path&gt;</code></td>
+<td>Custom project-local install directory. Relative paths stay inside the project root.</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing installed skills.</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Report planned writes or removals without changing files.</td>
+</tr>
+<tr>
+<td><code>--json</code></td>
+<td>Emit machine-readable summaries.</td>
+</tr>
+</tbody>
+</table>
+<p>By default, project installs write to <code>.agents/skills</code>, <code>.codex/skills</code>, and <code>.claude/skills</code> so Codex/Claude-style loaders can discover the same Feather playbooks from their preferred locations. Running agent sessions usually do not hot-reload newly installed skills; start a new Codex/Claude session after installing them. The installer copies complete skill directories, including bundled <code>references/</code>, for skills declared in the bundled catalog and skips existing files unless <code>--force</code> is passed. V1 does not install remote or third-party skills.</p>
+<hr />
 <h3 id="feather-build-target"><code>feather build &lt;target&gt;</code><a class="headerlink" href="#feather-build-target" title="Permanent link">&para;</a></h3>
 <p>Build a LÖVE game into local artifacts. Supported targets are <code>love</code>, <code>web</code>, <code>android</code>, <code>ios</code>, <code>windows</code>, <code>macos</code>, <code>linux</code>, and <code>steamos</code>. Android and iOS default to development builds from local native template checkouts; <code>--release</code> produces signed/store-oriented mobile artifacts without embedding Feather's debugger runtime.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>feather<span class="w"> </span>build<span class="w"> </span>love<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>feather<span class="w"> </span>build<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>mobile<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>desktop<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--verbose
-<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--no-cache
-<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--runtime-config<span class="w"> </span>path/to/feather.config.lua
-<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--no-debugger
-<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
-<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--verbose
-<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
-<a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a>feather<span class="w"> </span>build<span class="w"> </span>windows<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a>feather<span class="w"> </span>build<span class="w"> </span>macos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a>feather<span class="w"> </span>build<span class="w"> </span>linux<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a>feather<span class="w"> </span>build<span class="w"> </span>steamos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--json
-<a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a>feather<span class="w"> </span>build<span class="w"> </span>web<span class="w"> </span>--dry-run
-<a id="__codelineno-20-21" name="__codelineno-20-21" href="#__codelineno-20-21"></a>feather<span class="w"> </span>build<span class="w"> </span>web<span class="w"> </span>--allow-unsafe
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>feather<span class="w"> </span>build<span class="w"> </span>love<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>feather<span class="w"> </span>build<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>mobile<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>desktop<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--verbose
+<a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--no-cache
+<a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--runtime-config<span class="w"> </span>path/to/feather.config.lua
+<a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--no-debugger
+<a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a>feather<span class="w"> </span>build<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-14" name="__codelineno-26-14" href="#__codelineno-26-14"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--verbose
+<a id="__codelineno-26-15" name="__codelineno-26-15" href="#__codelineno-26-15"></a>feather<span class="w"> </span>build<span class="w"> </span>ios<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--release
+<a id="__codelineno-26-16" name="__codelineno-26-16" href="#__codelineno-26-16"></a>feather<span class="w"> </span>build<span class="w"> </span>windows<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-17" name="__codelineno-26-17" href="#__codelineno-26-17"></a>feather<span class="w"> </span>build<span class="w"> </span>macos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-18" name="__codelineno-26-18" href="#__codelineno-26-18"></a>feather<span class="w"> </span>build<span class="w"> </span>linux<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-26-19" name="__codelineno-26-19" href="#__codelineno-26-19"></a>feather<span class="w"> </span>build<span class="w"> </span>steamos<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--json
+<a id="__codelineno-26-20" name="__codelineno-26-20" href="#__codelineno-26-20"></a>feather<span class="w"> </span>build<span class="w"> </span>web<span class="w"> </span>--dry-run
+<a id="__codelineno-26-21" name="__codelineno-26-21" href="#__codelineno-26-21"></a>feather<span class="w"> </span>build<span class="w"> </span>web<span class="w"> </span>--allow-unsafe
 </code></pre></div>
 <p>Builds read <code>feather.build.json</code> from the project root. <code>love</code> builds can run without target-specific vendors. Web builds need a local love.js player directory, mobile builds need local LÖVE native template paths, desktop builds need local LÖVE runtime vendors, and uploads need store metadata.</p>
 <p>To fetch build vendors locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>mobile
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>desktop
-<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--json
-<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>android<span class="w"> </span>--ref<span class="w"> </span><span class="m">11</span>.5
-<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>ios<span class="w"> </span>--ref<span class="w"> </span><span class="m">11</span>.5<span class="w"> </span>--json
-<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web<span class="w"> </span>--force<span class="w">          </span><span class="c1"># overwrite existing vendor directory</span>
-<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>list
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>mobile
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>desktop
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>all<span class="w"> </span>--json
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>android<span class="w"> </span>--ref<span class="w"> </span><span class="m">11</span>.5
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>ios<span class="w"> </span>--ref<span class="w"> </span><span class="m">11</span>.5<span class="w"> </span>--json
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>add<span class="w"> </span>web<span class="w"> </span>--force<span class="w">          </span><span class="c1"># overwrite existing vendor directory</span>
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>feather<span class="w"> </span>build<span class="w"> </span>vendor<span class="w"> </span>list
 </code></pre></div>
 <h2 id="build-vendor-add"><code>build vendor add</code><a class="headerlink" href="#build-vendor-add" title="Permanent link">&para;</a></h2>
 <p>Installs local build vendors into <code>vendor/</code> and updates <code>feather.build.json</code> by default.</p>
@@ -3206,87 +3575,87 @@
 <li>Can be pinned using <code>--web-ref</code></li>
 <li>Falls back to <code>--ref</code> if provided</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="p">{</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">  </span><span class="nt">&quot;productId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.mygame&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">  </span><span class="nt">&quot;company&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example Studio&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">  </span><span class="nt">&quot;website&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://example.com&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">  </span><span class="nt">&quot;sourceDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="w">  </span><span class="nt">&quot;outDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;builds&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="w">  </span><span class="nt">&quot;exclude&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;screenshots/**&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;tmp/**&quot;</span><span class="p">],</span>
-<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="w">  </span><span class="nt">&quot;release&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="w">    </span><span class="nt">&quot;fastlane&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="w">      </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fastlane&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="w">      </span><span class="nt">&quot;bundleExec&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auto&quot;</span>
-<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a><span class="w">  </span><span class="nt">&quot;targets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a><span class="w">    </span><span class="nt">&quot;web&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a><span class="w">      </span><span class="nt">&quot;loveJsDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love.js&quot;</span>
-<a id="__codelineno-22-19" name="__codelineno-22-19" href="#__codelineno-22-19"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-22-20" name="__codelineno-22-20" href="#__codelineno-22-20"></a><span class="w">    </span><span class="nt">&quot;android&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-21" name="__codelineno-22-21" href="#__codelineno-22-21"></a><span class="w">      </span><span class="nt">&quot;loveAndroidDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-android&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-22" name="__codelineno-22-22" href="#__codelineno-22-22"></a><span class="w">      </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-23" name="__codelineno-22-23" href="#__codelineno-22-23"></a><span class="w">      </span><span class="nt">&quot;orientation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;landscape&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-24" name="__codelineno-22-24" href="#__codelineno-22-24"></a><span class="w">      </span><span class="nt">&quot;recordAudio&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-22-25" name="__codelineno-22-25" href="#__codelineno-22-25"></a><span class="w">      </span><span class="nt">&quot;versionCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-22-26" name="__codelineno-22-26" href="#__codelineno-22-26"></a><span class="w">      </span><span class="nt">&quot;versionName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-27" name="__codelineno-22-27" href="#__codelineno-22-27"></a><span class="w">      </span><span class="nt">&quot;release&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-28" name="__codelineno-22-28" href="#__codelineno-22-28"></a><span class="w">        </span><span class="nt">&quot;bundleTask&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bundleEmbedNoRecordRelease&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-29" name="__codelineno-22-29" href="#__codelineno-22-29"></a><span class="w">        </span><span class="nt">&quot;apkTask&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;assembleEmbedNoRecordRelease&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-30" name="__codelineno-22-30" href="#__codelineno-22-30"></a><span class="w">        </span><span class="nt">&quot;keystorePath&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;signing/release.keystore&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-31" name="__codelineno-22-31" href="#__codelineno-22-31"></a><span class="w">        </span><span class="nt">&quot;keyAlias&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;release&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-32" name="__codelineno-22-32" href="#__codelineno-22-32"></a><span class="w">        </span><span class="nt">&quot;storePasswordEnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ANDROID_STORE_PASSWORD&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-33" name="__codelineno-22-33" href="#__codelineno-22-33"></a><span class="w">        </span><span class="nt">&quot;keyPasswordEnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ANDROID_KEY_PASSWORD&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-34" name="__codelineno-22-34" href="#__codelineno-22-34"></a><span class="w">        </span><span class="nt">&quot;fastlane&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-35" name="__codelineno-22-35" href="#__codelineno-22-35"></a><span class="w">          </span><span class="nt">&quot;packageName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.mygame&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-36" name="__codelineno-22-36" href="#__codelineno-22-36"></a><span class="w">          </span><span class="nt">&quot;track&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;internal&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-37" name="__codelineno-22-37" href="#__codelineno-22-37"></a><span class="w">          </span><span class="nt">&quot;releaseStatus&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;completed&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-38" name="__codelineno-22-38" href="#__codelineno-22-38"></a><span class="w">          </span><span class="nt">&quot;serviceAccountJsonEnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GOOGLE_PLAY_SERVICE_ACCOUNT_JSON&quot;</span>
-<a id="__codelineno-22-39" name="__codelineno-22-39" href="#__codelineno-22-39"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-22-40" name="__codelineno-22-40" href="#__codelineno-22-40"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-22-41" name="__codelineno-22-41" href="#__codelineno-22-41"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-22-42" name="__codelineno-22-42" href="#__codelineno-22-42"></a><span class="w">    </span><span class="nt">&quot;ios&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-43" name="__codelineno-22-43" href="#__codelineno-22-43"></a><span class="w">      </span><span class="nt">&quot;loveIosDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-ios&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-44" name="__codelineno-22-44" href="#__codelineno-22-44"></a><span class="w">      </span><span class="nt">&quot;bundleIdentifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.mygame&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-45" name="__codelineno-22-45" href="#__codelineno-22-45"></a><span class="w">      </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-46" name="__codelineno-22-46" href="#__codelineno-22-46"></a><span class="w">      </span><span class="nt">&quot;scheme&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;love-ios&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-47" name="__codelineno-22-47" href="#__codelineno-22-47"></a><span class="w">      </span><span class="nt">&quot;sdk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;iphonesimulator&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-48" name="__codelineno-22-48" href="#__codelineno-22-48"></a><span class="w">      </span><span class="nt">&quot;teamId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ABCDE12345&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-49" name="__codelineno-22-49" href="#__codelineno-22-49"></a><span class="w">      </span><span class="nt">&quot;release&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-50" name="__codelineno-22-50" href="#__codelineno-22-50"></a><span class="w">        </span><span class="nt">&quot;exportMethod&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;app-store-connect&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-51" name="__codelineno-22-51" href="#__codelineno-22-51"></a><span class="w">        </span><span class="nt">&quot;signingStyle&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-52" name="__codelineno-22-52" href="#__codelineno-22-52"></a><span class="w">        </span><span class="nt">&quot;provisioningProfileSpecifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Game App Store&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-53" name="__codelineno-22-53" href="#__codelineno-22-53"></a><span class="w">        </span><span class="nt">&quot;teamId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ABCDE12345&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-54" name="__codelineno-22-54" href="#__codelineno-22-54"></a><span class="w">        </span><span class="nt">&quot;fastlane&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-55" name="__codelineno-22-55" href="#__codelineno-22-55"></a><span class="w">          </span><span class="nt">&quot;bundleIdentifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.mygame&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-56" name="__codelineno-22-56" href="#__codelineno-22-56"></a><span class="w">          </span><span class="nt">&quot;teamId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ABCDE12345&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-57" name="__codelineno-22-57" href="#__codelineno-22-57"></a><span class="w">          </span><span class="nt">&quot;exportMethod&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;app-store&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-58" name="__codelineno-22-58" href="#__codelineno-22-58"></a><span class="w">          </span><span class="nt">&quot;appStoreConnectApiKeyPathEnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;APP_STORE_CONNECT_API_KEY_PATH&quot;</span>
-<a id="__codelineno-22-59" name="__codelineno-22-59" href="#__codelineno-22-59"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-22-60" name="__codelineno-22-60" href="#__codelineno-22-60"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-22-61" name="__codelineno-22-61" href="#__codelineno-22-61"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-22-62" name="__codelineno-22-62" href="#__codelineno-22-62"></a><span class="w">    </span><span class="nt">&quot;windows&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-63" name="__codelineno-22-63" href="#__codelineno-22-63"></a><span class="w">      </span><span class="nt">&quot;loveRuntimeDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-windows&quot;</span>
-<a id="__codelineno-22-64" name="__codelineno-22-64" href="#__codelineno-22-64"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-22-65" name="__codelineno-22-65" href="#__codelineno-22-65"></a><span class="w">    </span><span class="nt">&quot;macos&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-66" name="__codelineno-22-66" href="#__codelineno-22-66"></a><span class="w">      </span><span class="nt">&quot;loveRuntimeDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-macos&quot;</span>
-<a id="__codelineno-22-67" name="__codelineno-22-67" href="#__codelineno-22-67"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-22-68" name="__codelineno-22-68" href="#__codelineno-22-68"></a><span class="w">    </span><span class="nt">&quot;linux&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-69" name="__codelineno-22-69" href="#__codelineno-22-69"></a><span class="w">      </span><span class="nt">&quot;loveRuntimeDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-linux&quot;</span>
-<a id="__codelineno-22-70" name="__codelineno-22-70" href="#__codelineno-22-70"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-22-71" name="__codelineno-22-71" href="#__codelineno-22-71"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-22-72" name="__codelineno-22-72" href="#__codelineno-22-72"></a><span class="w">  </span><span class="nt">&quot;upload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-73" name="__codelineno-22-73" href="#__codelineno-22-73"></a><span class="w">    </span><span class="nt">&quot;itch&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-74" name="__codelineno-22-74" href="#__codelineno-22-74"></a><span class="w">      </span><span class="nt">&quot;project&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-user/my-game&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-75" name="__codelineno-22-75" href="#__codelineno-22-75"></a><span class="w">      </span><span class="nt">&quot;channels&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-76" name="__codelineno-22-76" href="#__codelineno-22-76"></a><span class="w">        </span><span class="nt">&quot;web&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;html5&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-77" name="__codelineno-22-77" href="#__codelineno-22-77"></a><span class="w">        </span><span class="nt">&quot;linux&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;linux&quot;</span>
-<a id="__codelineno-22-78" name="__codelineno-22-78" href="#__codelineno-22-78"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-22-79" name="__codelineno-22-79" href="#__codelineno-22-79"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-22-80" name="__codelineno-22-80" href="#__codelineno-22-80"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-22-81" name="__codelineno-22-81" href="#__codelineno-22-81"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="p">{</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">  </span><span class="nt">&quot;productId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.mygame&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">  </span><span class="nt">&quot;company&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example Studio&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">  </span><span class="nt">&quot;website&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://example.com&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="w">  </span><span class="nt">&quot;sourceDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="w">  </span><span class="nt">&quot;outDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;builds&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a><span class="w">  </span><span class="nt">&quot;exclude&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;screenshots/**&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;tmp/**&quot;</span><span class="p">],</span>
+<a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a><span class="w">  </span><span class="nt">&quot;release&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a><span class="w">    </span><span class="nt">&quot;fastlane&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-12" name="__codelineno-28-12" href="#__codelineno-28-12"></a><span class="w">      </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fastlane&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-13" name="__codelineno-28-13" href="#__codelineno-28-13"></a><span class="w">      </span><span class="nt">&quot;bundleExec&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auto&quot;</span>
+<a id="__codelineno-28-14" name="__codelineno-28-14" href="#__codelineno-28-14"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-28-15" name="__codelineno-28-15" href="#__codelineno-28-15"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-28-16" name="__codelineno-28-16" href="#__codelineno-28-16"></a><span class="w">  </span><span class="nt">&quot;targets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-17" name="__codelineno-28-17" href="#__codelineno-28-17"></a><span class="w">    </span><span class="nt">&quot;web&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-18" name="__codelineno-28-18" href="#__codelineno-28-18"></a><span class="w">      </span><span class="nt">&quot;loveJsDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love.js&quot;</span>
+<a id="__codelineno-28-19" name="__codelineno-28-19" href="#__codelineno-28-19"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-28-20" name="__codelineno-28-20" href="#__codelineno-28-20"></a><span class="w">    </span><span class="nt">&quot;android&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-21" name="__codelineno-28-21" href="#__codelineno-28-21"></a><span class="w">      </span><span class="nt">&quot;loveAndroidDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-android&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-22" name="__codelineno-28-22" href="#__codelineno-28-22"></a><span class="w">      </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-23" name="__codelineno-28-23" href="#__codelineno-28-23"></a><span class="w">      </span><span class="nt">&quot;orientation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;landscape&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-24" name="__codelineno-28-24" href="#__codelineno-28-24"></a><span class="w">      </span><span class="nt">&quot;recordAudio&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-28-25" name="__codelineno-28-25" href="#__codelineno-28-25"></a><span class="w">      </span><span class="nt">&quot;versionCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-28-26" name="__codelineno-28-26" href="#__codelineno-28-26"></a><span class="w">      </span><span class="nt">&quot;versionName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-27" name="__codelineno-28-27" href="#__codelineno-28-27"></a><span class="w">      </span><span class="nt">&quot;release&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-28" name="__codelineno-28-28" href="#__codelineno-28-28"></a><span class="w">        </span><span class="nt">&quot;bundleTask&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bundleEmbedNoRecordRelease&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-29" name="__codelineno-28-29" href="#__codelineno-28-29"></a><span class="w">        </span><span class="nt">&quot;apkTask&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;assembleEmbedNoRecordRelease&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-30" name="__codelineno-28-30" href="#__codelineno-28-30"></a><span class="w">        </span><span class="nt">&quot;keystorePath&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;signing/release.keystore&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-31" name="__codelineno-28-31" href="#__codelineno-28-31"></a><span class="w">        </span><span class="nt">&quot;keyAlias&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;release&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-32" name="__codelineno-28-32" href="#__codelineno-28-32"></a><span class="w">        </span><span class="nt">&quot;storePasswordEnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ANDROID_STORE_PASSWORD&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-33" name="__codelineno-28-33" href="#__codelineno-28-33"></a><span class="w">        </span><span class="nt">&quot;keyPasswordEnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ANDROID_KEY_PASSWORD&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-34" name="__codelineno-28-34" href="#__codelineno-28-34"></a><span class="w">        </span><span class="nt">&quot;fastlane&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-35" name="__codelineno-28-35" href="#__codelineno-28-35"></a><span class="w">          </span><span class="nt">&quot;packageName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.mygame&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-36" name="__codelineno-28-36" href="#__codelineno-28-36"></a><span class="w">          </span><span class="nt">&quot;track&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;internal&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-37" name="__codelineno-28-37" href="#__codelineno-28-37"></a><span class="w">          </span><span class="nt">&quot;releaseStatus&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;completed&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-38" name="__codelineno-28-38" href="#__codelineno-28-38"></a><span class="w">          </span><span class="nt">&quot;serviceAccountJsonEnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GOOGLE_PLAY_SERVICE_ACCOUNT_JSON&quot;</span>
+<a id="__codelineno-28-39" name="__codelineno-28-39" href="#__codelineno-28-39"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-28-40" name="__codelineno-28-40" href="#__codelineno-28-40"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-28-41" name="__codelineno-28-41" href="#__codelineno-28-41"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-28-42" name="__codelineno-28-42" href="#__codelineno-28-42"></a><span class="w">    </span><span class="nt">&quot;ios&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-43" name="__codelineno-28-43" href="#__codelineno-28-43"></a><span class="w">      </span><span class="nt">&quot;loveIosDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-ios&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-44" name="__codelineno-28-44" href="#__codelineno-28-44"></a><span class="w">      </span><span class="nt">&quot;bundleIdentifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.mygame&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-45" name="__codelineno-28-45" href="#__codelineno-28-45"></a><span class="w">      </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Game&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-46" name="__codelineno-28-46" href="#__codelineno-28-46"></a><span class="w">      </span><span class="nt">&quot;scheme&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;love-ios&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-47" name="__codelineno-28-47" href="#__codelineno-28-47"></a><span class="w">      </span><span class="nt">&quot;sdk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;iphonesimulator&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-48" name="__codelineno-28-48" href="#__codelineno-28-48"></a><span class="w">      </span><span class="nt">&quot;teamId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ABCDE12345&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-49" name="__codelineno-28-49" href="#__codelineno-28-49"></a><span class="w">      </span><span class="nt">&quot;release&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-50" name="__codelineno-28-50" href="#__codelineno-28-50"></a><span class="w">        </span><span class="nt">&quot;exportMethod&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;app-store-connect&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-51" name="__codelineno-28-51" href="#__codelineno-28-51"></a><span class="w">        </span><span class="nt">&quot;signingStyle&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-52" name="__codelineno-28-52" href="#__codelineno-28-52"></a><span class="w">        </span><span class="nt">&quot;provisioningProfileSpecifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Game App Store&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-53" name="__codelineno-28-53" href="#__codelineno-28-53"></a><span class="w">        </span><span class="nt">&quot;teamId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ABCDE12345&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-54" name="__codelineno-28-54" href="#__codelineno-28-54"></a><span class="w">        </span><span class="nt">&quot;fastlane&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-55" name="__codelineno-28-55" href="#__codelineno-28-55"></a><span class="w">          </span><span class="nt">&quot;bundleIdentifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.mygame&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-56" name="__codelineno-28-56" href="#__codelineno-28-56"></a><span class="w">          </span><span class="nt">&quot;teamId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ABCDE12345&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-57" name="__codelineno-28-57" href="#__codelineno-28-57"></a><span class="w">          </span><span class="nt">&quot;exportMethod&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;app-store&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-58" name="__codelineno-28-58" href="#__codelineno-28-58"></a><span class="w">          </span><span class="nt">&quot;appStoreConnectApiKeyPathEnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;APP_STORE_CONNECT_API_KEY_PATH&quot;</span>
+<a id="__codelineno-28-59" name="__codelineno-28-59" href="#__codelineno-28-59"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-28-60" name="__codelineno-28-60" href="#__codelineno-28-60"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-28-61" name="__codelineno-28-61" href="#__codelineno-28-61"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-28-62" name="__codelineno-28-62" href="#__codelineno-28-62"></a><span class="w">    </span><span class="nt">&quot;windows&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-63" name="__codelineno-28-63" href="#__codelineno-28-63"></a><span class="w">      </span><span class="nt">&quot;loveRuntimeDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-windows&quot;</span>
+<a id="__codelineno-28-64" name="__codelineno-28-64" href="#__codelineno-28-64"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-28-65" name="__codelineno-28-65" href="#__codelineno-28-65"></a><span class="w">    </span><span class="nt">&quot;macos&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-66" name="__codelineno-28-66" href="#__codelineno-28-66"></a><span class="w">      </span><span class="nt">&quot;loveRuntimeDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-macos&quot;</span>
+<a id="__codelineno-28-67" name="__codelineno-28-67" href="#__codelineno-28-67"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-28-68" name="__codelineno-28-68" href="#__codelineno-28-68"></a><span class="w">    </span><span class="nt">&quot;linux&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-69" name="__codelineno-28-69" href="#__codelineno-28-69"></a><span class="w">      </span><span class="nt">&quot;loveRuntimeDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vendor/love-linux&quot;</span>
+<a id="__codelineno-28-70" name="__codelineno-28-70" href="#__codelineno-28-70"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-28-71" name="__codelineno-28-71" href="#__codelineno-28-71"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-28-72" name="__codelineno-28-72" href="#__codelineno-28-72"></a><span class="w">  </span><span class="nt">&quot;upload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-73" name="__codelineno-28-73" href="#__codelineno-28-73"></a><span class="w">    </span><span class="nt">&quot;itch&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-74" name="__codelineno-28-74" href="#__codelineno-28-74"></a><span class="w">      </span><span class="nt">&quot;project&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-user/my-game&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-75" name="__codelineno-28-75" href="#__codelineno-28-75"></a><span class="w">      </span><span class="nt">&quot;channels&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-28-76" name="__codelineno-28-76" href="#__codelineno-28-76"></a><span class="w">        </span><span class="nt">&quot;web&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;html5&quot;</span><span class="p">,</span>
+<a id="__codelineno-28-77" name="__codelineno-28-77" href="#__codelineno-28-77"></a><span class="w">        </span><span class="nt">&quot;linux&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;linux&quot;</span>
+<a id="__codelineno-28-78" name="__codelineno-28-78" href="#__codelineno-28-78"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-28-79" name="__codelineno-28-79" href="#__codelineno-28-79"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-28-80" name="__codelineno-28-80" href="#__codelineno-28-80"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-28-81" name="__codelineno-28-81" href="#__codelineno-28-81"></a><span class="p">}</span>
 </code></pre></div>
 <p>Build behavior:</p>
 <ul>
@@ -3386,13 +3755,13 @@
 </ul>
 <h3 id="feather-release"><code>feather release</code><a class="headerlink" href="#feather-release" title="Permanent link">&para;</a></h3>
 <p><code>feather release</code> is an optional Fastlane-backed layer for signed store-ready mobile workflows. It scaffolds editable Fastlane files, runs a clean Feather-free mobile release build for <code>beta</code> and <code>production</code>, checks generated artifacts for Feather runtime/debug files, and invokes the selected lane with explicit <code>FEATHER_*</code> environment variables.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>feather<span class="w"> </span>release<span class="w"> </span>init<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>feather<span class="w"> </span>release<span class="w"> </span>ios<span class="w"> </span>beta<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>feather<span class="w"> </span>release<span class="w"> </span>ios<span class="w"> </span>production<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>feather<span class="w"> </span>release<span class="w"> </span>android<span class="w"> </span>beta<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>feather<span class="w"> </span>release<span class="w"> </span>android<span class="w"> </span>production<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>feather<span class="w"> </span>release<span class="w"> </span>android<span class="w"> </span>metadata<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--skip-build
-<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>feather<span class="w"> </span>release<span class="w"> </span>ios<span class="w"> </span>screenshots<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--skip-build
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>feather<span class="w"> </span>release<span class="w"> </span>init<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>feather<span class="w"> </span>release<span class="w"> </span>ios<span class="w"> </span>beta<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>feather<span class="w"> </span>release<span class="w"> </span>ios<span class="w"> </span>production<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>feather<span class="w"> </span>release<span class="w"> </span>android<span class="w"> </span>beta<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>feather<span class="w"> </span>release<span class="w"> </span>android<span class="w"> </span>production<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>feather<span class="w"> </span>release<span class="w"> </span>android<span class="w"> </span>metadata<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--skip-build
+<a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a>feather<span class="w"> </span>release<span class="w"> </span>ios<span class="w"> </span>screenshots<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--skip-build
 </code></pre></div>
 <p>Fastlane remains optional: <code>feather build android --release</code> and <code>feather build ios --release</code> still work without it. If a <code>Gemfile</code> exists, Feather runs <code>bundle exec fastlane</code>; otherwise it runs <code>fastlane</code> directly. Secrets stay in environment variables or files referenced by environment variables, never directly in <code>feather.build.json</code>.</p>
 <p><strong>Options:</strong></p>
@@ -3453,14 +3822,14 @@
 <hr />
 <h3 id="feather-upload-itchsteam"><code>feather upload &lt;itch|steam&gt;</code><a class="headerlink" href="#feather-upload-itchsteam" title="Permanent link">&para;</a></h3>
 <p>Upload a built artifact. V1 supports Itch through <code>butler</code>; Steam is registered but returns a planned-support error.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--build
-<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>web<span class="w"> </span>--channel<span class="w"> </span>html5<span class="w"> </span>--if-changed
-<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>web<span class="w"> </span>--dry-run<span class="w"> </span>--json
-<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>feather<span class="w"> </span>upload<span class="w"> </span>steam<span class="w"> </span>linux
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>web<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>android<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game<span class="w"> </span>--build
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>web<span class="w"> </span>--channel<span class="w"> </span>html5<span class="w"> </span>--if-changed
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>feather<span class="w"> </span>upload<span class="w"> </span>itch<span class="w"> </span>web<span class="w"> </span>--dry-run<span class="w"> </span>--json
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>feather<span class="w"> </span>upload<span class="w"> </span>steam<span class="w"> </span>linux
 </code></pre></div>
 <p><code>feather upload itch</code> reads <code>feather-build-manifest.json</code>, chooses the artifact for the requested build target, and runs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>butler<span class="w"> </span>push<span class="w"> </span>&lt;artifact&gt;<span class="w"> </span>&lt;user/game&gt;:&lt;channel&gt;<span class="w"> </span>--userversion<span class="w"> </span>&lt;version&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>butler<span class="w"> </span>push<span class="w"> </span>&lt;artifact&gt;<span class="w"> </span>&lt;user/game&gt;:&lt;channel&gt;<span class="w"> </span>--userversion<span class="w"> </span>&lt;version&gt;
 </code></pre></div>
 <p>The Itch project and default channels come from <code>feather.build.json</code>. Use <code>--channel</code> or <code>--user-version</code> to override them in CI.</p>
 <p>When <code>--build</code> is used, upload always performs a production-safe build first. Android and iOS upload builds force release mode, debugger embedding is disabled, <code>--allow-unsafe</code> and <code>--allow-feather-runtime</code> are rejected, and generated inspectable artifacts are checked for Feather runtime/debug files before upload. <code>--allow-feather-runtime</code> only applies when uploading an existing artifact you built yourself.</p>
@@ -3523,11 +3892,11 @@
 <hr />
 <h3 id="feather-update-dir"><code>feather update [dir]</code><a class="headerlink" href="#feather-update-dir" title="Permanent link">&para;</a></h3>
 <p>Update the Feather core library in a project.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>feather<span class="w"> </span>update<span class="w">                       </span><span class="c1"># interactive source picker in a terminal</span>
-<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>feather<span class="w"> </span>update<span class="w"> </span>-y<span class="w">                    </span><span class="c1"># update from the local/bundled CLI copy</span>
-<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>feather<span class="w"> </span>update<span class="w"> </span>path/to/my-game
-<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>feather<span class="w"> </span>update<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>v0.7.1
-<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>feather<span class="w"> </span>update<span class="w"> </span>--local-src<span class="w"> </span>../feather/src-lua
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>feather<span class="w"> </span>update<span class="w">                       </span><span class="c1"># interactive source picker in a terminal</span>
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>feather<span class="w"> </span>update<span class="w"> </span>-y<span class="w">                    </span><span class="c1"># update from the local/bundled CLI copy</span>
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>feather<span class="w"> </span>update<span class="w"> </span>path/to/my-game
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>feather<span class="w"> </span>update<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>v0.7.1
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>feather<span class="w"> </span>update<span class="w"> </span>--local-src<span class="w"> </span>../feather/src-lua
 </code></pre></div>
 <p>In an interactive terminal, <code>feather update</code> opens an Ink workflow to choose local/bundled files or a GitHub branch/tag. In scripts or with <code>-y</code>, it uses the local/bundled CLI copy unless <code>--remote</code> is provided.</p>
 <p>This updates all <code>core:</code> files listed in <code>manifest.txt</code>. Plugin files are not touched — use <code>feather plugin update</code> for those.</p>
@@ -3539,9 +3908,9 @@
 <h3 id="feather-plugin"><code>feather plugin</code><a class="headerlink" href="#feather-plugin" title="Permanent link">&para;</a></h3>
 <p>Manage Feather plugins in a project.</p>
 <p>Run <code>feather plugin</code> with no subcommand to open an Ink workflow for common plugin tasks:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>feather<span class="w"> </span>plugin
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather
-<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>feather<span class="w"> </span>plugin
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
 </code></pre></div>
 <p>The workflow can list installed plugins, install one or more catalog plugins, remove installed plugins, or update selected plugins. Like <code>feather init</code>, plugin installs and updates are local-first by default:</p>
 <ol>
@@ -3552,23 +3921,23 @@
 </ol>
 <h4 id="feather-plugin-list-dir"><code>feather plugin list [dir]</code><a class="headerlink" href="#feather-plugin-list-dir" title="Permanent link">&para;</a></h4>
 <p>List installed plugins.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>list
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>list
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>Installed plugins (12)
-<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>
-<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>  screenshots              1.0.0    Capture screenshots and record GIFs
-<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>  console                  1.0.0    Remote Lua console
-<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>  entity-inspector         1.0.0    ECS entity browser
-<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>  ...
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>Installed plugins (12)
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>  screenshots              1.0.0    Capture screenshots and record GIFs
+<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>  console                  1.0.0    Remote Lua console
+<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>  entity-inspector         1.0.0    ECS entity browser
+<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>  ...
 </code></pre></div>
 <h4 id="feather-plugin-install-id"><code>feather plugin install &lt;id&gt;</code><a class="headerlink" href="#feather-plugin-install-id" title="Permanent link">&para;</a></h4>
 <p>Install a plugin from the local/bundled runtime by default, or from GitHub with <code>--remote</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console
-<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>time-travel<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
-<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>--local-src<span class="w"> </span>../feather/src-lua
-<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather
-<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>input-replay<span class="w">           </span><span class="c1"># install multiple at once</span>
-<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>--force<span class="w">                </span><span class="c1"># overwrite if already installed</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>time-travel<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
+<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>--local-src<span class="w"> </span>../feather/src-lua
+<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>--install-dir<span class="w"> </span>lib/feather
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>input-replay<span class="w">           </span><span class="c1"># install multiple at once</span>
+<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>feather<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>console<span class="w"> </span>--force<span class="w">                </span><span class="c1"># overwrite if already installed</span>
 </code></pre></div>
 <p>If a plugin is already installed, <code>feather plugin install</code> skips it and continues installing the others. In an interactive terminal it then offers to overwrite the skipped plugins. Pass <code>--force</code> to overwrite without prompting.</p>
 <p><strong>Options:</strong></p>
@@ -3583,6 +3952,14 @@
 <tr>
 <td><code>--force</code></td>
 <td>Overwrite already-installed plugins without prompting.</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Show planned changes without writing files when supported.</td>
+</tr>
+<tr>
+<td><code>--json</code></td>
+<td>Emit machine-readable summaries for desktop/automation use.</td>
 </tr>
 <tr>
 <td><code>--remote</code></td>
@@ -3608,14 +3985,14 @@
 </table>
 <h4 id="feather-plugin-remove-id"><code>feather plugin remove &lt;id&gt;</code><a class="headerlink" href="#feather-plugin-remove-id" title="Permanent link">&para;</a></h4>
 <p>Remove an installed plugin.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>remove<span class="w"> </span>hump.signal
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>remove<span class="w"> </span>hump.signal
 </code></pre></div>
 <h4 id="feather-plugin-update-id"><code>feather plugin update [id]</code><a class="headerlink" href="#feather-plugin-update-id" title="Permanent link">&para;</a></h4>
 <p>Update a plugin, or all installed plugins if no ID is given.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w">              </span><span class="c1"># interactive picker for installed plugins</span>
-<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>-y<span class="w">           </span><span class="c1"># update all installed plugins</span>
-<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>console<span class="w">      </span><span class="c1"># update a specific plugin</span>
-<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w">              </span><span class="c1"># interactive picker for installed plugins</span>
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>-y<span class="w">           </span><span class="c1"># update all installed plugins</span>
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>console<span class="w">      </span><span class="c1"># update a specific plugin</span>
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>feather<span class="w"> </span>plugin<span class="w"> </span>update<span class="w"> </span>--remote<span class="w"> </span>--branch<span class="w"> </span>main
 </code></pre></div>
 <p>When no plugin ID or source flag is provided in an interactive terminal, <code>feather plugin update</code> opens an Ink workflow where you can choose the source and select installed plugins. Use <code>-y</code>, <code>--remote</code>, or <code>--local-src</code> for CI or scripts.</p>
 <p>Use <code>--install-dir &lt;path&gt;</code> with plugin commands when the project was initialized outside the default <code>feather/</code> directory.</p>
@@ -3625,9 +4002,9 @@
 <p>Update values in <code>feather.config.lua</code> without opening the file.</p>
 <h4 id="feather-config-plugins"><code>feather config plugins</code><a class="headerlink" href="#feather-config-plugins" title="Permanent link">&para;</a></h4>
 <p>Add or remove plugins from the <code>include</code>/<code>exclude</code> lists and keep the <code>capabilities</code> allowlist in sync.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>console,input-replay
-<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--exclude<span class="w"> </span>hump.signal
-<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>console<span class="w"> </span>--exclude<span class="w"> </span>runtime-snapshot<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>console,input-replay
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--exclude<span class="w"> </span>hump.signal
+<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>feather<span class="w"> </span>config<span class="w"> </span>plugins<span class="w"> </span>--include<span class="w"> </span>console<span class="w"> </span>--exclude<span class="w"> </span>runtime-snapshot<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3650,12 +4027,20 @@
 <td><code>--dir &lt;path&gt;</code></td>
 <td>Project directory (default: current directory).</td>
 </tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Report planned config changes without writing files.</td>
+</tr>
+<tr>
+<td><code>--json</code></td>
+<td>Emit a machine-readable summary.</td>
+</tr>
 </tbody>
 </table>
 <h4 id="feather-config-hot-reload"><code>feather config hot-reload</code><a class="headerlink" href="#feather-config-hot-reload" title="Permanent link">&para;</a></h4>
 <p>Enable the opt-in <code>hot-reload</code> plugin and write a narrow <code>debugger.hotReload.allow</code> list.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>feather<span class="w"> </span>config<span class="w"> </span>hot-reload<span class="w"> </span>--allow<span class="w"> </span>game.player,game.systems.combat
-<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>feather<span class="w"> </span>config<span class="w"> </span>hot-reload<span class="w"> </span>--allow<span class="w"> </span>game.player<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>feather<span class="w"> </span>config<span class="w"> </span>hot-reload<span class="w"> </span>--allow<span class="w"> </span>game.player,game.systems.combat
+<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>feather<span class="w"> </span>config<span class="w"> </span>hot-reload<span class="w"> </span>--allow<span class="w"> </span>game.player<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
 <p>This also writes <code>debug = true</code>, <code>autoRegisterErrorHandler = true</code>, <code>include = { "hot-reload", ... }</code>, the required <code>filesystem</code> capability, and safe defaults such as <code>deny = { "main", "conf", "feather.*" }</code> and <code>persistToDisk = false</code>.</p>
 <p><strong>Options:</strong></p>
@@ -3679,9 +4064,9 @@
 </table>
 <h4 id="feather-config-managed-mode"><code>feather config managed &lt;mode&gt;</code><a class="headerlink" href="#feather-config-managed-mode" title="Permanent link">&para;</a></h4>
 <p>Change the <code>managed</code> field that controls how Feather detects the integration mode. Useful when you want to override what <code>feather init</code> wrote without re-initialising the project.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>feather<span class="w"> </span>config<span class="w"> </span>managed<span class="w"> </span>cli
-<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>feather<span class="w"> </span>config<span class="w"> </span>managed<span class="w"> </span>auto
-<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>feather<span class="w"> </span>config<span class="w"> </span>managed<span class="w"> </span>manual<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>feather<span class="w"> </span>config<span class="w"> </span>managed<span class="w"> </span>cli
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>feather<span class="w"> </span>config<span class="w"> </span>managed<span class="w"> </span>auto
+<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>feather<span class="w"> </span>config<span class="w"> </span>managed<span class="w"> </span>manual<span class="w"> </span>--dir<span class="w"> </span>path/to/my-game
 </code></pre></div>
 <p>Valid modes are <code>cli</code>, <code>auto</code>, and <code>manual</code>. This updates the config field only — it does not patch <code>main.lua</code>, install the runtime, or generate <code>feather.debugger.lua</code>. Use <code>feather init --mode &lt;mode&gt;</code> for a full mode transition.</p>
 <p><strong>Options:</strong></p>
@@ -3702,35 +4087,35 @@
 <hr />
 <h2 id="featherconfiglua">feather.config.lua<a class="headerlink" href="#featherconfiglua" title="Permanent link">&para;</a></h2>
 <p>Place a <code>feather.config.lua</code> in your game directory to configure the Feather injection without touching command-line flags. <code>feather run</code> reads it automatically.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="c1">-- feather.config.lua</span>
-<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="w">  </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My RPG&quot;</span><span class="p">,</span>
-<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>
-<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="w">  </span><span class="c1">-- Force-enable opt-in plugins.</span>
-<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a><span class="w">  </span><span class="c1">-- &quot;console&quot; is a remote REPL. &quot;hot-reload&quot; is development-only remote code execution.</span>
-<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>
-<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a><span class="w">  </span><span class="c1">-- Remove plugins you don&#39;t need</span>
-<a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a><span class="w">  </span><span class="nv">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;hump.signal&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;lua-state-machine&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>
-<a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a><span class="w">  </span><span class="c1">-- Per-plugin option overrides</span>
-<a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a><span class="w">    </span><span class="nv">screenshots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">fps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="nv">gifDuration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;memory-snapshot&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">autoInterval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-36-16" name="__codelineno-36-16" href="#__codelineno-36-16"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a>
-<a id="__codelineno-36-18" name="__codelineno-36-18" href="#__codelineno-36-18"></a><span class="w">  </span><span class="c1">-- Connect to a remote desktop app (e.g. on another machine)</span>
-<a id="__codelineno-36-19" name="__codelineno-36-19" href="#__codelineno-36-19"></a><span class="w">  </span><span class="c1">-- host = &quot;192.168.1.42&quot;,</span>
-<a id="__codelineno-36-20" name="__codelineno-36-20" href="#__codelineno-36-20"></a>
-<a id="__codelineno-36-21" name="__codelineno-36-21" href="#__codelineno-36-21"></a><span class="w">  </span><span class="c1">-- Small in-game badge shown while Feather is loaded.</span>
-<a id="__codelineno-36-22" name="__codelineno-36-22" href="#__codelineno-36-22"></a><span class="w">  </span><span class="nv">debugOverlay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-36-23" name="__codelineno-36-23" href="#__codelineno-36-23"></a><span class="w">    </span><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-36-24" name="__codelineno-36-24" href="#__codelineno-36-24"></a><span class="w">    </span><span class="nv">visible</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-36-25" name="__codelineno-36-25" href="#__codelineno-36-25"></a><span class="w">    </span><span class="nv">hideKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;f12&quot;</span><span class="p">,</span>
-<a id="__codelineno-36-26" name="__codelineno-36-26" href="#__codelineno-36-26"></a><span class="w">    </span><span class="nv">touchToggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-36-27" name="__codelineno-36-27" href="#__codelineno-36-27"></a><span class="w">    </span><span class="nv">corner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;top-right&quot;</span><span class="p">,</span>
-<a id="__codelineno-36-28" name="__codelineno-36-28" href="#__codelineno-36-28"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-36-29" name="__codelineno-36-29" href="#__codelineno-36-29"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="c1">-- feather.config.lua</span>
+<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a><span class="kr">return</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="w">  </span><span class="nv">sessionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My RPG&quot;</span><span class="p">,</span>
+<a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>
+<a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a><span class="w">  </span><span class="c1">-- Force-enable opt-in plugins.</span>
+<a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a><span class="w">  </span><span class="c1">-- &quot;console&quot; is a remote REPL. &quot;hot-reload&quot; is development-only remote code execution.</span>
+<a id="__codelineno-42-7" name="__codelineno-42-7" href="#__codelineno-42-7"></a><span class="w">  </span><span class="nv">include</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;console&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-42-8" name="__codelineno-42-8" href="#__codelineno-42-8"></a>
+<a id="__codelineno-42-9" name="__codelineno-42-9" href="#__codelineno-42-9"></a><span class="w">  </span><span class="c1">-- Remove plugins you don&#39;t need</span>
+<a id="__codelineno-42-10" name="__codelineno-42-10" href="#__codelineno-42-10"></a><span class="w">  </span><span class="nv">exclude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;hump.signal&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;lua-state-machine&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-42-11" name="__codelineno-42-11" href="#__codelineno-42-11"></a>
+<a id="__codelineno-42-12" name="__codelineno-42-12" href="#__codelineno-42-12"></a><span class="w">  </span><span class="c1">-- Per-plugin option overrides</span>
+<a id="__codelineno-42-13" name="__codelineno-42-13" href="#__codelineno-42-13"></a><span class="w">  </span><span class="nv">pluginOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-42-14" name="__codelineno-42-14" href="#__codelineno-42-14"></a><span class="w">    </span><span class="nv">screenshots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">fps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="nv">gifDuration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-42-15" name="__codelineno-42-15" href="#__codelineno-42-15"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;memory-snapshot&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">autoInterval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-42-16" name="__codelineno-42-16" href="#__codelineno-42-16"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-42-17" name="__codelineno-42-17" href="#__codelineno-42-17"></a>
+<a id="__codelineno-42-18" name="__codelineno-42-18" href="#__codelineno-42-18"></a><span class="w">  </span><span class="c1">-- Connect to a remote desktop app (e.g. on another machine)</span>
+<a id="__codelineno-42-19" name="__codelineno-42-19" href="#__codelineno-42-19"></a><span class="w">  </span><span class="c1">-- host = &quot;192.168.1.42&quot;,</span>
+<a id="__codelineno-42-20" name="__codelineno-42-20" href="#__codelineno-42-20"></a>
+<a id="__codelineno-42-21" name="__codelineno-42-21" href="#__codelineno-42-21"></a><span class="w">  </span><span class="c1">-- Small in-game badge shown while Feather is loaded.</span>
+<a id="__codelineno-42-22" name="__codelineno-42-22" href="#__codelineno-42-22"></a><span class="w">  </span><span class="nv">debugOverlay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-42-23" name="__codelineno-42-23" href="#__codelineno-42-23"></a><span class="w">    </span><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-42-24" name="__codelineno-42-24" href="#__codelineno-42-24"></a><span class="w">    </span><span class="nv">visible</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-42-25" name="__codelineno-42-25" href="#__codelineno-42-25"></a><span class="w">    </span><span class="nv">hideKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;f12&quot;</span><span class="p">,</span>
+<a id="__codelineno-42-26" name="__codelineno-42-26" href="#__codelineno-42-26"></a><span class="w">    </span><span class="nv">touchToggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-42-27" name="__codelineno-42-27" href="#__codelineno-42-27"></a><span class="w">    </span><span class="nv">corner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;top-right&quot;</span><span class="p">,</span>
+<a id="__codelineno-42-28" name="__codelineno-42-28" href="#__codelineno-42-28"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-42-29" name="__codelineno-42-29" href="#__codelineno-42-29"></a><span class="p">}</span>
 </code></pre></div>
 <p>All <code>feather.auto.setup()</code> options are supported. Command-line flags (<code>--session-name</code>, etc.) take precedence over the config file. The debug overlay is visible by default when Feather is active; press <code>F12</code> or double-tap the top-right corner to temporarily hide/show it.</p>
 <hr />
@@ -3747,33 +4132,33 @@
 <hr />
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <h3 id="run-any-game-with-zero-setup">Run any game with zero setup<a class="headerlink" href="#run-any-game-with-zero-setup" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="c1"># Clone any love2d game and run it with Feather</span>
-<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/some/game.git
-<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>feather<span class="w"> </span>run<span class="w"> </span>game/
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="c1"># Clone any love2d game and run it with Feather</span>
+<a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/some/game.git
+<a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>feather<span class="w"> </span>run<span class="w"> </span>game/
 </code></pre></div>
 <p>The Feather desktop app will show a new session as soon as the game connects.</p>
 <h3 id="use-the-bundled-feather-vs-a-local-install">Use the bundled feather vs a local install<a class="headerlink" href="#use-the-bundled-feather-vs-a-local-install" title="Permanent link">&para;</a></h3>
 <p>By default, <code>feather run</code> uses the feather library and plugins bundled inside the CLI package. If your project has feather installed locally (via <code>feather init</code>), the CLI prefers that:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>my-game/
-<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>  feather/init.lua   ← detected → local install is used
-<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>  feather/plugins/
-<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>  main.lua
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>my-game/
+<a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>  feather/init.lua   ← detected → local install is used
+<a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a>  feather/plugins/
+<a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a>  main.lua
 </code></pre></div>
 <p>To point at a different feather build or plugins directory:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--feather-path<span class="w"> </span>../feather-dev
-<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--plugins-dir<span class="w"> </span>../my-custom-plugins
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--feather-path<span class="w"> </span>../feather-dev
+<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>feather<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--plugins-dir<span class="w"> </span>../my-custom-plugins
 </code></pre></div>
 <p><code>--plugins-dir</code> takes precedence over the bundled plugins and any game-local <code>plugins/</code> directory.</p>
 <h3 id="ci-headless-mode">CI / headless mode<a class="headerlink" href="#ci-headless-mode" title="Permanent link">&para;</a></h3>
 <p><code>feather run</code> exits with love2d's exit code, making it suitable for CI workflows:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run game smoke test</span>
-<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">feather run . --no-plugins</span>
-<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="w">  </span><span class="nt">env</span><span class="p">:</span>
-<a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="w">    </span><span class="nt">LOVE_BIN</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/bin/love</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run game smoke test</span>
+<a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">feather run . --no-plugins</span>
+<a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a><span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a><span class="w">    </span><span class="nt">LOVE_BIN</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/bin/love</span>
 </code></pre></div>
 <h3 id="alias-for-fast-iteration">Alias for fast iteration<a class="headerlink" href="#alias-for-fast-iteration" title="Permanent link">&para;</a></h3>
 <p>Add a shell alias so <code>fr</code> runs from any game directory:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="nb">alias</span><span class="w"> </span><span class="nv">fr</span><span class="o">=</span><span class="s1">&#39;feather run .&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="nb">alias</span><span class="w"> </span><span class="nv">fr</span><span class="o">=</span><span class="s1">&#39;feather run .&#39;</span>
 </code></pre></div>
 <hr />
 <h2 id="cli-vs-embedded-setup">CLI vs Embedded Setup<a class="headerlink" href="#cli-vs-embedded-setup" title="Permanent link">&para;</a></h2>
