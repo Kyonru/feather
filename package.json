@@ -27,7 +27,7 @@
     "dev": "vite",
     "dev:tauri": "vite --force",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
-    "docs": "docker run --rm -it -p 8000:8000 -v \"$(pwd):/docs\" -w /docs --entrypoint sh squidfunk/mkdocs-material -c \"pip install -r requirements-docs.txt && mkdocs serve --dev-addr=0.0.0.0:8000\"",
+    "docs": "bash scripts/docs.sh",
     "native": "npm run tauri build -- --debug",
     "prepare:tauri-cli-sidecar": "npm run build:binary --workspace=cli && node scripts/prepare-tauri-cli-sidecar.mjs",
     "lua": "sh ./scripts/watch-lua.sh",

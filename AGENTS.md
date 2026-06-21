@@ -14,7 +14,7 @@ Feather is a CLI debugger, inspector, desktop devtool, VS Code companion, and pa
 - `vscode-extension/` - VS Code extension workspace package.
 - `packages/` - Curated Love2D package catalog entries.
 - `scripts/` - Registry/catalog generators, checksum tools, bundle helpers.
-- `docs/` - MkDocs documentation site.
+- `docs/` - Zensical documentation site.
 - `skills/` - Repo-local agent skills. Read the matching skill before editing a subsystem.
 
 ## Pick The Right Skill

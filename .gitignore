@@ -29,6 +29,8 @@ dist-ssr
 *.sw?
 
 docs/_site/
+.venv/
+site/
 
 # Playwright
 playwright-report/

@@ -1,42 +1,36 @@
-name: Deploy docs to GitHub Pages
+name: Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - docs/**
-      - mkdocs.yml
-      - requirements-docs.txt
+      - zensical.toml
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v6
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          fetch-depth: 0
-          ssh-key: ${{ secrets.DEPLOY_KEY }}
-
-      - name: Configure git
-        run: |
-          git config --local user.email "github-actions@github.com"
-          git config --local user.name "GitHub Actions"
-
-      - uses: actions/setup-python@v5
+          python-version: 3.x
+      - run: pip install zensical
+      - run: zensical build --clean
+      - uses: actions/upload-pages-artifact@v5
         with:
-          python-version: "3.x"
-
-      - uses: actions/cache@v4
-        with:
-          key: mkdocs-material-${{ hashFiles('**/requirements-docs.txt') }}-${{
-            github.run_id }}
-          restore-keys: mkdocs-material-
-          path: ~/.cache/pip
-
-      - run: pip install -r requirements-docs.txt
-
-      - run: mkdocs gh-deploy --force
+          path: site
+      - uses: actions/deploy-pages@v5
+        id: deployment

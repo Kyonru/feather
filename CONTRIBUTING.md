@@ -49,6 +49,10 @@ npm run tauri dev
 Serve docs:
 
 ```sh
+./scripts/docs.sh
+```
+
+```sh
 npm run docs
 ```
 
@@ -62,7 +66,7 @@ npm run docs
 - `src-lua/plugins/` contains built-in Lua plugins.
 - `src-lua/example/` contains runnable LÖVE examples.
 - `vscode-extension/` contains the VS Code extension.
-- `docs/` contains the MkDocs documentation site.
+- `docs/` contains the Zensical documentation site.
 - `packages/` contains curated package registry entries.
 
 `docs/cli.md` is a symlink to `cli/README.md`, and `docs/vscode-extension.md` is a symlink to `vscode-extension/README.md`. Edit the source file directly when your editor or tool has trouble writing through symlinks.
@@ -313,7 +317,7 @@ Production paths should be boringly strict.
 
 - User-facing CLI behavior belongs in `cli/README.md` and, when broader, in `docs/usage.md` or a dedicated page.
 - Runtime config belongs in `docs/configuration.md`.
-- Plugin behavior belongs in `src-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `docs/<feature>.md` page and a `mkdocs.yml` nav entry.
+- Plugin behavior belongs in `src-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `docs/<feature>.md` page and a `zensical.toml` nav entry.
 - VS Code extension behavior belongs in `vscode-extension/README.md`.
 - Prefer copy-pasteable commands and small guarded Lua examples.
 - Be explicit about what Feather does not do. For example, Session Replay records inputs and developer-selected state; it does not serialize an entire game.
