@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-14",
+  "updatedAt": "2026-07-02",
   "packages": {
     "anim8": {
       "type": "love2d-library",
@@ -1012,9 +1012,9 @@
       "license": "MIT",
       "source": {
         "repo": "kyonru/glyph.lua",
-        "tag": "v0.2.0",
-        "commitSha": "1c1a1062904f1de3edc0436a6a400bbd47f343e0",
-        "baseUrl": "https://raw.githubusercontent.com/kyonru/glyph.lua/1c1a1062904f1de3edc0436a6a400bbd47f343e0/"
+        "tag": "v0.3.0",
+        "commitSha": "6fd4982fbe8ef031cbe920c0bc7b9eda61bb1992",
+        "baseUrl": "https://raw.githubusercontent.com/kyonru/glyph.lua/6fd4982fbe8ef031cbe920c0bc7b9eda61bb1992/"
       },
       "install": {
         "files": [
@@ -1035,7 +1035,7 @@
           },
           {
             "name": "glyph/components.lua",
-            "sha256": "22e27fc338ef87fa9e55ab0f033964aa67b371fd8fe64f46fec80e4aa102ad0a",
+            "sha256": "62930378cfc04ad9ce5e54059c6d7e9bd9b166facae47283d74301bc1e9067d8",
             "target": "lib/glyph/components.lua"
           },
           {
@@ -1045,8 +1045,13 @@
           },
           {
             "name": "glyph/feedback.lua",
-            "sha256": "1de83fa049ef358a0d2b4b83f27304d452d8607865163336ba75135c78ef28ff",
+            "sha256": "3cd748f24869f7a21b1779bd69c08676a99bf246968cdacca12814c2a19ecdf5",
             "target": "lib/glyph/feedback.lua"
+          },
+          {
+            "name": "glyph/filter.lua",
+            "sha256": "7f6280b82b7ee3d0323f44d9ba592a3968f350abf967e870a4780135d4e8973c",
+            "target": "lib/glyph/filter.lua"
           },
           {
             "name": "glyph/grid_math.lua",
@@ -1060,12 +1065,12 @@
           },
           {
             "name": "glyph/init.lua",
-            "sha256": "d5b133efd8fd84f6000fa184511cc270ee46ca7951b259f509d4fad6bb6909d2",
+            "sha256": "e82cd83c74c48e4558e6eaad00b9db7a8e023f83d6298f93ee7876de3c2611db",
             "target": "lib/glyph/init.lua"
           },
           {
             "name": "glyph/layout.lua",
-            "sha256": "81364c56ea304f8ffc6d7561c176f81d55cc0b06c98a479c3f8bdf42e03ce8fe",
+            "sha256": "a3b73a94ab7652b9fdc6ff7d179eaf9ce0229c701b753e0aca36b195f083552d",
             "target": "lib/glyph/layout.lua"
           },
           {
@@ -1100,7 +1105,7 @@
           },
           {
             "name": "glyph/runtime.lua",
-            "sha256": "d5e67e515b2bab3d0894713a2de5dc2257946190d24cbffb657bb4bb397bb12d",
+            "sha256": "f4faa8c1b9e3a55336b131a9e45a26be07fc7ce3f0b1bdfa8dab98b2a762b804",
             "target": "lib/glyph/runtime.lua"
           },
           {
@@ -1120,12 +1125,12 @@
           },
           {
             "name": "glyph/surface.lua",
-            "sha256": "8cb217e86e09000c1a5f926702ece4d5e2e0fb87078865a90effe18626beef6a",
+            "sha256": "59a491c8d468f7524ab3317e6f92e1dd804960166886d41efe52d937bd1183b5",
             "target": "lib/glyph/surface.lua"
           },
           {
             "name": "glyph/theme.lua",
-            "sha256": "2d8360e97795a7e8dae6ae83d066e07c90d7861fab0adf6eb673015971084172",
+            "sha256": "9a505b4047ce5ac4b27d431c889e3dd856ce1be80a9fd990b69c6a900857944f",
             "target": "lib/glyph/theme.lua"
           },
           {
@@ -1135,12 +1140,12 @@
           },
           {
             "name": "glyph/types.lua",
-            "sha256": "df78f488f7ff421784849b7ca4b6e2cc4476af8d13f6b895fab05413f2e6065e",
+            "sha256": "f5742e6fd142080002bd195313b0655c1576b9071a6754668624394a401c7eb9",
             "target": "lib/glyph/types.lua"
           },
           {
             "name": "glyph/typography.lua",
-            "sha256": "de5dbb02205772dd8e46e1a54db495b62ded24cd45582d667a6cdd30d2b5b681",
+            "sha256": "dbdc6172128d628e37f95552a239501f44c101335a113b3c239bf443ad4e3ef1",
             "target": "lib/glyph/typography.lua"
           },
           {
@@ -1222,6 +1227,11 @@
             "name": "glyph/viewport_backend.lua",
             "sha256": "8a876330f278cd06ab34aa0adb714055c84b9cdfe79c3a4a7a577b1156312a11",
             "target": "lib/glyph/viewport_backend.lua"
+          },
+          {
+            "name": "glyph/virtual_list.lua",
+            "sha256": "a8e0a0e630a2c44a9ce8c39780ec81e9de364bc58c93a2a6493245c6c843ba39",
+            "target": "lib/glyph/virtual_list.lua"
           }
         ]
       },
