@@ -44,7 +44,7 @@ export const PARTICLE_TIMELINE_LANE_DEFAULTS: Record<ParticleTimelineLane, numbe
 };
 
 const LOOP_TEMPLATES = new Set<ParticleSystemPlaygroundTemplate>(['fire', 'smoke', 'sparkles']);
-const AMBIENT_TEMPLATES = new Set<ParticleSystemPlaygroundTemplate>(['snowfall', 'rainfall', 'falling-leaves']);
+const AMBIENT_TEMPLATES = new Set<ParticleSystemPlaygroundTemplate>(['snowfall', 'rainfall', 'rain-storm', 'falling-leaves']);
 const VALID_LANES = new Set<string>(PARTICLE_TIMELINE_LANES);
 const VALID_TIMELINE_MODES = new Set<ParticleTimelineMode>(['one-shot', 'loop', 'ambient']);
 
@@ -596,6 +596,91 @@ export function timelineForTemplate(
           ],
         }, 0),
       ),
+    );
+  }
+
+  if (template === 'rain-storm' && systems.length >= 4) {
+    return makeTimeline(
+      8,
+      'ambient',
+      [
+        authoredTrack(systems[0], 0, 1.5, {
+          opacity: [
+            [0, 0.72],
+            [8, 0.8],
+          ],
+          emissionRate: [
+            [0, 520],
+            [8, 620],
+          ],
+          speedScale: [
+            [0, 1],
+            [8, 1.12],
+          ],
+          spread: [
+            [0, 0.1],
+            [8, 0.16],
+          ],
+          offsetX: [
+            [0, -18, 'inOutSine'],
+            [8, 8],
+          ],
+        }, 0),
+        authoredTrack(systems[1], 0, 2, {
+          opacity: [
+            [0, 0.36],
+            [8, 0.48],
+          ],
+          emissionRate: [
+            [0, 320],
+            [8, 360],
+          ],
+          speedScale: [
+            [0, 0.86],
+            [8, 0.96],
+          ],
+          spread: [
+            [0, 0.22],
+            [8, 0.28],
+          ],
+          offsetX: [
+            [0, -28, 'inOutSine'],
+            [8, -12],
+          ],
+        }, 0),
+        authoredTrack(systems[2], 0, 1.2, {
+          opacity: [
+            [0, 0.42],
+            [8, 0.55],
+          ],
+          emissionRate: [
+            [0, 110],
+            [8, 150],
+          ],
+          speedScale: [
+            [0, 0.7],
+            [8, 0.85],
+          ],
+        }, 0),
+        authoredTrack(systems[3], 0, 3, {
+          opacity: [
+            [0, 0.2],
+            [8, 0.3],
+          ],
+          emissionRate: [
+            [0, 34],
+            [8, 48],
+          ],
+          sizeScale: [
+            [0, 1],
+            [8, 1.2],
+          ],
+          offsetY: [
+            [0, 155, 'inOutSine'],
+            [8, 145],
+          ],
+        }, 0),
+      ],
     );
   }
 

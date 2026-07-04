@@ -1242,7 +1242,7 @@ end
 
 local function defaultTimelineForSystems(systems, template)
   local duration = DEFAULT_TIMELINE_DURATION
-  local mode = template == "snowfall" or template == "rainfall" or template == "falling-leaves"
+  local mode = (template == "snowfall" or template == "rainfall" or template == "rain-storm" or template == "falling-leaves")
       and "ambient"
     or (template == "fire" or template == "smoke" or template == "sparkles") and "loop"
     or "one-shot"
@@ -1365,6 +1365,36 @@ local function defaultTimelineForSystems(systems, template)
         spread = { { 0, 0.14 }, { duration, 0.2 } },
       }, 0)
     end
+    return { duration = duration, mode = "ambient", loop = false, tracks = tracks }
+  end
+
+  if template == "rain-storm" and systems[4] then
+    duration = 8
+    tracks[1] = authoredTrack(systems[1], 0, 1.5, {
+      opacity = { { 0, 0.72 }, { duration, 0.8 } },
+      emissionRate = { { 0, 520 }, { duration, 620 } },
+      speedScale = { { 0, 1 }, { duration, 1.12 } },
+      spread = { { 0, 0.1 }, { duration, 0.16 } },
+      offsetX = { { 0, -18 }, { duration, 8 } },
+    }, 0)
+    tracks[2] = authoredTrack(systems[2], 0, 2, {
+      opacity = { { 0, 0.36 }, { duration, 0.48 } },
+      emissionRate = { { 0, 320 }, { duration, 360 } },
+      speedScale = { { 0, 0.86 }, { duration, 0.96 } },
+      spread = { { 0, 0.22 }, { duration, 0.28 } },
+      offsetX = { { 0, -28 }, { duration, -12 } },
+    }, 0)
+    tracks[3] = authoredTrack(systems[3], 0, 1.2, {
+      opacity = { { 0, 0.42 }, { duration, 0.55 } },
+      emissionRate = { { 0, 110 }, { duration, 150 } },
+      speedScale = { { 0, 0.7 }, { duration, 0.85 } },
+    }, 0)
+    tracks[4] = authoredTrack(systems[4], 0, 3, {
+      opacity = { { 0, 0.2 }, { duration, 0.3 } },
+      emissionRate = { { 0, 34 }, { duration, 48 } },
+      sizeScale = { { 0, 1 }, { duration, 1.2 } },
+      offsetY = { { 0, 155 }, { duration, 145 } },
+    }, 0)
     return { duration = duration, mode = "ambient", loop = false, tracks = tracks }
   end
 
@@ -1717,7 +1747,7 @@ local function createDefaultSystem(index, template)
   if template == "explosion-smoke" then
     texturePreset = "light"
   end
-  if template == "snowfall" or template == "rainfall" then
+  if template == "snowfall" or template == "rainfall" or template == "rain-storm" or template == "storm-rain-streaks" or template == "storm-rain-sheet" or template == "storm-rain-splash" or template == "storm-rain-mist" then
     texturePreset = "light"
   end
   if template == "falling-leaves" then
@@ -1831,6 +1861,49 @@ local function createDefaultSystem(index, template)
     ps:setEmissionArea("uniform", 520, 16, 0, false)
     ps:setColors(0.55, 0.78, 1, 0.55, 0.3, 0.5, 0.95, 0.15)
     ps:setSizes(0.06, 0.18)
+  elseif template == "rain-storm" or template == "storm-rain-streaks" then
+    ps:setEmissionRate(560)
+    ps:setParticleLifetime(0.5, 0.95)
+    ps:setSpeed(520, 900)
+    ps:setDirection(math.pi / 2 + 0.08)
+    ps:setSpread(math.pi / 28)
+    ps:setEmissionArea("uniform", 620, 20, 0, false)
+    ps:setLinearAcceleration(-70, 160, -25, 300)
+    ps:setColors(0.62, 0.82, 1, 0.72, 0.35, 0.55, 0.95, 0.18)
+    ps:setSizes(0.045, 0.16)
+  elseif template == "storm-rain-sheet" then
+    ps:setEmissionRate(340)
+    ps:setParticleLifetime(0.75, 1.4)
+    ps:setSpeed(340, 620)
+    ps:setDirection(math.pi / 2 + 0.12)
+    ps:setSpread(math.pi / 12)
+    ps:setEmissionArea("uniform", 680, 28, 0, false)
+    ps:setLinearAcceleration(-70, 80, -35, 180)
+    ps:setColors(0.5, 0.72, 1, 0.36, 0.25, 0.42, 0.88, 0.08)
+    ps:setSizes(0.03, 0.12)
+  elseif template == "storm-rain-splash" then
+    ps:setEmissionRate(130)
+    ps:setParticleLifetime(0.18, 0.48)
+    ps:setSpeed(50, 180)
+    ps:setDirection(-math.pi / 2)
+    ps:setSpread(math.pi * 0.85)
+    ps:setEmissionArea("uniform", 620, 8, 0, false)
+    ps:setLinearAcceleration(-20, 180, 20, 360)
+    ps:setLinearDamping(0.4, 1)
+    ps:setColors(0.58, 0.8, 1, 0.42, 0.45, 0.65, 0.95, 0)
+    ps:setSizes(0.05, 0.11, 0)
+  elseif template == "storm-rain-mist" then
+    ps:setEmissionRate(42)
+    ps:setParticleLifetime(1.2, 2.6)
+    ps:setSpeed(8, 38)
+    ps:setDirection(-math.pi / 2)
+    ps:setSpread(math.pi)
+    ps:setEmissionArea("uniform", 620, 18, 0, false)
+    ps:setLinearAcceleration(-20, -5, 20, -25)
+    ps:setLinearDamping(0.5, 1.4)
+    ps:setColors(0.6, 0.78, 1, 0.16, 0.5, 0.68, 0.95, 0)
+    ps:setSizes(0.25, 0.75, 1.3)
+    ps:setSizeVariation(0.75)
   elseif template == "falling-leaves" then
     ps:setEmissionRate(32)
     ps:setParticleLifetime(5, 9)
@@ -1999,6 +2072,25 @@ local function createDefaultSystems(template)
     local rain = createDefaultSystem(1, "rainfall")
     rain.title = "Rain Sheet"
     return { rain }
+  end
+
+  if template == "rain-storm" then
+    local streaks = createDefaultSystem(1, "storm-rain-streaks")
+    streaks.title = "Heavy Streaks"
+
+    local sheet = createDefaultSystem(2, "storm-rain-sheet")
+    sheet.title = "Back Sheet"
+
+    local splash = createDefaultSystem(3, "storm-rain-splash")
+    splash.title = "Ground Splash"
+    splash.y = 172
+
+    local mist = createDefaultSystem(4, "storm-rain-mist")
+    mist.title = "Cool Mist"
+    mist.blendMode = "screen"
+    mist.y = 148
+
+    return { streaks, sheet, splash, mist }
   end
 
   if template == "falling-leaves" then

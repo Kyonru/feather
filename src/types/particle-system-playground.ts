@@ -13,6 +13,7 @@ export type ParticleSystemPlaygroundTemplate =
   | 'complex-composite'
   | 'snowfall'
   | 'rainfall'
+  | 'rain-storm'
   | 'falling-leaves';
 export type ParticleSystemPlaygroundProjectVersion = 1 | 2 | 3 | 4;
 
@@ -214,6 +215,7 @@ export const PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES: Array<{ value: ParticleSystem
   { value: 'complex-composite', label: 'Complex Composite' },
   { value: 'snowfall', label: 'Snowfall' },
   { value: 'rainfall', label: 'Rainfall' },
+  { value: 'rain-storm', label: 'Storm Rain' },
   { value: 'falling-leaves', label: 'Falling Leaves' },
 ];
 export const EMISSION_AREA_DISTRIBUTIONS = [

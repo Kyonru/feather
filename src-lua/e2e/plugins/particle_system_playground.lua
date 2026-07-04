@@ -1030,6 +1030,23 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(rain.data.timeline.mode, "ambient", "particle rainfall template uses ambient mode")
     assertEqual(rain.data.systems[1].title, "Rain Sheet", "particle rainfall template names the emitter")
 
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Storm Rain Template",
+        template = "rain-storm",
+      },
+    })
+    local stormRain = plugin:handleRequest()
+    assertEqual(stormRain.data.timeline.mode, "ambient", "particle storm rain template uses ambient mode")
+    assertEqual(stormRain.data.timeline.duration, 8, "particle storm rain template uses an eight second ambient timeline")
+    assertEqual(#stormRain.data.systems, 4, "particle storm rain template creates four emitters")
+    assertEqual(stormRain.data.systems[1].title, "Heavy Streaks", "particle storm rain template names the foreground streaks")
+    assertEqual(stormRain.data.systems[2].title, "Back Sheet", "particle storm rain template names the background sheet")
+    assertEqual(stormRain.data.systems[3].title, "Ground Splash", "particle storm rain template names the splash layer")
+    assertEqual(stormRain.data.systems[4].title, "Cool Mist", "particle storm rain template names the mist layer")
+    assertEqual(stormRain.data.timeline.tracks[4].lanes.offsetY[1].value, 155, "particle storm rain template holds mist near the ground")
+
     local pausedComplexSystem = plugin:_getSystemEntry("Complex Template", 1).system
     pausedComplexSystem:reset()
     plugin:update(0.2)

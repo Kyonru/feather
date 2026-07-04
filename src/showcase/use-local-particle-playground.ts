@@ -110,7 +110,7 @@ function timelinesEqual(a: ParticleTimeline, b: ParticleTimeline): boolean {
 
 function system(index: number, title: string, template: ParticleSystemPlaygroundTemplate): ParticleSystemPlaygroundSystem {
   const texturePreset =
-    template === 'smoke' || template === 'dust-puff' || template === 'snowfall' || template === 'rainfall'
+    template === 'smoke' || template === 'dust-puff' || template === 'snowfall' || template === 'rainfall' || template === 'rain-storm'
       ? 'light'
       : template === 'sparkles' || template === 'magic-burst' || template === 'falling-leaves'
         ? 'star'
@@ -147,6 +147,8 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           ? 120
           : template === 'rainfall'
             ? 260
+            : template === 'rain-storm'
+              ? 560
             : template === 'falling-leaves'
               ? 32
         : template === 'smoke'
@@ -164,6 +166,8 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           ? 4
           : template === 'rainfall'
             ? 0.65
+            : template === 'rain-storm'
+              ? 0.5
             : template === 'falling-leaves'
               ? 5
         : template === 'smoke' || template === 'dust-puff' ? 1.2 : template === 'muzzle-flash' ? 0.08 : 0.35,
@@ -172,15 +176,19 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           ? 7
           : template === 'rainfall'
             ? 1.2
+            : template === 'rain-storm'
+              ? 0.95
             : template === 'falling-leaves'
               ? 9
         : template === 'smoke' || template === 'dust-puff' ? 3.2 : template === 'sparkles' ? 0.9 : template === 'muzzle-flash' ? 0.22 : 1.3,
-      direction: template === 'muzzle-flash' ? 0 : template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? Math.PI / 2 : -Math.PI / 2,
+      direction: template === 'muzzle-flash' ? 0 : template === 'rain-storm' ? Math.PI / 2 + 0.08 : template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? Math.PI / 2 : -Math.PI / 2,
       spread:
         template === 'snowfall'
           ? Math.PI / 6
           : template === 'rainfall'
             ? Math.PI / 18
+            : template === 'rain-storm'
+              ? Math.PI / 28
             : template === 'falling-leaves'
               ? Math.PI / 3
         : template === 'sparkles' || template === 'magic-burst' || template === 'dust-puff' ? Math.PI * 2 : template === 'muzzle-flash' ? Math.PI / 8 : Math.PI / 3,
@@ -189,6 +197,8 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           ? 18
           : template === 'rainfall'
             ? 360
+            : template === 'rain-storm'
+              ? 520
             : template === 'falling-leaves'
               ? 18
         : template === 'smoke' || template === 'dust-puff'
@@ -203,6 +213,8 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           ? 55
           : template === 'rainfall'
             ? 620
+            : template === 'rain-storm'
+              ? 900
             : template === 'falling-leaves'
               ? 72
         : template === 'smoke' || template === 'dust-puff'
@@ -212,10 +224,10 @@ function system(index: number, title: string, template: ParticleSystemPlayground
             : template === 'muzzle-flash'
               ? 680
               : 140,
-      linearAccelXMin: template === 'falling-leaves' ? -16 : template === 'snowfall' ? -6 : template === 'smoke' || template === 'dust-puff' ? -8 : 0,
-      linearAccelYMin: template === 'falling-leaves' ? 8 : template === 'snowfall' ? 10 : template === 'smoke' || template === 'dust-puff' ? -18 : 0,
-      linearAccelXMax: template === 'falling-leaves' ? 16 : template === 'snowfall' ? 6 : template === 'smoke' || template === 'dust-puff' ? 8 : 0,
-      linearAccelYMax: template === 'falling-leaves' ? 26 : template === 'snowfall' ? 22 : template === 'smoke' || template === 'dust-puff' ? -55 : 0,
+      linearAccelXMin: template === 'rain-storm' ? -70 : template === 'falling-leaves' ? -16 : template === 'snowfall' ? -6 : template === 'smoke' || template === 'dust-puff' ? -8 : 0,
+      linearAccelYMin: template === 'rain-storm' ? 160 : template === 'falling-leaves' ? 8 : template === 'snowfall' ? 10 : template === 'smoke' || template === 'dust-puff' ? -18 : 0,
+      linearAccelXMax: template === 'rain-storm' ? -25 : template === 'falling-leaves' ? 16 : template === 'snowfall' ? 6 : template === 'smoke' || template === 'dust-puff' ? 8 : 0,
+      linearAccelYMax: template === 'rain-storm' ? 300 : template === 'falling-leaves' ? 26 : template === 'snowfall' ? 22 : template === 'smoke' || template === 'dust-puff' ? -55 : 0,
       radialAccelMin: 0,
       radialAccelMax: 0,
       tangentialAccelMin: 0,
@@ -227,6 +239,8 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           ? '0.12, 0.16'
           : template === 'rainfall'
             ? '0.06, 0.18'
+            : template === 'rain-storm'
+              ? '0.045, 0.16'
             : template === 'falling-leaves'
               ? '0.24, 0.32, 0.2'
         : template === 'smoke' || template === 'dust-puff'
@@ -251,6 +265,8 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           ? '1, 1, 1, 0.82, 0.8, 0.92, 1, 0.45'
           : template === 'rainfall'
             ? '0.55, 0.78, 1, 0.55, 0.3, 0.5, 0.95, 0.15'
+            : template === 'rain-storm'
+              ? '0.62, 0.82, 1, 0.72, 0.35, 0.55, 0.95, 0.18'
             : template === 'falling-leaves'
               ? '0.95, 0.55, 0.16, 0.85, 0.45, 0.22, 0.06, 0.25'
         : template === 'smoke'
@@ -264,9 +280,9 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           : template === 'sparkles'
             ? '1, 0.95, 0.55, 1, 0.35, 0.75, 1, 0'
             : '1, 0.5, 0.1, 1, 1, 0.1, 0, 0',
-      emissionAreaDist: template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? 'uniform' : 'none',
-      emissionAreaDx: template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? 520 : 0,
-      emissionAreaDy: template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? 16 : 0,
+      emissionAreaDist: template === 'snowfall' || template === 'rainfall' || template === 'rain-storm' || template === 'falling-leaves' ? 'uniform' : 'none',
+      emissionAreaDx: template === 'rain-storm' ? 620 : template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? 520 : 0,
+      emissionAreaDy: template === 'rain-storm' ? 20 : template === 'snowfall' || template === 'rainfall' || template === 'falling-leaves' ? 16 : 0,
       emissionAreaAngle: 0,
       emissionAreaRelative: false,
       count: 100,
@@ -299,8 +315,77 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
         ? [system(1, 'Snow Field', 'snowfall')]
         : template === 'rainfall'
           ? [system(1, 'Rain Sheet', 'rainfall')]
-          : template === 'falling-leaves'
-            ? [system(1, 'Leaf Drift', 'falling-leaves')]
+          : template === 'rain-storm'
+            ? [
+                system(1, 'Heavy Streaks', 'rain-storm'),
+                customizeSystem(system(2, 'Back Sheet', 'rain-storm'), {
+                  properties: {
+                    emissionRate: 340,
+                    particleLifetimeMin: 0.75,
+                    particleLifetimeMax: 1.4,
+                    speedMin: 340,
+                    speedMax: 620,
+                    direction: Math.PI / 2 + 0.12,
+                    spread: Math.PI / 12,
+                    linearAccelXMin: -70,
+                    linearAccelYMin: 80,
+                    linearAccelXMax: -35,
+                    linearAccelYMax: 180,
+                    sizes: '0.03, 0.12',
+                    colors: '0.5, 0.72, 1, 0.36, 0.25, 0.42, 0.88, 0.08',
+                    emissionAreaDx: 680,
+                    emissionAreaDy: 28,
+                  },
+                }),
+                customizeSystem(system(3, 'Ground Splash', 'rain-storm'), {
+                  y: 172,
+                  properties: {
+                    emissionRate: 130,
+                    particleLifetimeMin: 0.18,
+                    particleLifetimeMax: 0.48,
+                    speedMin: 50,
+                    speedMax: 180,
+                    direction: -Math.PI / 2,
+                    spread: Math.PI * 0.85,
+                    linearAccelXMin: -20,
+                    linearAccelYMin: 180,
+                    linearAccelXMax: 20,
+                    linearAccelYMax: 360,
+                    linearDampingMin: 0.4,
+                    linearDampingMax: 1,
+                    sizes: '0.05, 0.11, 0',
+                    colors: '0.58, 0.8, 1, 0.42, 0.45, 0.65, 0.95, 0',
+                    emissionAreaDx: 620,
+                    emissionAreaDy: 8,
+                  },
+                }),
+                customizeSystem(system(4, 'Cool Mist', 'rain-storm'), {
+                  blendMode: 'screen',
+                  y: 148,
+                  properties: {
+                    emissionRate: 42,
+                    particleLifetimeMin: 1.2,
+                    particleLifetimeMax: 2.6,
+                    speedMin: 8,
+                    speedMax: 38,
+                    direction: -Math.PI / 2,
+                    spread: Math.PI,
+                    linearAccelXMin: -20,
+                    linearAccelYMin: -5,
+                    linearAccelXMax: 20,
+                    linearAccelYMax: -25,
+                    linearDampingMin: 0.5,
+                    linearDampingMax: 1.4,
+                    sizes: '0.25, 0.75, 1.3',
+                    sizeVariation: 0.75,
+                    colors: '0.6, 0.78, 1, 0.16, 0.5, 0.68, 0.95, 0',
+                    emissionAreaDx: 620,
+                    emissionAreaDy: 18,
+                  },
+                }),
+              ]
+            : template === 'falling-leaves'
+              ? [system(1, 'Leaf Drift', 'falling-leaves')]
       : template === 'muzzle-flash'
         ? [system(1, 'Flash Cone', 'muzzle-flash'), system(2, 'Barrel Sparks', 'sparkles')]
         : template === 'magic-burst'
