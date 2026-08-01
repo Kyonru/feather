@@ -11,6 +11,8 @@ local TIMELINE_RUNTIME_SOURCE = TimelineRuntimeBundle.source
 local DEFAULT_BUFFER_SIZE = 1000
 local DEFAULT_X = 400
 local DEFAULT_Y = 300
+local RUNTIME_PREVIEW_EMISSION_SCALE = 0.45
+local RUNTIME_PREVIEW_MAX_DT = 1 / 30
 local TWO_PI = math.pi * 2
 local PROJECT_TYPE = "feather.particle-system-playground"
 local PROJECT_VERSION = 4
@@ -196,6 +198,11 @@ local VALID_TIMELINE_EASINGS = {
   inBounce = true,
   outBounce = true,
   inOutBounce = true,
+}
+
+local SIMPLE_TIMELINE_EASINGS = {
+  linear = true,
+  hold = true,
 }
 
 local function normalizeTimelineEasing(value)
@@ -517,6 +524,31 @@ local function atlasSystems(sys)
     end
   end
   return systems
+end
+
+local function stopScratchPreviewSystems(entry)
+  if not entry or entry.kind ~= "scratch" then
+    return
+  end
+  for _, system in ipairs(entry.systems or {}) do
+    for _, ps in ipairs(atlasSystems(system)) do
+      pcall(ps.setEmissionRate, ps, 0)
+      pcall(ps.stop, ps)
+      pcall(ps.reset, ps)
+    end
+  end
+end
+
+local function applyRuntimePreviewBudget(system)
+  if not system or not system.system then
+    return
+  end
+  for _, ps in ipairs(atlasSystems(system)) do
+    local ok, rate = pcall(ps.getEmissionRate, ps)
+    if ok then
+      pcall(ps.setEmissionRate, ps, math.max(0, rate * RUNTIME_PREVIEW_EMISSION_SCALE))
+    end
+  end
 end
 
 local function syncAtlasVariantSystems(sys)
@@ -1372,27 +1404,27 @@ local function defaultTimelineForSystems(systems, template)
     duration = 8
     tracks[1] = authoredTrack(systems[1], 0, 1.5, {
       opacity = { { 0, 0.72 }, { duration, 0.8 } },
-      emissionRate = { { 0, 520 }, { duration, 620 } },
+      emissionRate = { { 0, 360 }, { duration, 440 } },
       speedScale = { { 0, 1 }, { duration, 1.12 } },
       spread = { { 0, 0.1 }, { duration, 0.16 } },
       offsetX = { { 0, -18 }, { duration, 8 } },
     }, 0)
     tracks[2] = authoredTrack(systems[2], 0, 2, {
       opacity = { { 0, 0.36 }, { duration, 0.48 } },
-      emissionRate = { { 0, 320 }, { duration, 360 } },
+      emissionRate = { { 0, 190 }, { duration, 240 } },
       speedScale = { { 0, 0.86 }, { duration, 0.96 } },
       spread = { { 0, 0.22 }, { duration, 0.28 } },
       offsetX = { { 0, -28 }, { duration, -12 } },
     }, 0)
     tracks[3] = authoredTrack(systems[3], 0, 1.2, {
       opacity = { { 0, 0.42 }, { duration, 0.55 } },
-      emissionRate = { { 0, 110 }, { duration, 150 } },
+      emissionRate = { { 0, 70 }, { duration, 92 } },
       speedScale = { { 0, 0.7 }, { duration, 0.85 } },
     }, 0)
     tracks[4] = authoredTrack(systems[4], 0, 3, {
-      opacity = { { 0, 0.2 }, { duration, 0.3 } },
-      emissionRate = { { 0, 34 }, { duration, 48 } },
-      sizeScale = { { 0, 1 }, { duration, 1.2 } },
+      opacity = { { 0, 0.16 }, { duration, 0.22 } },
+      emissionRate = { { 0, 18 }, { duration, 24 } },
+      sizeScale = { { 0, 0.9 }, { duration, 1.05 } },
       offsetY = { { 0, 155 }, { duration, 145 } },
     }, 0)
     return { duration = duration, mode = "ambient", loop = false, tracks = tracks }
@@ -1572,10 +1604,11 @@ local function resetTimelineSystems(plugin, name)
   end
 end
 
-local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline)
+local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline, burstScale)
   if not timeline then
     return
   end
+  burstScale = burstScale or 1
   for index, track in ipairs(timeline.tracks or {}) do
     local sys = plugin:_getSystemEntry(name, index)
     if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, index)) then
@@ -1586,7 +1619,7 @@ local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline
             captureTimelineBase(sys)
           end
           local base = sys._timelineBase or {}
-          local count = math.max(0, math.floor(safeNumber(item.emit, safeNumber(sys.emitAtStart, 0))))
+          local count = math.max(0, math.floor(safeNumber(item.emit, safeNumber(sys.emitAtStart, 0)) * burstScale))
           pcall(sys.system.setEmitterLifetime, sys.system, safeNumber(base.emitterLifetime, -1))
           pcall(sys.system.start, sys.system)
           syncAtlasVariantSystems(sys)
@@ -1597,7 +1630,7 @@ local function emitTimelineStarts(plugin, name, previousTime, nextTime, timeline
   end
 end
 
-local function emitTimelineStartsForAdvance(plugin, name, previousTime, elapsed, timeline, duration)
+local function emitTimelineStartsForAdvance(plugin, name, previousTime, elapsed, timeline, duration, burstScale)
   if not timeline or elapsed <= 0 then
     return previousTime
   end
@@ -1617,7 +1650,7 @@ local function emitTimelineStartsForAdvance(plugin, name, previousTime, elapsed,
     local segment = math.min(remaining, room)
     local nextCursor = cursor + segment
     if segment > 0 then
-      emitTimelineStarts(plugin, name, cursor, nextCursor, timeline)
+      emitTimelineStarts(plugin, name, cursor, nextCursor, timeline, burstScale)
     end
     remaining = remaining - segment
     cursor = nextCursor
@@ -1663,7 +1696,7 @@ local function timelineSystemsForPlugin(plugin, name)
   return systems
 end
 
-local function advanceTimeline(plugin, name, dt)
+local function advanceTimeline(plugin, name, dt, previewBudgeted)
   local entry = plugin.composites[name]
   if not entry or not entry.timeline then
     return
@@ -1676,21 +1709,22 @@ local function advanceTimeline(plugin, name, dt)
   local mode = timelineMode(entry.timeline)
   local previous = math.max(0, math.min(duration, state.time or 0))
   local elapsed = math.max(0, dt or 0)
+  local burstScale = previewBudgeted and RUNTIME_PREVIEW_EMISSION_SCALE or 1
   local nextTime = previous + elapsed
   if nextTime > duration then
     if mode == "loop" then
-      nextTime = emitTimelineStartsForAdvance(plugin, name, previous, elapsed, entry.timeline, duration)
+      nextTime = emitTimelineStartsForAdvance(plugin, name, previous, elapsed, entry.timeline, duration, burstScale)
     elseif mode == "ambient" then
-      emitTimelineStarts(plugin, name, previous, duration, entry.timeline)
+      emitTimelineStarts(plugin, name, previous, duration, entry.timeline, burstScale)
       nextTime = duration
       state.playing = true
     else
-      emitTimelineStarts(plugin, name, previous, duration, entry.timeline)
+      emitTimelineStarts(plugin, name, previous, duration, entry.timeline, burstScale)
       nextTime = duration
       state.playing = false
     end
   else
-    emitTimelineStarts(plugin, name, previous, nextTime, entry.timeline)
+    emitTimelineStarts(plugin, name, previous, nextTime, entry.timeline, burstScale)
   end
   state.time = nextTime
 
@@ -1862,8 +1896,8 @@ local function createDefaultSystem(index, template)
     ps:setColors(0.55, 0.78, 1, 0.55, 0.3, 0.5, 0.95, 0.15)
     ps:setSizes(0.06, 0.18)
   elseif template == "rain-storm" or template == "storm-rain-streaks" then
-    ps:setEmissionRate(560)
-    ps:setParticleLifetime(0.5, 0.95)
+    ps:setEmissionRate(420)
+    ps:setParticleLifetime(0.45, 0.82)
     ps:setSpeed(520, 900)
     ps:setDirection(math.pi / 2 + 0.08)
     ps:setSpread(math.pi / 28)
@@ -1872,8 +1906,8 @@ local function createDefaultSystem(index, template)
     ps:setColors(0.62, 0.82, 1, 0.72, 0.35, 0.55, 0.95, 0.18)
     ps:setSizes(0.045, 0.16)
   elseif template == "storm-rain-sheet" then
-    ps:setEmissionRate(340)
-    ps:setParticleLifetime(0.75, 1.4)
+    ps:setEmissionRate(220)
+    ps:setParticleLifetime(0.65, 1.15)
     ps:setSpeed(340, 620)
     ps:setDirection(math.pi / 2 + 0.12)
     ps:setSpread(math.pi / 12)
@@ -1882,8 +1916,8 @@ local function createDefaultSystem(index, template)
     ps:setColors(0.5, 0.72, 1, 0.36, 0.25, 0.42, 0.88, 0.08)
     ps:setSizes(0.03, 0.12)
   elseif template == "storm-rain-splash" then
-    ps:setEmissionRate(130)
-    ps:setParticleLifetime(0.18, 0.48)
+    ps:setEmissionRate(82)
+    ps:setParticleLifetime(0.16, 0.38)
     ps:setSpeed(50, 180)
     ps:setDirection(-math.pi / 2)
     ps:setSpread(math.pi * 0.85)
@@ -1893,17 +1927,17 @@ local function createDefaultSystem(index, template)
     ps:setColors(0.58, 0.8, 1, 0.42, 0.45, 0.65, 0.95, 0)
     ps:setSizes(0.05, 0.11, 0)
   elseif template == "storm-rain-mist" then
-    ps:setEmissionRate(42)
-    ps:setParticleLifetime(1.2, 2.6)
-    ps:setSpeed(8, 38)
+    ps:setEmissionRate(22)
+    ps:setParticleLifetime(1.0, 2.1)
+    ps:setSpeed(6, 28)
     ps:setDirection(-math.pi / 2)
     ps:setSpread(math.pi)
     ps:setEmissionArea("uniform", 620, 18, 0, false)
     ps:setLinearAcceleration(-20, -5, 20, -25)
     ps:setLinearDamping(0.5, 1.4)
-    ps:setColors(0.6, 0.78, 1, 0.16, 0.5, 0.68, 0.95, 0)
-    ps:setSizes(0.25, 0.75, 1.3)
-    ps:setSizeVariation(0.75)
+    ps:setColors(0.52, 0.62, 0.72, 0.12, 0.44, 0.54, 0.64, 0)
+    ps:setSizes(0.18, 0.5, 0.9)
+    ps:setSizeVariation(0.65)
   elseif template == "falling-leaves" then
     ps:setEmissionRate(32)
     ps:setParticleLifetime(5, 9)
@@ -2087,7 +2121,7 @@ local function createDefaultSystems(template)
 
     local mist = createDefaultSystem(4, "storm-rain-mist")
     mist.title = "Cool Mist"
-    mist.blendMode = "screen"
+    mist.blendMode = "alpha"
     mist.y = 148
 
     return { streaks, sheet, splash, mist }
@@ -2141,11 +2175,12 @@ local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEdi
   if not previewActive and not (includeEditorTimelines and timelineWasPlaying) then
     return false
   end
+  local runtimeDt = previewActive and math.min(math.max(0, dt or 0), RUNTIME_PREVIEW_MAX_DT) or dt
 
   local offsetX = safeNumber(entry.offsetX, 0)
   local offsetY = safeNumber(entry.offsetY, 0)
   if previewActive then
-    offsetX, offsetY = computeMovementOffset(entry.movement, dt)
+    offsetX, offsetY = computeMovementOffset(entry.movement, runtimeDt)
     entry.offsetX, entry.offsetY = offsetX, offsetY
   end
   local x = (entry.x or DEFAULT_X) + offsetX
@@ -2157,7 +2192,7 @@ local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEdi
   end
 
   if entry.timeline and (timelineWasPlaying or previewActive) then
-    advanceTimeline(plugin, name, dt)
+    advanceTimeline(plugin, name, runtimeDt, previewActive)
   end
 
   local timelineStillPlaying = entry.timelineState and safeBoolean(entry.timelineState.playing, false)
@@ -2169,7 +2204,10 @@ local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEdi
     for index, system in ipairs(entry.systems or {}) do
       if system.system and isSystemEnabled(system, plugin:_meta(name, index)) then
         setParticlePosition(system, x + (system.x or 0), y + (system.y or 0))
-        updateParticleSystems(system, dt)
+        if previewActive then
+          applyRuntimePreviewBudget(system)
+        end
+        updateParticleSystems(system, runtimeDt)
       end
     end
   end
@@ -2201,11 +2239,16 @@ function ParticleSystemPlaygroundPlugin:_setRuntimePreviewActive(active, composi
       if entry.timelineState then
         entry.timelineState.playing = false
       end
+      stopScratchPreviewSystems(entry)
     end
     return true
   end
 
+  local previousTarget = self.previewComposite
   local target = composite and self.composites[composite] and composite or self.activeComposite
+  if previousTarget and previousTarget ~= target then
+    stopScratchPreviewSystems(self.composites[previousTarget])
+  end
   self.previewSessionActive = true
   self.previewComposite = target
   pauseOtherScratchTimelines(self, target)
@@ -2242,6 +2285,11 @@ function ParticleSystemPlaygroundPlugin:removeComposite(name)
   local entry = self.composites[name]
   if not entry then
     return false
+  end
+  if entry.kind == "scratch" then
+    for _, system in ipairs(entry.systems or {}) do
+      releaseSystemEntry(system)
+    end
   end
   self.composites[name] = nil
   for i, item in ipairs(self.compositeOrder) do
@@ -2540,6 +2588,7 @@ function ParticleSystemPlaygroundPlugin:handleParamsUpdate(request)
       if not entry.previewEnabled and self.previewComposite == name and entry.timelineState then
         entry.timelineState.playing = false
         self.timelineRuntimeActive = hasPlayingTimeline(self)
+        stopScratchPreviewSystems(entry)
       end
     end
     entry.movement = entry.movement or { pattern = "none" }
@@ -2821,12 +2870,16 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
 
   if action == "select-composite" then
     if params.composite and self.composites[params.composite] then
+      local previousPreview = self.previewComposite
       if params.composite ~= self.activeComposite then
         pauseOtherScratchTimelines(self, params.composite)
       end
       self.activeComposite = params.composite
       self.activeSystem = 1
       if self.previewSessionActive then
+        if previousPreview and previousPreview ~= params.composite then
+          stopScratchPreviewSystems(self.composites[previousPreview])
+        end
         self.previewComposite = params.composite
       end
       self.timelineRuntimeActive = hasPlayingTimeline(self)
@@ -3141,6 +3194,130 @@ local function luaTimelineTable(timeline)
   return table.concat(lines, "\n")
 end
 
+local function timelineLanePlan(points)
+  if type(points) ~= "table" or #points == 0 then
+    return nil, false
+  end
+
+  local firstValue = safeNumber(points[1].value, 0)
+  local allSameValue = true
+  for _, point in ipairs(points) do
+    if math.abs(safeNumber(point.value, 0) - firstValue) > 0.000001 then
+      allSameValue = false
+      break
+    end
+  end
+  if #points == 1 or allSameValue then
+    return { kind = "constant", value = firstValue }, false
+  end
+
+  local simple = true
+  for index = 1, #points - 1 do
+    local easing = normalizeTimelineEasing(points[index].easing)
+    if not SIMPLE_TIMELINE_EASINGS[easing] then
+      simple = false
+      break
+    end
+  end
+
+  local plan = {
+    kind = simple and "linear" or "generic",
+    points = {},
+  }
+  for _, point in ipairs(points) do
+    plan.points[#plan.points + 1] = {
+      time = safeNumber(point.time, 0),
+      value = safeNumber(point.value, 0),
+      easing = normalizeTimelineEasing(point.easing),
+    }
+  end
+  return plan, not simple
+end
+
+local function buildTimelinePlan(timeline)
+  local plan = {
+    hasGenericLane = false,
+    tracks = {},
+  }
+
+  for _, track in ipairs(timeline.tracks or {}) do
+    local planTrack = {
+      systemIndex = math.max(1, math.floor(safeNumber(track.systemIndex, 1))),
+      clips = {},
+      lanes = {},
+    }
+    for _, clip in ipairs(track.clips or {}) do
+      planTrack.clips[#planTrack.clips + 1] = {
+        start = safeNumber(clip.start, 0),
+        ["end"] = safeNumber(clip["end"], timeline.duration),
+      }
+    end
+    for _, lane in ipairs(TIMELINE_LANES) do
+      local lanePlan, generic = timelineLanePlan(track.lanes and track.lanes[lane])
+      if lanePlan then
+        planTrack.lanes[lane] = lanePlan
+        plan.hasGenericLane = plan.hasGenericLane or generic
+      end
+    end
+    plan.tracks[#plan.tracks + 1] = planTrack
+  end
+
+  return plan
+end
+
+local function luaTimelinePlanTable(plan)
+  local lines = { "{" }
+  lines[#lines + 1] = "  hasGenericLane = " .. tostring(plan.hasGenericLane == true) .. ","
+  lines[#lines + 1] = "  tracks = {"
+  for _, track in ipairs(plan.tracks or {}) do
+    lines[#lines + 1] = "    {"
+    lines[#lines + 1] = "      systemIndex = " .. tostring(track.systemIndex) .. ","
+    lines[#lines + 1] = "      clips = {"
+    for _, clip in ipairs(track.clips or {}) do
+      lines[#lines + 1] = "        { start = " .. fmt(clip.start) .. ", [\"end\"] = " .. fmt(clip["end"]) .. " },"
+    end
+    lines[#lines + 1] = "      },"
+    lines[#lines + 1] = "      lanes = {"
+    for _, lane in ipairs(TIMELINE_LANES) do
+      local lanePlan = track.lanes and track.lanes[lane]
+      if lanePlan then
+        if lanePlan.kind == "constant" then
+          lines[#lines + 1] = "        " .. lane .. " = { kind = \"constant\", value = " .. fmt(lanePlan.value) .. " },"
+        elseif lanePlan.kind == "linear" then
+          lines[#lines + 1] = "        " .. lane .. " = { kind = \"linear\", points = {"
+          for _, point in ipairs(lanePlan.points or {}) do
+            lines[#lines + 1] = "          { "
+              .. fmt(point.time)
+              .. ", "
+              .. fmt(point.value)
+              .. ", "
+              .. quote(normalizeTimelineEasing(point.easing))
+              .. " },"
+          end
+          lines[#lines + 1] = "        } },"
+        elseif lanePlan.kind == "generic" then
+          lines[#lines + 1] = "        " .. lane .. " = { kind = \"generic\", points = {"
+          for _, point in ipairs(lanePlan.points or {}) do
+            lines[#lines + 1] = "          { time = "
+              .. fmt(point.time)
+              .. ", value = "
+              .. fmt(point.value)
+              .. ", easing = "
+              .. quote(normalizeTimelineEasing(point.easing))
+              .. " },"
+          end
+          lines[#lines + 1] = "        } },"
+        end
+      end
+    end
+    lines[#lines + 1] = "      },"
+    lines[#lines + 1] = "    },"
+  end
+  lines[#lines + 1] = "  },"
+  lines[#lines + 1] = "}"
+  return table.concat(lines, "\n")
+end
+
 local function luaAtlasTable(atlas)
   atlas = cloneTextureAtlas(atlas)
   if not atlas then
@@ -3442,7 +3619,9 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   local imageCount = 0
   local shaderCount = 0
   local hasShaders = false
+  local hasTextureAtlas = false
   local timeline = normalizeTimeline(entry.timeline, timelineSystemsForPlugin(self, name))
+  local timelinePlan = buildTimelinePlan(timeline)
   local lines = {
     "-- Generated by Feather Particles Playground",
     "-- " .. os.date("%Y-%m-%d %H:%M:%S"),
@@ -3461,7 +3640,9 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     "local systems = {}",
     "local particles = { x = " .. fmt(entry.x or 0) .. ", y = " .. fmt(entry.y or 0) .. ", systems = systems, instances = activeInstances }",
     "local timeline = " .. luaTimelineTable(timeline),
+    "local optimizedTimelinePlan = " .. luaTimelinePlanTable(timelinePlan),
     "local timelineState = { time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0 }",
+    "local TIMELINE_APPLY_INTERVAL = " .. fmt(1 / 15),
     "local MAX_POOLED_INSTANCES = 8",
     "local release",
     "",
@@ -3471,6 +3652,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     local sys = self:_getSystemEntry(name, i)
     if sys then
       local asset = self:_assetInfo(name, i, sys)
+      hasTextureAtlas = hasTextureAtlas or asset.textureAtlas ~= nil
       local imageKey = self:_textureLoadPath(asset)
       if not imageVars[imageKey] then
         imageCount = imageCount + 1
@@ -3507,22 +3689,24 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     table.insert(lines, 24, "")
   end
 
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function atlasQuads(image, atlas)"
-  lines[#lines + 1] = "  if not image or not atlas then return {} end"
-  lines[#lines + 1] = "  local imageWidth, imageHeight = image:getDimensions()"
-  lines[#lines + 1] = "  local columns = math.max(1, atlas.columns or 1)"
-  lines[#lines + 1] = "  local rows = math.max(1, atlas.rows or 1)"
-  lines[#lines + 1] = "  local frameWidth = math.max(1, atlas.frameWidth or math.floor(imageWidth / columns))"
-  lines[#lines + 1] = "  local frameHeight = math.max(1, atlas.frameHeight or math.floor(imageHeight / rows))"
-  lines[#lines + 1] = "  local frameCount = math.max(1, math.min(atlas.frameCount or 1, columns * rows))"
-  lines[#lines + 1] = "  local quads = {}"
-  lines[#lines + 1] = "  for i = 0, frameCount - 1 do"
-  lines[#lines + 1] = "    quads[#quads + 1] = LG.newQuad((i % columns) * frameWidth, math.floor(i / columns) * frameHeight, frameWidth, frameHeight, imageWidth, imageHeight)"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return quads"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
+  if hasTextureAtlas then
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = "local function atlasQuads(image, atlas)"
+    lines[#lines + 1] = "  if not image or not atlas then return {} end"
+    lines[#lines + 1] = "  local imageWidth, imageHeight = image:getDimensions()"
+    lines[#lines + 1] = "  local columns = math.max(1, atlas.columns or 1)"
+    lines[#lines + 1] = "  local rows = math.max(1, atlas.rows or 1)"
+    lines[#lines + 1] = "  local frameWidth = math.max(1, atlas.frameWidth or math.floor(imageWidth / columns))"
+    lines[#lines + 1] = "  local frameHeight = math.max(1, atlas.frameHeight or math.floor(imageHeight / rows))"
+    lines[#lines + 1] = "  local frameCount = math.max(1, math.min(atlas.frameCount or 1, columns * rows))"
+    lines[#lines + 1] = "  local quads = {}"
+    lines[#lines + 1] = "  for i = 0, frameCount - 1 do"
+    lines[#lines + 1] = "    quads[#quads + 1] = LG.newQuad((i % columns) * frameWidth, math.floor(i / columns) * frameHeight, frameWidth, frameHeight, imageWidth, imageHeight)"
+    lines[#lines + 1] = "  end"
+    lines[#lines + 1] = "  return quads"
+    lines[#lines + 1] = "end"
+    lines[#lines + 1] = ""
+  end
   lines[#lines + 1] = "local function atlasSystems(emitter)"
   lines[#lines + 1] = "  local result = {}"
   lines[#lines + 1] = "  if emitter and emitter.system then result[#result + 1] = emitter.system end"
@@ -3553,44 +3737,46 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function syncAtlasVariants(emitter)"
   lines[#lines + 1] = "  if not emitter or not emitter.variantSystems then return end"
-  lines[#lines + 1] = "  local systems = atlasSystems(emitter)"
+  lines[#lines + 1] = "  local emitterSystems = atlasSystems(emitter)"
   lines[#lines + 1] = "  local okRate, rate = pcall(emitter.system.getEmissionRate, emitter.system)"
   lines[#lines + 1] = "  for _, ps in ipairs(emitter.variantSystems) do copyParticleProperties(emitter.system, ps) end"
   lines[#lines + 1] = "  if okRate then"
-  lines[#lines + 1] = "    local split = rate / math.max(1, #systems)"
-  lines[#lines + 1] = "    for _, ps in ipairs(systems) do pcall(ps.setEmissionRate, ps, split) end"
+  lines[#lines + 1] = "    local split = rate / math.max(1, #emitterSystems)"
+  lines[#lines + 1] = "    for _, ps in ipairs(emitterSystems) do pcall(ps.setEmissionRate, ps, split) end"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function applyTextureAtlas(emitter, image, atlas, bufferSize)"
-  lines[#lines + 1] = "  if not emitter or not emitter.system or not atlas then return end"
-  lines[#lines + 1] = "  local quads = atlasQuads(image, atlas)"
-  lines[#lines + 1] = "  if #quads == 0 then return end"
-  lines[#lines + 1] = "  if atlas.playback == 'variants' then"
-  lines[#lines + 1] = "    local count = math.min(#quads, 16)"
-  lines[#lines + 1] = "    emitter.system:setQuads(quads[1])"
-  lines[#lines + 1] = "    emitter.variantSystems = {}"
-  lines[#lines + 1] = "    for i = 2, count do"
-  lines[#lines + 1] = "      local ps = LG.newParticleSystem(image, bufferSize)"
-  lines[#lines + 1] = "      copyParticleProperties(emitter.system, ps)"
-  lines[#lines + 1] = "      ps:setQuads(quads[i])"
-  lines[#lines + 1] = "      ps:start()"
-  lines[#lines + 1] = "      emitter.variantSystems[#emitter.variantSystems + 1] = ps"
-  lines[#lines + 1] = "    end"
-  lines[#lines + 1] = "    syncAtlasVariants(emitter)"
-  lines[#lines + 1] = "  else"
-  lines[#lines + 1] = "    emitter.system:setQuads(unpack(quads))"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
+  if hasTextureAtlas then
+    lines[#lines + 1] = "local function applyTextureAtlas(emitter, image, atlas, bufferSize)"
+    lines[#lines + 1] = "  if not emitter or not emitter.system or not atlas then return end"
+    lines[#lines + 1] = "  local quads = atlasQuads(image, atlas)"
+    lines[#lines + 1] = "  if #quads == 0 then return end"
+    lines[#lines + 1] = "  if atlas.playback == 'variants' then"
+    lines[#lines + 1] = "    local count = math.min(#quads, 16)"
+    lines[#lines + 1] = "    emitter.system:setQuads(quads[1])"
+    lines[#lines + 1] = "    emitter.variantSystems = {}"
+    lines[#lines + 1] = "    for i = 2, count do"
+    lines[#lines + 1] = "      local ps = LG.newParticleSystem(image, bufferSize)"
+    lines[#lines + 1] = "      copyParticleProperties(emitter.system, ps)"
+    lines[#lines + 1] = "      ps:setQuads(quads[i])"
+    lines[#lines + 1] = "      ps:start()"
+    lines[#lines + 1] = "      emitter.variantSystems[#emitter.variantSystems + 1] = ps"
+    lines[#lines + 1] = "    end"
+    lines[#lines + 1] = "    syncAtlasVariants(emitter)"
+    lines[#lines + 1] = "  else"
+    lines[#lines + 1] = "    emitter.system:setQuads(unpack(quads))"
+    lines[#lines + 1] = "  end"
+    lines[#lines + 1] = "end"
+    lines[#lines + 1] = ""
+  end
   lines[#lines + 1] = "local function emitAtlasSystems(emitter, count)"
-  lines[#lines + 1] = "  local systems = atlasSystems(emitter)"
-  lines[#lines + 1] = "  if #systems <= 1 then emitter.system:emit(count); return end"
+  lines[#lines + 1] = "  local emitterSystems = atlasSystems(emitter)"
+  lines[#lines + 1] = "  if #emitterSystems <= 1 then emitter.system:emit(count); return end"
   lines[#lines + 1] = "  local remaining = count"
-  lines[#lines + 1] = "  for index, ps in ipairs(systems) do"
-  lines[#lines + 1] = "    local share = math.floor(count / #systems)"
-  lines[#lines + 1] = "    if index <= count % #systems then share = share + 1 end"
-  lines[#lines + 1] = "    if index == #systems then share = remaining end"
+  lines[#lines + 1] = "  for index, ps in ipairs(emitterSystems) do"
+  lines[#lines + 1] = "    local share = math.floor(count / #emitterSystems)"
+  lines[#lines + 1] = "    if index <= count % #emitterSystems then share = share + 1 end"
+  lines[#lines + 1] = "    if index == #emitterSystems then share = remaining end"
   lines[#lines + 1] = "    remaining = remaining - share"
   lines[#lines + 1] = "    if share > 0 then ps:emit(share) end"
   lines[#lines + 1] = "  end"
@@ -3632,7 +3818,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function createInstance()"
   lines[#lines + 1] = "  local instanceSystems = {}"
-  lines[#lines + 1] = "  local instance = { systems = instanceSystems, time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0, active = false, systemIndex = nil }"
+  lines[#lines + 1] = "  local instance = { systems = instanceSystems, time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0, active = false, systemIndex = nil, timelineAccumulator = 0, timelineDirty = true }"
 
   for i = 1, count do
     local sys = self:_getSystemEntry(name, i)
@@ -3821,9 +4007,13 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return particles"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local TimelineRuntime = (function()"
-  appendIndentedSource(lines, TIMELINE_RUNTIME_SOURCE, "  ")
-  lines[#lines + 1] = "end)()"
+  if timelinePlan.hasGenericLane then
+    lines[#lines + 1] = "local TimelineRuntime = (function()"
+    appendIndentedSource(lines, TIMELINE_RUNTIME_SOURCE, "  ")
+    lines[#lines + 1] = "end)()"
+  else
+    lines[#lines + 1] = "local TimelineRuntime = nil"
+  end
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function validMode(mode)"
   lines[#lines + 1] = "  return mode == \"one-shot\" or mode == \"loop\" or mode == \"ambient\""
@@ -3844,23 +4034,177 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return timelineMode(instance) == \"loop\""
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function applyTimeline(instance, time, allowEmission)"
-  lines[#lines + 1] = "  if not instance then"
-  lines[#lines + 1] = "    return"
+  lines[#lines + 1] = "local function clampTimelineValue(value, minValue, maxValue)"
+  lines[#lines + 1] = "  value = tonumber(value) or 0"
+  lines[#lines + 1] = "  if value < minValue then return minValue end"
+  lines[#lines + 1] = "  if value > maxValue then return maxValue end"
+  lines[#lines + 1] = "  return value"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function evaluatePlannedLane(lane, time, fallback)"
+  lines[#lines + 1] = "  if not lane then return fallback end"
+  lines[#lines + 1] = "  if lane.kind == \"constant\" then return lane.value end"
+  lines[#lines + 1] = "  if lane.kind == \"linear\" then"
+  lines[#lines + 1] = "    local points = lane.points"
+  lines[#lines + 1] = "    local count = points and #points or 0"
+  lines[#lines + 1] = "    if count == 0 then return fallback end"
+  lines[#lines + 1] = "    if time <= points[1][1] then return points[1][2] end"
+  lines[#lines + 1] = "    for index = 1, count - 1 do"
+  lines[#lines + 1] = "      local a = points[index]"
+  lines[#lines + 1] = "      local b = points[index + 1]"
+  lines[#lines + 1] = "      local at = a[1]"
+  lines[#lines + 1] = "      local bt = b[1]"
+  lines[#lines + 1] = "      if time >= at and time <= bt then"
+  lines[#lines + 1] = "        if a[3] == \"hold\" then return a[2] end"
+  lines[#lines + 1] = "        local amount = clampTimelineValue((time - at) / math.max(0.0001, bt - at), 0, 1)"
+  lines[#lines + 1] = "        return a[2] + (b[2] - a[2]) * amount"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "    return points[count][2]"
   lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  for index, track in ipairs(timeline.tracks or {}) do"
+  lines[#lines + 1] = "  return TimelineRuntime.evaluateKeyframes(lane.points, time, fallback)"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function clipAllowsEmission(clip, time, emitterLifetime, mode)"
+  lines[#lines + 1] = "  local startTime = tonumber(clip and clip.start) or 0"
+  lines[#lines + 1] = "  local endTime = tonumber(clip and clip[\"end\"]) or 0"
+  lines[#lines + 1] = "  if time < startTime then return false end"
+  lines[#lines + 1] = "  local lifetime = tonumber(emitterLifetime) or -1"
+  lines[#lines + 1] = "  if mode == \"ambient\" and lifetime < 0 then return true end"
+  lines[#lines + 1] = "  if time > endTime then return false end"
+  lines[#lines + 1] = "  if lifetime < 0 then return true end"
+  lines[#lines + 1] = "  return time <= startTime + lifetime"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function trackAllowsEmission(track, time, emitterLifetime, mode)"
+  lines[#lines + 1] = "  local clips = track and track.clips"
+  lines[#lines + 1] = "  if not clips then return false end"
+  lines[#lines + 1] = "  for index = 1, #clips do"
+  lines[#lines + 1] = "    if clipAllowsEmission(clips[index], time, emitterLifetime, mode) then return true end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return false"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function timelineValues(emitter)"
+  lines[#lines + 1] = "  local values = emitter.timelineValues"
+  lines[#lines + 1] = "  if not values then"
+  lines[#lines + 1] = "    values = {}"
+  lines[#lines + 1] = "    emitter.timelineValues = values"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return values"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function setTimelineValue(emitter, key, value, epsilon)"
+  lines[#lines + 1] = "  local values = timelineValues(emitter)"
+  lines[#lines + 1] = "  local previous = values[key]"
+  lines[#lines + 1] = "  if previous == nil or math.abs(value - previous) > epsilon then"
+  lines[#lines + 1] = "    values[key] = value"
+  lines[#lines + 1] = "    return true"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return false"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function invalidateTimelineValues(emitter)"
+  lines[#lines + 1] = "  if not emitter then return end"
+  lines[#lines + 1] = "  emitter.timelineValues = nil"
+  lines[#lines + 1] = "  emitter.timelineSizes = nil"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function applyTimelinePlan(instance, time, allowEmission)"
+  lines[#lines + 1] = "  if not instance then return end"
+  lines[#lines + 1] = "  local mode = timelineMode(instance)"
+  lines[#lines + 1] = "  local selectedIndex = instance.systemIndex"
+  lines[#lines + 1] = "  local directionOffset = instance.directionOffset or 0"
+  lines[#lines + 1] = "  for index = 1, #optimizedTimelinePlan.tracks do"
+  lines[#lines + 1] = "    local track = optimizedTimelinePlan.tracks[index]"
   lines[#lines + 1] = "    local emitter = instance.systems[index]"
-  lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system and (not instance.systemIndex or instance.systemIndex == index) then"
-  lines[#lines + 1] = "      TimelineRuntime.applyTimelineToEmitter(emitter, track, time, allowEmission == true, {"
-  lines[#lines + 1] = "        base = emitter.base or {},"
-  lines[#lines + 1] = "        timeline = timeline,"
-  lines[#lines + 1] = "        mode = timelineMode(instance),"
-  lines[#lines + 1] = "        directionOffset = instance.directionOffset or 0,"
-  lines[#lines + 1] = "        opacityField = \"opacity\","
-  lines[#lines + 1] = "      })"
-  lines[#lines + 1] = "      syncAtlasVariants(emitter)"
+  lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system and (not selectedIndex or selectedIndex == index) then"
+  lines[#lines + 1] = "      local ps = emitter.system"
+  lines[#lines + 1] = "      local base = emitter.base or {}"
+  lines[#lines + 1] = "      local lanes = track.lanes or {}"
+  lines[#lines + 1] = "      local active = trackAllowsEmission(track, time, base.emitterLifetime, mode)"
+  lines[#lines + 1] = "      local emissionRate = 0"
+  lines[#lines + 1] = "      if active and allowEmission == true then"
+  lines[#lines + 1] = "        emissionRate = math.max(0, evaluatePlannedLane(lanes.emissionRate, time, base.emissionRate or 0))"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      local particleChanged = false"
+  lines[#lines + 1] = "      if setTimelineValue(emitter, \"emissionRate\", emissionRate, 0.5) then"
+  lines[#lines + 1] = "        ps:setEmissionRate(emissionRate)"
+  lines[#lines + 1] = "        particleChanged = true"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      if lanes.speedScale then"
+  lines[#lines + 1] = "        local speedScale = math.max(0, evaluatePlannedLane(lanes.speedScale, time, 1))"
+  lines[#lines + 1] = "        if setTimelineValue(emitter, \"speedScale\", speedScale, 0.001) then"
+  lines[#lines + 1] = "          ps:setSpeed((base.speedMin or 0) * speedScale, (base.speedMax or 0) * speedScale)"
+  lines[#lines + 1] = "          particleChanged = true"
+  lines[#lines + 1] = "        end"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      if lanes.sizeScale then"
+  lines[#lines + 1] = "        local sizeScale = math.max(0, evaluatePlannedLane(lanes.sizeScale, time, 1))"
+  lines[#lines + 1] = "        local baseSizes = base.sizes"
+  lines[#lines + 1] = "        if baseSizes and #baseSizes > 0 and setTimelineValue(emitter, \"sizeScale\", sizeScale, 0.001) then"
+  lines[#lines + 1] = "          local scaled = emitter.timelineSizes"
+  lines[#lines + 1] = "          if not scaled then scaled = {}; emitter.timelineSizes = scaled end"
+  lines[#lines + 1] = "          for sizeIndex = 1, #baseSizes do scaled[sizeIndex] = math.max(0, baseSizes[sizeIndex] * sizeScale) end"
+  lines[#lines + 1] = "          for sizeIndex = #baseSizes + 1, #scaled do scaled[sizeIndex] = nil end"
+  lines[#lines + 1] = "          ps:setSizes(unpack(scaled))"
+  lines[#lines + 1] = "          particleChanged = true"
+  lines[#lines + 1] = "        end"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      if lanes.direction or setTimelineValue(emitter, \"directionOffset\", directionOffset, 0.0001) then"
+  lines[#lines + 1] = "        local direction = evaluatePlannedLane(lanes.direction, time, base.direction or 0) + directionOffset"
+  lines[#lines + 1] = "        if setTimelineValue(emitter, \"direction\", direction, 0.0001) then"
+  lines[#lines + 1] = "          ps:setDirection(direction)"
+  lines[#lines + 1] = "          particleChanged = true"
+  lines[#lines + 1] = "        end"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      if lanes.spread then"
+  lines[#lines + 1] = "        local spread = evaluatePlannedLane(lanes.spread, time, base.spread or 0)"
+  lines[#lines + 1] = "        if setTimelineValue(emitter, \"spread\", spread, 0.0001) then"
+  lines[#lines + 1] = "          ps:setSpread(spread)"
+  lines[#lines + 1] = "          particleChanged = true"
+  lines[#lines + 1] = "        end"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      if lanes.offsetX or lanes.offsetY then"
+  lines[#lines + 1] = "        local offsetX = evaluatePlannedLane(lanes.offsetX, time, base.offsetX or 0)"
+  lines[#lines + 1] = "        local offsetY = evaluatePlannedLane(lanes.offsetY, time, base.offsetY or 0)"
+  lines[#lines + 1] = "        local offsetXChanged = setTimelineValue(emitter, \"offsetX\", offsetX, 0.01)"
+  lines[#lines + 1] = "        local offsetYChanged = setTimelineValue(emitter, \"offsetY\", offsetY, 0.01)"
+  lines[#lines + 1] = "        if offsetXChanged or offsetYChanged then"
+  lines[#lines + 1] = "          ps:setOffset(offsetX, offsetY)"
+  lines[#lines + 1] = "          particleChanged = true"
+  lines[#lines + 1] = "        end"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      if lanes.opacity then"
+  lines[#lines + 1] = "        local opacity = clampTimelineValue(evaluatePlannedLane(lanes.opacity, time, 1), 0, 1)"
+  lines[#lines + 1] = "        if setTimelineValue(emitter, \"opacity\", opacity, 0.001) then emitter.opacity = opacity end"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      if particleChanged and emitter.variantSystems then syncAtlasVariants(emitter) end"
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function applyTimeline(instance, time, allowEmission)"
+  lines[#lines + 1] = "  applyTimelinePlan(instance, time, allowEmission)"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function shouldApplyTimeline(instance, dt)"
+  lines[#lines + 1] = "  if timelineMode(instance) ~= \"ambient\" then"
+  lines[#lines + 1] = "    instance.timelineDirty = false"
+  lines[#lines + 1] = "    instance.timelineAccumulator = 0"
+  lines[#lines + 1] = "    return true"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  if instance.timelineDirty then"
+  lines[#lines + 1] = "    instance.timelineDirty = false"
+  lines[#lines + 1] = "    instance.timelineAccumulator = 0"
+  lines[#lines + 1] = "    return true"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  instance.timelineAccumulator = (instance.timelineAccumulator or 0) + dt"
+  lines[#lines + 1] = "  if instance.timelineAccumulator >= TIMELINE_APPLY_INTERVAL then"
+  lines[#lines + 1] = "    instance.timelineAccumulator = instance.timelineAccumulator % TIMELINE_APPLY_INTERVAL"
+  lines[#lines + 1] = "    return true"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return false"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function clipBurstCount(clip, emitter)"
@@ -3882,7 +4226,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "          local count = clipBurstCount(clip, emitter)"
   lines[#lines + 1] = "          emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "          emitter.system:start()"
-  lines[#lines + 1] = "          syncAtlasVariants(emitter)"
+  lines[#lines + 1] = "          if emitter.variantSystems then syncAtlasVariants(emitter) end"
   lines[#lines + 1] = "          if count > 0 then emitAtlasSystems(emitter, count) end"
   lines[#lines + 1] = "        end"
   lines[#lines + 1] = "      end"
@@ -3921,6 +4265,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  for _, instance in ipairs(activeInstances) do"
   lines[#lines + 1] = "    instance.mode = timelineState.mode"
   lines[#lines + 1] = "    instance.loop = timelineState.loop"
+  lines[#lines + 1] = "    instance.timelineDirty = true"
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  return timelineMode(nil)"
   lines[#lines + 1] = "end"
@@ -3957,9 +4302,12 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  instance.directionOffset = tonumber(payload.r) or 0"
   lines[#lines + 1] = "  instance.systemIndex = tonumber(payload.systemIndex)"
+  lines[#lines + 1] = "  instance.timelineAccumulator = 0"
+  lines[#lines + 1] = "  instance.timelineDirty = true"
   lines[#lines + 1] = "  for index, emitter in ipairs(instance.systems or {}) do"
   lines[#lines + 1] = "    local participates = not instance.systemIndex or instance.systemIndex == index"
   lines[#lines + 1] = "    if emitter.enabled and emitter.system then"
+  lines[#lines + 1] = "      invalidateTimelineValues(emitter)"
   lines[#lines + 1] = "      for _, ps in ipairs(atlasSystems(emitter)) do ps:reset() end"
   lines[#lines + 1] = "      emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "      for _, ps in ipairs(atlasSystems(emitter)) do ps:setPosition(x + (emitter.x or 0), y + (emitter.y or 0)) end"
@@ -3976,6 +4324,40 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return instance"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
+  lines[#lines + 1] = "local function retargetActiveAmbientInstance(payload)"
+  lines[#lines + 1] = "  payload = type(payload) == \"table\" and payload or {}"
+  lines[#lines + 1] = "  local requestedMode = validMode(payload.mode) and payload.mode or (type(payload.loop) == \"boolean\" and (payload.loop and \"loop\" or \"one-shot\") or timelineMode(nil))"
+  lines[#lines + 1] = "  if requestedMode ~= \"ambient\" then return nil end"
+  lines[#lines + 1] = "  for _, instance in ipairs(activeInstances) do"
+  lines[#lines + 1] = "    if instance.active and timelineMode(instance) == \"ambient\" then"
+  lines[#lines + 1] = "      local x = tonumber(payload.x) or particles.x"
+  lines[#lines + 1] = "      local y = tonumber(payload.y) or particles.y"
+  lines[#lines + 1] = "      instance.playing = true"
+  lines[#lines + 1] = "      instance.mode = \"ambient\""
+  lines[#lines + 1] = "      instance.loop = false"
+  lines[#lines + 1] = "      instance.directionOffset = tonumber(payload.r) or 0"
+  lines[#lines + 1] = "      instance.systemIndex = tonumber(payload.systemIndex)"
+  lines[#lines + 1] = "      instance.timelineAccumulator = 0"
+  lines[#lines + 1] = "      instance.timelineDirty = true"
+  lines[#lines + 1] = "      for index, emitter in ipairs(instance.systems or {}) do"
+  lines[#lines + 1] = "        local participates = not instance.systemIndex or instance.systemIndex == index"
+  lines[#lines + 1] = "        if emitter.enabled and emitter.system then"
+  lines[#lines + 1] = "          invalidateTimelineValues(emitter)"
+  lines[#lines + 1] = "          for _, ps in ipairs(atlasSystems(emitter)) do ps:setPosition(x + (emitter.x or 0), y + (emitter.y or 0)) end"
+  lines[#lines + 1] = "          if participates then"
+  lines[#lines + 1] = "            for _, ps in ipairs(atlasSystems(emitter)) do ps:start() end"
+  lines[#lines + 1] = "          else"
+  lines[#lines + 1] = "            for _, ps in ipairs(atlasSystems(emitter)) do ps:setEmissionRate(0); ps:stop() end"
+  lines[#lines + 1] = "          end"
+  lines[#lines + 1] = "        end"
+  lines[#lines + 1] = "      end"
+  lines[#lines + 1] = "      applyTimeline(instance, instance.time or 0, instance.playing)"
+  lines[#lines + 1] = "      return instance"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "  return nil"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
   lines[#lines + 1] = "local function recycleInstance(instance)"
   lines[#lines + 1] = "  if not instance then"
   lines[#lines + 1] = "    return"
@@ -3987,8 +4369,11 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  instance.loop = nil"
   lines[#lines + 1] = "  instance.directionOffset = 0"
   lines[#lines + 1] = "  instance.systemIndex = nil"
+  lines[#lines + 1] = "  instance.timelineAccumulator = 0"
+  lines[#lines + 1] = "  instance.timelineDirty = true"
   lines[#lines + 1] = "  for _, emitter in ipairs(instance.systems or {}) do"
   lines[#lines + 1] = "    if emitter.system then"
+  lines[#lines + 1] = "      invalidateTimelineValues(emitter)"
   lines[#lines + 1] = "      for _, ps in ipairs(atlasSystems(emitter)) do ps:reset(); ps:setEmissionRate(0) end"
   lines[#lines + 1] = "      emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "    end"
@@ -4002,6 +4387,11 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function checkoutInstance(payload)"
+  lines[#lines + 1] = "  local ambient = retargetActiveAmbientInstance(payload)"
+  lines[#lines + 1] = "  if ambient then"
+  lines[#lines + 1] = "    publishSystems(ambient)"
+  lines[#lines + 1] = "    return ambient"
+  lines[#lines + 1] = "  end"
   lines[#lines + 1] = "  local instance = table.remove(pooledInstances)"
   lines[#lines + 1] = "  if not instance then"
   lines[#lines + 1] = "    instance = createInstance()"
@@ -4050,7 +4440,9 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "      instance.time = nextTime"
   lines[#lines + 1] = "    end"
-  lines[#lines + 1] = "    applyTimeline(instance, instance.time, instance.playing)"
+  lines[#lines + 1] = "    if shouldApplyTimeline(instance, dt) then"
+  lines[#lines + 1] = "      applyTimeline(instance, instance.time, instance.playing)"
+  lines[#lines + 1] = "    end"
   lines[#lines + 1] = "    for index, emitter in ipairs(instance.systems or {}) do"
   lines[#lines + 1] = "      if emitter.enabled and emitter.system and (not instance.systemIndex or instance.systemIndex == index) then"
   lines[#lines + 1] = "        for _, ps in ipairs(atlasSystems(emitter)) do ps:update(dt) end"

@@ -142,6 +142,12 @@ function buildMainLua(opts: ShimOptions, featherDir: string, pluginsDir?: string
 
 ${packagePathLine}
 ${pluginListLine}
+local gamePath = os.getenv("FEATHER_GAME_PATH")
+if gamePath and gamePath ~= "" then
+  local normalizedGamePath = gamePath:gsub("\\\\", "/")
+  package.path = package.path .. ";" .. normalizedGamePath .. "/?.lua;" .. normalizedGamePath .. "/?/init.lua"
+end
+
 FEATHER_PATH = "feather"
 FEATHER_PLUGIN_PATH = ""
 ${opts.noPlugins ? 'FEATHER_SKIP_PLUGINS = true' : ''}
@@ -154,7 +160,6 @@ ${configLines}
 require("feather.auto")
 
 -- Load the game's main.lua via absolute OS path to avoid shadowing by this file
-local gamePath = os.getenv("FEATHER_GAME_PATH")
 if gamePath then
   local chunk, err = loadfile(gamePath .. "/main.lua")
   if not chunk then

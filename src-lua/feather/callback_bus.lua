@@ -47,6 +47,11 @@ function FeatherCallbackBus:isSupported(name)
   return self.allowedCallbacks[name] == true
 end
 
+function FeatherCallbackBus:registrationCount(name)
+  local registrations = self.registrations[name]
+  return registrations and #registrations or 0
+end
+
 function FeatherCallbackBus:assertSupported(name)
   if not self:isSupported(name) then
     error("[FeatherCallbackBus] Unsupported callback: " .. tostring(name), 3)
@@ -108,9 +113,22 @@ function FeatherCallbackBus:dispatch(name, ...)
   self:assertSupported(name)
 
   local registrations = self.registrations[name]
+  local count = #registrations
+  if count == 0 then
+    return
+  end
+
+  if count == 1 then
+    local entry = registrations[1]
+    if entry.active then
+      entry.fn(...)
+    end
+    return
+  end
+
   local snapshot = {}
 
-  for index = 1, #registrations do
+  for index = 1, count do
     snapshot[index] = registrations[index]
   end
 

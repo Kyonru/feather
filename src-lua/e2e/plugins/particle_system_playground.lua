@@ -86,19 +86,22 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "local pooledInstances = {}"), "particle playground export pools finished timeline instances")
     assertTruthy(contains(code, "local function createInstance()"), "particle playground export clones particle systems per play")
     assertTruthy(contains(code, "local function checkoutInstance(payload)"), "particle playground export checks out a timeline instance per play")
+    assertTruthy(contains(code, "local function retargetActiveAmbientInstance(payload)"), "particle playground export reuses active ambient instances")
+    assertTruthy(contains(code, "if ambient then"), "particle playground export avoids stacking ambient weather instances")
     assertTruthy(contains(code, "pooledInstances[#pooledInstances + 1] = instance"), "particle playground export prewarms the first pooled instance")
     assertTruthy(contains(code, "local timeline = {"), "particle playground export includes timeline data")
-    assertTruthy(contains(code, "easing = "), "particle playground export preserves keyframe easing names")
+    assertTruthy(contains(code, "local optimizedTimelinePlan = {"), "particle playground export includes compiled timeline plan")
+    assertTruthy(contains(code, "local TIMELINE_APPLY_INTERVAL = 0.066667"), "particle playground export throttles ambient timeline setters")
     assertTruthy(
       contains(code, "local timelineState = { time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0 }"),
       "particle playground export includes timeline play state"
     )
     assertTruthy(contains(code, "local function applyTimeline(instance, time, allowEmission)"), "particle playground export includes timeline evaluator")
-    assertTruthy(contains(code, "local TimelineRuntime = (function()"), "particle playground export embeds shared timeline runtime")
-    assertTruthy(contains(code, "function Runtime.easeTimelineValue"), "particle playground export includes shared easing evaluator")
-    assertTruthy(contains(code, "function Runtime.clipAllowsEmission"), "particle playground export includes lifetime-aware clip emission")
+    assertTruthy(contains(code, "local function applyTimelinePlan(instance, time, allowEmission)"), "particle playground export applies compiled timeline plan")
+    assertTruthy(contains(code, "local function shouldApplyTimeline(instance, dt)"), "particle playground export gates ambient timeline work")
+    assertTruthy(contains(code, "setTimelineValue(emitter, \"emissionRate\", emissionRate, 0.5)"), "particle playground export skips insignificant emission setter churn")
     assertTruthy(contains(code, "local function clipBurstCount"), "particle playground export includes authored clip bursts")
-    assertTruthy(contains(code, "TimelineRuntime.applyTimelineToEmitter"), "particle playground export applies timeline through shared runtime")
+    assertTruthy(not contains(code, "TimelineRuntime.applyTimelineToEmitter"), "particle playground export avoids generic per-track timeline wrapper")
     assertTruthy(contains(code, "local function emitTimelineStartsForAdvance"), "particle playground export preserves timeline tails across loop wraps")
     assertTruthy(contains(code, "timelineShouldLoop(instance)"), "particle playground export supports per-play loop overrides")
     assertTruthy(contains(code, "validMode(payload.mode)"), "particle playground export lets mode override saved behavior")
@@ -136,6 +139,113 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     )
     assertTruthy(contains(code, ":setParticleLifetime("), "particle playground export includes particle setters")
     assertTruthy(not contains(code, "particles[1] = {system = "), "particle playground export avoids old table-only shape")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Export Optimized Timeline",
+        template = "fire",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Export Optimized Timeline",
+        timeline = {
+          duration = 2,
+          mode = "ambient",
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "optimized", start = 0, ["end"] = 2, emit = 0 } },
+              lanes = {
+                emissionRate = {
+                  { id = "rate-a", time = 0, value = 40, easing = "linear" },
+                  { id = "rate-b", time = 2, value = 60, easing = "linear" },
+                },
+                spread = {
+                  { id = "spread-a", time = 0, value = 0.25, easing = "outQuad" },
+                  { id = "spread-b", time = 2, value = 0.25, easing = "inBounce" },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    local optimizedResult = plugin:handleActionRequest({
+      params = {
+        action = "export-code",
+        composite = "Export Optimized Timeline",
+      },
+    })
+    local optimizedCode = optimizedResult and optimizedResult.exportCode or ""
+    assertTruthy(contains(optimizedCode, "hasGenericLane = false"), "particle simple export marks timeline plan runtime-free")
+    assertTruthy(contains(optimizedCode, "local TimelineRuntime = nil"), "particle simple export skips embedded timeline runtime")
+    assertTruthy(
+      not contains(optimizedCode, "local TimelineRuntime = (function()"),
+      "particle simple export does not embed the full evaluator"
+    )
+    assertTruthy(contains(optimizedCode, "emissionRate = { kind = \"linear\""), "particle simple export keeps linear lanes in the cheap sampler")
+    assertTruthy(contains(optimizedCode, "spread = { kind = \"constant\", value = 0.25"), "particle simple export folds same-value lanes to constants")
+    assertTruthy(contains(optimizedCode, "instance.timelineAccumulator % TIMELINE_APPLY_INTERVAL"), "particle simple export ticks ambient lanes at low frequency")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Export Complex Timeline",
+        template = "fire",
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Export Complex Timeline",
+        timeline = {
+          duration = 1,
+          loop = false,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "complex", start = 0, ["end"] = 1, emit = 0 } },
+              lanes = {
+                opacity = {
+                  { id = "alpha-a", time = 0, value = 0, easing = "outQuad" },
+                  { id = "alpha-b", time = 1, value = 1, easing = "linear" },
+                },
+                emissionRate = {
+                  { id = "rate", time = 0, value = 42, easing = "linear" },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    local complexResult = plugin:handleActionRequest({
+      params = {
+        action = "export-code",
+        composite = "Export Complex Timeline",
+      },
+    })
+    local complexCode = complexResult and complexResult.exportCode or ""
+    assertTruthy(contains(complexCode, "hasGenericLane = true"), "particle complex export marks timeline plan runtime-backed")
+    assertTruthy(contains(complexCode, "easing = \"outQuad\""), "particle complex export preserves keyframe easing names")
+    assertTruthy(contains(complexCode, "local TimelineRuntime = (function()"), "particle complex export embeds shared evaluator only when needed")
+    assertTruthy(contains(complexCode, "function Runtime.easeTimelineValue"), "particle complex export includes easing evaluator")
+    assertTruthy(contains(complexCode, "TimelineRuntime.evaluateKeyframes(lane.points, time, fallback)"), "particle complex export uses full evaluator at lane granularity")
+    assertTruthy(
+      not contains(complexCode, "TimelineRuntime.applyTimelineToEmitter"),
+      "particle complex export still avoids generic per-track timeline wrapper"
+    )
+
+    plugin:handleActionRequest({
+      params = {
+        action = "select-composite",
+        composite = "Export Format",
+      },
+    })
 
     local atlas = {
       mode = "variations",
@@ -378,6 +488,8 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
         active = false,
       },
     })
+    assertEqual(suspendedSystem:getCount(), 0, "particle runtime preview hide clears live scratch particles")
+    assertEqual(suspendedSystem:getEmissionRate(), 0, "particle runtime preview hide mutes scratch emission immediately")
     local suspendedCount = suspendedSystem:getCount()
     feather.pluginManager:updateSuspended(0.1, feather)
     assertEqual(
@@ -386,6 +498,68 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       "particle inactive preview does no suspended-lane particle update work"
     )
     feather.runtimeSuspended = false
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Runtime Preview Budget",
+        template = "fire",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Runtime Preview Budget",
+        systemIndex = 1,
+        emissionRate = 200,
+        emitAtStart = 10,
+        particleLifetimeMin = 1,
+        particleLifetimeMax = 1,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "set-timeline",
+        composite = "Runtime Preview Budget",
+        timeline = {
+          duration = 1,
+          mode = "loop",
+          loop = true,
+          tracks = {
+            {
+              systemIndex = 1,
+              clips = { { id = "budget", start = 0, ["end"] = 1, emit = 10 } },
+              lanes = {},
+            },
+          },
+        },
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Runtime Preview Budget",
+        active = true,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "timeline-control",
+        composite = "Runtime Preview Budget",
+        command = "play",
+      },
+    })
+    local budgetSystem = plugin:_getSystemEntry("Runtime Preview Budget", 1).system
+    plugin:update(0.1)
+    assertEqual(budgetSystem:getEmissionRate(), 90, "particle runtime preview scales continuous emission in game")
+    assertTruthy(budgetSystem:getCount() > 0, "particle runtime preview still emits a representative effect")
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Runtime Preview Budget",
+        active = false,
+      },
+    })
+    assertEqual(budgetSystem:getCount(), 0, "particle runtime preview budgeted particles clear when hidden")
 
     plugin:handleParamsUpdate({
       params = {
@@ -567,9 +741,22 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     plugin:update(0.1)
     assertEqual(
       presetSystem:getEmissionRate(),
-      100,
-      "particle timeline preserves base emission after applying a motion preset while paused"
+      45,
+      "particle connected-game preview budgets base emission after applying a motion preset"
     )
+    local presetSnapshot = plugin:handleRequest()
+    assertEqual(
+      presetSnapshot.data.systems[1].properties.emissionRate,
+      100,
+      "particle timeline preserves authored base emission after applying a motion preset"
+    )
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Preset Playback",
+        active = false,
+      },
+    })
 
     plugin:handleActionRequest({
       params = {
@@ -1045,6 +1232,9 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(stormRain.data.systems[2].title, "Back Sheet", "particle storm rain template names the background sheet")
     assertEqual(stormRain.data.systems[3].title, "Ground Splash", "particle storm rain template names the splash layer")
     assertEqual(stormRain.data.systems[4].title, "Cool Mist", "particle storm rain template names the mist layer")
+    assertEqual(stormRain.data.systems[4].blendMode, "alpha", "particle storm rain mist uses game-safe alpha blending")
+    assertEqual(stormRain.data.systems[4].properties.emissionRate, 22, "particle storm rain mist uses a light particle budget")
+    assertEqual(stormRain.data.timeline.tracks[1].lanes.emissionRate[1].value, 360, "particle storm rain foreground rate is game-friendly")
     assertEqual(stormRain.data.timeline.tracks[4].lanes.offsetY[1].value, 155, "particle storm rain template holds mist near the ground")
 
     local pausedComplexSystem = plugin:_getSystemEntry("Complex Template", 1).system

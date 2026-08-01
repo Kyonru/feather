@@ -42,11 +42,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added CLI coverage for MCP-free agent session status, logs export, replay list refresh, and command help.
 - Added CLI/Rust coverage for desktop-backed JSON project actions, dry-run behavior, sidecar resolution precedence, typed action argv mapping, and secret redaction.
 - Added MCP CLI coverage for resource discovery when the desktop bridge is unavailable.
+- Added Lua e2e coverage proving inherited no-op plugin callbacks do not register runtime draw/input handlers.
+- Added Lua e2e coverage for In-Game Overlay controller polling throttling and cheaper draw-state handling.
 
 ### Fixed
 
 - Fixed MCP `resources/list` so static plugin catalog and creative resource URIs remain discoverable when the desktop bridge is unavailable.
 - Fixed the Shader Graph GLSL code input by replacing the mirrored textarea/highlighter stack with a CodeMirror editor that keeps selection, wrapping, caret positioning, and richer keyword/function/variable/number/parameter highlighting in one editing surface.
+- Fixed CLI-managed `feather run` shims and the direct `love src-lua --test-cli` example route so game-local Lua modules and bundled particle assets resolve.
+- Fixed Particle Playground Storm Rain exports so ambient weather reuses its active instance, lowers the default particle budget, and renders mist with game-safe alpha blending.
+- Fixed Particle Playground connected-game previews so previewed scratch effects use a lighter runtime particle budget and clear their plugin-owned systems as soon as the in-game preview is hidden.
+- Fixed Particle Playground exports so timeline lanes compile into per-effect playback plans with static/linear/generic lane paths, dirty setter checks, and low-frequency Ambient property updates.
+- Fixed connected-game callback overhead by skipping inherited no-op plugin hooks and avoiding callback dispatch allocations when no snapshot is needed.
+- Fixed In-Game Overlay overhead by throttling hidden controller polling correctly and avoiding per-frame full graphics state snapshots while drawing.
+- Updated the `test_cli` example to load the generated `Effect_125` rain export by default, with hotkeys for comparing it against the older explosion effect.
+- Updated the `test_cli` example HUD and observers to show FPS while testing connected runtime performance.
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 

@@ -38,6 +38,9 @@ function IngameOverlayPlugin:onSuspendedUpdate(dt)
 end
 
 function IngameOverlayPlugin:onDraw()
+  if not self.overlay.isActive then
+    return
+  end
   self.overlay.draw()
 end
 

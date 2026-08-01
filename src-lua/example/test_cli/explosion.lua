@@ -22,6 +22,19 @@ local function compileShader(name, source)
   return nil
 end
 
+local function resolveAssetPath(path)
+  if love.filesystem.getInfo(path) then
+    return path
+  end
+
+  local routedPath = "example/test_cli/" .. path
+  if love.filesystem.getInfo(routedPath) then
+    return routedPath
+  end
+
+  return path
+end
+
 local timeline = {
   duration = 3,
   loop = true,
@@ -73,9 +86,9 @@ local timelineState = { time = 0, playing = false, loop = nil, directionOffset =
 local MAX_POOLED_INSTANCES = 8
 local release
 
-local image1 = LG.newImage("particles/circle.png")
+local image1 = LG.newImage(resolveAssetPath("particles/circle.png"))
 image1:setFilter("linear", "linear")
-local image2 = LG.newImage("particles/ring.png")
+local image2 = LG.newImage(resolveAssetPath("particles/ring.png"))
 image2:setFilter("linear", "linear")
 local shader1Raw = [[
 vec4 feather_template_chromatic_aberration_preset_subgraph_1780104014462_pixel(Image tex, vec2 texture_coords, vec2 screen_coords, vec4 color, vec2 sg_in_uv) {

@@ -148,7 +148,7 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           : template === 'rainfall'
             ? 260
             : template === 'rain-storm'
-              ? 560
+              ? 420
             : template === 'falling-leaves'
               ? 32
         : template === 'smoke'
@@ -167,7 +167,7 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           : template === 'rainfall'
             ? 0.65
             : template === 'rain-storm'
-              ? 0.5
+              ? 0.45
             : template === 'falling-leaves'
               ? 5
         : template === 'smoke' || template === 'dust-puff' ? 1.2 : template === 'muzzle-flash' ? 0.08 : 0.35,
@@ -177,7 +177,7 @@ function system(index: number, title: string, template: ParticleSystemPlayground
           : template === 'rainfall'
             ? 1.2
             : template === 'rain-storm'
-              ? 0.95
+              ? 0.82
             : template === 'falling-leaves'
               ? 9
         : template === 'smoke' || template === 'dust-puff' ? 3.2 : template === 'sparkles' ? 0.9 : template === 'muzzle-flash' ? 0.22 : 1.3,
@@ -320,9 +320,9 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
                 system(1, 'Heavy Streaks', 'rain-storm'),
                 customizeSystem(system(2, 'Back Sheet', 'rain-storm'), {
                   properties: {
-                    emissionRate: 340,
-                    particleLifetimeMin: 0.75,
-                    particleLifetimeMax: 1.4,
+                    emissionRate: 220,
+                    particleLifetimeMin: 0.65,
+                    particleLifetimeMax: 1.15,
                     speedMin: 340,
                     speedMax: 620,
                     direction: Math.PI / 2 + 0.12,
@@ -340,9 +340,9 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
                 customizeSystem(system(3, 'Ground Splash', 'rain-storm'), {
                   y: 172,
                   properties: {
-                    emissionRate: 130,
-                    particleLifetimeMin: 0.18,
-                    particleLifetimeMax: 0.48,
+                    emissionRate: 82,
+                    particleLifetimeMin: 0.16,
+                    particleLifetimeMax: 0.38,
                     speedMin: 50,
                     speedMax: 180,
                     direction: -Math.PI / 2,
@@ -360,14 +360,14 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
                   },
                 }),
                 customizeSystem(system(4, 'Cool Mist', 'rain-storm'), {
-                  blendMode: 'screen',
+                  blendMode: 'alpha',
                   y: 148,
                   properties: {
-                    emissionRate: 42,
-                    particleLifetimeMin: 1.2,
-                    particleLifetimeMax: 2.6,
-                    speedMin: 8,
-                    speedMax: 38,
+                    emissionRate: 22,
+                    particleLifetimeMin: 1.0,
+                    particleLifetimeMax: 2.1,
+                    speedMin: 6,
+                    speedMax: 28,
                     direction: -Math.PI / 2,
                     spread: Math.PI,
                     linearAccelXMin: -20,
@@ -376,9 +376,9 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
                     linearAccelYMax: -25,
                     linearDampingMin: 0.5,
                     linearDampingMax: 1.4,
-                    sizes: '0.25, 0.75, 1.3',
-                    sizeVariation: 0.75,
-                    colors: '0.6, 0.78, 1, 0.16, 0.5, 0.68, 0.95, 0',
+                    sizes: '0.18, 0.5, 0.9',
+                    sizeVariation: 0.65,
+                    colors: '0.52, 0.62, 0.72, 0.12, 0.44, 0.54, 0.64, 0',
                     emissionAreaDx: 620,
                     emissionAreaDy: 18,
                   },

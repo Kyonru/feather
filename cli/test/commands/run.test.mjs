@@ -108,6 +108,21 @@ test('run: source checkout build exposes feather.auto without a bundled cli/lua 
   );
 });
 
+test('run: shim adds game root to package.path for local module requires', () => {
+  const dir = makeTmp();
+  const gameDir = join(dir, 'game');
+  writeGame(gameDir);
+  writeFileSync(join(gameDir, 'explosion.lua'), 'return {}\n');
+  const { fakePath, recordPath } = writeFakeLove(dir);
+
+  const result = run(['run', '--love', fakePath, gameDir]);
+
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  assert.ok(record.shimMain.includes('local normalizedGamePath = gamePath:gsub('));
+  assert.ok(record.shimMain.includes('normalizedGamePath .. "/?.lua;" .. normalizedGamePath .. "/?/init.lua"'));
+});
+
 test('run: accepts configPath aliases and recovers npm-stripped config path argument', () => {
   const dir = makeTmp();
   const gameDir = join(dir, 'game');

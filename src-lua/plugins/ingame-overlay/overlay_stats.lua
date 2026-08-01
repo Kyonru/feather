@@ -63,6 +63,7 @@ local overlayStats = {
   },
   font = nil,
   layout = nil,
+  renderLines = {},
   -- Touch activation parameters
   touch = {
     cornerSize = 80, -- Size of the activation area in pixels
@@ -74,6 +75,13 @@ local overlayStats = {
 
 -- Private functions
 
+local COLOR_SYSTEM = { 0.678, 0.847, 0.902, 1 }
+local COLOR_WHITE = { 1, 1, 1, 1 }
+local COLOR_GREEN = { 0, 1, 0, 1 }
+local COLOR_RED = { 1, 0, 0, 1 }
+
+local refreshRenderLines
+
 local function resetMetrics()
   for k, _ in pairs(overlayStats.metrics) do
     overlayStats.metrics[k] = {}
@@ -81,6 +89,9 @@ local function resetMetrics()
   overlayStats.averages = {}
   overlayStats.currentSample = 0
   overlayStats.sampleElapsed = 0
+  if refreshRenderLines then
+    refreshRenderLines()
+  end
 end
 
 local function updateAverages()
@@ -129,6 +140,72 @@ local function updateLayout()
     width = rectangleWidth,
     height = 340,
   }
+
+  if refreshRenderLines then
+    refreshRenderLines()
+  end
+end
+
+local function setRenderLine(index, text, color)
+  local line = overlayStats.renderLines[index]
+  if not line then
+    line = {}
+    overlayStats.renderLines[index] = line
+  end
+  line.text = text
+  line.color = color
+end
+
+refreshRenderLines = function()
+  local layout = overlayStats.layout
+  local averages = overlayStats.averages
+  local stats = overlayStats.latestStats
+  local frameTime = averages.frameTime or 0
+  local fps = frameTime > 0 and (1 / frameTime) or 0
+  local glslColor = overlayStats.supportedFeatures.glsl3 and COLOR_GREEN or COLOR_RED
+  local highpColor = overlayStats.supportedFeatures.pixelShaderHighp and COLOR_GREEN or COLOR_RED
+  local vsyncColor = overlayStats.vsyncEnabled and COLOR_GREEN or COLOR_RED
+  local index = 1
+
+  setRenderLine(index, layout and layout.systemText or "", COLOR_SYSTEM)
+  index = index + 1
+  setRenderLine(index, layout and layout.rendererText or "", COLOR_WHITE)
+  index = index + 1
+  setRenderLine(index, layout and layout.versionText or "", COLOR_WHITE)
+  index = index + 1
+  setRenderLine(index, string.format("FPS: %.1f (%.1fms)", fps, frameTime * 1000), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("Canvases: %d", stats.canvases), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("Canvas Switches: %d", stats.canvasSwitches), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("Shader Switches: %d", stats.shaderSwitches), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("Draw Calls: %d (%d batched)", stats.drawCalls, stats.drawCallsBatched), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("RAM: %.1f MB", (averages.memoryUsage or 0) / 1024), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("VRAM: %.1f MB", stats.textureMemory), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("Images: %d", stats.imageCount), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("Particles: %d", math.floor(averages.particleCount or 0)), COLOR_GREEN)
+  index = index + 1
+  setRenderLine(index, string.format("GLSL 3: %s", overlayStats.supportedFeatures.glsl3 and "Yes" or "No"), glslColor)
+  index = index + 1
+  setRenderLine(
+    index,
+    string.format("Pixel Shader highp: %s", overlayStats.supportedFeatures.pixelShaderHighp and "Yes" or "No"),
+    highpColor
+  )
+  index = index + 1
+  setRenderLine(index, string.format("VSync: %s", overlayStats.vsyncEnabled and "ON" or "OFF"), vsyncColor)
+  index = index + 1
+
+  while overlayStats.renderLines[index] do
+    overlayStats.renderLines[index] = nil
+    index = index + 1
+  end
 end
 
 local function sampleMetrics(dt)
@@ -168,6 +245,7 @@ local function sampleMetrics(dt)
   overlayStats.metrics.particleCount[overlayStats.currentSample] = totalParticles
 
   updateAverages()
+  refreshRenderLines()
 end
 
 ---Toggles the visibility of the overlay
@@ -187,6 +265,7 @@ local function toggleVSync()
   overlayStats.vsyncEnabled = not overlayStats.vsyncEnabled
   love.window.setVSync(overlayStats.vsyncEnabled and 1 or 0)
   print(string.format("VSync %s", overlayStats.vsyncEnabled and "enabled" or "disabled"))
+  refreshRenderLines()
 end
 
 ---Checks and processes controller input for toggling the overlay
@@ -197,16 +276,19 @@ local function handleController()
   if currentTime - overlayStats.lastControllerCheck < overlayStats.CONTROLLER_COOLDOWN then
     return
   end
+  overlayStats.lastControllerCheck = currentTime
+
+  if love.joystick.getJoystickCount and love.joystick.getJoystickCount() <= 0 then
+    return
+  end
 
   local joysticks = love.joystick.getJoysticks()
   for _, joystick in ipairs(joysticks) do
     if joystick:isGamepadDown("back") then
       if joystick:isGamepadDown("a") then
         toggleOverlay()
-        overlayStats.lastControllerCheck = currentTime
       elseif joystick:isGamepadDown("b") then
         toggleVSync()
-        overlayStats.lastControllerCheck = currentTime
       end
     end
   end
@@ -274,6 +356,7 @@ function overlayStats.load()
 
   overlayStats.font = love.graphics.newFont(16)
   updateLayout()
+  refreshRenderLines()
 end
 
 ---Draws the performance overlay when active
@@ -283,99 +366,32 @@ function overlayStats.draw()
     return
   end
 
-  local averages = overlayStats.averages
-  local stats = overlayStats.latestStats
   local layout = overlayStats.layout
   if not layout then
     updateLayout()
     layout = overlayStats.layout
   end
 
-  -- Set up overlay drawing
-  love.graphics.push("all")
+  local previousFont = love.graphics.getFont and love.graphics.getFont() or nil
+  local r, g, b, a = love.graphics.getColor()
   love.graphics.setFont(overlayStats.font)
 
   -- Draw background rectangle with dynamic width
   love.graphics.setColor(0, 0, 0, 0.8)
   love.graphics.rectangle("fill", 10, 10, layout.rectangleWidth, layout.height)
-  love.graphics.setColor(0.678, 0.847, 0.902, 1)
 
-  -- System Info
   local y = 20
-  love.graphics.print(layout.systemText, 20, y)
-  y = y + 30
-
-  love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.print(layout.rendererText, 20, y)
-  y = y + 20
-
-  love.graphics.print(layout.versionText, 20, y)
-  y = y + 30
-
-  -- Safely handle frameTime with nil/zero checks
-  love.graphics.setColor(0, 1, 0, 1)
-  local frameTime = averages.frameTime or 0
-  local fps = frameTime > 0 and (1 / frameTime) or 0
-  love.graphics.print(string.format("FPS: %.1f (%.1fms)", fps, frameTime * 1000), 20, y)
-  y = y + 20
-
-  love.graphics.print(string.format("Canvases: %d", stats.canvases), 20, y)
-  y = y + 20
-
-  love.graphics.print(string.format("Canvas Switches: %d", stats.canvasSwitches), 20, y)
-  y = y + 20
-
-  love.graphics.print(string.format("Shader Switches: %d", stats.shaderSwitches), 20, y)
-  y = y + 20
-
-  love.graphics.print(string.format("Draw Calls: %d (%d batched)", stats.drawCalls, stats.drawCallsBatched), 20, y)
-  y = y + 20
-
-  love.graphics.print(string.format("RAM: %.1f MB", (averages.memoryUsage or 0) / 1024), 20, y)
-  y = y + 20
-
-  love.graphics.print(string.format("VRAM: %.1f MB", stats.textureMemory), 20, y)
-  y = y + 20
-
-  love.graphics.print(string.format("Images: %d", stats.imageCount), 20, y)
-  y = y + 20
-
-  -- Display particle count
-  local currentParticleCount = averages.particleCount or 0
-  love.graphics.print(string.format("Particles: %d", math.floor(currentParticleCount)), 20, y)
-  y = y + 20
-
-  -- Add GLSL 3 support indicator
-  if overlayStats.supportedFeatures.glsl3 then
-    love.graphics.setColor(0, 1, 0, 1)
-  else
-    love.graphics.setColor(1, 0, 0, 1)
+  for index, line in ipairs(overlayStats.renderLines) do
+    local color = line.color or COLOR_WHITE
+    love.graphics.setColor(color[1], color[2], color[3], color[4])
+    love.graphics.print(line.text, 20, y)
+    y = y + ((index == 1 or index == 3) and 30 or 20)
   end
-  love.graphics.print(string.format("GLSL 3: %s", overlayStats.supportedFeatures.glsl3 and "Yes" or "No"), 20, y)
-  y = y + 20
 
-  -- Add pixel shader highp support indicator
-  if overlayStats.supportedFeatures.pixelShaderHighp then
-    love.graphics.setColor(0, 1, 0, 1)
-  else
-    love.graphics.setColor(1, 0, 0, 1)
+  if previousFont then
+    love.graphics.setFont(previousFont)
   end
-  love.graphics.print(
-    string.format("Pixel Shader highp: %s", overlayStats.supportedFeatures.pixelShaderHighp and "Yes" or "No"),
-    20,
-    y
-  )
-  y = y + 20
-
-  -- Add VSync status with color indication
-  if overlayStats.vsyncEnabled then
-    love.graphics.setColor(0, 1, 0, 1)
-  else
-    love.graphics.setColor(1, 0, 0, 1)
-  end
-  love.graphics.print(string.format("VSync: %s", overlayStats.vsyncEnabled and "ON" or "OFF"), 20, y)
-
-  love.graphics.pop()
+  love.graphics.setColor(r, g, b, a)
 end
 
 ---Updates performance metrics and handles controller input

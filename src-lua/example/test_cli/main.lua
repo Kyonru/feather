@@ -13,7 +13,25 @@
 --   5. Press arrow keys → values change and observers update.
 --   6. Press Space → a log line appears in the Logs tab.
 
-local particle = require("explosion")
+local EFFECTS = {
+  -- {
+  --   id = "effect_125",
+  --   label = "Effect_125 Storm Rain",
+  --   module = "Effect_125",
+  --   mode = "ambient",
+  --   autoPlay = true,
+  -- },
+  {
+    id = "explosion",
+    label = "Explosion",
+    module = "explosion",
+    mode = "one-shot",
+    autoPlay = false,
+  },
+}
+
+local activeEffectIndex = 1
+local particle = nil
 
 local state = {
   x = 320,
@@ -26,6 +44,10 @@ local state = {
 local BOX_SIZE = 40
 local LOG_LINES = {}
 
+local function activeEffect()
+  return EFFECTS[activeEffectIndex]
+end
+
 local function addLog(msg)
   table.insert(LOG_LINES, 1, msg)
   if #LOG_LINES > 8 then
@@ -34,10 +56,45 @@ local function addLog(msg)
   print(msg)
 end
 
+local function playParticleAt(x, y)
+  local effect = activeEffect()
+  local payload = {
+    x = x or state.x,
+    y = y or state.y,
+    r = 0,
+    mode = effect.mode,
+    loop = effect.mode == "loop",
+  }
+  if particle.play then
+    particle.play(payload)
+  elseif particle.emit then
+    particle.emit(payload)
+  end
+end
+
+local function loadParticleEffect(index)
+  local previous = particle
+  if previous and previous.release then
+    previous.release()
+  end
+
+  activeEffectIndex = index
+  local effect = activeEffect()
+  particle = require(effect.module)
+  particle.init()
+  if particle.setMode then
+    particle.setMode(effect.mode)
+  end
+  if effect.autoPlay then
+    playParticleAt(love.graphics.getWidth() / 2, 80)
+  end
+  addLog("particle effect: " .. effect.label)
+end
+
 function love.load()
   love.graphics.setFont(love.graphics.newFont(14))
   addLog("game loaded (no feather require in this file)")
-  particle.init()
+  loadParticleEffect(activeEffectIndex)
 end
 
 function love.update(dt)
@@ -59,7 +116,9 @@ function love.update(dt)
   state.x = math.max(BOX_SIZE / 2, math.min(love.graphics.getWidth() - BOX_SIZE / 2, state.x))
   state.y = math.max(BOX_SIZE / 2, math.min(love.graphics.getHeight() - BOX_SIZE / 2, state.y))
 
-  particle.update(dt)
+  -- if particle then
+  --   particle.update(dt)
+  -- end
 
   -- Push observers if DEBUGGER was injected by the CLI
   if DEBUGGER then
@@ -67,6 +126,7 @@ function love.update(dt)
     DEBUGGER:observe("y", math.floor(state.y))
     DEBUGGER:observe("score", state.score)
     DEBUGGER:observe("status", state.status)
+    DEBUGGER:observe("fps", love.timer.getFPS())
     DEBUGGER:update(dt)
   end
 end
@@ -75,16 +135,23 @@ function love.keypressed(key)
   if key == "space" then
     state.score = state.score + 10
     addLog("scored! total = " .. state.score)
-    particle.emit({
-      x = 320,
-      y = 200,
-      r = 0,
-      loop = false,
-    })
+    playParticleAt(state.x, state.y)
+  elseif key == "1" then
+    loadParticleEffect(1)
+  elseif key == "2" then
+    loadParticleEffect(2)
+  elseif key == "p" then
+    playParticleAt(state.x, state.y)
   elseif key == "r" then
     state.x, state.y = 320, 200
     state.score = 0
     addLog("reset")
+    if particle and particle.stop then
+      particle.stop(true)
+    end
+    if activeEffect().autoPlay then
+      playParticleAt(love.graphics.getWidth() / 2, 80)
+    end
   elseif key == "escape" then
     love.event.quit()
   end
@@ -101,15 +168,22 @@ function love.draw()
   -- HUD
   love.graphics.setColor(1, 1, 1)
   love.graphics.print(
-    string.format("score: %d   x: %d   y: %d", state.score, math.floor(state.x), math.floor(state.y)),
+    string.format(
+      "score: %d   x: %d   y: %d   fps: %d",
+      state.score,
+      math.floor(state.x),
+      math.floor(state.y),
+      love.timer.getFPS()
+    ),
     10,
     10
   )
-  love.graphics.print("arrows: move   space: score   r: reset   esc: quit", 10, 30)
+  love.graphics.print("arrows: move   space/p: play   1: rain perf   2: explosion   r: reset   esc: quit", 10, 30)
+  love.graphics.print("particle: " .. activeEffect().label, 10, 48)
 
   local injected = DEBUGGER ~= nil
   love.graphics.setColor(injected and { 0.3, 1, 0.5 } or { 1, 0.4, 0.4 })
-  love.graphics.print(injected and "feather: injected by CLI ✓" or "feather: not present", 10, 56)
+  love.graphics.print(injected and "feather: injected by CLI ✓" or "feather: not present", 10, 74)
 
   -- Log lines
   love.graphics.setColor(0.7, 0.7, 0.7)
@@ -117,5 +191,7 @@ function love.draw()
     love.graphics.print(line, 10, love.graphics.getHeight() - 20 * i - 10)
   end
 
-  particle.draw()
+  if particle then
+    particle.draw()
+  end
 end

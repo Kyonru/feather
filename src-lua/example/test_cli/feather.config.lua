@@ -12,6 +12,7 @@ return {
   autoRegisterErrorHandler = true,
   apiKey = "testing_i_guess",
   debugger = true,
+  appId = "feather-app-bf32d50f-60fa-4037-8cfe-3577302be92d",
   -- Security: set ONE of the two options below.
   --
   -- Option A (recommended): bind to your specific Feather desktop instance.

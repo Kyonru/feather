@@ -1,4 +1,5 @@
 local Class = require(FEATHER_PATH .. ".lib.class")
+local BasePlugin = require(FEATHER_PATH .. ".core.base")
 
 --- @class FeatherPluginInstance
 --- @field instance FeatherPlugin
@@ -116,6 +117,14 @@ local function isCallable(value)
   end
   local meta = type(value) == "table" and getmetatable(value) or nil
   return type(meta) == "table" and type(meta.__call) == "function"
+end
+
+local function hasPluginCallback(instance, method)
+  if not instance or type(method) ~= "string" then
+    return false
+  end
+  local callback = instance[method]
+  return type(callback) == "function" and callback ~= BasePlugin[method]
 end
 
 local function callbackTraceback(err)
@@ -305,20 +314,22 @@ function FeatherPluginManager:registerPluginCallbacks(plugin)
   end
 
   for _, callback in ipairs(LOVE_CALLBACKS) do
-    local disposer = self.callbackBus:register(callback.name, function(...)
-      if plugin.disabled or not plugin.instance then
-        return
-      end
+    if hasPluginCallback(plugin.instance, callback.method) then
+      local disposer = self.callbackBus:register(callback.name, function(...)
+        if plugin.disabled or not plugin.instance then
+          return
+        end
 
-      local method = plugin.instance[callback.method]
-      if type(method) ~= "function" then
-        return
-      end
+        local method = plugin.instance[callback.method]
+        if type(method) ~= "function" then
+          return
+        end
 
-      pcall(method, plugin.instance, ...)
-    end)
+        pcall(method, plugin.instance, ...)
+      end)
 
-    plugin.callbackDisposers[#plugin.callbackDisposers + 1] = disposer
+      plugin.callbackDisposers[#plugin.callbackDisposers + 1] = disposer
+    end
   end
 end
 

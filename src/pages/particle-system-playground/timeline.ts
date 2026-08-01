@@ -610,8 +610,8 @@ export function timelineForTemplate(
             [8, 0.8],
           ],
           emissionRate: [
-            [0, 520],
-            [8, 620],
+            [0, 360],
+            [8, 440],
           ],
           speedScale: [
             [0, 1],
@@ -632,8 +632,8 @@ export function timelineForTemplate(
             [8, 0.48],
           ],
           emissionRate: [
-            [0, 320],
-            [8, 360],
+            [0, 190],
+            [8, 240],
           ],
           speedScale: [
             [0, 0.86],
@@ -654,8 +654,8 @@ export function timelineForTemplate(
             [8, 0.55],
           ],
           emissionRate: [
-            [0, 110],
-            [8, 150],
+            [0, 70],
+            [8, 92],
           ],
           speedScale: [
             [0, 0.7],
@@ -664,16 +664,16 @@ export function timelineForTemplate(
         }, 0),
         authoredTrack(systems[3], 0, 3, {
           opacity: [
-            [0, 0.2],
-            [8, 0.3],
+            [0, 0.16],
+            [8, 0.22],
           ],
           emissionRate: [
-            [0, 34],
-            [8, 48],
+            [0, 18],
+            [8, 24],
           ],
           sizeScale: [
-            [0, 1],
-            [8, 1.2],
+            [0, 0.9],
+            [8, 1.05],
           ],
           offsetY: [
             [0, 155, 'inOutSine'],

@@ -10,6 +10,28 @@ local examples = {
 
 local defaultExample = "--demo"
 
+local exampleAliases = {
+  ["--test-cli"] = {
+    Effect_125 = "example.test_cli.Effect_125",
+    explosion = "example.test_cli.explosion",
+  },
+}
+
+local function installExampleAliases(flag)
+  local aliases = exampleAliases[flag]
+  if not aliases then
+    return
+  end
+
+  for moduleName, targetModule in pairs(aliases) do
+    if not package.preload[moduleName] then
+      package.preload[moduleName] = function()
+        return require(targetModule)
+      end
+    end
+  end
+end
+
 local function printUsage()
   print("Feather examples")
   print("")
@@ -31,9 +53,11 @@ for _, value in ipairs(arg or {}) do
 
   local module = examples[value]
   if module then
+    installExampleAliases(value)
     require(module)
     return
   end
 end
 
+installExampleAliases(defaultExample)
 require(examples[defaultExample])

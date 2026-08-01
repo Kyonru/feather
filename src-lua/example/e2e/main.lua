@@ -348,6 +348,32 @@ return M
 
   feather:finish()
 
+  local noopCallbackFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Callback Noop E2E",
+    deviceId = "callback-noop-e2e",
+    assetPreview = false,
+    plugins = {
+      FeatherPluginManager.createPlugin(FeatherPluginBase, "noop-callbacks", {}),
+    },
+    debugger = {
+      enabled = false,
+    },
+  })
+
+  assertEqual(
+    noopCallbackFeather.callbackBus:registrationCount("draw"),
+    0,
+    "inherited no-op draw callbacks are not registered"
+  )
+  assertEqual(
+    noopCallbackFeather.callbackBus:registrationCount("keypressed"),
+    0,
+    "inherited no-op input callbacks are not registered"
+  )
+  noopCallbackFeather:finish()
+
   local fifoFeather = FeatherDebugger({
     debug = true,
     mode = "disk",
@@ -885,6 +911,17 @@ return M
   ---@diagnostic disable-next-line: invisible
   failFeather:__handleCommand({ type = "cmd:config", data = { sampleRate = 99 } })
   assertEqual(failFeather.sampleRate, 1, "commands ignored in failed state")
+
+  local testCliExplosion = require("example.test_cli.explosion")
+  assertTruthy(testCliExplosion, "test_cli explosion module loads from routed example root")
+  assertTruthy(testCliExplosion.init, "test_cli explosion module exposes init")
+  testCliExplosion.release()
+
+  local testCliEffect125 = require("example.test_cli.Effect_125")
+  assertTruthy(testCliEffect125, "test_cli Effect_125 module loads from routed example root")
+  assertTruthy(testCliEffect125.init, "test_cli Effect_125 module exposes init")
+  testCliEffect125.init()
+  testCliEffect125.release()
 
   print("[Lua E2E] LUA_E2E_PASS " .. tostring(#results) .. " assertions")
 end
