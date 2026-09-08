@@ -1,5 +1,5 @@
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import type { ParticleSystemPlaygroundMovement, MovementPattern } from '@/types/particle-system-playground';
 import { ParticleNumberInput } from './ParticleNumberInput';
 

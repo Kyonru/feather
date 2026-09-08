@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Toaster } from '@/components/ui/sonner';
-import { Button } from '@/components/ui/button';
+import { Toaster } from '@feather/ui/sonner';
+import { Button } from '@feather/ui/button';
 import { ShowcaseShaderGraph } from './ShowcaseShaderGraph';
 import { ShowcaseParticlePlayground } from './ShowcaseParticlePlayground';
 import { ShowcaseGallery } from './ShowcaseGallery';

@@ -2,19 +2,17 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { DownloadIcon, FolderOpenIcon, Trash2Icon, WorkflowIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Badge } from '@feather/ui/badge';
+import { Label } from '@feather/ui/label';
+import { Switch } from '@feather/ui/switch';
 import { usePluginControl } from '@/hooks/use-plugin-control';
 import { sessionSupportsRuntime, useSessionStore } from '@/store/session';
-import { open as openDialog, save } from '@tauri-apps/plugin-dialog';
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { Button } from '@/components/ui/button';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useHost } from '@feather/host';
+import { Button } from '@feather/ui/button';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/ui/resizable';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { GeneratedGlsl, PlaygroundTarget, ShaderEdge, ShaderNodeInstance, ShaderSubgraph } from '@/types/shader-graph';
-import { isWeb } from '@/utils/platform';
 import { NodePalette } from './NodePalette';
 import { ShaderCanvas } from './ShaderCanvas';
 import { ShaderRightPanel } from './ShaderRightPanel';
@@ -70,6 +68,7 @@ function parseShaderGraphFile(raw: string): FeatherShaderGraphFile {
 }
 
 export default function ShaderGraph() {
+  const host = useHost();
   const sessionId = useSessionStore((state) => state.sessionId);
   const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
   const shaderGraphPlugin = usePluginControl('shader-graph');
@@ -164,40 +163,25 @@ export default function ShaderGraph() {
     const json = JSON.stringify(payload, null, 2);
     const filename = defaultFilename(shaderName);
 
-    if (isWeb()) {
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      markClean();
-      return;
-    }
-
-    const path = await save({
-      defaultPath: filename,
-      filters: [{ name: 'Feather Shader Graph', extensions: [FILE_EXTENSION] }],
+    const saved = await host.saveTextFile({
+      defaultName: filename,
+      filterName: 'Feather Shader Graph',
+      extensions: [FILE_EXTENSION],
+      text: json,
     });
-    if (!path) return;
-    await writeTextFile(path, json);
+    if (!saved) return;
     markClean();
     toast.success('Shader graph exported');
   };
 
   const importGraph = async () => {
-    if (isWeb()) {
-      fileInputRef.current?.click();
-      return;
-    }
-
-    const path = await openDialog({
-      filters: [{ name: 'Feather Shader Graph', extensions: [FILE_EXTENSION] }],
-      multiple: false,
+    const file = await host.openTextFile({
+      filterName: 'Feather Shader Graph',
+      extensions: [FILE_EXTENSION],
+      testId: 'shader-graph-import-input',
     });
-    if (!path || typeof path !== 'string') return;
-    importRaw(await readTextFile(path));
+    if (!file) return;
+    importRaw(file.text);
   };
 
   const clearGraph = () => {

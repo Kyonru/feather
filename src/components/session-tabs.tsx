@@ -32,24 +32,24 @@ import {
   SparklesIcon,
 } from 'lucide-react';
 import { version } from '../../package.json';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@feather/ui/tooltip';
+import { Button } from '@feather/ui/button';
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu';
+} from '@feather/ui/context-menu';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+} from '@feather/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@feather/ui/dialog';
+import { Input } from '@feather/ui/input';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { useLocation, useNavigate } from 'react-router';
@@ -57,7 +57,7 @@ import { toast } from 'sonner';
 import { sendCommand } from '@/lib/send-command';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { useSettingsStore } from '@/store/settings';
-import { deleteLocalParticleWorkspace } from '@/showcase/use-local-particle-playground';
+import { deleteLocalParticleWorkspace } from '@/pages/particle-system-playground/use-local-particle-playground';
 
 const osIcons: Record<string, React.ReactNode> = {
   Windows: <AppWindowIcon className="size-3" />,

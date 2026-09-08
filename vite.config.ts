@@ -155,10 +155,18 @@ export default defineConfig(async () => ({
     include: ["react", "react-dom", "react/jsx-runtime", "react-router"],
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@feather/protocol": path.resolve(__dirname, "./packages/protocol/src/index.ts"),
-    },
+    alias: [
+      // Order matters: array aliases are tried top to bottom, and the bare
+      // `@feather/ui` entry must not swallow `@feather/ui/<component>`.
+      { find: /^@feather\/ui\/hooks\/(.*)$/, replacement: path.resolve(__dirname, './packages/ui/src/hooks/$1') },
+      { find: /^@feather\/ui$/, replacement: path.resolve(__dirname, './packages/ui/src/index.ts') },
+      { find: /^@feather\/ui\/(.*)$/, replacement: path.resolve(__dirname, './packages/ui/src/components/$1') },
+      { find: /^@feather\/host\/tauri$/, replacement: path.resolve(__dirname, './packages/host/src/tauri.ts') },
+      { find: /^@feather\/host$/, replacement: path.resolve(__dirname, './packages/host/src/index.ts') },
+      { find: /^@feather\/session-bridge$/, replacement: path.resolve(__dirname, './packages/session-bridge/src/index.ts') },
+      { find: /^@feather\/protocol$/, replacement: path.resolve(__dirname, './packages/protocol/src/index.ts') },
+      { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, './src/$1') },
+    ],
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

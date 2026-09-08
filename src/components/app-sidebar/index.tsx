@@ -11,10 +11,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar';
+} from '@feather/ui/sidebar';
 import { BookOpenIcon, FeatherIcon } from 'lucide-react';
 import { useLatestVersion } from '@/hooks/use-latest-version';
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   useLatestVersion();

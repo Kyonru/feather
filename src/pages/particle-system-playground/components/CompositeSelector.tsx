@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@feather/ui/button';
+import { Input } from '@feather/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@feather/ui/dialog';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { PARTICLE_SYSTEM_PLAYGROUND_TEMPLATES, type ParticleSystemPlaygroundTemplate } from '@/types/particle-system-playground';

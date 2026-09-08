@@ -1,17 +1,18 @@
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { GlslCodeInput } from '@/components/ui/glsl-code-input';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@feather/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@feather/ui/dialog';
+import { GlslCodeInput } from '@feather/ui/glsl-code-input';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import { Switch } from '@feather/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { getNodeDef, PORT_TYPE_COLORS } from './nodeDefs';
 import type { NodeType, PortDef } from '@/types/shader-graph';
 import { Code2Icon, FolderOpenIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { shaderParameterUniformName, shaderTextureUniformName } from './glslUtils';
+import { useHost } from '@feather/host';
 import { pickShaderTexture } from './textureUpload';
 import { toast } from 'sonner';
 import { customFunctionNodeDef, customFunctionSource, validateCustomFunctionSource } from './customNode';
@@ -106,6 +107,7 @@ function PortBadge({ port }: { port: PortDef }) {
 }
 
 export function NodeInspector() {
+  const host = useHost();
   const {
     nodes,
     edges,
@@ -161,7 +163,7 @@ export function NodeInspector() {
 
   async function uploadSelectedTexture() {
     if (!selected) return;
-    const texture = await pickShaderTexture();
+    const texture = await pickShaderTexture(host);
     if (!texture) return;
     setTextureUpload(selected.id, texture);
     toast.success(`${selected.data.label || 'Texture'} loaded: ${texture.filename}`);

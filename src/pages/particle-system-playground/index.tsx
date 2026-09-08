@@ -1,17 +1,16 @@
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
-import { readTextFile } from '@tauri-apps/plugin-fs';
+import { useHost } from '@feather/host';
 import { AlertTriangleIcon, FileWarningIcon, PlayIcon, Redo2Icon, RotateCcwIcon, SparklesIcon, Undo2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@feather/ui/button';
+import { Checkbox } from '@feather/ui/checkbox';
+import { Label } from '@feather/ui/label';
+import { ScrollArea } from '@feather/ui/scroll-area';
+import { Separator } from '@feather/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import { usePluginControl } from '@/hooks/use-plugin-control';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
-import { useLocalParticlePlayground } from '@/showcase/use-local-particle-playground';
+import { useLocalParticlePlayground } from '@/pages/particle-system-playground/use-local-particle-playground';
 import { isCreativeSession, useSessionStore } from '@/store/session';
 import { CompositeSelector } from './components/CompositeSelector';
 import { EmitterList } from './components/EmitterList';
@@ -23,7 +22,6 @@ import { TextureImporter } from './components/TextureImporter';
 import { ParticleNumberInput } from './components/ParticleNumberInput';
 import { ParticlePreviewMonitor } from './components/ParticlePreviewMonitor';
 import { TimelinePanel } from './components/TimelinePanel';
-import { isWeb } from '@/utils/platform';
 
 const PROJECT_FILE_EXTENSION = 'featherparticles';
 
@@ -51,6 +49,7 @@ export default function ParticleSystemPlaygroundPage({
   playgroundOverride?: ParticleSystemPlaygroundController;
   standalone?: boolean;
 } = {}) {
+  const host = useHost();
   const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
   const creativeSession = isCreativeSession(activeSession);
   const livePlayground = useParticleSystemPlayground();
@@ -103,18 +102,14 @@ export default function ParticleSystemPlaygroundPage({
   }, [playground]);
 
   const importProject = async () => {
-    if (isWeb()) {
-      projectInputRef.current?.click();
-      return;
-    }
-
     try {
-      const path = await openDialog({
-        filters: [{ name: 'Feather Particle Project', extensions: [PROJECT_FILE_EXTENSION] }],
-        multiple: false,
+      const file = await host.openTextFile({
+        filterName: 'Feather Particle Project',
+        extensions: [PROJECT_FILE_EXTENSION],
+        testId: 'particle-project-import-input',
       });
-      if (!path || typeof path !== 'string') return;
-      playground.importProject(await readTextFile(path));
+      if (!file) return;
+      playground.importProject(file.text);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to import particle project');
     }

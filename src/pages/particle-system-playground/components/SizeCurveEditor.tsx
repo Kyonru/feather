@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@feather/ui/button';
+import { Input } from '@feather/ui/input';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { catmullRomPath } from './curveUtils';

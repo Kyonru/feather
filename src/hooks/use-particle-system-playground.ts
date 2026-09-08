@@ -6,7 +6,7 @@ import { sendCommand } from '@/lib/send-command';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
 import { debounce } from '@/utils/timers';
-import { sessionQueryKey } from './use-ws-connection';
+import { sessionQueryKey } from '@/lib/session-query-keys';
 import type {
   ParticleTimeline,
   ParticleTimelineState,

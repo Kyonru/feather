@@ -1,0 +1,15 @@
+{
+  "name": "@feather/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared interface primitives for the Feather inspector and studio",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/components/*.tsx",
+    "./lib/styles": "./src/lib/styles.ts",
+    "./hooks/use-mobile": "./src/hooks/use-mobile.ts"
+  },
+  "scripts": { "typecheck": "tsc --noEmit -p tsconfig.json" },
+  "peerDependencies": { "react": ">=19" }
+}

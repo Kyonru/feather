@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MonitorOffIcon, MonitorPlayIcon, PinIcon, PinOffIcon, RefreshCwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 import { sessionSupportsRuntime, useSessionStore } from '@/store/session';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { ShaderTextureUpload } from '@/types/shader-graph';

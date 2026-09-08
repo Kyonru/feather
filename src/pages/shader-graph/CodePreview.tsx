@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
+import { ScrollArea } from '@feather/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { type ShaderPreviewColor, useShaderGraph } from '@/hooks/use-shader-graph';
 import type { ShaderParameter, ShaderPreviewShape } from '@/types/shader-graph';
 import { useShaderGraphStore } from '@/store/shader-graph';
@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, FolderOpenIcon, XIcon } from 'lucide-react';
 import { codegen } from './codegen';
 import { shaderGraphGamePreviewController } from './gamePreviewController';
+import { useHost } from '@feather/host';
 import { pickShaderTexture } from './textureUpload';
 import type { ShaderGraphDiagnostic } from '@/types/shader-graph';
 import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
@@ -193,6 +194,7 @@ export function ShaderOutputDock({
   standalone?: boolean;
   onPreviewParamsChange?: (params: PreviewParams) => void;
 } = {}) {
+  const host = useHost();
   const {
     lastGeneratedGlsl,
     validationStatus,
@@ -274,7 +276,7 @@ export function ShaderOutputDock({
   }
 
   async function uploadBaseTexture() {
-    const texture = await pickShaderTexture();
+    const texture = await pickShaderTexture(host);
     if (!texture) return;
     setBaseTexture(texture);
     toast.success(`Preview texture loaded: ${texture.filename}`);

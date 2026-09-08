@@ -1,7 +1,7 @@
 import { CircleXIcon, FeatherIcon, FileClockIcon, FileQuestionMarkIcon } from 'lucide-react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import type { ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@feather/ui/badge';
 import { LogType } from '@/hooks/use-logs';
 import { useConfigStore } from '@/store/config';
 import { cn } from '@/utils/styles';

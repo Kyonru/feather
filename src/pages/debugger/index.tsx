@@ -10,22 +10,22 @@ import { useTimeTravel } from '@/hooks/use-time-travel';
 import { useConfigStore } from '@/store/config';
 import { useDebuggerStore } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { LuaCodeInput } from '@/components/ui/lua-code-input';
+import { Button } from '@feather/ui/button';
+import { ScrollArea } from '@feather/ui/scroll-area';
+import { Separator } from '@feather/ui/separator';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/ui/resizable';
+import { Switch } from '@feather/ui/switch';
+import { Label } from '@feather/ui/label';
+import { Badge } from '@feather/ui/badge';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@feather/ui/dialog';
+import { LuaCodeInput } from '@feather/ui/lua-code-input';
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu';
+} from '@feather/ui/context-menu';
 import { isWeb } from '@/utils/platform';
 import { cn } from '@/utils/styles';
 import {

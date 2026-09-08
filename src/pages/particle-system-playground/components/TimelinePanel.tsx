@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { useSettingsStore } from '@/store/settings';
 import {
   PARTICLE_TIMELINE_EASING_LABELS,

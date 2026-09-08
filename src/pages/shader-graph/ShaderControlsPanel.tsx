@@ -1,8 +1,8 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Switch } from '@feather/ui/switch';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { NodeType, ShaderNodeInstance, ShaderSubgraph } from '@/types/shader-graph';
 import { cn } from '@/utils/styles';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { ShaderNumberInput } from './ShaderNumberInput';
 import { shaderParameterUniformName } from './glslUtils';
 import { getNodeDef } from './nodeDefs';
+import { useHost } from '@feather/host';
 import { pickShaderTexture } from './textureUpload';
 import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
 
@@ -86,6 +87,7 @@ function hasTemplateControls(nodes: ShaderNodeInstance[], subgraphs: ShaderSubgr
 }
 
 export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: () => void } = {}) {
+  const host = useHost();
   const nodes = useShaderGraphStore((state) => state.nodes);
   const edges = useShaderGraphStore((state) => state.edges);
   const subgraphs = useShaderGraphStore((state) => state.subgraphs);
@@ -109,7 +111,7 @@ export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: (
   }
 
   async function uploadTexture(node: ShaderNodeInstance) {
-    const texture = await pickShaderTexture();
+    const texture = await pickShaderTexture(host);
     if (!texture) return;
     setTextureUpload(node.id, texture);
     toast.success(`${node.data.label || 'Texture'} loaded: ${texture.filename}`);

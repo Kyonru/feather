@@ -1,8 +1,8 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 import { CommandCenterTrigger } from '@/components/command-center';
-import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Badge } from './ui/badge';
+import { Separator } from '@feather/ui/separator';
+import { SidebarTrigger } from '@feather/ui/sidebar';
+import { Badge } from '@feather/ui/badge';
 import { FolderOpenIcon } from 'lucide-react';
 import { useConfigStore } from '@/store/config';
 import { openFolder } from '@/utils/linking';

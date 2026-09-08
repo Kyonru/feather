@@ -269,7 +269,30 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  packages/host:
+    dependencies:
+      '@tauri-apps/api':
+        specifier: 2.11.0
+        version: 2.11.0
+      '@tauri-apps/plugin-dialog':
+        specifier: 2.7.1
+        version: 2.7.1
+      '@tauri-apps/plugin-fs':
+        specifier: 2.5.1
+        version: 2.5.1
+      react:
+        specifier: '>=19'
+        version: 19.2.6
+
   packages/protocol: {}
+
+  packages/session-bridge: {}
+
+  packages/ui:
+    dependencies:
+      react:
+        specifier: '>=19'
+        version: 19.2.6
 
   vscode-extension:
     devDependencies:

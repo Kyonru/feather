@@ -1,26 +1,9 @@
-import { invoke } from '@tauri-apps/api/core';
-import { useSettingsStore } from '@/store/settings';
-
-type CommandMessage = string | Record<string, unknown>;
-
-function withAppId(message: CommandMessage): string {
-  const appId = useSettingsStore.getState().appId;
-
-  if (typeof message === 'string') {
-    try {
-      const parsed = JSON.parse(message) as Record<string, unknown>;
-      return JSON.stringify({ ...parsed, appId });
-    } catch {
-      return message;
-    }
-  }
-
-  return JSON.stringify({ ...message, appId });
-}
-
-export function sendCommand(sessionId: string, message: CommandMessage): Promise<void> {
-  return invoke('send_command', {
-    sessionId,
-    message: withAppId(message),
-  });
-}
+/**
+ * Re-exported from `@feather/session-bridge` so existing call sites keep working
+ * while the transport itself stays out of this module's import graph.
+ *
+ * With no session attached this resolves without doing anything, which is what
+ * lets the creative tools run as local editors on the web.
+ */
+export { sendCommand, hasSession } from '@feather/session-bridge';
+export type { CommandMessage } from '@feather/session-bridge';

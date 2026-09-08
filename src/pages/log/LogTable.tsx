@@ -11,7 +11,7 @@ import {
   UploadIcon,
   ChevronsDownIcon,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 import {
   Dialog,
   DialogClose,
@@ -21,10 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+} from '@feather/ui/dialog';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@feather/ui/tooltip';
 import { LogTypeBadge } from '@/components/log-type-badge';
 import type { Log } from '@/hooks/use-logs';
 import { LogType } from '@/hooks/use-logs';

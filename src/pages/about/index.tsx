@@ -1,7 +1,7 @@
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@feather/ui/dialog';
+import { Button } from '@feather/ui/button';
+import { Badge } from '@feather/ui/badge';
+import { ScrollArea } from '@feather/ui/scroll-area';
 import { useAboutStore } from '@/store/about';
 import { openUrl } from '@/utils/linking';
 import { version } from '../../../package.json';

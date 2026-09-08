@@ -13,9 +13,9 @@ import {
 import { AppSidebar } from '@/components/app-sidebar';
 import { CommandCenter } from '@/components/command-center';
 import { SiteHeader } from '@/components/site-header';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Toaster } from '@/components/ui/sonner';
-import { Button } from '@/components/ui/button';
+import { SidebarInset, SidebarProvider } from '@feather/ui/sidebar';
+import { Toaster } from '@feather/ui/sonner';
+import { Button } from '@feather/ui/button';
 import Logs from './pages/log';
 import Performance from './pages/performance';
 import Observability from './pages/observable';

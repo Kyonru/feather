@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { WandSparklesIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@feather/ui/dialog';
 import type { GeneratedTextureResult } from '@/types/texture-lab';
 import { TextureLabPanel } from './TextureLabPanel';
 

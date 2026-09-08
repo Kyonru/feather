@@ -6,7 +6,7 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar';
+} from '@feather/ui/sidebar';
 import type { ElementType } from 'react';
 import { cn } from '@/utils/styles';
 import { NavLink, useLocation } from 'react-router';

@@ -1,5 +1,5 @@
 import ParticleSystemPlaygroundPage from '@/pages/particle-system-playground';
-import { useLocalParticlePlayground } from './use-local-particle-playground';
+import { useLocalParticlePlayground } from '@/pages/particle-system-playground/use-local-particle-playground';
 
 export function ShowcaseParticlePlayground() {
   const playground = useLocalParticlePlayground();

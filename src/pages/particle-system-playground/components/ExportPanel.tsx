@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 import { CodeIcon, DownloadIcon, FileArchiveIcon, FolderOpenIcon } from 'lucide-react';
 
 export function ExportPanel({

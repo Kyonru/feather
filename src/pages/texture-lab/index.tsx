@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { TextureLabActionControls, TextureLabPanel } from './TextureLabPanel';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
-import { useLocalParticlePlayground } from '@/showcase/use-local-particle-playground';
+import { useLocalParticlePlayground } from '@/pages/particle-system-playground/use-local-particle-playground';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { useSettingsStore } from '@/store/settings';
 import { isCreativeSession, useSessionStore } from '@/store/session';

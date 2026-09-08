@@ -17,12 +17,12 @@ import {
   TextIcon,
   XIcon,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@feather/ui/button';
+import { Label } from '@feather/ui/label';
+import { Badge } from '@feather/ui/badge';
+import { Switch } from '@feather/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@feather/ui/table';
 import {
   TriageEmptyState,
   TriageFilterBar,

@@ -1,5 +1,5 @@
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@feather/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { ShaderParameter } from '@/types/shader-graph';
 import { CodePreview, ShaderOutputDock } from './CodePreview';

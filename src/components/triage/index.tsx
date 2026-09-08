@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { CheckIcon, CopyIcon, SearchIcon, XIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
+import { Input } from '@feather/ui/input';
+import { ScrollArea } from '@feather/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@feather/ui/tooltip';
 import { copyToClipboardWithMeta } from '@/utils/strings';
 import { cn } from '@/utils/styles';
 

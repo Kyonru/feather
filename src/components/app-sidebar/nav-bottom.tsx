@@ -5,7 +5,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar';
+} from '@feather/ui/sidebar';
 import { CloudDownloadIcon, InfoIcon, SettingsIcon } from 'lucide-react';
 import { useSettingsStore } from '@/store/settings';
 import { useAboutStore } from '@/store/about';

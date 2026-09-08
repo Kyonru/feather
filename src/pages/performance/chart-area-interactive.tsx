@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts';
 
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { useIsMobile } from '@feather/ui/hooks/use-mobile';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@feather/ui/card';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@feather/ui/chart';
 import {
   Combobox,
   ComboboxContent,
@@ -11,9 +11,9 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
-} from '@/components/ui/combobox';
+} from '@feather/ui/combobox';
 import { PerformanceMetrics } from '@/hooks/use-performance';
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 import { DownloadIcon } from 'lucide-react';
 import { formatOptionalMemory, metricNumber, metricStatsNumber } from '@/utils/performance-metrics';
 

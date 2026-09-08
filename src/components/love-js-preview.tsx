@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { ChevronDownIcon, ChevronUpIcon, RefreshCwIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
 import { stripLovePreviewUploads } from '@/utils/love-preview-upload-bridge';
 import { cn } from '@/utils/styles';
 

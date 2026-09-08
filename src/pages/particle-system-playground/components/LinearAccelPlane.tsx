@@ -1,5 +1,5 @@
-import { Label } from '@/components/ui/label';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Label } from '@feather/ui/label';
+import { ToggleGroup, ToggleGroupItem } from '@feather/ui/toggle-group';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ParticleNumberInput } from './ParticleNumberInput';

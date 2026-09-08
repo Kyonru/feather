@@ -1,62 +1,34 @@
-import { writeFile, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { toast } from 'sonner';
+import type { FeatherHost } from '@feather/host';
 
 import { base64ToUint8Array } from './arrays';
 import { fetchBlobAsUint8Array } from './assets';
-import { isWeb } from './platform';
-import { toast } from 'sonner';
 
-export async function downloadFile(name: string, src: string, type: 'string' | 'base64') {
+/**
+ * Save a file for the user.
+ *
+ * Previously branched on `isWeb()` and carried two implementations. The host
+ * owns that difference now, which is also what keeps `@tauri-apps/plugin-fs`
+ * out of the creative tools' import graph.
+ */
+export async function downloadFile(
+  host: FeatherHost,
+  name: string,
+  src: string,
+  type: 'string' | 'base64',
+) {
   try {
-    if (!src) {
-      return;
+    if (!src) return;
+
+    const bytes = type === 'base64' ? base64ToUint8Array(src) : await fetchBlobAsUint8Array(src);
+    if (!bytes) return;
+
+    await host.saveBinaryFile(name, bytes);
+
+    if (host.kind === 'tauri') {
+      toast.success('File added to the downloads folder', { position: 'bottom-center' });
     }
-
-    let file;
-
-    if (isWeb()) {
-      let url = src;
-      let shouldRevokeUrl = false;
-
-      if (type === 'base64') {
-        const byteArray = base64ToUint8Array(src);
-        const blob = new Blob([byteArray] as BlobPart[], { type: 'application/octet-stream' });
-        url = URL.createObjectURL(blob);
-        shouldRevokeUrl = true;
-      }
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      a.click();
-
-      if (shouldRevokeUrl) {
-        URL.revokeObjectURL(url);
-      }
-      return;
-    }
-
-    if (type === 'string') {
-      file = await fetchBlobAsUint8Array(src);
-    }
-
-    if (type === 'base64') {
-      file = await base64ToUint8Array(src);
-    }
-
-    if (!file) {
-      return;
-    }
-
-    await writeFile(name, file, {
-      baseDir: BaseDirectory.Download,
-    });
-
-    toast.success('File added to the downloads folder', {
-      position: 'bottom-center',
-    });
   } catch {
-    toast.error('Failed to download file', {
-      position: 'bottom-center',
-    });
+    toast.error('Failed to download file', { position: 'bottom-center' });
   }
 }

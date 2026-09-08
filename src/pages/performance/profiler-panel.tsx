@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useHost, type FeatherHost } from '@feather/host';
 import {
   CameraIcon,
   DownloadIcon,
@@ -9,9 +10,9 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
+import { Checkbox } from '@feather/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -19,12 +20,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+} from '@feather/ui/dialog';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@feather/ui/sheet';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@feather/ui/table';
 import { TriageEmptyState, TriageSearch, TriageSummaryChip } from '@/components/triage';
 import { type ProfilerInvocationSample, type ProfilerRow, useProfiler } from '@/hooks/use-profiler';
 import { downloadFile } from '@/utils/file';
@@ -102,14 +103,14 @@ function bestSample(samples: ProfilerInvocationSample[]) {
   }, undefined);
 }
 
-function exportProfiler(rows: ProfilerRow[], metadata: Record<string, unknown>) {
+function exportProfiler(host: FeatherHost, rows: ProfilerRow[], metadata: Record<string, unknown>) {
   const payload = {
     exportedAt: new Date().toISOString(),
     metadata,
     rows,
   };
   const src = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
-  void downloadFile(`feather-profiler-${Date.now()}.json`, src, 'string');
+  void downloadFile(host, `feather-profiler-${Date.now()}.json`, src, 'string');
 }
 
 function ProfilerFilterField({
@@ -417,6 +418,7 @@ function ProfilerRunComparisonDrawer({
 }
 
 export function ProfilerPanel() {
+  const host = useHost();
   const { data, onAction } = useProfiler();
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('percent');
@@ -607,7 +609,7 @@ export function ProfilerPanel() {
               size="sm"
               variant="secondary"
               onClick={() =>
-                exportProfiler(filteredRows, {
+                exportProfiler(host, filteredRows, {
                   recording,
                   captureElapsed,
                   totalCapturedTime,

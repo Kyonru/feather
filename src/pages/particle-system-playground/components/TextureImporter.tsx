@@ -1,12 +1,9 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@feather/ui/button';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
 import { TEXTURE_PRESETS } from '@/types/particle-system-playground';
-import { isWeb } from '@/utils/platform';
-import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
-import { readFile } from '@tauri-apps/plugin-fs';
+import { useHost } from '@feather/host';
 import { FolderOpenIcon } from 'lucide-react';
-import { toast } from 'sonner';
 import { TextureLabDialog } from '@/pages/texture-lab/TextureLabDialog';
 import type { TextureLabAtlasMetadata } from '@/types/texture-lab';
 
@@ -19,10 +16,6 @@ function bytesToBase64(bytes: Uint8Array) {
   return btoa(binary);
 }
 
-function filename(path: string) {
-  return path.split(/[\\/]/).pop() || 'texture.png';
-}
-
 type Props = {
   texturePath: string;
   texturePreset: string;
@@ -33,20 +26,19 @@ type Props = {
 };
 
 export function TextureImporter({ texturePath, texturePreset, textureFilename, onPreset, onPath, onUpload }: Props) {
+  const host = useHost();
   const current = texturePath || textureFilename || (texturePreset ? `preset:${texturePreset}` : 'No texture');
 
+  // Previously refused on web ("available in the desktop app"). The host makes
+  // the browser path work, so the refusal is gone.
   const pickFile = async () => {
-    if (isWeb()) {
-      toast.error('Texture file import is available in the desktop app');
-      return;
-    }
-    const path = await openFileDialog({
-      multiple: false,
-      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tga'] }],
+    const file = await host.openBinaryFile({
+      filterName: 'Images',
+      extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tga'],
+      testId: 'particle-texture-upload-input',
     });
-    if (!path || typeof path !== 'string') return;
-    const bytes = await readFile(path);
-    onUpload(filename(path), bytesToBase64(bytes));
+    if (!file) return;
+    onUpload(file.name, bytesToBase64(file.bytes));
   };
 
   return (

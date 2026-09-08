@@ -1,4 +1,4 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { CircularForceGizmo } from './CircularForceGizmo';
 import { DampingRangeEditor } from './DampingRangeEditor';

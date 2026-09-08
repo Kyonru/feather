@@ -5,7 +5,10 @@
 # The catalog moves to `catalog/packages/` in V2.md Phase 06.
 packages:
   - cli
+  - packages/host
   - packages/protocol
+  - packages/session-bridge
+  - packages/ui
   - vscode-extension
 
 # pnpm blocks dependency build scripts by default. These three genuinely need

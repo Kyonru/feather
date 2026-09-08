@@ -1,5 +1,5 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@feather/ui/scroll-area';
 
 import { cn } from '@/utils/styles';
 import { useSyntaxTheme } from '@/hooks/use-theme';

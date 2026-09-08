@@ -27,6 +27,7 @@ import { useDebuggerStore, type BreakpointIssue, type DebuggerStatus, type Pause
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { evaluateProtocol } from '@/constants/feather-protocol';
 import { parseInbound } from '@feather/protocol';
+import { sessionQueryKey } from '@/lib/session-query-keys';
 import { sendCommand } from '@/lib/send-command';
 import { base64ToUint8Array } from '@/utils/arrays';
 import { normalizePerformanceMetric } from '@/utils/performance-metrics';
@@ -39,28 +40,8 @@ import {
 import { shouldRequestSessionConfig } from '@/utils/session-reconnect';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
-export const sessionQueryKey = {
-  config: (sessionId: string) => [sessionId, 'config'],
-  logs: (sessionId: string) => [sessionId, 'logs'],
-  performance: (sessionId: string) => [sessionId, 'performance'],
-  profiler: (sessionId: string) => [sessionId, 'profiler'],
-  observers: (sessionId: string) => [sessionId, 'observers'],
-  assets: (sessionId: string) => [sessionId, 'assets'],
-  plugin: (sessionId: string, pluginId: string) => [sessionId, 'plugin', pluginId],
-  pluginAction: (sessionId: string, pluginId: string, action: string) => [sessionId, 'plugin-action', pluginId, action],
-  console: (sessionId: string) => [sessionId, 'console'],
-  consoleGlobals: (sessionId: string) => [sessionId, 'console-globals'],
-  consolePins: (sessionId: string) => [sessionId, 'console-pins'],
-  consoleInspect: (sessionId: string) => [sessionId, 'console-inspect'],
-  timeTravel: (sessionId: string) => [sessionId, 'time-travel'],
-  timeTravelFrames: (sessionId: string) => [sessionId, 'time-travel-frames'],
-  sessionReplay: (sessionId: string) => [sessionId, 'session-replay'],
-  sessionReplayRecording: (sessionId: string) => [sessionId, 'session-replay-recording'],
-  sessionReplayRecordings: (sessionId: string) => [sessionId, 'session-replay-recordings'],
-  sessionReplayList: (sessionId: string) => [sessionId, 'session-replay-list'],
-  sessionReplaySelected: (sessionId: string) => [sessionId, 'session-replay-selected'],
-  hotReload: (sessionId: string) => [sessionId, 'hot-reload'],
-};
+// Re-exported for the many modules that already import it from here.
+export { sessionQueryKey };
 
 type BinaryEvent = {
   _session: string;

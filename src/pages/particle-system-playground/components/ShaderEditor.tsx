@@ -1,7 +1,7 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@feather/ui/button';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { AlertTriangleIcon, EraserIcon, PlayIcon, WandSparklesIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SHADER_PRESETS } from '../shader-presets';

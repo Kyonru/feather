@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type React from 'react';
-import { Input } from '@/components/ui/input';
+import { Input } from '@feather/ui/input';
 
 type Props = Omit<React.ComponentProps<typeof Input>, 'type' | 'value' | 'onChange' | 'onBlur' | 'min' | 'max'> & {
   value: number | undefined;

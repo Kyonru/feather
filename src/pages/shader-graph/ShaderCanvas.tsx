@@ -16,7 +16,7 @@ import {
   type OnSelectionChangeParams,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -24,9 +24,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@feather/ui/dialog';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
 import type { ShaderNodeData, NodeType } from '@/types/shader-graph';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import { getNodeDef, NODE_DEFS } from './nodeDefs';

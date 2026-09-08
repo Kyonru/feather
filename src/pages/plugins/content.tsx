@@ -1,14 +1,15 @@
 import { useConfigStore } from '@/store/config';
+import { useHost } from '@feather/host';
 import { useSettingsStore } from '@/store/settings';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@feather/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@feather/ui/card';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import { Switch } from '@feather/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
+import { Textarea } from '@feather/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@feather/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@feather/ui/dialog';
 import { useGif } from '@/hooks/use-gif';
 import {
   GifType,
@@ -36,7 +37,7 @@ import { isWeb } from '@/utils/platform';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { Bookmark, CheckIcon, ChevronRight, DownloadIcon, ExternalLink } from 'lucide-react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@feather/ui/badge';
 import { cn } from '@/utils/styles';
 
 const isDirectImageSrc = (src: string) => src.startsWith('data:') || src.startsWith('blob:');
@@ -47,6 +48,7 @@ const downloadName = (name: string, extension: '.png' | '.gif') => {
 };
 
 const DownloadButton = ({ url, filename }: { url?: string; filename: string }) => {
+  const host = useHost();
   return (
     <Button
       variant="secondary"
@@ -58,7 +60,7 @@ const DownloadButton = ({ url, filename }: { url?: string; filename: string }) =
           return;
         }
 
-        await downloadFile(filename, url, 'string');
+        await downloadFile(host, filename, url, 'string');
       }}
     >
       <DownloadIcon className="text-primary" />

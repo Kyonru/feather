@@ -16,11 +16,11 @@ import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { open as openDialog, save } from '@tauri-apps/plugin-dialog';
 import { readFile, writeFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@feather/ui/button';
+import { Badge } from '@feather/ui/badge';
+import { Input } from '@feather/ui/input';
+import { Separator } from '@feather/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@feather/ui/table';
 import {
   checkpointsFromRecording,
   useSessionReplay,

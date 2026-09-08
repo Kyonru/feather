@@ -1,9 +1,8 @@
-import { Label } from '@/components/ui/label';
+import { Label } from '@feather/ui/label';
 import { useConfigStore } from '@/store/config';
 import { useSettingsStore } from '@/store/settings';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
-import { isWeb } from '@/utils/platform';
-import { convertFileSrc } from '@tauri-apps/api/core';
+import { useHost } from '@feather/host';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ParticleNumberInput } from './ParticleNumberInput';
 
@@ -82,6 +81,7 @@ function TextureFallback({ preset, cx, cy, size }: { preset: string; cx: number;
 }
 
 export function TextureOffsetGizmo({ system, onChange }: Props) {
+  const host = useHost();
   const offsetX = system.properties.offsetX ?? 0;
   const offsetY = system.properties.offsetY ?? 0;
   const manualSourceDir = useSettingsStore((state) => state.assetSourceDir);
@@ -100,8 +100,8 @@ export function TextureOffsetGizmo({ system, onChange }: Props) {
   const anchorX = cx + clamp(offsetX, range) * scale;
   const anchorY = cy + clamp(offsetY, range) * scale;
   const textureSrc = useMemo(() => {
-    if (!system.texturePath || isWeb() || !canResolveAssetPath(system.texturePath, sourceDir)) return '';
-    return convertFileSrc(resolveAssetPath(system.texturePath, sourceDir));
+    if (!system.texturePath || host.kind === 'web' || !canResolveAssetPath(system.texturePath, sourceDir)) return '';
+    return host.assetUrl(resolveAssetPath(system.texturePath, sourceDir));
   }, [sourceDir, system.texturePath]);
 
   const updateRange = useCallback(

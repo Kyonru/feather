@@ -22,11 +22,11 @@ import {
   ToggleLeftIcon,
   WandSparklesIcon,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@feather/ui/dialog';
+import { Input } from '@feather/ui/input';
+import { ScrollArea } from '@feather/ui/scroll-area';
 import { MAIN_FEATURES, type MainFeatureId } from '@/constants/main-features';
 import { useDebugger } from '@/hooks/use-debugger';
 import { useHotReload } from '@/hooks/use-hot-reload';

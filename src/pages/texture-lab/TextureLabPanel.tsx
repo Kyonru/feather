@@ -8,6 +8,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { useHost } from '@feather/host';
 import { zipSync, strToU8 } from 'fflate';
 import {
   ArrowDownIcon,
@@ -32,9 +33,9 @@ import {
   UploadIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Button } from '@feather/ui/button';
+import { Checkbox } from '@feather/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@feather/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -42,9 +43,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@feather/ui/dialog';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
 import {
   Select,
   SelectContent,
@@ -53,7 +54,7 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@feather/ui/select';
 import { useSettingsStore } from '@/store/settings';
 import {
   TEXTURE_LAB_ALPHA_MODES,
@@ -440,6 +441,7 @@ export function TextureLabActionControls({
   className,
   showAtlasAction = false,
 }: TextureLabActionControlsProps) {
+  const host = useHost();
   const { recipe, setRecipe, patch } = useTextureLabRecipe();
   const [isWorking, setIsWorking] = useState(false);
   const textureDimensions = textureLabRecipeDimensions(recipe);
@@ -521,11 +523,11 @@ export function TextureLabActionControls({
           archive[`frames/${frame.filename}`] = Uint8Array.from(atob(frame.dataBase64), (char) => char.charCodeAt(0));
         }
         const bytes = zipSync(archive);
-        void downloadFile(textureLabAtlasZipName(bundle.texture), bytesToBase64(bytes), 'base64');
+        void downloadFile(host, textureLabAtlasZipName(bundle.texture), bytesToBase64(bytes), 'base64');
         return;
       }
       const texture = await createTexture();
-      void downloadFile(texture.filename, texture.dataBase64, 'base64');
+      void downloadFile(host, texture.filename, texture.dataBase64, 'base64');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Texture export failed');
     } finally {

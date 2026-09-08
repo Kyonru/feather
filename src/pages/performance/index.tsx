@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useHost, type FeatherHost } from '@feather/host';
 import { ChartAreaInteractive, chartMetrics, type ChartMetricKey } from '@/pages/performance/chart-area-interactive';
 import { PageLayout } from '@/components/page-layout';
 import { PerformanceMetrics, usePerformance, type FeatherOverheadMetric } from '@/hooks/use-performance';
 import { SectionCards } from './section-cards';
 import { useConfig } from '@/hooks/use-config';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Switch } from '@feather/ui/switch';
+import { Label } from '@feather/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
+import { Button } from '@feather/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@feather/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@feather/ui/collapsible';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@feather/ui/table';
 import { TriageEmptyState, TriageToolbar } from '@/components/triage';
 import {
   CheckCircleIcon,
@@ -33,14 +34,14 @@ import {
   type PerformanceVerdict,
 } from '@/utils/performance-metrics';
 
-function exportPerformance(samples: PerformanceMetrics[], metric: ChartMetricKey) {
+function exportPerformance(host: FeatherHost, samples: PerformanceMetrics[], metric: ChartMetricKey) {
   const payload = {
     exportedAt: new Date().toISOString(),
     metric,
     samples,
   };
   const src = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
-  void downloadFile(`feather-performance-${Date.now()}.json`, src, 'string');
+  void downloadFile(host, `feather-performance-${Date.now()}.json`, src, 'string');
 }
 
 function formatByteCount(bytes: unknown): string {
@@ -306,6 +307,7 @@ function HealthVerdicts({ data, latest }: { data: PerformanceMetrics[]; latest: 
 }
 
 export default function Page() {
+  const host = useHost();
   const { data } = usePerformance();
   const [selected, setSelected] = useState<ChartMetricKey>('fps');
   const [diskUsageEnabled, setDiskUsageEnabled] = useState(false);
@@ -367,7 +369,7 @@ export default function Page() {
               <RadioIcon className="size-4" />
               Follow
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => exportPerformance(visibleWindow, selected)}>
+            <Button variant="secondary" size="sm" onClick={() => exportPerformance(host, visibleWindow, selected)}>
               <DownloadIcon className="size-4" />
               Export JSON
             </Button>
@@ -399,7 +401,7 @@ export default function Page() {
             dataKey={selected}
             data={visibleData}
             onDataWindowChange={setVisibleWindow}
-            onExport={(samples) => exportPerformance(samples, selected)}
+            onExport={(samples) => exportPerformance(host, samples, selected)}
           />
           <SectionCards
             data={cardData}

@@ -24,7 +24,13 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@feather/protocol": ["./packages/protocol/src/index.ts"]
+      "@feather/protocol": ["./packages/protocol/src/index.ts"],
+      "@feather/host": ["./packages/host/src/index.ts"],
+      "@feather/host/tauri": ["./packages/host/src/tauri.ts"],
+      "@feather/session-bridge": ["./packages/session-bridge/src/index.ts"],
+      "@feather/ui": ["./packages/ui/src/index.ts"],
+      "@feather/ui/hooks/*": ["./packages/ui/src/hooks/*"],
+      "@feather/ui/*": ["./packages/ui/src/components/*"]
     }
   },
   "include": ["src"],

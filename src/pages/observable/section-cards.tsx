@@ -1,5 +1,5 @@
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@feather/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@feather/ui/card';
 import { cn } from '@/utils/styles';
 import { ObserverEntry } from '@/hooks/use-observability';
 

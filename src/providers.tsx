@@ -1,4 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { HostProvider, type FeatherHost } from '@feather/host';
+import { UiProvider, type UiDependencies } from '@feather/ui';
+import { useTheme, useSyntaxTheme } from './hooks/use-theme';
+import { copyToClipboardWithMeta } from './utils/strings';
 import { ThemeProvider } from './components/theme';
 
 // Clean up stale react-query offline cache from previous versions
@@ -32,10 +36,27 @@ if (import.meta.env.DEV) {
   }
 }
 
-export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+/**
+ * The host is injected by the entry point rather than chosen here: this module
+ * is shared by the Tauri desktop build and the browser showcase, and importing
+ * the Tauri host here would pull `@tauri-apps/*` into the web bundle.
+ */
+// The primitives in @feather/ui need a theme and a clipboard, both of which
+// live in app state. Supplying them here keeps that state out of the package.
+const uiDependencies: UiDependencies = {
+  useThemeMode: useTheme,
+  useSyntaxTheme: useSyntaxTheme as UiDependencies['useSyntaxTheme'],
+  copyToClipboard: copyToClipboardWithMeta,
+};
+
+export const AppProvider = ({ host, children }: { host: FeatherHost; children: React.ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>{children}</ThemeProvider>
+      <HostProvider host={host}>
+        <UiProvider value={uiDependencies}>
+          <ThemeProvider>{children}</ThemeProvider>
+        </UiProvider>
+      </HostProvider>
     </QueryClientProvider>
   );
 };

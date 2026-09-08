@@ -1,9 +1,9 @@
 import { PageLayout } from '@/components/page-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@feather/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@feather/ui/card';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { PluginParamValue, usePlugin, usePluginAction } from '@/hooks/use-plugin';
 import { useConfigStore } from '@/store/config';
 import { DynamicIcon, IconName } from 'lucide-react/dynamic';
@@ -14,7 +14,7 @@ import { openUrl } from '@/utils/linking';
 import { PuzzleIcon, TriangleAlertIcon } from 'lucide-react';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { cn } from '@/utils/styles';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@feather/ui/badge';
 
 type PluginActionDefinition = {
   label: string;

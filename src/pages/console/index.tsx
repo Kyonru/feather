@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { LuaCodeInput, type LuaCompletionItem } from '@/components/ui/lua-code-input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@feather/ui/button';
+import { Label } from '@feather/ui/label';
+import { Badge } from '@feather/ui/badge';
+import { LuaCodeInput, type LuaCompletionItem } from '@feather/ui/lua-code-input';
+import { ScrollArea } from '@feather/ui/scroll-area';
+import { Switch } from '@feather/ui/switch';
 import { useConsole, type ConsoleEntry } from '@/hooks/use-console';
 import { useEffectiveApiKey } from '@/hooks/use-session-api-key';
 import { usePluginControl } from '@/hooks/use-plugin-control';

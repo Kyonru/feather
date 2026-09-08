@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { Label } from '@feather/ui/label';
+import { Input } from '@feather/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import { Button } from '@feather/ui/button';
 import { useSettingsStore } from '@/store/settings';
 import { CheckIcon, CopyIcon, SmartphoneIcon } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { Separator } from '@feather/ui/separator';
 
 type LocalIp = {
   ip: string;

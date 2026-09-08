@@ -1,5 +1,5 @@
-import { Badge } from '@/components/ui/badge';
-import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@feather/ui/badge';
+import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from '@feather/ui/card';
 import { DEFAULT_METRIC, PerformanceMetrics } from '@/hooks/use-performance';
 import { cn } from '@/utils/styles';
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react';

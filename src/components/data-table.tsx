@@ -17,12 +17,12 @@ import {
 import { open } from '@tauri-apps/plugin-dialog';
 import { TableVirtuoso } from 'react-virtuoso';
 import { LogTypeBadge } from '@/components/log-type-badge';
-import { TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { TableCell, TableHead, TableHeader, TableRow } from '@feather/ui/table';
+import { Tabs, TabsContent } from '@feather/ui/tabs';
 import { cn } from '@/utils/styles';
 import { Log } from '@/hooks/use-logs';
 import { isWeb } from '@/utils/platform';
-import { Input } from './ui/input';
+import { Input } from '@feather/ui/input';
 import {
   PauseIcon,
   PlayIcon,
@@ -31,8 +31,8 @@ import {
   Trash2Icon,
   UploadIcon,
 } from 'lucide-react';
-import { Button } from './ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Button } from '@feather/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@feather/ui/tooltip';
 import {
   Dialog,
   DialogClose,
@@ -42,8 +42,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './ui/dialog';
-import { Label } from './ui/label';
+} from '@feather/ui/dialog';
+import { Label } from '@feather/ui/label';
 
 // Original Table is wrapped with a <div> (see https://ui.shadcn.com/docs/components/table#radix-:r24:-content-manual),
 // but here we don't want it, so let's use a new component with only <table> tag

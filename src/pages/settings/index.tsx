@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
-import { Button, CopyButton } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button, CopyButton } from '@feather/ui/button';
+import { Badge } from '@feather/ui/badge';
+import { Checkbox } from '@feather/ui/checkbox';
 import {
   Dialog,
   DialogClose,
@@ -13,11 +13,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from '@feather/ui/dialog';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { ScrollArea } from '@feather/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import { useSettingsStore } from '@/store/settings';
 import {
   Select,
@@ -28,7 +28,7 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@feather/ui/select';
 import {
   DEFAULT_PINNED_SIDEBAR_TOOLS,
   MAIN_FEATURES,

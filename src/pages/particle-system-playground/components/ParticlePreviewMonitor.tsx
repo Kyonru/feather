@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MonitorOffIcon, MonitorPlayIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
 import { LoveJsPreview } from '@/components/love-js-preview';
 import { sessionSupportsRuntime, useSessionStore } from '@/store/session';
 import type {

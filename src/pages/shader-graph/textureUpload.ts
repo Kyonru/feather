@@ -1,8 +1,5 @@
-import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
-import { readFile } from '@tauri-apps/plugin-fs';
-import { toast } from 'sonner';
+import type { FeatherHost } from '@feather/host';
 import type { ShaderTextureUpload } from '@/types/shader-graph';
-import { isWeb } from '@/utils/platform';
 
 function bytesToBase64(bytes: Uint8Array) {
   let binary = '';
@@ -13,62 +10,18 @@ function bytesToBase64(bytes: Uint8Array) {
   return btoa(binary);
 }
 
-function filename(path: string) {
-  return path.split(/[\\/]/).pop() || 'texture.png';
-}
-
-function pickWebTexture(): Promise<ShaderTextureUpload | null> {
-  return new Promise((resolve) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/png,image/jpeg,image/bmp,image/webp,image/tga';
-    input.dataset.testid = 'shader-texture-upload-input';
-    input.style.position = 'fixed';
-    input.style.left = '-9999px';
-    input.style.top = '0';
-    document.body.appendChild(input);
-
-    const cleanup = () => {
-      input.remove();
-    };
-
-    input.addEventListener('change', () => {
-      const file = input.files?.[0];
-      if (!file) {
-        cleanup();
-        resolve(null);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        cleanup();
-        const result = typeof reader.result === 'string' ? reader.result : '';
-        const dataBase64 = result.includes(',') ? result.split(',').pop() ?? '' : result;
-        resolve({ filename: file.name || 'texture.png', dataBase64 });
-      };
-      reader.onerror = () => {
-        cleanup();
-        toast.error('Failed to read texture file');
-        resolve(null);
-      };
-      reader.readAsDataURL(file);
-    }, { once: true });
-
-    input.click();
+/**
+ * Pick an image and return it base64-encoded.
+ *
+ * Previously this branched on `isWeb()` and carried a second, hand-rolled
+ * browser file picker. The host owns that difference now, so there is one path.
+ */
+export async function pickShaderTexture(host: FeatherHost): Promise<ShaderTextureUpload | null> {
+  const file = await host.openBinaryFile({
+    filterName: 'Images',
+    extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tga'],
+    testId: 'shader-texture-upload-input',
   });
-}
-
-export async function pickShaderTexture(): Promise<ShaderTextureUpload | null> {
-  if (isWeb()) {
-    return pickWebTexture();
-  }
-
-  const path = await openFileDialog({
-    multiple: false,
-    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tga'] }],
-  });
-  if (!path || typeof path !== 'string') return null;
-
-  const bytes = await readFile(path);
-  return { filename: filename(path), dataBase64: bytesToBase64(bytes) };
+  if (!file) return null;
+  return { filename: file.name || 'texture.png', dataBase64: bytesToBase64(file.bytes) };
 }

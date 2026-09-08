@@ -11,10 +11,10 @@ import {
   SquareIcon,
   XIcon,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@feather/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@feather/ui/table';
+import { Badge } from '@feather/ui/badge';
+import { Separator } from '@feather/ui/separator';
 import { cn } from '@/utils/styles';
 import { useTimeTravel } from '@/hooks/use-time-travel';
 import type { TimeTravelFrame } from '@/hooks/use-ws-connection';

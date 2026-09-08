@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useHost, type FeatherHost } from '@feather/host';
 import { PageLayout } from '@/components/page-layout';
 import { SectionCards } from './section-cards';
 import { useObservability, ObserverEntry } from '@/hooks/use-observability';
-import { Button } from '@/components/ui/button';
+import { Button } from '@feather/ui/button';
 import { LuaBlock } from '@/components/code';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@feather/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
+import { ScrollArea } from '@feather/ui/scroll-area';
 import { useConfig } from '@/hooks/use-config';
 import { lineDiff, hasDiff } from '@/utils/diff';
 import { cn } from '@/utils/styles';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@feather/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { ActivityIcon, DownloadIcon } from 'lucide-react';
 import { downloadFile } from '@/utils/file';
 import {
@@ -66,14 +67,14 @@ function formatObservedTime(time?: number) {
   return new Date(time).toLocaleTimeString();
 }
 
-function exportObservers(data: ObserverEntry[]) {
+function exportObservers(host: FeatherHost, data: ObserverEntry[]) {
   const payload = {
     exportedAt: new Date().toISOString(),
     count: data.length,
     observers: data,
   };
   const src = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
-  void downloadFile(`feather-observers-${Date.now()}.json`, src, 'string');
+  void downloadFile(host, `feather-observers-${Date.now()}.json`, src, 'string');
 }
 
 function DiffView({ oldValue, newValue }: { oldValue: string; newValue: string }) {
@@ -202,6 +203,7 @@ export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => v
 }
 
 export default function Page() {
+  const host = useHost();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [groupFilter, setGroupFilter] = useState('all');
@@ -372,7 +374,7 @@ end`}
           }
           actions={
             <>
-          <Button variant="outline" size="default" onClick={() => exportObservers(data)}>
+          <Button variant="outline" size="default" onClick={() => exportObservers(host, data)}>
             <DownloadIcon className="size-4" />
             Export JSON
           </Button>

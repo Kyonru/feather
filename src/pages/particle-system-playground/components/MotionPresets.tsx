@@ -1,8 +1,8 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@feather/ui/button';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import { Separator } from '@feather/ui/separator';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { Trash2Icon } from 'lucide-react';
 import { useRef, useState } from 'react';

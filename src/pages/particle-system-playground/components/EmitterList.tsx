@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@feather/ui/badge';
+import { Button } from '@feather/ui/button';
 import { cn } from '@/utils/styles';
 import type { ParticleSystemPlaygroundSystem } from '@/types/particle-system-playground';
 import { GripVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
