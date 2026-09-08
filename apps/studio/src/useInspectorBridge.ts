@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useStudioPreferencesStore } from '@studio/store/studio-preferences';
 import {
   createClientBridge,
   createNullBridge,
@@ -70,6 +71,15 @@ export function useInspectorBridge(): InspectorConnection {
     setConnected(true);
     setError(null);
     setSession(await client.describeSession());
+
+    // One-time handoff. A Studio install that has never migrated asks Inspector
+    // for the preferences it still holds; importPreferences is idempotent and
+    // refuses a payload from a newer Studio, so a repeat pairing is harmless.
+    const store = useStudioPreferencesStore.getState();
+    if (store.migratedFrom === 0) {
+      const payload = await client.exportPreferences();
+      if (payload) store.importPreferences(payload);
+    }
   }, []);
 
   useEffect(() => {

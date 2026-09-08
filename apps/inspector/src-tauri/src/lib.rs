@@ -78,6 +78,10 @@ pub fn run() {
     let mcp_bridge = mcp_bridge::new_state(sessions.clone(), app_id.clone());
     let cli_actions = cli_actions::CliActionState::default();
 
+    // Answers Studio's one-time preferences handoff; the payload lives in this
+    // app's webview storage, so the export has to be relayed through it.
+    let preferences_exporter = studio_bridge::PreferencesExporter::default();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -87,6 +91,7 @@ pub fn run() {
         .manage(app_id.clone())
         .manage(mcp_bridge.clone())
         .manage(cli_actions)
+        .manage(preferences_exporter.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
             mcp_bridge.set_app_handle(handle.clone());
@@ -114,14 +119,17 @@ pub fn run() {
                 .ok()
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(4008);
+            preferences_exporter.set_app_handle(app.handle().clone());
             studio_bridge::start_bridge_server(
                 sessions.clone(),
                 studio_bridge_port,
                 env!("CARGO_PKG_VERSION").to_string(),
+                preferences_exporter.clone(),
             );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            studio_bridge::resolve_studio_preferences_export,
             ws_server::send_command,
             ws_server::get_active_sessions,
             ws_server::close_session,

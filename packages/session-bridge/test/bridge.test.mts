@@ -205,3 +205,48 @@ test('preferences transfer over the authenticated bridge', async () => {
   const payload = (await client.exportPreferences()) as { version: number };
   assert.equal(payload.version, 1);
 });
+
+// --- the one-time preferences handoff ------------------------------------
+
+test('a preferences payload survives the round trip', async () => {
+  const legacy = {
+    version: 1,
+    textureLabWorkspaceId: 'my-game',
+    textureLabSavedRecipes: [{ id: 'r1', name: 'Legacy Noise' }],
+    particleTimelineZoom: 2.5,
+    particleTimelineSnap: false,
+    assetSourceDir: '/legacy/assets',
+  };
+  const server = makeServer({ exportPreferences: () => legacy });
+  const client = connect(server.handle);
+  await client.connect();
+
+  const received = (await client.exportPreferences()) as typeof legacy;
+  assert.equal(received.textureLabWorkspaceId, 'my-game');
+  assert.equal(received.particleTimelineZoom, 2.5);
+  assert.equal(received.particleTimelineSnap, false);
+  assert.equal(received.textureLabSavedRecipes.length, 1, 'saved recipes are not dropped');
+});
+
+test('nothing to hand over is a normal answer, not a failure', async () => {
+  // A fresh Inspector install has no legacy slice. Studio must start clean
+  // rather than treat this as an error.
+  const server = makeServer({ exportPreferences: () => null });
+  const client = connect(server.handle);
+  await client.connect();
+
+  assert.equal(await client.exportPreferences(), null);
+});
+
+test('the handoff still requires a capability', async () => {
+  const server = makeServer({ exportPreferences: () => ({ version: 1 }) });
+  const response = await server.handle({
+    id: 'x',
+    bridgeVersion: BRIDGE_VERSION,
+    method: 'preferences.export',
+    params: {},
+  });
+
+  assert.equal(response.ok, false);
+  assert.equal(response.ok === false && response.error.code, 'unauthenticated');
+});

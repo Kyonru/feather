@@ -22,6 +22,7 @@ export {
   nextRequestId,
   ok,
   fail,
+  STUDIO_PREFERENCE_KEYS,
 } from './contract.ts';
 export type {
   BridgeMethod,
@@ -33,6 +34,7 @@ export type {
   HandshakeResult,
   SessionDescription,
   SendParams,
+  StudioPreferencesPayload,
 } from './contract.ts';
 
 export { createNullBridge, createClientBridge, createBridgeServer } from './adapters.ts';

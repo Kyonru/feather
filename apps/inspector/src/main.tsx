@@ -5,6 +5,7 @@ import { createTauriHost } from "@feather/host/tauri";
 import { setCommandSender } from "@feather/session-bridge";
 import { tauriCommandSender } from "./lib/tauri-command-sender";
 import { isWeb } from "./utils/platform";
+import { serveStudioPreferencesExport } from "./lib/studio-preferences-export";
 import { AppProvider } from "./providers";
 import { Router } from "./router";
 import "./App.css";
@@ -23,6 +24,12 @@ const host = isWeb() ? createWebHost() : createTauriHost();
 // its own entry point and registers nothing, which is what leaves the creative
 // tools as local editors on the real web.
 setCommandSender(tauriCommandSender);
+
+// Answer Feather Studio's one-time preferences handoff. Read-only, and a no-op
+// when there is nothing to hand over.
+if (!isWeb()) {
+  void serveStudioPreferencesExport();
+}
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

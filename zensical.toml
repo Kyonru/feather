@@ -26,6 +26,7 @@ nav = [
       { "Overview" = "cli.md" },
       { "Package Management" = "packages.md" },
     ] },
+    { "Feather Studio" = "studio.md" },
     { "CI & Automation" = "ci.md" },
     { "VS Code Extension" = "vscode-extension.md" },
     { "MCP" = "mcp.md" },

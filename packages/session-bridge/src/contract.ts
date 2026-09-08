@@ -137,3 +137,42 @@ export function nextRequestId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `bridge-${Date.now().toString(36)}-${counter}`;
 }
+
+/**
+ * The one-time preferences handoff.
+ *
+ * Feather Studio is a separately installed application with its own storage
+ * origin, so it can never read Inspector's `settings-storage` key directly. On
+ * first pairing it asks for this payload instead, and Inspector answers from the
+ * copy the in-place migration deliberately never deleted.
+ *
+ * The shape lives here, in the shared contract, precisely so Inspector can
+ * produce it without importing any Studio code — which the lint guards forbid
+ * and which would undo the application split.
+ *
+ * Fields are optional because the source is old persisted state that may predate
+ * any of them. The receiver normalizes; this type only describes the wire.
+ */
+export interface StudioPreferencesPayload {
+  version: number;
+  textureLabRecipe?: unknown;
+  textureLabSavedRecipes?: unknown;
+  textureLabWorkspaceId?: string;
+  textureLabWorkspaces?: Record<string, unknown>;
+  collapsedShaderGraphNodeCategories?: unknown;
+  particleTimelineZoom?: number;
+  particleTimelineSnap?: boolean;
+  assetSourceDir?: string;
+}
+
+/** The keys Inspector hands over. Kept beside the type so they cannot drift. */
+export const STUDIO_PREFERENCE_KEYS = [
+  'textureLabRecipe',
+  'textureLabSavedRecipes',
+  'textureLabWorkspaceId',
+  'textureLabWorkspaces',
+  'collapsedShaderGraphNodeCategories',
+  'particleTimelineZoom',
+  'particleTimelineSnap',
+  'assetSourceDir',
+] as const;

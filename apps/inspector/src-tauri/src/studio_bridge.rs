@@ -27,6 +27,8 @@ use axum::{extract::State, routing::post, Json, Router};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use axum::extract::ws::Message;
+use tauri::{AppHandle, Emitter};
+use tokio::sync::oneshot;
 
 use crate::ws_server::Sessions;
 
@@ -88,6 +90,75 @@ struct BridgeState {
     sessions: Sessions,
     capabilities: BridgeCapabilities,
     server_version: String,
+    /// Needed for `preferences.export`: the payload lives in the Inspector
+    /// webview's local storage, which this process cannot read directly.
+    exporter: PreferencesExporter,
+}
+
+/// Relays a one-time preferences export from the Inspector webview.
+///
+/// Studio is a separately installed application with its own storage origin, so
+/// it can never read Inspector's `settings-storage` key. On first pairing it
+/// asks for the payload instead, and Inspector answers from the copy the 05a
+/// migration deliberately never deleted.
+#[derive(Clone, Default)]
+pub struct PreferencesExporter {
+    app_handle: Arc<Mutex<Option<AppHandle>>>,
+    waiters: Arc<Mutex<HashMap<String, oneshot::Sender<Value>>>>,
+}
+
+impl PreferencesExporter {
+    pub fn set_app_handle(&self, handle: AppHandle) {
+        *self.app_handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
+    }
+
+    pub fn resolve(&self, id: &str, payload: Value) {
+        if let Some(sender) = self
+            .waiters
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(id)
+        {
+            let _ = sender.send(payload);
+        }
+    }
+
+    async fn export(&self) -> Option<Value> {
+        let handle = self
+            .app_handle
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()?;
+
+        let id = uuid::Uuid::new_v4().to_string();
+        let (tx, rx) = oneshot::channel();
+        self.waiters
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id.clone(), tx);
+
+        if handle
+            .emit("feather://export-studio-preferences", json!({ "id": id }))
+            .is_err()
+        {
+            self.waiters
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .remove(&id);
+            return None;
+        }
+
+        match tokio::time::timeout(Duration::from_secs(10), rx).await {
+            Ok(Ok(payload)) => Some(payload),
+            _ => {
+                self.waiters
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .remove(&id);
+                None
+            }
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -225,9 +296,13 @@ async fn handle(State(state): State<BridgeState>, Json(request): Json<BridgeRequ
             }
         }
 
-        // Studio's preferences live in the Inspector webview's storage, which
-        // this process cannot read. Wired up alongside the tool move in 05c.
-        "preferences.export" => ok(&id, Value::Null),
+        // Answered by the Inspector webview, which holds the legacy payload.
+        // Null means "nothing to hand over", which is the normal case for a
+        // fresh install and is not an error.
+        "preferences.export" => match state.exporter.export().await {
+            Some(payload) => ok(&id, payload),
+            None => ok(&id, Value::Null),
+        },
 
         other => fail(&id, "unknown-method", &format!("Unrecognized bridge method \"{other}\".")),
     }
@@ -238,12 +313,18 @@ async fn handle(State(state): State<BridgeState>, Json(request): Json<BridgeRequ
 /// Bound to 127.0.0.1 on purpose. The game WebSocket binds 0.0.0.0 because
 /// devices on the LAN legitimately connect to it; this one must not, because it
 /// accepts commands on behalf of another local application.
-pub fn start_bridge_server(sessions: Sessions, port: u16, server_version: String) -> BridgeCapabilities {
+pub fn start_bridge_server(
+    sessions: Sessions,
+    port: u16,
+    server_version: String,
+    exporter: PreferencesExporter,
+) -> BridgeCapabilities {
     let capabilities = BridgeCapabilities::default();
     let state = BridgeState {
         sessions,
         capabilities: capabilities.clone(),
         server_version,
+        exporter,
     };
 
     tauri::async_runtime::spawn(async move {
@@ -263,6 +344,17 @@ pub fn start_bridge_server(sessions: Sessions, port: u16, server_version: String
     });
 
     capabilities
+}
+
+/// Called by the Inspector webview with the legacy payload, or null when there
+/// is nothing to hand over.
+#[tauri::command]
+pub fn resolve_studio_preferences_export(
+    id: String,
+    payload: Value,
+    exporter: tauri::State<PreferencesExporter>,
+) {
+    exporter.resolve(&id, payload);
 }
 
 #[cfg(test)]

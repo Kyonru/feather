@@ -129,6 +129,67 @@ compare('generated Lua table', toGame, generatedLua, registrySource, generatedLu
   extra: 'The generated file is stale — run: npm run generate:protocol-lua',
 });
 
+// ---------------------------------------------------------------------------
+// The Inspector↔Studio bridge version.
+//
+// Declared twice for the same reason as the wire protocol: the TypeScript
+// contract and the Rust server cannot import each other. Studio also declares
+// the range it supports, and Inspector owns the translation to a runtime — so
+// Studio must never declare a runtime range of its own.
+// ---------------------------------------------------------------------------
+
+const bridgeTsFile = 'packages/session-bridge/src/contract.ts';
+const bridgeRsFile = 'apps/inspector/src-tauri/src/studio_bridge.rs';
+
+const bridgeTs = extract(read(bridgeTsFile), /^export const BRIDGE_VERSION = (\d+);/m, 'BRIDGE_VERSION', bridgeTsFile);
+const bridgeTsMin = extract(
+  read(bridgeTsFile),
+  /^export const BRIDGE_MIN_SUPPORTED = (\d+);/m,
+  'BRIDGE_MIN_SUPPORTED',
+  bridgeTsFile,
+);
+const bridgeRs = extract(read(bridgeRsFile), /^pub const BRIDGE_VERSION: u32 = (\d+);/m, 'BRIDGE_VERSION', bridgeRsFile);
+const bridgeRsMin = extract(
+  read(bridgeRsFile),
+  /^pub const BRIDGE_MIN_SUPPORTED: u32 = (\d+);/m,
+  'BRIDGE_MIN_SUPPORTED',
+  bridgeRsFile,
+);
+
+if (bridgeTs !== bridgeRs || bridgeTsMin !== bridgeRsMin) {
+  problems.push(
+    `Bridge version mismatch: ${bridgeTsFile} declares v${bridgeTsMin}..v${bridgeTs}, ` +
+      `${bridgeRsFile} declares v${bridgeRsMin}..v${bridgeRs}.\n` +
+      `  Studio and Inspector built from this commit would refuse to pair.\n` +
+      `  Bump both declarations together.`,
+  );
+}
+
+if (bridgeTsMin > bridgeTs) {
+  problems.push(
+    `BRIDGE_MIN_SUPPORTED (v${bridgeTsMin}) is newer than BRIDGE_VERSION (v${bridgeTs}).\n` +
+      `  Inspector would reject every Studio, including its own.`,
+  );
+}
+
+// Studio must not declare a runtime compatibility range. Inspector owns that
+// translation; a Studio that claimed one would be asserting something about a
+// game it never talks to directly.
+const studioSources = [
+  'apps/studio/src/useInspectorBridge.ts',
+  'apps/studio/src/StudioApp.tsx',
+];
+for (const file of studioSources) {
+  const source = read(file);
+  if (/FEATHER_PROTOCOL_(VERSION|MIN_SUPPORTED)/.test(source)) {
+    problems.push(
+      `${file} references the runtime wire protocol version.\n` +
+        `  Studio pairs with Inspector over the bridge and never speaks to a game\n` +
+        `  directly, so Inspector owns runtime compatibility. Use the bridge version.`,
+    );
+  }
+}
+
 if (problems.length > 0) {
   console.error('[feather] Protocol check failed.\n');
   for (const problem of problems) {
@@ -138,6 +199,7 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `[feather] Protocol OK — v${ts} (desktop supports v${tsMin}..v${ts}), runtime advertises v${lua}. ` +
+  `[feather] Protocol OK — wire v${ts} (desktop supports v${tsMin}..v${ts}), runtime advertises v${lua}; ` +
+    `bridge v${bridgeTsMin}..v${bridgeTs} agreed by TypeScript and Rust. ` +
     `${toGame.size} desktop->game and ${toDesktop.size} game->desktop messages match their dispatch tables.`,
 );

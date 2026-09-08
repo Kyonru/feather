@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Feather Studio is now a separate application. The shader graph, texture lab and particle playground install, update and version independently of Feather Inspector, so a Studio update no longer means reinstalling your debugger and a debugger fix no longer touches your creative tools. Install either without the other from the releases page, or use Studio in a browser with no install.
+- Studio works fully on its own. Authoring, saving and loading all work with no Inspector running; "Not connected" is a state rather than an error.
+- Studio can pair with a running Inspector to push shaders, textures and particle systems straight into a live game. Pairing is explicit, loopback-only, gated on a short-lived key Inspector issues, and version-negotiated first so a mismatched pair tells you which application to update instead of failing obscurely.
+- Existing texture recipes, saved workspaces and timeline settings move across on first pairing. The copy inside Inspector is kept, so importing twice is harmless and nothing is lost if you go back.
 - The Lua runtime now advertises a wire protocol version at connect, and the desktop app checks it against the range it supports. A game running a protocol the desktop cannot speak now says so directly, with what to do about it, instead of behaving unpredictably. Session detail shows both the game's protocol version and the desktop's.
 - A game running a Feather runtime from before protocol negotiation still connects and stays healthy; it is reported as `legacy` rather than treated as a fault.
 
