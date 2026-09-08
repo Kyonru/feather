@@ -1,0 +1,18 @@
+name: Release desktop app
+
+# `desktop-v*`  -> desktop alone
+# `v*`          -> desktop as part of a full platform release
+on:
+  push:
+    tags:
+      - "desktop-v*"
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  desktop:
+    name: Desktop
+    permissions:
+      contents: write
+    uses: ./.github/workflows/_release-desktop.yml
+    secrets: inherit

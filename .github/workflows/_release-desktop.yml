@@ -1,122 +1,50 @@
-name: Feather release
+name: "[reusable] Desktop release"
+
+# Builds and publishes the signed Tauri desktop app for macOS (arm64 + x64),
+# Linux, and Windows. Called by release-desktop.yml, which fires on both
+# `desktop-v*` (desktop alone) and `v*` (full platform release).
 
 on:
-  push:
-    tags:
-      - "*"
+  workflow_call:
 
 jobs:
-  npm-cli-release:
+  verify:
     runs-on: ubuntu-latest
-    name: npm CLI publish
-    permissions:
-      contents: read
-      id-token: write
+    name: Verify desktop version
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-          package-manager-cache: false
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install LÖVE
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y love xvfb
-
-      - name: Get version from tag
+      - name: Resolve version from tag
         id: get_version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="$(bash scripts/release-tag-version.sh "$GITHUB_REF_NAME" --version)"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Verify CLI package version
+      - name: Verify the desktop trio agrees with the tag
         run: |
-          CLI_VERSION="$(node -p "require('./cli/package.json').version")"
-          if [ "$CLI_VERSION" != "${{ steps.get_version.outputs.version }}" ]; then
-            echo "Tag version ${{ steps.get_version.outputs.version }} does not match cli/package.json version $CLI_VERSION."
+          VERSION="${{ steps.get_version.outputs.version }}"
+          PKG="$(node -p "require('./package.json').version")"
+          TAURI="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          CARGO="$(sed -n '1,/^version = /s/^version = "\(.*\)"/\1/p' src-tauri/Cargo.toml | head -n 1)"
+          FAIL=0
+          for pair in "package.json:$PKG" "src-tauri/tauri.conf.json:$TAURI" "src-tauri/Cargo.toml:$CARGO"; do
+            FILE="${pair%%:*}"
+            FOUND="${pair#*:}"
+            if [ "$FOUND" != "$VERSION" ]; then
+              echo "$FILE is $FOUND, expected $VERSION"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" = "1" ]; then
+            echo "Fix with: bash scripts/set-version.sh desktop $VERSION"
             exit 1
           fi
-
-      - name: Fail if CLI package version already exists
-        run: |
-          if npm view "@kyonru/feather@${{ steps.get_version.outputs.version }}" version --registry https://registry.npmjs.org >/dev/null 2>&1; then
-            echo "@kyonru/feather@${{ steps.get_version.outputs.version }} already exists on npm."
-            exit 1
-          fi
-
-      - name: Build CLI
-        run: npm run cli:build
-
-      - name: Run CLI e2e
-        run: npm run test:cli:e2e
-
-      - name: Run Lua e2e
-        run: npm run test:lua:e2e
-
-      - name: Verify npm package contents
-        run: npm pack --workspace=cli --dry-run
-
-      - name: Publish CLI to npm
-        run: npm publish --workspace=cli --access public
-
-  luarocks-release:
-    runs-on: ubuntu-latest
-    name: LuaRocks upload
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Fail if changelog entry does not exist
-        run: grep -q "${{ github.ref_name }}" CHANGELOG.md
-
-      - name: Get version from tag
-        id: get_version
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: LuaRocks Upload
-        uses: nvim-neorocks/luarocks-tag-release@v7
-        with:
-          license: Feather License
-          labels: |
-            love2d
-            löve
-            debug
-          copy_directories: |
-            src-lua/feather
-          summary: Debug & Inspect Tool for LÖVE (love2d)
-          detailed_description: |
-            Feather is a debugger tool with a plugin system for Love2D projects.
-          fail_on_duplicate: true
-        env:
-          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
-
-      - name: Zip feather folder
-        run: |
-          cd src-lua
-          zip -r ../feather-${{ steps.get_version.outputs.version }}.zip feather/
-
-      - name: GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: |
-            feather-${{ steps.get_version.outputs.version }}-1.rockspec
-            feather-${{ steps.get_version.outputs.version }}-1.src.rock
-            feather-${{ steps.get_version.outputs.version }}.zip
-          allowUpdates: true
 
   tauri-release:
+    name: Build desktop
+    needs: verify
     permissions:
       contents: write
     strategy:

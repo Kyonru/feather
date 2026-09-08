@@ -221,7 +221,7 @@ Some files are generated and must stay in sync:
 - `src-lua/manifest.txt`
 - `cli/src/generated/plugin-catalog.ts`
 - `cli/src/generated/registry.json`
-- version fields in `package.json`, `src-lua/feather/init.lua`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`
+- the desktop version trio: `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json` (see Release Trains — `cli/`, `src-lua/`, and `vscode-extension/` version independently)
 
 Refresh them with:
 
@@ -229,7 +229,7 @@ Refresh them with:
 bash scripts/generate-manifest.sh
 npm run generate:plugin-catalog
 npm run generate:registry
-bash scripts/set-version.sh
+bash scripts/set-version.sh desktop
 ```
 
 `npm run check:plugin-catalog` and `npm run check:registry` intentionally fail when generated output differs from git. If the generated diff is expected, commit it.
@@ -294,6 +294,46 @@ Plugin contribution tips:
 - Keep `doctor` useful. New setup requirements should have a doctor check and a clear remediation message.
 - When adding setup options, update `cli/README.md`, `docs/configuration.md`, and generated config templates.
 - Build and upload commands must run production safety checks before shipping user-facing artifacts.
+
+## Release Trains
+
+Feather v2 releases each artifact on its own train. There is no single repo-wide
+version — a CLI patch must not drag the desktop app, Lua runtime, or extension
+along with it. See `V2.md` for the full model.
+
+| Tag | Ships | Publishes to |
+| --- | --- | --- |
+| `v<semver>` | Platform: runtime + CLI + desktop together | LuaRocks, npm, signed desktop binaries |
+| `cli-v<semver>` | CLI alone | npm |
+| `runtime-v<semver>` | Lua runtime alone | LuaRocks + GitHub release |
+| `desktop-v<semver>` | Desktop app alone | 4 signed binaries |
+| `ext-v<semver>` | VS Code extension alone | Marketplace + Open VSX |
+
+Set a train's version before tagging. The script only touches the files owned by
+the train you name:
+
+```sh
+bash scripts/set-version.sh cli 4.0.1        # then: git tag cli-v4.0.1
+bash scripts/set-version.sh runtime 4.0.1    # then: git tag runtime-v4.0.1
+bash scripts/set-version.sh desktop 4.0.1    # then: git tag desktop-v4.0.1
+bash scripts/set-version.sh ext 4.0.1        # then: git tag ext-v4.0.1
+bash scripts/set-version.sh platform 4.1.0   # then: git tag v4.1.0
+```
+
+Notes:
+
+- Each release workflow verifies that its train's version matches the tag and
+  fails with the exact `set-version.sh` command to fix it.
+- The runtime workflow skips the LuaRocks publish when `src-lua/feather` is
+  unchanged since the previous runtime release, so a platform tag never burns a
+  rock version for an unmodified runtime. Override with the `force` input on
+  workflow dispatch.
+- `bash scripts/release-tag-version.sh <tag>` parses a tag into its train and
+  version, and rejects tags outside this vocabulary.
+- Trains are expected to drift apart. The desktop app displays both its own
+  version and the connected runtime's version; a difference is normal and is not
+  a fault. Compatibility is signalled by the API version, which Phase 02 of the
+  v2 migration replaces with a negotiated protocol version.
 
 ## Build, Upload, And Release Safety
 

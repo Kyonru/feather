@@ -1,0 +1,19 @@
+name: Release CLI
+
+# `cli-v*`  -> CLI alone (this is the decoupled path)
+# `v*`      -> CLI as part of a full platform release
+on:
+  push:
+    tags:
+      - "cli-v*"
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  cli:
+    name: CLI
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/_release-cli.yml
+    secrets: inherit

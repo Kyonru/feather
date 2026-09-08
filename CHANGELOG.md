@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v4.0.0] - 2026-06-14 - The one with MCPs
 
+### Changed
+
+- Release tags are now per-train instead of repo-wide. `cli-v*` publishes the CLI alone, `runtime-v*` the Lua runtime alone, `desktop-v*` the desktop app alone, and `ext-v*` the VS Code extension alone. `v*` still performs a full platform release of runtime, CLI, and desktop together. Previously every tag fired all four publish paths.
+- `scripts/set-version.sh` now takes a release train (`cli`, `runtime`, `desktop`, `ext`, or `platform`) and only writes the files that train owns, so bumping one artifact no longer rewrites the others. It is also portable now, where it previously assumed macOS `sed`.
+- The LuaRocks publish is skipped when the Lua runtime is unchanged since the previous runtime release, so a platform tag no longer burns a rock version for an unmodified runtime.
+- Session health no longer reports a mismatch when the connected Lua runtime and the desktop app report different versions. The trains ship on separate cadences, so a difference is expected; both versions are still shown, and plugin API compatibility is still checked.
+
 ### Added
+
 
 - Added `feather mcp` with stdio and localhost Streamable HTTP transports for token-protected MCP access to live Feather desktop sessions.
 - Added `feather mcp setup --client codex|claude` to install or refresh the Feather MCP server entry in Codex or Claude Code config without copying MCP tokens into client config.

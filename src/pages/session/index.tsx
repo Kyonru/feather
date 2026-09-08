@@ -89,10 +89,6 @@ function usePackageLockfile(rootPath: string | undefined, enabled: boolean) {
   });
 }
 
-function normalizeVersion(version?: string | null) {
-  return version?.trim().replace(/^v/i, '') ?? '';
-}
-
 function pluginStatus(plugin: PluginConfig): PluginStatus {
   if (plugin.incompatible) return 'incompatible';
   if (plugin.disabled) return 'disabled';
@@ -317,7 +313,6 @@ export default function SessionPage() {
     (debuggerStatus?.rejectedBreakpoints?.length ?? 0) +
     (debuggerStatus?.breakpointErrors?.length ?? breakpointErrors.length);
   const apiMismatch = typeof config.API === 'number' && config.API !== FEATHER_PLUGIN_API;
-  const versionMismatch = !!config.version && normalizeVersion(config.version) !== normalizeVersion(appVersion);
   const packageState = isWeb()
     ? 'Web'
     : isFileSession
@@ -347,7 +342,7 @@ export default function SessionPage() {
       tone: 'danger',
     });
   }
-  if (apiMismatch || versionMismatch || pluginCounts.incompatible > 0) {
+  if (apiMismatch || pluginCounts.incompatible > 0) {
     warnings.push({
       id: 'version',
       title: 'Version or plugin mismatch',
@@ -420,7 +415,7 @@ export default function SessionPage() {
       onClick: () => openSettings(true),
     });
   }
-  if (apiMismatch || versionMismatch || pluginCounts.incompatible > 0) {
+  if (apiMismatch || pluginCounts.incompatible > 0) {
     actions.push({
       id: 'review-plugins',
       title: 'Review runtime and plugins',
@@ -515,7 +510,7 @@ export default function SessionPage() {
                 tone={session.connected && !disconnected ? 'good' : session.kind ? 'muted' : 'warning'}
               />
               <SummaryChip label="Kind" value={session.kind ? session.kind.replaceAll('-', ' ') : 'live'} />
-              <SummaryChip label="Runtime" value={config.version ? `v${config.version}` : '—'} tone={versionMismatch ? 'warning' : 'default'} />
+              <SummaryChip label="Runtime" value={config.version ? `v${config.version}` : '—'} />
               <SummaryChip label="API" value={config.API ?? '—'} tone={apiMismatch ? 'danger' : 'default'} />
             </div>
           </div>
