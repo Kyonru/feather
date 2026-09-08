@@ -26,16 +26,12 @@ import TimeTravel from './pages/time-travel';
 import SessionReplay from './pages/session-replay';
 import Compare from './pages/compare';
 import Assets from './pages/assets';
-import ParticleSystemPlayground from './pages/particle-system-playground';
-import ShaderGraph from './pages/shader-graph';
-import TextureLab from './pages/texture-lab';
 import SessionPage from './pages/session';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
 import { AboutModal } from './pages/about';
 import { useWsConnection } from './hooks/use-ws-connection';
-import { useMcpCreativeBridge } from './hooks/use-mcp-creative-bridge';
-import { isCreativeSession, sessionCanOpenRuntimePages, sessionSupportsRuntime, useSessionStore } from './store/session';
+import { sessionCanOpenRuntimePages, sessionSupportsRuntime, useSessionStore } from './store/session';
 import { useSettingsStore } from './store/settings';
 import { copyToClipboardWithMeta } from './utils/strings';
 import { openUrl } from './utils/linking';
@@ -47,7 +43,6 @@ const CLI_DOCS_URL = 'https://kyonru.github.io/feather/cli/';
 const Modals = () => {
   const disconnected = useConfigStore((state) => state.disconnected);
   useWsConnection();
-  useMcpCreativeBridge();
 
   useEffect(() => {
     if (disconnected) {
@@ -236,11 +231,6 @@ function RequireRuntimeSession({ children }: { children: React.ReactNode }) {
   return sessionCanOpenRuntimePages(activeSession) ? children : <SessionEmptyState />;
 }
 
-function RequireWorkspaceSession({ children }: { children: React.ReactNode }) {
-  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
-  return activeSession || isCreativeSession(activeSession) ? children : <SessionEmptyState />;
-}
-
 export const Router = () => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -333,19 +323,9 @@ export const Router = () => {
                 }
               />
               <Route
-                path="/particle-system-playground"
-                element={
-                  <RequireWorkspaceSession>
-                    <ParticleSystemPlayground />
-                  </RequireWorkspaceSession>
-                }
-              />
-              <Route
                 path="/compare"
                 element={<Compare />}
               />
-              <Route path="/shader-graph" element={<ShaderGraph />} />
-              <Route path="/texture-lab" element={<TextureLab />} />
               <Route
                 path="/session"
                 element={

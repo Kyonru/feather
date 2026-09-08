@@ -119,6 +119,7 @@ export default defineConfig({
       { find: /^@feather\/host$/, replacement: path.resolve(__dirname, './packages/host/src/index.ts') },
       { find: /^@feather\/session-bridge$/, replacement: path.resolve(__dirname, './packages/session-bridge/src/index.ts') },
       { find: /^@feather\/protocol$/, replacement: path.resolve(__dirname, './packages/protocol/src/index.ts') },
+      { find: /^@studio\/(.*)$/, replacement: path.resolve(__dirname, './apps/studio/src/$1') },
       { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, './src/$1') },
     ],
   },

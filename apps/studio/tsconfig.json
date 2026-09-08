@@ -18,6 +18,7 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
+      "@studio/*": ["./src/*"],
       "@feather/host": ["../../packages/host/src/index.ts"],
       "@feather/host/tauri": ["../../packages/host/src/tauri.ts"],
       "@feather/session-bridge": ["../../packages/session-bridge/src/index.ts"],

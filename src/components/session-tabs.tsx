@@ -55,9 +55,6 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { sendCommand } from '@/lib/send-command';
-import { useShaderGraphStore } from '@/store/shader-graph';
-import { useStudioPreferencesStore } from '@/store/studio-preferences';
-import { deleteLocalParticleWorkspace } from '@/pages/particle-system-playground/use-local-particle-playground';
 
 const osIcons: Record<string, React.ReactNode> = {
   Windows: <AppWindowIcon className="size-3" />,
@@ -246,8 +243,6 @@ export function SessionTabs() {
   const setLogOverride = useConfigStore((state) => state.setLogOverride);
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const setRuntimeSuspended = useSessionStore((state) => state.setRuntimeSuspended);
-  const deleteShaderGraphWorkspace = useShaderGraphStore((state) => state.deleteWorkspace);
-  const deleteTextureLabWorkspace = useStudioPreferencesStore((state) => state.deleteTextureLabWorkspace);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creativeName, setCreativeName] = useState('');
   const [removeCreativeSession, setRemoveCreativeSession] = useState<SessionInfo | null>(null);
@@ -330,9 +325,8 @@ export function SessionTabs() {
     if (!removeCreativeSession) return;
     const sessionId = removeCreativeSession.id;
     queryClient.removeQueries({ queryKey: [sessionId] });
-    deleteShaderGraphWorkspace(sessionId);
-    deleteTextureLabWorkspace(sessionId);
-    deleteLocalParticleWorkspace(sessionId);
+    // Studio owns its own workspaces and cleans them up itself. Inspector
+    // reaching across to delete them was the coupling Phase 05 removes.
     removeSession(sessionId);
     if (activeSessionId === sessionId) {
       setConfig(null);

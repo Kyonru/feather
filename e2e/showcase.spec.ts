@@ -1616,3 +1616,107 @@ test('shader graph preview probes render texture-heavy uploads in the showcase',
   await probe.click();
   await expectTextureProbePayload(page);
 });
+
+// --- Studio preferences migration (V4.md Phase 05a) --------------------------
+//
+// Studio-owned preferences were extracted out of the Inspector settings store so
+// the two applications can be split. That store is persisted user data —
+// texture recipes and saved workspaces people built by hand — so these cover the
+// cases where a careless migration would silently destroy it.
+
+const LEGACY_STUDIO_SETTINGS = {
+  state: {
+    theme: 'dark',
+    port: 4004,
+    assetSourceDir: '/legacy/assets',
+    particleTimelineZoom: 2.5,
+    particleTimelineSnap: false,
+    collapsedShaderGraphNodeCategories: ['math'],
+    textureLabWorkspaceId: 'my-game',
+    textureLabSavedRecipes: [
+      { id: 'r1', name: 'Legacy Noise', recipe: {}, createdAt: 1, updatedAt: 2 },
+    ],
+    textureLabWorkspaces: {
+      'my-game': { recipe: {}, savedRecipes: [] },
+    },
+  },
+  version: 0,
+};
+
+async function readStudioStore(page: Page) {
+  return page.evaluate(() => {
+    const raw = localStorage.getItem('studio-preferences');
+    return raw ? (JSON.parse(raw).state as Record<string, unknown>) : null;
+  });
+}
+
+test('studio preferences adopt legacy settings once, without destroying them', async ({ page }) => {
+  await page.addInitScript((legacy) => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+    localStorage.setItem('settings-storage', JSON.stringify(legacy));
+  }, LEGACY_STUDIO_SETTINGS);
+  await page.goto('/texture-lab');
+
+  await expect.poll(async () => (await readStudioStore(page))?.migratedFrom).toBe(1);
+  const studio = await readStudioStore(page);
+  expect(studio?.particleTimelineZoom).toBe(2.5);
+  expect(studio?.particleTimelineSnap).toBe(false);
+  // /texture-lab activates a per-session workspace on mount, so the *active* id
+  // moves to 'default'. What matters is that activation folded the migrated
+  // workspace into the snapshot map rather than dropping it.
+  expect(Object.keys(studio?.textureLabWorkspaces as object)).toContain('my-game');
+  expect(studio?.assetSourceDir).toBe('/legacy/assets');
+  // The saved recipes fold into the workspace they belonged to when the page
+  // activates a different one. Losing them here is the failure this guards.
+  const workspaces = studio?.textureLabWorkspaces as Record<string, { savedRecipes: unknown[] }>;
+  expect(workspaces['my-game'].savedRecipes).toHaveLength(1);
+
+  // Rollback path: the Inspector copy is read, never cleared.
+  const legacyStillThere = await page.evaluate(() => localStorage.getItem('settings-storage'));
+  expect(legacyStillThere).toBeTruthy();
+  expect(JSON.parse(legacyStillThere!).state.textureLabSavedRecipes).toHaveLength(1);
+});
+
+test('studio preferences survive a malformed legacy payload', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+    // Truncated JSON, plus a field of entirely the wrong shape.
+    localStorage.setItem('settings-storage', '{"state":{"textureLabWorkspaces":');
+  });
+  await page.goto('/texture-lab');
+
+  // The app must load and the store must fall back to defaults rather than throw.
+  await expect.poll(async () => (await readStudioStore(page))?.particleTimelineZoom).toBe(1);
+  expect((await readStudioStore(page))?.migratedFrom).toBe(0);
+});
+
+test('studio preferences migration is idempotent across reloads', async ({ page }) => {
+  await page.addInitScript((legacy) => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+    localStorage.setItem('settings-storage', JSON.stringify(legacy));
+  }, LEGACY_STUDIO_SETTINGS);
+  await page.goto('/texture-lab');
+  await expect.poll(async () => (await readStudioStore(page))?.migratedFrom).toBe(1);
+
+  // Diverge from the legacy value, then reload. A second adoption would clobber it.
+  await page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem('studio-preferences')!);
+    raw.state.particleTimelineZoom = 1;
+    localStorage.setItem('studio-preferences', JSON.stringify(raw));
+  });
+  await page.reload();
+
+  await expect.poll(async () => (await readStudioStore(page))?.particleTimelineZoom).toBe(1);
+});
+
+test('studio preferences start clean with no legacy data', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('feather-e2e-query-client', '1');
+  });
+  await page.goto('/texture-lab');
+
+  await expect.poll(async () => (await readStudioStore(page)) !== null).toBe(true);
+  const studio = await readStudioStore(page);
+  expect(studio?.migratedFrom).toBe(0);
+  expect(studio?.particleTimelineZoom).toBe(1);
+});

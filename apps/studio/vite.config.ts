@@ -15,6 +15,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: [
+      { find: /^@studio\/(.*)$/, replacement: path.resolve(root, 'src/$1') },
       { find: /^@feather\/ui\/hooks\/(.*)$/, replacement: path.resolve(repo, 'packages/ui/src/hooks/$1') },
       { find: /^@feather\/ui$/, replacement: path.resolve(repo, 'packages/ui/src/index.ts') },
       { find: /^@feather\/ui\/(.*)$/, replacement: path.resolve(repo, 'packages/ui/src/components/$1') },

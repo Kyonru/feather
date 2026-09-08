@@ -17,7 +17,15 @@ import './studio.css';
 async function resolveHost(): Promise<FeatherHost> {
   const hasTauri = '__TAURI_INTERNALS__' in globalThis;
   if (!hasTauri) return createWebHost();
-  const { createTauriHost } = await import('@feather/host/tauri');
+
+  // Desktop-only wiring, imported lazily for the same reason as the host: a web
+  // build must not pull `@tauri-apps/*` into its bundle.
+  const [{ createTauriHost }, { tauriCreativeMcpTransport }, { setCreativeMcpTransport }] = await Promise.all([
+    import('@feather/host/tauri'),
+    import('./desktop/mcp-transport.ts'),
+    import('./mcp/transport.ts'),
+  ]);
+  setCreativeMcpTransport(tauriCreativeMcpTransport);
   return createTauriHost();
 }
 

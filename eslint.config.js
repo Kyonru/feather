@@ -6,6 +6,7 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/',
+      '**/dist/',
       'dist/',
       'build/',
       'pnpm-lock.json',
@@ -56,5 +57,62 @@ export default tseslint.config(
     // packages, since it exists to contain exactly that.
     files: ['packages/**'],
     rules: { 'no-restricted-imports': 'off' },
+  },
+  {
+    // Build and generator scripts are Node, not browser.
+    files: ['**/scripts/**/*.mjs', 'scripts/**/*.mjs'],
+    languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
+  },
+  {
+    // Feather Inspector must not import Feather Studio. They are separate
+    // installed applications with separate release trains; an import here would
+    // silently recreate the coupling Phase 05 removed and drag 25k lines of
+    // creative tooling back into the Inspector bundle.
+    files: ['src/**'],
+    ignores: ['src/**/*.d.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@studio/*', '**/apps/studio/*'],
+              message:
+                'Inspector must not import Studio. If Inspector needs something from Studio, it belongs in a shared package under packages/, or it is a sign the boundary is wrong.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // ...and the reverse. Studio reaches a live game only through
+    // @feather/session-bridge, never by importing Inspector's stores, hooks or
+    // WebSocket connection.
+    files: ['apps/studio/**'],
+    // apps/studio/src/desktop/ is Studio's Tauri-only area, the same role
+    // packages/host/src/tauri.ts plays for environment capabilities: exactly one
+    // place per application may import @tauri-apps, so a web build cannot pull
+    // it in by accident.
+    ignores: ['apps/studio/src/desktop/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/*', '**/src/store/*', '**/src/hooks/*', '**/src/lib/*'],
+              message:
+                'Studio must not import Inspector. Use @feather/session-bridge for anything that needs a live game, @feather/host for environment capabilities, and @feather/ui for primitives.',
+            },
+            {
+              group: ['@tauri-apps/*'],
+              message:
+                'Import the host instead. @feather/host/tauri is the only module allowed to touch Tauri, so the web build stays Tauri-free.',
+            },
+          ],
+        },
+      ],
+    },
   },
 );
