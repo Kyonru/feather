@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Set or re-sync the version for ONE release train.
 #
-# Feather v2 decouples the release trains (see V2.md section 6). There is no
+# Feather v4 decouples the release trains (see V4.md section 6). There is no
 # longer a single repo-wide version: each train owns its own number and its own
 # tag. This script only ever touches the files belonging to the train you name.
 #

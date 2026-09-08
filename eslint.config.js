@@ -29,7 +29,7 @@ export default tseslint.config(
     //
     // This covers direct imports. A few transitive paths still reach Tauri
     // through inspector hooks (notably use-ws-connection); untangling those is
-    // part of splitting the apps in V2.md Phase 05.
+    // part of splitting the apps in V4.md Phase 05.
     files: [
       'src/pages/shader-graph/**',
       'src/pages/texture-lab/**',

@@ -6,8 +6,8 @@
  * desktop app can talk to each other at all.
  *
  * They are separate because the runtime and the desktop app ship on separate
- * release trains (see V2.md section 6), so their version numbers are expected
- * to differ. Before v2 they were kept equal by lock-step releases and nothing
+ * release trains (see V4.md section 6), so their version numbers are expected
+ * to differ. Before v4 they were kept equal by lock-step releases and nothing
  * needed to be negotiated.
  *
  * The runtime reports its version as `protocolVersion` in the `feather:hello`

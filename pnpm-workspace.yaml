@@ -1,8 +1,8 @@
-# Feather v2 workspace.
+# Feather v4 workspace.
 #
 # Listed explicitly rather than with a `packages/*` glob: `packages/` also holds
 # the Love2D catalog entries as bare *.json files, which are data, not packages.
-# The catalog moves to `catalog/packages/` in V2.md Phase 06.
+# The catalog moves to `catalog/packages/` in V4.md Phase 06.
 packages:
   - cli
   - packages/host

@@ -773,7 +773,7 @@ async function seedHealthySessionConfig(page: Page, overrides: Record<string, un
       root_path: '/tmp/demo',
       sourceDir: '/tmp/demo',
       // Deliberately NOT the desktop app version. Under v2 the Lua runtime and
-      // the desktop app ship on separate release trains (V2.md section 6), so
+      // the desktop app ship on separate release trains (V4.md section 6), so
       // they are expected to differ. Keeping them different here asserts that
       // runtime/desktop version drift alone does not degrade session health —
       // API is the compatibility signal, not string equality.

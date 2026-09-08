@@ -6,12 +6,12 @@ Feather is a CLI debugger, inspector, desktop devtool, VS Code companion, and pa
 
 ## Active Architecture Work
 
-Feather is mid-migration to a v2 architecture organized around release boundaries. **Read `V2.md`
+Feather is mid-migration to a v4 architecture organized around release boundaries. **Read `V4.md`
 before starting any structural, build, release, or packaging work.** It carries the goals, the
 invariants that hold for every commit, the phase order (which is load-bearing), and a status board
 showing what is done and what is next.
 
-`V2.md` governs *what to build and in what order*. This file governs *how to work in this repo*.
+`V4.md` governs *what to build and in what order*. This file governs *how to work in this repo*.
 Both apply.
 
 ## Project Layout

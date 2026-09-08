@@ -3,7 +3,7 @@
 Single source of truth for the Feather wire protocol message set.
 
 Feather's runtime (Lua), desktop app (React), CLI (TypeScript), and relay (Rust)
-all speak one protocol, but until v2 the message names existed only as string
+all speak one protocol, but until v4 the message names existed only as string
 literals in each of them. Nothing could tell you that the desktop handled a
 message the runtime never sent, or that a command was removed from the runtime
 while the UI still sent it.
@@ -20,7 +20,7 @@ registry and the live dispatch tables disagree:
 ## Scope
 
 This package currently describes **which messages exist**, not their payload
-shapes. Payload schemas and the Lua/Rust generators are the remainder of V2.md
+shapes. Payload schemas and the Lua/Rust generators are the remainder of V4.md
 Phase 02b. The message set alone is what makes drift mechanically detectable,
 which is the part that matters once the release trains can ship separately.
 

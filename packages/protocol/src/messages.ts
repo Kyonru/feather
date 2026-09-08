@@ -14,7 +14,7 @@
  *
  * Adding a message means adding it here first. The check fails otherwise.
  *
- * Payload shapes are NOT described yet — see V2.md Phase 02b. This registry
+ * Payload shapes are NOT described yet — see V4.md Phase 02b. This registry
  * covers the message set only, which is what makes drift detectable.
  */
 

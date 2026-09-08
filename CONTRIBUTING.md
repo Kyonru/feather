@@ -297,9 +297,9 @@ Plugin contribution tips:
 
 ## Release Trains
 
-Feather v2 releases each artifact on its own train. There is no single repo-wide
+Feather v4 releases each artifact on its own train. There is no single repo-wide
 version — a CLI patch must not drag the desktop app, Lua runtime, or extension
-along with it. See `V2.md` for the full model.
+along with it. See `V4.md` for the full model.
 
 | Tag | Ships | Publishes to |
 | --- | --- | --- |
@@ -333,7 +333,7 @@ Notes:
 - Trains are expected to drift apart. The desktop app displays both its own
   version and the connected runtime's version; a difference is normal and is not
   a fault. Compatibility is signalled by the API version, which Phase 02 of the
-  v2 migration replaces with a negotiated protocol version.
+  v4 migration replaces with a negotiated protocol version.
 
 ## Build, Upload, And Release Safety
 
