@@ -34,7 +34,6 @@ dist-ssr
 *.sln
 *.sw?
 
-docs/_site/
 .venv/
 site/
 
