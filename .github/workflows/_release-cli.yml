@@ -42,7 +42,7 @@ jobs:
 
       - name: Verify CLI package version
         run: |
-          CLI_VERSION="$(node -p "require('./cli/package.json').version")"
+          CLI_VERSION="$(node -p "require('./apps/cli/package.json').version")"
           if [ "$CLI_VERSION" != "${{ steps.get_version.outputs.version }}" ]; then
             echo "Tag version ${{ steps.get_version.outputs.version }} does not match cli/package.json version $CLI_VERSION."
             echo "Fix with: bash scripts/set-version.sh cli ${{ steps.get_version.outputs.version }}"
@@ -85,10 +85,10 @@ jobs:
           pnpm --filter @kyonru/feather run build:binary
           VERSION="${{ steps.get_version.outputs.version }}"
           mkdir -p release-assets
-          cp cli/bin/feather "release-assets/feather-cli-darwin-arm64-${VERSION}.bin"
-          cp cli/bin/feather-darwin-x64 "release-assets/feather-cli-darwin-x64-${VERSION}.bin"
-          cp cli/bin/feather-linux-x64 "release-assets/feather-cli-linux-x64-${VERSION}.bin"
-          cp cli/bin/feather-win-x64.exe "release-assets/feather-cli-windows-x64-${VERSION}.exe"
+          cp apps/cli/bin/feather "release-assets/feather-cli-darwin-arm64-${VERSION}.bin"
+          cp apps/cli/bin/feather-darwin-x64 "release-assets/feather-cli-darwin-x64-${VERSION}.bin"
+          cp apps/cli/bin/feather-linux-x64 "release-assets/feather-cli-linux-x64-${VERSION}.bin"
+          cp apps/cli/bin/feather-win-x64.exe "release-assets/feather-cli-windows-x64-${VERSION}.exe"
 
       - name: Attach binaries to the release
         uses: ncipollo/release-action@v1

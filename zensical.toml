@@ -6,6 +6,10 @@ site_description = "Real-time debug & inspect tool for LÖVE (love2d) games."
 site_author = "Kyonru"
 site_url = "https://kyonru.github.io/feather"
 
+# The documentation source moved to apps/docs alongside the other shipping
+# artifacts; zensical defaults to ./docs, so it has to be told.
+docs_dir = "apps/docs"
+
 copyright = """
 Copyright &copy; 2026 Kyonru
 """

@@ -8,7 +8,7 @@ if ! git diff --exit-code packages/runtime-lua/manifest.txt; then
 fi
 
 pnpm run generate:plugin-catalog
-if ! git diff --exit-code cli/src/generated/plugin-catalog.ts; then
+if ! git diff --exit-code apps/cli/src/generated/plugin-catalog.ts; then
   echo "[feather] plugin catalog is out of date — it has been updated, please stage it and commit again."
   exit 1
 fi

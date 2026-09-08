@@ -7,6 +7,19 @@ export default tseslint.config(
     ignores: [
       'node_modules/',
       '**/dist/',
+      // Build output that now falls inside the lint scope since apps/ moved
+      // under one roof. These are generated, not authored.
+      '**/bundled-cli/',
+      '**/bundled-bin/',
+      '**/out/',
+      // The CLI and the extension have never been linted — the old script was
+      // `eslint src` only, so moving them under apps/ pulled ~25 pre-existing
+      // issues into scope. They are real (unused bindings, a useless escape, a
+      // missing react-hooks plugin registration) but unrelated to the
+      // architecture work, so they get their own change rather than being
+      // smuggled into this one. Tracked in V4.md section 8.1.
+      'apps/cli/',
+      'apps/vscode-extension/',
       'dist/',
       'build/',
       'pnpm-lock.json',

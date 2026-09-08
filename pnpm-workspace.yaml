@@ -5,13 +5,13 @@
 # The catalog moves to `catalog/packages/` in V4.md Phase 06.
 packages:
   - apps/studio
-  - cli
+  - apps/cli
   - packages/host
   - packages/protocol
   - packages/runtime-lua
   - packages/session-bridge
   - packages/ui
-  - vscode-extension
+  - apps/vscode-extension
 
 # pnpm blocks dependency build scripts by default. These three genuinely need
 # theirs: esbuild fetches its platform binary (Vite depends on it), and keytar

@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const packagesDir = join(__dirname, "../catalog/packages");
-const outputPath = join(__dirname, "../cli/src/generated/registry.json");
+const outputPath = join(__dirname, "../apps/cli/src/generated/registry.json");
 
 const packageFiles = readdirSync(packagesDir)
   .filter((f) => f.endsWith(".json"))

@@ -5,7 +5,7 @@ import { dirname, join, relative } from 'node:path';
 // eslint-disable-next-line no-undef
 const root = process?.cwd();
 const pluginsRoot = join(root, 'packages/runtime-lua', 'plugins');
-const outFile = join(root, 'cli', 'src', 'generated', 'plugin-catalog.ts');
+const outFile = join(root, 'apps', 'cli', 'src', 'generated', 'plugin-catalog.ts');
 
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

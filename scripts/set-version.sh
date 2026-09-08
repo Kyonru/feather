@@ -10,12 +10,12 @@
 #
 # Trains and their files:
 #
-#   cli       cli/package.json                        (source of truth)
+#   cli       apps/cli/package.json                        (source of truth)
 #   runtime   packages/runtime-lua/feather/init.lua                (source of truth)
 #   desktop   package.json                            (source of truth)
 #             -> apps/inspector/src-tauri/Cargo.toml
 #             -> apps/inspector/src-tauri/tauri.conf.json
-#   ext       vscode-extension/package.json           (source of truth)
+#   ext       apps/vscode-extension/package.json           (source of truth)
 #   studio    apps/studio/package.json                (source of truth)
 #             -> apps/studio/src-tauri/Cargo.toml
 #             -> apps/studio/src-tauri/tauri.conf.json
@@ -85,8 +85,8 @@ read_runtime_version() {
 }
 
 set_cli() {
-  set_json_version "${ROOT}/cli/package.json" "$1"
-  echo "  cli/package.json -> $1"
+  set_json_version "${ROOT}/apps/cli/package.json" "$1"
+  echo "  apps/cli/package.json -> $1"
 }
 
 set_runtime() {
@@ -96,8 +96,8 @@ set_runtime() {
 }
 
 set_ext() {
-  set_json_version "${ROOT}/vscode-extension/package.json" "$1"
-  echo "  vscode-extension/package.json -> $1"
+  set_json_version "${ROOT}/apps/vscode-extension/package.json" "$1"
+  echo "  apps/vscode-extension/package.json -> $1"
 }
 
 # Feather Studio is three files that must agree with each other, mirroring the
@@ -127,7 +127,7 @@ set_desktop() {
 
 case "$TRAIN" in
   cli)
-    [ -n "$VERSION" ] || VERSION="$(read_json_version "${ROOT}/cli/package.json")"
+    [ -n "$VERSION" ] || VERSION="$(read_json_version "${ROOT}/apps/cli/package.json")"
     echo "Setting cli train to ${VERSION}"
     set_cli "$VERSION"
     ;;
@@ -137,7 +137,7 @@ case "$TRAIN" in
     set_runtime "$VERSION"
     ;;
   ext)
-    [ -n "$VERSION" ] || VERSION="$(read_json_version "${ROOT}/vscode-extension/package.json")"
+    [ -n "$VERSION" ] || VERSION="$(read_json_version "${ROOT}/apps/vscode-extension/package.json")"
     echo "Setting ext train to ${VERSION}"
     set_ext "$VERSION"
     ;;

@@ -16,18 +16,24 @@ Both apply.
 
 ## Project Layout
 
-- `cli/` - TypeScript CLI using Commander. Workspace package `@kyonru/feather`.
-- `src/` - React desktop app using Vite, Tailwind, Radix/Base UI, and Tauri APIs.
-- `src-tauri/` - Rust/Tauri shell and WebSocket server.
-- `packages/runtime-lua/feather/` - Embedded Lua runtime loaded into running games.
-- `packages/runtime-lua/plugins/` - Built-in Lua plugins.
-- `vscode-extension/` - VS Code extension workspace package.
+Everything that ships lives under `apps/`; `packages/` holds only what those
+applications consume.
+
+- `apps/inspector/` - Tauri desktop debugger. `src/` (React) and `src-tauri/` (Rust WS server).
+- `apps/studio/` - Feather Studio: shader graph, texture lab, particle playground. Separate
+  application with its own binary, bundle identifier, version and release feed.
+- `apps/showcase/` - Thin shell hosting Studio for the web. No page code of its own.
+- `apps/cli/` - TypeScript CLI using Commander. Workspace package `@kyonru/feather`.
+- `apps/vscode-extension/` - VS Code extension. Vendors a pinned platform snapshot.
+- `apps/docs/` - Zensical documentation site.
+- `packages/protocol/` - Wire message registry and envelope.
+- `packages/host/` - Environment capabilities, with Tauri and browser implementations.
+- `packages/session-bridge/` - Versioned Inspector↔Studio process contract.
+- `packages/ui/` - Shared interface primitives.
+- `packages/runtime-lua/` - The Lua runtime and built-in plugins. Publishes to LuaRocks.
 - `catalog/packages/` - Curated Love2D package catalog entries (`catalog/packages/*.json`).
   Published to the `packages` branch by `.github/workflows/registry.yml`.
-- `packages/` - Shared workspace packages: `protocol` (wire message registry), `host` (environment
-  capabilities), `session-bridge` (live-game transport), `ui` (interface primitives).
 - `scripts/` - Registry/catalog generators, checksum tools, bundle helpers.
-- `docs/` - Zensical documentation site.
 - `skills/` - Repo-local agent skills. Read the matching skill before editing a subsystem.
 
 ## Pick The Right Skill
@@ -71,7 +77,7 @@ New features:
 - Pick the primary subsystem skill first, then load adjacent skills for protocol, CLI, desktop, package, plugin, or extension effects.
 - Start from existing command/page/hook/store/runtime patterns before adding new abstractions.
 - Add or update e2e coverage in the subsystem that proves the user workflow, not only unit coverage for helper code.
-- Update docs in the same change. Prefer canonical docs beside the subsystem, exposed through `docs/` with symlinks when practical.
+- Update docs in the same change. Prefer canonical docs beside the subsystem, exposed through `apps/docs/` with symlinks when practical.
 - Update `CHANGELOG.md` for user-visible behavior and add compare-link bookkeeping when preparing a release section.
 - Regenerate catalogs, registries, manifests, or bundled assets whenever the source files they represent change.
 
@@ -107,12 +113,12 @@ Prefer canonical documentation beside the subsystem it describes, then expose it
 
 Docs symlink source files:
 
-- `docs/cli.md` points to `cli/README.md`.
-- `docs/vscode-extension.md` points to `vscode-extension/README.md`.
-- `docs/packages.md` points to `packages/README.md`.
-- `docs/plugins.md` points to `packages/runtime-lua/plugins/README.md`.
-- `docs/plugins-ui.md` points to `packages/runtime-lua/plugins/plugins-ui.md`.
-- Plugin pages under `docs/plugins/` usually point to `packages/runtime-lua/plugins/<plugin-id>/README.md`.
+- `apps/docs/cli.md` points to `apps/cli/README.md`.
+- `apps/docs/vscode-extension.md` points to `apps/vscode-extension/README.md`.
+- `apps/docs/packages.md` points to `catalog/packages/README.md`.
+- `apps/docs/plugins.md` points to `packages/runtime-lua/plugins/README.md`.
+- `apps/docs/plugins-ui.md` points to `packages/runtime-lua/plugins/plugins-ui.md`.
+- Plugin pages under `apps/docs/plugins/` usually point to `packages/runtime-lua/plugins/<plugin-id>/README.md`.
 
 Edit the source file, not only the docs path.
 

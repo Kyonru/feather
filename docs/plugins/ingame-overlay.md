@@ -1,1 +1,0 @@
-../../packages/runtime-lua/plugins/ingame-overlay/README.md

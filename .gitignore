@@ -42,6 +42,6 @@ vendor/
 feather.build.json
 
 # VS Code extension build outputs
-vscode-extension/bundled-*/
-vscode-extension/out/
-vscode-extension/*.vsix
+apps/vscode-extension/bundled-*/
+apps/vscode-extension/out/
+apps/vscode-extension/*.vsix

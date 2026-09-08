@@ -51,9 +51,9 @@ const protocolMin = Number(
   ),
 );
 
-const cliVersion = json('cli/package.json').version;
+const cliVersion = json('apps/cli/package.json').version;
 const desktopVersion = json('package.json').version;
-const extensionVersion = json('vscode-extension/package.json').version;
+const extensionVersion = json('apps/vscode-extension/package.json').version;
 
 const manifest = {
   $schema: 'https://kyonru.github.io/feather/feather-platform.schema.json',

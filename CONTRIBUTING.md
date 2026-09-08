@@ -60,7 +60,7 @@ pnpm run docs
 
 - `src/` contains the React desktop app.
 - `src-tauri/` contains the Tauri shell and WebSocket server.
-- `cli/` contains the Feather CLI, build/upload/release logic, package manager, and Ink workflows.
+- `apps/cli/` contains the Feather CLI, build/upload/release logic, package manager, and Ink workflows.
 - `cli/test/commands/` contains CLI end-to-end tests using Node's built-in test runner.
 - `packages/runtime-lua/feather/` contains the embedded Lua runtime.
 - `packages/runtime-lua/plugins/` contains built-in Lua plugins.

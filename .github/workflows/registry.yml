@@ -66,7 +66,7 @@ jobs:
             git worktree add --orphan -b packages /tmp/registry-branch
           fi
 
-          cp cli/src/generated/registry.json /tmp/registry-branch/registry.json
+          cp apps/cli/src/generated/registry.json /tmp/registry-branch/registry.json
 
           cd /tmp/registry-branch
           git add registry.json

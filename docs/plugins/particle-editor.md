@@ -1,1 +1,0 @@
-../../packages/runtime-lua/plugins/particle-editor/README.md

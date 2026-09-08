@@ -49,7 +49,7 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           PKG="$(node -p "require('./package.json').version")"
-          CLI="$(node -p "require('./cli/package.json').version")"
+          CLI="$(node -p "require('./apps/cli/package.json').version")"
           RUNTIME="$(sed -n 's/^local FEATHER_VERSION_NAME = "\([^"]*\)".*/\1/p' packages/runtime-lua/feather/init.lua | head -n 1)"
           FAIL=0
           for pair in "package.json:$PKG" "cli/package.json:$CLI" "runtime:$RUNTIME"; do

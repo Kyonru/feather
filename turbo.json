@@ -47,7 +47,7 @@
       "inputs": ["packages/runtime-lua/**", "scripts/lua-e2e.mjs"]
     },
     "//#test:cli:e2e": {
-      "inputs": ["cli/**", "packages/runtime-lua/**"]
+      "inputs": ["apps/cli/**", "packages/runtime-lua/**"]
     },
     "//#test:inspector:e2e": {
       "inputs": ["apps/inspector/src/**", "apps/inspector/e2e/**", "packages/*/src/**", "apps/inspector/playwright.config.ts", "vite.config.ts"]

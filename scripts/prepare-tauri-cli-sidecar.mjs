@@ -17,14 +17,14 @@ if (!triple) {
 const extension = process.platform === 'win32' ? '.exe' : '';
 const source =
   process.platform === 'darwin' && process.arch === 'arm64'
-    ? join(root, 'cli', 'bin', 'feather')
+    ? join(root, 'apps', 'cli', 'bin', 'feather')
     : process.platform === 'darwin'
-      ? join(root, 'cli', 'bin', 'feather-darwin-x64')
+      ? join(root, 'apps', 'cli', 'bin', 'feather-darwin-x64')
       : process.platform === 'win32'
-        ? join(root, 'cli', 'bin', 'feather-win-x64.exe')
-        : join(root, 'cli', 'bin', 'feather-linux-x64');
+        ? join(root, 'apps', 'cli', 'bin', 'feather-win-x64.exe')
+        : join(root, 'apps', 'cli', 'bin', 'feather-linux-x64');
 
-const targetDir = join(root, 'src-tauri', 'binaries');
+const targetDir = join(root, 'apps', 'inspector', 'src-tauri', 'binaries');
 const target = join(targetDir, `feather-cli-${triple}${extension}`);
 mkdirSync(targetDir, { recursive: true });
 copyFileSync(source, target);
