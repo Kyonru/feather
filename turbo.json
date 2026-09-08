@@ -37,6 +37,9 @@
         "packages/runtime-lua/feather/protocol_messages.lua"
       ]
     },
+    "//#test:bridge": {
+      "inputs": ["packages/session-bridge/**"]
+    },
     "//#test:lua:e2e": {
       "inputs": ["packages/runtime-lua/**", "scripts/lua-e2e.mjs"]
     },

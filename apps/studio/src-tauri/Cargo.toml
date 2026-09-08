@@ -1,0 +1,26 @@
+[package]
+name = "feather-studio"
+version = "0.1.0"
+description = "Feather Studio is a standalone creative tool for LÖVE: shader graphs, texture generation, and particle authoring. It edits assets locally and can optionally push them to a game through Feather Inspector."
+authors = ["kyonru"]
+edition = "2021"
+
+[lib]
+name = "feather_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-opener = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+# Deliberately absent, compared with the Inspector crate:
+#   axum / tokio  — Studio runs no WebSocket server. Inspector owns sessions.
+#   tauri-plugin-shell — Studio spawns no CLI sidecar.
+# Adding either would make Studio a second thing that can reach a running game,
+# which is exactly the boundary V4.md Phase 05 is drawing.

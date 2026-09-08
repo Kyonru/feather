@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "useDefineForClassFields": true,
+    "lib": ["esnext", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@feather/host": ["../../packages/host/src/index.ts"],
+      "@feather/host/tauri": ["../../packages/host/src/tauri.ts"],
+      "@feather/session-bridge": ["../../packages/session-bridge/src/index.ts"],
+      "@feather/ui": ["../../packages/ui/src/index.ts"],
+      "@feather/ui/*": ["../../packages/ui/src/components/*"]
+    }
+  },
+  "include": ["src"]
+}

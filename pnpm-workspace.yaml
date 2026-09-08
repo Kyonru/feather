@@ -4,6 +4,7 @@
 # the Love2D catalog entries as bare *.json files, which are data, not packages.
 # The catalog moves to `catalog/packages/` in V4.md Phase 06.
 packages:
+  - apps/studio
   - cli
   - packages/host
   - packages/protocol

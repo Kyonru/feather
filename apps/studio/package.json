@@ -1,0 +1,21 @@
+{
+  "name": "@feather/studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Feather Studio — standalone creative tooling for LÖVE: shader graph, texture lab, particle playground",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@feather/host": "workspace:*",
+    "@feather/session-bridge": "workspace:*",
+    "@feather/ui": "workspace:*"
+  }
+}

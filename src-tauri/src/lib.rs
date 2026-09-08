@@ -1,6 +1,7 @@
 mod cli_actions;
 mod cli_status;
 mod mcp_bridge;
+mod studio_bridge;
 mod ws_server;
 
 use std::{
@@ -105,6 +106,19 @@ pub fn run() {
                 mcp_bridge.clone(),
             );
             mcp_bridge::start(mcp_bridge.clone(), mcp_port);
+
+            // Feather Studio is a separate application; this is how it asks
+            // Inspector to push work into a live game. Loopback only, and
+            // capability gated — see studio_bridge for why both matter.
+            let studio_bridge_port: u16 = std::env::var("FEATHER_STUDIO_BRIDGE_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(4006);
+            studio_bridge::start_bridge_server(
+                sessions.clone(),
+                studio_bridge_port,
+                env!("CARGO_PKG_VERSION").to_string(),
+            );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

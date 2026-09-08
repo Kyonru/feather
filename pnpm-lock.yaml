@@ -229,6 +229,18 @@ importers:
         specifier: 8.0.13
         version: 8.0.13(@types/node@25.8.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)
 
+  apps/studio:
+    dependencies:
+      '@feather/host':
+        specifier: workspace:*
+        version: link:../../packages/host
+      '@feather/session-bridge':
+        specifier: workspace:*
+        version: link:../../packages/session-bridge
+      '@feather/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+
   cli:
     dependencies:
       '@feather/runtime-lua':

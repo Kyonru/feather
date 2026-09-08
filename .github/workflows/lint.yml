@@ -41,6 +41,9 @@ jobs:
       - name: Check protocol version sync
         run: pnpm run check:protocol
 
+      - name: Bridge contract tests
+        run: pnpm run test:bridge
+
       - name: Run TypeScript checks
         run: pnpm run typecheck:web
 

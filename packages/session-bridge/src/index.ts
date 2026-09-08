@@ -14,6 +14,30 @@
  * the web, so sends become no-ops and the tools stay usable as local editors.
  */
 
+// The versioned cross-process contract (V4.md Phase 05b).
+export {
+  BRIDGE_VERSION,
+  BRIDGE_MIN_SUPPORTED,
+  negotiate,
+  nextRequestId,
+  ok,
+  fail,
+} from './contract.ts';
+export type {
+  BridgeMethod,
+  BridgeErrorCode,
+  BridgeRequest,
+  BridgeResponse,
+  BridgeError,
+  HandshakeParams,
+  HandshakeResult,
+  SessionDescription,
+  SendParams,
+} from './contract.ts';
+
+export { createNullBridge, createClientBridge, createBridgeServer } from './adapters.ts';
+export type { SessionBridge, BridgeTransport, BridgeServerHandlers } from './adapters.ts';
+
 export type CommandMessage = string | Record<string, unknown>;
 
 export type CommandSender = (sessionId: string, message: CommandMessage) => Promise<void>;
