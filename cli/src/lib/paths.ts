@@ -23,7 +23,7 @@ export function bundledSkillsRoot(): string {
 }
 
 export function repoLuaRoot(): string | null {
-  const candidate = resolve(MODULE_DIR, '../../../src-lua');
+  const candidate = resolve(MODULE_DIR, '../../../packages/runtime-lua');
   return existsSync(join(candidate, 'feather', 'init.lua')) ? candidate : null;
 }
 

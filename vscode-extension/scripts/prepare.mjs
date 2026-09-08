@@ -8,7 +8,7 @@ const repoRoot = join(extensionRoot, '..');
 
 const cliBin = join(repoRoot, 'cli', 'bin');
 const cliLua = join(repoRoot, 'cli', 'lua');
-const sourceLua = join(repoRoot, 'src-lua');
+const sourceLua = join(repoRoot, 'packages/runtime-lua');
 const cliGenerated = join(repoRoot, 'cli', 'dist', 'generated');
 const bundledBin = join(extensionRoot, 'bundled-bin');
 

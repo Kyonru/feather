@@ -1,1 +1,1 @@
-../../src-lua/plugins/timer-inspector/README.md
+../../packages/runtime-lua/plugins/timer-inspector/README.md

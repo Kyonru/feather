@@ -2,22 +2,8 @@ name: CLI E2E
 
 on:
   pull_request:
-    paths:
-      - "cli/**"
-      - "src-lua/**"
-      - "scripts/bundle-lua.sh"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/cli-e2e.yml"
   push:
     branches: [main]
-    paths:
-      - "cli/**"
-      - "src-lua/**"
-      - "scripts/bundle-lua.sh"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/cli-e2e.yml"
   workflow_dispatch:
 
 permissions:
@@ -62,6 +48,13 @@ jobs:
           sudo ln -sf /Applications/love.app/Contents/MacOS/love /usr/local/bin/love
           love --version
           brew install squashfs
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

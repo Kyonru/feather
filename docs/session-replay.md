@@ -1,1 +1,1 @@
-../src-lua/plugins/session-replay/README.md
+../packages/runtime-lua/plugins/session-replay/README.md

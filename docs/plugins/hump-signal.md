@@ -1,1 +1,1 @@
-../../src-lua/plugins/hump/signal/README.md
+../../packages/runtime-lua/plugins/hump/signal/README.md

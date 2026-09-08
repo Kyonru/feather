@@ -24,6 +24,13 @@ jobs:
         with:
           node-version: 22.21.1
           cache: "pnpm"
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -46,7 +53,7 @@ jobs:
     timeout-minutes: 10
     if: |
       contains(github.event_name, 'pull_request') ||
-      contains(github.event.head_commit.message, 'src-lua/') ||
+      contains(github.event.head_commit.message, 'packages/runtime-lua/') ||
       github.event_name == 'push'
     steps:
       - name: Checkout code
@@ -64,4 +71,4 @@ jobs:
         run: echo "$HOME/.luarocks/bin" >> $GITHUB_PATH
 
       - name: Run luacheck with Love2D globals
-        run: luacheck src-lua --globals love
+        run: luacheck packages/runtime-lua --globals love

@@ -1,1 +1,1 @@
-../src-lua/plugins/shader-graph/README.md
+../packages/runtime-lua/plugins/shader-graph/README.md

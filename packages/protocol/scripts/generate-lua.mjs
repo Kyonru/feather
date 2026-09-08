@@ -43,6 +43,6 @@ ${body}
 }
 `;
 
-const target = join(repoRoot, 'src-lua/feather/protocol_messages.lua');
+const target = join(repoRoot, 'packages/runtime-lua/feather/protocol_messages.lua');
 writeFileSync(target, out);
-console.log(`Written src-lua/feather/protocol_messages.lua (${toGame.length} desktop->game messages)`);
+console.log(`Written packages/runtime-lua/feather/protocol_messages.lua (${toGame.length} desktop->game messages)`);

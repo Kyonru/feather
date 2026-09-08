@@ -15,7 +15,7 @@ export default tseslint.config(
       'tailwind.config.cjs',
       'postcss.config.cjs',
       'src-tauri/',
-      'src-lua/',
+      'packages/runtime-lua/',
     ],
   },
   ...pluginQuery.configs['flat/recommended'],

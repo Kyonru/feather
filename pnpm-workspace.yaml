@@ -7,6 +7,7 @@ packages:
   - cli
   - packages/host
   - packages/protocol
+  - packages/runtime-lua
   - packages/session-bridge
   - packages/ui
   - vscode-extension

@@ -1,1 +1,1 @@
-../src-lua/plugins/hot-reload/README.md
+../packages/runtime-lua/plugins/hot-reload/README.md

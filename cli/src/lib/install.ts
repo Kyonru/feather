@@ -11,9 +11,9 @@ import {
 import { assertSafeProjectTarget, assertSafeRelativePath } from "./path-safety.js";
 
 const GITHUB_RAW =
-  "https://raw.githubusercontent.com/Kyonru/feather/{branch}/src-lua/{path}";
+  "https://raw.githubusercontent.com/Kyonru/feather/{branch}/packages/runtime-lua/{path}";
 const MANIFEST_URL =
-  "https://raw.githubusercontent.com/Kyonru/feather/{branch}/src-lua/manifest.txt";
+  "https://raw.githubusercontent.com/Kyonru/feather/{branch}/packages/runtime-lua/manifest.txt";
 
 export interface ManifestEntry {
   type: "core" | "plugin";

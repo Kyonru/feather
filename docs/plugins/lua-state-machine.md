@@ -1,1 +1,1 @@
-../../src-lua/plugins/lua-state-machine/README.md
+../../packages/runtime-lua/plugins/lua-state-machine/README.md

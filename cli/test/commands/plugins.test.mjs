@@ -96,7 +96,7 @@ test('plugin install: unknown local plugin exits 1', () => {
 test('plugin install: local manifest is validated before copying', () => {
   const dir = makeTmp();
   writeMinimalRuntime(dir);
-  const source = join(makeTmp(), 'src-lua');
+  const source = join(makeTmp(), 'packages/runtime-lua');
   writeLocalPluginSource(source, 'bad-plugin', { version: null });
 
   const result = run(['plugin', 'install', 'bad-plugin', '--local-src', source, '--dir', dir]);
@@ -108,7 +108,7 @@ test('plugin install: local manifest is validated before copying', () => {
 test('plugin install: local manifest id must match plugin path', () => {
   const dir = makeTmp();
   writeMinimalRuntime(dir);
-  const source = join(makeTmp(), 'src-lua');
+  const source = join(makeTmp(), 'packages/runtime-lua');
   writeLocalPluginSource(source, 'console', { manifestId: 'other-plugin' });
 
   const result = run(['plugin', 'install', 'console', '--local-src', source, '--dir', dir]);
@@ -139,7 +139,7 @@ test('plugin install: refuses install directory symlink escaping project', () =>
 
 test('plugin update: explicit local update fails on invalid manifest', () => {
   const dir = makeTmp();
-  const source = join(makeTmp(), 'src-lua');
+  const source = join(makeTmp(), 'packages/runtime-lua');
   writeLocalPluginSource(source, 'bad-plugin', { version: 'not valid' });
 
   const result = run(['plugin', 'update', 'bad-plugin', '--local-src', source, '--dir', dir, '--yes']);

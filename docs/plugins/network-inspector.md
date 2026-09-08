@@ -1,1 +1,1 @@
-../../src-lua/plugins/network-inspector/README.md
+../../packages/runtime-lua/plugins/network-inspector/README.md

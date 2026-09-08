@@ -1,1 +1,1 @@
-../packages/README.md
+../catalog/packages/README.md

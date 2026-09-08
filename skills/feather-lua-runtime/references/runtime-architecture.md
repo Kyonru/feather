@@ -2,17 +2,17 @@
 
 ## Runtime layout
 
-- `src-lua/feather/init.lua`: main debugger object.
-- `src-lua/feather/auto.lua`: auto-registration and config-driven setup.
-- `src-lua/feather/plugin_manager.lua`: plugin discovery, capability checks, lifecycle dispatch.
-- `src-lua/feather/core/base.lua`: `FeatherPlugin` base class.
-- `src-lua/feather/callback_bus.lua`: shared Love2D callback dispatch.
-- `src-lua/feather/core/logger.lua`: logs and print wrapping.
-- `src-lua/feather/core/observer.lua`: observed variables.
-- `src-lua/feather/core/performance.lua`: performance samples.
-- `src-lua/feather/core/assets.lua`: asset previews.
-- `src-lua/feather/debugger.lua`: step debugger and command handling.
-- `src-lua/feather/ui.lua`: declarative plugin UI helpers.
+- `packages/runtime-lua/feather/init.lua`: main debugger object.
+- `packages/runtime-lua/feather/auto.lua`: auto-registration and config-driven setup.
+- `packages/runtime-lua/feather/plugin_manager.lua`: plugin discovery, capability checks, lifecycle dispatch.
+- `packages/runtime-lua/feather/core/base.lua`: `FeatherPlugin` base class.
+- `packages/runtime-lua/feather/callback_bus.lua`: shared Love2D callback dispatch.
+- `packages/runtime-lua/feather/core/logger.lua`: logs and print wrapping.
+- `packages/runtime-lua/feather/core/observer.lua`: observed variables.
+- `packages/runtime-lua/feather/core/performance.lua`: performance samples.
+- `packages/runtime-lua/feather/core/assets.lua`: asset previews.
+- `packages/runtime-lua/feather/debugger.lua`: step debugger and command handling.
+- `packages/runtime-lua/feather/ui.lua`: declarative plugin UI helpers.
 
 ## CLI injection
 
@@ -67,4 +67,4 @@ Runtime files are copied into `cli/lua` for packaged CLI usage. When adding runt
 - Runtime behavior: `npm run test:lua:e2e`.
 - CLI integration with runtime files: `node --test cli/test/commands/runtime.test.mjs` plus related command tests.
 - Protocol changes: pair Lua e2e with desktop app or Rust WebSocket tests when the wire shape changes.
-- Plugin changes: use per-plugin fixtures under `src-lua/e2e/plugins/`.
+- Plugin changes: use per-plugin fixtures under `packages/runtime-lua/e2e/plugins/`.

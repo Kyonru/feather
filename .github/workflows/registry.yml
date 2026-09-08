@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "packages/**"
+      - "catalog/packages/**"
   workflow_dispatch:
 
 jobs:
@@ -61,7 +61,7 @@ jobs:
           # Set up a worktree pointing at the packages branch.
           # If the branch doesn't exist yet, create it as an orphan.
           if git ls-remote --exit-code origin packages > /dev/null 2>&1; then
-            git worktree add /tmp/registry-branch packages
+            git worktree add /tmp/registry-branch refs/heads/packages
           else
             git worktree add --orphan -b packages /tmp/registry-branch
           fi

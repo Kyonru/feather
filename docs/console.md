@@ -1,1 +1,1 @@
-../src-lua/plugins/console/README.md
+../packages/runtime-lua/plugins/console/README.md

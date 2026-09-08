@@ -26,7 +26,7 @@ function extract(source, pattern, label, file) {
   return Number(match[1]);
 }
 
-const luaFile = 'src-lua/feather/init.lua';
+const luaFile = 'packages/runtime-lua/feather/init.lua';
 const tsFile = 'src/constants/feather-protocol.ts';
 
 const lua = extract(
@@ -120,7 +120,7 @@ compare('game -> desktop', toDesktop, liveToDesktop, registrySource, 'src/hooks/
 
 // The generated Lua table must match the registry, or the runtime will warn
 // about commands that are perfectly valid (or stay silent about ones that are not).
-const generatedLuaFile = 'src-lua/feather/protocol_messages.lua';
+const generatedLuaFile = 'packages/runtime-lua/feather/protocol_messages.lua';
 const generatedLua = new Set(
   [...read(generatedLuaFile).matchAll(/\["([^"]+)"\] = true/g)].map((m) => m[1]),
 );

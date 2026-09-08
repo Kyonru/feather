@@ -19,13 +19,13 @@ Both apply.
 - `cli/` - TypeScript CLI using Commander. Workspace package `@kyonru/feather`.
 - `src/` - React desktop app using Vite, Tailwind, Radix/Base UI, and Tauri APIs.
 - `src-tauri/` - Rust/Tauri shell and WebSocket server.
-- `src-lua/feather/` - Embedded Lua runtime loaded into running games.
-- `src-lua/plugins/` - Built-in Lua plugins.
+- `packages/runtime-lua/feather/` - Embedded Lua runtime loaded into running games.
+- `packages/runtime-lua/plugins/` - Built-in Lua plugins.
 - `vscode-extension/` - VS Code extension workspace package.
-- `packages/` - Curated Love2D package catalog entries (`packages/*.json`), plus
-  `packages/protocol/` (`@feather/protocol`), the wire protocol message registry. The catalog
-  moves to `catalog/packages/` in V2.md Phase 06; until then the two share this directory.
-  `scripts/generate-registry.mjs` only reads `*.json`, so the subdirectory is ignored by it.
+- `catalog/packages/` - Curated Love2D package catalog entries (`catalog/packages/*.json`).
+  Published to the `packages` branch by `.github/workflows/registry.yml`.
+- `packages/` - Shared workspace packages: `protocol` (wire message registry), `host` (environment
+  capabilities), `session-bridge` (live-game transport), `ui` (interface primitives).
 - `scripts/` - Registry/catalog generators, checksum tools, bundle helpers.
 - `docs/` - Zensical documentation site.
 - `skills/` - Repo-local agent skills. Read the matching skill before editing a subsystem.
@@ -53,16 +53,16 @@ New packages:
 
 - Read `skills/feather-package-catalog/SKILL.md` and its workflow reference before editing catalog data.
 - Prefer `pnpm run package:add` for GitHub-hosted packages and `pnpm run package:add-url` for direct file URL packages.
-- Commit both the source `packages/<id>.json` file and the generated `cli/src/generated/registry.json` update.
+- Commit both the source `catalog/packages/<id>.json` file and the generated `cli/src/generated/registry.json` update.
 - Verify with `pnpm run check:registry`, `pnpm run cli:build`, `pnpm run feather -- package info <id>`, and a package install into a temp or fixture project.
 - Update package docs, e2e coverage, and `CHANGELOG.md` when the package is user-visible.
 
 New plugins:
 
 - Read `skills/feather-plugin-authoring/SKILL.md` and its catalog/testing reference before adding plugin files.
-- Built-in plugins should usually include `src-lua/plugins/<plugin-id>/init.lua`, `manifest.lua`, and `README.md`.
+- Built-in plugins should usually include `packages/runtime-lua/plugins/<plugin-id>/init.lua`, `manifest.lua`, and `README.md`.
 - Declare capabilities, default options, `optIn`, and `disabled` deliberately; risky or development-only plugins stay opt-in and disabled.
-- Add Lua e2e coverage under `src-lua/e2e/plugins/` for runtime behavior, and desktop/showcase e2e when React-rendered plugin UI changes.
+- Add Lua e2e coverage under `packages/runtime-lua/e2e/plugins/` for runtime behavior, and desktop/showcase e2e when React-rendered plugin UI changes.
 - Run `bash scripts/generate-manifest.sh`, `pnpm run generate:plugin-catalog`, `pnpm run cli:build`, `pnpm run typecheck:lua`, and `pnpm run test:lua:e2e`.
 - Update plugin docs, any docs symlink targets, and `CHANGELOG.md`.
 
@@ -110,9 +110,9 @@ Docs symlink source files:
 - `docs/cli.md` points to `cli/README.md`.
 - `docs/vscode-extension.md` points to `vscode-extension/README.md`.
 - `docs/packages.md` points to `packages/README.md`.
-- `docs/plugins.md` points to `src-lua/plugins/README.md`.
-- `docs/plugins-ui.md` points to `src-lua/plugins/plugins-ui.md`.
-- Plugin pages under `docs/plugins/` usually point to `src-lua/plugins/<plugin-id>/README.md`.
+- `docs/plugins.md` points to `packages/runtime-lua/plugins/README.md`.
+- `docs/plugins-ui.md` points to `packages/runtime-lua/plugins/plugins-ui.md`.
+- Plugin pages under `docs/plugins/` usually point to `packages/runtime-lua/plugins/<plugin-id>/README.md`.
 
 Edit the source file, not only the docs path.
 

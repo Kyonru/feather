@@ -243,7 +243,7 @@ async function buildInitCommandPlan(
     [
       { label: 'Bundled runtime', description: 'Use the runtime packaged with this extension/CLI.', value: 'bundled' },
       { label: 'GitHub branch or tag', description: 'Download runtime files from GitHub.', value: 'remote' },
-      { label: 'Local src-lua folder', description: 'Copy runtime files from a local source checkout.', value: 'local' },
+      { label: 'Local packages/runtime-lua folder', description: 'Copy runtime files from a local source checkout.', value: 'local' },
     ],
     { placeHolder: 'Select runtime source' },
   );
@@ -262,8 +262,8 @@ async function buildInitCommandPlan(
       canSelectFiles: false,
       canSelectMany: false,
       defaultUri: vscode.Uri.file(root),
-      openLabel: 'Use src-lua',
-      title: 'Feather: Select local src-lua folder',
+      openLabel: 'Use packages/runtime-lua',
+      title: 'Feather: Select local packages/runtime-lua folder',
     });
     const localSrc = uris?.[0]?.fsPath;
     if (!localSrc) return undefined;

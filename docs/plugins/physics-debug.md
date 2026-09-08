@@ -1,1 +1,1 @@
-../../src-lua/plugins/physics-debug/README.md
+../../packages/runtime-lua/plugins/physics-debug/README.md

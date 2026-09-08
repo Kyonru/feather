@@ -26,7 +26,7 @@ function replayAdapterTemplate(): string {
   }
 
   fail('Session Replay adapter template was not found.', {
-    details: [`Expected ${ADAPTER_TEMPLATE_PATH} in bundled cli/lua or src-lua.`],
+    details: [`Expected ${ADAPTER_TEMPLATE_PATH} in bundled cli/lua or packages/runtime-lua.`],
   });
 }
 

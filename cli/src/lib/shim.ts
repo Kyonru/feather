@@ -5,10 +5,10 @@ import { fileURLToPath } from 'node:url';
 
 // Path to the bundled Lua library shipped with this CLI package.
 // In a source checkout `npm run build` does not run the publish-time Lua bundle,
-// so fall back to the repository's src-lua directory for local development.
+// so fall back to the repository's packages/runtime-lua directory for local development.
 const MODULE_DIR = fileURLToPath(new URL('.', import.meta.url));
 const PACKAGED_LUA = resolve(MODULE_DIR, '../../lua');
-const SOURCE_LUA = resolve(MODULE_DIR, '../../../src-lua');
+const SOURCE_LUA = resolve(MODULE_DIR, '../../../packages/runtime-lua');
 
 export function bundledLuaRoot(): string {
   // When running as a compiled binary, lua/ ships next to the executable.

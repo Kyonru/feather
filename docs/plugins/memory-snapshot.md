@@ -1,1 +1,1 @@
-../../src-lua/plugins/memory-snapshot/README.md
+../../packages/runtime-lua/plugins/memory-snapshot/README.md

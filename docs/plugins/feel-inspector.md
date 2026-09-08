@@ -1,1 +1,1 @@
-../../src-lua/plugins/feel-inspector/README.md
+../../packages/runtime-lua/plugins/feel-inspector/README.md

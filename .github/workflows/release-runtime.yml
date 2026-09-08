@@ -3,7 +3,7 @@ name: Release Lua runtime
 # `runtime-v*`  -> runtime alone
 # `v*`          -> runtime as part of a full platform release
 #
-# The reusable workflow skips the LuaRocks publish when src-lua/feather is
+# The reusable workflow skips the LuaRocks publish when packages/runtime-lua/feather is
 # unchanged since the previous runtime release, so a platform tag never burns a
 # rock version for an unmodified runtime.
 on:

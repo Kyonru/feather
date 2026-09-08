@@ -1,1 +1,1 @@
-../src-lua/plugins/plugins-ui.md
+../packages/runtime-lua/plugins/plugins-ui.md

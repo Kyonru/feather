@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 
 const CLI = fileURLToPath(new URL('../../dist/index.js', import.meta.url));
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
-const LOCAL_SRC = join(ROOT, 'src-lua');
+const LOCAL_SRC = join(ROOT, 'packages/runtime-lua');
 const LOCK_FIXTURES = fileURLToPath(new URL('../fixtures/package-locks/', import.meta.url));
 const CLI_PACKAGE = JSON.parse(readFileSync(join(ROOT, 'cli', 'package.json'), 'utf8'));
 const LOCK_FEATURE_REQUIREMENT = `>=${CLI_PACKAGE.version}`;

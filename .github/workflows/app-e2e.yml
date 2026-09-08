@@ -2,22 +2,8 @@ name: App E2E
 
 on:
   pull_request:
-    paths:
-      - "src/**"
-      - "e2e/**"
-      - "playwright.config.ts"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/app-e2e.yml"
   push:
     branches: [ main, next ]
-    paths:
-      - "src/**"
-      - "e2e/**"
-      - "playwright.config.ts"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/app-e2e.yml"
   workflow_dispatch:
 
 permissions:
@@ -41,6 +27,13 @@ jobs:
         with:
           node-version: 22.21.1
           cache: "pnpm"
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

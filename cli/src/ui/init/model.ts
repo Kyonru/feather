@@ -102,7 +102,7 @@ export const installSources: Option<"local" | "remote">[] = [
   {
     value: "local",
     label: "Bundled/local copy",
-    description: "Copy the CLI-bundled Lua runtime, or src-lua when running from the repo.",
+    description: "Copy the CLI-bundled Lua runtime, or packages/runtime-lua when running from the repo.",
   },
   {
     value: "remote",

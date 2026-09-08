@@ -4,7 +4,7 @@ import { dirname, join, relative } from 'node:path';
 
 // eslint-disable-next-line no-undef
 const root = process?.cwd();
-const pluginsRoot = join(root, 'src-lua', 'plugins');
+const pluginsRoot = join(root, 'packages/runtime-lua', 'plugins');
 const outFile = join(root, 'cli', 'src', 'generated', 'plugin-catalog.ts');
 
 function walk(dir, files = []) {
@@ -53,7 +53,7 @@ function loadManifest(path) {
 }
 
 function manifestExpectedPaths() {
-  const manifestPath = join(root, 'src-lua', 'manifest.txt');
+  const manifestPath = join(root, 'packages/runtime-lua', 'manifest.txt');
   const lines = readFileSync(manifestPath, 'utf8')
     .split('\n')
     .map((line) => line.trim())
@@ -64,9 +64,9 @@ function manifestExpectedPaths() {
     const parts = line.split(':');
     let path;
     if (parts[0] === 'core' && parts[1]) {
-      path = join(root, 'src-lua', parts[1]);
+      path = join(root, 'packages/runtime-lua', parts[1]);
     } else if (parts[0] === 'plugin' && parts[1] && parts[2]) {
-      path = join(root, 'src-lua', 'plugins', parts[1], parts[2]);
+      path = join(root, 'packages/runtime-lua', 'plugins', parts[1], parts[2]);
     } else {
       throw new Error(`Invalid manifest.txt entry: ${line}`);
     }
@@ -87,7 +87,7 @@ const plugins = pluginManifests.map(loadManifest).sort((a, b) => a.id.localeComp
 for (const manifest of pluginManifests) {
   const rel = relative(root, manifest).replace(/\\/g, '/');
   if (!manifestPaths.has(rel)) {
-    throw new Error(`Plugin manifest is not listed in src-lua/manifest.txt: ${rel}`);
+    throw new Error(`Plugin manifest is not listed in packages/runtime-lua/manifest.txt: ${rel}`);
   }
 }
 

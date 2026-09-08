@@ -1,1 +1,1 @@
-../../src-lua/plugins/screenshots/README.md
+../../packages/runtime-lua/plugins/screenshots/README.md

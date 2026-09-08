@@ -1,1 +1,1 @@
-../../src-lua/plugins/animation-inspector/README.md
+../../packages/runtime-lua/plugins/animation-inspector/README.md

@@ -14,7 +14,7 @@ registry and the live dispatch tables disagree:
 
 | Registry | Live dispatch table |
 | --- | --- |
-| `TO_GAME` | `Feather:__handleCommand` in `src-lua/feather/init.lua` |
+| `TO_GAME` | `Feather:__handleCommand` in `packages/runtime-lua/feather/init.lua` |
 | `TO_DESKTOP` | the `switch` in `src/hooks/use-ws-connection.ts` |
 
 ## Scope
@@ -25,5 +25,5 @@ Phase 02b. The message set alone is what makes drift mechanically detectable,
 which is the part that matters once the release trains can ship separately.
 
 The negotiated wire protocol *version* lives separately, in
-`src/constants/feather-protocol.ts` and `src-lua/feather/init.lua`, because both
+`src/constants/feather-protocol.ts` and `packages/runtime-lua/feather/init.lua`, because both
 sides need it before any message is exchanged.

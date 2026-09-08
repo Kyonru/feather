@@ -7,11 +7,11 @@ description: Work on Feather's Lua runtime, CLI injection, feather.config.lua, W
 
 ## When to use
 
-Use this skill when changing `src-lua/feather`, bundled Lua plugins, runtime configuration, CLI injection behavior, WebSocket/disk transport, auth, debugger behavior, or Lua e2e tests.
+Use this skill when changing `packages/runtime-lua/feather`, bundled Lua plugins, runtime configuration, CLI injection behavior, WebSocket/disk transport, auth, debugger behavior, or Lua e2e tests.
 
 ## First pass
 
-- Start with `src-lua/feather/init.lua`, `src-lua/feather/auto.lua`, and `src-lua/feather/plugin_manager.lua`.
+- Start with `packages/runtime-lua/feather/init.lua`, `packages/runtime-lua/feather/auto.lua`, and `packages/runtime-lua/feather/plugin_manager.lua`.
 - For config, connection, and transport behavior, load [config and protocol](references/config-and-protocol.md).
 - For runtime layout, injection modes, and tests, load [runtime architecture](references/runtime-architecture.md).
 - If the change touches plugins, also use the `feather-plugin-authoring` skill.
@@ -29,20 +29,20 @@ Use this skill when changing `src-lua/feather`, bundled Lua plugins, runtime con
 
 ## Common implementation map
 
-- Runtime entry: `src-lua/feather/init.lua`.
-- CLI auto-loader: `src-lua/feather/auto.lua`.
-- Plugin manager: `src-lua/feather/plugin_manager.lua`.
-- Base plugin class: `src-lua/feather/core/base.lua`.
-- Callback bus: `src-lua/feather/callback_bus.lua`.
-- Logger, observers, performance, assets: `src-lua/feather/core/`.
-- Debugger: `src-lua/feather/debugger.lua`.
-- Error handler: `src-lua/feather/error_handler.lua`.
-- Declarative UI helpers: `src-lua/feather/ui.lua`.
-- Runtime examples and e2e fixtures: `src-lua/example/`, `src-lua/e2e/`.
+- Runtime entry: `packages/runtime-lua/feather/init.lua`.
+- CLI auto-loader: `packages/runtime-lua/feather/auto.lua`.
+- Plugin manager: `packages/runtime-lua/feather/plugin_manager.lua`.
+- Base plugin class: `packages/runtime-lua/feather/core/base.lua`.
+- Callback bus: `packages/runtime-lua/feather/callback_bus.lua`.
+- Logger, observers, performance, assets: `packages/runtime-lua/feather/core/`.
+- Debugger: `packages/runtime-lua/feather/debugger.lua`.
+- Error handler: `packages/runtime-lua/feather/error_handler.lua`.
+- Declarative UI helpers: `packages/runtime-lua/feather/ui.lua`.
+- Runtime examples and e2e fixtures: `packages/runtime-lua/example/`, `packages/runtime-lua/e2e/`.
 
 ## Verification
 
-- Add or update Lua e2e coverage for runtime behavior changes; use `src-lua/e2e/`, `src-lua/example/`, and `scripts/lua-e2e.mjs` patterns.
+- Add or update Lua e2e coverage for runtime behavior changes; use `packages/runtime-lua/e2e/`, `packages/runtime-lua/example/`, and `scripts/lua-e2e.mjs` patterns.
 - Run Lua e2e checks: `npm run test:lua:e2e`.
 - Rebuild bundled CLI runtime if packaging behavior changes: `npm run bundle:lua --workspace=cli`.
 - Run CLI build when TypeScript and Lua bundle behavior meet: `npm run cli:build`.
@@ -55,7 +55,7 @@ Use this skill when changing `src-lua/feather`, bundled Lua plugins, runtime con
 - Runtime config fields belong in `docs/configuration.md`.
 - User workflows around observers, logging, console, debugger, or replay belong in `docs/usage.md` and related focused docs.
 - Production/security posture belongs in `docs/recommendations.md`.
-- When runtime docs are plugin- or feature-specific, prefer a source-side README under `src-lua/` and expose it through `docs/` with a symlink.
+- When runtime docs are plugin- or feature-specific, prefer a source-side README under `packages/runtime-lua/` and expose it through `docs/` with a symlink.
 
 ## Avoid
 

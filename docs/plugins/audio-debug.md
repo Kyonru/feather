@@ -1,1 +1,1 @@
-../../src-lua/plugins/audio-debug/README.md
+../../packages/runtime-lua/plugins/audio-debug/README.md

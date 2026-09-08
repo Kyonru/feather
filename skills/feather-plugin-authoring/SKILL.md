@@ -11,8 +11,8 @@ Use this skill when adding or changing built-in plugins, plugin manifests, plugi
 
 ## First pass
 
-- Start with an existing plugin in `src-lua/plugins/<plugin-id>/`.
-- Read `src-lua/plugins/plugins-ui.md` before changing declarative UI nodes.
+- Start with an existing plugin in `packages/runtime-lua/plugins/<plugin-id>/`.
+- Read `packages/runtime-lua/plugins/plugins-ui.md` before changing declarative UI nodes.
 - For plugin lifecycle and UI details, load [lifecycle and UI](references/lifecycle-and-ui.md).
 - For adding plugins, manifests, catalog generation, and tests, load [catalog and testing](references/catalog-and-testing.md).
 
@@ -30,11 +30,11 @@ Use this skill when adding or changing built-in plugins, plugin manifests, plugi
 
 ## Common implementation map
 
-- Built-in plugins: `src-lua/plugins/`.
-- Plugin UI docs: `src-lua/plugins/plugins-ui.md`.
-- Base class: `src-lua/feather/core/base.lua`.
-- Plugin manager: `src-lua/feather/plugin_manager.lua`.
-- UI helpers: `src-lua/feather/ui.lua`.
+- Built-in plugins: `packages/runtime-lua/plugins/`.
+- Plugin UI docs: `packages/runtime-lua/plugins/plugins-ui.md`.
+- Base class: `packages/runtime-lua/feather/core/base.lua`.
+- Plugin manager: `packages/runtime-lua/feather/plugin_manager.lua`.
+- UI helpers: `packages/runtime-lua/feather/ui.lua`.
 - Generated catalog: `cli/src/generated/plugin-catalog.ts`.
 - Catalog generator: `scripts/generate-plugin-catalog.mjs`.
 - CLI plugin commands: `cli/src/commands/plugin.ts`.
@@ -52,9 +52,9 @@ Use this skill when adding or changing built-in plugins, plugin manifests, plugi
 - Update docs for user-facing plugin behavior, options, manifests, or UI nodes in the same change as the implementation.
 - Update `CHANGELOG.md` for new plugins, changed plugin behavior, capability/security changes, plugin UI changes, or plugin e2e coverage changes.
 - Plugin authoring behavior belongs in `docs/plugins.md`.
-- Declarative plugin UI details belong in `src-lua/plugins/plugins-ui.md`.
-- Per-plugin behavior belongs in that plugin's `src-lua/plugins/<plugin-id>/README.md`.
-- Prefer source-side docs under `src-lua/plugins/`; expose them through `docs/` symlinks such as `docs/plugins.md`, `docs/plugins-ui.md`, or `docs/plugins/<plugin-id>.md`.
+- Declarative plugin UI details belong in `packages/runtime-lua/plugins/plugins-ui.md`.
+- Per-plugin behavior belongs in that plugin's `packages/runtime-lua/plugins/<plugin-id>/README.md`.
+- Prefer source-side docs under `packages/runtime-lua/plugins/`; expose them through `docs/` symlinks such as `docs/plugins.md`, `docs/plugins-ui.md`, or `docs/plugins/<plugin-id>.md`.
 
 ## Avoid
 

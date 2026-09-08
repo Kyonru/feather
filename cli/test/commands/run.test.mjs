@@ -1,5 +1,6 @@
 /* eslint-disable no-undef */
 import {
+  ROOT,
   LOCAL_SRC,
   assert,
   delimiter,
@@ -102,7 +103,7 @@ test('run: source checkout build exposes feather.auto without a bundled cli/lua 
   const record = JSON.parse(readFileSync(recordPath, 'utf8'));
   assert.equal(record.featherAutoExists, true);
   assert.ok(
-    [join(dirname(LOCAL_SRC), 'cli', 'lua'), LOCAL_SRC].some((root) =>
+    [join(ROOT, 'cli', 'lua'), LOCAL_SRC].some((root) =>
       record.shimMain.includes(`${root.replace(/\\/g, '/')}/?.lua`),
     ),
   );
@@ -398,7 +399,7 @@ test('run --target android --config: embeds selected raw Feather config in mobil
 
 test('run --target android: uses root build config for a nested game path', () => {
   const dir = makeTmp();
-  const gameDir = join(dir, 'src-lua', 'example', 'test_cli');
+  const gameDir = join(dir, 'packages/runtime-lua', 'example', 'test_cli');
   writeGame(gameDir);
   const { recordPath: gradleRecordPath } = writeFakeLoveAndroid(dir);
   writeBuildConfig(dir, {

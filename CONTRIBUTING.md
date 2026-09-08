@@ -62,9 +62,9 @@ pnpm run docs
 - `src-tauri/` contains the Tauri shell and WebSocket server.
 - `cli/` contains the Feather CLI, build/upload/release logic, package manager, and Ink workflows.
 - `cli/test/commands/` contains CLI end-to-end tests using Node's built-in test runner.
-- `src-lua/feather/` contains the embedded Lua runtime.
-- `src-lua/plugins/` contains built-in Lua plugins.
-- `src-lua/example/` contains runnable LÖVE examples.
+- `packages/runtime-lua/feather/` contains the embedded Lua runtime.
+- `packages/runtime-lua/plugins/` contains built-in Lua plugins.
+- `packages/runtime-lua/example/` contains runnable LÖVE examples.
 - `vscode-extension/` contains the VS Code extension.
 - `docs/` contains the Zensical documentation site.
 - `packages/` contains curated package registry entries.
@@ -78,7 +78,7 @@ Most examples should be plain LÖVE projects. Do not add direct `require("feathe
 Prefer this shape:
 
 ```txt
-src-lua/example/my_example/
+packages/runtime-lua/example/my_example/
   main.lua
   conf.lua
   feather.config.lua
@@ -87,7 +87,7 @@ src-lua/example/my_example/
 Run it with:
 
 ```sh
-pnpm run feather -- run src-lua/example/my_example
+pnpm run feather -- run packages/runtime-lua/example/my_example
 ```
 
 Example game code may use guarded runtime APIs:
@@ -123,8 +123,8 @@ Run the CLI:
 
 ```sh
 pnpm run cli:build
-pnpm run feather -- doctor src-lua/example/test_cli
-pnpm run feather -- run src-lua/example/test_cli
+pnpm run feather -- doctor packages/runtime-lua/example/test_cli
+pnpm run feather -- run packages/runtime-lua/example/test_cli
 ```
 
 Run a focused CLI test file:
@@ -137,25 +137,25 @@ node --test cli/test/commands/run.test.mjs
 Run Lua examples:
 
 ```sh
-pnpm run feather -- run src-lua/example/test_cli
-pnpm run feather -- run src-lua/example/session_replay/single_player
-pnpm run feather -- run src-lua/example/session_replay/multiplayer
-pnpm run feather -- run src-lua/example/session_replay/adapter
+pnpm run feather -- run packages/runtime-lua/example/test_cli
+pnpm run feather -- run packages/runtime-lua/example/session_replay/single_player
+pnpm run feather -- run packages/runtime-lua/example/session_replay/multiplayer
+pnpm run feather -- run packages/runtime-lua/example/session_replay/adapter
 ```
 
 Run Android development builds:
 
 ```sh
-pnpm run feather -- build vendor add android --dir src-lua/example/test_cli
-pnpm run feather -- build android --dir src-lua/example/test_cli --verbose
-pnpm run feather -- run src-lua/example/test_cli --target android --verbose
+pnpm run feather -- build vendor add android --dir packages/runtime-lua/example/test_cli
+pnpm run feather -- build android --dir packages/runtime-lua/example/test_cli --verbose
+pnpm run feather -- run packages/runtime-lua/example/test_cli --target android --verbose
 ```
 
 Use cache controls when testing build behavior:
 
 ```sh
-pnpm run feather -- build android --dir src-lua/example/test_cli --no-cache --verbose
-pnpm run feather -- build android --dir src-lua/example/test_cli --clean --verbose
+pnpm run feather -- build android --dir packages/runtime-lua/example/test_cli --no-cache --verbose
+pnpm run feather -- build android --dir packages/runtime-lua/example/test_cli --clean --verbose
 ```
 
 ## Golden Workflow Checklist
@@ -163,7 +163,7 @@ pnpm run feather -- build android --dir src-lua/example/test_cli --clean --verbo
 Use this smoke path when validating Feather for day-to-day LÖVE development:
 
 ```bash
-pnpm run feather -- run src-lua/example/test_cli --verbose --config src-lua/example/test_cli/feather.config.lua
+pnpm run feather -- run packages/runtime-lua/example/test_cli --verbose --config packages/runtime-lua/example/test_cli/feather.config.lua
 ```
 
 1. **Connect And Session Health**: the running game appears as the active session, stale **Connecting game** entries disappear, **Session** shows the runtime/config details, and suspend/resume keeps the socket available without leaving the app stuck.
@@ -218,10 +218,10 @@ When you need to push from a machine that cannot run those tools, use `SKIP_PRE_
 
 Some files are generated and must stay in sync:
 
-- `src-lua/manifest.txt`
+- `packages/runtime-lua/manifest.txt`
 - `cli/src/generated/plugin-catalog.ts`
 - `cli/src/generated/registry.json`
-- the desktop version trio: `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json` (see Release Trains — `cli/`, `src-lua/`, and `vscode-extension/` version independently)
+- the desktop version trio: `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json` (see Release Trains — `cli/`, `packages/runtime-lua/`, and `vscode-extension/` version independently)
 
 Refresh them with:
 
@@ -248,10 +248,10 @@ Generated or local-only folders such as `vscode-extension/bundled-cli/`, `vscode
 
 ## Plugin Guidelines
 
-Built-in plugins live under `src-lua/plugins/<plugin-id>/` and should usually include:
+Built-in plugins live under `packages/runtime-lua/plugins/<plugin-id>/` and should usually include:
 
 ```txt
-src-lua/plugins/<plugin-id>/
+packages/runtime-lua/plugins/<plugin-id>/
   init.lua
   manifest.lua
   README.md
@@ -324,7 +324,7 @@ Notes:
 
 - Each release workflow verifies that its train's version matches the tag and
   fails with the exact `set-version.sh` command to fix it.
-- The runtime workflow skips the LuaRocks publish when `src-lua/feather` is
+- The runtime workflow skips the LuaRocks publish when `packages/runtime-lua/feather` is
   unchanged since the previous runtime release, so a platform tag never burns a
   rock version for an unmodified runtime. Override with the `force` input on
   workflow dispatch.
@@ -357,14 +357,14 @@ Production paths should be boringly strict.
 
 - User-facing CLI behavior belongs in `cli/README.md` and, when broader, in `docs/usage.md` or a dedicated page.
 - Runtime config belongs in `docs/configuration.md`.
-- Plugin behavior belongs in `src-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `docs/<feature>.md` page and a `zensical.toml` nav entry.
+- Plugin behavior belongs in `packages/runtime-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `docs/<feature>.md` page and a `zensical.toml` nav entry.
 - VS Code extension behavior belongs in `vscode-extension/README.md`.
 - Prefer copy-pasteable commands and small guarded Lua examples.
 - Be explicit about what Feather does not do. For example, Session Replay records inputs and developer-selected state; it does not serialize an entire game.
 
 ## Package Catalog Contributions
 
-Use helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `packages/<id>.json`, and regenerate `cli/src/generated/registry.json`.
+Use helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `catalog/packages/<id>.json`, and regenerate `cli/src/generated/registry.json`.
 
 For GitHub-hosted packages:
 
@@ -393,7 +393,7 @@ Package contribution tips:
 - Keep install targets narrow and predictable, usually under `lib/<package-id>/`.
 - Include a realistic `require` path and a small usage example.
 - Use `verified` only for packages reviewed and pinned with checksums. Use `known` for checksum-pinned sources that still need extra review.
-- Commit both `packages/<id>.json` and `cli/src/generated/registry.json`.
+- Commit both `catalog/packages/<id>.json` and `cli/src/generated/registry.json`.
 
 ## Commit Messages
 

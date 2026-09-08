@@ -133,7 +133,7 @@ feather init --plugins screenshots,console
 feather init --plugins hot-reload --hot-reload-allow game.player,game.systems.combat
 feather init --session-name "My Game" --app-id feather-app-...
 feather init --remote --branch v0.7.0             # use a specific runtime release
-feather init --local-src ../feather/src-lua       # use a local source tree
+feather init --local-src ../feather/packages/runtime-lua       # use a local source tree
 feather init --install-dir lib/feather            # configure like FEATHER_DIR=lib/feather
 ```
 
@@ -154,8 +154,8 @@ CLI mode writes a development config with `debug = true`, `autoRegisterErrorHand
 
 Install source priority:
 
-1. `--local-src <path>` copies from a local `src-lua` style tree.
-2. Running the CLI from the Feather monorepo copies the repo's `src-lua`.
+1. `--local-src <path>` copies from a local `packages/runtime-lua` style tree.
+2. Running the CLI from the Feather monorepo copies the repo's `packages/runtime-lua`.
 3. Published CLI installs copy the bundled `cli/lua` runtime.
 4. `--remote` downloads from GitHub using `--branch`.
 
@@ -252,7 +252,7 @@ return DEBUGGER
 | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `--remote`                   | Download from GitHub instead of copying the local/bundled Lua runtime.                               |
 | `--branch <branch>`          | GitHub branch or tag to download from when using `--remote` (default: `main`).                       |
-| `--local-src <path>`         | Copy from a local `src-lua` style directory.                                                         |
+| `--local-src <path>`         | Copy from a local `packages/runtime-lua` style directory.                                                         |
 | `--install-dir <path>`       | Install directory for auto/manual modes (default: `feather`).                                        |
 | `--no-plugins`               | Skip plugin installation and omit the CLI-mode default include list.                                 |
 | `--plugins <ids>`            | Comma-separated plugin IDs. In CLI mode this overrides the default creative plugins.                 |
@@ -942,7 +942,7 @@ feather update                       # interactive source picker in a terminal
 feather update -y                    # update from the local/bundled CLI copy
 feather update path/to/my-game
 feather update --remote --branch v0.7.1
-feather update --local-src ../feather/src-lua
+feather update --local-src ../feather/packages/runtime-lua
 ```
 
 In an interactive terminal, `feather update` opens an Ink workflow to choose local/bundled files or a GitHub branch/tag. In scripts or with `-y`, it uses the local/bundled CLI copy unless `--remote` is provided.
@@ -968,8 +968,8 @@ feather plugin --remote --branch main
 
 The workflow can list installed plugins, install one or more catalog plugins, remove installed plugins, or update selected plugins. Like `feather init`, plugin installs and updates are local-first by default:
 
-1. `--local-src <path>` copies from a local `src-lua` style tree.
-2. Running the CLI from the Feather monorepo copies the repo's `src-lua`.
+1. `--local-src <path>` copies from a local `packages/runtime-lua` style tree.
+2. Running the CLI from the Feather monorepo copies the repo's `packages/runtime-lua`.
 3. Published CLI installs copy the bundled `cli/lua` runtime.
 4. `--remote` downloads from GitHub using `--branch`.
 
@@ -997,7 +997,7 @@ Install a plugin from the local/bundled runtime by default, or from GitHub with 
 ```bash
 feather plugin install console
 feather plugin install time-travel --remote --branch main
-feather plugin install console --local-src ../feather/src-lua
+feather plugin install console --local-src ../feather/packages/runtime-lua
 feather plugin install console --install-dir lib/feather
 feather plugin install console input-replay           # install multiple at once
 feather plugin install console --force                # overwrite if already installed
@@ -1014,7 +1014,7 @@ If a plugin is already installed, `feather plugin install` skips it and continue
 | `--json`               | Emit machine-readable summaries for desktop/automation use.   |
 | `--remote`             | Download from GitHub instead of the local/bundled runtime.    |
 | `--branch <branch>`    | GitHub branch or tag when using `--remote` (default: `main`). |
-| `--local-src <path>`   | Copy from a local `src-lua` style directory.                  |
+| `--local-src <path>`   | Copy from a local `packages/runtime-lua` style directory.                  |
 | `--install-dir <path>` | Install directory (default: `feather`).                       |
 | `--dir <path>`         | Project directory (default: current directory).               |
 

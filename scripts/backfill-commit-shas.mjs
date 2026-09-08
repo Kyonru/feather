@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * One-shot: resolves each package's source.tag/branch to a commit SHA and
- * rewrites source.commitSha + source.baseUrl in packages/*.json, then
+ * rewrites source.commitSha + source.baseUrl in catalog/packages/*.json, then
  * regenerates the registry.
  *
  * Skips packages that already have source.commitSha set.
@@ -19,7 +19,7 @@ import { spawnSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
-const packagesDir = join(root, 'packages');
+const packagesDir = join(root, 'catalog/packages');
 
 const force = process.argv.includes('--force');
 const GH_HEADERS = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };

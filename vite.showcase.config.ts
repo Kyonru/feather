@@ -23,9 +23,9 @@ function showcaseLoveJsDevPlugin() {
   const outDir = path.join(root, '.showcase-dev/showcase-lovejs');
   const showcaseHtml = path.join(root, 'showcase.html');
   const luaWatchFiles = [
-    path.join(root, 'src-lua/example/showcase_preview/main.lua'),
-    path.join(root, 'src-lua/example/showcase_preview/conf.lua'),
-    path.join(root, 'src-lua/plugins/shader-graph/preview_runtime.lua'),
+    path.join(root, 'packages/runtime-lua/example/showcase_preview/main.lua'),
+    path.join(root, 'packages/runtime-lua/example/showcase_preview/conf.lua'),
+    path.join(root, 'packages/runtime-lua/plugins/shader-graph/preview_runtime.lua'),
   ];
 
   return {

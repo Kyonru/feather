@@ -247,12 +247,12 @@ export async function copyLoveJsVendor({ root, outDir, required = true, fetchIfM
 }
 
 export async function buildShowcaseLove({ root, outDir } = {}) {
-  const sourceDir = path.join(root, 'src-lua/example/showcase_preview');
+  const sourceDir = path.join(root, 'packages/runtime-lua/example/showcase_preview');
   const files = {
     'main.lua': await readFile(path.join(sourceDir, 'main.lua'), 'utf8'),
     'conf.lua': await readFile(path.join(sourceDir, 'conf.lua'), 'utf8'),
     'shader-graph/preview_runtime.lua': await readFile(
-      path.join(root, 'src-lua/plugins/shader-graph/preview_runtime.lua'),
+      path.join(root, 'packages/runtime-lua/plugins/shader-graph/preview_runtime.lua'),
       'utf8',
     ),
   };

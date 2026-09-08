@@ -1,1 +1,1 @@
-../../src-lua/plugins/input-replay/README.md
+../../packages/runtime-lua/plugins/input-replay/README.md

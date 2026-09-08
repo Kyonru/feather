@@ -2,7 +2,7 @@
 
 ## Lifecycle methods
 
-Plugins extend `FeatherPlugin` from `src-lua/feather/core/base.lua` and may implement:
+Plugins extend `FeatherPlugin` from `packages/runtime-lua/feather/core/base.lua` and may implement:
 
 - `init(config)`
 - `update(dt, feather)`

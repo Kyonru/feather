@@ -12,7 +12,7 @@
  *
  * The runtime reports its version as `protocolVersion` in the `feather:hello`
  * config payload. Keep this in sync with `FEATHER_PROTOCOL_VERSION` in
- * `src-lua/feather/init.lua` — `npm run check:protocol` enforces it.
+ * `packages/runtime-lua/feather/init.lua` — `npm run check:protocol` enforces it.
  */
 
 /** Wire protocol version this desktop build speaks. */

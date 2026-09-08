@@ -35,7 +35,7 @@ const actions: Option<PluginAction>[] = [
 ];
 
 const sources: Option<PluginSource>[] = [
-  { value: "local", label: "Bundled/local copy", description: "Use the CLI-bundled Lua runtime, or repo src-lua in development." },
+  { value: "local", label: "Bundled/local copy", description: "Use the CLI-bundled Lua runtime, or repo packages/runtime-lua in development." },
   { value: "remote", label: "GitHub download", description: "Fetch plugin files from GitHub using a branch or tag." },
 ];
 

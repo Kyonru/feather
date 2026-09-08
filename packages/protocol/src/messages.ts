@@ -9,7 +9,7 @@
  * `npm run check:protocol` verifies that this registry and the two live
  * dispatch tables agree:
  *
- *   - TO_GAME     <-> `Feather:__handleCommand` in `src-lua/feather/init.lua`
+ *   - TO_GAME     <-> `Feather:__handleCommand` in `packages/runtime-lua/feather/init.lua`
  *   - TO_DESKTOP  <-> the `switch` in `src/hooks/use-ws-connection.ts`
  *
  * Adding a message means adding it here first. The check fails otherwise.

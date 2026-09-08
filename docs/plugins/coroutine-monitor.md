@@ -1,1 +1,1 @@
-../../src-lua/plugins/coroutine-monitor/README.md
+../../packages/runtime-lua/plugins/coroutine-monitor/README.md

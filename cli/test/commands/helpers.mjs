@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const CLI = fileURLToPath(new URL('../../dist/index.js', import.meta.url));
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
-const LOCAL_SRC = join(ROOT, 'src-lua');
+const LOCAL_SRC = join(ROOT, 'packages/runtime-lua');
 // eslint-disable-next-line no-control-regex
 const ANSI_RE = /\x1B\[[0-?]*[ -/]*[@-~]/;
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
@@ -789,6 +789,7 @@ function parseDoctorJsonResult(dir, extra = []) {
 
 export {
   ANSI_RE,
+  ROOT,
   LOCAL_SRC,
   assert,
   chmodSync,

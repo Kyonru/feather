@@ -1,1 +1,1 @@
-../../src-lua/plugins/entity-inspector/README.md
+../../packages/runtime-lua/plugins/entity-inspector/README.md

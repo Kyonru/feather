@@ -2,7 +2,7 @@
 
 ## Manifest shape
 
-Each auto-discovered plugin has `src-lua/plugins/<id>/manifest.lua`:
+Each auto-discovered plugin has `packages/runtime-lua/plugins/<id>/manifest.lua`:
 
 ```lua
 return {
@@ -31,7 +31,7 @@ Rules:
 Start from an existing plugin with similar lifecycle or UI behavior. A built-in plugin should usually add:
 
 ```text
-src-lua/plugins/<plugin-id>/
+packages/runtime-lua/plugins/<plugin-id>/
   init.lua
   manifest.lua
   README.md
@@ -44,7 +44,7 @@ Checklist:
 - Keep risky, local-only, or development-only plugins opt-in and disabled by default.
 - Use callback bus registration or `on*` lifecycle methods instead of patching Love2D callbacks directly.
 - Return serializable data or `feather.ui.render(...)` payloads; do not return functions, userdata, or React-specific concepts.
-- Add a Lua e2e fixture under `src-lua/e2e/plugins/` for runtime behavior.
+- Add a Lua e2e fixture under `packages/runtime-lua/e2e/plugins/` for runtime behavior.
 - Add desktop or showcase e2e coverage when the plugin changes rendered UI behavior.
 - Add or update the plugin README and any docs symlink target under `docs/plugins/`.
 - Update `CHANGELOG.md` for new plugin behavior, capability changes, UI changes, or meaningful e2e coverage.
@@ -61,7 +61,7 @@ npm run check:plugin-catalog
 
 This regenerates and fails if the generated file differs. Do not manually edit the generated catalog.
 
-The generator also checks `src-lua/manifest.txt`. New plugin manifests must be listed there, and stale manifest entries should fail generation instead of silently producing partial bundled metadata.
+The generator also checks `packages/runtime-lua/manifest.txt`. New plugin manifests must be listed there, and stale manifest entries should fail generation instead of silently producing partial bundled metadata.
 
 After adding or changing a built-in plugin, run:
 
@@ -80,11 +80,11 @@ npm run test:lua:e2e
 - Desktop rendering changes: Playwright tests or targeted app smoke checks.
 - Catalog-only manifest changes: `npm run check:plugin-catalog`.
 
-Each built-in plugin should have a matching Lua e2e fixture under `src-lua/e2e/plugins/` when it has runtime behavior. Keep fixture names aligned with plugin IDs using underscore file names where existing fixtures do.
+Each built-in plugin should have a matching Lua e2e fixture under `packages/runtime-lua/e2e/plugins/` when it has runtime behavior. Keep fixture names aligned with plugin IDs using underscore file names where existing fixtures do.
 
 ## Docs update rules
 
-Update `docs/plugins/` and `src-lua/plugins/plugins-ui.md` when plugin capabilities, UI nodes, lifecycle methods, or manifest fields change. The `docs/plugins-ui.md` is the user-facing reference for declarative UI — keep it in sync with `src-lua/feather/ui.lua`.
+Update `docs/plugins/` and `packages/runtime-lua/plugins/plugins-ui.md` when plugin capabilities, UI nodes, lifecycle methods, or manifest fields change. The `docs/plugins-ui.md` is the user-facing reference for declarative UI — keep it in sync with `packages/runtime-lua/feather/ui.lua`.
 
 ## Common mistakes
 

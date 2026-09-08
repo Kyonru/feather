@@ -11,7 +11,7 @@
 # Trains and their files:
 #
 #   cli       cli/package.json                        (source of truth)
-#   runtime   src-lua/feather/init.lua                (source of truth)
+#   runtime   packages/runtime-lua/feather/init.lua                (source of truth)
 #   desktop   package.json                            (source of truth)
 #             -> src-tauri/Cargo.toml
 #             -> src-tauri/tauri.conf.json
@@ -75,7 +75,7 @@ read_json_version() {
 }
 
 read_runtime_version() {
-  sed -n 's/^local FEATHER_VERSION_NAME = "\([^"]*\)".*/\1/p' "${ROOT}/src-lua/feather/init.lua" | head -n 1
+  sed -n 's/^local FEATHER_VERSION_NAME = "\([^"]*\)".*/\1/p' "${ROOT}/packages/runtime-lua/feather/init.lua" | head -n 1
 }
 
 set_cli() {
@@ -85,8 +85,8 @@ set_cli() {
 
 set_runtime() {
   sed_i "s/local FEATHER_VERSION_NAME = \"[^\"]*\"/local FEATHER_VERSION_NAME = \"$1\"/" \
-    "${ROOT}/src-lua/feather/init.lua"
-  echo "  src-lua/feather/init.lua -> $1"
+    "${ROOT}/packages/runtime-lua/feather/init.lua"
+  echo "  packages/runtime-lua/feather/init.lua -> $1"
 }
 
 set_ext() {

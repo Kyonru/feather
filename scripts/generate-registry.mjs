@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Compose cli/src/generated/registry.json from packages/*.json.
+ * Compose cli/src/generated/registry.json from catalog/packages/*.json.
  *
  * Usage:
  *   node scripts/generate-registry.mjs
@@ -14,7 +14,7 @@ import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const packagesDir = join(__dirname, "../packages");
+const packagesDir = join(__dirname, "../catalog/packages");
 const outputPath = join(__dirname, "../cli/src/generated/registry.json");
 
 const packageFiles = readdirSync(packagesDir)

@@ -31,9 +31,9 @@ function featherLoveJsPreviewPlugin(): Plugin {
   const buildOutDir = path.join(root, "dist/showcase-lovejs");
   let isBuild = false;
   const luaWatchFiles = [
-    path.join(root, "src-lua/example/showcase_preview/main.lua"),
-    path.join(root, "src-lua/example/showcase_preview/conf.lua"),
-    path.join(root, "src-lua/plugins/shader-graph/preview_runtime.lua"),
+    path.join(root, "packages/runtime-lua/example/showcase_preview/main.lua"),
+    path.join(root, "packages/runtime-lua/example/showcase_preview/conf.lua"),
+    path.join(root, "packages/runtime-lua/plugins/shader-graph/preview_runtime.lua"),
   ];
   const luaWatchSet = new Set(luaWatchFiles.map((file) => path.resolve(file)));
 

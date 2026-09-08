@@ -42,7 +42,7 @@
     "showcase:start": "node scripts/serve-showcase.mjs",
     "preview": "vite preview",
     "typecheck:web": "tsc --noEmit -p tsconfig.json --composite false",
-    "typecheck:lua": "luacheck src-lua",
+    "typecheck:lua": "luacheck packages/runtime-lua",
     "typecheck:protocol": "tsc --noEmit -p packages/protocol/tsconfig.json",
     "typecheck:host": "tsc --noEmit -p packages/host/tsconfig.json",
     "typecheck:session-bridge": "tsc --noEmit -p packages/session-bridge/tsconfig.json",
