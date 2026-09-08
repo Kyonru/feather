@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     name: npm CLI publish
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - name: Checkout
@@ -70,3 +70,30 @@ jobs:
 
       - name: Publish CLI to npm
         run: pnpm --filter @kyonru/feather publish --access public --no-git-checks
+
+      # Standalone Bun binaries. These are the hermetic install path: no Node
+      # toolchain, one download, which is what a lean CI runner wants. They are
+      # attached to the CLI's own release so a `cli-v*` patch is pinnable on its
+      # own — publishing them only on platform tags would have made hermetic
+      # users wait for a full platform release to pin a CLI fix.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Build standalone binaries
+        run: |
+          pnpm --filter @kyonru/feather run bundle:lua
+          pnpm --filter @kyonru/feather run build:binary
+          VERSION="${{ steps.get_version.outputs.version }}"
+          mkdir -p release-assets
+          cp cli/bin/feather "release-assets/feather-cli-darwin-arm64-${VERSION}.bin"
+          cp cli/bin/feather-darwin-x64 "release-assets/feather-cli-darwin-x64-${VERSION}.bin"
+          cp cli/bin/feather-linux-x64 "release-assets/feather-cli-linux-x64-${VERSION}.bin"
+          cp cli/bin/feather-win-x64.exe "release-assets/feather-cli-windows-x64-${VERSION}.exe"
+
+      - name: Attach binaries to the release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: release-assets/*
+          allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true

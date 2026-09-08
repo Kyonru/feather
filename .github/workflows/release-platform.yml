@@ -9,8 +9,9 @@ name: Release platform manifest
 #
 # It deliberately re-uploads nothing that npm, LuaRocks or the Marketplace
 # already host. The only attachments are artifacts with no other home: the
-# standalone CLI binaries (the desktop installers are attached to the same
-# release by release-desktop.yml).
+# desktop installers, attached to this same release by release-desktop.yml. The
+# standalone CLI binaries are attached by the CLI train, which fires on this tag
+# too, so they land here without this job copying them.
 
 on:
   push:
@@ -34,8 +35,6 @@ jobs:
         with:
           node-version: 22.21.1
           cache: "pnpm"
-
-      - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -72,18 +71,10 @@ jobs:
             --out feather-platform.json \
             --notes platform-notes.md
 
-      - name: Build standalone CLI binaries
+      - name: Stage the manifest
         run: |
-          pnpm run cli:build
-          pnpm --filter @kyonru/feather run bundle:lua
-          pnpm --filter @kyonru/feather run build:binary
-          VERSION="${{ steps.get_version.outputs.version }}"
           mkdir -p release-assets
           cp feather-platform.json release-assets/
-          cp cli/bin/feather "release-assets/feather-cli-darwin-arm64-${VERSION}.bin"
-          cp cli/bin/feather-darwin-x64 "release-assets/feather-cli-darwin-x64-${VERSION}.bin"
-          cp cli/bin/feather-linux-x64 "release-assets/feather-cli-linux-x64-${VERSION}.bin"
-          cp cli/bin/feather-win-x64.exe "release-assets/feather-cli-windows-x64-${VERSION}.exe"
 
       - name: Publish the platform release
         uses: ncipollo/release-action@v1

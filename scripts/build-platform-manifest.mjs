@@ -68,6 +68,21 @@ const manifest = {
       id: '@kyonru/feather',
       install: `npm install -g @kyonru/feather@${cliVersion}`,
       url: `https://www.npmjs.com/package/@kyonru/feather/v/${cliVersion}`,
+      // The hermetic path: standalone Bun binaries, no Node toolchain needed.
+      // Attached by the CLI train, which fires on this tag too. A CLI-only
+      // `cli-v*` release carries the same assets under its own tag.
+      requiresNode: '>=22',
+      binaries: Object.fromEntries(
+        [
+          ['darwin-arm64', `feather-cli-darwin-arm64-${cliVersion}.bin`],
+          ['darwin-x64', `feather-cli-darwin-x64-${cliVersion}.bin`],
+          ['linux-x64', `feather-cli-linux-x64-${cliVersion}.bin`],
+          ['windows-x64', `feather-cli-windows-x64-${cliVersion}.exe`],
+        ].map(([target, file]) => [
+          target,
+          `https://github.com/Kyonru/feather/releases/download/v${platform}/${file}`,
+        ]),
+      ),
     },
     runtime: {
       version: runtimeVersion,
@@ -109,7 +124,7 @@ they are known to work as a set — you do not need to match them up yourself.
 
 | Component | Version | Get it |
 | --- | --- | --- |
-| CLI | \`${c.cli.version}\` | \`${c.cli.install}\` |
+| CLI | \`${c.cli.version}\` | \`${c.cli.install}\` (needs Node ${c.cli.requiresNode}) |
 | Lua runtime | \`${c.runtime.version}\` | \`${c.runtime.install}\` |
 | Desktop app | \`${c.desktop.version}\` | Installers attached below |
 | VS Code extension | \`${c.extension.version}\` | \`${c.extension.install}\` |
@@ -126,6 +141,21 @@ standalone CLI binaries. The CLI, runtime and extension live on npm, LuaRocks
 and the Marketplace respectively, and are linked above rather than copied.
 
 \`feather-platform.json\` is the machine-readable form of this table.
+
+### Using Feather in a pipeline
+
+The standalone CLI binaries need no Node toolchain — one download, hermetic:
+
+\`\`\`sh
+curl -fsSL -o feather \\
+  https://github.com/Kyonru/feather/releases/download/v${platform}/feather-cli-linux-x64-${c.cli.version}.bin
+chmod +x feather
+\`\`\`
+
+Feather drives LÖVE, so a runner also needs it (\`apt-get install -y love xvfb\`;
+\`xvfb\` for anything headless that opens a window). See
+[CI and automation](https://kyonru.github.io/feather/ci/) for the release gate and
+the commands that make sense without a terminal.
 `;
   writeFileSync(notesPath, body);
   console.log(`Wrote ${notesPath}`);
