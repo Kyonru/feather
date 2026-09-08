@@ -45,4 +45,16 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run app E2E
-        run: pnpm run test:app:e2e
+        run: pnpm run test:inspector:e2e
+
+      - name: Studio end-to-end
+        run: pnpm run test:studio:e2e
+
+      # The lint guards catch source imports; this catches what actually lands
+      # in a bundle, which a transitive or dynamic import can change without any
+      # single file importing across the boundary.
+      - name: Packaged artifact boundary
+        run: |
+          pnpm run build
+          pnpm --filter @feather/studio run build
+          pnpm run check:artifact-boundary

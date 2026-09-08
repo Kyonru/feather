@@ -49,11 +49,14 @@
     "//#test:cli:e2e": {
       "inputs": ["cli/**", "packages/runtime-lua/**"]
     },
-    "//#test:app:e2e": {
-      "inputs": ["apps/inspector/src/**", "e2e/**", "packages/*/src/**", "playwright.config.ts", "vite.config.ts"]
+    "//#test:inspector:e2e": {
+      "inputs": ["apps/inspector/src/**", "apps/inspector/e2e/**", "packages/*/src/**", "apps/inspector/playwright.config.ts", "vite.config.ts"]
+    },
+    "//#test:studio:e2e": {
+      "inputs": ["apps/studio/**", "packages/*/src/**"]
     },
     "//#test:showcase:e2e": {
-      "inputs": ["apps/inspector/src/**", "e2e/**", "packages/*/src/**", "playwright.showcase.config.ts", "vite.showcase.config.ts"]
+      "inputs": ["apps/studio/src/**", "apps/showcase/**", "packages/*/src/**"]
     },
     "//#check:registry": {
       "inputs": ["catalog/packages/*.json", "scripts/generate-registry.mjs"]

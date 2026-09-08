@@ -29,7 +29,10 @@ export default defineConfig({
     emptyOutDir: true,
   },
   clearScreen: false,
+  // Bound explicitly: pnpm passes `--` through literally, so a CLI --host never
+  // reaches Vite and the Playwright suite could not reach the server.
   server: {
+    host: '127.0.0.1',
     port: 1430,
     strictPort: true,
   },
