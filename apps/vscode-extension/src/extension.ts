@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { loadPackageCatalog, loadPluginCatalog, readInstalledPackageIds, type PackageEntry, type PluginEntry } from './catalog';
-import { runCommandsInTerminal, runInTerminal } from './cli';
+import { runCommandsInTerminal, runInTerminal, bundledPlatform } from './cli';
 import { FeatherProjectProvider } from './featherPanel';
 import { getProjectStatus, resolveProjectDir } from './project';
 import { openBuildConfigPanel } from './buildConfigPanel';
@@ -618,6 +618,16 @@ async function registerCommands(
   // ── Doctor ────────────────────────────────────────────────────────────────
   context.subscriptions.push(
     vscode.commands.registerCommand('feather.doctor', () => {
+      // Say which snapshot this extension carries. It bundles its own CLI and
+      // runtime rather than calling the user's, so without this the versions
+      // being diagnosed are invisible.
+      const platform = bundledPlatform(context);
+      if (platform) {
+        vscode.window.setStatusBarMessage(
+          `Feather platform ${platform.featherPlatform} (CLI ${platform.cli}, runtime ${platform.runtime})`,
+          8000,
+        );
+      }
       const root = requireProjectDir();
       if (!root) return;
       runInTerminal(context, 'Feather: Doctor', ['doctor', root], root);

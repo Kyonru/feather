@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +15,36 @@ const bundledBin = join(extensionRoot, 'bundled-bin');
 const luaSource = existsSync(join(cliLua, 'feather', 'init.lua')) ? cliLua : sourceLua;
 if (!existsSync(join(luaSource, 'feather', 'init.lua'))) {
   throw new Error('Missing Lua runtime. Run `npm run bundle:lua --workspace=cli` first.');
+}
+
+// The extension vendors a whole platform snapshot rather than calling the
+// user's CLI, so it must record which one — and prove it. A VSIX whose manifest
+// claims 4.0.0 while carrying a 4.1.0 runtime is worse than one that fails here,
+// because the mismatch only shows up as strange behaviour in someone's editor.
+const manifest = JSON.parse(readFileSync(join(extensionRoot, 'package.json'), 'utf8'));
+const declaredPlatform = manifest.featherPlatform;
+if (!declaredPlatform) {
+  throw new Error('vscode-extension/package.json is missing "featherPlatform". It records which platform snapshot this VSIX vendors.');
+}
+
+const bundledCliVersion = JSON.parse(
+  readFileSync(join(repoRoot, 'apps', 'cli', 'package.json'), 'utf8'),
+).version;
+const bundledRuntimeVersion = readFileSync(join(luaSource, 'feather', 'init.lua'), 'utf8')
+  .match(/^local FEATHER_VERSION_NAME = "([^"]+)"/m)?.[1];
+
+const mismatches = [
+  ['CLI', bundledCliVersion],
+  ['Lua runtime', bundledRuntimeVersion],
+].filter(([, actual]) => actual !== declaredPlatform);
+
+if (mismatches.length > 0) {
+  const detail = mismatches.map(([what, actual]) => `  ${what} is ${actual ?? 'unknown'}`).join('\n');
+  throw new Error(
+    `vscode-extension declares featherPlatform ${declaredPlatform}, but the snapshot it would bundle does not match:\n` +
+      `${detail}\n` +
+      `Set featherPlatform to the platform version being vendored, or rebuild the CLI and runtime at that version.`,
+  );
 }
 
 rmSync(bundledBin, { recursive: true, force: true });
@@ -50,4 +80,14 @@ const { pluginCatalog } = await import(join(cliGenerated, 'plugin-catalog.js'));
 writeFileSync(join(bundledBin, 'plugin-catalog.json'), JSON.stringify(pluginCatalog, null, 2) + '\n');
 
 // eslint-disable-next-line no-undef
-console.log(`Prepared bundled-bin/ with ${bundleMode}, lua/, registry.json, and plugin-catalog.json`);
+// Recorded beside the binaries so the extension can report it at runtime, and
+// so an unpacked VSIX says which platform it carries.
+writeFileSync(
+  join(bundledBin, 'platform.json'),
+  `${JSON.stringify({ featherPlatform: declaredPlatform, cli: bundledCliVersion, runtime: bundledRuntimeVersion }, null, 2)}\n`,
+);
+
+console.log(
+  `Prepared bundled-bin/ with ${bundleMode}, lua/, registry.json, plugin-catalog.json, ` +
+    `and platform.json (platform ${declaredPlatform}).`,
+);

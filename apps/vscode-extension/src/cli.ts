@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as os from 'node:os';
 import { shellQuote } from './command';
@@ -58,4 +58,26 @@ export function spawnFeather(
 ): ChildProcess {
   const cli = getCliInvocation(context);
   return spawn(cli.command, [...cli.argsPrefix, ...args], { cwd, shell: false });
+}
+
+/**
+ * The platform snapshot this extension vendors.
+ *
+ * The extension does not call the user's CLI — it bundles its own binaries and
+ * Lua runtime. That makes it hermetic, but it also means the versions it carries
+ * are invisible unless it says so. `prepare.mjs` writes this at package time and
+ * fails the build if the manifest and the bundled snapshot disagree.
+ */
+export function bundledPlatform(context: vscode.ExtensionContext): {
+  featherPlatform: string;
+  cli: string;
+  runtime: string;
+} | null {
+  try {
+    const file = join(context.extensionPath, 'bundled-bin', 'platform.json');
+    if (!existsSync(file)) return null;
+    return JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
 }

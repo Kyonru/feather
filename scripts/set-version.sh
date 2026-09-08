@@ -161,6 +161,19 @@ case "$TRAIN" in
     set_cli "$VERSION"
     set_runtime "$VERSION"
     set_desktop "$VERSION"
+    # The extension vendors a platform snapshot rather than calling the user's
+    # CLI, so its declaration follows the platform. Its own version does not —
+    # it is a satellite and releases on its own cadence.
+    node - "${ROOT}/apps/vscode-extension/package.json" "$VERSION" <<'NODE'
+const fs = require('fs');
+const [file, version] = process.argv.slice(2);
+const source = fs.readFileSync(file, 'utf8');
+const pattern = /^(\s*"featherPlatform":\s*")[^"]*(")/m;
+if (pattern.test(source)) {
+  fs.writeFileSync(file, source.replace(pattern, `$1${version}$2`));
+}
+NODE
+    echo "  apps/vscode-extension/package.json featherPlatform -> ${VERSION}"
     ;;
   *)
     echo "[feather] Unknown train: ${TRAIN}" >&2
