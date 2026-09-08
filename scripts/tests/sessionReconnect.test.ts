@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { shouldRequestSessionConfig } from '../../src/utils/session-reconnect.ts';
+import { shouldRequestSessionConfig } from '../../apps/inspector/src/utils/session-reconnect.ts';
 
 function createMemoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -29,7 +29,7 @@ const {
   prepareSessionsForPersistence,
   sessionCanOpenRuntimePages,
   sessionSupportsRuntime,
-} = await import('../../src/store/session.ts');
+} = await import('../../apps/inspector/src/store/session.ts');
 
 test('reconnect probe requests config for remembered or half-connected sessions', () => {
   assert.equal(shouldRequestSessionConfig(undefined, false), true);

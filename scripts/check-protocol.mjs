@@ -27,7 +27,7 @@ function extract(source, pattern, label, file) {
 }
 
 const luaFile = 'packages/runtime-lua/feather/init.lua';
-const tsFile = 'src/constants/feather-protocol.ts';
+const tsFile = 'apps/inspector/src/constants/feather-protocol.ts';
 
 const lua = extract(
   read(luaFile),
@@ -112,11 +112,11 @@ const luaRuntime = read(luaFile);
 const handleCommand = luaRuntime.slice(luaRuntime.indexOf('function Feather:__handleCommand'));
 const liveToGame = new Set([...handleCommand.matchAll(/type == "([a-z_]+:[a-zA-Z:_-]+)"/g)].map((m) => m[1]));
 
-const wsHook = read('src/hooks/use-ws-connection.ts');
+const wsHook = read('apps/inspector/src/hooks/use-ws-connection.ts');
 const liveToDesktop = new Set([...wsHook.matchAll(/^\s+case '([^']+)':/gm)].map((m) => m[1]));
 
 compare('desktop -> game', toGame, liveToGame, registrySource, `${luaFile} __handleCommand`);
-compare('game -> desktop', toDesktop, liveToDesktop, registrySource, 'src/hooks/use-ws-connection.ts');
+compare('game -> desktop', toDesktop, liveToDesktop, registrySource, 'apps/inspector/src/hooks/use-ws-connection.ts');
 
 // The generated Lua table must match the registry, or the runtime will warn
 // about commands that are perfectly valid (or stay silent about ones that are not).

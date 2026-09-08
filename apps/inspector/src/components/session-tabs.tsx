@@ -31,7 +31,7 @@ import {
   PlayIcon,
   SparklesIcon,
 } from 'lucide-react';
-import { version } from '../../package.json';
+import { version } from '../../../../package.json';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@feather/ui/tooltip';
 import { Button } from '@feather/ui/button';
 import {

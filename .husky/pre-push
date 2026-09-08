@@ -8,4 +8,4 @@ fi
 
 # Through turbo so an unchanged suite is a cache hit rather than a rerun. The
 # suites still all gate the push — this only removes the wasted repetition.
-pnpm exec turbo run //#test:bridge //#test:cli:e2e //#test:lua:e2e //#test:app:e2e //#test:showcase:e2e
+pnpm exec turbo run //#test:unit //#test:bridge //#test:cli:e2e //#test:lua:e2e //#test:app:e2e //#test:showcase:e2e

@@ -24,6 +24,8 @@ const viteDevHeaders = {
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
+  // The Inspector's own directory is the Vite root now.
+  root: path.resolve(__dirname, "apps/inspector"),
   cacheDir: "node_modules/.vite/feather-app",
   plugins: [react(), tailwindcss()],
   optimizeDeps: {
@@ -40,7 +42,7 @@ export default defineConfig(async () => ({
       { find: /^@feather\/host$/, replacement: path.resolve(__dirname, './packages/host/src/index.ts') },
       { find: /^@feather\/session-bridge$/, replacement: path.resolve(__dirname, './packages/session-bridge/src/index.ts') },
       { find: /^@feather\/protocol$/, replacement: path.resolve(__dirname, './packages/protocol/src/index.ts') },
-      { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, './src/$1') },
+      { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, './apps/inspector/src/$1') },
     ],
   },
 
@@ -62,7 +64,7 @@ export default defineConfig(async () => ({
       : undefined,
     watch: {
       // 3. tell vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**", "**/.showcase-dev/**"],
+      ignored: ["**/apps/inspector/src-tauri/**", "**/.showcase-dev/**"],
     },
     headers: viteDevHeaders,
   },

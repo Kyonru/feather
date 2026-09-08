@@ -213,6 +213,9 @@ importers:
       husky:
         specifier: 9.1.7
         version: 9.1.7
+      tsx:
+        specifier: 4.22.4
+        version: 4.22.4
       turbo:
         specifier: 2.10.12
         version: 2.10.12

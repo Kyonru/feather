@@ -9,15 +9,15 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "tsconfig.json"]
+      "inputs": ["apps/inspector/src/**", "tsconfig.json"]
     },
     "test": {
       "dependsOn": ["build"],
-      "inputs": ["src/**", "test/**"]
+      "inputs": ["apps/inspector/src/**", "test/**"]
     },
 
     "//#typecheck:web": {
-      "inputs": ["src/**", "tsconfig.json", "packages/protocol/src/**"]
+      "inputs": ["apps/inspector/src/**", "tsconfig.json", "packages/protocol/src/**"]
     },
     "//#typecheck:protocol": {
       "inputs": ["packages/protocol/**"]
@@ -26,16 +26,19 @@
       "inputs": ["packages/runtime-lua/**", ".luacheckrc"]
     },
     "//#lint": {
-      "inputs": ["src/**", "eslint.config.js", ".eslintrc"]
+      "inputs": ["apps/inspector/src/**", "eslint.config.js", ".eslintrc"]
     },
     "//#check:protocol": {
       "inputs": [
         "packages/protocol/src/messages.ts",
-        "src/constants/feather-protocol.ts",
-        "src/hooks/use-ws-connection.ts",
+        "apps/inspector/src/constants/feather-protocol.ts",
+        "apps/inspector/src/hooks/use-ws-connection.ts",
         "packages/runtime-lua/feather/init.lua",
         "packages/runtime-lua/feather/protocol_messages.lua"
       ]
+    },
+    "//#test:unit": {
+      "inputs": ["scripts/tests/**", "apps/studio/src/**", "apps/inspector/src/**"]
     },
     "//#test:bridge": {
       "inputs": ["packages/session-bridge/**"]
@@ -47,10 +50,10 @@
       "inputs": ["cli/**", "packages/runtime-lua/**"]
     },
     "//#test:app:e2e": {
-      "inputs": ["src/**", "e2e/**", "packages/*/src/**", "playwright.config.ts", "vite.config.ts"]
+      "inputs": ["apps/inspector/src/**", "e2e/**", "packages/*/src/**", "playwright.config.ts", "vite.config.ts"]
     },
     "//#test:showcase:e2e": {
-      "inputs": ["src/**", "e2e/**", "packages/*/src/**", "playwright.showcase.config.ts", "vite.showcase.config.ts"]
+      "inputs": ["apps/inspector/src/**", "e2e/**", "packages/*/src/**", "playwright.showcase.config.ts", "vite.showcase.config.ts"]
     },
     "//#check:registry": {
       "inputs": ["catalog/packages/*.json", "scripts/generate-registry.mjs"]

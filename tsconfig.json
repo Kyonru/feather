@@ -23,7 +23,7 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./apps/inspector/src/*"],
       "@studio/*": ["./apps/studio/src/*"],
       "@feather/protocol": ["./packages/protocol/src/index.ts"],
       "@feather/host": ["./packages/host/src/index.ts"],
@@ -34,6 +34,6 @@
       "@feather/ui/*": ["./packages/ui/src/components/*"]
     }
   },
-  "include": ["src"],
+  "include": ["apps/inspector/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

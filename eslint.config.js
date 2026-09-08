@@ -10,12 +10,12 @@ export default tseslint.config(
       'dist/',
       'build/',
       'pnpm-lock.json',
-      'src/vite-env.d.ts',
+      'apps/inspector/src/vite-env.d.ts',
       'env.d.ts',
       'vite.config.ts',
       'tailwind.config.cjs',
       'postcss.config.cjs',
-      'src-tauri/',
+      'apps/inspector/src-tauri/',
       'packages/runtime-lua/',
     ],
   },
@@ -68,8 +68,8 @@ export default tseslint.config(
     // installed applications with separate release trains; an import here would
     // silently recreate the coupling Phase 05 removed and drag 25k lines of
     // creative tooling back into the Inspector bundle.
-    files: ['src/**'],
-    ignores: ['src/**/*.d.ts'],
+    files: ['apps/inspector/src/**'],
+    ignores: ['apps/inspector/src/**/*.d.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

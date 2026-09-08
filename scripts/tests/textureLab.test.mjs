@@ -26,7 +26,7 @@ import {
   TEXTURE_LAB_SDF_GENERATOR_IDS,
   isTextureLabSdfGenerator,
   renderTextureLabImageMaskPixels,
-} from '../../src/pages/texture-lab/generator.ts';
+} from '../../apps/studio/src/tools/texture-lab/generator.ts';
 
 function checksum(pixels) {
   let hash = 2166136261;

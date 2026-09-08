@@ -26,10 +26,10 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           PKG="$(node -p "require('./package.json').version")"
-          TAURI="$(node -p "require('./src-tauri/tauri.conf.json').version")"
-          CARGO="$(sed -n '1,/^version = /s/^version = "\(.*\)"/\1/p' src-tauri/Cargo.toml | head -n 1)"
+          TAURI="$(node -p "require('./apps/inspector/src-tauri/tauri.conf.json').version")"
+          CARGO="$(sed -n '1,/^version = /s/^version = "\(.*\)"/\1/p' apps/inspector/src-tauri/Cargo.toml | head -n 1)"
           FAIL=0
-          for pair in "package.json:$PKG" "src-tauri/tauri.conf.json:$TAURI" "src-tauri/Cargo.toml:$CARGO"; do
+          for pair in "package.json:$PKG" "apps/inspector/src-tauri/tauri.conf.json:$TAURI" "apps/inspector/src-tauri/Cargo.toml:$CARGO"; do
             FILE="${pair%%:*}"
             FOUND="${pair#*:}"
             if [ "$FOUND" != "$VERSION" ]; then
@@ -133,5 +133,6 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
         with:
+          projectPath: apps/inspector
           tagName: ${{ github.ref_name }}
           args: ${{ matrix.args }}

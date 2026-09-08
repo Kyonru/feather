@@ -40,13 +40,13 @@ const runtimeVersion = must(
 );
 const protocolVersion = Number(
   must(
-    read('src/constants/feather-protocol.ts').match(/^export const FEATHER_PROTOCOL_VERSION = (\d+);/m)?.[1],
+    read('apps/inspector/src/constants/feather-protocol.ts').match(/^export const FEATHER_PROTOCOL_VERSION = (\d+);/m)?.[1],
     'the protocol version',
   ),
 );
 const protocolMin = Number(
   must(
-    read('src/constants/feather-protocol.ts').match(/^export const FEATHER_PROTOCOL_MIN_SUPPORTED = (\d+);/m)?.[1],
+    read('apps/inspector/src/constants/feather-protocol.ts').match(/^export const FEATHER_PROTOCOL_MIN_SUPPORTED = (\d+);/m)?.[1],
     'the minimum supported protocol version',
   ),
 );

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { linkSuggestions } from '../../src/pages/shader-graph/graphUtils.ts';
+import { linkSuggestions } from '../../apps/studio/src/tools/shader-graph/graphUtils.ts';
 
 function shaderNode(id, nodeType) {
   return {

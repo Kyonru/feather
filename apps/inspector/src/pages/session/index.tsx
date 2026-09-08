@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { version as appVersion } from '../../../package.json';
+import { version as appVersion } from '../../../../../package.json';
 import { useConfigStore, type PluginConfig } from '@/store/config';
 import { useSessionStore, type SessionInfo } from '@/store/session';
 import { useSettingsStore } from '@/store/settings';

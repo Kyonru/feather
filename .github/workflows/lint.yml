@@ -44,6 +44,9 @@ jobs:
       - name: Bridge contract tests
         run: pnpm run test:bridge
 
+      - name: Unit tests
+        run: pnpm run test:unit
+
       - name: Run TypeScript checks
         run: pnpm run typecheck:web
 

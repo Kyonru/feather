@@ -4,7 +4,7 @@ import { Badge } from '@feather/ui/badge';
 import { ScrollArea } from '@feather/ui/scroll-area';
 import { useAboutStore } from '@/store/about';
 import { openUrl } from '@/utils/linking';
-import { version } from '../../../package.json';
+import { version } from '../../../../../package.json';
 import { useSettingsStore } from '@/store/settings';
 import {
   BadgeCheckIcon,

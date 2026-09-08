@@ -1,7 +1,7 @@
 import { Servers } from '@/constants/server';
 import { timeout } from '@/utils/timers';
 import { useQuery } from '@tanstack/react-query';
-import { version } from '../../package.json';
+import { version } from '../../../../package.json';
 import { useSettingsStore } from '@/store/settings';
 import { isGreaterOrEqual } from '@/utils/versions';
 

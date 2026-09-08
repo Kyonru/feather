@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   createShaderGraphGamePreviewController,
   type ShaderGraphGamePreviewCommand,
-} from '../../src/pages/shader-graph/gamePreviewControllerCore';
+} from '../../apps/studio/src/tools/shader-graph/gamePreviewControllerCore';
 
 function createHarness() {
   let now = 0;

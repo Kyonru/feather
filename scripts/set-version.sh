@@ -13,8 +13,8 @@
 #   cli       cli/package.json                        (source of truth)
 #   runtime   packages/runtime-lua/feather/init.lua                (source of truth)
 #   desktop   package.json                            (source of truth)
-#             -> src-tauri/Cargo.toml
-#             -> src-tauri/tauri.conf.json
+#             -> apps/inspector/src-tauri/Cargo.toml
+#             -> apps/inspector/src-tauri/tauri.conf.json
 #   ext       vscode-extension/package.json           (source of truth)
 #   studio    apps/studio/package.json                (source of truth)
 #             -> apps/studio/src-tauri/Cargo.toml
@@ -118,11 +118,11 @@ set_desktop() {
   set_json_version "${ROOT}/package.json" "$1"
   # Only the first `version =` line, which is the [package] version.
   sed_i "1,/^version = \"[^\"]*\"/ s/^version = \"[^\"]*\"/version = \"$1\"/" \
-    "${ROOT}/src-tauri/Cargo.toml"
-  set_json_version "${ROOT}/src-tauri/tauri.conf.json" "$1"
+    "${ROOT}/apps/inspector/src-tauri/Cargo.toml"
+  set_json_version "${ROOT}/apps/inspector/src-tauri/tauri.conf.json" "$1"
   echo "  package.json -> $1"
-  echo "  src-tauri/Cargo.toml -> $1"
-  echo "  src-tauri/tauri.conf.json -> $1"
+  echo "  apps/inspector/src-tauri/Cargo.toml -> $1"
+  echo "  apps/inspector/src-tauri/tauri.conf.json -> $1"
 }
 
 case "$TRAIN" in
