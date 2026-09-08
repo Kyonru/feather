@@ -16,27 +16,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.21.1
-          cache: "npm"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check protocol version sync
-        run: npm run check:protocol
+        run: pnpm run check:protocol
 
       - name: Run TypeScript checks
-        run: npm run typecheck:web
+        run: pnpm run typecheck:web
 
       - name: Run linting
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Build and test VS Code extension
-        run: npm run extension:test
+        run: pnpm run extension:test
 
   lint-lua:
     name: Run Lua (Love2D) Linting

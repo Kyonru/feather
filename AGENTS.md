@@ -52,9 +52,9 @@ For package or plugin work that changes generated files, read the relevant skill
 New packages:
 
 - Read `skills/feather-package-catalog/SKILL.md` and its workflow reference before editing catalog data.
-- Prefer `npm run package:add` for GitHub-hosted packages and `npm run package:add-url` for direct file URL packages.
+- Prefer `pnpm run package:add` for GitHub-hosted packages and `pnpm run package:add-url` for direct file URL packages.
 - Commit both the source `packages/<id>.json` file and the generated `cli/src/generated/registry.json` update.
-- Verify with `npm run check:registry`, `npm run cli:build`, `npm run feather -- package info <id>`, and a package install into a temp or fixture project.
+- Verify with `pnpm run check:registry`, `pnpm run cli:build`, `pnpm run feather -- package info <id>`, and a package install into a temp or fixture project.
 - Update package docs, e2e coverage, and `CHANGELOG.md` when the package is user-visible.
 
 New plugins:
@@ -63,7 +63,7 @@ New plugins:
 - Built-in plugins should usually include `src-lua/plugins/<plugin-id>/init.lua`, `manifest.lua`, and `README.md`.
 - Declare capabilities, default options, `optIn`, and `disabled` deliberately; risky or development-only plugins stay opt-in and disabled.
 - Add Lua e2e coverage under `src-lua/e2e/plugins/` for runtime behavior, and desktop/showcase e2e when React-rendered plugin UI changes.
-- Run `bash scripts/generate-manifest.sh`, `npm run generate:plugin-catalog`, `npm run cli:build`, `npm run typecheck:lua`, and `npm run test:lua:e2e`.
+- Run `bash scripts/generate-manifest.sh`, `pnpm run generate:plugin-catalog`, `pnpm run cli:build`, `pnpm run typecheck:lua`, and `pnpm run test:lua:e2e`.
 - Update plugin docs, any docs symlink targets, and `CHANGELOG.md`.
 
 New features:
@@ -78,15 +78,15 @@ New features:
 ## Dev Setup
 
 ```sh
-npm install
-npm run cli:build
-npm run feather -- --help
-npm run dev
-npm run tauri dev
-npm run docs
+pnpm install
+pnpm run cli:build
+pnpm run feather -- --help
+pnpm run dev
+pnpm run tauri dev
+pnpm run docs
 ```
 
-`npm run cli:build` is required before local `npm run feather -- ...` smoke checks.
+`pnpm run cli:build` is required before local `pnpm run feather -- ...` smoke checks.
 
 ## Generated Files
 
@@ -94,8 +94,8 @@ Do not edit generated files by hand.
 
 | File                                  | Generator/check                                                    |
 | ------------------------------------- | ------------------------------------------------------------------ |
-| `cli/src/generated/registry.json`     | `npm run generate:registry` / `npm run check:registry`             |
-| `cli/src/generated/plugin-catalog.ts` | `npm run generate:plugin-catalog` / `npm run check:plugin-catalog` |
+| `cli/src/generated/registry.json`     | `pnpm run generate:registry` / `pnpm run check:registry`             |
+| `cli/src/generated/plugin-catalog.ts` | `pnpm run generate:plugin-catalog` / `pnpm run check:plugin-catalog` |
 
 When source catalog or manifest files change, run the generator and include the generated result.
 

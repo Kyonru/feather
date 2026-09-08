@@ -6,7 +6,7 @@ if [ "${SKIP_PRE_PUSH_TESTS:-}" = "1" ]; then
   exit 0
 fi
 
-npm run test:cli:e2e
-npm run test:lua:e2e
-npm run test:app:e2e
-npm run test:showcase:e2e
+pnpm run test:cli:e2e
+pnpm run test:lua:e2e
+pnpm run test:app:e2e
+pnpm run test:showcase:e2e

@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -25,7 +27,7 @@ jobs:
           package-manager-cache: false
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Install LÖVE
         run: |
@@ -55,16 +57,16 @@ jobs:
           fi
 
       - name: Build CLI
-        run: npm run cli:build
+        run: pnpm run cli:build
 
       - name: Run CLI e2e
-        run: npm run test:cli:e2e
+        run: pnpm run test:cli:e2e
 
       - name: Run Lua e2e
-        run: npm run test:lua:e2e
+        run: pnpm run test:lua:e2e
 
       - name: Verify npm package contents
-        run: npm pack --workspace=cli --dry-run
+        run: pnpm --filter @kyonru/feather pack --dry-run
 
       - name: Publish CLI to npm
-        run: npm publish --workspace=cli --access public
+        run: pnpm --filter @kyonru/feather publish --access public --no-git-checks

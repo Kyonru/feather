@@ -1,0 +1,17 @@
+# Feather v2 workspace.
+#
+# Listed explicitly rather than with a `packages/*` glob: `packages/` also holds
+# the Love2D catalog entries as bare *.json files, which are data, not packages.
+# The catalog moves to `catalog/packages/` in V2.md Phase 06.
+packages:
+  - cli
+  - packages/protocol
+  - vscode-extension
+
+# pnpm blocks dependency build scripts by default. These three genuinely need
+# theirs: esbuild fetches its platform binary (Vite depends on it), and keytar
+# and vsce-sign are native modules used when packaging the VS Code extension.
+allowBuilds:
+  '@vscode/vsce-sign': true
+  esbuild: true
+  keytar: true

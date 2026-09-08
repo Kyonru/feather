@@ -1,5 +1,5 @@
-npm run typecheck
-npm run lint
+# Turbo caches these, so a re-commit after a trivial fix is near-instant.
+pnpm exec turbo run //#lint //#typecheck:web //#typecheck:protocol //#typecheck:lua
 
 bash scripts/generate-manifest.sh
 if ! git diff --exit-code src-lua/manifest.txt; then
@@ -7,7 +7,7 @@ if ! git diff --exit-code src-lua/manifest.txt; then
   exit 1
 fi
 
-npm run generate:plugin-catalog
+pnpm run generate:plugin-catalog
 if ! git diff --exit-code cli/src/generated/plugin-catalog.ts; then
   echo "[feather] plugin catalog is out of date — it has been updated, please stage it and commit again."
   exit 1
@@ -16,7 +16,7 @@ fi
 # The Lua runtime and the desktop app negotiate a wire protocol version at
 # feather:hello. They live in different languages and cannot import each other,
 # so this guard is what stops the two declarations from drifting apart.
-npm run check:protocol
+pnpm run check:protocol
 
 # Feather v2: versions are per release train (see V2.md section 6). The trains
 # deliberately drift apart — a CLI patch must NOT drag the desktop app, runtime,

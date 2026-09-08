@@ -1,0 +1,47 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalDependencies": ["tsconfig.json", "pnpm-lock.yaml"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "out/**", "lua/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "tsconfig.json"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "inputs": ["src/**", "test/**"]
+    },
+
+    "//#typecheck:web": {
+      "inputs": ["src/**", "tsconfig.json", "packages/protocol/src/**"]
+    },
+    "//#typecheck:protocol": {
+      "inputs": ["packages/protocol/**"]
+    },
+    "//#typecheck:lua": {
+      "inputs": ["src-lua/**", ".luacheckrc"]
+    },
+    "//#lint": {
+      "inputs": ["src/**", "eslint.config.js", ".eslintrc"]
+    },
+    "//#check:protocol": {
+      "inputs": [
+        "packages/protocol/src/messages.ts",
+        "src/constants/feather-protocol.ts",
+        "src/hooks/use-ws-connection.ts",
+        "src-lua/feather/init.lua",
+        "src-lua/feather/protocol_messages.lua"
+      ]
+    },
+    "//#check:registry": {
+      "inputs": ["packages/*.json", "scripts/generate-registry.mjs"]
+    },
+    "//#check:plugin-catalog": {
+      "inputs": ["src-lua/plugins/**", "scripts/generate-plugin-catalog.mjs"]
+    }
+  }
+}

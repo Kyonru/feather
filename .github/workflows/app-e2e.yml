@@ -7,7 +7,7 @@ on:
       - "e2e/**"
       - "playwright.config.ts"
       - "package.json"
-      - "package-lock.json"
+      - "pnpm-lock.yaml"
       - ".github/workflows/app-e2e.yml"
   push:
     branches: [ main, next ]
@@ -16,7 +16,7 @@ on:
       - "e2e/**"
       - "playwright.config.ts"
       - "package.json"
-      - "package-lock.json"
+      - "pnpm-lock.yaml"
       - ".github/workflows/app-e2e.yml"
   workflow_dispatch:
 
@@ -33,18 +33,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.21.1
-          cache: "npm"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run app E2E
-        run: npm run test:app:e2e
+        run: pnpm run test:app:e2e

@@ -30,20 +30,20 @@ If you are an automated coding agent, follow these extra rules:
 Install dependencies from the repo root:
 
 ```sh
-npm install
+pnpm install
 ```
 
-Build the CLI before using local `npm run feather` commands:
+Build the CLI before using local `pnpm run feather` commands:
 
 ```sh
-npm run cli:build
-npm run feather -- --help
+pnpm run cli:build
+pnpm run feather -- --help
 ```
 
 Run the desktop app:
 
 ```sh
-npm run tauri dev
+pnpm run tauri dev
 ```
 
 Serve docs:
@@ -53,7 +53,7 @@ Serve docs:
 ```
 
 ```sh
-npm run docs
+pnpm run docs
 ```
 
 ## Project Layout
@@ -87,7 +87,7 @@ src-lua/example/my_example/
 Run it with:
 
 ```sh
-npm run feather -- run src-lua/example/my_example
+pnpm run feather -- run src-lua/example/my_example
 ```
 
 Example game code may use guarded runtime APIs:
@@ -122,40 +122,40 @@ The CLI shim must preserve `pluginOptions` for any plugin, including IDs with da
 Run the CLI:
 
 ```sh
-npm run cli:build
-npm run feather -- doctor src-lua/example/test_cli
-npm run feather -- run src-lua/example/test_cli
+pnpm run cli:build
+pnpm run feather -- doctor src-lua/example/test_cli
+pnpm run feather -- run src-lua/example/test_cli
 ```
 
 Run a focused CLI test file:
 
 ```sh
-npm run cli:build
+pnpm run cli:build
 node --test cli/test/commands/run.test.mjs
 ```
 
 Run Lua examples:
 
 ```sh
-npm run feather -- run src-lua/example/test_cli
-npm run feather -- run src-lua/example/session_replay/single_player
-npm run feather -- run src-lua/example/session_replay/multiplayer
-npm run feather -- run src-lua/example/session_replay/adapter
+pnpm run feather -- run src-lua/example/test_cli
+pnpm run feather -- run src-lua/example/session_replay/single_player
+pnpm run feather -- run src-lua/example/session_replay/multiplayer
+pnpm run feather -- run src-lua/example/session_replay/adapter
 ```
 
 Run Android development builds:
 
 ```sh
-npm run feather -- build vendor add android --dir src-lua/example/test_cli
-npm run feather -- build android --dir src-lua/example/test_cli --verbose
-npm run feather -- run src-lua/example/test_cli --target android --verbose
+pnpm run feather -- build vendor add android --dir src-lua/example/test_cli
+pnpm run feather -- build android --dir src-lua/example/test_cli --verbose
+pnpm run feather -- run src-lua/example/test_cli --target android --verbose
 ```
 
 Use cache controls when testing build behavior:
 
 ```sh
-npm run feather -- build android --dir src-lua/example/test_cli --no-cache --verbose
-npm run feather -- build android --dir src-lua/example/test_cli --clean --verbose
+pnpm run feather -- build android --dir src-lua/example/test_cli --no-cache --verbose
+pnpm run feather -- build android --dir src-lua/example/test_cli --clean --verbose
 ```
 
 ## Golden Workflow Checklist
@@ -163,7 +163,7 @@ npm run feather -- build android --dir src-lua/example/test_cli --clean --verbos
 Use this smoke path when validating Feather for day-to-day LÖVE development:
 
 ```bash
-npm run feather -- run src-lua/example/test_cli --verbose --config src-lua/example/test_cli/feather.config.lua
+pnpm run feather -- run src-lua/example/test_cli --verbose --config src-lua/example/test_cli/feather.config.lua
 ```
 
 1. **Connect And Session Health**: the running game appears as the active session, stale **Connecting game** entries disappear, **Session** shows the runtime/config details, and suspend/resume keeps the socket available without leaving the app stuck.
@@ -179,37 +179,37 @@ This is the developer-preview acceptance bar: Feather should let an external LÖ
 Run the checks that match your change. For broad changes, run more than one lane.
 
 ```sh
-npm run typecheck:web
-npm run typecheck:lua
-npm run lint
-npm run cli:build
-npm run test:cli:e2e
-npm run test:lua:e2e
-npm run test:app:e2e
-npm run test:tauri:e2e
-npm run extension:build
-npm run extension:test
+pnpm run typecheck:web
+pnpm run typecheck:lua
+pnpm run lint
+pnpm run cli:build
+pnpm run test:cli:e2e
+pnpm run test:lua:e2e
+pnpm run test:app:e2e
+pnpm run test:tauri:e2e
+pnpm run extension:build
+pnpm run extension:test
 ```
 
 Focused guidance:
 
-- React desktop changes: `npm run typecheck:web`, `npm run lint`, and Playwright if visible behavior changed.
-- CLI changes: `npm run cli:build` and the relevant `node --test cli/test/commands/*.test.mjs` file.
-- Lua runtime or plugin changes: `npm run typecheck:lua`, `npm run test:lua:e2e`, and any focused Lua e2e path if available.
+- React desktop changes: `pnpm run typecheck:web`, `pnpm run lint`, and Playwright if visible behavior changed.
+- CLI changes: `pnpm run cli:build` and the relevant `node --test cli/test/commands/*.test.mjs` file.
+- Lua runtime or plugin changes: `pnpm run typecheck:lua`, `pnpm run test:lua:e2e`, and any focused Lua e2e path if available.
 - Build/upload/release safety changes: run targeted build, doctor, upload-safety, and release tests.
-- Tauri/WebSocket changes: `npm run test:tauri:e2e`.
-- VS Code extension changes: `npm run extension:build` and `npm run extension:test`.
-- Docs-only changes: read the edited Markdown and run `npm run docs` when practical.
+- Tauri/WebSocket changes: `pnpm run test:tauri:e2e`.
+- VS Code extension changes: `pnpm run extension:build` and `pnpm run extension:test`.
+- Docs-only changes: read the edited Markdown and run `pnpm run docs` when practical.
 
 If `love`, `luacheck`, Android SDK, Xcode, Fastlane, or other local tooling is missing, document that in the PR or final handoff. Do not pretend the check passed.
 
 The pre-push hook runs the heavier local test lanes before pushing:
 
 ```sh
-npm run test:cli:e2e
-npm run test:lua:e2e
-npm run test:app:e2e
-npm run test:showcase:e2e
+pnpm run test:cli:e2e
+pnpm run test:lua:e2e
+pnpm run test:app:e2e
+pnpm run test:showcase:e2e
 ```
 
 When you need to push from a machine that cannot run those tools, use `SKIP_PRE_PUSH_TESTS=1 git push` and call out the skipped checks.
@@ -227,12 +227,12 @@ Refresh them with:
 
 ```sh
 bash scripts/generate-manifest.sh
-npm run generate:plugin-catalog
-npm run generate:registry
+pnpm run generate:plugin-catalog
+pnpm run generate:registry
 bash scripts/set-version.sh desktop
 ```
 
-`npm run check:plugin-catalog` and `npm run check:registry` intentionally fail when generated output differs from git. If the generated diff is expected, commit it.
+`pnpm run check:plugin-catalog` and `pnpm run check:registry` intentionally fail when generated output differs from git. If the generated diff is expected, commit it.
 
 Generated or local-only folders such as `vscode-extension/bundled-cli/`, `vscode-extension/bundled-bin/`, build outputs, caches, and replay/debug artifacts should not be committed.
 
@@ -261,10 +261,10 @@ After adding or changing a built-in plugin:
 
 ```sh
 bash scripts/generate-manifest.sh
-npm run generate:plugin-catalog
-npm run cli:build
-npm run typecheck:lua
-npm run test:lua:e2e
+pnpm run generate:plugin-catalog
+pnpm run cli:build
+pnpm run typecheck:lua
+pnpm run test:lua:e2e
 ```
 
 Plugin contribution tips:
@@ -369,22 +369,22 @@ Use helper scripts instead of hand-writing package entries whenever possible. Th
 For GitHub-hosted packages:
 
 ```sh
-npm run package:add
+pnpm run package:add
 ```
 
 For direct file URLs:
 
 ```sh
-npm run package:add-url
+pnpm run package:add-url
 ```
 
 After the wizard finishes:
 
 ```sh
-npm run check:registry
-npm run cli:build
-npm run feather -- package info <package-id>
-npm run feather -- package install <package-id> --dir /tmp/feather-package-test
+pnpm run check:registry
+pnpm run cli:build
+pnpm run feather -- package info <package-id>
+pnpm run feather -- package install <package-id> --dir /tmp/feather-package-test
 ```
 
 Package contribution tips:

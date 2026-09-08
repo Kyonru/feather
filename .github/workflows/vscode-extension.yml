@@ -17,6 +17,8 @@ jobs:
       vsixFile: ${{ steps.package.outputs.vsixFile }}
     steps:
       - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:
@@ -25,7 +27,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Install icon rasterizer
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends librsvg2-bin
@@ -46,12 +48,12 @@ jobs:
           fi
 
       - name: Test extension
-        run: npm run extension:test
+        run: pnpm run extension:test
 
       - name: Package extension
         id: package
         run: |
-          npm run extension:package
+          pnpm run extension:package
           VERSION="${{ steps.get_version.outputs.version }}"
           VSIX_PATH="$(ls vscode-extension/*.vsix | head -n 1)"
           VSIX_FILE="feather-cli-vscode-${VERSION}.vsix"
