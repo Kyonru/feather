@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v4.0.0] - 2026-06-14 - The one with MCPs
 
+### Added
+
+- The Lua runtime now advertises a wire protocol version at connect, and the desktop app checks it against the range it supports. A game running a protocol the desktop cannot speak now says so directly, with what to do about it, instead of behaving unpredictably. Session detail shows both the game's protocol version and the desktop's.
+- A game running a Feather runtime from before protocol negotiation still connects and stays healthy; it is reported as `legacy` rather than treated as a fault.
+
 ### Changed
 
 - Release tags are now per-train instead of repo-wide. `cli-v*` publishes the CLI alone, `runtime-v*` the Lua runtime alone, `desktop-v*` the desktop app alone, and `ext-v*` the VS Code extension alone. `v*` still performs a full platform release of runtime, CLI, and desktop together. Previously every tag fired all four publish paths.

@@ -17,6 +17,7 @@ import { useConfig } from '@/hooks/use-config';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import type { PerformanceMetrics } from '@/hooks/use-performance';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
+import { FEATHER_PROTOCOL_VERSION, evaluateProtocol } from '@/constants/feather-protocol';
 import { cn } from '@/utils/styles';
 import { isWeb } from '@/utils/platform';
 import { formatMemory } from '@/lib/utils';
@@ -313,6 +314,7 @@ export default function SessionPage() {
     (debuggerStatus?.rejectedBreakpoints?.length ?? 0) +
     (debuggerStatus?.breakpointErrors?.length ?? breakpointErrors.length);
   const apiMismatch = typeof config.API === 'number' && config.API !== FEATHER_PLUGIN_API;
+  const protocol = evaluateProtocol(config.protocolVersion);
   const packageState = isWeb()
     ? 'Web'
     : isFileSession
@@ -339,6 +341,19 @@ export default function SessionPage() {
       detail: session.insecure
         ? 'This connection was accepted without a trusted app ID.'
         : 'This session does not report app ID enforcement.',
+      tone: 'danger',
+    });
+  }
+  // Only a genuine incompatibility degrades the health verdict. A runtime that
+  // predates protocol negotiation still works, and every runtime shipped before
+  // this existed omits the field — warning on that would show "Needs attention"
+  // to every existing user the moment they update the desktop app. That case is
+  // surfaced in the Protocol chip and detail rows instead.
+  if (protocol.incompatible) {
+    warnings.push({
+      id: 'protocol',
+      title: 'Protocol mismatch',
+      detail: `${protocol.summary} ${protocol.remediation}`,
       tone: 'danger',
     });
   }
@@ -512,6 +527,11 @@ export default function SessionPage() {
               <SummaryChip label="Kind" value={session.kind ? session.kind.replaceAll('-', ' ') : 'live'} />
               <SummaryChip label="Runtime" value={config.version ? `v${config.version}` : '—'} />
               <SummaryChip label="API" value={config.API ?? '—'} tone={apiMismatch ? 'danger' : 'default'} />
+              <SummaryChip
+                label="Protocol"
+                value={protocol.runtime === null ? 'legacy' : `v${protocol.runtime}`}
+                tone={protocol.incompatible ? 'danger' : protocol.status === 'ok' ? 'default' : 'warning'}
+              />
             </div>
           </div>
 
@@ -640,6 +660,10 @@ export default function SessionPage() {
             <InfoRow label="Feather runtime" value={config.version ? `v${config.version}` : undefined} />
             <InfoRow label="Desktop version" value={`v${appVersion}`} />
             <InfoRow label="API version" value={config.API ?? undefined} />
+            <InfoRow
+              label="Protocol version"
+              value={`${protocol.runtime === null ? 'not reported' : `v${protocol.runtime}`} (desktop speaks v${FEATHER_PROTOCOL_VERSION})`}
+            />
             <InfoRow
               label="Latest performance"
               value={

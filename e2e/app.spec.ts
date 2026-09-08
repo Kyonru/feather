@@ -758,8 +758,8 @@ async function seedPartialSessionConfig(page: Page) {
   });
 }
 
-async function seedHealthySessionConfig(page: Page) {
-  await page.evaluate(() => {
+async function seedHealthySessionConfig(page: Page, overrides: Record<string, unknown> = {}) {
+  await page.evaluate((extra) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = (window as any).__FEATHER_QUERY_CLIENT__;
     client?.setQueryData(['demo', 'config'], {
@@ -799,8 +799,9 @@ async function seedHealthySessionConfig(page: Page) {
           failedModules: [],
         },
       },
+      ...extra,
     });
-  });
+  }, overrides);
 }
 
 async function seedShaderGraphConfig(page: Page) {
@@ -2439,6 +2440,45 @@ test('session health hub summarizes a healthy active session', async ({ page }) 
   await expect(page.getByText('No urgent session issues detected.', { exact: true })).toBeVisible();
   await expect(page.getByText('Keep debugging')).toBeVisible();
   await expect(page.getByTestId('session-plugin-shader-graph')).toBeVisible();
+  await expectNoBrokenText(page);
+});
+
+test('session health flags a runtime speaking an unsupported wire protocol', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/');
+  // A runtime newer than this desktop build can parse.
+  await seedHealthySessionConfig(page, { protocolVersion: 99 });
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByRole('link', { name: 'Session', exact: true }).click();
+
+  const hub = page.getByTestId('session-health-hub');
+  await expect(hub).toBeVisible();
+  // The verdict and the protocol chip live in the hub; warnings render below it.
+  await expect(hub.getByText('Needs attention')).toBeVisible();
+  await expect(hub.getByText('v99', { exact: true })).toBeVisible();
+  await expect(page.getByText('Protocol mismatch', { exact: true })).toBeVisible();
+  // The warning has to say what to actually do about it.
+  await expect(page.getByText(/Update the Feather desktop app/)).toBeVisible();
+  await expectNoBrokenText(page);
+});
+
+test('session health tolerates a runtime that predates protocol negotiation', async ({ page }) => {
+  await seedSession(page);
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/');
+  // No protocolVersion at all. Every runtime shipped before negotiation existed
+  // looks like this, so it must stay Healthy rather than degrade the verdict.
+  await seedHealthySessionConfig(page);
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByRole('link', { name: 'Session', exact: true }).click();
+
+  const hub = page.getByTestId('session-health-hub');
+  await expect(hub).toBeVisible();
+  await expect(hub.getByText('Healthy')).toBeVisible();
+  await expect(page.getByText('Protocol mismatch', { exact: true })).toHaveCount(0);
+  await expect(hub.getByText('legacy', { exact: true })).toBeVisible();
+  await expect(page.getByText('No urgent session issues detected.', { exact: true })).toBeVisible();
   await expectNoBrokenText(page);
 });
 

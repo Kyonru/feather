@@ -13,6 +13,11 @@ if ! git diff --exit-code cli/src/generated/plugin-catalog.ts; then
   exit 1
 fi
 
+# The Lua runtime and the desktop app negotiate a wire protocol version at
+# feather:hello. They live in different languages and cannot import each other,
+# so this guard is what stops the two declarations from drifting apart.
+npm run check:protocol
+
 # Feather v2: versions are per release train (see V2.md section 6). The trains
 # deliberately drift apart — a CLI patch must NOT drag the desktop app, runtime,
 # or extension along with it. The only cross-file constraint left is the desktop

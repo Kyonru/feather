@@ -26,9 +26,22 @@ local format = require(FEATHER_PATH .. ".utils").format
 local FEATHER_VERSION_NAME = "4.0.0"
 local FEATHER_API = 5
 
+-- Wire protocol version, negotiated with the desktop app at feather:hello.
+--
+-- This is NOT the plugin API version above. FEATHER_API gates which plugins a
+-- runtime can load; FEATHER_PROTOCOL_VERSION gates whether the runtime and the
+-- desktop app can talk to each other at all. They are separate because the
+-- runtime and the desktop now ship on separate release trains (see V2.md), so
+-- they can legitimately be at different versions.
+--
+-- Bump this ONLY on a breaking change to the message set or message shapes.
+-- Additive, backward-compatible messages do not need a bump.
+local FEATHER_PROTOCOL_VERSION = 1
+
 local FEATHER_VERSION = {
   name = FEATHER_VERSION_NAME,
   api = FEATHER_API,
+  protocol = FEATHER_PROTOCOL_VERSION,
 }
 
 local function is_absolute_path(path)
@@ -73,6 +86,7 @@ local CALLBACK_NAMES = {
 ---@field debug boolean
 ---@field featherLogger FeatherLogger
 ---@field API number
+---@field PROTOCOL_VERSION number
 ---@field VERSION number
 ---@field wsConnected boolean
 ---@field wsClient table|nil
@@ -492,6 +506,7 @@ function Feather:__getConfig()
     location = love.filesystem.getSaveDirectory(),
     sourceDir = sourceDir,
     protocols = { "json", "binary" },
+    protocolVersion = FEATHER_VERSION.protocol,
     sysInfo = self.performance.sysInfo,
     deviceId = self.deviceId,
     sessionName = self.sessionName,
@@ -1595,6 +1610,8 @@ end
 local casted = Feather
 ---@diagnostic disable-next-line: inject-field
 casted.API = FEATHER_VERSION.api
+---@diagnostic disable-next-line: inject-field
+casted.PROTOCOL_VERSION = FEATHER_VERSION.protocol
 ---@diagnostic disable-next-line: inject-field
 casted.VERSION = FEATHER_VERSION.name
 

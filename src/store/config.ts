@@ -12,6 +12,14 @@ export interface Config {
   root_path: string;
   version: string;
   API: number;
+  /**
+   * Wire protocol version reported by the Lua runtime at `feather:hello`.
+   *
+   * Optional because runtimes released before protocol negotiation existed do
+   * not send it. Compare with `evaluateProtocol` in `@/constants/feather-protocol`
+   * rather than testing it directly.
+   */
+  protocolVersion?: number;
   sampleRate: number;
   runtimeBudget?: {
     maxFrameMs?: number;

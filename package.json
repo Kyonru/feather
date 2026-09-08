@@ -44,6 +44,7 @@
     "typecheck": "npm run typecheck:web && npm run typecheck:lua",
     "generate:plugin-catalog": "node scripts/generate-plugin-catalog.mjs",
     "check:plugin-catalog": "npm run generate:plugin-catalog && git diff --exit-code cli/src/generated/plugin-catalog.ts",
+    "check:protocol": "node scripts/check-protocol.mjs",
     "package:add": "npm run package:add --workspace=cli",
     "package:add-url": "npm run package:add-url --workspace=cli",
     "package:update": "npm run package:update --workspace=cli",

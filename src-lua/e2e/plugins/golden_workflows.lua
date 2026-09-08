@@ -1,3 +1,4 @@
+local Feather = require("feather")
 local json = require("feather.lib.json")
 local runtimeLog = require("feather.lib.log")
 local ws = require("feather.lib.ws")
@@ -60,6 +61,14 @@ function GoldenWorkflowsE2E.run(assertEqual, assertTruthy)
   feather:__handleCommand({ type = "req:config" })
   local hello = findMessage(messages, "feather:hello")
   assertTruthy(hello and hello.data and hello.data.sessionName == "Golden Workflow E2E", "config request sends hello")
+
+  -- The desktop app negotiates wire compatibility from this field. A runtime
+  -- that stops advertising it is treated as legacy, so losing it here would
+  -- silently degrade every session rather than fail loudly.
+  assertEqual(type(hello.data.protocolVersion), "number", "hello advertises a wire protocol version")
+  assertEqual(hello.data.protocolVersion, Feather.PROTOCOL_VERSION, "hello protocol version matches the runtime constant")
+  assertTruthy(hello.data.protocolVersion >= 1, "wire protocol version is at least 1")
+  assertEqual(type(hello.data.API), "number", "hello still reports the plugin API separately")
 
   local beforeLogs = #messages
   feather.featherLogger:print("golden batched log")

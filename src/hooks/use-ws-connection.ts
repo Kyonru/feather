@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { isWeb } from '@/utils/platform';
 import { useDebuggerStore, type BreakpointIssue, type DebuggerStatus, type PausedState } from '@/store/debugger';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
+import { evaluateProtocol } from '@/constants/feather-protocol';
 import { sendCommand } from '@/lib/send-command';
 import { base64ToUint8Array } from '@/utils/arrays';
 import { normalizePerformanceMetric } from '@/utils/performance-metrics';
@@ -428,6 +429,17 @@ export const useWsConnection = () => {
               toast.warning(
                 `Feather API mismatch: game uses ${config.API}, desktop supports ${FEATHER_PLUGIN_API}. Some plugins may be unavailable.`,
               );
+            }
+
+            // Wire protocol negotiation. Only a genuine incompatibility is
+            // raised here — a runtime that predates negotiation is reported in
+            // Session health instead, so it does not nag on every connect.
+            const protocol = evaluateProtocol(config.protocolVersion);
+            if (protocol.incompatible) {
+              toast.error(`Feather protocol mismatch — ${protocol.summary}`, {
+                description: protocol.remediation,
+                duration: Infinity,
+              });
             }
 
             const historyKeys = resolveLogHistoryKeys(config, sessionId);
