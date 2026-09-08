@@ -40,11 +40,14 @@ import {
   luaStringValue,
   portReachable,
   readIfExists,
+  readRuntimeVersion,
+  runtimeCompatibilityCheck,
   shellArg,
   uncommentedLua,
   type DoctorCheck,
   type DoctorOptions,
 } from './checks.js';
+import packageJson from '../../../package.json' with { type: 'json' };
 import { renderReport } from './report.js';
 import { buildSecurityReport, securityChecks, type SecurityPackageReport, type SecurityPluginReport } from './security.js';
 
@@ -271,6 +274,10 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
 
   const runtimeDir = join(projectDir, effectiveInstallDir);
   const hasRuntime = existsSync(join(runtimeDir, 'init.lua'));
+
+  // Separate release trains mean the embedded runtime and the CLI can legitimately
+  // differ. Say so plainly instead of leaving the user to work it out.
+  runtimeCompatibilityCheck(checks, readRuntimeVersion(join(runtimeDir, 'init.lua')), packageJson.version);
   const configOnlyMode = managedMode === 'cli';
   add(
     checks,

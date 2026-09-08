@@ -1,0 +1,96 @@
+name: Release platform manifest
+
+# `v*` — the coherence point.
+#
+# The individual trains (cli-v*, runtime-v*, desktop-v*, ext-v*) each publish to
+# their own home. This job publishes the record of which versions were validated
+# together, so someone landing on a v4.x release page gets a working set without
+# matching components up themselves.
+#
+# It deliberately re-uploads nothing that npm, LuaRocks or the Marketplace
+# already host. The only attachments are artifacts with no other home: the
+# standalone CLI binaries (the desktop installers are attached to the same
+# release by release-desktop.yml).
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  manifest:
+    name: Publish platform manifest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.1
+          cache: "pnpm"
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve version from tag
+        id: get_version
+        run: |
+          VERSION="$(bash scripts/release-tag-version.sh "$GITHUB_REF_NAME" --version)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify every component agrees with the tag
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          PKG="$(node -p "require('./package.json').version")"
+          CLI="$(node -p "require('./cli/package.json').version")"
+          RUNTIME="$(sed -n 's/^local FEATHER_VERSION_NAME = "\([^"]*\)".*/\1/p' packages/runtime-lua/feather/init.lua | head -n 1)"
+          FAIL=0
+          for pair in "package.json:$PKG" "cli/package.json:$CLI" "runtime:$RUNTIME"; do
+            if [ "${pair#*:}" != "$VERSION" ]; then
+              echo "${pair%%:*} is ${pair#*:}, expected $VERSION"
+              FAIL=1
+            fi
+          done
+          # A platform tag asserts these three shipped together, so they must
+          # agree. The extension is a satellite and is recorded, not enforced.
+          if [ "$FAIL" = "1" ]; then
+            echo "Fix with: bash scripts/set-version.sh platform $VERSION"
+            exit 1
+          fi
+
+      - name: Build the manifest and release notes
+        run: |
+          node scripts/build-platform-manifest.mjs "${{ steps.get_version.outputs.version }}" \
+            --out feather-platform.json \
+            --notes platform-notes.md
+
+      - name: Build standalone CLI binaries
+        run: |
+          pnpm run cli:build
+          pnpm --filter @kyonru/feather run bundle:lua
+          pnpm --filter @kyonru/feather run build:binary
+          VERSION="${{ steps.get_version.outputs.version }}"
+          mkdir -p release-assets
+          cp feather-platform.json release-assets/
+          cp cli/bin/feather "release-assets/feather-cli-darwin-arm64-${VERSION}.bin"
+          cp cli/bin/feather-darwin-x64 "release-assets/feather-cli-darwin-x64-${VERSION}.bin"
+          cp cli/bin/feather-linux-x64 "release-assets/feather-cli-linux-x64-${VERSION}.bin"
+          cp cli/bin/feather-win-x64.exe "release-assets/feather-cli-windows-x64-${VERSION}.exe"
+
+      - name: Publish the platform release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: release-assets/*
+          bodyFile: platform-notes.md
+          allowUpdates: true
+          # release-desktop.yml attaches the installers to this same release.
+          omitBodyDuringUpdate: false
+          omitNameDuringUpdate: false

@@ -51,6 +51,7 @@
     "generate:plugin-catalog": "node scripts/generate-plugin-catalog.mjs",
     "check:plugin-catalog": "pnpm run generate:plugin-catalog && git diff --exit-code cli/src/generated/plugin-catalog.ts",
     "generate:protocol-lua": "node packages/protocol/scripts/generate-lua.mjs",
+    "generate:platform-manifest": "node scripts/build-platform-manifest.mjs",
     "check:protocol": "node scripts/check-protocol.mjs",
     "package:add": "pnpm --filter @kyonru/feather run package:add",
     "package:add-url": "pnpm --filter @kyonru/feather run package:add-url",

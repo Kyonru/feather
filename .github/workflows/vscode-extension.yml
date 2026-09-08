@@ -59,10 +59,10 @@ jobs:
           VSIX_FILE="feather-cli-vscode-${VERSION}.vsix"
           mkdir -p release-assets
           cp "$VSIX_PATH" "release-assets/$VSIX_FILE"
-          cp cli/bin/feather "release-assets/feather-cli-darwin-arm64-${VERSION}.bin"
-          cp cli/bin/feather-darwin-x64 "release-assets/feather-cli-darwin-x64-${VERSION}.bin"
-          cp cli/bin/feather-linux-x64 "release-assets/feather-cli-linux-x64-${VERSION}.bin"
-          cp cli/bin/feather-win-x64.exe "release-assets/feather-cli-windows-x64-${VERSION}.exe"
+          # The four Bun-compiled CLI binaries (342 MB) are NOT uploaded here.
+          # prepare.mjs already places them inside the VSIX under bundled-bin/,
+          # so attaching them to every extension release stored them twice.
+          # Standalone binaries are published once, on the platform release.
           echo "vsixPath=release-assets/$VSIX_FILE" >> "$GITHUB_OUTPUT"
           echo "vsixFile=$VSIX_FILE" >> "$GITHUB_OUTPUT"
 

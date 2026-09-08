@@ -36,7 +36,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
+          # Keyed on the lockfile, not the SHA: a per-commit key mints a new
+          # entry every push and churns the 10 GB Actions cache quota. Turbo's
+          # own input hashing decides what is stale inside the restored cache.
+          key: turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             turbo-${{ runner.os }}-
 

@@ -139,3 +139,57 @@ export function buildPluginIndex(pluginDirs: string[]): Map<string, { dir: strin
   }
   return plugins;
 }
+
+/**
+ * Read `FEATHER_VERSION_NAME` out of an installed Lua runtime.
+ *
+ * Returns null when the file is absent or does not declare one, which is the
+ * normal case for CLI-managed projects that embed nothing.
+ */
+export function readRuntimeVersion(initLuaPath: string): string | null {
+  if (!existsSync(initLuaPath)) return null;
+  try {
+    const match = readFileSync(initLuaPath, 'utf8').match(/^local FEATHER_VERSION_NAME = "([^"]+)"/m);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Compare the runtime a project has embedded against the one this CLI ships.
+ *
+ * Feather v4 releases the CLI and the runtime on separate trains, so they are
+ * allowed to differ — but a project pinned to an old embedded runtime while
+ * running a new CLI is the case that produces confusing behaviour, and nothing
+ * used to say so. Platform releases publish the set that was tested together.
+ */
+export function runtimeCompatibilityCheck(
+  checks: DoctorCheck[],
+  projectRuntimeVersion: string | null,
+  cliVersion: string,
+): void {
+  if (!projectRuntimeVersion) return;
+
+  if (projectRuntimeVersion === cliVersion) {
+    add(
+      checks,
+      'Compatibility',
+      'Runtime / CLI',
+      'pass',
+      `both ${cliVersion}`,
+    );
+    return;
+  }
+
+  add(
+    checks,
+    'Compatibility',
+    'Runtime / CLI',
+    'warn',
+    `embedded runtime ${projectRuntimeVersion}, CLI ${cliVersion}`,
+    'These ship on separate release trains, so a difference is not automatically wrong. ' +
+      'Check the platform release notes at https://github.com/Kyonru/feather/releases for a set ' +
+      'that was tested together, or run `feather update` to refresh the embedded runtime.',
+  );
+}
