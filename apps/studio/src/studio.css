@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+/* Tailwind v4 scans relative to the Vite root, which for the showcase is
+   apps/showcase/. Point it at Studio's source explicitly so the tools' classes
+   are found regardless of which config is building. */
+@source "./";
+@source "../../../packages/ui/src";
+
 :root {
   color-scheme: light dark;
 }

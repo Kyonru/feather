@@ -1,4 +1,11 @@
 @import 'tailwindcss';
+
+/* Explicit rather than implicit. Tailwind currently finds these because the
+   Inspector's Vite root is the repository root, which stops being true when
+   src/ moves to apps/inspector. The showcase already hit exactly that: its
+   Radix select classes silently vanished from the bundle. */
+@source "./";
+@source "../packages/ui/src";
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));

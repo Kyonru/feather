@@ -1,4 +1,12 @@
 @import 'tailwindcss';
+
+/* Tailwind v4 scans relative to the Vite root, which for the showcase is
+   apps/showcase/. Point it at Studio's source explicitly so the tools' classes
+   are found regardless of which config is building. */
+@source "../";
+/* The shared primitives live outside Studio, and their Tailwind classes must
+   be generated too — Radix select/dialog positioning comes from there. */
+@source "../../../../packages/ui/src";
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));

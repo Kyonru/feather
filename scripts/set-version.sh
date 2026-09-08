@@ -16,7 +16,13 @@
 #             -> src-tauri/Cargo.toml
 #             -> src-tauri/tauri.conf.json
 #   ext       vscode-extension/package.json           (source of truth)
+#   studio    apps/studio/package.json                (source of truth)
+#             -> apps/studio/src-tauri/Cargo.toml
+#             -> apps/studio/src-tauri/tauri.conf.json
 #   platform  cli + runtime + desktop, all to the same version
+#
+# Studio is NOT part of the platform train. It is a separately installed
+# application on its own cadence, so `platform` never touches it.
 #
 # With a version argument, the version is written.
 # Without one, the train's DERIVED files are re-synced from its source of truth.
@@ -94,6 +100,18 @@ set_ext() {
   echo "  vscode-extension/package.json -> $1"
 }
 
+# Feather Studio is three files that must agree with each other, mirroring the
+# desktop trio: its npm manifest, its Rust crate, and its Tauri bundle config.
+set_studio() {
+  set_json_version "${ROOT}/apps/studio/package.json" "$1"
+  sed_i "1,/^version = \"[^\"]*\"/ s/^version = \"[^\"]*\"/version = \"$1\"/" \
+    "${ROOT}/apps/studio/src-tauri/Cargo.toml"
+  set_json_version "${ROOT}/apps/studio/src-tauri/tauri.conf.json" "$1"
+  echo "  apps/studio/package.json -> $1"
+  echo "  apps/studio/src-tauri/Cargo.toml -> $1"
+  echo "  apps/studio/src-tauri/tauri.conf.json -> $1"
+}
+
 # The desktop app is three files that must always agree: the root package.json
 # (its npm manifest), the Rust crate, and the Tauri bundle config.
 set_desktop() {
@@ -128,6 +146,11 @@ case "$TRAIN" in
     echo "Setting desktop train to ${VERSION}"
     set_desktop "$VERSION"
     ;;
+  studio)
+    [ -n "$VERSION" ] || VERSION="$(read_json_version "${ROOT}/apps/studio/package.json")"
+    echo "Setting studio train to ${VERSION}"
+    set_studio "$VERSION"
+    ;;
   platform)
     if [ -z "$VERSION" ]; then
       echo "[feather] The platform train requires an explicit version." >&2
@@ -141,7 +164,7 @@ case "$TRAIN" in
     ;;
   *)
     echo "[feather] Unknown train: ${TRAIN}" >&2
-    echo "[feather] Expected one of: cli runtime desktop ext platform" >&2
+    echo "[feather] Expected one of: cli runtime desktop ext studio platform" >&2
     exit 2
     ;;
 esac

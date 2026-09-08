@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UiProvider, type UiDependencies } from '@feather/ui';
 import { createWebHost, HostProvider } from '@feather/host';
+import { ThemeProvider, useResolvedTheme } from '@studio/theme';
 
 /**
  * The showcase is Feather Studio running in a browser.
@@ -35,11 +36,8 @@ const host = createWebHost();
 // The showcase has no Inspector settings store to read a theme from, so it
 // follows the system preference.
 const uiDependencies: UiDependencies = {
-  useThemeMode: () =>
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light',
-  useSyntaxTheme: () => ({}),
+  useThemeMode: () => useResolvedTheme().mode,
+  useSyntaxTheme: () => useResolvedTheme().syntax as Record<string, unknown>,
   copyToClipboard: (value: string) => {
     void navigator.clipboard?.writeText(value);
   },
@@ -48,7 +46,9 @@ const uiDependencies: UiDependencies = {
 export const AppProvider = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>
     <HostProvider host={host}>
-      <UiProvider value={uiDependencies}>{children}</UiProvider>
+      <UiProvider value={uiDependencies}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </UiProvider>
     </HostProvider>
   </QueryClientProvider>
 );
