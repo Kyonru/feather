@@ -55,7 +55,8 @@ const problems = [];
 if (lua !== ts) {
   problems.push(
     `Protocol version mismatch: ${luaFile} declares v${lua}, ${tsFile} declares v${ts}.\n` +
-      `  A runtime and desktop built from this commit would refuse to talk to each other.`,
+      `  A runtime and desktop built from this commit would refuse to talk to each other.\n` +
+      `  Bump both declarations together.`,
   );
 }
 
@@ -66,13 +67,66 @@ if (tsMin > ts) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Message registry vs. the live dispatch tables.
+//
+// packages/protocol declares which messages exist. These two dispatch tables
+// are what actually runs. If they disagree, either the UI is sending a command
+// nothing handles, or the runtime is emitting something nothing listens for.
+// ---------------------------------------------------------------------------
+
+function parseRegistryList(source, name) {
+  const match = source.match(new RegExp(`export const ${name} = \\[([\\s\\S]*?)\\] as const;`));
+  if (!match) {
+    throw new Error(`Could not find ${name} in packages/protocol/src/messages.ts`);
+  }
+  return new Set([...match[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
+}
+
+function compare(label, registry, live, registrySource, liveSource) {
+  const missingFromRegistry = [...live].filter((t) => !registry.has(t)).sort();
+  const missingFromLive = [...registry].filter((t) => !live.has(t)).sort();
+
+  if (missingFromRegistry.length > 0) {
+    problems.push(
+      `${label}: handled in ${liveSource} but not declared in ${registrySource}:\n` +
+        missingFromRegistry.map((t) => `    ${t}`).join('\n') +
+        `\n  Add it to the registry, or remove the handler if it is dead.`,
+    );
+  }
+  if (missingFromLive.length > 0) {
+    problems.push(
+      `${label}: declared in ${registrySource} but not handled in ${liveSource}:\n` +
+        missingFromLive.map((t) => `    ${t}`).join('\n') +
+        `\n  Implement the handler, or drop it from the registry.`,
+    );
+  }
+}
+
+const registrySource = 'packages/protocol/src/messages.ts';
+const registry = read(registrySource);
+const toGame = parseRegistryList(registry, 'TO_GAME');
+const toDesktop = parseRegistryList(registry, 'TO_DESKTOP');
+
+const luaRuntime = read(luaFile);
+const handleCommand = luaRuntime.slice(luaRuntime.indexOf('function Feather:__handleCommand'));
+const liveToGame = new Set([...handleCommand.matchAll(/type == "([a-z_]+:[a-zA-Z:_-]+)"/g)].map((m) => m[1]));
+
+const wsHook = read('src/hooks/use-ws-connection.ts');
+const liveToDesktop = new Set([...wsHook.matchAll(/^\s+case '([^']+)':/gm)].map((m) => m[1]));
+
+compare('desktop -> game', toGame, liveToGame, registrySource, `${luaFile} __handleCommand`);
+compare('game -> desktop', toDesktop, liveToDesktop, registrySource, 'src/hooks/use-ws-connection.ts');
+
 if (problems.length > 0) {
   console.error('[feather] Protocol check failed.\n');
   for (const problem of problems) {
     console.error(`  ${problem}\n`);
   }
-  console.error('Bump both declarations together, or fix the supported range.');
   process.exit(1);
 }
 
-console.log(`[feather] Protocol OK — v${ts} (desktop supports v${tsMin}..v${ts}), runtime advertises v${lua}.`);
+console.log(
+  `[feather] Protocol OK — v${ts} (desktop supports v${tsMin}..v${ts}), runtime advertises v${lua}. ` +
+    `${toGame.size} desktop->game and ${toDesktop.size} game->desktop messages match their dispatch tables.`,
+);

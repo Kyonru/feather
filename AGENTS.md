@@ -22,7 +22,10 @@ Both apply.
 - `src-lua/feather/` - Embedded Lua runtime loaded into running games.
 - `src-lua/plugins/` - Built-in Lua plugins.
 - `vscode-extension/` - VS Code extension workspace package.
-- `packages/` - Curated Love2D package catalog entries.
+- `packages/` - Curated Love2D package catalog entries (`packages/*.json`), plus
+  `packages/protocol/` (`@feather/protocol`), the wire protocol message registry. The catalog
+  moves to `catalog/packages/` in V2.md Phase 06; until then the two share this directory.
+  `scripts/generate-registry.mjs` only reads `*.json`, so the subdirectory is ignored by it.
 - `scripts/` - Registry/catalog generators, checksum tools, bundle helpers.
 - `docs/` - Zensical documentation site.
 - `skills/` - Repo-local agent skills. Read the matching skill before editing a subsystem.
