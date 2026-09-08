@@ -5,7 +5,7 @@ import { Label } from '@feather/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { Separator } from '@feather/ui/separator';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
-import { useSettingsStore } from '@/store/settings';
+import { useStudioPreferencesStore } from '@/store/studio-preferences';
 import { useShaderGraphStore } from '@/store/shader-graph';
 import type { NodeCategory, NodeType } from '@/types/shader-graph';
 import { cn } from '@/utils/styles';
@@ -36,9 +36,9 @@ export function NodePalette() {
   const [dragPreview, setDragPreview] = useState<{ label: string; x: number; y: number } | null>(null);
   const pointerDragRef = useRef<PaletteDragState | null>(null);
   const { playgroundTarget, setPlaygroundTarget, activeSubgraphId } = useShaderGraphStore();
-  const collapsedCategories = useSettingsStore((state) => state.collapsedShaderGraphNodeCategories);
-  const toggleCategory = useSettingsStore((state) => state.toggleShaderGraphNodeCategory);
-  const setCollapsedCategories = useSettingsStore((state) => state.setCollapsedShaderGraphNodeCategories);
+  const collapsedCategories = useStudioPreferencesStore((state) => state.collapsedShaderGraphNodeCategories);
+  const toggleCategory = useStudioPreferencesStore((state) => state.toggleShaderGraphNodeCategory);
+  const setCollapsedCategories = useStudioPreferencesStore((state) => state.setCollapsedShaderGraphNodeCategories);
   const { data } = useParticleSystemPlayground();
 
   const composites = data?.composites ?? [];

@@ -15,7 +15,7 @@ import type React from 'react';
 import { Badge } from '@feather/ui/badge';
 import { Button } from '@feather/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
-import { useSettingsStore } from '@/store/settings';
+import { useStudioPreferencesStore } from '@/store/studio-preferences';
 import {
   PARTICLE_TIMELINE_EASING_LABELS,
   easeParticleTimelineValue,
@@ -451,10 +451,10 @@ export function TimelinePanel({
     () => normalizeParticleTimeline(composite.timeline, composite.systems),
     [composite.systems, composite.timeline],
   );
-  const zoom = useSettingsStore((state) => state.particleTimelineZoom);
-  const snap = useSettingsStore((state) => state.particleTimelineSnap);
-  const setZoom = useSettingsStore((state) => state.setParticleTimelineZoom);
-  const setSnap = useSettingsStore((state) => state.setParticleTimelineSnap);
+  const zoom = useStudioPreferencesStore((state) => state.particleTimelineZoom);
+  const snap = useStudioPreferencesStore((state) => state.particleTimelineSnap);
+  const setZoom = useStudioPreferencesStore((state) => state.setParticleTimelineZoom);
+  const setSnap = useStudioPreferencesStore((state) => state.setParticleTimelineSnap);
   const [expandedTrack, setExpandedTrack] = useState<number>(activeSystemIndex);
   const [selectedItem, setSelectedItem] = useState<SelectedTimelineItem | null>(null);
   const [selectedTimelineKeys, setSelectedTimelineKeys] = useState<Set<string>>(() => new Set());

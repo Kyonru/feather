@@ -7,19 +7,7 @@ import {
   type SidebarToolId,
 } from '@/constants/main-features';
 import { compactStoredLogHistory, isStorageQuotaError } from './log-history';
-import {
-  DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES,
-  normalizeShaderGraphNodeCategories,
-} from '@/constants/shader-graph';
 import { normalizeThemePreference, type ThemePreference } from '@/assets/theme/registry';
-import type { NodeCategory } from '@/types/shader-graph';
-import type { TextureLabRecipe, TextureLabSavedRecipe } from '@/types/texture-lab';
-import {
-  DEFAULT_TEXTURE_LAB_RECIPE,
-  normalizeTextureLabRecipe,
-  normalizeTextureLabSavedRecipes,
-  TEXTURE_LAB_SAVED_RECIPE_LIMIT,
-} from '@/pages/texture-lab/generator';
 
 type SettingsStoreState = {
   open: boolean;
@@ -39,20 +27,8 @@ type SettingsStoreState = {
   hiddenPlugins: string[];
   hiddenMainFeatures: MainFeatureId[];
   pinnedSidebarTools: SidebarToolId[];
-  collapsedShaderGraphNodeCategories: NodeCategory[];
-  particleTimelineZoom: number;
-  particleTimelineSnap: boolean;
-  textureLabRecipe: TextureLabRecipe;
-  textureLabSavedRecipes: TextureLabSavedRecipe[];
-  textureLabWorkspaceId: string;
-  textureLabWorkspaces: Record<string, TextureLabWorkspaceSnapshot>;
   showHiddenMainFeaturesInCommandCenter: boolean;
   assetSourceDir: string;
-};
-
-type TextureLabWorkspaceSnapshot = {
-  recipe: TextureLabRecipe;
-  savedRecipes: TextureLabSavedRecipe[];
 };
 
 type SettingsStoreActions = {
@@ -74,15 +50,6 @@ type SettingsStoreActions = {
   setHiddenMainFeatures: (featureIds: MainFeatureId[]) => void;
   togglePinnedSidebarTool: (toolId: SidebarToolId) => void;
   setPinnedSidebarTools: (toolIds: SidebarToolId[]) => void;
-  toggleShaderGraphNodeCategory: (category: NodeCategory) => void;
-  setCollapsedShaderGraphNodeCategories: (categories: NodeCategory[]) => void;
-  setParticleTimelineZoom: (zoom: number) => void;
-  setParticleTimelineSnap: (snap: boolean) => void;
-  setTextureLabRecipe: (recipe: Partial<TextureLabRecipe>) => void;
-  activateTextureLabWorkspace: (workspaceId: string) => void;
-  deleteTextureLabWorkspace: (workspaceId: string) => void;
-  saveTextureLabRecipe: (name: string, recipe?: Partial<TextureLabRecipe>) => void;
-  deleteTextureLabSavedRecipe: (id: string) => void;
   setShowHiddenMainFeaturesInCommandCenter: (show: boolean) => void;
   setAssetSourceDir: (dir: string) => void;
   reset: () => void;
@@ -95,24 +62,6 @@ function createAppId(): string {
     return `feather-app-${crypto.randomUUID()}`;
   }
   return `feather-app-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-}
-
-function createSavedTextureRecipeId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return `texture-recipe-${crypto.randomUUID()}`;
-  }
-  return `texture-recipe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-}
-
-function normalizeTextureLabSavedName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ').slice(0, 64);
-}
-
-function normalizeTextureLabWorkspace(snapshot?: Partial<TextureLabWorkspaceSnapshot>): TextureLabWorkspaceSnapshot {
-  return {
-    recipe: normalizeTextureLabRecipe(snapshot?.recipe),
-    savedRecipes: normalizeTextureLabSavedRecipes(snapshot?.savedRecipes),
-  };
 }
 
 function normalizePinnedSidebarTools(toolIds?: unknown): SidebarToolId[] {
@@ -132,12 +81,6 @@ function normalizePinnedSidebarTools(toolIds?: unknown): SidebarToolId[] {
   return SIDEBAR_TOOL_ORDER.filter((toolId) => normalized.includes(toolId));
 }
 
-function normalizeParticleTimelineZoom(zoom?: unknown): number {
-  const value = Number(zoom);
-  if (!Number.isFinite(value)) return 1;
-  return Math.min(4, Math.max(1, Math.round(value * 4) / 4));
-}
-
 const defaultSettings: SettingsStoreState = {
   isLatestVersion: true,
   open: false,
@@ -154,13 +97,6 @@ const defaultSettings: SettingsStoreState = {
   hiddenPlugins: [],
   hiddenMainFeatures: [],
   pinnedSidebarTools: [...DEFAULT_PINNED_SIDEBAR_TOOLS],
-  collapsedShaderGraphNodeCategories: [...DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES],
-  particleTimelineZoom: 1,
-  particleTimelineSnap: true,
-  textureLabRecipe: DEFAULT_TEXTURE_LAB_RECIPE,
-  textureLabSavedRecipes: [],
-  textureLabWorkspaceId: 'default',
-  textureLabWorkspaces: {},
   showHiddenMainFeaturesInCommandCenter: false,
   assetSourceDir: '',
 };
@@ -220,78 +156,6 @@ export const useSettingsStore = create<SettingsStore>()(
       setHiddenMainFeatures: (hiddenMainFeatures: MainFeatureId[]) => set({ hiddenMainFeatures }),
       setPinnedSidebarTools: (pinnedSidebarTools: SidebarToolId[]) =>
         set({ pinnedSidebarTools: normalizePinnedSidebarTools(pinnedSidebarTools) }),
-      setCollapsedShaderGraphNodeCategories: (collapsedShaderGraphNodeCategories: NodeCategory[]) =>
-        set({
-          collapsedShaderGraphNodeCategories: normalizeShaderGraphNodeCategories(
-            collapsedShaderGraphNodeCategories,
-            [],
-          ),
-        }),
-      setParticleTimelineZoom: (particleTimelineZoom: number) =>
-        set({ particleTimelineZoom: normalizeParticleTimelineZoom(particleTimelineZoom) }),
-      setParticleTimelineSnap: (particleTimelineSnap: boolean) => set({ particleTimelineSnap }),
-      setTextureLabRecipe: (textureLabRecipe: Partial<TextureLabRecipe>) =>
-        set((state) => ({ textureLabRecipe: normalizeTextureLabRecipe({ ...state.textureLabRecipe, ...textureLabRecipe }) })),
-      activateTextureLabWorkspace: (workspaceId: string) =>
-        set((state) => {
-          const id = workspaceId.trim() || 'default';
-          if (state.textureLabWorkspaceId === id) return {};
-          const textureLabWorkspaces = {
-            ...state.textureLabWorkspaces,
-            [state.textureLabWorkspaceId]: normalizeTextureLabWorkspace({
-              recipe: state.textureLabRecipe,
-              savedRecipes: state.textureLabSavedRecipes,
-            }),
-          };
-          const next = textureLabWorkspaces[id] ?? normalizeTextureLabWorkspace();
-          return {
-            textureLabWorkspaceId: id,
-            textureLabWorkspaces,
-            textureLabRecipe: next.recipe,
-            textureLabSavedRecipes: next.savedRecipes,
-          };
-        }),
-      deleteTextureLabWorkspace: (workspaceId: string) =>
-        set((state) => {
-          const textureLabWorkspaces = { ...state.textureLabWorkspaces };
-          delete textureLabWorkspaces[workspaceId];
-          if (state.textureLabWorkspaceId !== workspaceId) {
-            return { textureLabWorkspaces };
-          }
-          const fallback = textureLabWorkspaces.default ?? normalizeTextureLabWorkspace();
-          return {
-            textureLabWorkspaceId: 'default',
-            textureLabWorkspaces,
-            textureLabRecipe: fallback.recipe,
-            textureLabSavedRecipes: fallback.savedRecipes,
-          };
-        }),
-      saveTextureLabRecipe: (name: string, textureLabRecipe?: Partial<TextureLabRecipe>) =>
-        set((state) => {
-          const savedName = normalizeTextureLabSavedName(name);
-          if (!savedName) return {};
-          const now = Date.now();
-          const recipe = normalizeTextureLabRecipe(textureLabRecipe ?? state.textureLabRecipe);
-          const existing = state.textureLabSavedRecipes.find(
-            (item) => item.name.toLowerCase() === savedName.toLowerCase(),
-          );
-          const nextSavedRecipe: TextureLabSavedRecipe = {
-            id: existing?.id ?? createSavedTextureRecipeId(),
-            name: savedName,
-            recipe,
-            createdAt: existing?.createdAt ?? now,
-            updatedAt: now,
-          };
-          const rest = state.textureLabSavedRecipes.filter((item) => item.id !== nextSavedRecipe.id);
-          return {
-            textureLabSavedRecipes: normalizeTextureLabSavedRecipes([
-              nextSavedRecipe,
-              ...rest,
-            ]).slice(0, TEXTURE_LAB_SAVED_RECIPE_LIMIT),
-          };
-        }),
-      deleteTextureLabSavedRecipe: (id: string) =>
-        set((state) => ({ textureLabSavedRecipes: state.textureLabSavedRecipes.filter((item) => item.id !== id) })),
       setShowHiddenMainFeaturesInCommandCenter: (showHiddenMainFeaturesInCommandCenter: boolean) =>
         set({ showHiddenMainFeaturesInCommandCenter }),
       togglePinnedSidebarTool: (toolId: SidebarToolId) =>
@@ -301,19 +165,6 @@ export const useSettingsStore = create<SettingsStore>()(
             : [...state.pinnedSidebarTools, toolId];
 
           return { pinnedSidebarTools: normalizePinnedSidebarTools(pinnedSidebarTools) };
-        }),
-      toggleShaderGraphNodeCategory: (category: NodeCategory) =>
-        set((state) => {
-          const collapsedShaderGraphNodeCategories = state.collapsedShaderGraphNodeCategories.includes(category)
-            ? state.collapsedShaderGraphNodeCategories.filter((id) => id !== category)
-            : [...state.collapsedShaderGraphNodeCategories, category];
-
-          return {
-            collapsedShaderGraphNodeCategories: normalizeShaderGraphNodeCategories(
-              collapsedShaderGraphNodeCategories,
-              [],
-            ),
-          };
         }),
       toggleHiddenMainFeature: (featureId: MainFeatureId) =>
         set((state) => ({
@@ -339,35 +190,8 @@ export const useSettingsStore = create<SettingsStore>()(
           ...persisted,
           theme: normalizeThemePreference(persisted?.theme),
           pinnedSidebarTools: normalizePinnedSidebarTools(persisted?.pinnedSidebarTools),
-          collapsedShaderGraphNodeCategories: normalizeShaderGraphNodeCategories(
-            persisted?.collapsedShaderGraphNodeCategories,
-          ),
-          particleTimelineZoom: normalizeParticleTimelineZoom(persisted?.particleTimelineZoom),
-          particleTimelineSnap:
-            typeof persisted?.particleTimelineSnap === 'boolean'
-              ? persisted.particleTimelineSnap
-              : currentState.particleTimelineSnap,
-          textureLabRecipe: normalizeTextureLabRecipe(persisted?.textureLabRecipe),
-          textureLabSavedRecipes: normalizeTextureLabSavedRecipes(persisted?.textureLabSavedRecipes),
-          textureLabWorkspaceId: persisted?.textureLabWorkspaceId ?? currentState.textureLabWorkspaceId,
-          textureLabWorkspaces: Object.fromEntries(
-            Object.entries(persisted?.textureLabWorkspaces ?? {}).map(([id, workspace]) => [
-              id,
-              normalizeTextureLabWorkspace(workspace),
-            ]),
-          ),
         };
       },
-      partialize: (state) => ({
-        ...state,
-        textureLabWorkspaces: {
-          ...state.textureLabWorkspaces,
-          [state.textureLabWorkspaceId]: normalizeTextureLabWorkspace({
-            recipe: state.textureLabRecipe,
-            savedRecipes: state.textureLabSavedRecipes,
-          }),
-        },
-      }),
     },
   ),
 );

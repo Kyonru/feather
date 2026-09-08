@@ -55,7 +55,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@feather/ui/select';
-import { useSettingsStore } from '@/store/settings';
+import { useStudioPreferencesStore } from '@/store/studio-preferences';
 import {
   TEXTURE_LAB_ALPHA_MODES,
   TEXTURE_LAB_ATLAS_MODES,
@@ -425,8 +425,8 @@ async function textureLabImageMaskFromFile(file: File): Promise<TextureLabImageM
 }
 
 function useTextureLabRecipe() {
-  const recipe = useSettingsStore((state) => state.textureLabRecipe);
-  const setRecipe = useSettingsStore((state) => state.setTextureLabRecipe);
+  const recipe = useStudioPreferencesStore((state) => state.textureLabRecipe);
+  const setRecipe = useStudioPreferencesStore((state) => state.setTextureLabRecipe);
   return {
     recipe,
     setRecipe,
@@ -1374,9 +1374,9 @@ export function TextureLabPanel({
     TEXTURE_LAB_SIZES.some((size) => size === textureDimensions.width);
   const textureSizeSelectValue =
     customDimensionsOpen || !textureDimensionsMatchPreset ? 'custom' : String(textureDimensions.width);
-  const savedRecipes = useSettingsStore((state) => state.textureLabSavedRecipes);
-  const saveTextureLabRecipe = useSettingsStore((state) => state.saveTextureLabRecipe);
-  const deleteTextureLabSavedRecipe = useSettingsStore((state) => state.deleteTextureLabSavedRecipe);
+  const savedRecipes = useStudioPreferencesStore((state) => state.textureLabSavedRecipes);
+  const saveTextureLabRecipe = useStudioPreferencesStore((state) => state.saveTextureLabRecipe);
+  const deleteTextureLabSavedRecipe = useStudioPreferencesStore((state) => state.deleteTextureLabSavedRecipe);
   const atlasSettings = useMemo(() => normalizeTextureLabAtlasSettings(recipe.atlas), [recipe.atlas]);
   const atlasEnabled = recipe.atlas?.enabled === true;
   const customAtlasEnabled = isTextureLabCustomAtlas(recipe);

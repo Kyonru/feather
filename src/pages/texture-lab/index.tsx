@@ -4,7 +4,7 @@ import { TextureLabActionControls, TextureLabPanel } from './TextureLabPanel';
 import { useParticleSystemPlayground } from '@/hooks/use-particle-system-playground';
 import { useLocalParticlePlayground } from '@/pages/particle-system-playground/use-local-particle-playground';
 import { useShaderGraphStore } from '@/store/shader-graph';
-import { useSettingsStore } from '@/store/settings';
+import { useStudioPreferencesStore } from '@/store/studio-preferences';
 import { isCreativeSession, useSessionStore } from '@/store/session';
 import type { GeneratedTextureResult } from '@/types/texture-lab';
 
@@ -19,7 +19,7 @@ export default function TextureLab() {
   const playground = creativeSession ? localPlayground : livePlayground;
   const workspaceId = sessionId ?? 'default';
   const activateShaderWorkspace = useShaderGraphStore((state) => state.activateWorkspace);
-  const activateTextureLabWorkspace = useSettingsStore((state) => state.activateTextureLabWorkspace);
+  const activateTextureLabWorkspace = useStudioPreferencesStore((state) => state.activateTextureLabWorkspace);
   const shaderNodes = useShaderGraphStore((state) => state.nodes);
   const selectedShaderNodeId = useShaderGraphStore((state) => state.selectedNodeId);
   const setShaderTextureUpload = useShaderGraphStore((state) => state.setTextureUpload);

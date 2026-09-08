@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShaderGraphStore } from '@/store/shader-graph';
-import { useSettingsStore } from '@/store/settings';
+import { useStudioPreferencesStore } from '@/store/studio-preferences';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey } from './use-ws-connection';
 import { codegen } from '@/pages/shader-graph/codegen';
@@ -104,7 +104,7 @@ function shaderGraphSnapshot() {
 }
 
 function textureLabSnapshot() {
-  const state = useSettingsStore.getState();
+  const state = useStudioPreferencesStore.getState();
   return {
     type: TEXTURE_LAB_TOOL,
     updatedAt: Date.now(),
@@ -322,7 +322,7 @@ function atlasPayload(bundle: TextureLabAtlasBundle) {
 }
 
 async function handleTextureLabAction(action: string, params: Record<string, unknown>) {
-  const state = useSettingsStore.getState();
+  const state = useStudioPreferencesStore.getState();
   if (action === 'generators') return { generators: TEXTURE_LAB_GENERATORS };
   if (action === 'snapshot') return textureLabSnapshot();
   if (action === 'set-recipe') {
@@ -397,7 +397,7 @@ export function useMcpCreativeBridge() {
 
   useEffect(() => {
     publishCreativeSnapshot(TEXTURE_LAB_TOOL, textureLabSnapshot());
-    return useSettingsStore.subscribe(() => {
+    return useStudioPreferencesStore.subscribe(() => {
       publishCreativeSnapshot(TEXTURE_LAB_TOOL, textureLabSnapshot());
     });
   }, []);

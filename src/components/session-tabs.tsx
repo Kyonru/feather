@@ -56,7 +56,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { sendCommand } from '@/lib/send-command';
 import { useShaderGraphStore } from '@/store/shader-graph';
-import { useSettingsStore } from '@/store/settings';
+import { useStudioPreferencesStore } from '@/store/studio-preferences';
 import { deleteLocalParticleWorkspace } from '@/pages/particle-system-playground/use-local-particle-playground';
 
 const osIcons: Record<string, React.ReactNode> = {
@@ -247,7 +247,7 @@ export function SessionTabs() {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const setRuntimeSuspended = useSessionStore((state) => state.setRuntimeSuspended);
   const deleteShaderGraphWorkspace = useShaderGraphStore((state) => state.deleteWorkspace);
-  const deleteTextureLabWorkspace = useSettingsStore((state) => state.deleteTextureLabWorkspace);
+  const deleteTextureLabWorkspace = useStudioPreferencesStore((state) => state.deleteTextureLabWorkspace);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creativeName, setCreativeName] = useState('');
   const [removeCreativeSession, setRemoveCreativeSession] = useState<SessionInfo | null>(null);
