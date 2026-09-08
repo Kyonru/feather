@@ -4,6 +4,16 @@ This is the canonical repo guide for coding agents. Keep subsystem-specific deta
 
 Feather is a CLI debugger, inspector, desktop devtool, VS Code companion, and package manager for Love2D games. It injects a Lua runtime through the CLI and shows a live React + Tauri desktop app with logs, variables, performance, plugins, build tools, and creative inspectors.
 
+## Active Architecture Work
+
+Feather is mid-migration to a v2 architecture organized around release boundaries. **Read `V2.md`
+before starting any structural, build, release, or packaging work.** It carries the goals, the
+invariants that hold for every commit, the phase order (which is load-bearing), and a status board
+showing what is done and what is next.
+
+`V2.md` governs *what to build and in what order*. This file governs *how to work in this repo*.
+Both apply.
+
 ## Project Layout
 
 - `cli/` - TypeScript CLI using Commander. Workspace package `@kyonru/feather`.
