@@ -70,6 +70,19 @@ function GoldenWorkflowsE2E.run(assertEqual, assertTruthy)
   assertTruthy(hello.data.protocolVersion >= 1, "wire protocol version is at least 1")
   assertEqual(type(hello.data.API), "number", "hello still reports the plugin API separately")
 
+  -- A desktop app newer than this runtime can send a command we have never heard
+  -- of. It must be noticed rather than vanishing off the end of the dispatch chain.
+  local unknownCommand = "cmd:from:a:newer:desktop"
+  local beforeUnknown = #messages
+  feather:__handleCommand({ type = unknownCommand })
+  assertTruthy(
+    feather.__warnedUnknownCommands and feather.__warnedUnknownCommands[unknownCommand],
+    "unknown desktop command is recorded, not silently dropped"
+  )
+  assertEqual(#messages, beforeUnknown, "unknown desktop command sends no reply")
+  feather:__handleCommand({ type = unknownCommand })
+  assertTruthy(feather.__warnedUnknownCommands[unknownCommand], "unknown command warning is deduped by type")
+
   local beforeLogs = #messages
   feather.featherLogger:print("golden batched log")
   assertEqual(#messages, beforeLogs, "normal golden logs batch before flush")

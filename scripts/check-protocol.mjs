@@ -83,7 +83,7 @@ function parseRegistryList(source, name) {
   return new Set([...match[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
 }
 
-function compare(label, registry, live, registrySource, liveSource) {
+function compare(label, registry, live, registrySource, liveSource, fixes = {}) {
   const missingFromRegistry = [...live].filter((t) => !registry.has(t)).sort();
   const missingFromLive = [...registry].filter((t) => !live.has(t)).sort();
 
@@ -91,14 +91,14 @@ function compare(label, registry, live, registrySource, liveSource) {
     problems.push(
       `${label}: handled in ${liveSource} but not declared in ${registrySource}:\n` +
         missingFromRegistry.map((t) => `    ${t}`).join('\n') +
-        `\n  Add it to the registry, or remove the handler if it is dead.`,
+        `\n  ${fixes.extra ?? 'Add it to the registry, or remove the handler if it is dead.'}`,
     );
   }
   if (missingFromLive.length > 0) {
     problems.push(
       `${label}: declared in ${registrySource} but not handled in ${liveSource}:\n` +
         missingFromLive.map((t) => `    ${t}`).join('\n') +
-        `\n  Implement the handler, or drop it from the registry.`,
+        `\n  ${fixes.missing ?? 'Implement the handler, or drop it from the registry.'}`,
     );
   }
 }
@@ -117,6 +117,17 @@ const liveToDesktop = new Set([...wsHook.matchAll(/^\s+case '([^']+)':/gm)].map(
 
 compare('desktop -> game', toGame, liveToGame, registrySource, `${luaFile} __handleCommand`);
 compare('game -> desktop', toDesktop, liveToDesktop, registrySource, 'src/hooks/use-ws-connection.ts');
+
+// The generated Lua table must match the registry, or the runtime will warn
+// about commands that are perfectly valid (or stay silent about ones that are not).
+const generatedLuaFile = 'src-lua/feather/protocol_messages.lua';
+const generatedLua = new Set(
+  [...read(generatedLuaFile).matchAll(/\["([^"]+)"\] = true/g)].map((m) => m[1]),
+);
+compare('generated Lua table', toGame, generatedLua, registrySource, generatedLuaFile, {
+  missing: 'The generated file is stale — run: npm run generate:protocol-lua',
+  extra: 'The generated file is stale — run: npm run generate:protocol-lua',
+});
 
 if (problems.length > 0) {
   console.error('[feather] Protocol check failed.\n');

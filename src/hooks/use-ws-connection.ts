@@ -26,6 +26,7 @@ import { isWeb } from '@/utils/platform';
 import { useDebuggerStore, type BreakpointIssue, type DebuggerStatus, type PausedState } from '@/store/debugger';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { evaluateProtocol } from '@/constants/feather-protocol';
+import { parseInbound } from '@feather/protocol';
 import { sendCommand } from '@/lib/send-command';
 import { base64ToUint8Array } from '@/utils/arrays';
 import { normalizePerformanceMetric } from '@/utils/performance-metrics';
@@ -59,13 +60,6 @@ export const sessionQueryKey = {
   sessionReplayList: (sessionId: string) => [sessionId, 'session-replay-list'],
   sessionReplaySelected: (sessionId: string) => [sessionId, 'session-replay-selected'],
   hotReload: (sessionId: string) => [sessionId, 'hot-reload'],
-};
-
-type WsMessage = {
-  _session: string;
-  type: string;
-  data?: unknown;
-  plugin?: string;
 };
 
 type BinaryEvent = {
@@ -245,6 +239,7 @@ export const useWsConnection = () => {
   const setPausedState = useDebuggerStore((state) => state.setPausedState);
   const setDebuggerEnabled = useDebuggerStore((state) => state.setEnabled);
   const lastMessageRef = useRef<number>(Date.now());
+  const warnedUnknownTypesRef = useRef<Set<string>>(new Set());
   const pendingBinaryRef = useRef<Record<string, PendingBinary[]>>({});
 
   // Keep Rust's app_id in sync with settings so it can validate auth:response.
@@ -390,13 +385,19 @@ export const useWsConnection = () => {
       // Game → desktop messages
       const unlistenMessage = await listen<string>('feather://message', (event) => {
         if (cancelled) return;
-        let msg: WsMessage;
-
-        try {
-          msg = JSON.parse(event.payload) as WsMessage;
-        } catch {
+        const parsed = parseInbound(event.payload);
+        if (!parsed.ok) {
+          // Now that the runtime and the desktop ship on separate release
+          // trains, a newer runtime can legitimately send a message this build
+          // has never heard of. Report that once per type instead of dropping
+          // it silently, so version skew is visible rather than mysterious.
+          if (parsed.reason === 'unknown-type' && parsed.type && !warnedUnknownTypesRef.current.has(parsed.type)) {
+            warnedUnknownTypesRef.current.add(parsed.type);
+            console.warn(`[feather] ${parsed.detail}`);
+          }
           return;
         }
+        const msg = parsed.message;
 
         // Any message from the game resets the health timer
         lastMessageRef.current = Date.now();

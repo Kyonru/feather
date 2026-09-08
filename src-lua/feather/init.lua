@@ -22,6 +22,7 @@ local FeatherDebugger = require(FEATHER_PATH .. ".debugger")
 local FeatherUI = require(FEATHER_PATH .. ".ui")
 local get_current_dir = require(FEATHER_PATH .. ".utils").get_current_dir
 local format = require(FEATHER_PATH .. ".utils").format
+local KNOWN_DESKTOP_COMMANDS = require(FEATHER_PATH .. ".protocol_messages")
 
 local FEATHER_VERSION_NAME = "4.0.0"
 local FEATHER_API = 5
@@ -700,6 +701,22 @@ end
 function Feather:__handleCommand(msg)
   if not msg or not msg.type then
     return
+  end
+
+  -- The desktop app can now be newer than this runtime (they ship on separate
+  -- release trains), in which case it may send a command this build has never
+  -- heard of. The if/elseif chain below would drop it silently, so say so once.
+  -- This only observes; the command still falls through as before.
+  if not KNOWN_DESKTOP_COMMANDS[msg.type] then
+    self.__warnedUnknownCommands = self.__warnedUnknownCommands or {}
+    if not self.__warnedUnknownCommands[msg.type] then
+      self.__warnedUnknownCommands[msg.type] = true
+      print(string.format(
+        '[Feather] Unrecognized command "%s" from the desktop app. It may be newer than this runtime (wire protocol v%d).',
+        tostring(msg.type),
+        FEATHER_PROTOCOL_VERSION
+      ))
+    end
   end
 
   -- Handshake state machine: authenticate before processing any game commands.

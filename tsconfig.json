@@ -23,7 +23,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@feather/protocol": ["./packages/protocol/src/index.ts"]
     }
   },
   "include": ["src"],

@@ -19,6 +19,7 @@ core:feather/lib/json.lua
 core:feather/lib/log.lua
 core:feather/lib/ws.lua
 core:feather/plugin_manager.lua
+core:feather/protocol_messages.lua
 core:feather/ui.lua
 core:feather/utils.lua
 plugin:animation-inspector:init.lua

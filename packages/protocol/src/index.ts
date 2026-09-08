@@ -7,3 +7,7 @@ export {
 } from './messages';
 
 export type { ToGameMessage, ToDesktopMessage, FeatherMessage } from './messages';
+
+export { parseInbound } from './envelope';
+
+export type { InboundEnvelope, InboundParseResult, InboundRejection } from './envelope';

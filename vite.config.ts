@@ -157,6 +157,7 @@ export default defineConfig(async () => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@feather/protocol": path.resolve(__dirname, "./packages/protocol/src/index.ts"),
     },
   },
 
