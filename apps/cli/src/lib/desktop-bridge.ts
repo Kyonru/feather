@@ -3,18 +3,35 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 export const DEFAULT_DESKTOP_BRIDGE_URL = 'http://127.0.0.1:4005';
+
+/**
+ * Feather Studio's creative endpoint.
+ *
+ * There is one Feather MCP server — this client — but the state behind it lives
+ * in two applications now. Session, log and debugger traffic belongs to
+ * Inspector; shaders, textures and particles belong to Studio, which is a
+ * separately installed application with its own process.
+ *
+ * Routing here rather than splitting the MCP keeps the agent-facing surface as
+ * one thing to configure.
+ */
+export const DEFAULT_STUDIO_BRIDGE_URL = 'http://127.0.0.1:4007';
 export const DESKTOP_BRIDGE_SECTIONS = ['config', 'logs', 'performance', 'debugger', 'plugins', 'assets', 'observers', 'session-replay'] as const;
 
 export type DesktopBridgeSection = typeof DESKTOP_BRIDGE_SECTIONS[number];
 
 export type DesktopBridgeOptions = {
   desktopUrl?: string;
+  studioUrl?: string;
   token?: string;
+  studioToken?: string;
 };
 
 export type ResolvedDesktopBridgeOptions = {
   desktopUrl: string;
+  studioUrl: string;
   token: string;
+  studioToken: string;
 };
 
 export type SharedDesktopBridgeConfig = {
@@ -50,10 +67,20 @@ export type SessionListResponse = {
 };
 
 export class DesktopBridgeClient {
+  private readonly studioUrl: string;
+  private readonly studioToken: string;
+
   constructor(
     private readonly baseUrl: string,
     private readonly token: string,
-  ) {}
+    studio?: { url?: string; token?: string },
+  ) {
+    this.studioUrl = normalizeBaseUrl(studio?.url || DEFAULT_STUDIO_BRIDGE_URL);
+    // Studio mints its own token per launch. When one has not been supplied,
+    // creative calls will fail authorization with a message naming Studio,
+    // which is more useful than silently returning nothing.
+    this.studioToken = studio?.token || process.env.FEATHER_STUDIO_MCP_TOKEN || '';
+  }
 
   async health(): Promise<unknown> {
     return this.request('/health');
@@ -68,11 +95,11 @@ export class DesktopBridgeClient {
   }
 
   async getCreative(tool: string): Promise<unknown> {
-    return this.request(`/creative/${encodeURIComponent(tool)}`);
+    return this.creativeRequest(`/creative/${encodeURIComponent(tool)}`);
   }
 
   async runCreativeAction(tool: string, body: CreativeActionRequest): Promise<unknown> {
-    return this.request(`/creative/${encodeURIComponent(tool)}/action`, {
+    return this.creativeRequest(`/creative/${encodeURIComponent(tool)}/action`, {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -86,20 +113,47 @@ export class DesktopBridgeClient {
   }
 
   private async request<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${this.token}`,
-        ...(init.headers ?? {}),
-      },
-    });
+    return this.send<T>(this.baseUrl, this.token, 'Feather Inspector', path, init);
+  }
+
+  /**
+   * Creative state lives in Feather Studio, a separate application.
+   *
+   * Routed rather than proxied through Inspector: Studio is useful — and worth
+   * asking about — with no Inspector running at all.
+   */
+  private async creativeRequest<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
+    return this.send<T>(this.studioUrl, this.studioToken, 'Feather Studio', path, init);
+  }
+
+  private async send<T>(
+    baseUrl: string,
+    token: string,
+    app: string,
+    path: string,
+    init: RequestInit,
+  ): Promise<T> {
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}${path}`, {
+        ...init,
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+          ...(init.headers ?? {}),
+        },
+      });
+    } catch {
+      // Naming which application is missing is the whole point: "connection
+      // refused on 4007" tells an agent nothing it can act on.
+      throw new Error(`${app} is not running. Start it and try again.`);
+    }
 
     const text = await response.text();
     const body = text ? safeJson(text) : null;
     if (!response.ok) {
       const detail = isRecord(body) && typeof body.error === 'string' ? body.error : response.statusText;
-      throw new Error(`Desktop bridge ${response.status}: ${detail}`);
+      throw new Error(`${app} ${response.status}: ${detail}`);
     }
     return body as T;
   }
@@ -109,7 +163,9 @@ export function resolveDesktopBridgeOptions(options: DesktopBridgeOptions = {}):
   const sharedConfig = readSharedDesktopBridgeConfig();
   return {
     desktopUrl: normalizeBaseUrl(options.desktopUrl || sharedConfig?.bridgeUrl || DEFAULT_DESKTOP_BRIDGE_URL),
+    studioUrl: normalizeBaseUrl(options.studioUrl || process.env.FEATHER_STUDIO_MCP_URL || DEFAULT_STUDIO_BRIDGE_URL),
     token: options.token || process.env.FEATHER_MCP_TOKEN || sharedConfig?.token || '',
+    studioToken: options.studioToken || process.env.FEATHER_STUDIO_MCP_TOKEN || '',
   };
 }
 

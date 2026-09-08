@@ -68,6 +68,10 @@ export type McpCommandOptions = {
   port?: number;
   desktopUrl?: string;
   token?: string;
+  /** Feather Studio's creative endpoint. Defaults to 127.0.0.1:4007. */
+  studioUrl?: string;
+  /** Studio mints a token per launch; it is not the Inspector token. */
+  studioToken?: string;
 };
 
 export async function mcpCommand(options: McpCommandOptions): Promise<void> {
@@ -88,7 +92,13 @@ export async function mcpCommand(options: McpCommandOptions): Promise<void> {
     });
   }
 
-  const bridge = new DesktopBridgeClient(desktopUrl, token);
+  // One MCP server, two backends. Session and debugging traffic goes to
+  // Inspector; creative traffic goes to Studio, which is a separate
+  // application. The agent still configures a single server.
+  const bridge = new DesktopBridgeClient(desktopUrl, token, {
+    url: options.studioUrl,
+    token: options.studioToken,
+  });
   const server = createFeatherMcpServer(bridge);
 
   if (transport === 'stdio') {

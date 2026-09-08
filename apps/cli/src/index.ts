@@ -255,6 +255,8 @@ export function createProgram(): Command {
     .option('--port <port>', 'Port for HTTP transport', (value) => Number(value), 4006)
     .option('--desktop-url <url>', 'Feather desktop MCP bridge URL', 'http://127.0.0.1:4005')
     .option('--token <token>', 'MCP bridge and HTTP bearer token')
+    .option('--studio-url <url>', 'Feather Studio creative endpoint', 'http://127.0.0.1:4007')
+    .option('--studio-token <token>', 'Feather Studio MCP token (Studio mints its own per launch)')
     .action((opts) =>
       runCliAction(() =>
         mcpCommand({
@@ -263,6 +265,8 @@ export function createProgram(): Command {
           port: opts.port as number | undefined,
           desktopUrl: opts.desktopUrl as string | undefined,
           token: opts.token as string | undefined,
+          studioUrl: opts.studioUrl as string | undefined,
+          studioToken: opts.studioToken as string | undefined,
         }),
       ),
     );

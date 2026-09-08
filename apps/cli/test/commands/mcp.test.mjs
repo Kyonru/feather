@@ -633,8 +633,15 @@ test('mcp setup rejects unsupported clients', () => {
 
 test('mcp: stdio initializes, lists tools, and calls the fake bridge without stdout logs', async () => {
   const bridge = await startFakeBridge();
-  const child = spawnCli(['mcp', '--transport', 'stdio', '--desktop-url', bridge.url], {
-    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_MCP_TOKEN: TOKEN },
+  const child = spawnCli(['mcp', '--transport', 'stdio', '--desktop-url', bridge.url, '--studio-url', bridge.url], {
+    env: {
+      ...process.env,
+      NO_COLOR: '1',
+      FORCE_COLOR: '0',
+      FEATHER_MCP_TOKEN: TOKEN,
+      // Studio mints its own token per launch; the fake bridge accepts one.
+      FEATHER_STUDIO_MCP_TOKEN: TOKEN,
+    },
   });
 
   try {
@@ -858,8 +865,15 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
 
 test('mcp: resources/list keeps static resources discoverable when bridge is unavailable', async () => {
   const port = await freePort();
-  const child = spawnCli(['mcp', '--transport', 'stdio', '--desktop-url', `http://127.0.0.1:${port}`], {
-    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', FEATHER_MCP_TOKEN: TOKEN },
+  const child = spawnCli(['mcp', '--transport', 'stdio', '--desktop-url', `http://127.0.0.1:${port}`, '--studio-url', `http://127.0.0.1:${port}`], {
+    env: {
+      ...process.env,
+      NO_COLOR: '1',
+      FORCE_COLOR: '0',
+      FEATHER_MCP_TOKEN: TOKEN,
+      // Studio mints its own token per launch; the fake bridge accepts one.
+      FEATHER_STUDIO_MCP_TOKEN: TOKEN,
+    },
   });
 
   try {
@@ -893,7 +907,7 @@ test('mcp: HTTP transport requires bearer auth and accepts an authorized initial
   const bridge = await startFakeBridge();
   const port = await freePort();
   const child = spawnCli(
-    ['mcp', '--transport', 'http', '--port', String(port), '--desktop-url', bridge.url, '--token', TOKEN],
+    ['mcp', '--transport', 'http', '--port', String(port), '--desktop-url', bridge.url, '--studio-url', bridge.url, '--token', TOKEN],
     { env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' } },
   );
 

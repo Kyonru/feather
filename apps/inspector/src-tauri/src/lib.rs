@@ -113,7 +113,7 @@ pub fn run() {
             let studio_bridge_port: u16 = std::env::var("FEATHER_STUDIO_BRIDGE_PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())
-                .unwrap_or(4006);
+                .unwrap_or(4008);
             studio_bridge::start_bridge_server(
                 sessions.clone(),
                 studio_bridge_port,

@@ -10,6 +10,11 @@ lerna-debug.log*
 node_modules
 .turbo
 dist
+
+# Rust build output. Each Tauri crate also carries its own ignore, but a
+# belt-and-braces rule here stops a hand-made crate from committing 2.5 GB of
+# target/ the way apps/studio nearly did.
+target/
 dist-showcase
 .showcase-vendor
 .showcase-dev

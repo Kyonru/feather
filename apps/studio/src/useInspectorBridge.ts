@@ -11,7 +11,7 @@ import {
 const STUDIO_VERSION = '0.1.0';
 
 /** Where Inspector listens for bridge requests on loopback. */
-const INSPECTOR_BRIDGE_URL = 'http://127.0.0.1:4006/bridge';
+const INSPECTOR_BRIDGE_URL = 'http://127.0.0.1:4008/bridge';
 
 /**
  * Loopback transport.
