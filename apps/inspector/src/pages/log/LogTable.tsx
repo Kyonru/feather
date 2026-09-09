@@ -108,22 +108,30 @@ export function LogTable({
       return matchesSearch(log, needle);
     });
   }, [logs, search, typeFilter]);
-  const tailLog = filteredLogs[filteredLogs.length - 1];
-  const tailSignature = tailLog ? `${tailLog.id}:${tailLog.count}:${tailLog.lastTime ?? tailLog.time}` : '';
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const pathname = event.target.value;
     if (pathname) onUpload(pathname);
   };
 
+  // Jump to the tail when the *filter* changes, not when a log arrives.
+  //
+  // Arrivals are already handled by Virtuoso's `followOutput`, which by its own
+  // documentation "scrolls down only if the list is already at the bottom" —
+  // exactly the behaviour you want. This effect used to fire on every arrival
+  // too, and because it calls `scrollToIndex` unconditionally it overrode that:
+  // scroll up to read something while a game is chattering, and the next log
+  // line yanked you back to the bottom. Reading older output during a live
+  // session was close to impossible.
+  //
+  // Changing a filter is different — that is a deliberate act, and landing at
+  // the tail of the new result is what you want.
   useEffect(() => {
     if (!followTail || filteredLogs.length === 0) return;
-    listRef.current?.scrollToIndex({
-      index: filteredLogs.length - 1,
-      align: 'end',
-      behavior: 'smooth',
-    });
-  }, [filteredLogs.length, followTail, tailSignature]);
+    listRef.current?.scrollToIndex({ index: filteredLogs.length - 1, align: 'end' });
+    // Keyed on the filter deliberately. Adding length or a tail signature back
+    // would restore the behaviour the comment above exists to explain.
+  }, [followTail, typeFilter, search]);
 
   const onSelectFile = async () => {
     if (isWeb()) {
@@ -299,6 +307,7 @@ export function LogTable({
       <div className="min-h-0 flex-1 overflow-hidden rounded-b-lg border">
         <Virtuoso
           ref={listRef}
+          data-testid="logs-list"
           className="h-full"
           data={filteredLogs}
           followOutput={followTail ? 'smooth' : false}

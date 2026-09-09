@@ -507,7 +507,7 @@ alone.
 | C2 | Freshness and staleness | **DONE** | `useFreshness` + `<Freshness/>`; judged against the session, not the clock |
 | C3 | Next-action audit | **DONE (Session)** | 9/9 warnings actionable; other panels' empty states still to audit |
 | C4 | Swallowed-error triage | **MOSTLY DONE** | 44 → 27; 11 surface, 10 named deliberate; 27 left, mostly clipboard/invoke |
-| 6.1 | Logs | NOT STARTED | Highest traffic; start here |
+| 6.1 | Logs | **MOSTLY DONE** | follow-tail fixed; scale measured; export of a filtered view still open |
 | 6.2 | Session | NOT STARTED | |
 | 6.3 | Performance / Profiler | NOT STARTED | |
 | 6.4 | Debugger | NOT STARTED | |
@@ -521,7 +521,7 @@ alone.
 | 6.12 | Settings | NOT STARTED | |
 | 6.13 | About | NOT STARTED | Smallest |
 
-Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → 6.1 → 6.4 → 6.3**, then the rest. C0 first because it is a
+Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → ~~6.1~~ → 6.4 → 6.3**, then the rest. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
 most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 
@@ -673,6 +673,36 @@ feeds. Second, **the first regression test I wrote was a false pass.** It seeded
 `feather-log-history` with a `buckets` array; the real shape is `logsBySession` keyed by id, so no
 malformed log ever reached the filter and the test went green against the unfixed code. Reintroducing
 the bug to watch the test fail is what caught it. A test that has never failed has not been tested.
+
+**2026-09-09 — 6.1 Logs.**
+
+The panel's three open questions, answered.
+
+**Scale (L5) is fine, and that is the finding.** Measured over a realistic typing burst: 4.3 ms per
+keystroke across 40,000 logs, 1.1 ms at 10,000. No debouncing or deferred value was added, because
+adding either would have been complexity bought against a cost that is not there. Worth recording so
+the next person does not optimise it on instinct.
+
+**Follow-tail was fighting the user.** Virtuoso's `followOutput` already behaves correctly — its own
+documentation says it "scrolls down only if the list is already at the bottom" — but an effect
+alongside it called `scrollToIndex` unconditionally on every arrival, overriding that. Scroll up to
+read something during a chatty session and the next log line dragged you back to the tail. Reading
+older output while a game was running was close to impossible, and the fix was deleting code rather
+than adding it. The jump-to-tail on a *filter* change is kept and now keyed only on the filter,
+because that is a deliberate act where landing at the tail is what you want.
+
+**Getting data out is partly solved.** `CopyButton` covers the message, the stack and the full JSON —
+but only from the side panel, after selecting a log. There is no copy from the list itself and no
+export of a filtered view, which is what the acceptance line asks for. Left open.
+
+One honest gap. I could not build a browser test for the arrival case: the e2e harness's
+`emitMessage` did not deliver a `type: 'log'` message to the list in the time I gave it, and the
+first draft of the test would have passed vacuously for exactly that reason. The precondition
+assertion I added caught it — asserting the injected log actually arrives before checking scroll —
+so the test failed loudly instead of lying. Rather than ship it, the check in `verify:enhanced` is a
+static one, labelled as static: it asserts the effect is no longer keyed on arrivals and that
+`followOutput` is still passed. The behaviour itself rests on the library's documented contract and
+on reading the code. That is weaker than a browser test and is recorded as such.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

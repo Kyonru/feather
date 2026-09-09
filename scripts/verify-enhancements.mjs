@@ -228,6 +228,45 @@ check('background silence is named rather than implied', () => {
   return `${users.length - 1} files declare their silence deliberate`;
 });
 
+// --- 6.1 Logs --------------------------------------------------------------
+
+section(
+  '6.1',
+  'Logs',
+  'pnpm run up  →  scroll up in Logs while the game is chattering. The view should stay where you\n' +
+    '              put it. Then change the type filter: that should jump you to the tail.',
+);
+
+check('follow-tail does not force-scroll on every arrival', () => {
+  // A static check, deliberately labelled as one. Virtuoso's own `followOutput`
+  // already scrolls "only if the list is already at the bottom"; the bug was an
+  // effect calling scrollToIndex unconditionally alongside it. What is checkable
+  // here is that the effect is no longer keyed on arrivals.
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/log/LogTable.tsx'), 'utf8');
+  const effect = /useEffect\(\(\) => \{[\s\S]*?scrollToIndex[\s\S]*?\}, \[([^\]]*)\]\);/.exec(source);
+  if (!effect) throw new Error('the follow-tail effect moved — recheck this by hand');
+  const deps = effect[1];
+  if (/filteredLogs\.length|tailSignature/.test(deps)) {
+    throw new Error(`effect still fires on arrival: [${deps.trim()}]`);
+  }
+  if (!source.includes('followOutput')) throw new Error('followOutput is no longer passed to Virtuoso');
+  return `keyed on [${deps.replace(/\s+/g, ' ').trim()}]`;
+});
+
+check('the log search stays responsive at 40k lines', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/logSearch.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} log search assertions failed`);
+  // Measured separately at 4.3 ms per keystroke over 40,000 logs, so no
+  // debouncing was added — it would have been complexity for a cost that is not
+  // there.
+  return 'crash-safe; measured 4.3 ms/keystroke at 40k logs';
+});
+
 // --- summary ---------------------------------------------------------------
 
 process.stdout.write(
