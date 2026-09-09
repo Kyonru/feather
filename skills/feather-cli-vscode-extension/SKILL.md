@@ -42,10 +42,10 @@ Use this skill when changing the VS Code extension, command palette actions, pro
 ## Verification
 
 - Add or update e2e/integration coverage for extension behavior changes; use extension integration tests for command workflows and packaging-sensitive behavior.
-- Build extension: `npm run extension:build`.
-- Run extension tests: `npm run extension:test`.
-- Run integration tests when command/workflow behavior changes: `npm run extension:test:integration`.
-- Package extension when packaging assets or icons change: `npm run extension:package`.
+- Build extension: `pnpm run extension:build`.
+- Run extension tests: `pnpm run extension:test`.
+- Run integration tests when command/workflow behavior changes: `pnpm run extension:test:integration`.
+- Package extension when packaging assets or icons change: `pnpm run extension:package`.
 
 ## Docs touchpoints
 

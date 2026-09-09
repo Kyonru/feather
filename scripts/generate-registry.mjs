@@ -95,9 +95,27 @@ for (const file of packageFiles) {
   };
 }
 
+// `updatedAt` tracks when the catalog last *changed*, not when this script last
+// ran. Stamping today's date unconditionally made `check:registry` — which
+// regenerates and diffs against git — fail on every day after the last commit,
+// regardless of whether any package actually changed.
+function resolveUpdatedAt(nextPackages) {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const previous = JSON.parse(readFileSync(outputPath, "utf8"));
+    const unchanged =
+      previous.version === 1 &&
+      JSON.stringify(previous.packages) === JSON.stringify(nextPackages);
+    if (unchanged && typeof previous.updatedAt === "string") return previous.updatedAt;
+  } catch {
+    // No readable previous registry: this is a first generation, so today is right.
+  }
+  return today;
+}
+
 const registry = {
   version: 1,
-  updatedAt: new Date().toISOString().slice(0, 10),
+  updatedAt: resolveUpdatedAt(packages),
   packages,
 };
 

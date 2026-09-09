@@ -17,16 +17,41 @@
     },
 
     "//#typecheck:web": {
-      "inputs": ["apps/inspector/src/**", "tsconfig.json", "packages/protocol/src/**"]
+      "inputs": [
+        "apps/inspector/src/**",
+        "apps/studio/src/**",
+        "packages/*/src/**",
+        "tsconfig.json"
+      ]
     },
     "//#typecheck:protocol": {
       "inputs": ["packages/protocol/**"]
+    },
+    "//#typecheck:host": {
+      "inputs": ["packages/host/**", "packages/protocol/src/**"]
+    },
+    "//#typecheck:session-bridge": {
+      "inputs": ["packages/session-bridge/**", "packages/protocol/src/**"]
+    },
+    "//#typecheck:ui": {
+      "inputs": ["packages/ui/**", "packages/host/src/**", "packages/protocol/src/**"]
+    },
+    "//#typecheck:studio": {
+      "inputs": ["apps/studio/**", "packages/*/src/**"]
     },
     "//#typecheck:lua": {
       "inputs": ["packages/runtime-lua/**", ".luacheckrc"]
     },
     "//#lint": {
-      "inputs": ["apps/inspector/src/**", "eslint.config.js", ".eslintrc"]
+      "inputs": [
+        "apps/**/*.ts",
+        "apps/**/*.tsx",
+        "apps/**/*.cjs",
+        "packages/**/*.ts",
+        "packages/**/*.tsx",
+        "packages/**/*.cjs",
+        "eslint.config.js"
+      ]
     },
     "//#check:protocol": {
       "inputs": [

@@ -56,7 +56,7 @@ Checklist:
 Use:
 
 ```bash
-npm run check:plugin-catalog
+pnpm run check:plugin-catalog
 ```
 
 This regenerates and fails if the generated file differs. Do not manually edit the generated catalog.
@@ -67,18 +67,18 @@ After adding or changing a built-in plugin, run:
 
 ```bash
 bash scripts/generate-manifest.sh
-npm run generate:plugin-catalog
-npm run cli:build
-npm run typecheck:lua
-npm run test:lua:e2e
+pnpm run generate:plugin-catalog
+pnpm run cli:build
+pnpm run typecheck:lua
+pnpm run test:lua:e2e
 ```
 
 ## Tests and smoke checks
 
-- Lua plugin logic: `npm run test:lua:e2e`.
+- Lua plugin logic: `pnpm run test:lua:e2e`.
 - CLI plugin commands: `node --test cli/test/commands/*.test.mjs`.
 - Desktop rendering changes: Playwright tests or targeted app smoke checks.
-- Catalog-only manifest changes: `npm run check:plugin-catalog`.
+- Catalog-only manifest changes: `pnpm run check:plugin-catalog`.
 
 Each built-in plugin should have a matching Lua e2e fixture under `packages/runtime-lua/e2e/plugins/` when it has runtime behavior. Keep fixture names aligned with plugin IDs using underscore file names where existing fixtures do.
 

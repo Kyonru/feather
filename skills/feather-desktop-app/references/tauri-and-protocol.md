@@ -71,7 +71,7 @@ Most game protocol changes only need Lua runtime + React changes — the Rust la
 - Auth or session lifecycle behavior needs to change.
 - WS server port, binary/text framing, or session management changes.
 
-After changing Rust code, `npm run tauri dev` rebuilds automatically. For production, `npm run tauri build` produces the full desktop app.
+After changing Rust code, `ppnpm run inspector:tauri` rebuilds automatically. For production, `pnpm run tauri build` produces the full desktop app.
 
 ## Adding a protocol feature
 
@@ -87,6 +87,6 @@ After changing Rust code, `npm run tauri dev` rebuilds automatically. For produc
 
 `src/showcase/` is a standalone browser-only build (no Tauri, no WS) that hosts the particle-system playground and shader graph as embeddable demos. It has its own entry (`showcase.html`), Vite config (`vite.showcase.config.ts`), and Playwright config (`playwright.showcase.config.ts`).
 
-Showcase-relevant e2e tests live in `e2e/showcase.spec.ts`. Run with `npm run test:showcase:e2e`.
+Showcase-relevant e2e tests live in `apps/showcase/e2e/showcase.spec.ts`. Run with `pnpm run test:showcase:e2e`.
 
 Do not add Tauri API calls or WS-dependent code to showcase components.

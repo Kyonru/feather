@@ -86,7 +86,7 @@ New features:
 ```sh
 pnpm install
 pnpm run cli:build
-pnpm run feather -- --help
+pnpm run feather --help
 pnpm run dev
 pnpm run tauri dev
 pnpm run docs
@@ -109,7 +109,7 @@ When source catalog or manifest files change, run the generator and include the 
 
 Update docs when a user-facing command, config field, plugin option, build behavior, package behavior, extension behavior, or safety check changes.
 
-Prefer canonical documentation beside the subsystem it describes, then expose it through `docs/` with a symlink when practical. Edit the source-side file, not only the symlink path.
+Prefer canonical documentation beside the subsystem it describes, then expose it through `apps/docs/` with a symlink when practical. Edit the source-side file, not only the symlink path.
 
 Docs symlink source files:
 

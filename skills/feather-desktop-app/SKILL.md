@@ -44,9 +44,9 @@ Use this skill when changing the desktop React/Tauri app, session UI, settings, 
 ## Verification
 
 - Add or update e2e coverage for desktop behavior changes; use Playwright app e2e for desktop workflows and showcase e2e for browser-only creative tools.
-- Typecheck/build web app: `npm run build` or targeted typecheck when appropriate.
-- Run Playwright app e2e: `npm run test:app:e2e`.
-- Run showcase e2e when showcase or creative tools change: `npm run test:showcase:e2e`.
+- Typecheck/build web app: `ppnpm run build` or targeted typecheck when appropriate.
+- Run Playwright app e2e: `ppnpm run test:inspector:e2e` (Inspector) and `ppnpm run test:studio:e2e` (Studio).
+- Run showcase e2e when showcase or creative tools change: `ppnpm run test:showcase:e2e`.
 - For Tauri-specific behavior, use relevant Rust/Tauri tests where available.
 
 ## Docs touchpoints

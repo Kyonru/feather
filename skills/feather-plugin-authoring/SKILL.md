@@ -42,9 +42,9 @@ Use this skill when adding or changing built-in plugins, plugin manifests, plugi
 ## Verification
 
 - Add or update e2e coverage for plugin behavior changes; use Lua e2e fixtures for runtime behavior and desktop/showcase e2e for rendered UI behavior.
-- Run `npm run check:plugin-catalog` after manifest changes.
-- Run `npm run test:lua:e2e` after plugin logic changes.
-- Run `npm run cli:build` when CLI catalog consumers change.
+- Run `pnpm run check:plugin-catalog` after manifest changes.
+- Run `pnpm run test:lua:e2e` after plugin logic changes.
+- Run `pnpm run cli:build` when CLI catalog consumers change.
 - Run desktop or showcase checks when changing plugin UI payloads that React renders.
 
 ## Docs touchpoints

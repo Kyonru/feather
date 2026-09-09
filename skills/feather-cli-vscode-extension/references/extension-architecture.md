@@ -54,7 +54,7 @@ Do not duplicate CLI behavior in the extension just to avoid invoking the CLI. A
 - Refresh the project view after commands that change config, packages, plugins, vendors, build config, or project status.
 - Add extension integration coverage for command workflows and packaging-sensitive behavior.
 - Update `vscode-extension/README.md`, any docs symlink target, and `CHANGELOG.md`.
-- Run `npm run extension:build`, `npm run extension:test`, and `npm run extension:test:integration` when command flow changes.
+- Run `pnpm run extension:build`, `pnpm run extension:test`, and `pnpm run extension:test:integration` when command flow changes.
 
 ## Settings
 

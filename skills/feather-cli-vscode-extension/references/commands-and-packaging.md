@@ -28,23 +28,23 @@ Local development:
 
 ```bash
 npm install
-npm run cli:build
-npm run extension:build
+pnpm run cli:build
+pnpm run extension:build
 ```
 
 Packaging:
 
-- `npm run extension:prepare` builds/copies local CLI/runtime assets for the extension.
-- `npm run extension:binary` builds packaged CLI binaries.
-- `npm run extension:package` prepares, builds, generates the icon, and packages with `vsce`.
+- `pnpm run extension:prepare` builds/copies local CLI/runtime assets for the extension.
+- `pnpm run extension:binary` builds packaged CLI binaries.
+- `pnpm run extension:package` prepares, builds, generates the icon, and packages with `vsce`.
 
 The packaged extension should use bundled assets. Local development should use `vscode-extension/bundled-bin/feather-dev.mjs` or the workspace CLI path prepared by scripts.
 
 ## Testing
 
-- `npm run extension:build`
-- `npm run extension:test`
-- `npm run extension:test:integration`
+- `pnpm run extension:build`
+- `pnpm run extension:test`
+- `pnpm run extension:test:integration`
 
 Run package-level checks after changing scripts, bundled binary resolution, icon generation, or files included in the VSIX.
 

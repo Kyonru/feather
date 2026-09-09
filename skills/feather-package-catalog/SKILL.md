@@ -40,10 +40,10 @@ Use this skill when adding or updating catalog packages, changing package trust/
 ## Verification
 
 - Add or update e2e coverage for package CLI behavior changes; use command tests or package fixtures for install, update, audit, trust, and lockfile scenarios.
-- Run `npm run generate:registry` after catalog edits.
-- Run `npm run check:registry` before finishing.
+- Run `pnpm run generate:registry` after catalog edits.
+- Run `pnpm run check:registry` before finishing.
 - Run `node scripts/compute-checksums.mjs --all` when checksums are missing or source refs changed.
-- Run `npm run cli:build` if package command or generated registry consumers change.
+- Run `pnpm run cli:build` if package command or generated registry consumers change.
 - Test package CLI paths with `--dry-run`, `--offline`, and fixture directories where possible.
 
 ## Docs touchpoints

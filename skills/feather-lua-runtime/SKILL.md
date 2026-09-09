@@ -43,9 +43,9 @@ Use this skill when changing `packages/runtime-lua/feather`, bundled Lua plugins
 ## Verification
 
 - Add or update Lua e2e coverage for runtime behavior changes; use `packages/runtime-lua/e2e/`, `packages/runtime-lua/example/`, and `scripts/lua-e2e.mjs` patterns.
-- Run Lua e2e checks: `npm run test:lua:e2e`.
-- Rebuild bundled CLI runtime if packaging behavior changes: `npm run bundle:lua --workspace=cli`.
-- Run CLI build when TypeScript and Lua bundle behavior meet: `npm run cli:build`.
+- Run Lua e2e checks: `pnpm run test:lua:e2e`.
+- Rebuild bundled CLI runtime if packaging behavior changes: `pnpm --filter @kyonru/feather run bundle:lua`.
+- Run CLI build when TypeScript and Lua bundle behavior meet: `pnpm run cli:build`.
 - Run relevant showcase checks if runtime protocol changes affect the desktop app.
 
 ## Docs touchpoints

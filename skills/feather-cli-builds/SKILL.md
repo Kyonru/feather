@@ -42,11 +42,11 @@ Use this skill when changing or reviewing Feather CLI behavior, command options,
 ## Verification
 
 - Add or update CLI e2e coverage for command behavior changes; prefer `cli/test/commands/*.test.mjs` for CLI command scenarios.
-- Build CLI after code changes: `npm run cli:build`.
+- Build CLI after code changes: `pnpm run cli:build`.
 - Run CLI command tests: `node --test cli/test/commands/*.test.mjs`.
-- Use root wrapper for local command smoke checks: `npm run feather -- --help`.
-- For Lua/runtime impact, also run `npm run test:lua:e2e`.
-- For package catalog side effects, also run `npm run check:registry`.
+- Use root wrapper for local command smoke checks: `pnpm run feather --help`.
+- For Lua/runtime impact, also run `pnpm run test:lua:e2e`.
+- For package catalog side effects, also run `pnpm run check:registry`.
 
 ## Docs touchpoints
 

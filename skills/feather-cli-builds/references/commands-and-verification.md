@@ -40,7 +40,7 @@
 - Add doctor or production-safety checks when the feature changes setup, release contents, runtime injection, packages, vendors, or native target requirements.
 - Add CLI e2e coverage in `cli/test/commands/*.test.mjs`; include fixture projects for file-writing commands.
 - Update `cli/README.md`, any relevant `docs/` symlink target, and `CHANGELOG.md`.
-- Run `npm run cli:build`, targeted command tests, and smoke checks through `npm run feather -- <command> --help`.
+- Run `pnpm run cli:build`, targeted command tests, and smoke checks through `pnpm run feather -- <command> --help`.
 
 ## `feather create` design notes
 
@@ -65,12 +65,12 @@ Key rules for changes to `create`:
 
 ## Verification commands
 
-- `npm run cli:build`: compile CLI TypeScript and copy generated registry.
+- `pnpm run cli:build`: compile CLI TypeScript and copy generated registry.
 - `node --test cli/test/commands/*.test.mjs`: CLI command tests.
-- `npm run test:cli:e2e`: root wrapper for CLI build plus command tests.
-- `npm run test:lua:e2e`: Lua runtime examples and plugin checks.
-- `npm run check:plugin-catalog`: regenerate plugin catalog and fail on diff.
-- `npm run check:registry`: regenerate package registry and fail on diff.
+- `pnpm run test:cli:e2e`: root wrapper for CLI build plus command tests.
+- `pnpm run test:lua:e2e`: Lua runtime examples and plugin checks.
+- `pnpm run check:plugin-catalog`: regenerate plugin catalog and fail on diff.
+- `pnpm run check:registry`: regenerate package registry and fail on diff.
 
 ## Output conventions
 
@@ -94,13 +94,13 @@ When adding a new command option or changing default behavior, update the releva
 
 ## Local smoke checks
 
-Use `npm run feather -- <args>` after `npm run cli:build`:
+Use `pnpm run feather -- <args>` after `pnpm run cli:build`:
 
 ```bash
-npm run feather -- --help
-npm run feather -- init --help
-npm run feather -- build --help
-npm run feather -- package list --offline
+pnpm run feather --help
+pnpm run feather -- init --help
+pnpm run feather -- build --help
+pnpm run feather -- package list --offline
 ```
 
 Prefer `--dry-run`, `--json`, and fixture project directories when testing commands that normally write user project files.

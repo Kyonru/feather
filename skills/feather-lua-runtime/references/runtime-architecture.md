@@ -50,8 +50,8 @@ Keep lifecycle calls isolated with `pcall` where current code does so. Plugin cr
 Runtime files are copied into `cli/lua` for packaged CLI usage. When adding runtime files:
 
 - Update manifests or bundle scripts if the file is not picked up automatically.
-- Run `npm run bundle:lua --workspace=cli`.
-- Run `npm run cli:build` before testing packaged CLI behavior.
+- Run `pnpm --filter @kyonru/feather run bundle:lua`.
+- Run `pnpm run cli:build` before testing packaged CLI behavior.
 
 ## Adding a runtime feature
 
@@ -64,7 +64,7 @@ Runtime files are copied into `cli/lua` for packaged CLI usage. When adding runt
 
 ## Test taxonomy
 
-- Runtime behavior: `npm run test:lua:e2e`.
+- Runtime behavior: `pnpm run test:lua:e2e`.
 - CLI integration with runtime files: `node --test cli/test/commands/runtime.test.mjs` plus related command tests.
 - Protocol changes: pair Lua e2e with desktop app or Rust WebSocket tests when the wire shape changes.
 - Plugin changes: use per-plugin fixtures under `packages/runtime-lua/e2e/plugins/`.

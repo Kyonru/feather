@@ -29,17 +29,17 @@ feather run path/to/my-game --target ios
 npm install -g @kyonru/feather
 ```
 
-Requires **Node.js 18+** and **LÖVE** installed on your system.
+Requires **Node.js 22+** and **LÖVE** installed on your system.
 
 For local development inside this repository:
 
 ```bash
-npm install
-npm run cli:build
-npm run feather -- --help
+pnpm install
+pnpm run cli:build
+pnpm run feather --help
 ```
 
-`npm install` links the workspace package into `node_modules/@kyonru/feather` and exposes `node_modules/.bin/feather` for local CLI testing.
+`pnpm install` links the workspace package into `node_modules/@kyonru/feather` and exposes `node_modules/.bin/feather` for local CLI testing.
 
 ### Desktop CLI Backend
 

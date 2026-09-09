@@ -6,6 +6,8 @@ if [ "${SKIP_PRE_PUSH_TESTS:-}" = "1" ]; then
   exit 0
 fi
 
-# Through turbo so an unchanged suite is a cache hit rather than a rerun. The
-# suites still all gate the push — this only removes the wasted repetition.
-pnpm exec turbo run //#test:unit //#test:bridge //#test:cli:e2e //#test:lua:e2e //#test:inspector:e2e //#test:studio:e2e //#test:showcase:e2e
+# One definition of "the test suite", shared with `pnpm run test`, so what you run
+# locally is exactly what gates the push. It goes through turbo, so an unchanged
+# suite is a cache hit rather than a rerun, and runs the lanes serially because
+# the browser and CLI suites time each other out when run at once.
+pnpm run test
