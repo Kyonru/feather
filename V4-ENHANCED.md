@@ -482,6 +482,11 @@ thirteen local solutions that drift apart.
 **Write the acceptance line before the code.** If you cannot state how someone else would confirm
 the improvement, the improvement is not defined yet.
 
+**`pnpm run verify:enhanced` is the gate.** It checks the property each finding claims to have
+fixed — measured, not asserted — and prints the shortest manual route to seeing each one. A finding
+without a check in `scripts/verify-enhancements.mjs` is not finished. A green run still does not
+tell you whether the tool *feels* better, which is what the manual routes are for.
+
 **Every refinement is testable.** These are user-visible behaviours, which means Playwright can
 hold them. Note the trap this repo already hit (V4.md **D43**): a test that asserts current
 behaviour will lock in the very thing you are trying to change. Assert the property you want, not
@@ -498,7 +503,7 @@ alone.
 |---|---|---|---|
 | D | Design direction (§4) | AGREED, NOT APPLIED | D1-D4; the rules the passes below are held to |
 | C0 | Semantic color channel | **DONE** | Ramps derived per theme, AA-verified across all 79; literals replaced; lint rule holds it |
-| C1 | Panel state persistence | NOT STARTED | Cross-cutting; verified on Logs, Assets, Performance |
+| C1 | Panel state persistence | **DONE** | 13 filters persisted globally; `pnpm run verify:enhanced` |
 | C2 | Freshness and staleness | NOT STARTED | Cross-cutting; 45 refresh affordances, ~0 indicators |
 | C3 | Next-action audit | NOT STARTED | Cross-cutting |
 | C4 | Swallowed-error triage | NOT STARTED | 44 sites to classify |
@@ -516,7 +521,7 @@ alone.
 | 6.12 | Settings | NOT STARTED | |
 | 6.13 | About | NOT STARTED | Smallest |
 
-Suggested order: **~~C0~~ → C1 → C2 → 6.1 → 6.4 → 6.3**, then the rest. C0 first because it is a
+Suggested order: **~~C0~~ → ~~C1~~ → C2 → 6.1 → 6.4 → 6.3**, then the rest. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
 most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 
@@ -584,6 +589,29 @@ in a dense log list, where a column of saturated blocks makes a real error harde
 
 A `no-restricted-syntax` rule now rejects raw Tailwind color literals in `apps/inspector/src`, so
 this cannot drift back. Full suite 7/7.
+
+**2026-09-09 — C1 done.** Panel state has a home: `store/panel-state.ts`, a persisted store behind
+a `usePanelState` hook with `useState` ergonomics, so migrating a panel is one line per field.
+
+The decision the document said to make once: **global, not per session.** A restart mints a new
+session id, and the loop this protects is *change code, restart, look again* — keying filters to the
+session would clear them on exactly the event they most need to survive.
+
+13 filters now persist across Logs, Assets, Performance, Compare, Observability, Debugger and
+Console. Two deliberate exclusions, both because persisting would make the tool lie: Performance's
+`paused`, since returning to a silently frozen chart is the stale-data trap, and Console's draft
+`input`, since restoring a half-typed command into a console you can execute from is a worse
+surprise than retyping it.
+
+Correction to §5: the finding listed Compare, Time Travel and Session Replay together as holding
+ephemeral state that should persist. Compare does. Time Travel and Session Replay do not — reading
+them, everything they hold is a scrub position, a loading flag or a record id, all of which are
+genuinely ephemeral. Nothing to fix there.
+
+Persisting filters created a trap that had to be closed in the same change: a filter that outlives
+the visit needs a way out as quick as the way in, or coming back looks like missing logs rather
+than an active search. Log search gained a clear control, and Settings → Reset to defaults now
+clears panel state too.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

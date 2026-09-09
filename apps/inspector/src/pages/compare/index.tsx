@@ -14,6 +14,7 @@ import {
   TriageSummaryChip,
   TriageToolbar,
 } from '@/components/triage';
+import { usePanelState } from '@/store/panel-state';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import { type PerformanceMetrics } from '@/hooks/use-performance';
 import { finiteNumber, formatOptionalFixed, formatOptionalMemory, formatSignedMemory } from '@/utils/performance-metrics';
@@ -285,11 +286,13 @@ export default function ComparePage() {
   const connectedSessions = useMemo(() => sessions.filter((session) => session.connected), [sessions]);
   const [leftId, setLeftId] = useState<string | null>(null);
   const [rightId, setRightId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<CompareFilter>('all');
-  const [group, setGroup] = useState('all');
-  const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<CompareSortKey>('status');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  // The two session ids stay ephemeral: they name processes, and a remembered id
+  // would select a session that no longer exists after a restart.
+  const [filter, setFilter] = usePanelState<CompareFilter>('compare.filter', 'all');
+  const [group, setGroup] = usePanelState('compare.group', 'all');
+  const [search, setSearch] = usePanelState('compare.search', '');
+  const [sortKey, setSortKey] = usePanelState<CompareSortKey>('compare.sortKey', 'status');
+  const [sortDirection, setSortDirection] = usePanelState<SortDirection>('compare.sortDirection', 'asc');
   const canCompare = connectedSessions.length >= 2;
 
   useEffect(() => {

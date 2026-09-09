@@ -5,6 +5,7 @@ import { Badge } from '@feather/ui/badge';
 import { LuaCodeInput, type LuaCompletionItem } from '@feather/ui/lua-code-input';
 import { ScrollArea } from '@feather/ui/scroll-area';
 import { Switch } from '@feather/ui/switch';
+import { usePanelState } from '@/store/panel-state';
 import { useConsole, type ConsoleEntry } from '@/hooks/use-console';
 import { useEffectiveApiKey } from '@/hooks/use-session-api-key';
 import { usePluginControl } from '@/hooks/use-plugin-control';
@@ -495,7 +496,10 @@ export default function ConsolePage() {
   // Track which response IDs have already been persisted to avoid duplicates
   const persistedIds = useRef(new Set<string>());
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [readOnly, setReadOnly] = useState(false);
+  // A mode the user chose. The draft `input` above stays ephemeral on purpose:
+  // restoring a half-typed command into a console you can execute from is a
+  // worse surprise than retyping it.
+  const [readOnly, setReadOnly] = usePanelState('console.readOnly', false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchIndex, setSearchIndex] = useState(0);

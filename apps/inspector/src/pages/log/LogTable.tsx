@@ -1,5 +1,6 @@
 import { open } from '@tauri-apps/plugin-dialog';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { usePanelState } from '@/store/panel-state';
 import type { ChangeEvent } from 'react';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import {
@@ -10,6 +11,7 @@ import {
   Trash2Icon,
   UploadIcon,
   ChevronsDownIcon,
+  XIcon,
 } from 'lucide-react';
 import { Button } from '@feather/ui/button';
 import {
@@ -83,9 +85,12 @@ export function LogTable({
   onScreenshotChange: () => void;
   onUpload: (pathname: string) => void;
 }) {
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<LogFilter>('all');
-  const [followTail, setFollowTail] = useState(true);
+  // These survive navigation and restarts. Logs is the default route and the
+  // most-visited panel in the app, so re-typing a filter after stepping away to
+  // check a number was the single most frequent cost this tool imposed.
+  const [search, setSearch] = usePanelState('logs.search', '');
+  const [typeFilter, setTypeFilter] = usePanelState<LogFilter>('logs.typeFilter', 'all');
+  const [followTail, setFollowTail] = usePanelState('logs.followTail', true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<VirtuosoHandle>(null);
 
@@ -132,13 +137,26 @@ export function LogTable({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 py-3 lg:px-6">
       <div data-testid="logs-toolbar" className="grid gap-2 xl:flex xl:items-center">
-        <div data-testid="logs-toolbar-search" className="min-w-0 xl:min-w-48 xl:flex-1">
+        <div data-testid="logs-toolbar-search" className="relative min-w-0 xl:min-w-48 xl:flex-1">
           <Input
-            className="h-8 w-full text-xs"
+            className="h-8 w-full pr-7 text-xs"
             placeholder="Search logs..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          {/* The filter now outlives the visit, so it needs a way out that is as
+              quick as the way in. Without this, coming back to a filtered view
+              looks like missing logs rather than an active search. */}
+          {search !== '' && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Clear log search"
+              className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+            >
+              <XIcon className="size-3.5" />
+            </button>
+          )}
         </div>
 
         <div data-testid="logs-toolbar-controls" className="flex min-w-0 flex-wrap items-center gap-2 xl:shrink-0">

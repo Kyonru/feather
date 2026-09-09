@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePanelState } from '@/store/panel-state';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { readFile, stat } from '@tauri-apps/plugin-fs';
 import {
@@ -704,11 +705,11 @@ export default function AssetsPage() {
   const { data, previewAsset, setAssetPreviewEnabled } = useAssets();
   const { rootPath, manualRootPath, pickRootPath, clearManualRootPath } = useGameRootPath();
   const assetPreviewEnabled = useConfigStore((state) => state.config?.assets?.enabled !== false);
-  const [tab, setTab] = useState<AssetKind>('texture');
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<AssetFilter>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('name');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [tab, setTab] = usePanelState<AssetKind>('assets.tab', 'texture');
+  const [search, setSearch] = usePanelState('assets.search', '');
+  const [filter, setFilter] = usePanelState<AssetFilter>('assets.filter', 'all');
+  const [sortKey, setSortKey] = usePanelState<SortKey>('assets.sortKey', 'name');
+  const [sortDirection, setSortDirection] = usePanelState<SortDirection>('assets.sortDirection', 'asc');
   const [selected, setSelected] = useState<{ kind: AssetKind; id: number } | null>(null);
   const [previewRequest, setPreviewRequest] = useState<{ kind: AssetKind; id: number } | null>(null);
   const allRows = useMemo<AssetRow[]>(() => [...data.textures, ...data.fonts, ...data.audio], [data.audio, data.fonts, data.textures]);

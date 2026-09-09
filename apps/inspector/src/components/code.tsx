@@ -59,8 +59,12 @@ export function TraceViewer({
       // deliberately keep literals rather than borrowing --ok/--info, which would
       // make green mean "fine" here and something else everywhere else. They belong
       // in the theme's syntax palette — see V4-ENHANCED.md §4 (C0).
+      /* semantic-exempt:start — syntax highlighting, not state. These live in
+         template literals, which the no-restricted-syntax rule cannot see into,
+         so the marker is what verify:enhanced checks instead. */
       .replace(inFunctionPattern, `<span class="text-purple-500 font-medium">in function</span>`)
       .replace(quotedPattern, `<span class="text-green-500">'$1'</span>`);
+    /* semantic-exempt:end */
 
     return (
       <div

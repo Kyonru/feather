@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useHost, type FeatherHost } from '@feather/host';
+import { usePanelState } from '@/store/panel-state';
 import { ChartAreaInteractive, chartMetrics, type ChartMetricKey } from '@/pages/performance/chart-area-interactive';
 import { PageLayout } from '@/components/page-layout';
 import { PerformanceMetrics, usePerformance, type FeatherOverheadMetric } from '@/hooks/use-performance';
@@ -309,9 +310,12 @@ function HealthVerdicts({ data, latest }: { data: PerformanceMetrics[]; latest: 
 export default function Page() {
   const host = useHost();
   const { data } = usePerformance();
-  const [selected, setSelected] = useState<ChartMetricKey>('fps');
-  const [diskUsageEnabled, setDiskUsageEnabled] = useState(false);
-  const [followTail, setFollowTail] = useState(true);
+  const [selected, setSelected] = usePanelState<ChartMetricKey>('performance.metric', 'fps');
+  const [diskUsageEnabled, setDiskUsageEnabled] = usePanelState('performance.diskUsage', false);
+  const [followTail, setFollowTail] = usePanelState('performance.followTail', true);
+  // Deliberately not persisted. Pausing is a momentary act — you stop the chart
+  // to read a number off it. Coming back later to a chart that is silently
+  // frozen on an old run is the stale-data trap, so a pause ends with the visit.
   const [paused, setPaused] = useState(false);
   const [snapshot, setSnapshot] = useState<PerformanceMetrics[] | null>(null);
   const [visibleWindow, setVisibleWindow] = useState<PerformanceMetrics[]>([]);

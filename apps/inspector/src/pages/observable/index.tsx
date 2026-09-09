@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useHost, type FeatherHost } from '@feather/host';
+import { usePanelState } from '@/store/panel-state';
 import { PageLayout } from '@/components/page-layout';
 import { SectionCards } from './section-cards';
 import { useObservability, ObserverEntry } from '@/hooks/use-observability';
@@ -204,13 +205,13 @@ export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => v
 
 export default function Page() {
   const host = useHost();
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [groupFilter, setGroupFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<ObserverSortKey>('changed');
+  const [search, setSearch] = usePanelState('observability.search', '');
+  const [typeFilter, setTypeFilter] = usePanelState('observability.typeFilter', 'all');
+  const [groupFilter, setGroupFilter] = usePanelState('observability.groupFilter', 'all');
+  const [sortBy, setSortBy] = usePanelState<ObserverSortKey>('observability.sortBy', 'changed');
   const [changeWindow, setChangeWindow] = useState<ChangeWindowKey>(readStoredChangeWindow);
   const [now, setNow] = useState(() => Date.now());
-  const [changedOnly, setChangedOnly] = useState(false);
+  const [changedOnly, setChangedOnly] = usePanelState('observability.changedOnly', false);
   const { data: searchedDataRaw, all: allRaw } = useObservability(search);
   const [selected, setSelected] = useState<string | null>(null);
 

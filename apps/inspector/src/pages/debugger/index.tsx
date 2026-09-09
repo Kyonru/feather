@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { toast } from 'sonner';
+import { usePanelState } from '@/store/panel-state';
 import { useDebugger } from '@/hooks/use-debugger';
 import { pathToLuaModule, useHotReload } from '@/hooks/use-hot-reload';
 import { usePluginControl } from '@/hooks/use-plugin-control';
@@ -791,13 +792,15 @@ export default function DebuggerPage() {
     if (typeof selected === 'string' && sessionId) setRootPath(sessionId, selected);
   };
 
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  // Come back to the file you were debugging. A path that no longer exists is
+  // harmless — the viewer just shows nothing selected.
+  const [selectedFile, setSelectedFile] = usePanelState<string | null>('debugger.selectedFile', null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const fileContentRef = useRef<string | null>(null);
-  const [watchHotReload, setWatchHotReload] = useState(false);
+  const [watchHotReload, setWatchHotReload] = usePanelState('debugger.watchHotReload', false);
   const [scrollToLine, setScrollToLine] = useState<number | null>(null);
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0);
-  const [varFilter, setVarFilter] = useState('');
+  const [varFilter, setVarFilter] = usePanelState('debugger.varFilter', '');
 
   // Auto-navigate to the paused file when a breakpoint is hit
   const pausedFile = dbg.currentPaused?.file;

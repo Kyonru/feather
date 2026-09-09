@@ -18,6 +18,7 @@ import { Input } from '@feather/ui/input';
 import { Label } from '@feather/ui/label';
 import { ScrollArea } from '@feather/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
+import { usePanelStateStore } from '@/store/panel-state';
 import { useSettingsStore } from '@/store/settings';
 import {
   Select,
@@ -1610,6 +1611,7 @@ export function SettingsModal() {
   const open = useSettingsStore((state) => state.open);
   const setOpen = useSettingsStore((state) => state.setOpen);
   const reset = useSettingsStore((state) => state.reset);
+  const resetPanelState = usePanelStateStore((state) => state.resetAll);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -1775,7 +1777,17 @@ export function SettingsModal() {
         </Tabs>
 
         <DialogFooter className="gap-2 border-t bg-background/80 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/65">
-          <Button variant="outline" onClick={reset} className="mr-auto">
+          {/* Panel filters persist across navigation and restarts now, which is
+              what makes them useful and also what makes them worth being able to
+              clear in one place when you no longer remember setting one. */}
+          <Button
+            variant="outline"
+            onClick={() => {
+              reset();
+              resetPanelState();
+            }}
+            className="mr-auto"
+          >
             <ActivityIcon className="size-4" />
             Reset to defaults
           </Button>

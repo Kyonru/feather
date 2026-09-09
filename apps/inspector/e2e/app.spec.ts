@@ -1322,6 +1322,40 @@ test('sidebar groups pinned defaults without duplicating tools', async ({ page }
   await expect(page.getByTestId('sidebar-tool-session')).toHaveCount(1);
 });
 
+test('panel filters survive leaving the panel and coming back', async ({ page }) => {
+  // The most frequent cost this tool imposed: filter the log, step away to check
+  // a number, come back to unfiltered output and type it again. V4-ENHANCED C1.
+  await seedSession(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  const search = page.getByTestId('logs-toolbar-search').getByRole('textbox');
+  await search.fill('collision');
+  await expect(search).toHaveValue('collision');
+
+  await page.getByTestId('sidebar-tool-assets').getByRole('link', { name: 'Assets' }).click();
+  await expect(page).toHaveURL(/\/assets$/);
+
+  await page.getByTestId('sidebar-tool-logs').getByRole('link', { name: 'Logs' }).click();
+  await expect(page.getByTestId('logs-toolbar-search').getByRole('textbox')).toHaveValue('collision');
+});
+
+test('panel filters survive a full reload, the way a game restart leaves them', async ({ page }) => {
+  // A restart mints a new session id, which is why this state is global rather
+  // than keyed to the session — keying it would clear filters on exactly the
+  // event they most need to survive.
+  await seedSession(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await page.getByTestId('logs-toolbar-search').getByRole('textbox').fill('nil value');
+  await expect(page.getByTestId('logs-toolbar-search').getByRole('textbox')).toHaveValue('nil value');
+
+  await page.reload();
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await expect(page.getByTestId('logs-toolbar-search').getByRole('textbox')).toHaveValue('nil value');
+});
+
 test('the creative tools are gone from Inspector, not merely unreachable', async ({ page }) => {
   // They live in Feather Studio as of v4. Inspector kept advertising them after
   // the move, so every one of these navigated to a route that no longer exists
