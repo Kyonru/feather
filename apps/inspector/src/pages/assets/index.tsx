@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { sendCommand } from '@/lib/send-command';
+import { Freshness } from '@/components/freshness';
+import { sessionQueryKey } from '@/lib/session-query-keys';
 import { usePanelState } from '@/store/panel-state';
 import { open as openFolderDialog } from '@tauri-apps/plugin-dialog';
 import { readFile, stat } from '@tauri-apps/plugin-fs';
@@ -703,6 +706,7 @@ function PreviewPanel({
 
 export default function AssetsPage() {
   const { data, previewAsset, setAssetPreviewEnabled } = useAssets();
+  const sessionId = useSessionStore((state) => state.sessionId);
   const { rootPath, manualRootPath, pickRootPath, clearManualRootPath } = useGameRootPath();
   const assetPreviewEnabled = useConfigStore((state) => state.config?.assets?.enabled !== false);
   const [tab, setTab] = usePanelState<AssetKind>('assets.tab', 'texture');
@@ -874,6 +878,15 @@ export default function AssetsPage() {
           />
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Assets are requested when the panel opens and then go dormant, so
+                what you return to may predate the run you are looking at. */}
+            {sessionId && (
+              <Freshness
+                queryKey={sessionQueryKey.assets(sessionId)}
+                onRefresh={() => sendCommand(sessionId, { type: 'req:assets' }).catch(() => {})}
+                className="ml-auto"
+              />
+            )}
             <TriageFilterBar
               value={filter}
               onChange={setFilter}

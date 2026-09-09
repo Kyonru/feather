@@ -133,6 +133,37 @@ check('a persisted filter has a way out', () => {
   return 'per-field clear, and a global reset in Settings';
 });
 
+// --- C2 — freshness is visible ---------------------------------------------
+
+section(
+  'C2',
+  'You can tell whether what you are looking at is current',
+  'pnpm run up  →  open Observability, then restart the game (Ctrl+C the run, `pnpm run up` again)\n' +
+    '              without touching Inspector. The panel says "From a previous run" instead of\n' +
+    '              showing the old values as though they were live.',
+);
+
+check('panels showing runtime state report when it arrived', () => {
+  const wired = ['pages/assets/index.tsx', 'pages/observable/index.tsx'];
+  const missing = wired.filter(
+    (file) => !readFileSync(join(ROOT, 'apps/inspector/src', file), 'utf8').includes('<Freshness'),
+  );
+  if (missing.length) throw new Error(`no freshness indicator in:\n      ${missing.join('\n      ')}`);
+  return `${wired.length} panels`;
+});
+
+check('staleness is judged against the session, not the clock', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/freshness.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} freshness assertions failed`);
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  return `${pass} assertions — age alone never marks data stale`;
+});
+
 // --- summary ---------------------------------------------------------------
 
 process.stdout.write(

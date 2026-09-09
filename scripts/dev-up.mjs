@@ -20,6 +20,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createConnection } from 'node:net';
 import { createInterface } from 'node:readline';
+import { createDevSessionTracker } from './dev-session.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EXAMPLE_ROOT = join(ROOT, 'packages/runtime-lua/example');
@@ -51,6 +52,15 @@ function log(tag, message) {
   const color = TAGS[tag] ?? ((t) => t);
   process.stdout.write(`${color(`[${tag}]`)} ${message}\n`);
 }
+
+let sessionTrackingWarningShown = false;
+const sessionTracker = createDevSessionTracker(ROOT, {
+  onError(error) {
+    if (sessionTrackingWarningShown) return;
+    sessionTrackingWarningShown = true;
+    log('up', `could not record this session for pnpm run down: ${error instanceof Error ? error.message : error}`);
+  },
+});
 
 // --- examples -------------------------------------------------------------
 
@@ -162,6 +172,7 @@ const children = [];
 let shuttingDown = false;
 
 function start(tag, command, args, options = {}) {
+  const { markers = [tag], ...spawnOptions } = options;
   // Own process group, so a Ctrl+C here takes down the whole tree. Tauri spawns
   // cargo which spawns the app; killing only the direct child orphans the rest.
   const child = spawn(command, args, {
@@ -169,7 +180,7 @@ function start(tag, command, args, options = {}) {
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, FORCE_COLOR: useColor ? '1' : '0' },
-    ...options,
+    ...spawnOptions,
   });
 
   const prefix = (stream) => {
@@ -186,6 +197,7 @@ function start(tag, command, args, options = {}) {
   prefix(child.stderr);
 
   child.on('exit', (code, signal) => {
+    if (child.pid) sessionTracker.removeChild(child.pid);
     if (shuttingDown) return;
     const how = signal ? `signal ${signal}` : `code ${code}`;
     log(tag, dim(`exited (${how})`));
@@ -194,6 +206,7 @@ function start(tag, command, args, options = {}) {
   });
 
   children.push({ tag, child });
+  if (child.pid) sessionTracker.addChild({ tag, pid: child.pid, markers });
   return child;
 }
 
@@ -232,6 +245,7 @@ function shutdown(code) {
 
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
+process.on('exit', () => sessionTracker.close());
 
 // --- main -----------------------------------------------------------------
 
@@ -316,7 +330,7 @@ async function main() {
     log('up', `Inspector already listening on ${INSPECTOR_PORT} — reusing it.`);
   } else {
     log('up', 'starting Inspector…');
-    start('inspector', 'pnpm', ['run', 'inspector:tauri']);
+    start('inspector', 'pnpm', ['run', 'inspector:tauri'], { markers: ['inspector:tauri'] });
   }
 
   if (options.studio) {
@@ -324,7 +338,7 @@ async function main() {
       log('up', `Studio already running on ${STUDIO_PORT} — reusing it.`);
     } else {
       log('up', 'starting Studio…');
-      start('studio', 'pnpm', ['run', 'studio:tauri']);
+      start('studio', 'pnpm', ['run', 'studio:tauri'], { markers: ['studio:tauri'] });
     }
   }
 
@@ -344,7 +358,7 @@ async function main() {
 
   const args = ['apps/cli/dist/index.js', 'run', relative(ROOT, example), '--session-name', name];
   if (options.verbose) args.push('--verbose');
-  start('game', process.execPath, args);
+  start('game', process.execPath, args, { markers: ['apps/cli/dist/index.js', ' run '] });
 
   log('up', dim('Ctrl+C stops everything.'));
 }

@@ -36,6 +36,7 @@
     "dev:tauri": "vite --force",
     "dev:lua": "concurrently \"vite\" \"sh ./scripts/watch-lua.sh\"",
     "up": "node scripts/dev-up.mjs",
+    "down": "node scripts/dev-down.mjs",
     "inspector:dev": "vite",
     "inspector:tauri": "cd apps/inspector && tauri dev",
     "studio:dev": "pnpm --filter @feather/studio run dev",

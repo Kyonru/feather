@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 .turbo
+.feather-dev/
 dist
 
 # Rust build output. Each Tauri crate also carries its own ignore, but a

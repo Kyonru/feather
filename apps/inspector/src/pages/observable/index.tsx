@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useHost, type FeatherHost } from '@feather/host';
+import { useSessionStore } from '@/store/session';
+import { Freshness } from '@/components/freshness';
+import { sessionQueryKey } from '@/lib/session-query-keys';
+import { sendCommand } from '@/lib/send-command';
 import { usePanelState } from '@/store/panel-state';
 import { PageLayout } from '@/components/page-layout';
 import { SectionCards } from './section-cards';
@@ -205,6 +209,7 @@ export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => v
 
 export default function Page() {
   const host = useHost();
+  const sessionId = useSessionStore((state) => state.sessionId);
   const [search, setSearch] = usePanelState('observability.search', '');
   const [typeFilter, setTypeFilter] = usePanelState('observability.typeFilter', 'all');
   const [groupFilter, setGroupFilter] = usePanelState('observability.groupFilter', 'all');
@@ -302,6 +307,15 @@ end`}
           <TriageSummaryChip label="Changed" value={changedCount} tone={changedCount > 0 ? 'warning' : 'default'} />
           <TriageSummaryChip label="Types" value={typeOptions.length} />
           <TriageSummaryChip label="Changes" value={totalChanges} tone={totalChanges > 0 ? 'good' : 'muted'} />
+          {/* Observed values are the data you must least afford to read stale:
+              the whole point is watching them change. */}
+          {sessionId && (
+            <Freshness
+              queryKey={sessionQueryKey.observers(sessionId)}
+              onRefresh={() => sendCommand(sessionId, { type: 'req:observers' }).catch(() => {})}
+              className="ml-auto"
+            />
+          )}
         </div>
 
         <TriageToolbar

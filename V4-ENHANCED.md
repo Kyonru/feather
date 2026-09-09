@@ -504,7 +504,7 @@ alone.
 | D | Design direction (§4) | AGREED, NOT APPLIED | D1-D4; the rules the passes below are held to |
 | C0 | Semantic color channel | **DONE** | Ramps derived per theme, AA-verified across all 79; literals replaced; lint rule holds it |
 | C1 | Panel state persistence | **DONE** | 13 filters persisted globally; `pnpm run verify:enhanced` |
-| C2 | Freshness and staleness | NOT STARTED | Cross-cutting; 45 refresh affordances, ~0 indicators |
+| C2 | Freshness and staleness | **DONE** | `useFreshness` + `<Freshness/>`; judged against the session, not the clock |
 | C3 | Next-action audit | NOT STARTED | Cross-cutting |
 | C4 | Swallowed-error triage | NOT STARTED | 44 sites to classify |
 | 6.1 | Logs | NOT STARTED | Highest traffic; start here |
@@ -521,7 +521,7 @@ alone.
 | 6.12 | Settings | NOT STARTED | |
 | 6.13 | About | NOT STARTED | Smallest |
 
-Suggested order: **~~C0~~ → ~~C1~~ → C2 → 6.1 → 6.4 → 6.3**, then the rest. C0 first because it is a
+Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → 6.1 → 6.4 → 6.3**, then the rest. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
 most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 
@@ -612,6 +612,23 @@ Persisting filters created a trap that had to be closed in the same change: a fi
 the visit needs a way out as quick as the way in, or coming back looks like missing logs rather
 than an active search. Log search gained a clear control, and Settings → Reset to defaults now
 clears panel state too.
+
+**2026-09-09 — C2 done.** Panels can now say whether what they are showing is current.
+
+The judgement deliberately is not age. A value from 40 seconds ago is fine when the game has been
+up an hour and wrong when it restarted five seconds ago, so freshness is measured against the
+attached session's `connectedAt`, not the clock. Data that predates the session is from a previous
+run, however recent it looks. `isFromPreviousRun` is a pure function so that judgement is testable
+without a React tree, and `scripts/tests/freshness.test.ts` pins it — including that age alone never
+marks data stale, because a warning that fires on a quiet panel trains people to ignore it.
+
+`<Freshness/>` is quiet when the answer is boring — muted, small, no icon, because most of the time
+it says "12s ago" and should be skippable — and loud when the data is from a previous run, which is
+the case that sends someone chasing a bug in state that predates their fix. The refresh action is
+offered only in that case: a refresh button you never needed is the noise L6 warns about.
+
+Wired into Assets and Observability first. Observability matters most — observed values are exactly
+the data you cannot afford to read stale, since watching them change is the entire point.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it
