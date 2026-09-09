@@ -2914,6 +2914,23 @@ test('assets degraded matrix handles empty and partial catalogs', async ({ page 
   await expectNarrowStable(page, 'assets-partial-catalog-narrow.png', ['Preview on', 'runtime-texture']);
 });
 
+test('a breakpoint problem count can be opened to see which breakpoints', async ({ page }) => {
+  // It was a bare badge reading "1 condition error" — a number with no route to
+  // which breakpoint, in which file, or why. V4-ENHANCED C3 at the panel level.
+  await seedDebuggerSession(page);
+  await page.setViewportSize({ width: 1366, height: 820 });
+  await page.goto('/debugger');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  const badge = page.getByTestId('breakpoint-issues');
+  await expect(badge).toBeVisible();
+  await badge.click();
+
+  // The file and line, and the runtime's own reason — not just a count.
+  await expect(page.getByText('main.lua:18')).toBeVisible();
+  await expect(page.getByText('unexpected symbol near end of expression')).toBeVisible();
+});
+
 test('debugger renders stable single-row header and three panels', async ({ page }) => {
   await seedDebuggerSession(page);
   await page.setViewportSize({ width: 1366, height: 820 });

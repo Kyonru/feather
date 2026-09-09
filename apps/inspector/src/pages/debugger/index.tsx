@@ -9,7 +9,7 @@ import { pathToLuaModule, useHotReload } from '@/hooks/use-hot-reload';
 import { usePluginControl } from '@/hooks/use-plugin-control';
 import { useTimeTravel } from '@/hooks/use-time-travel';
 import { useConfigStore } from '@/store/config';
-import { useDebuggerStore } from '@/store/debugger';
+import { useDebuggerStore, type BreakpointIssue } from '@/store/debugger';
 import { useSessionStore } from '@/store/session';
 import { Button } from '@feather/ui/button';
 import { ScrollArea } from '@feather/ui/scroll-area';
@@ -18,6 +18,14 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/u
 import { Switch } from '@feather/ui/switch';
 import { Label } from '@feather/ui/label';
 import { Badge } from '@feather/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@feather/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@feather/ui/dialog';
 import { LuaCodeInput } from '@feather/ui/lua-code-input';
 import {
@@ -206,6 +214,71 @@ const profilerProbeLabels: Record<ProfilerProbeKind, string> = {
  * gives each one its own icon, so colour distinguished nothing and claimed
  * things that are not true — stopping a probe is a normal action, not danger.
  */
+/**
+ * A breakpoint problem count you can actually act on.
+ *
+ * This was a bare badge reading "3 rejected" — a number with no route to which
+ * three, in which files, or why. A count that cannot be opened is a dead end:
+ * it tells you something is wrong and then refuses to say what, which is the
+ * pattern C3 exists to remove.
+ *
+ * Rejections are `warn` rather than `danger`. A breakpoint the runtime declined
+ * will not fire, which is worth knowing, but nothing has crashed — reserving
+ * danger for actual failures is what keeps it meaning something.
+ */
+function BreakpointIssueBadge({
+  issues,
+  label,
+  tone,
+  emptyHint,
+  onSelect,
+}: {
+  issues: BreakpointIssue[];
+  label: string;
+  tone: 'danger' | 'warn';
+  emptyHint: string;
+  onSelect: (issue: BreakpointIssue) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          data-testid="breakpoint-issues"
+          className={cn(
+            'inline-flex h-6 min-w-0 max-w-80 shrink items-center gap-1 truncate rounded-md border px-2 text-xs',
+            tone === 'danger'
+              ? 'border-danger-border bg-danger-surface text-danger'
+              : 'border-warn-border bg-warn-surface text-warn',
+          )}
+        >
+          <AlertTriangleIcon className="size-3 shrink-0" />
+          {label}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="max-h-80 w-96 overflow-auto">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{emptyHint}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {issues.map((issue, index) => {
+          const where = issue.file ? `${issue.file}${issue.line ? `:${issue.line}` : ''}` : (issue.label ?? 'Unknown location');
+          const why = issue.error ?? issue.reason ?? 'No reason reported by the runtime.';
+          return (
+            <DropdownMenuItem
+              key={`${where}-${index}`}
+              className="grid gap-0.5"
+              disabled={!issue.file}
+              onSelect={() => onSelect(issue)}
+            >
+              <span className="truncate font-mono text-xs">{where}</span>
+              <span className="truncate text-[11px] text-muted-foreground">{why}</span>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 const profilerProbeTone: Record<ProfilerProbeKind, string> = {
   start: 'text-muted-foreground',
   stop: 'text-muted-foreground',
@@ -1081,20 +1154,30 @@ export default function DebuggerPage() {
           </div>
           <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end gap-2">
             {latestConditionError && (
-              <Badge
-                variant="destructive"
-                className="h-6 min-w-0 max-w-80 shrink gap-1 truncate text-xs"
-                title={latestConditionError.error}
-              >
-                <AlertTriangleIcon className="size-3 shrink-0" />
-                {dbg.breakpointErrors.length} condition error{dbg.breakpointErrors.length === 1 ? '' : 's'}
-              </Badge>
+              <BreakpointIssueBadge
+                issues={dbg.breakpointErrors}
+                label={`${dbg.breakpointErrors.length} condition error${dbg.breakpointErrors.length === 1 ? '' : 's'}`}
+                tone="danger"
+                emptyHint="A breakpoint condition threw while being evaluated."
+                onSelect={(issue) => {
+                  if (!issue.file) return;
+                  setSelectedFile(issue.file);
+                  if (issue.line) setScrollToLine(issue.line);
+                }}
+              />
             )}
             {!latestConditionError && rejectedBreakpointCount > 0 && (
-              <Badge variant="destructive" className="h-6 shrink-0 gap-1 text-xs">
-                <AlertTriangleIcon className="size-3" />
-                {rejectedBreakpointCount} rejected
-              </Badge>
+              <BreakpointIssueBadge
+                issues={dbg.status.rejectedBreakpoints ?? []}
+                label={`${rejectedBreakpointCount} rejected`}
+                tone="warn"
+                emptyHint="The runtime declined these breakpoints."
+                onSelect={(issue) => {
+                  if (!issue.file) return;
+                  setSelectedFile(issue.file);
+                  if (issue.line) setScrollToLine(issue.line);
+                }}
+              />
             )}
             <Separator orientation="vertical" className="h-5 shrink-0" />
             <Button

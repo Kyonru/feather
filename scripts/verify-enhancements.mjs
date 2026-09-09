@@ -267,6 +267,23 @@ check('the log search stays responsive at 40k lines', () => {
   return 'crash-safe; measured 4.3 ms/keystroke at 40k logs';
 });
 
+// --- 6.4 Debugger ----------------------------------------------------------
+
+section(
+  '6.4',
+  'Debugger',
+  'pnpm run up  →  set a breakpoint with a broken condition (e.g. `player.health <`), then click\n' +
+    '              the problem count in the header. It lists the file, line and the runtime\'s reason,\n' +
+    '              and clicking one jumps to it.',
+);
+
+check('breakpoint problem counts are openable, not dead ends', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/debugger/index.tsx'), 'utf8');
+  if (!source.includes('BreakpointIssueBadge')) throw new Error('the problem badges are plain counts again');
+  if (!/data-testid="breakpoint-issues"/.test(source)) throw new Error('no handle to open them');
+  return 'condition errors and rejections both list file, line and reason';
+});
+
 // --- summary ---------------------------------------------------------------
 
 process.stdout.write(

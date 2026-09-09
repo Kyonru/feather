@@ -510,7 +510,7 @@ alone.
 | 6.1 | Logs | **MOSTLY DONE** | follow-tail fixed; scale measured; export of a filtered view still open |
 | 6.2 | Session | NOT STARTED | |
 | 6.3 | Performance / Profiler | NOT STARTED | |
-| 6.4 | Debugger | NOT STARTED | |
+| 6.4 | Debugger | **PARTLY DONE** | problem counts are navigable; source-resolution failure still to audit |
 | 6.5 | Console | NOT STARTED | Reference implementation |
 | 6.6 | Assets | NOT STARTED | |
 | 6.7 | Plugins | NOT STARTED | |
@@ -521,7 +521,7 @@ alone.
 | 6.12 | Settings | NOT STARTED | |
 | 6.13 | About | NOT STARTED | Smallest |
 
-Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → ~~6.1~~ → 6.4 → 6.3**, then the rest. C0 first because it is a
+Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → ~~6.1~~ → ~~6.4~~ → 6.3**, then the rest. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
 most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 
@@ -703,6 +703,26 @@ so the test failed loudly instead of lying. Rather than ship it, the check in `v
 static one, labelled as static: it asserts the effect is no longer keyed on arrivals and that
 `followOutput` is still passed. The behaviour itself rests on the library's documented contract and
 on reading the code. That is weaker than a browser test and is recorded as such.
+
+**2026-09-09 — 6.4 Debugger, first pass.**
+
+The panel asked "what does a breakpoint in a file the runtime never loads look like?" and the answer
+was: a badge reading **"3 rejected"**, with no route to which three, in which files, or why. The
+condition-error badge was marginally better — the runtime's message was in a `title` tooltip, but
+only for the most recent one, and only on hover. A count you cannot open is a dead end: it tells you
+something is wrong and then refuses to say what.
+
+Both are now openable and list each issue with its file, line and the runtime's own reason, and
+selecting one jumps to that file and line — reusing the same navigation the stack-frame list already
+uses, so it is not a new interaction to learn.
+
+Rejections moved from `destructive` to `warn` while in here. A breakpoint the runtime declined will
+not fire, which is worth knowing, but nothing has crashed. Reserving danger for actual failures is
+what keeps danger meaning something.
+
+The e2e test was verified the way the last one should have been: reverted to the old dead-end badge
+first, confirmed it failed, then restored the fix. Still open on this surface: what source resolution
+failure looks like, and whether it explains the root-path problem and offers the fix.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it
