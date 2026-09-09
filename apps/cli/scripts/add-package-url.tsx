@@ -21,10 +21,8 @@ import {
   SelectStep,
   AutoStep,
   SubpackagesStep,
-  YesNoStep,
   ReviewStep,
   Header,
-  Hint,
   Spinner,
 } from './wizard-shared.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment

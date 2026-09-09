@@ -1,7 +1,5 @@
-/* eslint-disable no-undef */
 import {
   ANSI_RE,
-  LOCAL_SRC,
   assert,
   envWithPath,
   join,

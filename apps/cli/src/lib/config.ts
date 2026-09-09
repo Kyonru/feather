@@ -216,7 +216,7 @@ export function loadConfig(gamePath: string, override?: string): FeatherConfig |
       const src = readFileSync(path, "utf8");
       return parseLuaTable(src) as FeatherConfig;
     } catch (err) {
-      throw new Error(`Failed to parse ${path}: ${(err as Error).message}`);
+      throw new Error(`Failed to parse ${path}: ${(err as Error).message}`, { cause: err });
     }
   }
 

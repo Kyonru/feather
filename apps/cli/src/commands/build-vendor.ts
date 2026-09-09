@@ -119,7 +119,7 @@ export async function buildVendorAddCommand(targetValues: string[], opts: BuildV
 async function handleSkippedVendors(
   skipped: ConcreteBuildVendorTarget[],
   opts: BuildVendorCommandOptions,
-  originalTargets: BuildVendorTargetInput[],
+  _originalTargets: BuildVendorTargetInput[],
 ): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     printWarning(`${skipped.length} vendor(s) already exist: ${skipped.join(', ')}. Use --force to overwrite.`);

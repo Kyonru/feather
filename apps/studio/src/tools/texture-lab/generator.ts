@@ -1151,7 +1151,6 @@ export function textureLabRecipeWithoutAtlas(
   input?: Partial<TextureLabRecipe> | null,
 ): Omit<TextureLabRecipe, 'atlas'> {
   const normalized = normalizeRecipe({ ...input, atlas: undefined });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { atlas: _atlas, ...recipe } = normalized;
   return recipe;
 }

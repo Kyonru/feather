@@ -67,6 +67,10 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
   let hotReloadEnabled = false;
   let broadHotReload = false;
   let hotReloadPersistence = false;
+  // Load-bearing default. The only assignment is inside `if (configSource)`, so
+  // a project with no feather.config.lua never reaches it and this is what gets
+  // reported.
+  // eslint-disable-next-line no-useless-assignment
   let sessionReplayIncluded = false;
   let debuggerEnabled = false;
   let writeToDisk = false;
@@ -181,7 +185,9 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       const discoveredUploadTargets: SupportedUploadDoctorTarget[] = [];
       if (!opts.uploadTarget && buildConfig.upload.itch) discoveredUploadTargets.push('itch');
       if (!opts.uploadTarget && !buildConfig.upload.itch && configExists) discoveredUploadTargets.push('itch');
-      const uploadTargetsToCheck: SupportedUploadDoctorTarget[] = opts.uploadTarget === 'itch' ? ['itch'] : discoveredUploadTargets;
+      const uploadTargetsToCheck: SupportedUploadDoctorTarget[] = isSupportedUploadDoctorTarget(opts.uploadTarget)
+        ? [opts.uploadTarget]
+        : discoveredUploadTargets;
       const shouldCheckBuildConfig = Boolean(opts.buildTarget || opts.uploadTarget || buildConfig.upload.itch);
       if (shouldCheckBuildConfig) {
         add(
@@ -1162,6 +1168,10 @@ type SupportedUploadDoctorTarget = typeof supportedUploadDoctorTargets[number];
 
 function isDoctorDesktopBuildTarget(target: string): target is DoctorDesktopBuildTarget {
   return (desktopBuildTargets as readonly string[]).includes(target);
+}
+
+function isSupportedUploadDoctorTarget(target: string | undefined): target is SupportedUploadDoctorTarget {
+  return !!target && (supportedUploadDoctorTargets as readonly string[]).includes(target);
 }
 
 function addUploadTargetChecks(

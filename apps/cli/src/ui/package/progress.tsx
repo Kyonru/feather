@@ -233,7 +233,8 @@ function InstallProgress({
     })();
 
     return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Mount-only on purpose: the effect owns its own `cancelled` guard.
+  }, []);
 
   const succeededPkgs = allResults.length > 0 ? packages.filter((_, i) => allResults[i]?.ok) : [];
 

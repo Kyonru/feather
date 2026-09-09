@@ -45,7 +45,6 @@ export function createParticleHistoryState(): ParticleHistoryState {
 export function snapshotParticleAuthoring(data: ParticleSystemPlaygroundData): ParticleAuthoringSnapshot | null {
   if (!data.data || data.data.compositeType !== 'scratch') return null;
   const normalized = withNormalizedTimeline(data.data);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { timelineState: _timelineState, ...authoringData } = normalized;
   return clone({
     activeSystem: data.activeSystem,

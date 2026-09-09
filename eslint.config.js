@@ -12,14 +12,6 @@ export default tseslint.config(
       '**/bundled-cli/',
       '**/bundled-bin/',
       '**/out/',
-      // The CLI and the extension have never been linted — the old script was
-      // `eslint src` only, so moving them under apps/ pulled ~25 pre-existing
-      // issues into scope. They are real (unused bindings, a useless escape, a
-      // missing react-hooks plugin registration) but unrelated to the
-      // architecture work, so they get their own change rather than being
-      // smuggled into this one. Tracked in V4.md section 8.1.
-      'apps/cli/',
-      'apps/vscode-extension/',
       'dist/',
       'build/',
       'pnpm-lock.json',
@@ -35,6 +27,16 @@ export default tseslint.config(
   ...pluginQuery.configs['flat/recommended'],
   eslint.configs.recommended,
   tseslint.configs.recommended,
+  {
+    // An underscore prefix is the conventional way to say "deliberately unused",
+    // which matters for parameters a signature keeps for documentation.
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
+  },
   {
     // The creative tools ship to the web as well as the desktop app, so they
     // must not reach for Tauri directly. Anything they need from the
@@ -74,7 +76,44 @@ export default tseslint.config(
   {
     // Build and generator scripts are Node, not browser.
     files: ['**/scripts/**/*.mjs', 'scripts/**/*.mjs'],
-    languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
+    languageOptions: {
+      globals: { console: 'readonly', process: 'readonly', URL: 'readonly', fetch: 'readonly' },
+    },
+  },
+  {
+    // Node test files: node:test globals plus the Node runtime.
+    files: ['**/test/**/*.mjs', '**/test/**/*.mts'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        Buffer: 'readonly',
+      },
+    },
+  },
+  {
+    // .cjs really is CommonJS. `require` there is correct, not a lapse, and the
+    // VS Code integration harness runs under Mocha's globals.
+    files: ['**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        require: 'readonly',
+        module: 'writable',
+        __dirname: 'readonly',
+        console: 'readonly',
+        process: 'readonly',
+        suite: 'readonly',
+        test: 'readonly',
+        setup: 'readonly',
+        teardown: 'readonly',
+      },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
     // Feather Inspector must not import Feather Studio. They are separate

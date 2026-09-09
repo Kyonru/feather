@@ -14,7 +14,7 @@ import { buildTargets, isBuildTarget, isUploadTarget, uploadTargets, type BuildT
 import { runBuild } from '../lib/build/build.js';
 import { runUpload } from '../lib/build/upload.js';
 import { inspectUploadArtifact, type UploadSafetyResult } from '../lib/build/upload-safety.js';
-import { chooseUploadWorkflow, type UploadWorkflowResult } from '../ui/upload-workflow.js';
+import { chooseUploadWorkflow } from '../ui/upload-workflow.js';
 import type { BuildResult } from '../lib/build/build.js';
 
 export type UploadCommandOptions = {

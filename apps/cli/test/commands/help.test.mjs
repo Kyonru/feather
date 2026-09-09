@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { assert, join, makeTmp, outputOf, run, symlinkSync, test } from './helpers.mjs';

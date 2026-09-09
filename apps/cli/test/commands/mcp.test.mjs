@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';

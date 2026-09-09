@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { createServer } from 'node:http';
 import { assert, outputOf, spawnCli, test } from './helpers.mjs';
 

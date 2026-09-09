@@ -307,7 +307,6 @@ function shaderPreviewParams(params: Record<string, unknown>) {
 }
 
 function texturePayload(texture: GeneratedTextureResult): TexturePayload {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { dataUrl: _dataUrl, ...rest } = texture;
   return rest;
 }

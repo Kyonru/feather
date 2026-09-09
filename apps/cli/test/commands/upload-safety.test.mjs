@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { assert, join, makeTmp, mkdirSync, test, writeFileSync } from './helpers.mjs';
 import { createZipBuffer } from '../../dist/lib/build/archive.js';
 import { inspectUploadArtifact } from '../../dist/lib/build/upload-safety.js';

@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

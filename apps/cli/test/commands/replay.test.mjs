@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { assert, existsSync, join, makeTmp, outputOf, readFileSync, run, test, writeFileSync, writeGame } from './helpers.mjs';
 
 test('replay init: creates centralized adapter and enables session-replay plugin', () => {

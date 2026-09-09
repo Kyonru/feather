@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 /**
  * Focused compiled-CLI coverage for non-package commands.
  */

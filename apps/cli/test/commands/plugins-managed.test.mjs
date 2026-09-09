@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 /**
  * Tests for `--managed <mode>` override and automatic managed-mode detection
  * across all plugin subcommands (install, remove, update, list).

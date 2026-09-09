@@ -79,7 +79,6 @@ cpSync(join(cliGenerated, 'registry.json'), join(bundledBin, 'registry.json'));
 const { pluginCatalog } = await import(join(cliGenerated, 'plugin-catalog.js'));
 writeFileSync(join(bundledBin, 'plugin-catalog.json'), JSON.stringify(pluginCatalog, null, 2) + '\n');
 
-// eslint-disable-next-line no-undef
 // Recorded beside the binaries so the extension can report it at runtime, and
 // so an unpacked VSIX says which platform it carries.
 writeFileSync(

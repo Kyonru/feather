@@ -66,7 +66,7 @@
     "generate:registry": "node scripts/generate-registry.mjs",
     "check:registry": "pnpm run generate:registry && git diff --exit-code apps/cli/src/generated/registry.json",
     "verify:packages": "node scripts/compute-checksums.mjs --all",
-    "lint": "eslint apps packages --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint apps packages --ext .ts,.tsx,.cjs --report-unused-disable-directives --max-warnings 0",
     "tauri": "tauri",
     "prepare": "husky"
   },

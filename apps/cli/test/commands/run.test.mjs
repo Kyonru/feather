@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import {
   ROOT,
   LOCAL_SRC,

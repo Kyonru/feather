@@ -177,7 +177,7 @@ function codexServerBlock(server: McpServerConfig): string {
 }
 
 function tomlSectionName(line: string): string | null {
-  const match = line.match(/^\s*\[([^\[\]]+)\]\s*(?:#.*)?$/);
+  const match = line.match(/^\s*\[([^[\]]+)\]\s*(?:#.*)?$/);
   return match?.[1]?.trim() ?? null;
 }
 

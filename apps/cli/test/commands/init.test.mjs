@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import {
   LOCAL_SRC,
   assert,
