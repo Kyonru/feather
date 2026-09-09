@@ -30,7 +30,7 @@ export function SectionCards({
               <div className="flex min-w-0 items-center gap-2">
                 <CardTitle className="min-w-0 truncate font-mono text-sm">{item.key}</CardTitle>
                 {item.changed && (
-                  <span className="inline-block h-2 w-2 rounded-full bg-yellow-400 shrink-0" title="Value changed" />
+                  <span className="inline-block h-2 w-2 rounded-full bg-warn-surface shrink-0" title="Value changed" />
                 )}
                 {item.changeCount ? (
                   <Badge variant="outline" className="shrink-0 px-1.5 py-0 font-mono text-[10px]" title="Change count">

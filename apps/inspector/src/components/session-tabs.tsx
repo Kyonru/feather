@@ -107,7 +107,7 @@ function SessionTab({
             <CircleIcon
               className={cn(
                 'size-2 fill-current',
-                session.connected ? 'text-green-500' : 'text-muted-foreground/50',
+                session.connected ? 'text-ok' : 'text-muted-foreground/50',
               )}
             />
             {FileIcon ? (
@@ -118,8 +118,8 @@ function SessionTab({
               <MonitorIcon className="size-3" />
             )}
             <span className="max-w-[100px] truncate">{session.name || session.id.slice(0, 8)}</span>
-            {versionMismatch && <TriangleAlertIcon className="size-3 text-yellow-500" />}
-            {session.insecure && <ShieldOffIcon className="size-3 text-orange-400" />}
+            {versionMismatch && <TriangleAlertIcon className="size-3 text-warn" />}
+            {session.insecure && <ShieldOffIcon className="size-3 text-danger" />}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
@@ -333,7 +333,7 @@ export function SessionTabs() {
               type="button"
               className={cn(
                 'flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground',
-                activeSession.runtimeSuspended && 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                activeSession.runtimeSuspended && 'bg-warn-surface text-warn',
               )}
               title={activeSession.runtimeSuspended ? 'Resume Feather runtime' : 'Suspend Feather runtime'}
               aria-pressed={activeSession.runtimeSuspended === true}

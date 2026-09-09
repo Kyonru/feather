@@ -158,21 +158,19 @@ function Section({
 }
 
 function CapabilityBadge({ cap }: { cap: string }) {
-  const colors: Record<string, string> = {
-    filesystem: 'border-yellow-500/40 text-yellow-600 dark:text-yellow-400',
-    network: 'border-blue-500/40 text-blue-600 dark:text-blue-400',
-    input: 'border-purple-500/40 text-purple-600 dark:text-purple-400',
-    draw: 'border-pink-500/40 text-pink-600 dark:text-pink-400',
-    audio: 'border-green-500/40 text-green-600 dark:text-green-400',
-    physics: 'border-orange-500/40 text-orange-600 dark:text-orange-400',
-    binary: 'border-muted-foreground/30 text-muted-foreground',
-  };
+  // Capabilities are a taxonomy, not states, and colouring them as states said
+  // things that were not true — filesystem read as a warning, audio as "ok".
+  // The distinction worth drawing is security weight: filesystem and network are
+  // the two capabilities that let a plugin reach outside the game, and they are
+  // what someone auditing a plugin list is scanning for. Everything else is
+  // named by the badge itself and stays chrome.
+  const elevated = cap === 'filesystem' || cap === 'network';
   return (
     <Badge
       variant="outline"
       className={cn(
         'h-4 px-1 text-[9px] font-normal',
-        colors[cap] ?? 'border-muted-foreground/30 text-muted-foreground',
+        elevated ? 'border-warn-border text-warn' : 'border-muted-foreground/30 text-muted-foreground',
       )}
     >
       {cap}
@@ -196,8 +194,8 @@ function SummaryChip({
       title={title}
       className={cn('flex min-w-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs', {
         'bg-muted/35': tone === 'default',
-        'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300': tone === 'good',
-        'border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200': tone === 'warning',
+        'border-ok-border bg-ok-surface text-ok': tone === 'good',
+        'border-warn-border bg-warn-surface text-warn': tone === 'warning',
         'border-destructive/35 bg-destructive/10 text-destructive': tone === 'danger',
         'text-muted-foreground': tone === 'muted',
       })}
@@ -491,8 +489,8 @@ export default function SessionPage() {
         <section
           data-testid="session-health-hub"
           className={cn('rounded-lg border p-4', {
-            'border-green-500/25 bg-green-500/5': healthTone === 'good',
-            'border-amber-500/30 bg-amber-500/5': healthTone === 'warning',
+            'border-ok-border bg-ok-surface': healthTone === 'good',
+            'border-warn-border bg-warn-surface': healthTone === 'warning',
             'border-destructive/30 bg-destructive/5': healthTone === 'danger',
           })}
         >
@@ -501,7 +499,7 @@ export default function SessionPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant={healthTone === 'danger' ? 'destructive' : healthTone === 'good' ? 'secondary' : 'outline'}
-                  className={cn('h-7 gap-1 text-sm', healthTone === 'good' && 'text-green-700 dark:text-green-300')}
+                  className={cn('h-7 gap-1 text-sm', healthTone === 'good' && 'text-ok')}
                 >
                   {healthTone === 'good' ? (
                     <CheckCircle2Icon className="size-3.5" />
@@ -578,7 +576,7 @@ export default function SessionPage() {
                 <div
                   key={action.id}
                   className={cn('flex items-start justify-between gap-3 rounded-md border bg-muted/25 px-3 py-2', {
-                    'border-amber-500/35 bg-amber-500/10': action.tone === 'warning',
+                    'border-warn-border bg-warn-surface': action.tone === 'warning',
                     'border-destructive/35 bg-destructive/10': action.tone === 'danger',
                   })}
                 >
@@ -594,7 +592,7 @@ export default function SessionPage() {
 
           <Section title={`Warnings (${warnings.length})`} icon={ShieldAlertIcon}>
             {warnings.length === 0 ? (
-              <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-300">
+              <div className="flex items-center gap-2 rounded-md border border-ok-border bg-ok-surface px-3 py-2 text-sm text-ok">
                 <CheckCircle2Icon className="size-4" />
                 No urgent session issues detected.
               </div>
@@ -604,7 +602,7 @@ export default function SessionPage() {
                   <div
                     key={warning.id}
                     className={cn('rounded-md border px-3 py-2', {
-                      'border-amber-500/35 bg-amber-500/10': warning.tone === 'warning',
+                      'border-warn-border bg-warn-surface': warning.tone === 'warning',
                       'border-destructive/35 bg-destructive/10': warning.tone === 'danger',
                     })}
                   >
@@ -626,7 +624,7 @@ export default function SessionPage() {
             <InfoRow label="Save directory" value={config.location} />
             <InfoRow label="Project root" value={config.root_path} />
             <InfoRow label="Source root" value={config.sourceDir} />
-            <div className="mt-2 flex items-center justify-between gap-4 rounded-md border bg-rose-900/10 px-2 py-2">
+            <div className="mt-2 flex items-center justify-between gap-4 rounded-md border bg-danger-surface px-2 py-2">
               <div>
                 <Label htmlFor="continue-on-game-error" className="text-xs font-medium">
                   Keep Running After Callback Crashes
@@ -643,9 +641,9 @@ export default function SessionPage() {
               />
             </div>
             {session.insecure && (
-              <div className="mt-2 flex items-center gap-2 rounded-md border border-orange-300 bg-orange-50 px-2 py-1.5 dark:border-orange-800 dark:bg-orange-950">
-                <ShieldOffIcon className="size-3.5 text-orange-500" />
-                <span className="text-xs text-orange-700 dark:text-orange-400">
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-warn-border bg-warn-surface px-2 py-1.5">
+                <ShieldOffIcon className="size-3.5 text-warn" />
+                <span className="text-xs text-warn">
                   Insecure connection — set appId in feather.config.lua
                 </span>
               </div>
@@ -680,7 +678,7 @@ export default function SessionPage() {
               label="Capabilities"
               value={
                 capAll ? (
-                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                  <span className="flex items-center gap-1 text-ok">
                     <ShieldCheckIcon className="size-3" />
                     all
                   </span>
@@ -746,7 +744,7 @@ export default function SessionPage() {
                       <Badge
                         variant="outline"
                         className={cn('ml-auto h-5 shrink-0 text-[10px]', {
-                          'border-green-500/40 text-green-600 dark:text-green-400': status === 'enabled',
+                          'border-ok-border text-ok': status === 'enabled',
                           'border-muted-foreground/30 text-muted-foreground': status === 'disabled',
                           'border-destructive/30 text-destructive': status === 'incompatible',
                         })}
@@ -800,8 +798,8 @@ export default function SessionPage() {
                   <Badge
                     variant="outline"
                     className={cn('ml-2 h-5 shrink-0 text-[10px]', {
-                      'border-green-500/40 text-green-600 dark:text-green-400': pkg.trust === 'verified',
-                      'border-yellow-500/40 text-yellow-600 dark:text-yellow-400': pkg.trust === 'known',
+                      'border-ok-border text-ok': pkg.trust === 'verified',
+                      'border-warn-border text-warn': pkg.trust === 'known',
                       'border-muted-foreground/30 text-muted-foreground': pkg.trust === 'experimental',
                     })}
                   >

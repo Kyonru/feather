@@ -217,8 +217,8 @@ function SpikesList({ data }: { data: PerformanceMetrics[] }) {
 
 function verdictClass(verdict: PerformanceVerdict) {
   return verdict.severity === 'critical'
-    ? 'border-red-500/50 bg-red-500/10 text-red-950 dark:text-red-100'
-    : 'border-amber-500/50 bg-amber-500/10 text-amber-950 dark:text-amber-100';
+    ? 'border-danger-border bg-danger-surface text-danger'
+    : 'border-warn-border bg-warn-surface text-warn';
 }
 
 function HealthVerdicts({ data, latest }: { data: PerformanceMetrics[]; latest: PerformanceMetrics | null }) {
@@ -238,8 +238,8 @@ function HealthVerdicts({ data, latest }: { data: PerformanceMetrics[]; latest: 
 
   if (verdicts.length === 0) {
     return (
-      <Card data-testid="performance-verdicts" className="border-emerald-500/30 bg-emerald-500/5">
-        <CardContent className="flex items-center gap-2 py-0 text-sm text-emerald-700 dark:text-emerald-300">
+      <Card data-testid="performance-verdicts" className="border-ok-border bg-ok-surface">
+        <CardContent className="flex items-center gap-2 py-0 text-sm text-ok">
           <CheckCircleIcon className="size-4" />
           Healthy
           <span className="text-muted-foreground">No actionable performance warnings in the visible window.</span>
@@ -250,10 +250,10 @@ function HealthVerdicts({ data, latest }: { data: PerformanceMetrics[]; latest: 
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} data-testid="performance-verdicts">
-      <Card className="border-amber-500/40 bg-amber-500/5">
+      <Card className="border-warn-border bg-warn-surface">
         <CardContent className="grid gap-2 py-0">
           <div className="grid min-w-0 grid-cols-[auto_auto_auto_minmax(0,1fr)_auto] items-center gap-2 py-0">
-            <TriangleAlertIcon className="size-4 shrink-0 text-amber-600" />
+            <TriangleAlertIcon className="size-4 shrink-0 text-warn" />
             <span className="shrink-0 text-sm font-semibold">Health Warnings</span>
             <span className="rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase text-muted-foreground">
               {verdicts.length}

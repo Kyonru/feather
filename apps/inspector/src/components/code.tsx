@@ -53,8 +53,12 @@ export function TraceViewer({
       .replace(
         filePattern,
         (_, file, lineNum) =>
-          `<a href="${file}:${lineNum}" data-file="${file}" data-line="${lineNum}" style="cursor: pointer;" class="text-blue-500 underline hover:cursor-pointer">${file}:${lineNum}</a>`,
+          `<a href="${file}:${lineNum}" data-file="${file}" data-line="${lineNum}" style="cursor: pointer;" class="text-primary underline hover:cursor-pointer">${file}:${lineNum}</a>`,
       )
+      // These two are syntax highlighting inside a stack trace, not state, so they
+      // deliberately keep literals rather than borrowing --ok/--info, which would
+      // make green mean "fine" here and something else everywhere else. They belong
+      // in the theme's syntax palette — see V4-ENHANCED.md §4 (C0).
       .replace(inFunctionPattern, `<span class="text-purple-500 font-medium">in function</span>`)
       .replace(quotedPattern, `<span class="text-green-500">'$1'</span>`);
 

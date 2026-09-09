@@ -168,7 +168,7 @@ Inspector expresses four meanings with **fifty-four different colors**, as raw T
 
 158 raw literals against 338 uses of proper semantic tokens. Two consequences, both verified:
 
-**They ignore the user's theme.** Inspector ships **28 theme variants** across five registries
+**They ignore the user's theme.** Inspector ships **79 themes** across five registries
 (GitHub, Noctis, Tokyo Night, Rainglow, Visual Studio C++), and
 `assets/theme/registry/types.ts` lets each override 36 `THEME_CSS_VARIABLES` — chrome, sidebar,
 charts, even the four `plugin-*` colors. **Not one semantic state color is in that list.** So a
@@ -223,9 +223,9 @@ All pass AA. Then three steps, in order:
 
 1. Register the ramps in `@theme inline` as `--color-ok` … `--color-info`, so `text-ok`,
    `bg-warn-surface` and `border-danger-border` exist as ordinary utilities.
-2. **Add them to `THEME_CSS_VARIABLES`** and give all 28 theme variants values. This is the step
-   that makes the channel real; without it the tokens are just better-named hardcoding. Themes
-   that omit a value fall back to the `:root`/`.dark` defaults above.
+2. **Add them to `THEME_CSS_VARIABLES`** and give every theme values. This is the step that makes
+   the channel real; without it the tokens are just better-named hardcoding. Hand-authoring is
+   not viable at 79 themes, so they are derived per theme from its own background.
 3. Replace the 158 literals, panel by panel, deciding what each one *meant* rather than
    transliterating the hue. Some will turn out to have meant nothing, and should become
    `muted-foreground`.
@@ -234,8 +234,7 @@ One inconsistency to settle while in here: `--primary` is the rose `#ad5b68` in 
 grey `#8b949e` in dark, so the interaction accent D1 depends on simply vanishes in dark mode.
 
 **Acceptance.** No raw Tailwind color literal remains in `apps/inspector/src`; a lint rule keeps it
-that way. Every one of the 28 themes renders all four states at AA or better on its own
-background. Switching theme changes the state colors coherently instead of leaving them fixed.
+that way. Every theme renders all four states at AA or better on its own background. Switching theme changes the state colors coherently instead of leaving them fixed.
 
 ---
 
@@ -498,7 +497,7 @@ alone.
 | # | Surface | Pass | Notes |
 |---|---|---|---|
 | D | Design direction (§4) | AGREED, NOT APPLIED | D1-D4; the rules the passes below are held to |
-| C0 | Semantic color channel | NOT STARTED | **Do first.** 54 colors for 4 meanings; fails AA on shipped themes |
+| C0 | Semantic color channel | **DONE** | Ramps derived per theme, AA-verified across all 79; literals replaced; lint rule holds it |
 | C1 | Panel state persistence | NOT STARTED | Cross-cutting; verified on Logs, Assets, Performance |
 | C2 | Freshness and staleness | NOT STARTED | Cross-cutting; 45 refresh affordances, ~0 indicators |
 | C3 | Next-action audit | NOT STARTED | Cross-cutting |
@@ -517,7 +516,7 @@ alone.
 | 6.12 | Settings | NOT STARTED | |
 | 6.13 | About | NOT STARTED | Smallest |
 
-Suggested order: **C0 → C1 → C2 → 6.1 → 6.4 → 6.3**, then the rest. C0 first because it is a
+Suggested order: **~~C0~~ → C1 → C2 → 6.1 → 6.4 → 6.3**, then the rest. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
 most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 
@@ -545,6 +544,46 @@ not just the diff.
 **2026-09-09 — Document created.** Cross-cutting findings C1–C4 derived from a read of all 25,146
 lines of Inspector across 13 surfaces. Per-feature sections are starting points, explicitly not
 completed audits. Nothing has been changed in the application yet.
+
+**2026-09-09 — C0 done.** The channel exists and is enforced.
+
+Rather than hand-author four ramps across 79 themes, they are derived:
+`assets/theme/registry/semantic.ts` solves each state's lightness against the theme's own
+background until it clears the contrast target, and `index.ts` applies that to every theme as it is
+assembled. A new theme gets correct state colors for free; a theme that wants a specific value
+still wins, because derivation never overwrites an authored one.
+
+Deriving was not sufficient on its own, and the test proved it. Solving against the page background
+alone left `--danger` at 4.15:1 on `--danger-surface` — the chip pairing, which is a harder ground
+because it is a tint of the same hue. 66 theme/state combinations failed that way. Foregrounds are
+now solved against every ground they render on at once: background, card, and their own surface.
+`scripts/tests/themeSemanticColors.test.ts` holds all of it, including that no two states collapse
+to the same value. Across all 79 themes the minimum contrast is now 5.23:1 against AA's 4.5.
+
+Then the 311 literals. Most were mechanical, but the pass surfaced five places where color was
+claiming something untrue, and those were the point of the exercise:
+
+- Plugin capability badges coloured a taxonomy as states — `filesystem` read as a warning,
+  `audio` as "ok". Replaced with the distinction that matters when auditing a plugin: filesystem
+  and network reach outside the game, everything else is chrome.
+- The four debugger flow buttons were four different colors for four adjacent controls of the same
+  kind, and two had become state tokens claiming "Continue" is an ok state. All now chrome; the
+  icon and label already distinguish them.
+- Profiler probe kinds likewise, where "stop" had become danger. `ProfilerProbeIcon` already gives
+  each kind its own icon.
+- Performance metric cards carried six decorative hues shown only while selected, so a selected
+  frame-time card looked like a failure and disk usage like a warning whatever the numbers said.
+  Selection is interaction, so it is the accent, once.
+- Lua value types and stack-trace highlighting are syntax, not state. They keep literals behind a
+  documented lint exemption; borrowing `--ok` for a number would make green mean "fine" in one
+  place and "number" in another. They belong in the theme's syntax palette — a later pass.
+
+Log badges moved from solid fills to tinted chips. The fills hand-picked a pair per mode with no
+contrast guarantee on any theme; the chip pairing is the one the test asserts. It also reads better
+in a dense log list, where a column of saturated blocks makes a real error harder to find.
+
+A `no-restricted-syntax` rule now rejects raw Tailwind color literals in `apps/inspector/src`, so
+this cannot drift back. Full suite 7/7.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

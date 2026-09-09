@@ -224,9 +224,9 @@ export function DataTable({
               <TooltipTrigger asChild>
                 <Button variant="secondary" size="icon" onClick={onPlayPause}>
                   {isPaused ? (
-                    <PlayIcon className="text-green-500 cursor-pointer" />
+                    <PlayIcon className="cursor-pointer" />
                   ) : (
-                    <PauseIcon className="text-blue-500 cursor-pointer" />
+                    <PauseIcon className="cursor-pointer" />
                   )}
                   <span className="sr-only">{isPaused ? 'Paused' : 'Playing'}</span>
                 </Button>
@@ -239,7 +239,7 @@ export function DataTable({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="secondary" size="icon" onClick={onClear}>
-                  <Trash2Icon className=" text-orange-500 cursor-pointer" />
+                  <Trash2Icon className="cursor-pointer" />
                   <span className="sr-only">Clear history</span>
                 </Button>
               </TooltipTrigger>
@@ -252,9 +252,9 @@ export function DataTable({
               <TooltipTrigger asChild>
                 <Button variant="secondary" size="icon" onClick={onScreenshotChange}>
                   {screenshotEnabled ? (
-                    <ScreenShareIcon className=" text-green-500 cursor-pointer" />
+                    <ScreenShareIcon className="text-ok cursor-pointer" />
                   ) : (
-                    <ScreenShareOffIcon className=" text-red-500 cursor-pointer" />
+                    <ScreenShareOffIcon className="cursor-pointer" />
                   )}
                   <span className="sr-only">{screenshotEnabled ? 'Disable Screenshots' : 'Enable Screenshots'}</span>
                 </Button>
@@ -270,7 +270,7 @@ export function DataTable({
                   <TooltipTrigger asChild>
                     <DialogTrigger asChild>
                       <Button variant="secondary" size="icon">
-                        <UploadIcon className=" text-yellow-500 cursor-pointer" />
+                        <UploadIcon className="cursor-pointer" />
                         <span className="sr-only">Upload logs</span>
                       </Button>
                     </DialogTrigger>
@@ -293,7 +293,7 @@ export function DataTable({
               ) : (
                 <TooltipTrigger asChild>
                   <Button variant="secondary" size="icon" onClick={onSelectFile}>
-                    <UploadIcon className=" text-yellow-500 cursor-pointer" />
+                    <UploadIcon className="cursor-pointer" />
                     <span className="sr-only">Use log file</span>
                   </Button>
                 </TooltipTrigger>

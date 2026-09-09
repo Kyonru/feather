@@ -121,7 +121,7 @@ export function PluginContentTypeGifImage({ name, width, fps, height, src, downl
 
   if (gifImage.isLoading) {
     return (
-      <div className="h-12 w-12 self-center justify-self-center animate-spin rounded-full border-4 border-solid border-gray-200 border-t-transparent" />
+      <div className="h-12 w-12 self-center justify-self-center animate-spin rounded-full border-4 border-solid border-border border-t-transparent" />
     );
   }
 
@@ -301,7 +301,7 @@ export function PluginContentTable({
           {loading && (
             <TableRow>
               <TableCell colSpan={columns.length} className="text-center py-4">
-                <div className="h-6 w-6 inline-block animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
+                <div className="h-6 w-6 inline-block animate-spin rounded-full border-2 border-solid border-border border-t-transparent" />
               </TableCell>
             </TableRow>
           )}
@@ -469,7 +469,7 @@ export function PluginContentTree({
             {loading && (
               <TableRow>
                 <TableCell colSpan={2} className="text-center py-4">
-                  <div className="h-6 w-6 inline-block animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
+                  <div className="h-6 w-6 inline-block animate-spin rounded-full border-2 border-solid border-border border-t-transparent" />
                 </TableCell>
               </TableRow>
             )}
@@ -481,11 +481,11 @@ export function PluginContentTree({
 }
 
 const categoryColors: Record<string, string> = {
-  info: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20',
-  error: 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20',
-  warning: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20',
-  success: 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20',
-  accent: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20',
+  info: 'bg-info-surface text-info border-info-border',
+  error: 'bg-danger-surface text-danger border-danger-border',
+  warning: 'bg-warn-surface text-warn border-warn-border',
+  success: 'bg-ok-surface text-ok border-ok-border',
+  accent: 'bg-plugin-active text-plugin-active-foreground border-plugin-active-border',
 };
 
 function formatRelativeTime(timestamp: number): string {
@@ -564,7 +564,7 @@ export function PluginContentTimeline({
         </div>
         {loading && (
           <div className="flex justify-center py-4">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-border border-t-transparent" />
           </div>
         )}
       </div>
@@ -983,7 +983,7 @@ export function PluginContent(
         />
         {props.loading && (
           <div className="flex justify-center py-4">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-gray-200 border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-border border-t-transparent" />
           </div>
         )}
       </div>
@@ -1030,7 +1030,7 @@ export function PluginContent(
             );
           })}
           {props.loading && (
-            <div className="h-12 w-12 self-center justify-self-center animate-spin rounded-full border-4 border-solid border-gray-200 border-t-transparent" />
+            <div className="h-12 w-12 self-center justify-self-center animate-spin rounded-full border-4 border-solid border-border border-t-transparent" />
           )}
         </div>
       </div>

@@ -26,9 +26,9 @@ export type TriageSummaryItem = {
 };
 
 function toneClass(tone: TriageTone = 'default') {
-  if (tone === 'good') return 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300';
-  if (tone === 'warning') return 'border-amber-500/40 text-amber-700 dark:text-amber-300';
-  if (tone === 'danger') return 'border-destructive/40 text-destructive';
+  if (tone === 'good') return 'border-ok-border text-ok';
+  if (tone === 'warning') return 'border-warn-border text-warn';
+  if (tone === 'danger') return 'border-danger-border text-danger';
   if (tone === 'muted') return 'border-muted-foreground/25 text-muted-foreground';
   return 'border-border text-foreground';
 }
@@ -194,7 +194,7 @@ export function TriageCopyButton({
             window.setTimeout(() => setCopied(false), 1400);
           }}
         >
-          {children ?? (copied ? <CheckIcon className="size-3.5 text-emerald-600" /> : <CopyIcon className="size-3.5" />)}
+          {children ?? (copied ? <CheckIcon className="size-3.5 text-ok" /> : <CopyIcon className="size-3.5" />)}
         </Button>
       </TooltipTrigger>
       <TooltipContent>{copied ? `Copied ${label}` : title ?? `Copy ${label}`}</TooltipContent>

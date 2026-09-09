@@ -251,15 +251,15 @@ function SettingsMetric({
     <div
       className={cn(
         'flex min-w-0 items-center gap-3 rounded-md border bg-background/70 px-3 py-2.5',
-        tone === 'good' && 'border-emerald-500/30 bg-emerald-500/5',
-        tone === 'warn' && 'border-amber-500/35 bg-amber-500/5',
+        tone === 'good' && 'border-ok-border bg-ok-surface',
+        tone === 'warn' && 'border-warn-border bg-warn-surface',
       )}
     >
       <span
         className={cn(
           'flex size-8 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground',
-          tone === 'good' && 'border-emerald-500/30 text-emerald-600',
-          tone === 'warn' && 'border-amber-500/35 text-amber-600',
+          tone === 'good' && 'border-ok-border text-ok',
+          tone === 'warn' && 'border-warn-border text-warn',
         )}
       >
         <Icon className="size-4" />
@@ -1013,11 +1013,11 @@ function TextEditorInput() {
 function SeverityBadge({ severity }: { severity: DoctorCheck['severity'] }) {
   const className =
     severity === 'fail'
-      ? 'border-red-500 text-red-600'
+      ? 'border-danger-border text-danger'
       : severity === 'warn'
-        ? 'border-amber-500 text-amber-600'
+        ? 'border-warn-border text-warn'
         : severity === 'pass'
-          ? 'border-emerald-500 text-emerald-600'
+          ? 'border-ok-border text-ok'
           : 'text-muted-foreground';
 
   return (
@@ -1028,9 +1028,9 @@ function SeverityBadge({ severity }: { severity: DoctorCheck['severity'] }) {
 }
 
 function cliJobTone(status: CliJobStatus): string {
-  if (status === 'succeeded') return 'border-emerald-500 text-emerald-600';
-  if (status === 'failed') return 'border-red-500 text-red-600';
-  if (status === 'cancelled') return 'border-amber-500 text-amber-600';
+  if (status === 'succeeded') return 'border-ok-border text-ok';
+  if (status === 'failed') return 'border-danger-border text-danger';
+  if (status === 'cancelled') return 'border-warn-border text-warn';
   return 'text-muted-foreground';
 }
 
@@ -1084,7 +1084,7 @@ function CliJobsPanel({
             )}
           </div>
           <code className="truncate rounded bg-muted px-1.5 py-1 font-mono text-[11px]">{job.commandPreview}</code>
-          {job.error && <p className="text-red-600">{job.error}</p>}
+          {job.error && <p className="text-danger">{job.error}</p>}
           {job.stderrTail && <p className="line-clamp-2 text-muted-foreground">{job.stderrTail}</p>}
           {job.json !== undefined && (
             <details>
@@ -1247,7 +1247,7 @@ function CliStatusPanel() {
         )}
         {currentStatus?.error && <p className="text-xs text-muted-foreground">{currentStatus.error}</p>}
         {cliVersionMismatch && (
-          <div className="rounded border border-amber-500/50 bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          <div className="rounded border border-warn-border bg-warn-surface p-2 text-xs text-warn">
             CLI version mismatch. Desktop is v{appVersion}, but the detected CLI is v{currentStatus?.version}. Update
             with <code className="font-mono">npm install -g @kyonru/feather</code>.
           </div>
@@ -1596,7 +1596,7 @@ function CliStatusPanel() {
       )}
 
       {projectStatus?.errors && projectStatus.errors.length > 0 && (
-        <div className="grid gap-1 rounded border border-amber-500/50 p-2 text-xs text-muted-foreground">
+        <div className="grid gap-1 rounded border border-warn-border p-2 text-xs text-muted-foreground">
           {projectStatus.errors.map((error) => (
             <p key={error}>{error}</p>
           ))}

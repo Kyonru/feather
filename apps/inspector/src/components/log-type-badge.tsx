@@ -15,30 +15,45 @@ function isFeatherEvent(type: string) {
   return type === LogType.FEATHER_FINISH || type === LogType.FEATHER_START;
 }
 
+/**
+ * Badges are tinted chips rather than solid fills.
+ *
+ * The fills they replaced (`bg-red-700 text-white dark:bg-red-400
+ * dark:text-red-950`) hand-picked a pair per mode and had no contrast guarantee
+ * on any of the themes Feather ships. The chip pairing does: the theme test
+ * asserts every `--<state>` clears AA on its own `--<state>-surface`.
+ *
+ * It also reads better where it matters. Dozens of these stack in the log list,
+ * and a column of solid saturated blocks is the shouting chrome that makes a
+ * genuine error harder to pick out, not easier.
+ */
 function logTypeTone(type: string): LogTypeTone {
   if (type === 'output') {
     return {
-      badgeClass: 'bg-cyan-700 text-white dark:bg-cyan-400 dark:text-cyan-950',
+      badgeClass: 'bg-info-surface text-info border-info-border',
       icon: <FileClockIcon className="size-3" />,
     };
   }
 
   if (type === 'error' || type === 'fatal') {
     return {
-      badgeClass: 'bg-red-700 text-white dark:bg-red-400 dark:text-red-950',
+      badgeClass: 'bg-danger-surface text-danger border-danger-border',
       icon: <CircleXIcon className="size-3" />,
     };
   }
 
+  // Runtime lifecycle. A game that started and finished is healthy, so this is
+  // an ok signal — the amber it used to wear implied a problem that is not there.
   if (isFeatherEvent(type)) {
     return {
-      badgeClass: 'bg-yellow-700 text-white dark:bg-yellow-400 dark:text-yellow-950',
+      badgeClass: 'bg-ok-surface text-ok border-ok-border',
       icon: <FeatherIcon className="size-3" />,
     };
   }
 
+  // Unrecognized types carry no state, so they stay chrome.
   return {
-    badgeClass: 'bg-gray-700 text-white dark:bg-gray-400 dark:text-gray-950',
+    badgeClass: 'bg-muted text-muted-foreground border-border',
     icon: <FileQuestionMarkIcon className="size-3" />,
   };
 }

@@ -132,7 +132,7 @@ function RecordingState({ frameCount, bufferSize }: { frameCount: number; buffer
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3">
       <div className="flex items-center gap-2">
-        <span className="inline-block size-3 animate-pulse rounded-full bg-red-500" />
+        <span className="inline-block size-3 animate-pulse rounded-full bg-danger-surface" />
         <span className="text-sm font-medium">Recording…</span>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -140,7 +140,7 @@ function RecordingState({ frameCount, bufferSize }: { frameCount: number; buffer
       </p>
       <div className="h-1.5 w-64 overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-red-500 transition-all duration-500"
+          className="h-full rounded-full bg-danger-surface transition-all duration-500"
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
@@ -179,9 +179,9 @@ function FrameSnapshot({ current, prev }: { current: TimeTravelFrame; prev: Time
             <TableRow
               key={key}
               className={cn({
-                'bg-yellow-500/10 dark:bg-yellow-400/10': kind === 'changed',
-                'bg-green-500/10 dark:bg-green-400/10': kind === 'added',
-                'bg-red-500/10 dark:bg-red-400/10': kind === 'removed',
+                'bg-warn-surface': kind === 'changed',
+                'bg-ok-surface': kind === 'added',
+                'bg-danger-surface': kind === 'removed',
               })}
             >
               <TableCell className="py-1.5 font-mono text-xs">
@@ -189,9 +189,9 @@ function FrameSnapshot({ current, prev }: { current: TimeTravelFrame; prev: Time
                   {kind !== 'same' && (
                     <span
                       className={cn('size-1.5 shrink-0 rounded-full', {
-                        'bg-yellow-500': kind === 'changed',
-                        'bg-green-500': kind === 'added',
-                        'bg-red-500': kind === 'removed',
+                        'bg-warn-surface': kind === 'changed',
+                        'bg-ok-surface': kind === 'added',
+                        'bg-danger-surface': kind === 'removed',
                       })}
                     />
                   )}

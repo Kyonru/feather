@@ -430,8 +430,8 @@ export default function PluginPage() {
           </div>
         )}
         {!plugin.disabled && !plugin.incompatible && plugin.runtime?.cost === 'high' && (
-          <div className="mb-4 flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
+          <div className="mb-4 flex items-start gap-3 rounded-md border border-warn-border bg-warn-surface p-3 text-sm">
+            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-warn" />
             <div className="grid gap-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-medium">High-cost runtime plugin</p>

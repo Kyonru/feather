@@ -173,7 +173,7 @@ export function AboutModal() {
             </section>
 
             {!isLatestVersion && (
-              <section className="rounded-lg border border-cyan-600/50 bg-cyan-50 p-4 dark:border-cyan-500/40 dark:bg-cyan-950/50">
+              <section className="rounded-lg border border-info-border bg-info-surface p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold">New version available</h3>

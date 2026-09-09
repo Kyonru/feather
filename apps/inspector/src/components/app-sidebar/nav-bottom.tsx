@@ -25,7 +25,7 @@ export function NavBottom({ ...props }: {} & React.ComponentPropsWithoutRef<type
 
   const aboutClassName = React.useMemo(() => {
     if (!isLatestVersion) {
-      return 'bg-cyan-50 dark:bg-cyan-950 animate-pulse';
+      return 'bg-info-surface animate-pulse';
     }
 
     return '';

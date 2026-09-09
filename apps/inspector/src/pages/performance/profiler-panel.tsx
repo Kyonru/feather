@@ -247,7 +247,7 @@ function ProfilerRunComparisonDrawer({
                       <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <span className="inline-block size-2 rounded-full bg-primary" />
                         Normal
-                        <span className="ml-2 inline-block size-2 rounded-full bg-amber-500" />
+                        <span className="ml-2 inline-block size-2 rounded-full bg-warn-surface" />
                         Slow
                       </div>
                       <div className="flex items-center gap-1">
@@ -322,7 +322,7 @@ function ProfilerRunComparisonDrawer({
                                 'grid size-5 place-items-center rounded-full border text-[10px] font-semibold opacity-0 transition-opacity',
                                 (isA || isB) && 'opacity-100',
                                 isA && 'border-primary bg-primary text-primary-foreground',
-                                isB && 'border-amber-500 bg-amber-500 text-white',
+                                isB && 'border-warn-border bg-warn-surface text-white',
                               )}
                             >
                               {isA ? 'A' : isB ? 'B' : ''}
@@ -330,9 +330,9 @@ function ProfilerRunComparisonDrawer({
                             <span
                               className={cn(
                                 'w-4 rounded-t-sm bg-primary/65 transition-colors group-hover:bg-primary',
-                                slow && 'bg-amber-500/75 group-hover:bg-amber-500',
+                                slow && 'bg-warn-surface group-hover:bg-warn-surface',
                                 isA && 'bg-primary',
-                                isB && 'bg-amber-500',
+                                isB && 'bg-warn-surface',
                               )}
                               style={{ height }}
                             />
@@ -573,7 +573,7 @@ export function ProfilerPanel() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={cn('size-2 rounded-full', recording ? 'bg-green-500' : 'bg-muted-foreground')} />
+              <span className={cn('size-2 rounded-full', recording ? 'bg-ok-surface' : 'bg-muted-foreground')} />
               <TriageSummaryChip label={recording ? 'Recording capture' : 'Capture stopped'} tone={recording ? 'good' : 'muted'} />
               <TriageSummaryChip label="Elapsed" value={`${captureElapsed.toFixed(1)}s`} />
               <TriageSummaryChip label="Samples" value={sampleCount.toLocaleString()} />

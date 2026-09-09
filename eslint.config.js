@@ -135,6 +135,25 @@ export default tseslint.config(
           ],
         },
       ],
+      // Color is a reserved channel: the four semantic states and the accent.
+      // Raw Tailwind palette literals bypass it, which is how Inspector ended up
+      // with 17 different ambers meaning "warning", none of them reachable by
+      // the 79 shipped themes and several failing WCAG AA on the backgrounds
+      // those themes set. Use text-ok / bg-warn-surface / border-danger-border,
+      // which are derived per theme and contrast-tested.
+      //
+      // Syntax highlighting is the deliberate exception — a string literal in a
+      // stack trace is not a state — and is opted out of with an inline disable
+      // that says so.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "Literal[value=/\\b(?:text|bg|border|fill|stroke|ring|from|to|via)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]{2,3}\\b/]",
+          message:
+            'Raw Tailwind color literal. Color in Inspector means state: use the ok / warn / danger / info tokens (text-ok, bg-warn-surface, border-danger-border), or muted-foreground for chrome. See V4-ENHANCED.md §4 (C0).',
+        },
+      ],
     },
   },
   {

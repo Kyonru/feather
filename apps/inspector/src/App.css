@@ -61,6 +61,23 @@
   --plugin-active-foreground: #563965;
   --plugin-active-icon: #74498a;
   --plugin-active-border: #d5bddf;
+
+  /* Semantic state colors. These four are the whole signal channel: color
+     anywhere else in the UI is chrome, color here means something. The values
+     match what `assets/theme/registry/semantic.ts` derives for this background,
+     so an unthemed render and a themed one agree. See V4-ENHANCED.md §4. */
+  --ok: #137245;
+  --ok-surface: #e2f8ee;
+  --ok-border: #b1e7ce;
+  --warn: #85580a;
+  --warn-surface: #f8f0e2;
+  --warn-border: #e7d3b1;
+  --danger: #b4271d;
+  --danger-surface: #f8e4e2;
+  --danger-border: #e7b5b1;
+  --info: #2161ab;
+  --info-surface: #e2ecf8;
+  --info-border: #b1cae7;
 }
 
 @theme inline {
@@ -99,6 +116,23 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-plugin-accent: var(--plugin-accent);
+  --color-plugin-active: var(--plugin-active);
+  --color-plugin-active-foreground: var(--plugin-active-foreground);
+  --color-plugin-active-icon: var(--plugin-active-icon);
+  --color-plugin-active-border: var(--plugin-active-border);
+  --color-ok: var(--ok);
+  --color-ok-surface: var(--ok-surface);
+  --color-ok-border: var(--ok-border);
+  --color-warn: var(--warn);
+  --color-warn-surface: var(--warn-surface);
+  --color-warn-border: var(--warn-border);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+  --color-info-border: var(--info-border);
 }
 
 .dark {
@@ -138,6 +172,20 @@
   --plugin-active-foreground: #f1def8;
   --plugin-active-icon: #dfb7f0;
   --plugin-active-border: #7f4d94;
+
+  /* Derived for #0d1117 — see the light block above. */
+  --ok: #20c578;
+  --ok-surface: #1d3a2c;
+  --ok-border: #2f6a4e;
+  --warn: #e49611;
+  --warn-surface: #3a2f1d;
+  --warn-border: #6a542f;
+  --danger: #e87a73;
+  --danger-surface: #3a1f1d;
+  --danger-border: #6a332f;
+  --info: #659fe2;
+  --info-surface: #1d2a3a;
+  --info-border: #2f4b6a;
 }
 
 @layer base {

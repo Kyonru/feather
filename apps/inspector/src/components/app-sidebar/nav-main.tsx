@@ -123,7 +123,7 @@ export function NavMain() {
         {item.icon && <item.icon className={iconClassName} />}
         <span>{item.title}</span>
         {isDebugger && isPaused && (
-          <span className="ml-auto flex size-2 rounded-full bg-rose-800 animate-ping" title="Paused" />
+          <span className="ml-auto flex size-2 rounded-full bg-warn animate-ping" title="Paused" />
         )}
       </>
     );

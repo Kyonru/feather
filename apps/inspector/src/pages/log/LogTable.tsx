@@ -162,9 +162,9 @@ export function LogTable({
               <TooltipTrigger asChild>
                 <Button variant="secondary" size="icon" className="size-8" onClick={onPlayPause}>
                   {isPaused ? (
-                    <PlayIcon className="size-4 text-green-500" />
+                    <PlayIcon className="size-4 text-ok" />
                   ) : (
-                    <PauseIcon className="size-4 text-blue-500" />
+                    <PauseIcon className="size-4 text-info" />
                   )}
                   <span className="sr-only">{isPaused ? 'Resume logs' : 'Pause logs'}</span>
                 </Button>
@@ -199,7 +199,7 @@ export function LogTable({
                   className="size-8"
                   onClick={() => onClear(filteredLogs.map((log) => log.id))}
                 >
-                  <Trash2Icon className="size-4 text-orange-500" />
+                  <Trash2Icon className="size-4 text-warn" />
                   <span className="sr-only">Clear visible logs</span>
                 </Button>
               </TooltipTrigger>
@@ -212,9 +212,9 @@ export function LogTable({
               <TooltipTrigger asChild>
                 <Button variant="secondary" size="icon" className="size-8" onClick={onScreenshotChange}>
                   {screenshotEnabled ? (
-                    <ScreenShareIcon className="size-4 text-green-500" />
+                    <ScreenShareIcon className="size-4 text-ok" />
                   ) : (
-                    <ScreenShareOffIcon className="size-4 text-red-500" />
+                    <ScreenShareOffIcon className="size-4 text-danger" />
                   )}
                   <span className="sr-only">{screenshotEnabled ? 'Disable screenshots' : 'Enable screenshots'}</span>
                 </Button>
@@ -230,7 +230,7 @@ export function LogTable({
                   <TooltipTrigger asChild>
                     <DialogTrigger asChild>
                       <Button variant="secondary" size="icon" className="size-8">
-                        <UploadIcon className="size-4 text-yellow-500" />
+                        <UploadIcon className="size-4 text-warn" />
                         <span className="sr-only">Upload logs</span>
                       </Button>
                     </DialogTrigger>
@@ -253,7 +253,7 @@ export function LogTable({
               ) : (
                 <TooltipTrigger asChild>
                   <Button variant="secondary" size="icon" className="size-8" onClick={onSelectFile}>
-                    <UploadIcon className="size-4 text-yellow-500" />
+                    <UploadIcon className="size-4 text-warn" />
                     <span className="sr-only">Use log file</span>
                   </Button>
                 </TooltipTrigger>
@@ -288,7 +288,7 @@ export function LogTable({
                 className={cn(
                   'grid w-full grid-cols-[7.5rem_minmax(0,1fr)_7rem] items-center gap-3 border-b px-3 py-2 text-left text-xs transition-colors',
                   !selected && 'hover:bg-muted/60',
-                  isProblem && 'bg-red-500/5 text-red-950 dark:text-red-100',
+                  isProblem && 'bg-danger-surface text-danger',
                   selected && 'bg-primary/10 ring-1 ring-inset ring-primary/30',
                 )}
                 onPointerDown={(event) => {

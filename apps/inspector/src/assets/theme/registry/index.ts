@@ -10,7 +10,15 @@ import {
 } from './rainglow';
 import { tokyoNightThemes } from './tokyo-night';
 import { visualStudioCppThemes } from './visual-studio-cpp';
-import type { AppTheme, SyntaxHighlighterStyle, ThemeId, ThemeMode, ThemePreference, ThemeVariables } from './types';
+import { withSemanticColors } from './semantic';
+import type {
+  AppTheme,
+  AuthoredThemeVariables,
+  SyntaxHighlighterStyle,
+  ThemeId,
+  ThemeMode,
+  ThemePreference,
+} from './types';
 
 export { THEME_CSS_VARIABLES } from './types';
 export { rainglowThemeIds } from './rainglow';
@@ -30,7 +38,7 @@ export type {
   VisualStudioCppThemeId,
 } from './types';
 
-const featherLightVariables: ThemeVariables = {
+const featherLightVariables: AuthoredThemeVariables = {
   background: '#f0f4f8',
   foreground: '#403f53',
   card: '#f8fbff',
@@ -69,7 +77,7 @@ const featherLightVariables: ThemeVariables = {
   'plugin-active-border': '#d5bddf',
 };
 
-const featherDarkVariables: ThemeVariables = {
+const featherDarkVariables: AuthoredThemeVariables = {
   background: '#0d1117',
   foreground: '#c9d1d9',
   card: '#161b22',
@@ -108,7 +116,21 @@ const featherDarkVariables: ThemeVariables = {
   'plugin-active-border': '#7f4d94',
 };
 
-export const appThemes: Record<ThemeId, AppTheme> = {
+/**
+ * Every theme gets the semantic state ramps derived from its own background,
+ * which is what makes `text-ok` / `bg-warn-surface` follow the user's theme
+ * instead of being fixed Tailwind literals. Applied here, once, so no registry
+ * has to hand-author them and a new theme is correct by default.
+ *
+ * A theme that authors a value keeps it — see `withSemanticColors`.
+ */
+type AuthoredTheme = Omit<AppTheme, 'variables'> & { variables: AuthoredThemeVariables };
+
+function completeTheme(theme: AuthoredTheme): AppTheme {
+  return { ...theme, variables: withSemanticColors(theme.variables) };
+}
+
+const authoredThemes = {
   light: {
     id: 'light',
     label: 'Feather Light',
@@ -132,7 +154,11 @@ export const appThemes: Record<ThemeId, AppTheme> = {
   ...rainglowThemes,
   ...tokyoNightThemes,
   ...visualStudioCppThemes,
-};
+} as Record<ThemeId, AuthoredTheme>;
+
+export const appThemes: Record<ThemeId, AppTheme> = Object.fromEntries(
+  Object.entries(authoredThemes).map(([id, theme]) => [id, completeTheme(theme)]),
+) as Record<ThemeId, AppTheme>;
 
 export type ThemeSelectorOption = {
   value: ThemePreference;

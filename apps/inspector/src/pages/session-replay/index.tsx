@@ -283,7 +283,7 @@ export default function SessionReplayPage() {
       </div>
 
       {status.missingRestorers.length > 0 && (
-        <div className="border-b bg-yellow-500/10 px-6 py-3 text-sm">
+        <div className="border-b bg-warn-surface px-6 py-3 text-sm">
           Missing restore handlers for {status.missingRestorers.join(', ')}. Add `DEBUGGER:replayRegister()` for
           deterministic playback.
         </div>

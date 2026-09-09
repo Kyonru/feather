@@ -78,9 +78,9 @@ function statusLabel(status: CompareStatus) {
 }
 
 function statusClass(status: CompareStatus) {
-  if (status === 'changed') return 'border-amber-500/40 text-amber-700 dark:text-amber-300';
-  if (status === 'onlyA') return 'border-blue-500/40 text-blue-700 dark:text-blue-300';
-  if (status === 'onlyB') return 'border-cyan-500/40 text-cyan-700 dark:text-cyan-300';
+  if (status === 'changed') return 'border-warn-border text-warn';
+  if (status === 'onlyA') return 'border-info-border text-info';
+  if (status === 'onlyB') return 'border-info-border text-info';
   return 'border-muted-foreground/30 text-muted-foreground';
 }
 
@@ -140,7 +140,7 @@ function SessionPicker({
         {sessions.map((session) => (
           <SelectItem key={session.id} value={session.id} disabled={session.id === excludeId}>
             <span className="flex items-center gap-2">
-              <span className="size-1.5 shrink-0 rounded-full bg-green-500" />
+              <span className="size-1.5 shrink-0 rounded-full bg-ok-surface" />
               {sessionLabel(session)}
             </span>
           </SelectItem>
@@ -170,7 +170,7 @@ function SessionCard({
         <span className="min-w-0 flex-1 truncate text-sm font-medium" title={sessionLabel(session)}>
           {sessionLabel(session)}
         </span>
-        <Badge variant="outline" className="h-5 border-emerald-500/40 text-[10px] text-emerald-600">
+        <Badge variant="outline" className="h-5 border-ok-border text-[10px] text-ok">
           Connected
         </Badge>
       </div>
@@ -212,7 +212,7 @@ function deltaClass(metric: string, delta: number) {
   if (delta === 0) return '';
   const lowerIsBetter = metric !== 'FPS';
   const worse = lowerIsBetter ? delta > 0 : delta < 0;
-  return worse ? 'border-amber-500/40 text-amber-700 dark:text-amber-300' : 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300';
+  return worse ? 'border-warn-border text-warn' : 'border-ok-border text-ok';
 }
 
 function DeltaBadge({ label, left, right, formatter }: { label: string; left?: number; right?: number; formatter?: (value: number) => string }) {
@@ -465,9 +465,12 @@ export default function ComparePage() {
                     <TableRow
                       key={row.key}
                       className={cn({
-                        'bg-amber-500/10': row.status === 'changed',
-                        'bg-blue-500/10': row.status === 'onlyA',
-                        'bg-cyan-500/10': row.status === 'onlyB',
+                        'bg-warn-surface': row.status === 'changed',
+                        // Present on one side only. Which side is named by the
+                        // status badge in the row, so the tint does not have to
+                        // carry it — and spending two hues on it would say the
+                        // two cases differ in kind, which they do not.
+                        'bg-info-surface': row.status === 'onlyA' || row.status === 'onlyB',
                       })}
                     >
                       <TableCell className="py-1.5 font-mono text-xs">

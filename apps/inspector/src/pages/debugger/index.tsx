@@ -140,9 +140,9 @@ function FileTree({
                 <ChevronRightIcon className="size-3 shrink-0 text-muted-foreground" />
               )}
               {isExpanded ? (
-                <FolderOpenIcon className="size-3 shrink-0 text-yellow-500" />
+                <FolderOpenIcon className="size-3 shrink-0 text-warn" />
               ) : (
-                <FolderIcon className="size-3 shrink-0 text-yellow-500" />
+                <FolderIcon className="size-3 shrink-0 text-warn" />
               )}
               <span className="truncate">{entry.name}</span>
             </button>
@@ -165,7 +165,7 @@ function FileTree({
         >
           <FileIcon className="size-3 shrink-0 text-muted-foreground" />
           <span className="truncate">{entry.name}</span>
-          {hasBp && <CircleDotIcon className="ml-auto mr-1 size-2.5 shrink-0 text-red-500" />}
+          {hasBp && <CircleDotIcon className="ml-auto mr-1 size-2.5 shrink-0 text-danger" />}
         </button>
       );
     });
@@ -200,11 +200,16 @@ const profilerProbeLabels: Record<ProfilerProbeKind, string> = {
   wrap: 'Profile function here',
 };
 
+/**
+ * Probe kinds are a taxonomy of actions, not states. `ProfilerProbeIcon` already
+ * gives each one its own icon, so colour distinguished nothing and claimed
+ * things that are not true — stopping a probe is a normal action, not danger.
+ */
 const profilerProbeTone: Record<ProfilerProbeKind, string> = {
-  start: 'text-emerald-500',
-  stop: 'text-rose-500',
-  snapshot: 'text-amber-500',
-  wrap: 'text-violet-500',
+  start: 'text-muted-foreground',
+  stop: 'text-muted-foreground',
+  snapshot: 'text-muted-foreground',
+  wrap: 'text-muted-foreground',
 };
 
 function ProfilerProbeIcon({ kind }: { kind: ProfilerProbeKind }) {
@@ -436,10 +441,10 @@ function SourceView({
                 ref={lineRef}
                 className={cn(
                   'group flex items-start hover:bg-accent/50',
-                  isCurrent && 'bg-yellow-500/15 hover:bg-yellow-500/20',
-                  isScrollTarget && !isCurrent && 'bg-blue-500/10 hover:bg-blue-500/15',
-                  isCurrentMatch && !isCurrent && !isScrollTarget && 'bg-orange-500/20 hover:bg-orange-500/25',
-                  isMatch && !isCurrentMatch && !isCurrent && !isScrollTarget && 'bg-orange-500/8',
+                  isCurrent && 'bg-warn-surface hover:bg-warn-surface',
+                  isScrollTarget && !isCurrent && 'bg-info-surface hover:bg-info-surface',
+                  isCurrentMatch && !isCurrent && !isScrollTarget && 'bg-warn-surface hover:bg-warn-surface',
+                  isMatch && !isCurrentMatch && !isCurrent && !isScrollTarget && 'bg-warn-surface',
                 )}
               >
                 {/* Breakpoint gutter */}
@@ -476,12 +481,12 @@ function SourceView({
                           hasConditionError
                             ? 'text-destructive'
                             : conditionalLines.has(lineNum)
-                              ? 'text-orange-400'
-                              : 'text-red-500',
+                              ? 'text-warn'
+                              : 'text-danger',
                         )}
                       />
                     ) : (
-                      <span className="size-2 rounded-full opacity-0 group-hover:bg-red-400 group-hover:opacity-60" />
+                      <span className="size-2 rounded-full opacity-0 group-hover:bg-danger-surface group-hover:opacity-60" />
                     )}
                   </button>
                 </div>
@@ -504,26 +509,26 @@ function SourceView({
                             <ProfilerProbeIcon kind={profilerProbe.kind} />
                           </span>
                         ) : (
-                          <ClockIcon className="size-3 text-sky-400 opacity-0 group-hover:opacity-50" />
+                          <ClockIcon className="size-3 text-info opacity-0 group-hover:opacity-50" />
                         )}
                       </button>
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-48">
                     <ContextMenuItem onSelect={() => onSetProfilerProbe(lineNum, 'start')}>
-                      <PlayIcon className="size-3.5 text-emerald-500" />
+                      <PlayIcon className="size-3.5 text-ok" />
                       Start profiling here
                     </ContextMenuItem>
                     <ContextMenuItem onSelect={() => onSetProfilerProbe(lineNum, 'stop')}>
-                      <PauseIcon className="size-3.5 text-rose-500" />
+                      <PauseIcon className="size-3.5 text-danger" />
                       Stop profiling here
                     </ContextMenuItem>
                     <ContextMenuItem onSelect={() => onSetProfilerProbe(lineNum, 'snapshot')}>
-                      <ClockIcon className="size-3.5 text-amber-500" />
+                      <ClockIcon className="size-3.5 text-warn" />
                       Snapshot here
                     </ContextMenuItem>
                     <ContextMenuItem onSelect={() => setWrapProbe(lineNum, line)}>
-                      <GaugeIcon className="size-3.5 text-violet-500" />
+                      <GaugeIcon className="size-3.5" />
                       Profile function here
                     </ContextMenuItem>
                     <ContextMenuSeparator />
@@ -540,14 +545,14 @@ function SourceView({
                 <span
                   className={cn(
                     'w-9 shrink-0 select-none py-px pr-3 text-right',
-                    isCurrent ? 'text-yellow-400' : 'text-muted-foreground/40',
+                    isCurrent ? 'text-warn' : 'text-muted-foreground/40',
                   )}
                 >
                   {lineNum}
                 </span>
                 {/* Code */}
                 <pre className={cn('flex-1 py-px pr-4 whitespace-pre', isCurrent && 'font-semibold')}>
-                  {isCurrent && <span className="mr-1 text-yellow-400">→</span>}
+                  {isCurrent && <span className="mr-1 text-warn">→</span>}
                   {hasConditionError && <span className="mr-1 text-destructive">!</span>}
 
                   <SyntaxHighlighter
@@ -590,12 +595,21 @@ function detectLuaType(value: string): LuaValueType {
   return 'string';
 }
 
+/**
+ * Value types are syntax highlighting, not state, so they deliberately keep
+ * literals: `--ok` on a number would make green mean "fine" here and something
+ * else everywhere else, which is the confusion the semantic channel exists to
+ * remove. These belong in the theme's syntax palette — see V4-ENHANCED.md §4.
+ */
 const typeColor: Record<LuaValueType, string> = {
   nil: 'text-muted-foreground',
+  /* eslint-disable no-restricted-syntax -- syntax highlighting, not state: a
+     string value is not a warning, so these must not borrow the state ramps. */
   boolean: 'text-purple-400',
-  number: 'text-green-400',
-  string: 'text-orange-400',
-  table: 'text-sky-400',
+  number: 'text-sky-600 dark:text-sky-400',
+  string: 'text-amber-700 dark:text-amber-300',
+  table: 'text-teal-700 dark:text-teal-300',
+  /* eslint-enable no-restricted-syntax */
   function: 'text-muted-foreground italic',
   userdata: 'text-muted-foreground italic',
   thread: 'text-muted-foreground italic',
@@ -692,17 +706,17 @@ function VarNode({ name, value, indent = 0 }: { name: string; value: string; ind
         <span className="w-3 shrink-0 text-muted-foreground">
           {isExpandable && <ChevronRightIcon className={cn('size-3 transition-transform', expanded && 'rotate-90')} />}
         </span>
-        <span className="shrink-0 text-blue-400">{name}</span>
+        <span className="shrink-0 text-info">{name}</span>
         <span className="shrink-0 text-muted-foreground">=</span>
         <span
-          className={cn('min-w-0 flex-1 break-all', isExpandable ? 'text-sky-400' : typeColor[type])}
+          className={cn('min-w-0 flex-1 break-all', isExpandable ? 'text-info' : typeColor[type])}
           title={display !== truncated ? display : undefined}
         >
           {truncated}
         </span>
         <button onClick={handleCopy} className="ml-1 shrink-0">
           {copied ? (
-            <CheckIcon className="size-3 text-green-500" />
+            <CheckIcon className="size-3 text-ok" />
           ) : (
             <CopyIcon className="size-3 text-muted-foreground opacity-0 group-hover:opacity-60" />
           )}
@@ -1009,7 +1023,7 @@ export default function DebuggerPage() {
       key: 'persisting',
       label: 'Persisting',
       title: 'Persist-to-disk is enabled. Patches are written into the LÖVE save directory.',
-      className: 'border-amber-500/40 text-amber-600',
+      className: 'border-warn-border text-warn',
       variant: 'outline',
     });
   }
@@ -1018,7 +1032,7 @@ export default function DebuggerPage() {
       key: 'modified',
       label: `Modified ${modifiedModuleCount}`,
       title: `${modifiedModuleCount} module${modifiedModuleCount === 1 ? '' : 's'} replaced by hot reload.`,
-      className: 'border-orange-500/40 text-orange-600',
+      className: 'border-warn-border text-warn',
       variant: 'outline',
     });
   }
@@ -1083,7 +1097,7 @@ export default function DebuggerPage() {
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 gap-1 px-2 text-xs text-red-500 hover:bg-red-500/10 hover:text-red-600"
+              className="h-7 gap-1 px-2 text-xs text-danger hover:bg-danger-surface hover:text-danger"
               disabled={dbg.breakpoints.length === 0}
               onClick={dbg.clearBreakpoints}
               title="Clear all breakpoints"
@@ -1093,7 +1107,7 @@ export default function DebuggerPage() {
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 gap-1 px-2 text-xs text-amber-500 hover:bg-amber-500/10 hover:text-amber-600"
+              className="h-7 gap-1 px-2 text-xs text-warn hover:bg-warn-surface hover:text-warn"
               disabled={!dbg.isPaused || frames.length === 0}
               onClick={() => navigate('/time-travel')}
               title="View frame history leading up to this breakpoint"
@@ -1127,7 +1141,7 @@ export default function DebuggerPage() {
               variant={selectedModuleStatus?.reloadable ? 'outline' : 'secondary'}
               className={cn(
                 'h-6 max-w-44 shrink-0 truncate font-mono text-xs',
-                selectedModuleStatus?.reloadable && 'border-cyan-500/40 text-cyan-600',
+                selectedModuleStatus?.reloadable && 'border-info-border text-info',
               )}
               title={
                 selectedModule
@@ -1150,7 +1164,7 @@ export default function DebuggerPage() {
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 gap-1 px-2 text-xs text-cyan-500 hover:bg-cyan-500/10 hover:text-cyan-600"
+              className="h-7 gap-1 px-2 text-xs text-info hover:bg-info-surface hover:text-info"
               disabled={!canHotReload}
               onClick={reloadSelectedModule}
               title={
@@ -1179,7 +1193,7 @@ export default function DebuggerPage() {
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 gap-1 px-2 text-xs text-orange-500 hover:bg-orange-500/10 hover:text-orange-600"
+              className="h-7 gap-1 px-2 text-xs text-warn hover:bg-warn-surface hover:text-warn"
               disabled={!hotReloadState.active}
               onClick={restoreOriginals}
               title={
@@ -1296,7 +1310,7 @@ export default function DebuggerPage() {
                     )}
                     {profilerProbesByLine.size > 0 && (
                       <Badge variant="outline" className="gap-1 font-mono text-xs">
-                        <ClockIcon className="size-3 text-sky-500" />
+                        <ClockIcon className="size-3 text-info" />
                         {profilerProbesByLine.size} probe{profilerProbesByLine.size === 1 ? '' : 's'}
                       </Badge>
                     )}
@@ -1319,7 +1333,7 @@ export default function DebuggerPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={cn(flowButtonClass, 'text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600')}
+                      className={flowButtonClass}
                       disabled={!dbg.isPaused}
                       onClick={dbg.continue}
                       title="Continue (F8)"
@@ -1329,7 +1343,7 @@ export default function DebuggerPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={cn(flowButtonClass, 'text-sky-500 hover:bg-sky-500/10 hover:text-sky-600')}
+                      className={flowButtonClass}
                       disabled={!dbg.isPaused}
                       onClick={dbg.stepOver}
                       title="Step Over (F10)"
@@ -1339,7 +1353,7 @@ export default function DebuggerPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={cn(flowButtonClass, 'text-indigo-500 hover:bg-indigo-500/10 hover:text-indigo-600')}
+                      className={flowButtonClass}
                       disabled={!dbg.isPaused}
                       onClick={dbg.stepInto}
                       title="Step Into (F11)"
@@ -1349,7 +1363,7 @@ export default function DebuggerPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={cn(flowButtonClass, 'text-violet-500 hover:bg-violet-500/10 hover:text-violet-600')}
+                      className={flowButtonClass}
                       disabled={!dbg.isPaused}
                       onClick={dbg.stepOut}
                       title="Step Out (Shift+F11)"

@@ -27,18 +27,20 @@ const TrendingBadge = ({ value }: { value?: number }) => {
   );
 };
 
-const cardClass = (active: boolean, tone: 'sky' | 'emerald' | 'amber' | 'violet' | 'cyan' | 'rose', disabled = false) =>
+/**
+ * Selection styling for a metric card.
+ *
+ * Each card used to carry its own hue — FPS sky, memory emerald, frame time
+ * rose, disk usage amber — shown only while that card was selected. Six colors
+ * for one meaning, and two of them said something untrue: a selected frame-time
+ * card looked like a failure and disk usage like a warning, whatever the numbers
+ * were. Selection is interaction, so it takes the accent, once.
+ */
+const cardClass = (active: boolean, disabled = false) =>
   cn(
     '@container/card justify-between transition-colors',
     disabled ? 'cursor-not-allowed opacity-55' : 'cursor-pointer hover:bg-muted/70',
-    active && {
-      'border-sky-500/60 bg-sky-500/10 text-sky-950 dark:text-sky-100': tone === 'sky',
-      'border-emerald-500/60 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100': tone === 'emerald',
-      'border-amber-500/60 bg-amber-500/10 text-amber-950 dark:text-amber-100': tone === 'amber',
-      'border-violet-500/60 bg-violet-500/10 text-violet-950 dark:text-violet-100': tone === 'violet',
-      'border-cyan-500/60 bg-cyan-500/10 text-cyan-950 dark:text-cyan-100': tone === 'cyan',
-      'border-rose-500/60 bg-rose-500/10 text-rose-950 dark:text-rose-100': tone === 'rose',
-    },
+    active && 'border-primary/60 bg-primary/10',
   );
 
 function average(data: PerformanceMetrics[], getValue: (metric: PerformanceMetrics) => number) {
@@ -78,7 +80,7 @@ export function SectionCards({
 
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-2 *:data-[slot=card]:gap-2 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:py-3 *:data-[slot=card]:shadow-xs @xl/main:grid-cols-3 @5xl/main:grid-cols-3 @7xl/main:grid-cols-6">
-      <Card className={cardClass(selected === 'fps', 'sky')} onClick={() => onSelect('fps')} title="Chart FPS">
+      <Card className={cardClass(selected === 'fps')} onClick={() => onSelect('fps')} title="Chart FPS">
         <CardHeader className="gap-1 px-3">
           <CardDescription className="text-xs">FPS</CardDescription>
           <CardTitle className="text-xl font-semibold tabular-nums">
@@ -95,7 +97,7 @@ export function SectionCards({
       </Card>
 
       <Card
-        className={cardClass(selected === 'memory' || selected === 'peakMemory', 'emerald')}
+        className={cardClass(selected === 'memory' || selected === 'peakMemory')}
         onClick={() => onSelect('memory')}
         title="Chart Lua memory"
       >
@@ -117,7 +119,7 @@ export function SectionCards({
       </Card>
 
       <Card
-        className={cardClass(selected === 'diskUsage' && diskUsageEnabled, 'amber', !diskUsageEnabled)}
+        className={cardClass(selected === 'diskUsage' && diskUsageEnabled, !diskUsageEnabled)}
         onClick={() => diskUsageEnabled && onSelect('diskUsage')}
         title={diskUsageEnabled ? 'Chart save directory disk usage' : 'Enable disk usage tracking first'}
       >
@@ -134,7 +136,7 @@ export function SectionCards({
       </Card>
 
       <Card
-        className={cardClass(selected === 'frameTime' || selected === 'frameTimeMax', 'rose')}
+        className={cardClass(selected === 'frameTime' || selected === 'frameTimeMax')}
         onClick={() => onSelect('frameTimeMax')}
         title="Chart maximum frame time"
       >
@@ -157,7 +159,7 @@ export function SectionCards({
       </Card>
 
       <Card
-        className={cardClass(selected === 'drawcalls' || selected === 'drawcallsbatched', 'violet')}
+        className={cardClass(selected === 'drawcalls' || selected === 'drawcallsbatched')}
         onClick={() => onSelect('drawcalls')}
         title="Chart draw calls"
       >
@@ -179,7 +181,7 @@ export function SectionCards({
         </div>
       </Card>
 
-      <Card className={cardClass(selected === 'textureMemory', 'cyan')} onClick={() => onSelect('textureMemory')} title="Chart texture memory">
+      <Card className={cardClass(selected === 'textureMemory')} onClick={() => onSelect('textureMemory')} title="Chart texture memory">
         <CardHeader className="gap-1 px-3">
           <CardDescription className="text-xs">Assets</CardDescription>
         </CardHeader>

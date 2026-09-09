@@ -100,7 +100,7 @@ export function MobileConnection() {
             <div className="flex items-center gap-2 w-full">
               <code className="flex-1 rounded bg-muted px-2 py-1 text-xs font-mono text-center truncate">{wsUrl}</code>
               <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCopy}>
-                {copied ? <CheckIcon className="h-3.5 w-3.5 text-green-600" /> : <CopyIcon className="h-3.5 w-3.5" />}
+                {copied ? <CheckIcon className="h-3.5 w-3.5 text-ok" /> : <CopyIcon className="h-3.5 w-3.5" />}
               </Button>
             </div>
           </div>

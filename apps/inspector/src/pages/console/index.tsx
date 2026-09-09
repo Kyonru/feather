@@ -237,7 +237,7 @@ function ConsoleValueInspector({
                     key={`${field.key}:${field.path?.join('.')}`}
                     className="grid grid-cols-[minmax(0,0.35fr)_minmax(0,1fr)_auto] items-center gap-2 rounded border px-2 py-1"
                   >
-                    <span className="truncate font-mono text-cyan-600" title={field.key}>
+                    <span className="truncate font-mono text-info" title={field.key}>
                       {field.key}
                     </span>
                     <span className="min-w-0 truncate font-mono text-muted-foreground" title={field.preview}>
@@ -320,8 +320,8 @@ function ConsoleOutput({
     status === 'error'
       ? 'border-destructive/40 text-destructive'
       : status === 'success'
-        ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
-        : 'border-amber-500/40 text-amber-600';
+        ? 'border-ok-border text-ok'
+        : 'border-warn-border text-warn';
 
   return (
     <div
@@ -371,7 +371,7 @@ function ConsoleOutput({
         </div>
       </div>
       <div className="flex items-start gap-2">
-        <span className="select-none text-blue-500">&gt;</span>
+        <span className="select-none text-info">&gt;</span>
         <div className="flex-1 min-w-0">
           <SyntaxHighlighter
             language="lua"
@@ -412,7 +412,7 @@ function ConsoleOutput({
           <pre
             className={cn(
               'flex-1 whitespace-pre-wrap break-all',
-              response.status === 'error' ? 'text-red-500' : 'text-green-600 dark:text-green-400',
+              response.status === 'error' ? 'text-danger' : 'text-ok',
             )}
           >
             {displayOutput(response.result, expanded)}
@@ -741,7 +741,7 @@ export default function ConsolePage() {
           variant={consolePlugin.enabled ? 'outline' : 'secondary'}
           className={cn(
             'h-6 shrink-0 font-mono text-xs',
-            consolePlugin.enabled && 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400',
+            consolePlugin.enabled && 'border-ok-border text-ok',
           )}
         >
           {consolePlugin.enabled ? 'Plugin enabled' : 'Plugin disabled'}
@@ -758,7 +758,7 @@ export default function ConsolePage() {
             variant="outline"
             className={cn(
               'h-6 shrink-0 font-mono text-xs',
-              sandboxLabel === 'Unsandboxed' && 'border-amber-500/40 text-amber-600',
+              sandboxLabel === 'Unsandboxed' && 'border-warn-border text-warn',
             )}
           >
             {sandboxLabel}
@@ -766,14 +766,14 @@ export default function ConsolePage() {
         )}
         <Badge
           variant={globals?.ok ? 'outline' : 'secondary'}
-          className={cn('h-6 shrink-0 font-mono text-xs', globals?.ok && 'border-cyan-500/40 text-cyan-600')}
+          className={cn('h-6 shrink-0 font-mono text-xs', globals?.ok && 'border-info-border text-info')}
           title={globals?.error || 'Manual runtime _G autocomplete snapshot'}
         >
           {globalsLabel}
         </Badge>
         <Badge
           variant={readOnly ? 'outline' : 'secondary'}
-          className={cn('h-6 shrink-0 font-mono text-xs', readOnly && 'border-blue-500/40 text-blue-600')}
+          className={cn('h-6 shrink-0 font-mono text-xs', readOnly && 'border-info-border text-info')}
           title="Read-only guardrails block obvious mutation patterns but are not a true dry run."
         >
           {readOnly ? 'Read-only guardrails' : 'Writable eval'}
@@ -959,7 +959,7 @@ export default function ConsolePage() {
                 className="flex shrink-0 items-center gap-1 rounded-md border px-2 py-1"
                 title="Best-effort guardrails. Blocks obvious writes but is not a true dry run."
               >
-                <ShieldCheckIcon className={cn('size-3.5', readOnly && 'text-blue-600')} />
+                <ShieldCheckIcon className={cn('size-3.5', readOnly && 'text-info')} />
                 <Switch id="console-read-only" size="sm" checked={readOnly} onCheckedChange={setReadOnly} />
                 <Label htmlFor="console-read-only" className="text-xs text-muted-foreground">
                   Read-only
@@ -1057,7 +1057,7 @@ export default function ConsolePage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-7 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
+                          className="size-7 text-ok hover:bg-ok-surface hover:text-ok"
                           title={consoleReady ? 'Run snippet' : consoleUnavailableReason || 'Console unavailable'}
                           disabled={!consoleReady}
                           onClick={() => runCode(snippet.code)}
