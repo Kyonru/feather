@@ -96,11 +96,157 @@ and should be preserved — several are the model for fixing the rest.
 
 ---
 
-## 4. Cross-cutting findings
+## 4. Design direction — an instrument, not an interface
+
+Refining the features raises a question the codebase has never answered explicitly: what should
+Feather *look* like? Left unanswered it gets answered by accident, one Tailwind class at a time,
+which is exactly what has happened (**C0** below).
+
+### Why the obvious candidates are wrong
+
+Worth recording, because both will be proposed again by someone who has not read this.
+
+**Bento** optimizes for glanceable *variety* — heterogeneous cards at equal visual weight.
+Inspector's core surfaces are deep uniform lists: logs, assets, frames, observers. Those need
+hierarchy and vertical density, and bento's padding and gaps spend precisely the space §6.1 is
+short of. Equal weight is also the wrong claim to make when one row is a fatal error and the
+other four hundred are debug noise.
+
+**Neo-brutalism** spends contrast on decoration — hard borders, offset shadows, saturated blocks.
+That is the same budget the semantic colors need. If the chrome shouts, red stops meaning "this
+crashed", because everything is already loud. It is also fatiguing across the eight-hour sessions
+this tool is actually used in.
+
+The deeper reason both fail is the same: they are styles built to *attract* attention. Inspector
+must never want attention. The user's attention belongs on their bug.
+
+### The direction
+
+The reference class is not web design, it is **measurement instruments** — DevTools, Instruments,
+Grafana, Linear. Four rules, in priority order.
+
+**D1 — Color is a reserved channel.**
+Chrome is achromatic: greys carrying a slight hue bias toward the existing rose accent, so they
+read as chosen rather than defaulted. Saturation is spent *only* on the four semantic states and on
+interaction. The accent (`--primary`, `#ad5b68`) means "you can act here" — selection, focus,
+primary action — and never encodes data. The payoff is that a spot of color anywhere in the UI
+carries meaning by construction, which is worth more than any amount of styling.
+
+**D2 — Typography carries the hierarchy.**
+One sans for chrome, one mono for data, and `font-variant-numeric: tabular-nums` everywhere digits
+line up in a column — FPS, memory, timings, byte counts, durations. Without it a changing number
+reflows its neighbours, which reads as jitter in exactly the panels you are watching *for* change.
+Rank comes from weight and size so it does not have to come from color.
+
+**D3 — Rules, not cards.**
+Dividers and one spacing scale instead of elevation. Cards imply peers; this data has hierarchy.
+Elevation stays at zero except for things that genuinely float — command palette, popovers,
+dialogs. This also directly buys back the vertical density §6.1 needs.
+
+**D4 — Motion only for causality.**
+Animate to show that something *arrived* or *changed* — a new log line, a value updating, a panel
+going stale. Never for decoration, and never on a path someone walks fifty times a day. Everything
+respects `prefers-reduced-motion`.
+
+None of this is a restyle. The existing Radix/shadcn foundation and the Night Owl-ish palette are
+already most of the way there; this is mostly consolidation, and D1 is the part with teeth.
+
+### C0 — The semantic color channel is broken *(verified — do this first)*
+
+Listed as a cross-cutting finding because it is one, but placed here because it is what D1 exists
+to fix, and because it is the prerequisite for **C2**: a staleness indicator needs a color that
+already means something.
+
+Inspector expresses four meanings with **fifty-four different colors**, as raw Tailwind literals:
+
+| Meaning | Distinct colors in use | Examples |
+|---|---|---|
+| ok | **12** | `emerald-100/300/400/500/600/700/950`, `green-300/400/500/600/700` |
+| warning | **17** | `amber-100…950`, `orange-400/500/600/700`, `yellow-400/500/600/950` |
+| danger | **9** | `red-100/400/500/600/700/950`, `rose-100/500/950` |
+| info | **16** | `blue-300…700`, `cyan-100…950`, `sky-100…950` |
+
+158 raw literals against 338 uses of proper semantic tokens. Two consequences, both verified:
+
+**They ignore the user's theme.** Inspector ships **28 theme variants** across five registries
+(GitHub, Noctis, Tokyo Night, Rainglow, Visual Studio C++), and
+`assets/theme/registry/types.ts` lets each override 36 `THEME_CSS_VARIABLES` — chrome, sidebar,
+charts, even the four `plugin-*` colors. **Not one semantic state color is in that list.** So a
+user on Noctis Light gets their theme's chrome and Tailwind's stock palette for the colors that
+actually carry meaning.
+
+**They fail contrast on the themes we ship.** Measured against real theme backgrounds:
+
+| Literal | Noctis dark | Tokyo Night dark | app `.dark` | app light |
+|---|---|---|---|---|
+| `amber-700` | 3.21 ✗ | 3.07 ✗ | 3.77 ✗ | 4.54 ✓ |
+| `green-700` | 3.21 ✗ | 3.07 ✗ | 3.77 ✗ | 4.54 ✓ |
+| `red-600` | 3.34 ✗ | 3.19 ✗ | 3.92 ✗ | **4.37 ✗** |
+| `blue-700` | 2.40 ✗ | 2.30 ✗ | 2.82 ✗ | 6.06 ✓ |
+| `green-400` | 9.25 ✓ | 8.85 ✓ | 10.86 ✓ | **1.58 ✗** |
+| `amber-300` | 11.18 ✓ | 10.69 ✓ | 13.12 ✓ | **1.30 ✗** |
+
+WCAG AA is 4.5:1. The dark-leaning literals are near-invisible on light themes; the light-leaning
+ones fail on every dark theme; `red-600` fails on Inspector's *own* default light background. The
+colors carrying "this crashed" are unreadable on roughly half the themes the product ships.
+
+This is not a style preference. It is a correctness bug in the signal channel, which is why it
+outranks everything else in §5.
+
+**Refinement.** Four semantic ramps, tokenized like everything else, each with a foreground, a
+surface and a border so panels can use them for chips, rows and banners without inventing values:
+
+```css
+/* :root — light. Verified against --background #f0f4f8 and --card #f8fbff. */
+--ok:      #0a6c46;  --ok-surface:     #e6f4ec;  --ok-border:     #b7ddc8;
+--warn:    #8a5a00;  --warn-surface:   #fdf3e0;  --warn-border:   #e8cf9e;
+--danger:  #b3261e;  --danger-surface: #fbeae9;  --danger-border: #eebbb7;
+--info:    #1a5fa8;  --info-surface:   #e8f0fa;  --info-border:   #b9d0ea;
+
+/* .dark — verified against --background #0d1117 and --card #161b22.
+   --danger is the existing --destructive, so it aliases rather than diverging. */
+--ok:      #5ddba4;  --warn:  #e5b567;
+--danger:  #f85149;  --info:  #79b8ff;
+```
+
+Contrast of every value above, measured on both the page background and the card surface in its
+own mode:
+
+| Token | light on bg / card | dark on bg / card |
+|---|---|---|
+| ok | 5.85 / 6.23 | 10.93 / 10.00 |
+| warn | 5.36 / 5.71 | 10.04 / 9.17 |
+| danger | 5.91 / 6.30 | 5.65 / 5.16 |
+| info | 5.85 / 6.23 | 9.11 / 8.33 |
+
+All pass AA. Then three steps, in order:
+
+1. Register the ramps in `@theme inline` as `--color-ok` … `--color-info`, so `text-ok`,
+   `bg-warn-surface` and `border-danger-border` exist as ordinary utilities.
+2. **Add them to `THEME_CSS_VARIABLES`** and give all 28 theme variants values. This is the step
+   that makes the channel real; without it the tokens are just better-named hardcoding. Themes
+   that omit a value fall back to the `:root`/`.dark` defaults above.
+3. Replace the 158 literals, panel by panel, deciding what each one *meant* rather than
+   transliterating the hue. Some will turn out to have meant nothing, and should become
+   `muted-foreground`.
+
+One inconsistency to settle while in here: `--primary` is the rose `#ad5b68` in light and a plain
+grey `#8b949e` in dark, so the interaction accent D1 depends on simply vanishes in dark mode.
+
+**Acceptance.** No raw Tailwind color literal remains in `apps/inspector/src`; a lint rule keeps it
+that way. Every one of the 28 themes renders all four states at AA or better on its own
+background. Switching theme changes the state colors coherently instead of leaving them fixed.
+
+---
+
+## 5. Cross-cutting findings
 
 These were found by reading Inspector's 25,146 lines across 13 surfaces. They are listed first
 because each one is a single fix applied in many places, which is cheaper and more consistent than
 fixing the same thing thirteen times with thirteen different solutions.
+
+**C0 is in §4**, with the design direction it implements. It comes before everything here: it is a
+correctness bug in the color channel, and C2 depends on it.
 
 ### C1 — Panel state does not survive navigation *(verified)*
 
@@ -193,12 +339,12 @@ is that each one is a decision rather than a default.
 
 ---
 
-## 5. Feature-by-feature — Inspector
+## 6. Feature-by-feature — Inspector
 
 Thirteen surfaces. Each gets its own pass, and a pass is not finished until its acceptance line is
 demonstrably true.
 
-**Honesty about status.** §4 was derived from reading the whole app, so it applies everywhere.
+**Honesty about status.** §5 was derived from reading the whole app, so it applies everywhere.
 The per-feature notes below are **starting points, not completed audits** — where something is
 marked *verified* it was checked directly in this pass; everything else is the question to answer,
 not a finding. Do not treat an unverified line as a defect until you have reproduced it.
@@ -215,7 +361,7 @@ Work each surface in this shape, and record the result in place:
 4. **Propose refinements, ranked** by friction removed per unit of risk.
 5. **Write the acceptance line** — how someone else confirms it is better.
 
-### 5.1 Logs — the default route
+### 6.1 Logs — the default route
 
 The first thing every user sees and the highest-traffic surface in the product.
 
@@ -226,7 +372,7 @@ The first thing every user sees and the highest-traffic surface in the product.
 - **Acceptance:** find one line among tens of thousands, act on it, and return to a live tail
   without re-typing anything.
 
-### 5.2 Session — health and identity
+### 6.2 Session — health and identity
 
 Where users go when something is wrong, so its own clarity matters more than most.
 
@@ -236,7 +382,7 @@ Where users go when something is wrong, so its own clarity matters more than mos
   actionable at a glance?
 - **Acceptance:** a user with a broken session reaches the right fix from this page alone.
 
-### 5.3 Performance and Profiler — 1,794 LOC, 4 files
+### 6.3 Performance and Profiler — 1,794 LOC, 4 files
 
 The largest surface after settings.
 
@@ -248,7 +394,7 @@ The largest surface after settings.
 - **Acceptance:** profile a change, compare against the previous run, and reach a conclusion without
   exporting anything by hand.
 
-### 5.4 Debugger — 1,531 LOC
+### 6.4 Debugger — 1,531 LOC
 
 - **Verified:** breakpoints and probes persist (§3); F10/F11 stepping and Cmd+F search are bound
   (`pages/debugger/index.tsx:287,882-885`); the fewest empty-state strings of any large surface,
@@ -259,7 +405,7 @@ The largest surface after settings.
 - **Acceptance:** set a conditional breakpoint in a 3,000-line file, hit it, inspect a frame, and
   step out — mostly from the keyboard.
 
-### 5.5 Console
+### 6.5 Console
 
 Currently the best-behaved surface, and the reference for the others.
 
@@ -268,14 +414,14 @@ Currently the best-behaved surface, and the reference for the others.
   the security gate explained where it is enforced, or only in settings?
 - **Acceptance:** iterate on a snippet across a game restart without losing it.
 
-### 5.6 Assets
+### 6.6 Assets
 
 - **Verified:** search and per-asset zoom/pan are ephemeral (**C1**); no freshness marker (**C2**).
 - Ask: how does it behave on an atlas-heavy project (**L5**)? Is there a path from "this texture is
   wrong" to "this is the file on disk"?
 - **Acceptance:** locate a suspect asset and identify its source file without leaving the panel.
 
-### 5.7 Plugins — 1,529 LOC
+### 6.7 Plugins — 1,529 LOC
 
 Renders generic UI for arbitrary Lua plugins, so its failure modes are other people's plugins.
 
@@ -284,7 +430,7 @@ Renders generic UI for arbitrary Lua plugins, so its failure modes are other peo
   "installed and off", and "incompatible"?
 - **Acceptance:** a plugin author can tell from this page alone why their plugin is not appearing.
 
-### 5.8 Observability
+### 6.8 Observability
 
 - **Verified:** no freshness marker (**C2**), which matters more here than anywhere — observed
   values are exactly the thing you must not read stale.
@@ -292,7 +438,7 @@ Renders generic UI for arbitrary Lua plugins, so its failure modes are other peo
   only the current value?
 - **Acceptance:** watch a value across a state change and trust what you see.
 
-### 5.9 Time Travel · 5.10 Session Replay
+### 6.9 Time Travel · 6.10 Session Replay
 
 Grouped because they share the recorded-state model.
 
@@ -302,28 +448,28 @@ Grouped because they share the recorded-state model.
   scrub to a moment quickly, or only step?
 - **Acceptance:** reproduce a bug from a recording without re-running the game.
 
-### 5.11 Compare
+### 6.11 Compare
 
 - **Verified:** all local state (**C1**); needs two connected sessions, and the command palette
   already explains that ("Direct links show an empty state until two sessions are connected") —
   check the panel itself is as clear.
 - **Acceptance:** two sessions, one meaningful difference, found fast.
 
-### 5.12 Settings — 1,789 LOC, the largest single file
+### 6.12 Settings — 1,789 LOC, the largest single file
 
 - **Verified:** carries the most toasts (10); the MCP surface copy was corrected in this pass.
 - Ask: is it findable — can someone locate a setting without scrolling all of it? Does every
   security-relevant toggle explain its consequence at the point of decision?
 - **Acceptance:** change a security-relevant setting and correctly predict what it did.
 
-### 5.13 About
+### 6.13 About
 
 Small, and the only page that is purely informational. Check it is accurate after the v4 split
 rather than aspirational, then leave it alone.
 
 ---
 
-## 6. Method
+## 7. Method
 
 **Use the tool before reading its code.** `pnpm run up <example>` brings up Inspector with a
 connected game in one command. Friction you feel in ninety seconds of real use is worth more than
@@ -347,34 +493,37 @@ alone.
 
 ---
 
-## 7. Status board
+## 8. Status board
 
 | # | Surface | Pass | Notes |
 |---|---|---|---|
+| D | Design direction (§4) | AGREED, NOT APPLIED | D1-D4; the rules the passes below are held to |
+| C0 | Semantic color channel | NOT STARTED | **Do first.** 54 colors for 4 meanings; fails AA on shipped themes |
 | C1 | Panel state persistence | NOT STARTED | Cross-cutting; verified on Logs, Assets, Performance |
 | C2 | Freshness and staleness | NOT STARTED | Cross-cutting; 45 refresh affordances, ~0 indicators |
 | C3 | Next-action audit | NOT STARTED | Cross-cutting |
 | C4 | Swallowed-error triage | NOT STARTED | 44 sites to classify |
-| 5.1 | Logs | NOT STARTED | Highest traffic; start here |
-| 5.2 | Session | NOT STARTED | |
-| 5.3 | Performance / Profiler | NOT STARTED | |
-| 5.4 | Debugger | NOT STARTED | |
-| 5.5 | Console | NOT STARTED | Reference implementation |
-| 5.6 | Assets | NOT STARTED | |
-| 5.7 | Plugins | NOT STARTED | |
-| 5.8 | Observability | NOT STARTED | |
-| 5.9 | Time Travel | NOT STARTED | |
-| 5.10 | Session Replay | NOT STARTED | |
-| 5.11 | Compare | NOT STARTED | |
-| 5.12 | Settings | NOT STARTED | |
-| 5.13 | About | NOT STARTED | Smallest |
+| 6.1 | Logs | NOT STARTED | Highest traffic; start here |
+| 6.2 | Session | NOT STARTED | |
+| 6.3 | Performance / Profiler | NOT STARTED | |
+| 6.4 | Debugger | NOT STARTED | |
+| 6.5 | Console | NOT STARTED | Reference implementation |
+| 6.6 | Assets | NOT STARTED | |
+| 6.7 | Plugins | NOT STARTED | |
+| 6.8 | Observability | NOT STARTED | |
+| 6.9 | Time Travel | NOT STARTED | |
+| 6.10 | Session Replay | NOT STARTED | |
+| 6.11 | Compare | NOT STARTED | |
+| 6.12 | Settings | NOT STARTED | |
+| 6.13 | About | NOT STARTED | Smallest |
 
-Suggested order: **C1 → C2 → 5.1 → 5.4 → 5.3**, then the rest. C1 and C2 remove the most friction
-per unit of work; Logs, Debugger and Performance are where users spend their time.
+Suggested order: **C0 → C1 → C2 → 6.1 → 6.4 → 6.3**, then the rest. C0 first because it is a
+correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
+most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 
 ---
 
-## 8. Out of scope
+## 9. Out of scope
 
 Recording these so they stay decided rather than being relitigated each time someone reads this.
 
@@ -388,7 +537,7 @@ Recording these so they stay decided rather than being relitigated each time som
 
 ---
 
-## 9. Log
+## 10. Log
 
 Append findings, decisions and completed passes here so the next person inherits the reasoning and
 not just the diff.
@@ -396,3 +545,14 @@ not just the diff.
 **2026-09-09 — Document created.** Cross-cutting findings C1–C4 derived from a read of all 25,146
 lines of Inspector across 13 surfaces. Per-feature sections are starting points, explicitly not
 completed audits. Nothing has been changed in the application yet.
+
+**2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
+visual style suits Inspector; the answer turned out to matter less than what the audit for it
+turned up. Bento and neo-brutalism were both considered and rejected for recorded reasons. The
+direction is D1–D4: color as a reserved channel, typography for hierarchy, rules over cards, motion
+only for causality — an instrument rather than an interface.
+
+C0 is the finding: four meanings expressed by 54 different Tailwind literals, none of them
+reachable by the 28 shipped themes, several failing WCAG AA on the very backgrounds those themes
+set — including `red-600` on Inspector's own default light ground. Proposed replacement tokens were
+contrast-checked before being written down rather than after. Still no application code changed.
