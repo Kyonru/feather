@@ -29,6 +29,7 @@ import { Label } from '@feather/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@feather/ui/tooltip';
 import { LogTypeBadge } from '@/components/log-type-badge';
 import type { Log } from '@/hooks/use-logs';
+import { matchesSearch } from './search';
 import { LogType } from '@/hooks/use-logs';
 import { cn } from '@/utils/styles';
 import { isWeb } from '@/utils/platform';
@@ -99,7 +100,12 @@ export function LogTable({
     return logs.filter((log) => {
       if (!matchesTypeFilter(log, typeFilter)) return false;
       if (!needle) return true;
-      return log.str.toLowerCase().includes(needle) || log.type.toLowerCase().includes(needle);
+      // Defensive on purpose. Logs arriving over the WebSocket are not validated
+      // against the schema — only the ones read from a file are — so a runtime
+      // that omits `str` must not take the whole panel down with it. Searching
+      // is also the worst possible place to be strict: it is what someone does
+      // when output already looks wrong.
+      return matchesSearch(log, needle);
     });
   }, [logs, search, typeFilter]);
   const tailLog = filteredLogs[filteredLogs.length - 1];

@@ -19,6 +19,18 @@ export enum LogType {
   FEATHER_FINISH = 'feather:finish',
 }
 
+/**
+ * `str` and `trace` carry defaults rather than being required.
+ *
+ * They were declared `z.string()` while nothing ever validated against this
+ * schema, so the type promised a string and the runtime delivered `undefined`
+ * whenever a log arrived without them — which is how searching the logs could
+ * throw on `log.str.toLowerCase()`.
+ *
+ * Defaulting rather than rejecting is deliberate: a log line missing its message
+ * is still evidence that something happened, and dropping it would hide exactly
+ * the malformed output someone is most likely to be hunting.
+ */
 export const schema = z.object({
   id: z.string(),
   count: z.number(),
@@ -26,8 +38,8 @@ export const schema = z.object({
   firstTime: z.number().optional(),
   lastTime: z.number().optional(),
   type: z.string(),
-  str: z.string(),
-  trace: z.string(),
+  str: z.string().default(''),
+  trace: z.string().default(''),
   screenshot: z.string().optional(),
 });
 
@@ -37,7 +49,10 @@ function parseLogLine(line: string): Log | null {
   const jsonStart = line.indexOf('{');
   if (jsonStart === -1) return null;
   try {
-    return JSON.parse(line.slice(jsonStart));
+    // Parsed through the schema, not cast past it. This is the boundary the
+    // schema existed for and was never wired to.
+    const parsed = schema.safeParse(JSON.parse(line.slice(jsonStart)));
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }

@@ -1322,6 +1322,46 @@ test('sidebar groups pinned defaults without duplicating tools', async ({ page }
   await expect(page.getByTestId('sidebar-tool-session')).toHaveCount(1);
 });
 
+test('typing in the log search survives a log the runtime sent without a message', async ({ page }) => {
+  // Reported crash: TypeError: undefined is not an object (evaluating
+  // 'log.str.toLowerCase') on the first keystroke. Logs are cast rather than
+  // parsed on the WebSocket path, so a runtime that omits `str` reaches the
+  // filter intact.
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  await seedSession(page);
+  await page.addInitScript(() => {
+    const logs = [
+      { id: 'ok', count: 1, time: Date.now(), type: 'output', str: 'player spawned', trace: '' },
+      // The malformed one: no `str` at all.
+      { id: 'broken', count: 1, time: Date.now(), type: 'error', trace: '' },
+    ];
+    localStorage.setItem(
+      'feather-log-history-v1',
+      JSON.stringify({
+        state: {
+          logsBySession: { demo: { logs, label: 'Demo Session', updatedAt: Date.now() } },
+          logsByHistoryKey: { 'session:demo': { logs, label: 'Demo Session', updatedAt: Date.now() } },
+          sessionHistoryKeys: { demo: ['session:demo'] },
+        },
+        version: 0,
+      }),
+    );
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  // The malformed log has to actually be on screen, or this test proves nothing.
+  await expect(page.getByText('player spawned')).toBeVisible();
+
+  await page.getByTestId('logs-toolbar-search').getByRole('textbox').fill('player');
+  await page.waitForTimeout(300);
+
+  expect(pageErrors, `page threw while searching:\n${pageErrors.join('\n')}`).toEqual([]);
+  await expect(page.getByText('player spawned')).toBeVisible();
+});
+
 test('panel filters survive leaving the panel and coming back', async ({ page }) => {
   // The most frequent cost this tool imposed: filter the log, step away to check
   // a number, come back to unfiltered output and type it again. V4-ENHANCED C1.

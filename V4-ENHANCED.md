@@ -651,6 +651,29 @@ staleness indicator rather than a toast per hiccup.
 44 down to 27. The remainder are clipboard writes, `invoke` calls and plugin actions that still need
 reading one at a time; the two named helpers mean any new bare swallow now stands out as untriaged.
 
+**2026-09-09 — Crash in the log search, reported from real use.**
+`TypeError: undefined is not an object (evaluating 'log.str.toLowerCase')` on the first keystroke.
+
+The cause was a type that was never true. `schema` declared `str: z.string()`, but nothing anywhere
+validated against it — `parseLogLine` did `JSON.parse` and cast the result, and the WebSocket path
+casts too. So a runtime that omitted `str` produced a `Log` whose `str` was `undefined`, typed as a
+string, and the filter dereferenced it.
+
+Fixed at both levels. The schema now defaults `str` and `trace` rather than requiring them, and
+`parseLogLine` actually parses through it — a log line missing its message is still evidence
+something happened, and dropping it would hide exactly the malformed output someone is hunting. The
+matching logic moved to `pages/log/search.ts` with no React in it and is defensive regardless,
+because the WebSocket path still casts and searching is the last place that should be strict about
+shape: it is what people reach for when the output already looks wrong.
+
+Two things worth remembering from this one. First, C1 did not cause the crash but made it far more
+reachable — a persisted filter is non-empty across much more of the app's life than one that reset
+on every navigation. Persisting state raises the cost of every latent bug in the code that state
+feeds. Second, **the first regression test I wrote was a false pass.** It seeded
+`feather-log-history` with a `buckets` array; the real shape is `logsBySession` keyed by id, so no
+malformed log ever reached the filter and the test went green against the unfixed code. Reintroducing
+the bug to watch the test fail is what caught it. A test that has never failed has not been tested.
+
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it
 turned up. Bento and neo-brutalism were both considered and rejected for recorded reasons. The
