@@ -3025,6 +3025,35 @@ test('the debugger can be driven from the keyboard while paused', async ({ page 
   await expect.poll(sent).toContain('cmd:debugger:continue');
 });
 
+test('a breakpoint and its condition can be set from the keyboard while paused', async ({ page }) => {
+  // Completes 6.4's acceptance line. The gutter is one button per line, so
+  // reaching line 1,847 of a real main.lua by tabbing is not a path anyone
+  // takes — F9 and Shift+F9 act on the line you are already paused at.
+  await seedDebuggerProbeSession(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/debugger');
+  await expect(page.getByText('Paused')).toBeVisible();
+
+  const breakpointCount = () =>
+    page.evaluate(() => {
+      const raw = localStorage.getItem('feather-debugger');
+      return raw ? (JSON.parse(raw).state.breakpoints ?? []).length : 0;
+    });
+
+  const before = await breakpointCount();
+
+  // A toggle, not a one-way add.
+  await page.keyboard.press('F9');
+  await expect.poll(breakpointCount).toBe(before + 1);
+  await page.keyboard.press('F9');
+  await expect.poll(breakpointCount).toBe(before);
+
+  // Shift+F9 opens the condition editor for the paused line.
+  await page.keyboard.press('Shift+F9');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('dialog').getByText(/condition/i).first()).toBeVisible();
+});
+
 test('debugger shortcuts stay out of the way while typing', async ({ page }) => {
   // A stepping key that fires while you are writing a breakpoint condition
   // would be its own bug, so the guard is worth pinning.

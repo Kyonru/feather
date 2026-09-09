@@ -34,6 +34,12 @@ This rule is strict because the failure mode is well known: a tool grows a tenth
 first nine stay 80% done, and every one of those nine has a rough edge that makes someone give up.
 Breadth is not the problem. Follow-through is.
 
+**Amended 2026-09-09 by the owner:** a small addition that completes something already half-present
+is in scope. The test is whether the feature already makes a promise it does not keep. A debugger
+with F8/F10/F11 bound and no way to set a breakpoint by keyboard is not missing a feature; it is
+half-delivering the one it has, and a user who reaches for F9 out of habit finds nothing. Closing
+that is refinement. A tenth panel is still not.
+
 ---
 
 ## 2. The lens
@@ -531,7 +537,8 @@ most friction per unit of work. Logs, Debugger and Performance are where users s
 
 Recording these so they stay decided rather than being relitigated each time someone reads this.
 
-- **New features, panels and tools.** The rule in §1. Ideas are welcome; they go elsewhere.
+- **New features, panels and tools.** The rule in §1, as amended: completing a promise the
+  feature already makes is in scope; a new surface is not.
 - **Redesigns.** Refinement means the user's existing muscle memory keeps working. If a change
   requires relearning the panel, it is not this.
 - **The v4 split.** V4.md owns it, and it is essentially complete.
@@ -751,6 +758,35 @@ What genuinely still needs a person: whether setting a *conditional* breakpoint 
 frame are reachable without the mouse. They are context-menu and click driven today. That is a
 gap worth closing, but it is an addition to the keyboard surface rather than a refinement of it, so
 it goes on the list rather than into this pass.
+
+**2026-09-09 — 6.4 keyboard completion, and an amendment to the rule.**
+
+The owner widened §1: a small addition that completes something already half-present counts as
+refinement. The distinction that makes it safe is whether the feature already makes a promise it
+does not keep. A debugger with F8/F10/F11 bound and no keyboard route to a breakpoint is not missing
+a feature — it is half-delivering the one it has, and a user who reaches for F9 out of habit finds
+nothing there.
+
+**F9 toggles a breakpoint, Shift+F9 edits its condition**, both acting on the line you are paused
+at. Those are the bindings every editor uses, so most people will try them before reading anything.
+Acting on the paused line is what makes it work without inventing a cursor concept the source view
+does not have — and the paused line is the line you care about when paused.
+
+Why the gutter needed this at all: it is one button per line. The frames list is already reachable
+by Tab and Enter because the frames are real buttons and a call stack is short, so that half of the
+acceptance line was already met. The gutter is not — reaching line 1,847 of a real `main.lua` means
+1,847 tab stops, which is reachable in principle and unusable in practice. That is an L4 failure,
+not an accessibility footnote.
+
+The shortcut is advertised in the gutter tooltip **only on the paused line**, because that is the
+only line it can act on. Promising a key that does nothing would be worse than saying nothing.
+
+Two smaller things fell out. The condition dialog had no accessible description — Radix warns about
+it, and the warning is right: announcing only "Breakpoint condition — line 42" leaves a screen
+reader user to guess what the field wants. And the first version of the test chained toggle-on,
+dialog, toggle-off, which failed because focus after the dialog closed blocked the last key; splitting
+them tests each behaviour rather than their interaction. Verified by disabling the F9 branch and
+watching it fail.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

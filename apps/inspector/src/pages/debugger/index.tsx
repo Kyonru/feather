@@ -26,7 +26,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@feather/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@feather/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@feather/ui/dialog';
 import { LuaCodeInput } from '@feather/ui/lua-code-input';
 import {
   ContextMenu,
@@ -572,9 +579,17 @@ function SourceView({
                     title={
                       conditionError
                         ? `Condition error: ${conditionError}`
-                        : hasBp
-                          ? 'Remove breakpoint. Right-click to edit condition.'
-                          : 'Add breakpoint'
+                        : [
+                            hasBp ? 'Remove breakpoint' : 'Add breakpoint',
+                            'Right-click to edit condition.',
+                            // Only advertised on the paused line, because that is
+                            // the only line the shortcut can act on. Promising a
+                            // key that does nothing here would be worse than
+                            // saying nothing.
+                            isCurrent ? 'F9 toggles, Shift+F9 edits the condition.' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')
                     }
                     aria-label={`${hasBp ? 'Remove' : 'Add'} breakpoint on line ${lineNum}`}
                   >
@@ -1004,7 +1019,27 @@ export default function DebuggerPage() {
     const handleDebuggerShortcut = (e: KeyboardEvent) => {
       if (!dbg.isPaused || isEditableTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
 
-      if (e.key === 'F8') {
+      // F9 and Shift+F9 are the bindings every editor uses for these, and they
+      // act on the line you are paused at — which is the line you care about
+      // when you are paused. Reaching a gutter by keyboard is otherwise not
+      // possible in any real sense: there is one button per line, so getting to
+      // line 1,847 of main.lua means 1,847 tab stops.
+      if (e.key === 'F9') {
+        const paused = dbg.currentPaused;
+        if (!paused?.file || !paused.line) return;
+        e.preventDefault();
+        if (e.shiftKey) {
+          const existing = dbg.breakpoints.find((b) => b.file === paused.file && b.line === paused.line);
+          setConditionDialog({ file: paused.file, line: paused.line, value: existing?.condition ?? '' });
+        } else {
+          const has = dbg.breakpoints.some((b) => b.file === paused.file && b.line === paused.line);
+          if (has) {
+            dbg.removeBreakpoint(paused.file, paused.line);
+          } else {
+            dbg.addBreakpoint(paused.file, paused.line);
+          }
+        }
+      } else if (e.key === 'F8') {
         e.preventDefault();
         dbg.continue();
       } else if (e.key === 'F10' && !e.shiftKey) {
@@ -1623,6 +1658,12 @@ export default function DebuggerPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-mono text-sm">Breakpoint condition — line {conditionDialog?.line}</DialogTitle>
+            {/* Radix warns without this, and the warning is right: a dialog that
+                announces only "Breakpoint condition — line 42" leaves a screen
+                reader user to guess what the field expects. */}
+            <DialogDescription className="text-xs">
+              The breakpoint pauses only when this Lua expression is true. Leave it empty to always pause.
+            </DialogDescription>
           </DialogHeader>
           <p className="text-muted-foreground text-xs">
             Enter a Lua expression. The breakpoint pauses only when it evaluates to true. Locals and upvalues from the

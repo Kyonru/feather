@@ -285,6 +285,14 @@ check('a source file that cannot be read says which path it tried', () => {
   return 'resolved path, the runtime reason, and the folder picker';
 });
 
+check('a breakpoint and its condition are reachable from the keyboard', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/debugger/index.tsx'), 'utf8');
+  if (!/e\.key === 'F9'/.test(source)) throw new Error('F9 is not bound');
+  if (!source.includes('setConditionDialog({ file: paused.file')) throw new Error('Shift+F9 does not open the condition editor');
+  if (!source.includes('isEditableTarget')) throw new Error('shortcuts would fire while typing');
+  return 'F9 toggles, Shift+F9 edits the condition, neither fires while typing';
+});
+
 check('breakpoint problem counts are openable, not dead ends', () => {
   const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/debugger/index.tsx'), 'utf8');
   if (!source.includes('BreakpointIssueBadge')) throw new Error('the problem badges are plain counts again');
