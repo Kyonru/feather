@@ -36,10 +36,31 @@ pnpm install
 Node 22 or newer is required. Everything below runs from the **repo root** — you should rarely need
 to `cd` into an app.
 
-### Run an application
+### Bring up a whole session
 
-There are two desktop applications, and they are separate products with separate release trains.
-Each has a web dev server and a Tauri shell:
+Most debugging work needs Inspector *and* a game connected to it, which is two terminals and an
+ordering constraint — a game launched before Inspector's WebSocket server is listening never
+connects, and that looks like a bug rather than a race. One command does it:
+
+```sh
+pnpm run up                     # pick an example interactively
+pnpm run up demo                # or name one
+pnpm run up test_cli --studio   # Inspector + Studio + a connected game
+pnpm run up --no-game           # just the apps
+pnpm run up --list              # what can I run?
+```
+
+It builds the CLI, starts Inspector, **waits for port 4004 to accept a connection**, then launches
+the game through the CLI with `--session-name` set to the example. Ctrl+C stops everything.
+
+Anything already listening is reused rather than started twice, so you can leave Inspector open and
+re-run `pnpm run up <other-example>` to swap games. A partial name works (`single` finds
+`session_replay/single_player`); an ambiguous one lists the matches.
+
+### Run one application
+
+The two desktop applications are separate products with separate release trains. Each has a web dev
+server and a Tauri shell:
 
 ```sh
 pnpm run inspector:dev        # Inspector web UI      -> http://localhost:1420

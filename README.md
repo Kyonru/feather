@@ -141,8 +141,9 @@ Feather is a pnpm + Turborepo monorepo. Everything runs from the repo root:
 
 ```sh
 pnpm install
-pnpm run inspector:tauri    # the Inspector desktop app
-pnpm run studio:tauri       # Feather Studio
+pnpm run up                 # Inspector + an example game connected to it
+pnpm run inspector:tauri    # or just the Inspector desktop app
+pnpm run studio:tauri       # or just Feather Studio
 pnpm run feather --help     # the CLI
 pnpm run verify             # typecheck, lint, and drift checks
 pnpm run test               # every test lane
