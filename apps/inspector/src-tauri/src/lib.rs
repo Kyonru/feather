@@ -138,8 +138,6 @@ pub fn run() {
             mcp_bridge::set_mcp_bridge_enabled,
             mcp_bridge::regenerate_mcp_bridge_token,
             mcp_bridge::set_mcp_api_keys,
-            mcp_bridge::set_mcp_creative_snapshot,
-            mcp_bridge::resolve_mcp_creative_request,
             cli_actions::start_cli_job,
             cli_actions::get_cli_job,
             cli_actions::cancel_cli_job,
