@@ -277,6 +277,14 @@ section(
     '              and clicking one jumps to it.',
 );
 
+check('a source file that cannot be read says which path it tried', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/debugger/index.tsx'), 'utf8');
+  if (!source.includes('sourceError')) throw new Error('the read failure is discarded again');
+  if (!/data-testid="source-unavailable"/.test(source)) throw new Error('no distinct failure state');
+  if (!source.includes('Choose the project folder')) throw new Error('the failure names no fix');
+  return 'resolved path, the runtime reason, and the folder picker';
+});
+
 check('breakpoint problem counts are openable, not dead ends', () => {
   const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/debugger/index.tsx'), 'utf8');
   if (!source.includes('BreakpointIssueBadge')) throw new Error('the problem badges are plain counts again');

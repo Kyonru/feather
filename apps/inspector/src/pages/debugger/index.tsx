@@ -309,6 +309,8 @@ function inferProfilerWrapTarget(line: string) {
 
 function SourceView({
   content,
+  sourceError,
+  onPickFolder,
   currentLine,
   scrollToLine,
   breakpointLines,
@@ -322,6 +324,8 @@ function SourceView({
   onRemoveProfilerProbe,
 }: {
   content: string | null;
+  sourceError?: { path: string; reason: string } | null;
+  onPickFolder?: () => void;
   currentLine: number | null;
   scrollToLine: number | null;
   breakpointLines: Set<number>;
@@ -404,9 +408,35 @@ function SourceView({
   }, [currentMatchLine, safeIndex]);
 
   if (!content) {
+    // Two different situations wearing one message until now. Nothing selected
+    // is normal; a file we tried and could not read is a problem, and the useful
+    // thing to show is the path we actually looked at — one glance tells you
+    // whether the project root is wrong or the filename is.
+    if (!sourceError) {
+      return (
+        <div className="text-muted-foreground flex flex-1 items-center justify-center px-4 text-center text-xs">
+          Select a file to view its source.
+        </div>
+      );
+    }
+
     return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center px-4 text-center text-xs">
-        File content is unavailable. Open the project folder or select a readable .lua file.
+      <div
+        data-testid="source-unavailable"
+        className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center"
+      >
+        <p className="text-sm font-medium">Could not read this file</p>
+        <p className="max-w-lg break-all font-mono text-xs text-muted-foreground">{sourceError.path}</p>
+        <p className="max-w-lg text-xs text-muted-foreground">{sourceError.reason}</p>
+        {onPickFolder && (
+          <Button size="sm" variant="outline" className="mt-1 gap-1" onClick={onPickFolder}>
+            <FolderOpenIcon className="size-3.5" />
+            Choose the project folder
+          </Button>
+        )}
+        <p className="max-w-lg text-xs text-muted-foreground">
+          The project root is inferred from the running game&apos;s config, so it is usually what is wrong here.
+        </p>
       </div>
     );
   }
@@ -872,6 +902,7 @@ export default function DebuggerPage() {
   const fileContentRef = useRef<string | null>(null);
   const [watchHotReload, setWatchHotReload] = usePanelState('debugger.watchHotReload', false);
   const [scrollToLine, setScrollToLine] = useState<number | null>(null);
+  const [sourceError, setSourceError] = useState<{ path: string; reason: string } | null>(null);
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0);
   const [varFilter, setVarFilter] = usePanelState('debugger.varFilter', '');
 
@@ -949,14 +980,21 @@ export default function DebuggerPage() {
       return;
     }
     const absPath = `${rootPath.replace(/\/$/, '')}/${selectedFile}`;
+    setSourceError(null);
     readTextFile(absPath)
       .then((content) => {
         fileContentRef.current = content;
         setFileContent(content);
+        setSourceError(null);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         fileContentRef.current = null;
         setFileContent(null);
+        // Keep the path we tried and the reason we failed. Discarding both left
+        // the panel saying "File content is unavailable" with no way to tell a
+        // wrong project root from a moved file — and the root is the usual
+        // culprit, because it is inferred from the game's config.
+        setSourceError({ path: absPath, reason: error instanceof Error ? error.message : String(error) });
       });
   }, [selectedFile, rootPath]);
 
@@ -1460,6 +1498,8 @@ export default function DebuggerPage() {
                 </div>
                 <SourceView
                   content={fileContent}
+                  sourceError={sourceError}
+                  onPickFolder={pickFolder}
                   currentLine={currentLine}
                   scrollToLine={scrollToLine}
                   breakpointLines={breakpointLines}

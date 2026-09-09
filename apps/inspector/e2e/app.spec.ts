@@ -2995,6 +2995,66 @@ test('debugger renders stable single-row header and three panels', async ({ page
   await page.screenshot({ path: 'test-results/debugger-layout-narrow.png', fullPage: true });
 });
 
+test('the debugger can be driven from the keyboard while paused', async ({ page }) => {
+  // Half of V4-ENHANCED 6.4's acceptance line: hit a breakpoint, inspect, and
+  // step out mostly from the keyboard. Bindings that exist but do not fire are
+  // worse than none, because the tooltip promises them.
+  await seedDebuggerProbeSession(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/debugger');
+  await expect(page.getByText('Paused')).toBeVisible();
+
+  const sent = async () =>
+    page.evaluate(() => {
+      const commands =
+        (window as unknown as { __FEATHER_E2E_TAURI__?: { commands?: Array<{ message?: { type?: string } }> } })
+          .__FEATHER_E2E_TAURI__?.commands ?? [];
+      return commands.map((item) => item.message?.type).filter(Boolean);
+    });
+
+  await page.keyboard.press('F10');
+  await expect.poll(sent).toContain('cmd:debugger:step_over');
+
+  await page.keyboard.press('F11');
+  await expect.poll(sent).toContain('cmd:debugger:step_into');
+
+  await page.keyboard.press('Shift+F11');
+  await expect.poll(sent).toContain('cmd:debugger:step_out');
+
+  await page.keyboard.press('F8');
+  await expect.poll(sent).toContain('cmd:debugger:continue');
+});
+
+test('debugger shortcuts stay out of the way while typing', async ({ page }) => {
+  // A stepping key that fires while you are writing a breakpoint condition
+  // would be its own bug, so the guard is worth pinning.
+  await seedDebuggerProbeSession(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/debugger');
+  await expect(page.getByText('Paused')).toBeVisible();
+
+  const before = await page.evaluate(
+    () =>
+      ((window as unknown as { __FEATHER_E2E_TAURI__?: { commands?: unknown[] } }).__FEATHER_E2E_TAURI__?.commands ?? [])
+        .length,
+  );
+
+  // The variable filter in the inspector panel: a plain text field that is
+  // always present while paused.
+  const filter = page.getByPlaceholder('filter…').first();
+  await filter.fill('player');
+  await expect(filter).toBeFocused();
+  await page.keyboard.press('F10');
+  await page.waitForTimeout(250);
+
+  const after = await page.evaluate(
+    () =>
+      ((window as unknown as { __FEATHER_E2E_TAURI__?: { commands?: unknown[] } }).__FEATHER_E2E_TAURI__?.commands ?? [])
+        .length,
+  );
+  expect(after, 'a stepping key fired while typing in a text field').toBe(before);
+});
+
 test('debugger profiler probes sync and cycle from the gutter', async ({ page }) => {
   await seedDebuggerProbeSession(page);
   await page.setViewportSize({ width: 1280, height: 800 });

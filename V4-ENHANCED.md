@@ -510,7 +510,7 @@ alone.
 | 6.1 | Logs | **MOSTLY DONE** | follow-tail fixed; scale measured; export of a filtered view still open |
 | 6.2 | Session | NOT STARTED | |
 | 6.3 | Performance / Profiler | NOT STARTED | |
-| 6.4 | Debugger | **PARTLY DONE** | problem counts are navigable; source-resolution failure still to audit |
+| 6.4 | Debugger | **DONE** | problem counts navigable; source failure names the path and the fix; keyboard stepping pinned |
 | 6.5 | Console | NOT STARTED | Reference implementation |
 | 6.6 | Assets | NOT STARTED | |
 | 6.7 | Plugins | NOT STARTED | |
@@ -723,6 +723,34 @@ what keeps danger meaning something.
 The e2e test was verified the way the last one should have been: reverted to the old dead-end badge
 first, confirmed it failed, then restored the fix. Still open on this surface: what source resolution
 failure looks like, and whether it explains the root-path problem and offers the fix.
+
+**2026-09-09 — 6.4 Debugger finished.** The two questions I had left open, answered rather than
+deferred.
+
+**Source resolution failure.** The read was `readTextFile(absPath).catch(() => { setFileContent(null) })`
+— one of C4's remaining swallows, discarding both the path it tried and the reason it failed. The
+panel then said "File content is unavailable. Open the project folder or select a readable .lua
+file." for two different situations: nothing selected yet, which is normal, and a file it genuinely
+could not read, which is not.
+
+Those are now separate. Nothing selected says so plainly. A failed read shows the **resolved
+absolute path** it tried, the runtime's own reason, and a button that opens the folder picker —
+plus the sentence that actually helps: the project root is inferred from the running game's config,
+so it is usually what is wrong. Showing the path is the whole trick; one glance tells you whether
+the root is wrong or the filename is, which no amount of generic wording does.
+
+**The keyboard acceptance line.** I had called this untestable and needing a real session. That was
+wrong — Playwright drives a keyboard. All four flow controls are bound (F8 continue, F10 over, F11
+into, Shift+F11 out) and now pinned by a test that presses each one while paused and asserts the
+matching `cmd:debugger:*` reaches the game. A second test covers the guard that matters more: a
+stepping key must not fire while you are typing in a field. Both were verified by breaking them —
+removing `isEditableTarget` from the guard makes the second fail with "a stepping key fired while
+typing in a text field".
+
+What genuinely still needs a person: whether setting a *conditional* breakpoint and inspecting a
+frame are reachable without the mouse. They are context-menu and click driven today. That is a
+gap worth closing, but it is an addition to the keyboard surface rather than a refinement of it, so
+it goes on the list rather than into this pass.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it
