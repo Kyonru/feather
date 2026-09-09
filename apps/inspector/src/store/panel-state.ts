@@ -11,10 +11,16 @@ import { persist } from 'zustand/middleware';
  * this tool asked of anyone was to type the same filter again. That is the tax
  * C1 removes.
  *
- * **Global, not per session.** A game restart mints a new session id, and the
- * development loop is *change code, restart, look again* — so keying filters to
- * the session would clear them on exactly the event they most need to survive.
- * What someone is looking for outlives the process they are looking at.
+ * **Global, not per session.** What someone is looking for outlives the process
+ * they are looking at: you filter for `collision` because that is the bug, and
+ * it is still the bug after a restart, and still the bug in the other session
+ * you open to compare against.
+ *
+ * (An earlier version of this comment justified it by claiming a restart mints a
+ * new session id. That is not reliably true — the runtime derives the session id
+ * from a device id it persists to disk, so a restart usually reconnects as the
+ * same session. The conclusion stands on its own; the reason given for it did
+ * not.)
  *
  * **What does not belong here:** anything transient. A dialog being open, a
  * hover, an in-flight request. Persisting those means reopening the app into a

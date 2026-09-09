@@ -515,7 +515,7 @@ alone.
 | C4 | Swallowed-error triage | **MOSTLY DONE** | 44 → 27; 11 surface, 10 named deliberate; 27 left, mostly clipboard/invoke |
 | 6.1 | Logs | **MOSTLY DONE** | follow-tail fixed; scale measured; export of a filtered view still open |
 | 6.2 | Session | NOT STARTED | |
-| 6.3 | Performance / Profiler | NOT STARTED | |
+| 6.3 | Performance / Profiler | **PARTLY DONE** | baseline survives a restart; capture cost and measuring-vs-idle still open |
 | 6.4 | Debugger | **DONE** | problem counts navigable; source failure names the path and the fix; keyboard stepping pinned |
 | 6.5 | Console | NOT STARTED | Reference implementation |
 | 6.6 | Assets | NOT STARTED | |
@@ -527,7 +527,7 @@ alone.
 | 6.12 | Settings | NOT STARTED | |
 | 6.13 | About | NOT STARTED | Smallest |
 
-Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → ~~6.1~~ → ~~6.4~~ → 6.3**, then the rest. C0 first because it is a
+Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → ~~6.1~~ → ~~6.4~~ → ~~6.3~~**, then the rest. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
 most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 
@@ -600,9 +600,14 @@ this cannot drift back. Full suite 7/7.
 **2026-09-09 — C1 done.** Panel state has a home: `store/panel-state.ts`, a persisted store behind
 a `usePanelState` hook with `useState` ergonomics, so migrating a panel is one line per field.
 
-The decision the document said to make once: **global, not per session.** A restart mints a new
-session id, and the loop this protects is *change code, restart, look again* — keying filters to the
-session would clear them on exactly the event they most need to survive.
+The decision the document said to make once: **global, not per session.** What someone is looking
+for outlives the process they are looking at — you filter for `collision` because that is the bug,
+and it is still the bug after a restart and in the next session you open to compare against.
+
+*(Corrected 2026-09-09: this originally argued that a restart mints a new session id. It does not
+reliably — the runtime derives the session id from a device id persisted to disk, so a restart
+usually reconnects as the same session. The decision holds; the reason first given for it was
+wrong. Found while tracing §6.3.)*
 
 13 filters now persist across Logs, Assets, Performance, Compare, Observability, Debugger and
 Console. Two deliberate exclusions, both because persisting would make the tool lie: Performance's
@@ -787,6 +792,37 @@ reader user to guess what the field wants. And the first version of the test cha
 dialog, toggle-off, which failed because focus after the dialog closed blocked the last key; splitting
 them tests each behaviour rather than their interaction. Verified by disabling the F9 branch and
 watching it fail.
+
+**2026-09-09 — 6.3 Performance / Profiler, first pass.**
+
+The sharp question was whether captures are comparable across runs. They were not, and the reason
+was a one-line omission rather than a design gap.
+
+When a session id changes for the same device, `use-ws-connection` migrates the cached data across:
+logs, performance metrics, observers, assets. Someone added assets to that list at some point. Nobody
+added the profiler. So the cleanup that follows dropped every snapshot — and comparing before against
+after is the entire point of a profiler, while making the change being measured means restarting the
+game. The one comparison the feature exists for was the one it could not make, and it failed silently,
+with less critical data carefully preserved either side of it.
+
+Only the snapshots travel. Live capture state stays behind, and that distinction is the part worth
+having tested: carrying `recording: true` into a fresh run shows a capture in progress that nothing
+is filling, and carrying the elapsed time attributes the old run's duration to the new one. Both are
+the tool lying about what it is measuring, which is worse than losing the baseline. The judgement
+lives in `profilerStateForNewSession` as a pure function, pinned by
+`scripts/tests/profilerCarryOver.test.ts`, and verified by reverting it to the old behaviour and
+watching two of the four assertions fail.
+
+**A correction this pass forced.** C1's rationale was wrong. I wrote — in the store's own comment
+and in this log — that filters must be global because "a restart mints a new session id". Tracing
+the migration showed the runtime derives its session id from a device id it persists to disk, so a
+restart usually reconnects as the *same* session. The decision is still right for a better reason:
+what someone is looking for outlives the process they are looking at. Both places now say that
+instead. Worth noting how it surfaced — not by re-reading C1, but by working on something adjacent
+that happened to touch the same mechanism.
+
+Still open on this surface: whether a capture's cost is obvious before starting it, and whether the
+panel distinguishes "cheap to leave open" from "actively measuring".
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

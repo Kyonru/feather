@@ -10,7 +10,7 @@ import { PENDING_SESSION_NAME, useSessionStore } from '@/store/session';
 import { useSettingsStore } from '@/store/settings';
 import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
-import type { ProfilerState } from './use-profiler';
+import { profilerStateForNewSession, type ProfilerState } from './use-profiler';
 import type { PluginContentProps, PluginDataType } from './use-plugin';
 import type { AssetCatalog } from './use-assets';
 import type { HotReloadState } from './use-hot-reload';
@@ -473,6 +473,19 @@ export const useWsConnection = () => {
                 const oldAssets = queryClient.getQueryData(sessionQueryKey.assets(oldSession.id));
                 if (oldAssets) {
                   queryClient.setQueryData(sessionQueryKey.assets(sessionId), oldAssets);
+                }
+                // Profiler snapshots, which this list used to omit.
+                //
+                // Comparing before and after a change is the entire point of a
+                // profiler, and making that change means restarting the game. So
+                // the one comparison the feature exists for was the one it could
+                // not do: the baseline was dropped by the cleanup below while
+                // logs and metrics were carefully carried across.
+                const carriedProfiler = profilerStateForNewSession(
+                  queryClient.getQueryData<ProfilerState>(sessionQueryKey.profiler(oldSession.id)),
+                );
+                if (carriedProfiler) {
+                  queryClient.setQueryData<ProfilerState>(sessionQueryKey.profiler(sessionId), carriedProfiler);
                 }
                 // Clean up old session cache
                 queryClient.removeQueries({ queryKey: [oldSession.id] });

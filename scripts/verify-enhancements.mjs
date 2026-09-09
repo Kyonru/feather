@@ -300,6 +300,32 @@ check('breakpoint problem counts are openable, not dead ends', () => {
   return 'condition errors and rejections both list file, line and reason';
 });
 
+// --- 6.3 Performance / Profiler --------------------------------------------
+
+section(
+  '6.3',
+  'Performance and Profiler',
+  'pnpm run up  →  Performance → Profiler → Record Capture, finish it, snapshot it. Restart the\n' +
+    '              game and look again: the snapshot is still there to compare against, and the\n' +
+    '              panel is not pretending a capture is still running.',
+);
+
+check('a profiler baseline survives the restart a comparison requires', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/profilerCarryOver.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} carry-over assertions failed`);
+  const wiring = readFileSync(join(ROOT, 'apps/inspector/src/hooks/use-ws-connection.ts'), 'utf8');
+  if (!wiring.includes('profilerStateForNewSession')) {
+    throw new Error('the session migration drops the profiler again');
+  }
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  return `${pass} assertions — snapshots travel, live capture state does not`;
+});
+
 // --- summary ---------------------------------------------------------------
 
 process.stdout.write(
