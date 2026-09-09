@@ -1316,11 +1316,29 @@ test('sidebar groups pinned defaults without duplicating tools', async ({ page }
   await expect(core.getByText('Core')).toBeVisible();
   await expect(core.getByTestId('sidebar-tool-compare')).toBeVisible();
   await expect(page.getByTestId('sidebar-group-inspect').getByText('Inspect')).toBeVisible();
-  await expect(page.getByTestId('sidebar-group-creative').getByText('Creative')).toBeVisible();
   await expect(page.getByTestId('sidebar-group-history').getByText('History')).toBeVisible();
   await expect(page.getByTestId('sidebar-tool-logs')).toHaveCount(1);
   await expect(page.getByTestId('sidebar-tool-performance')).toHaveCount(1);
   await expect(page.getByTestId('sidebar-tool-session')).toHaveCount(1);
+});
+
+test('the creative tools are gone from Inspector, not merely unreachable', async ({ page }) => {
+  // They live in Feather Studio as of v4. Inspector kept advertising them after
+  // the move, so every one of these navigated to a route that no longer exists
+  // and rendered an empty page. Assert the absence, not just the routing.
+  await seedSession(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await expect(page.getByTestId('sidebar-group-creative')).toHaveCount(0);
+  for (const id of ['shader-graph', 'particle-system-playground', 'texture-lab']) {
+    await expect(page.getByTestId(`sidebar-tool-${id}`)).toHaveCount(0);
+  }
+
+  // The command palette advertised them too.
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByRole('textbox', { name: 'Command Center search' }).fill('shader');
+  await expect(page.getByText('Shader Graph', { exact: false })).toHaveCount(0);
 });
 
 test('sidebar pin actions persist and settings can clear and restore pins', async ({ page }) => {
@@ -1416,7 +1434,9 @@ test('settings exposes MCP access controls with browser fallback state', async (
   await page.getByRole('tab', { name: 'Security' }).click();
 
   await expect(page.getByText('Expose live Feather sessions to local MCP clients with token-protected full-control tools.')).toBeVisible();
-  await expect(page.getByText('Sessions, plugin catalog/live state, Shader Graph, Particles Playground, and Texture Lab')).toBeVisible();
+  await expect(page.getByText('Sessions, runtime state, and plugin catalog/live state')).toBeVisible();
+  // The creative tools are Studio's half of the one MCP server, not Inspector's.
+  await expect(page.getByText('served by Feather Studio through the same')).toBeVisible();
   await expect(page.getByLabel('Enable MCP access')).toBeDisabled();
   await expect(page.getByText('Unavailable')).toBeVisible();
 });
@@ -2760,10 +2780,10 @@ test('runtime interest follows active app panels', async ({ page }) => {
     )
     .toBe(true);
 
-  await page
-    .getByTestId('sidebar-tool-particle-system-playground')
-    .getByRole('link', { name: 'Particles Playground' })
-    .click();
+  // Previously reached through the Particles Playground page. That tool moved to
+  // Feather Studio, so this now covers plugin interest through the route that
+  // actually still exists.
+  await page.goto('/plugins/console');
   await expect
     .poll(async () =>
       page.evaluate(() => {
@@ -2779,8 +2799,8 @@ test('runtime interest follows active app panels', async ({ page }) => {
       }),
     )
     .toMatchObject({
-      particlePlayground: true,
-      pluginIds: expect.arrayContaining(['particle-system-playground']),
+      plugins: true,
+      pluginIds: expect.arrayContaining(['console']),
     });
   await expect
     .poll(async () =>

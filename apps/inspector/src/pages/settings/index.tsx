@@ -388,9 +388,6 @@ function GeneralOverview() {
 
 const optionalFeatureDefaults: MainFeatureId[] = [
   'console',
-  'particle-system-playground',
-  'shader-graph',
-  'texture-lab',
   'time-travel',
   'session-replay',
   'compare',
@@ -856,8 +853,9 @@ function McpAccessPanel() {
       <div className="rounded-md border bg-muted/20 px-3 py-2">
         <p className="text-xs font-medium">MCP Surface</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Sessions, plugin catalog/live state, Shader Graph, Particles Playground, and Texture Lab are available to
-          authenticated local MCP clients.
+          Sessions, runtime state, and plugin catalog/live state are available to authenticated local MCP clients.
+          Shader Graph, Particle Playground, and Texture Lab are served by Feather Studio through the same
+          <code className="mx-1 rounded bg-muted px-1">feather mcp</code> server.
         </p>
       </div>
 

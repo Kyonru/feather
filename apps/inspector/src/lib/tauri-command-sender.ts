@@ -21,7 +21,7 @@ function withAppId(message: CommandMessage): string {
  * The desktop transport. Registered by the entry point when Tauri is present.
  *
  * This is the only module that knows commands travel over Tauri, which is what
- * keeps `@tauri-apps/*` out of the creative tools' import graph.
+ * keeps `@tauri-apps/*` out of the shared packages Feather Studio also uses.
  */
 export const tauriCommandSender: CommandSender = (sessionId, message) =>
   invoke('send_command', { sessionId, message: withAppId(message) });

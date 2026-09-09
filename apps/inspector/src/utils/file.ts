@@ -9,7 +9,7 @@ import { fetchBlobAsUint8Array } from './assets';
  *
  * Previously branched on `isWeb()` and carried two implementations. The host
  * owns that difference now, which is also what keeps `@tauri-apps/plugin-fs`
- * out of the creative tools' import graph.
+ * out of the shared packages Feather Studio and the showcase build against.
  */
 export async function downloadFile(
   host: FeatherHost,

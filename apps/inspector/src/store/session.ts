@@ -2,9 +2,16 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export const PENDING_SESSION_NAME = 'Connecting game';
-export const CREATIVE_SESSION_PREFIX = 'creative:';
 
-export type SessionKind = 'live' | 'log-file' | 'time-travel-file' | 'creative';
+/**
+ * Feather Studio owns the creative tools as of v4, and with them the gameless
+ * "creative workspace" session. Inspector still recognizes the old marker so a
+ * workspace persisted by an earlier version is dropped on load rather than
+ * restored as a tab that opens nothing.
+ */
+const LEGACY_CREATIVE_SESSION_PREFIX = 'creative:';
+
+export type SessionKind = 'live' | 'log-file' | 'time-travel-file';
 
 export type SessionInfo = {
   id: string;
@@ -20,23 +27,16 @@ export type SessionInfo = {
   runtimeSuspended?: boolean;
 };
 
-export function createCreativeSessionId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${CREATIVE_SESSION_PREFIX}${crypto.randomUUID()}`;
-  }
-  return `${CREATIVE_SESSION_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-}
-
-export function isCreativeSession(session?: SessionInfo | null): boolean {
-  return session?.kind === 'creative' || session?.id.startsWith(CREATIVE_SESSION_PREFIX) === true;
+function isLegacyCreativeSession(id: string, session: SessionInfo): boolean {
+  return (session.kind as string) === 'creative' || id.startsWith(LEGACY_CREATIVE_SESSION_PREFIX);
 }
 
 export function sessionSupportsRuntime(session?: SessionInfo | null): session is SessionInfo & { connected: true; kind?: undefined } {
-  return !!session && !isCreativeSession(session) && !session.kind && session.connected;
+  return !!session && !session.kind && session.connected;
 }
 
 export function sessionCanOpenRuntimePages(session?: SessionInfo | null): boolean {
-  return !!session && !isCreativeSession(session);
+  return !!session;
 }
 
 type SessionStore = {
@@ -53,13 +53,14 @@ type SessionStore = {
 export function prepareSessionsForPersistence(sessions: Record<string, SessionInfo>): Record<string, SessionInfo> {
   return Object.fromEntries(
     Object.entries(sessions)
-      .filter(([id, session]) => !id.startsWith('file:') && !session.pendingConfig && session.name !== PENDING_SESSION_NAME)
-      .map(([id, session]) => [
-        id,
-        isCreativeSession(session)
-          ? { ...session, kind: 'creative' as const, connected: false, pendingConfig: false, runtimeSuspended: false }
-          : { ...session, connected: false, pendingConfig: false, runtimeSuspended: false },
-      ]),
+      .filter(
+        ([id, session]) =>
+          !id.startsWith('file:') &&
+          !session.pendingConfig &&
+          session.name !== PENDING_SESSION_NAME &&
+          !isLegacyCreativeSession(id, session),
+      )
+      .map(([id, session]) => [id, { ...session, connected: false, pendingConfig: false, runtimeSuspended: false }]),
   );
 }
 

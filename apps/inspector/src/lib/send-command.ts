@@ -3,7 +3,8 @@
  * while the transport itself stays out of this module's import graph.
  *
  * With no session attached this resolves without doing anything, which is what
- * lets the creative tools run as local editors on the web.
+ * lets a consumer with no game — Feather Studio standalone, or the showcase on
+ * the web — stay fully usable rather than erroring.
  */
 export { sendCommand, hasSession } from '@feather/session-bridge';
 export type { CommandMessage } from '@feather/session-bridge';

@@ -80,12 +80,8 @@ const runtimeInterestForPath = (pathname: string) => {
     sessionReplay: pathname.startsWith('/session-replay'),
     console: pathname.startsWith('/console'),
     debugger: pathname.startsWith('/debugger'),
-    shaderGraph: pathname.startsWith('/shader-graph'),
-    particlePlayground: pathname.startsWith('/particle-system-playground'),
     pluginIds: [
       pluginId,
-      pathname.startsWith('/shader-graph') ? 'shader-graph' : null,
-      pathname.startsWith('/particle-system-playground') ? 'particle-system-playground' : null,
       pathname.startsWith('/time-travel') ? 'time-travel' : null,
       pathname.startsWith('/session-replay') ? 'session-replay' : null,
     ].filter(Boolean),
@@ -108,7 +104,7 @@ const runtimeRefreshCommandsForPath = (pathname: string): Array<Record<string, u
   if (interest.assets) {
     commands.push({ type: 'req:assets' });
   }
-  if (interest.plugins || interest.shaderGraph || interest.particlePlayground) {
+  if (interest.plugins) {
     commands.push({ type: 'req:plugins' });
   }
 

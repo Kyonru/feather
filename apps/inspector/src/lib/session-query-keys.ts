@@ -3,7 +3,8 @@
  *
  * Extracted from `use-ws-connection` so modules that only need the key shapes
  * do not transitively import the WebSocket hook — and with it `@tauri-apps/*`.
- * That chain was what kept the creative tools bound to Tauri.
+ * That chain was what bound the creative tools to Tauri before they moved to
+ * Feather Studio, and breaking it is what let them move.
  */
 export const sessionQueryKey = {
   config: (sessionId: string) => [sessionId, 'config'],

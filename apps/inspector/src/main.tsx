@@ -22,7 +22,7 @@ const host = isWeb() ? createWebHost() : createTauriHost();
 // through Tauri's `invoke`, which the Playwright suite mocks, so gating it on
 // isWeb() would silently disable every game command under test. The showcase has
 // its own entry point and registers nothing, which is what leaves the creative
-// tools as local editors on the real web.
+// tools it compiles from Feather Studio as local editors on the real web.
 setCommandSender(tauriCommandSender);
 
 // Answer Feather Studio's one-time preferences handoff. Read-only, and a no-op
