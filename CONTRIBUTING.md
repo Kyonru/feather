@@ -55,6 +55,10 @@ pnpm run docs                 # documentation site
 The two dev servers use different ports on purpose, so you can run Inspector and Studio side by
 side and exercise the bridge between them.
 
+Do not run `*:dev` and `*:tauri` for the **same** app at once. The Tauri shell starts its own dev
+server on that app's port, so the second one fails with `Port 1420 is already in use` (or 1430 for
+Studio). Stop the standalone server first, or just use the Tauri command, which gives you both.
+
 `pnpm run dev` is still Inspector's web server, and `inspector:dev` is an alias for it.
 
 **Do not use a bare `pnpm run tauri ...` any more.** The Tauri CLI discovers a project by searching

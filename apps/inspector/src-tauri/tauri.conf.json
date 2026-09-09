@@ -4,9 +4,9 @@
   "version": "4.0.0",
   "identifier": "com.kyonru.love.feather",
   "build": {
-    "beforeDevCommand": "pnpm run dev:tauri",
+    "beforeDevCommand": "pnpm -w run dev:tauri",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm run prepare:tauri-cli-sidecar && pnpm run build",
+    "beforeBuildCommand": "pnpm -w run prepare:tauri-cli-sidecar && pnpm -w run build",
     "frontendDist": "../dist"
   },
   "app": {
