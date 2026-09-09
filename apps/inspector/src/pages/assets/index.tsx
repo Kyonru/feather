@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { sendCommand } from '@/lib/send-command';
+import { sendBackgroundCommand } from '@/lib/send-command';
 import { Freshness } from '@/components/freshness';
 import { sessionQueryKey } from '@/lib/session-query-keys';
 import { usePanelState } from '@/store/panel-state';
@@ -883,7 +883,7 @@ export default function AssetsPage() {
             {sessionId && (
               <Freshness
                 queryKey={sessionQueryKey.assets(sessionId)}
-                onRefresh={() => sendCommand(sessionId, { type: 'req:assets' }).catch(() => {})}
+                onRefresh={() => sendBackgroundCommand(sessionId, { type: 'req:assets' })}
                 className="ml-auto"
               />
             )}

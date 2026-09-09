@@ -57,6 +57,15 @@ Anything already listening is reused rather than started twice, so you can leave
 re-run `pnpm run up <other-example>` to swap games. A partial name works (`single` finds
 `session_replay/single_player`); an ambiguous one lists the matches.
 
+To stop every process tree owned by any active `pnpm run up` command from another terminal, run:
+
+```sh
+pnpm run down
+```
+
+`down` validates tracked process commands before stopping them. Inspector or Studio processes that
+`up` found already running are reused, not owned, and are deliberately left running.
+
 ### Run one application
 
 The two desktop applications are separate products with separate release trains. Each has a web dev

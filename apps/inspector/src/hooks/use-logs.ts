@@ -1,6 +1,6 @@
 import { readTextFileLines } from '@tauri-apps/plugin-fs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { sendCommand } from '@/lib/send-command';
+import { sendCommand, sendUserCommand } from '@/lib/send-command';
 import { timeout } from '@/utils/timers';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -179,7 +179,7 @@ export const useLogs = (): {
       );
       const history = useLogHistoryStore.getState();
       history.removeLogs(sessionId, visibleIds, history.sessionHistoryKeys[sessionId]);
-      sendCommand(sessionId, { type: 'cmd:log', action: 'clear' }).catch(() => {});
+      sendUserCommand(sessionId, { type: 'cmd:log', action: 'clear' }, 'clear the logs');
     }
     setPausedSnapshot((current) =>
       current && visibleSet ? current.filter((log) => !visibleSet.has(log.id)) : visibleSet ? current : [],

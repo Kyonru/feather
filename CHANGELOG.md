@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `pnpm run down` to stop all process trees owned by active `pnpm run up` sessions while leaving reused apps running.
 - Feather Studio is now a separate application. The shader graph, texture lab and particle playground install, update and version independently of Feather Inspector, so a Studio update no longer means reinstalling your debugger and a debugger fix no longer touches your creative tools. Install either without the other from the releases page, or use Studio in a browser with no install.
 - Studio works fully on its own. Authoring, saving and loading all work with no Inspector running; "Not connected" is a state rather than an error.
 - Studio can pair with a running Inspector to push shaders, textures and particle systems straight into a live game. Pairing is explicit, loopback-only, gated on a short-lived key Inspector issues, and version-negotiated first so a mismatched pair tells you which application to update instead of failing obscurely.
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added dev-session lifecycle coverage for multiple tracked process groups, malformed records, and stale PID command guards.
 - Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
 - Added CLI coverage for Codex and Claude MCP setup, dry-runs, idempotent config updates, and stale Feather MCP block replacement.
 - Added MCP creative-tool coverage for plugin resources, creative tool discovery, bridge request handling, and Texture Lab generation routing.

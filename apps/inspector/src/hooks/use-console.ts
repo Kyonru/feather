@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { sendCommand } from '@/lib/send-command';
+import { sendCommand, sendUserCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
 import { useEffectiveApiKey } from './use-session-api-key';
 import {
@@ -131,7 +131,7 @@ export const useConsole = () => {
   const unpinExpression = useCallback(
     (id: string) => {
       if (!sessionId) return;
-      sendCommand(sessionId, { type: 'cmd:console:unpin', data: { id } }).catch(() => {});
+      sendUserCommand(sessionId, { type: 'cmd:console:unpin', data: { id } }, 'unpin the value');
     },
     [sessionId],
   );

@@ -66,6 +66,15 @@ type SessionWarning = {
   title: string;
   detail: string;
   tone: 'warning' | 'danger';
+  /**
+   * What to do about it.
+   *
+   * A warning that names a failure without naming a fix leaves the reader
+   * exactly where their question starts — see V4-ENHANCED.md L3. Every warning
+   * here should be able to answer "so what do I do?", and the ones that cannot
+   * are usually a sign the warning is not worth showing.
+   */
+  action?: string;
 };
 
 const RISKY_CAPABILITIES = new Set(['filesystem', 'network', 'binary']);
@@ -253,6 +262,7 @@ export default function SessionPage() {
   const sessions = useSessionStore((state) => state.sessions);
   const session = sessionId ? sessions[sessionId] : null;
   const openSettings = useSettingsStore((state) => state.setOpen);
+  const cliProjectDir = useSettingsStore((state) => state.cliProjectDir);
   const globalApiKey = useSettingsStore((state) => state.apiKey);
   const sessionApiKeys = useSettingsStore((state) => state.sessionApiKeys);
   const debuggerStatus = useDebuggerStore((state) => (sessionId ? state.status[sessionId] : undefined));
@@ -312,6 +322,9 @@ export default function SessionPage() {
     (debuggerStatus?.rejectedBreakpoints?.length ?? 0) +
     (debuggerStatus?.breakpointErrors?.length ?? breakpointErrors.length);
   const apiMismatch = typeof config.API === 'number' && config.API !== FEATHER_PLUGIN_API;
+  // The same shape the empty state uses: the user's own configured directory,
+  // not a placeholder they have to translate.
+  const runCommand = `feather run ${cliProjectDir || 'path/to/my-game'}`;
   const protocol = evaluateProtocol(config.protocolVersion);
   const packageState = isWeb()
     ? 'Web'
@@ -330,6 +343,7 @@ export default function SessionPage() {
       title: 'Session disconnected',
       detail: 'This session is selected but no longer receiving live runtime data.',
       tone: 'warning',
+      action: `Start the game again — Feather reconnects on its own. ${runCommand}`,
     });
   }
   if (session.insecure || config.security?.appIdRequired !== true) {
@@ -340,6 +354,7 @@ export default function SessionPage() {
         ? 'This connection was accepted without a trusted app ID.'
         : 'This session does not report app ID enforcement.',
       tone: 'danger',
+      action: 'Set `appId` in feather.config.lua to bind this game to this desktop.',
     });
   }
   // Only a genuine incompatibility degrades the health verdict. A runtime that
@@ -361,6 +376,7 @@ export default function SessionPage() {
       title: 'Version or plugin mismatch',
       detail: `${pluginCounts.incompatible} incompatible plugin(s), runtime v${config.version || '—'}, API ${config.API ?? '—'}.`,
       tone: pluginCounts.incompatible > 0 || apiMismatch ? 'danger' : 'warning',
+      action: 'Update the Feather runtime bundled in the project, then restart the game.',
     });
   }
   if (consoleEnabled && !effectiveApiKey) {
@@ -369,6 +385,7 @@ export default function SessionPage() {
       title: 'Console needs an API key',
       detail: 'Console is enabled, but the desktop has no global or session API key configured.',
       tone: 'danger',
+      action: 'Add one in Settings → Console, or Console stays read-only.',
     });
   }
   if (hotReloadFailed > 0 || hotReloadModified > 0) {
@@ -377,16 +394,20 @@ export default function SessionPage() {
       title: 'Hot Reload needs review',
       detail: `${hotReloadModified} modified module(s), ${hotReloadFailed} failed reload(s).`,
       tone: hotReloadFailed > 0 ? 'danger' : 'warning',
+      action: 'A failed reload leaves the old module loaded — restart the game to be sure of what is running.',
     });
   }
-  if (pausedState || debuggerProblemCount > 0) {
+  // Being paused at a breakpoint is the debugger doing its job, and you put it
+  // there. Reporting it as something needing attention degraded session health
+  // for a deliberate act, in the middle of the work where noise costs most.
+  // Only genuine sync and condition failures are warnings.
+  if (debuggerProblemCount > 0) {
     warnings.push({
       id: 'debugger',
       title: 'Debugger attention',
-      detail: pausedState
-        ? `Paused at ${pausedState.file}:${pausedState.line}.`
-        : `${debuggerProblemCount} breakpoint sync or condition issue(s).`,
-      tone: debuggerProblemCount > 0 ? 'danger' : 'warning',
+      detail: `${debuggerProblemCount} breakpoint sync or condition issue(s).`,
+      tone: 'danger',
+      action: 'Open Debugger — rejected breakpoints list the file and line that failed.',
     });
   }
   if (isFrameHitch(latestPerformance) || isMemoryHigh(latestPerformance)) {
@@ -397,6 +418,7 @@ export default function SessionPage() {
         latestPerformance?.memory == null ? '—' : formatMemory(latestPerformance.memory, 2)
       }.`,
       tone: 'warning',
+      action: 'Open Performance to see whether this is a spike or sustained.',
     });
   }
   if (!isWeb() && !isFileSession && !lockfileLoading && (lockfileError || !lockfile)) {
@@ -405,6 +427,7 @@ export default function SessionPage() {
       title: 'No package lockfile',
       detail: 'No feather.lock.json was found for this project root.',
       tone: 'warning',
+      action: 'Run `feather package install` in the project to record what it depends on.',
     });
   }
 
@@ -603,11 +626,14 @@ export default function SessionPage() {
                     key={warning.id}
                     className={cn('rounded-md border px-3 py-2', {
                       'border-warn-border bg-warn-surface': warning.tone === 'warning',
-                      'border-destructive/35 bg-destructive/10': warning.tone === 'danger',
+                      'border-danger-border bg-danger-surface': warning.tone === 'danger',
                     })}
                   >
                     <p className="text-sm font-medium">{warning.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{warning.detail}</p>
+                    {warning.action && (
+                      <p className="mt-1 text-xs font-medium">{warning.action}</p>
+                    )}
                   </div>
                 ))}
               </div>

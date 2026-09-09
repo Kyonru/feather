@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { sendCommand } from '@/lib/send-command';
+import { sendCommand, sendUserCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey, type TimeTravelFrame, type TimeTravelStatus } from './use-ws-connection';
 
@@ -32,7 +32,7 @@ export const useTimeTravel = () => {
     if (!sessionId) return;
     // Optimistically clear stale frames from a previous session
     queryClient.setQueryData(sessionQueryKey.timeTravelFrames(sessionId), []);
-    sendCommand(sessionId, { type: 'cmd:time_travel:start' }).catch(() => {});
+    sendUserCommand(sessionId, { type: 'cmd:time_travel:start' }, 'start time travel');
   };
 
   const stopRecording = () => {
@@ -42,7 +42,7 @@ export const useTimeTravel = () => {
     queryClient.setQueryData<TimeTravelStatus>(sessionQueryKey.timeTravel(sessionId), (prev) =>
       prev ? { ...prev, recording: false } : DEFAULT_STATUS,
     );
-    sendCommand(sessionId, { type: 'cmd:time_travel:stop' }).catch(() => {});
+    sendUserCommand(sessionId, { type: 'cmd:time_travel:stop' }, 'stop time travel');
   };
 
   const requestFrames = (fromFrame?: number, toFrame?: number) => {

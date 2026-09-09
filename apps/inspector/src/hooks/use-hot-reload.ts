@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { sendCommand } from '@/lib/send-command';
+import { sendCommand, sendUserCommand } from '@/lib/send-command';
 import { useQuery } from '@tanstack/react-query';
 import { useConfigStore } from '@/store/config';
 import { useSessionStore } from '@/store/session';
@@ -108,7 +108,7 @@ export const useHotReload = () => {
   const restoreOriginals = useMemo(() => {
     return () => {
       if (!sessionId) return;
-      sendCommand(sessionId, { type: 'cmd:hot_reload:restore' }).catch(() => {});
+      sendUserCommand(sessionId, { type: 'cmd:hot_reload:restore' }, 'restore the module');
     };
   }, [sessionId]);
 

@@ -11,7 +11,7 @@
  *
  * So this waits for the socket instead of sleeping, reuses anything already
  * running rather than fighting it for a port, and shuts the whole tree down on
- * one Ctrl+C.
+ * one Ctrl+C. `pnpm run down` provides the same cleanup from another terminal.
  */
 
 import { existsSync, readdirSync, statSync } from 'node:fs';

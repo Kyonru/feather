@@ -3,7 +3,7 @@ import { useHost, type FeatherHost } from '@feather/host';
 import { useSessionStore } from '@/store/session';
 import { Freshness } from '@/components/freshness';
 import { sessionQueryKey } from '@/lib/session-query-keys';
-import { sendCommand } from '@/lib/send-command';
+import { sendBackgroundCommand } from '@/lib/send-command';
 import { usePanelState } from '@/store/panel-state';
 import { PageLayout } from '@/components/page-layout';
 import { SectionCards } from './section-cards';
@@ -312,7 +312,7 @@ end`}
           {sessionId && (
             <Freshness
               queryKey={sessionQueryKey.observers(sessionId)}
-              onRefresh={() => sendCommand(sessionId, { type: 'req:observers' }).catch(() => {})}
+              onRefresh={() => sendBackgroundCommand(sessionId, { type: 'req:observers' })}
               className="ml-auto"
             />
           )}

@@ -505,8 +505,8 @@ alone.
 | C0 | Semantic color channel | **DONE** | Ramps derived per theme, AA-verified across all 79; literals replaced; lint rule holds it |
 | C1 | Panel state persistence | **DONE** | 13 filters persisted globally; `pnpm run verify:enhanced` |
 | C2 | Freshness and staleness | **DONE** | `useFreshness` + `<Freshness/>`; judged against the session, not the clock |
-| C3 | Next-action audit | NOT STARTED | Cross-cutting |
-| C4 | Swallowed-error triage | NOT STARTED | 44 sites to classify |
+| C3 | Next-action audit | **DONE (Session)** | 9/9 warnings actionable; other panels' empty states still to audit |
+| C4 | Swallowed-error triage | **MOSTLY DONE** | 44 → 27; 11 surface, 10 named deliberate; 27 left, mostly clipboard/invoke |
 | 6.1 | Logs | NOT STARTED | Highest traffic; start here |
 | 6.2 | Session | NOT STARTED | |
 | 6.3 | Performance / Profiler | NOT STARTED | |
@@ -629,6 +629,27 @@ offered only in that case: a refresh button you never needed is the noise L6 war
 
 Wired into Assets and Observability first. Observability matters most — observed values are exactly
 the data you cannot afford to read stale, since watching them change is the entire point.
+
+**2026-09-09 — C3 and C4.**
+
+C3 on the Session panel: all nine warnings now end with what to do, and the disconnected one carries
+the run command built from the user's own configured project directory, the way the empty state
+already did. The audit also found a warning that should not have existed: *Debugger attention* fired
+on `pausedState || problems`, so sitting at a breakpoint — a thing you did deliberately — raised a
+warning and degraded session health, in the middle of the work where noise costs most. Pausing is
+state; only genuine sync and condition failures are warnings now. Other panels' empty states are
+still to audit, so this is done for Session rather than done.
+
+C4 turned out to be two findings wearing one coat, and the fix was to name them. A bare
+`.catch(() => {})` cannot say whether the silence was considered or merely convenient, so there are
+now two senders. `sendUserCommand` surfaces failure and covers 11 sites the user reaches by pressing
+a button — stop the recording, clear the logs, import a replay — where silence left them believing
+something happened that did not. `sendBackgroundCommand` swallows *by design*, with the reasoning in
+one place, and covers the `req:*` refreshes that are retried anyway and whose real signal is C2's
+staleness indicator rather than a toast per hiccup.
+
+44 down to 27. The remainder are clipboard writes, `invoke` calls and plugin actions that still need
+reading one at a time; the two named helpers mean any new bare swallow now stands out as untriaged.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

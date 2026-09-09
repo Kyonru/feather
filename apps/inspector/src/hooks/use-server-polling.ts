@@ -1,16 +1,16 @@
-import { sendCommand } from '@/lib/send-command';
+import { sendBackgroundCommand } from '@/lib/send-command';
 /**
  * Send a one-shot request to the game for all data.
  * Use this for manual reconnect / refresh buttons only.
  */
 export const requestAllData = (sessionId: string) => {
-  sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
+  sendBackgroundCommand(sessionId, { type: 'req:config' });
 
-  sendCommand(sessionId, { type: 'req:performance' }).catch(() => {});
+  sendBackgroundCommand(sessionId, { type: 'req:performance' });
 
-  sendCommand(sessionId, { type: 'req:observers' }).catch(() => {});
+  sendBackgroundCommand(sessionId, { type: 'req:observers' });
 
-  sendCommand(sessionId, { type: 'req:assets' }).catch(() => {});
+  sendBackgroundCommand(sessionId, { type: 'req:assets' });
 
-  sendCommand(sessionId, { type: 'req:plugins' }).catch(() => {});
+  sendBackgroundCommand(sessionId, { type: 'req:plugins' });
 };

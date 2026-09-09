@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { sendCommand } from '@/lib/send-command';
+import { sendCommand, sendUserCommand } from '@/lib/send-command';
 import { useSessionStore } from '@/store/session';
 import { sessionQueryKey } from './use-ws-connection';
 
@@ -174,7 +174,7 @@ export function useSessionReplay() {
   const startRecording = () => {
     if (!sessionId) return;
     if (status?.recording) return;
-    sendCommand(sessionId, { type: 'cmd:session_replay:start' }).catch(() => {});
+    sendUserCommand(sessionId, { type: 'cmd:session_replay:start' }, 'start the recording');
   };
 
   const stopRecording = () => {
@@ -183,7 +183,7 @@ export function useSessionReplay() {
       ...(prev ?? DEFAULT_STATUS),
       recording: false,
     }));
-    sendCommand(sessionId, { type: 'cmd:session_replay:stop' }).catch(() => {});
+    sendUserCommand(sessionId, { type: 'cmd:session_replay:stop' }, 'stop the recording');
   };
 
   const requestRecording = (id?: string | null) => {
@@ -216,7 +216,7 @@ export function useSessionReplay() {
   const seekRecording = (target: string | number, play = false) => {
     if (!sessionId) return;
     if (status?.recording) return;
-    sendCommand(sessionId, { type: 'cmd:session_replay:seek', data: { target, play } }).catch(() => {});
+    sendUserCommand(sessionId, { type: 'cmd:session_replay:seek', data: { target, play } }, 'seek the replay');
   };
 
   const stopReplay = () => {
@@ -225,7 +225,7 @@ export function useSessionReplay() {
       ...(prev ?? DEFAULT_STATUS),
       replaying: false,
     }));
-    sendCommand(sessionId, { type: 'cmd:session_replay:stop_replay' }).catch(() => {});
+    sendUserCommand(sessionId, { type: 'cmd:session_replay:stop_replay' }, 'stop the replay');
   };
 
   const importRecording = (files: SessionReplayFile[]) => {
@@ -240,13 +240,13 @@ export function useSessionReplay() {
       queryClient.setQueryData(sessionQueryKey.sessionReplayRecording(sessionId), imported);
       queryClient.setQueryData(sessionQueryKey.sessionReplaySelected(sessionId), id);
     }
-    sendCommand(sessionId, { type: 'cmd:session_replay:import', data: { files } }).catch(() => {});
+    sendUserCommand(sessionId, { type: 'cmd:session_replay:import', data: { files } }, 'import the replay');
   };
 
   const deleteRecording = (id?: string | null) => {
     if (!sessionId) return;
     const replayId = id ?? selectedReplayId ?? status?.replayId ?? null;
-    sendCommand(sessionId, { type: 'cmd:session_replay:delete', data: replayId ? { id: replayId } : {} }).catch(() => {});
+    sendUserCommand(sessionId, { type: 'cmd:session_replay:delete', data: replayId ? { id: replayId } : {} }, 'delete the replay');
     if (replayId) {
       queryClient.setQueryData<SessionReplayRecordings>(sessionQueryKey.sessionReplayRecordings(sessionId), (prev) => {
         const next = { ...(prev ?? {}) };

@@ -28,7 +28,7 @@ import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { evaluateProtocol } from '@/constants/feather-protocol';
 import { parseInbound } from '@feather/protocol';
 import { sessionQueryKey } from '@/lib/session-query-keys';
-import { sendCommand } from '@/lib/send-command';
+import { sendCommand, sendBackgroundCommand } from '@/lib/send-command';
 import { base64ToUint8Array } from '@/utils/arrays';
 import { normalizePerformanceMetric } from '@/utils/performance-metrics';
 import {
@@ -394,7 +394,7 @@ export const useWsConnection = () => {
           const hasConfig = !!queryClient.getQueryData(sessionQueryKey.config(sessionId));
           if (shouldRequestSessionConfig(session, hasConfig)) {
             markSessionPending(sessionId);
-            sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
+            sendBackgroundCommand(sessionId, { type: 'req:config' });
           }
         }
 
@@ -966,7 +966,7 @@ export const useWsConnection = () => {
       const unlistenStart = await listen<string>('feather://session-start', (event) => {
         if (cancelled) return;
         markSessionPending(event.payload);
-        sendCommand(event.payload, { type: 'req:config' }).catch(() => {});
+        sendBackgroundCommand(event.payload, { type: 'req:config' });
       });
 
       if (cancelled) {
@@ -991,7 +991,7 @@ export const useWsConnection = () => {
               const hasConfig = !!queryClient.getQueryData(sessionQueryKey.config(sessionId));
               if (!shouldRequestSessionConfig(session, hasConfig)) return;
               markSessionPending(sessionId);
-              sendCommand(sessionId, { type: 'req:config' }).catch(() => {});
+              sendBackgroundCommand(sessionId, { type: 'req:config' });
             });
           })
           .catch(() => {});

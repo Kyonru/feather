@@ -164,6 +164,70 @@ check('staleness is judged against the session, not the clock', () => {
   return `${pass} assertions — age alone never marks data stale`;
 });
 
+// --- C3 — every diagnosis names a next step --------------------------------
+
+section(
+  'C3',
+  'Warnings say what to do',
+  'pnpm run up  →  stop the game with Inspector open, then look at Session. The disconnected\n' +
+    '              warning now ends with the run command for your own project directory.',
+);
+
+check('every session warning carries an action', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/session/index.tsx'), 'utf8');
+  const blocks = source.match(/warnings\.push\(\{[\s\S]*?\}\);/g) ?? [];
+  if (blocks.length === 0) throw new Error('no warnings found — did the file move?');
+  const silent = blocks.filter((block) => !block.includes('action:') && !block.includes('remediation'));
+  if (silent.length) {
+    const ids = silent.map((block) => /id: '([^']+)'/.exec(block)?.[1] ?? '?');
+    throw new Error(`diagnosis without a next step: ${ids.join(', ')}`);
+  }
+  return `${blocks.length} warnings, all actionable`;
+});
+
+check('a breakpoint pause is not reported as a problem', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/session/index.tsx'), 'utf8');
+  if (/if \(pausedState \|\| debuggerProblemCount > 0\)/.test(source)) {
+    throw new Error('being paused still degrades session health');
+  }
+  return 'pausing is state, not a warning';
+});
+
+// --- C4 — silence is a decision, not a default -----------------------------
+
+section(
+  'C4',
+  'A failed action is not silent',
+  'pnpm run up  →  open Session Replay, stop the game, then press Stop. You get "Could not stop\n' +
+    '              the recording" instead of a button that appears to do nothing.',
+);
+
+check('user-initiated commands report failure', () => {
+  const expected = {
+    'hooks/use-session-replay.ts': 6,
+    'hooks/use-time-travel.ts': 2,
+    'hooks/use-logs.ts': 1,
+    'hooks/use-console.ts': 1,
+    'hooks/use-hot-reload.ts': 1,
+  };
+  const short = [];
+  for (const [file, count] of Object.entries(expected)) {
+    const found = (readFileSync(join(ROOT, 'apps/inspector/src', file), 'utf8').match(/sendUserCommand\(/g) ?? []).length;
+    if (found < count) short.push(`${file}: ${found}/${count}`);
+  }
+  if (short.length) throw new Error(`fewer surfaced than expected:\n      ${short.join('\n      ')}`);
+  return `${Object.values(expected).reduce((a, b) => a + b, 0)} actions surface their failure`;
+});
+
+check('background silence is named rather than implied', () => {
+  const helper = readFileSync(join(ROOT, 'apps/inspector/src/lib/send-command.ts'), 'utf8');
+  if (!helper.includes('sendBackgroundCommand')) throw new Error('no named background sender');
+  const users = inspectorSources.filter((file) => readFileSync(file, 'utf8').includes('sendBackgroundCommand('));
+  // The helper's own definition does not count as a call site.
+  if (users.length < 4) throw new Error(`only ${users.length} files use it`);
+  return `${users.length - 1} files declare their silence deliberate`;
+});
+
 // --- summary ---------------------------------------------------------------
 
 process.stdout.write(

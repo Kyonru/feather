@@ -121,11 +121,33 @@ async function stopSession(session) {
     refused ||= result.refused;
   }
 
-  if (!isProcessAlive(session.ownerPid) && session.children.every((child) => !isProcessAlive(child.pid))) {
+  if (isProcessAlive(session.ownerPid)) {
+    const currentOwner = expectedProcess(session.ownerPid, OWNER_MARKERS);
+    if (currentOwner.matches) {
+      log(`force stopping up session ${session.ownerPid}…`);
+      signalPid(session.ownerPid, 'SIGKILL');
+    } else if (currentOwner.alive) {
+      refused = true;
+      log(`refusing to force stop stale owner PID ${session.ownerPid}: ${currentOwner.command || 'command unavailable'}`);
+    }
+  }
+
+  const forceDeadline = Date.now() + 1_000;
+  while (Date.now() < forceDeadline) {
+    const ownerAlive = isProcessAlive(session.ownerPid);
+    const childAlive = session.children.some((child) => isProcessAlive(child.pid));
+    if (!ownerAlive && !childAlive) break;
+    await sleep(50);
+  }
+
+  const stopped = !isProcessAlive(session.ownerPid)
+    && session.children.every((child) => !isProcessAlive(child.pid));
+
+  if (stopped) {
     removeDevSession(ROOT, session.ownerPid);
   }
 
-  return refused;
+  return { refused, stopped };
 }
 
 async function main() {
@@ -154,8 +176,14 @@ async function main() {
       rmSync(entry.path, { force: true });
       continue;
     }
-    refused ||= await stopSession(entry.session);
-    stopped += 1;
+    const result = await stopSession(entry.session);
+    refused ||= result.refused;
+    if (result.stopped) {
+      stopped += 1;
+    } else {
+      refused = true;
+      log(`session ${entry.session.ownerPid} still has live processes; keeping its state record`);
+    }
   }
 
   if (stopped > 0) log(`Stopped ${stopped} pnpm run up session${stopped === 1 ? '' : 's'}.`);

@@ -3,6 +3,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -36,6 +37,7 @@ function validProcess(value) {
 export function validateDevSession(value, root) {
   if (!value || typeof value !== 'object') return null;
   if (value.version !== DEV_SESSION_VERSION) return null;
+  if (typeof value.root !== 'string') return null;
   if (resolve(String(value.root ?? '')) !== resolve(root)) return null;
   if (!validPid(value.ownerPid)) return null;
   if (!Array.isArray(value.children) || !value.children.every(validProcess)) return null;
@@ -59,10 +61,19 @@ export function writeDevSession(root, session) {
 
   const directory = devSessionDirectory(root);
   mkdirSync(directory, { recursive: true });
-  writeFileSync(devSessionPath(root, validated.ownerPid), `${JSON.stringify(validated, null, 2)}\n`, {
-    encoding: 'utf8',
-    mode: 0o600,
-  });
+  const target = devSessionPath(root, validated.ownerPid);
+  const temporary = `${target}.${process.pid}.tmp`;
+
+  try {
+    writeFileSync(temporary, `${JSON.stringify(validated, null, 2)}\n`, {
+      encoding: 'utf8',
+      mode: 0o600,
+    });
+    renameSync(temporary, target);
+  } catch (error) {
+    rmSync(temporary, { force: true });
+    throw error;
+  }
 }
 
 export function removeDevSession(root, ownerPid) {
