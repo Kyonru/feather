@@ -343,6 +343,18 @@ section(
     '              panel is not pretending a capture is still running.',
 );
 
+check('recording is marked the same way wherever it happens', () => {
+  // Two panels marked the same concept in opposite colours — the profiler green,
+  // Time Travel red. A capture in progress is neither "fine" nor a failure: it
+  // is costing frame time and waiting to be stopped, which is warn.
+  const profiler = readFileSync(join(ROOT, 'apps/inspector/src/pages/performance/profiler-panel.tsx'), 'utf8');
+  const timeTravel = readFileSync(join(ROOT, 'apps/inspector/src/pages/time-travel/index.tsx'), 'utf8');
+  if (/recording \? 'bg-ok'/.test(profiler)) throw new Error('the profiler marks recording as ok again');
+  if (!/recording \? 'bg-warn/.test(profiler)) throw new Error('the profiler recording dot lost its state');
+  if (!/animate-pulse rounded-full bg-warn/.test(timeTravel)) throw new Error('Time Travel diverged again');
+  return 'both use warn while a capture is running';
+});
+
 check('a profiler baseline survives the restart a comparison requires', () => {
   const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/profilerCarryOver.test.ts'], {
     cwd: ROOT,

@@ -573,8 +573,16 @@ export function ProfilerPanel() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={cn('size-2 rounded-full', recording ? 'bg-ok' : 'bg-muted-foreground')} />
-              <TriageSummaryChip label={recording ? 'Recording capture' : 'Capture stopped'} tone={recording ? 'good' : 'muted'} />
+              {/* Recording is `warn`, not `ok`, and it matches Time Travel now.
+                  The two panels marked the same concept in opposite colours —
+                  this one green, that one red — and neither reading was right.
+                  A capture in progress is not "fine" (it is costing frame time
+                  and you have to remember to stop it) and it is not a failure.
+                  It is the state that wants your attention, which is what warn
+                  is for. Keeping danger for actual failures is what keeps danger
+                  meaning something. */}
+              <span className={cn('size-2 rounded-full', recording ? 'bg-warn animate-pulse' : 'bg-muted-foreground')} />
+              <TriageSummaryChip label={recording ? 'Recording capture' : 'Capture stopped'} tone={recording ? 'warning' : 'muted'} />
               <TriageSummaryChip label="Elapsed" value={`${captureElapsed.toFixed(1)}s`} />
               <TriageSummaryChip label="Samples" value={sampleCount.toLocaleString()} />
               <TriageSummaryChip label="Total" value={formatSeconds(totalCapturedTime)} />

@@ -132,7 +132,7 @@ function RecordingState({ frameCount, bufferSize }: { frameCount: number; buffer
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3">
       <div className="flex items-center gap-2">
-        <span className="inline-block size-3 animate-pulse rounded-full bg-danger" />
+        <span className="inline-block size-3 animate-pulse rounded-full bg-warn" />
         <span className="text-sm font-medium">Recording…</span>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -140,7 +140,7 @@ function RecordingState({ frameCount, bufferSize }: { frameCount: number; buffer
       </p>
       <div className="h-1.5 w-64 overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-danger transition-all duration-500"
+          className="h-full rounded-full bg-warn transition-all duration-500"
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>

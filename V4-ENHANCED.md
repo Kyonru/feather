@@ -540,7 +540,7 @@ alone.
 | C4 | Swallowed-error triage | **MOSTLY DONE** | 44 → 27; 11 surface, 10 named deliberate; 27 left, mostly clipboard/invoke |
 | 6.1 | Logs | **MOSTLY DONE** | follow-tail fixed; scale measured; export of a filtered view still open |
 | 6.2 | Session | NOT STARTED | |
-| 6.3 | Performance / Profiler | **PARTLY DONE** | baseline survives a restart; capture cost and measuring-vs-idle still open |
+| 6.3 | Performance / Profiler | **DONE** | baseline survives a restart; recording state explicit and consistent with Time Travel |
 | 6.4 | Debugger | **DONE** | problem counts navigable; source failure names the path and the fix; keyboard stepping pinned |
 | 6.5 | Console | **REVIEWED, NO CHANGE** | long output already bounded with an expand; still the reference |
 | 6.6 | Assets | **PARTLY DONE** | Missing filter now truthful at scale; source-file path still open |
@@ -947,6 +947,27 @@ safe and listed five places where color was *claiming something untrue*. It did 
 correct token could be applied to the wrong role — the token was right, the surface/foreground choice
 was not, and nothing in the type system or the lint rule could see it. That class of error only
 shows up by looking at what a screen renders.
+
+**2026-09-10 — 6.3 finished: the two questions I left open.**
+
+*Is a capture's cost obvious before starting it?* Partly, and it did not need new work. The panel
+reports Elapsed, Samples and Total while a capture runs, and Performance carries a Feather overhead
+panel showing ms/frame and budget misses. The runtime measures its own cost per feature — gc,
+logger, observers, performance, profiler, transport — so the honest answer is that cost is visible
+*during*, not *before*. Predicting it beforehand would mean new instrumentation, which is a feature
+rather than a refinement.
+
+*Does the panel distinguish "cheap to leave open" from "actively measuring"?* Yes, explicitly:
+"Recording capture" against "Capture stopped", with a dot beside it.
+
+What the question surfaced was a **consistency bug between two panels**. The profiler marked
+recording with green; Time Travel marked it with red. The same concept, in opposite colours, in one
+product. Neither reading was right: a capture in progress is not "fine" — it is costing frame time
+and waiting to be stopped — and it is not a failure either. Both now use **warn**, which is the
+state that means *this is on and wants your attention*, and keeping danger for real failures is what
+keeps danger meaning something. That is the same call made for rejected breakpoints in 6.4, which is
+the point: with a real semantic channel these questions have consistent answers instead of
+per-panel taste.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it
