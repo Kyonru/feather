@@ -200,11 +200,6 @@ local VALID_TIMELINE_EASINGS = {
   inOutBounce = true,
 }
 
-local SIMPLE_TIMELINE_EASINGS = {
-  linear = true,
-  hold = true,
-}
-
 local function normalizeTimelineEasing(value)
   value = tostring(value or "linear")
   return VALID_TIMELINE_EASINGS[value] and value or "linear"
@@ -3161,129 +3156,6 @@ local function luaTimelineTable(timeline)
   return table.concat(lines, "\n")
 end
 
-local function timelineLanePlan(points)
-  if type(points) ~= "table" or #points == 0 then
-    return nil, false
-  end
-
-  local firstValue = safeNumber(points[1].value, 0)
-  local allSameValue = true
-  for _, point in ipairs(points) do
-    if math.abs(safeNumber(point.value, 0) - firstValue) > 0.000001 then
-      allSameValue = false
-      break
-    end
-  end
-  if #points == 1 or allSameValue then
-    return { kind = "constant", value = firstValue }, false
-  end
-
-  local simple = true
-  for index = 1, #points - 1 do
-    local easing = normalizeTimelineEasing(points[index].easing)
-    if not SIMPLE_TIMELINE_EASINGS[easing] then
-      simple = false
-      break
-    end
-  end
-
-  local plan = {
-    kind = simple and "linear" or "generic",
-    points = {},
-  }
-  for _, point in ipairs(points) do
-    plan.points[#plan.points + 1] = {
-      time = safeNumber(point.time, 0),
-      value = safeNumber(point.value, 0),
-      easing = normalizeTimelineEasing(point.easing),
-    }
-  end
-  return plan, not simple
-end
-
-local function buildTimelinePlan(timeline)
-  local plan = {
-    hasGenericLane = false,
-    tracks = {},
-  }
-
-  for _, track in ipairs(timeline.tracks or {}) do
-    local planTrack = {
-      systemIndex = math.max(1, math.floor(safeNumber(track.systemIndex, 1))),
-      clips = {},
-      lanes = {},
-    }
-    for _, clip in ipairs(track.clips or {}) do
-      planTrack.clips[#planTrack.clips + 1] = {
-        start = safeNumber(clip.start, 0),
-        ["end"] = safeNumber(clip["end"], timeline.duration),
-      }
-    end
-    for _, lane in ipairs(TIMELINE_LANES) do
-      local lanePlan, generic = timelineLanePlan(track.lanes and track.lanes[lane])
-      if lanePlan then
-        planTrack.lanes[lane] = lanePlan
-        plan.hasGenericLane = plan.hasGenericLane or generic
-      end
-    end
-    plan.tracks[#plan.tracks + 1] = planTrack
-  end
-
-  return plan
-end
-
-local function luaTimelinePlanTable(plan)
-  local lines = { "{" }
-  lines[#lines + 1] = "  hasGenericLane = " .. tostring(plan.hasGenericLane == true) .. ","
-  lines[#lines + 1] = "  tracks = {"
-  for _, track in ipairs(plan.tracks or {}) do
-    lines[#lines + 1] = "    {"
-    lines[#lines + 1] = "      systemIndex = " .. tostring(track.systemIndex) .. ","
-    lines[#lines + 1] = "      clips = {"
-    for _, clip in ipairs(track.clips or {}) do
-      lines[#lines + 1] = "        { start = " .. fmt(clip.start) .. ", [\"end\"] = " .. fmt(clip["end"]) .. " },"
-    end
-    lines[#lines + 1] = "      },"
-    lines[#lines + 1] = "      lanes = {"
-    for _, lane in ipairs(TIMELINE_LANES) do
-      local lanePlan = track.lanes and track.lanes[lane]
-      if lanePlan then
-        if lanePlan.kind == "constant" then
-          lines[#lines + 1] = "        " .. lane .. " = { kind = \"constant\", value = " .. fmt(lanePlan.value) .. " },"
-        elseif lanePlan.kind == "linear" then
-          lines[#lines + 1] = "        " .. lane .. " = { kind = \"linear\", points = {"
-          for _, point in ipairs(lanePlan.points or {}) do
-            lines[#lines + 1] = "          { "
-              .. fmt(point.time)
-              .. ", "
-              .. fmt(point.value)
-              .. ", "
-              .. quote(normalizeTimelineEasing(point.easing))
-              .. " },"
-          end
-          lines[#lines + 1] = "        } },"
-        elseif lanePlan.kind == "generic" then
-          lines[#lines + 1] = "        " .. lane .. " = { kind = \"generic\", points = {"
-          for _, point in ipairs(lanePlan.points or {}) do
-            lines[#lines + 1] = "          { time = "
-              .. fmt(point.time)
-              .. ", value = "
-              .. fmt(point.value)
-              .. ", easing = "
-              .. quote(normalizeTimelineEasing(point.easing))
-              .. " },"
-          end
-          lines[#lines + 1] = "        } },"
-        end
-      end
-    end
-    lines[#lines + 1] = "      },"
-    lines[#lines + 1] = "    },"
-  end
-  lines[#lines + 1] = "  },"
-  lines[#lines + 1] = "}"
-  return table.concat(lines, "\n")
-end
 
 local function luaAtlasTable(atlas)
   atlas = cloneTextureAtlas(atlas)
@@ -3588,7 +3460,19 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   local hasShaders = false
   local hasTextureAtlas = false
   local timeline = normalizeTimeline(entry.timeline, timelineSystemsForPlugin(self, name))
-  local timelinePlan = buildTimelinePlan(timeline)
+
+  -- V4-PARTICLES.md §5.2: an effect pays only for the tier it uses. If no lane
+  -- varies over time, the exported file needs no timeline machinery at all —
+  -- the values are set once and never touched again, which is the shape Hot
+  -- Particles emits. Decided by core.lua on the compiled result rather than by
+  -- a separate classifier that could disagree with it.
+  local timelineIsStatic = true
+  for _, track in ipairs(timeline.tracks or {}) do
+    if not TimelineRuntime.trackIsStatic(TimelineRuntime.compileTrack(track, timeline.duration)) then
+      timelineIsStatic = false
+      break
+    end
+  end
   local lines = {
     "-- Generated by Feather Particles Playground",
     "-- " .. os.date("%Y-%m-%d %H:%M:%S"),
@@ -3607,7 +3491,6 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
     "local systems = {}",
     "local particles = { x = " .. fmt(entry.x or 0) .. ", y = " .. fmt(entry.y or 0) .. ", systems = systems, instances = activeInstances }",
     "local timeline = " .. luaTimelineTable(timeline),
-    "local optimizedTimelinePlan = " .. luaTimelinePlanTable(timelinePlan),
     "local timelineState = { time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0 }",
     "local TIMELINE_APPLY_INTERVAL = " .. fmt(1 / 15),
     "local MAX_POOLED_INSTANCES = 8",
@@ -3981,193 +3864,76 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return particles"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  if timelinePlan.hasGenericLane then
-    -- The exported file embeds core.lua verbatim rather than a restatement of
-    -- it, so the curve someone ships is evaluated by the same code that
-    -- evaluated it in the preview. See V4-PARTICLES.md P1.
-    local coreSource = TimelineRuntimeBundle.coreSource()
-    if not coreSource then
-      error("particle export: cannot read core.lua to embed; refusing to emit a stale copy")
-    end
-    lines[#lines + 1] = "local ParticleCore = (function()"
-    appendIndentedSource(lines, coreSource, "  ")
+  -- The exported file embeds core.lua and apply.lua verbatim rather than a
+  -- restatement of them, so the curve someone ships is evaluated by the same
+  -- code that evaluated it in the preview, and the setters are sent by the same
+  -- change detector. Unconditionally: this used to be emitted only when a lane
+  -- needed the "full" evaluator, which meant simple effects ran a *different*
+  -- evaluator from the one the editor showed. See V4-PARTICLES.md P1 and P5.
+  local coreSource = TimelineRuntimeBundle.coreSource()
+  if not coreSource then
+    error("particle export: cannot read core.lua to embed; refusing to emit a stale copy")
+  end
+  local applySource = TimelineRuntimeBundle.applySource()
+  if not applySource then
+    error("particle export: cannot read apply.lua to embed; refusing to emit a stale copy")
+  end
+  lines[#lines + 1] = "local ParticleCore = (function()"
+  appendIndentedSource(lines, coreSource, "  ")
+  lines[#lines + 1] = "end)()"
+  if not timelineIsStatic then
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = "local ParticleApply = (function()"
+    lines[#lines + 1] = "  local require = function() return ParticleCore end"
+    appendIndentedSource(lines, applySource, "  ")
     lines[#lines + 1] = "end)()"
-  else
-    lines[#lines + 1] = "local ParticleCore = nil"
   end
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function validMode(mode)"
-  lines[#lines + 1] = "  return mode == \"one-shot\" or mode == \"loop\" or mode == \"ambient\""
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function normalizeMode(mode, loop)"
-  lines[#lines + 1] = "  if validMode(mode) then return mode end"
-  lines[#lines + 1] = "  return loop == true and \"loop\" or \"one-shot\""
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
+  -- The timeline, expressed by requiring the modules rather than restating
+  -- them. Everything below used to be emitted as generated Lua: mode
+  -- normalization, clamping, a keyframe evaluator, clip gating, and a bespoke
+  -- change detector — each a copy of something in core.lua or apply.lua, and
+  -- each free to drift from it. See V4-PARTICLES.md P5.
   lines[#lines + 1] = "local function timelineMode(instance)"
-  lines[#lines + 1] = "  if instance and instance.mode ~= nil then return normalizeMode(instance.mode, instance.loop) end"
-  lines[#lines + 1] = "  if timelineState.mode ~= nil then return normalizeMode(timelineState.mode, timelineState.loop) end"
-  lines[#lines + 1] = "  return normalizeMode(timeline.mode, timeline.loop)"
+  lines[#lines + 1] = "  if instance and instance.mode ~= nil then return ParticleCore.normalizeMode(instance.mode, instance.loop) end"
+  lines[#lines + 1] = "  if timelineState.mode ~= nil then return ParticleCore.normalizeMode(timelineState.mode, timelineState.loop) end"
+  lines[#lines + 1] = "  return ParticleCore.normalizeMode(timeline.mode, timeline.loop)"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function timelineShouldLoop(instance)"
   lines[#lines + 1] = "  return timelineMode(instance) == \"loop\""
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function clampTimelineValue(value, minValue, maxValue)"
-  lines[#lines + 1] = "  value = tonumber(value) or 0"
-  lines[#lines + 1] = "  if value < minValue then return minValue end"
-  lines[#lines + 1] = "  if value > maxValue then return maxValue end"
-  lines[#lines + 1] = "  return value"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function evaluatePlannedLane(lane, time, fallback)"
-  lines[#lines + 1] = "  if not lane then return fallback end"
-  lines[#lines + 1] = "  if lane.kind == \"constant\" then return lane.value end"
-  lines[#lines + 1] = "  if lane.kind == \"linear\" then"
-  lines[#lines + 1] = "    local points = lane.points"
-  lines[#lines + 1] = "    local count = points and #points or 0"
-  lines[#lines + 1] = "    if count == 0 then return fallback end"
-  lines[#lines + 1] = "    if time <= points[1][1] then return points[1][2] end"
-  lines[#lines + 1] = "    for index = 1, count - 1 do"
-  lines[#lines + 1] = "      local a = points[index]"
-  lines[#lines + 1] = "      local b = points[index + 1]"
-  lines[#lines + 1] = "      local at = a[1]"
-  lines[#lines + 1] = "      local bt = b[1]"
-  lines[#lines + 1] = "      if time >= at and time <= bt then"
-  lines[#lines + 1] = "        if a[3] == \"hold\" then return a[2] end"
-  lines[#lines + 1] = "        local amount = clampTimelineValue((time - at) / math.max(0.0001, bt - at), 0, 1)"
-  lines[#lines + 1] = "        return a[2] + (b[2] - a[2]) * amount"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "    end"
-  lines[#lines + 1] = "    return points[count][2]"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return ParticleCore.evaluate(lane.points, time, fallback)"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function clipAllowsEmission(clip, time, emitterLifetime, mode)"
-  lines[#lines + 1] = "  local startTime = tonumber(clip and clip.start) or 0"
-  lines[#lines + 1] = "  local endTime = tonumber(clip and clip[\"end\"]) or 0"
-  lines[#lines + 1] = "  if time < startTime then return false end"
-  lines[#lines + 1] = "  local lifetime = tonumber(emitterLifetime) or -1"
-  lines[#lines + 1] = "  if mode == \"ambient\" and lifetime < 0 then return true end"
-  lines[#lines + 1] = "  if time > endTime then return false end"
-  lines[#lines + 1] = "  if lifetime < 0 then return true end"
-  lines[#lines + 1] = "  return time <= startTime + lifetime"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function trackAllowsEmission(track, time, emitterLifetime, mode)"
-  lines[#lines + 1] = "  local clips = track and track.clips"
-  lines[#lines + 1] = "  if not clips then return false end"
-  lines[#lines + 1] = "  for index = 1, #clips do"
-  lines[#lines + 1] = "    if clipAllowsEmission(clips[index], time, emitterLifetime, mode) then return true end"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return false"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function timelineValues(emitter)"
-  lines[#lines + 1] = "  local values = emitter.timelineValues"
-  lines[#lines + 1] = "  if not values then"
-  lines[#lines + 1] = "    values = {}"
-  lines[#lines + 1] = "    emitter.timelineValues = values"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return values"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function setTimelineValue(emitter, key, value, epsilon)"
-  lines[#lines + 1] = "  local values = timelineValues(emitter)"
-  lines[#lines + 1] = "  local previous = values[key]"
-  lines[#lines + 1] = "  if previous == nil or math.abs(value - previous) > epsilon then"
-  lines[#lines + 1] = "    values[key] = value"
-  lines[#lines + 1] = "    return true"
-  lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return false"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function invalidateTimelineValues(emitter)"
-  lines[#lines + 1] = "  if not emitter then return end"
-  lines[#lines + 1] = "  emitter.timelineValues = nil"
-  lines[#lines + 1] = "  emitter.timelineSizes = nil"
-  lines[#lines + 1] = "end"
-  lines[#lines + 1] = ""
-  lines[#lines + 1] = "local function applyTimelinePlan(instance, time, allowEmission)"
-  lines[#lines + 1] = "  if not instance then return end"
-  lines[#lines + 1] = "  local mode = timelineMode(instance)"
-  lines[#lines + 1] = "  local selectedIndex = instance.systemIndex"
-  lines[#lines + 1] = "  local directionOffset = instance.directionOffset or 0"
-  lines[#lines + 1] = "  for index = 1, #optimizedTimelinePlan.tracks do"
-  lines[#lines + 1] = "    local track = optimizedTimelinePlan.tracks[index]"
-  lines[#lines + 1] = "    local emitter = instance.systems[index]"
-  lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system and (not selectedIndex or selectedIndex == index) then"
-  lines[#lines + 1] = "      local ps = emitter.system"
-  lines[#lines + 1] = "      local base = emitter.base or {}"
-  lines[#lines + 1] = "      local lanes = track.lanes or {}"
-  lines[#lines + 1] = "      local active = trackAllowsEmission(track, time, base.emitterLifetime, mode)"
-  lines[#lines + 1] = "      local emissionRate = 0"
-  lines[#lines + 1] = "      if active and allowEmission == true then"
-  lines[#lines + 1] = "        emissionRate = math.max(0, evaluatePlannedLane(lanes.emissionRate, time, base.emissionRate or 0))"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      local particleChanged = false"
-  lines[#lines + 1] = "      if setTimelineValue(emitter, \"emissionRate\", emissionRate, 0.5) then"
-  lines[#lines + 1] = "        ps:setEmissionRate(emissionRate)"
-  lines[#lines + 1] = "        particleChanged = true"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      if lanes.speedScale then"
-  lines[#lines + 1] = "        local speedScale = math.max(0, evaluatePlannedLane(lanes.speedScale, time, 1))"
-  lines[#lines + 1] = "        if setTimelineValue(emitter, \"speedScale\", speedScale, 0.001) then"
-  lines[#lines + 1] = "          ps:setSpeed((base.speedMin or 0) * speedScale, (base.speedMax or 0) * speedScale)"
-  lines[#lines + 1] = "          particleChanged = true"
-  lines[#lines + 1] = "        end"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      if lanes.sizeScale then"
-  lines[#lines + 1] = "        local sizeScale = math.max(0, evaluatePlannedLane(lanes.sizeScale, time, 1))"
-  lines[#lines + 1] = "        local baseSizes = base.sizes"
-  lines[#lines + 1] = "        if baseSizes and #baseSizes > 0 and setTimelineValue(emitter, \"sizeScale\", sizeScale, 0.001) then"
-  lines[#lines + 1] = "          local scaled = emitter.timelineSizes"
-  lines[#lines + 1] = "          if not scaled then scaled = {}; emitter.timelineSizes = scaled end"
-  lines[#lines + 1] = "          for sizeIndex = 1, #baseSizes do scaled[sizeIndex] = math.max(0, baseSizes[sizeIndex] * sizeScale) end"
-  lines[#lines + 1] = "          for sizeIndex = #baseSizes + 1, #scaled do scaled[sizeIndex] = nil end"
-  lines[#lines + 1] = "          ps:setSizes(unpack(scaled))"
-  lines[#lines + 1] = "          particleChanged = true"
-  lines[#lines + 1] = "        end"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      if lanes.direction or setTimelineValue(emitter, \"directionOffset\", directionOffset, 0.0001) then"
-  lines[#lines + 1] = "        local direction = evaluatePlannedLane(lanes.direction, time, base.direction or 0) + directionOffset"
-  lines[#lines + 1] = "        if setTimelineValue(emitter, \"direction\", direction, 0.0001) then"
-  lines[#lines + 1] = "          ps:setDirection(direction)"
-  lines[#lines + 1] = "          particleChanged = true"
-  lines[#lines + 1] = "        end"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      if lanes.spread then"
-  lines[#lines + 1] = "        local spread = evaluatePlannedLane(lanes.spread, time, base.spread or 0)"
-  lines[#lines + 1] = "        if setTimelineValue(emitter, \"spread\", spread, 0.0001) then"
-  lines[#lines + 1] = "          ps:setSpread(spread)"
-  lines[#lines + 1] = "          particleChanged = true"
-  lines[#lines + 1] = "        end"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      if lanes.offsetX or lanes.offsetY then"
-  lines[#lines + 1] = "        local offsetX = evaluatePlannedLane(lanes.offsetX, time, base.offsetX or 0)"
-  lines[#lines + 1] = "        local offsetY = evaluatePlannedLane(lanes.offsetY, time, base.offsetY or 0)"
-  lines[#lines + 1] = "        local offsetXChanged = setTimelineValue(emitter, \"offsetX\", offsetX, 0.01)"
-  lines[#lines + 1] = "        local offsetYChanged = setTimelineValue(emitter, \"offsetY\", offsetY, 0.01)"
-  lines[#lines + 1] = "        if offsetXChanged or offsetYChanged then"
-  lines[#lines + 1] = "          ps:setOffset(offsetX, offsetY)"
-  lines[#lines + 1] = "          particleChanged = true"
-  lines[#lines + 1] = "        end"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      if lanes.opacity then"
-  lines[#lines + 1] = "        local opacity = clampTimelineValue(evaluatePlannedLane(lanes.opacity, time, 1), 0, 1)"
-  lines[#lines + 1] = "        if setTimelineValue(emitter, \"opacity\", opacity, 0.001) then emitter.opacity = opacity end"
-  lines[#lines + 1] = "      end"
-  lines[#lines + 1] = "      if particleChanged and emitter.variantSystems then syncAtlasVariants(emitter) end"
-  lines[#lines + 1] = "    end"
-  lines[#lines + 1] = "  end"
+  if timelineIsStatic then
+  lines[#lines + 1] = "-- Every lane holds one value for the whole timeline, so the emitters are"
+  lines[#lines + 1] = "-- configured once when they start and never touched again. No sampling, no"
+  lines[#lines + 1] = "-- per-frame apply, no timeline runtime."
+  else
+  lines[#lines + 1] = "-- Lanes are compiled once at load: constant lanes to a number, varying lanes"
+  lines[#lines + 1] = "-- to a lookup table sampled at the frame rate. Same code the editor ran."
+  lines[#lines + 1] = "local compiledTracks = {}"
+  lines[#lines + 1] = "for index, track in ipairs(timeline.tracks or {}) do"
+  lines[#lines + 1] = "  compiledTracks[index] = ParticleCore.compileTrack(track, timeline.duration)"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function applyTimeline(instance, time, allowEmission)"
-  lines[#lines + 1] = "  applyTimelinePlan(instance, time, allowEmission)"
+  lines[#lines + 1] = "  if not instance then return end"
+  lines[#lines + 1] = "  local mode = timelineMode(instance)"
+  lines[#lines + 1] = "  for index, compiled in ipairs(compiledTracks) do"
+  lines[#lines + 1] = "    local emitter = instance.systems[index]"
+  lines[#lines + 1] = "    if emitter and emitter.enabled and emitter.system and (not instance.systemIndex or instance.systemIndex == index) then"
+  lines[#lines + 1] = "      emitter.applyState = emitter.applyState or ParticleApply.newState()"
+  lines[#lines + 1] = "      emitter.tickOptions = emitter.tickOptions or {}"
+  lines[#lines + 1] = "      emitter.tickOptions.mode = mode"
+  lines[#lines + 1] = "      emitter.tickOptions.allowEmission = allowEmission ~= false"
+  lines[#lines + 1] = "      local resolved, calls = ParticleApply.tick("
+  lines[#lines + 1] = "        emitter.applyState, emitter.system, compiled, time, emitter.base or {}, emitter.tickOptions)"
+  lines[#lines + 1] = "      emitter.opacity = resolved.opacity"
+  lines[#lines + 1] = "      if calls > 0 and emitter.variantSystems then syncAtlasVariants(emitter) end"
+  lines[#lines + 1] = "    end"
+  lines[#lines + 1] = "  end"
   lines[#lines + 1] = "end"
+  end
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function shouldApplyTimeline(instance, dt)"
   lines[#lines + 1] = "  if timelineMode(instance) ~= \"ambient\" then"
@@ -4434,9 +4200,17 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "      instance.time = nextTime"
   lines[#lines + 1] = "    end"
-  lines[#lines + 1] = "    if shouldApplyTimeline(instance, dt) then"
-  lines[#lines + 1] = "      applyTimeline(instance, instance.time, instance.playing)"
-  lines[#lines + 1] = "    end"
+  -- Tier 0 (V4-PARTICLES.md §5.2): with no varying lane there is nothing for a
+  -- per-frame apply to do. The values were set once when the emitter started
+  -- and cannot change, so the exported file does not carry the call at all.
+  if timelineIsStatic then
+    lines[#lines + 1] = "    -- No lane varies over time, so nothing is re-applied per frame."
+  else
+    lines[#lines + 1] = "    if shouldApplyTimeline(instance, dt) then"
+    lines[#lines + 1] = "      applyTimeline(instance, instance.time, instance.playing)"
+    lines[#lines + 1] = "    end"
+  end
+
   lines[#lines + 1] = "    for index, emitter in ipairs(instance.systems or {}) do"
   lines[#lines + 1] = "      if emitter.enabled and emitter.system and (not instance.systemIndex or instance.systemIndex == index) then"
   lines[#lines + 1] = "        for _, ps in ipairs(atlasSystems(emitter)) do ps:update(dt) end"

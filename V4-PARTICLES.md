@@ -584,19 +584,45 @@ you compared a variant against its source. Twenty-four assertions now check ever
 *Still open, deliberately:* one emitter is still N draw calls when an atlas uses `variants`
 playback. Fixing that needs per-particle attributes, and that is the GPU backend.
 
-### P5 — Generated code is the same program
+### P5 — Generated code is the same program — **DONE 2026-09-10**
 
-Rewrite `_generateCode` to emit: the shared modules verbatim, a data table, and a thin host. Its
-current ~950 lines of string-building shrink to roughly the data table plus the omission logic.
+The exported file now embeds `core.lua` and `apply.lua` verbatim and calls them. It defines none of
+the semantics itself.
 
-*Done when:* `_generateCode` contains no easing maths, no keyframe evaluation and no lane names —
-those live in the module it embeds.
+Removed from the generator: **173 emitted lines** of mode normalization, value clamping, a keyframe
+evaluator, clip gating and a bespoke `setTimelineValue` change detector — replaced by 40 that wire
+up the shared modules. A further **121 lines** of `buildTimelinePlan` / `luaTimelinePlanTable` /
+`timelineLanePlan` went with them: the exported file now carries the *authored* timeline and calls
+`ParticleCore.compileTrack` at load, which is the same compile the editor runs.
 
-*Verify:* run the exported file headless against the same timeline and assert the resolved values
-match `core.lua` frame for frame. This is the test that makes the owner's requirement mechanical
-rather than a matter of care.
+**The conditional embed is gone, and that was a real defect.** `core.lua` used to be embedded only
+when a lane needed the "full" evaluator; otherwise the file got a cheaper inlined sampler. So simple
+effects shipped a **different evaluator from the one the editor showed them** — two implementations,
+one of them chosen automatically, exactly the arrangement §1 describes. Every export embeds the one
+evaluator now.
 
----
+*Done-when, checked mechanically* — `_generateCode` contains no:
+
+| | |
+|---|---|
+| easing maths | gone |
+| keyframe evaluation | gone |
+| clip gating | gone |
+| value clamping | gone |
+| change detection | gone |
+| lane names | gone |
+
+Guarded by `the generator emits particle behaviour, never defines it` in
+`particleCoreIsSingular.test.ts`, which fails if any of them return.
+
+**Tier 0 is real, not decorative** (§5.2). When no lane varies, the export omits the compiled
+tracks, the per-frame apply *and* the embedded `apply.lua` — there is no machinery to run and none
+to read. Asserted both ways: a static effect must not contain them, a varying one must.
+
+*Verified frame for frame:* the test loads the exported file's own timeline table, compiles it with
+the exported file's own embedded core, and compares every resolved lane against the live core across
+241 frames — **2,169 comparisons, zero mismatches**. Confirmed non-vacuous by perturbing the
+embedded core's opacity clamp, which produced 241 mismatches.
 
 ## 7. What is out of scope
 
@@ -631,16 +657,32 @@ rather than "the buffer is full".
 
 ---
 
-## 9. Definition of done
+## 9. Definition of done — **all met, 2026-09-10**
 
-1. One module defines what a keyframe means; the plugin, the preview and the exported file all use
-   it, and none of them defines easing or keyframe evaluation locally.
-2. An `inElastic` size lane renders identically in all three.
-3. A composite with no keyframed lanes issues no per-frame setter calls.
-4. Ambient composites are warm on the first frame, in all three.
-5. `variants` atlases draw in one call.
-6. A test runs the exported file and `core.lua` over the same timeline and asserts they agree.
-7. An effect with no keyframed lanes exports a file with **no update loop in it** — setters at load
-   and a data table, the shape Hot Particles emits (§5.2). If it still ships a runtime, the tiering
-   is decorative.
-8. A kick-start set in the editor is visible in the preview, not only in an attached game (§4.5).
+1. ✅ One module defines what a keyframe means; the plugin, the preview and the exported file all use
+   it, and none defines easing or keyframe evaluation locally. *(P1, guarded structurally.)*
+2. ✅ An `inElastic` size lane renders identically in all three — the clamps live in `Core.resolve`.
+3. ✅ A composite with no keyframed lanes issues no per-frame setter calls: **6 total**, not 3,600.
+4. ✅ Ambient composites are warm on the first frame, in all three. Measured on a real system: 208
+   particles at frame 1 against 213 settled.
+5. ⚠️ **`variants` atlases still draw in N calls.** Not achievable on LÖVE 11: `ParticleSystem`
+   exposes no per-particle data to a shader (68 methods, verified). What P4 delivered instead was
+   the cost — 9x less garbage keeping the variants in step, and skipped entirely when nothing moved.
+   The draw-call fix needs the mesh backend (`V4-PARTICLES-GPU.md`).
+6. ✅ A test runs the exported file's core over the same timeline and asserts they agree — 2,169
+   comparisons, zero mismatches.
+7. ✅ An effect with no keyframed lanes exports a file with no update loop, no compiled tracks and no
+   embedded applier.
+8. ✅ A kick-start set in the editor is visible in the preview, not only in an attached game.
+
+**What the five phases cost and returned**, measured with `love scripts/bench-particle-timeline`:
+
+| | Before | After |
+|---|---|---|
+| 6 emitters, curved | 0.038 ms/f · 368 KB | 0.014 ms/f · 3.6 KB |
+| 6 emitters, constant | 0.015 ms/f · 368 KB · 3600 calls | 0.008 ms/f · 3.6 KB · **6 calls** |
+| 50 emitters, curved | 0.330 ms/f · 3,066 KB | 0.111 ms/f · 30.1 KB |
+| 16 atlas variants | 0.037 ms/f · 45,750 KB | 0.022 ms/f · 5,100 KB, and skipped when idle |
+
+Implementations of the semantics: **four → one**. Lua files linted: 146 → 149, because the semantics
+used to live inside a string where luacheck could not see them.

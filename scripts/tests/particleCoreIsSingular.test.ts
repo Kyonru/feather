@@ -112,6 +112,34 @@ test('the per-frame path does not pcall calls that cannot fail', () => {
   );
 });
 
+test('the generator emits particle behaviour, never defines it', () => {
+  const source = read('packages/runtime-lua/plugins/particle-system-playground/init.lua');
+  const generator = /function ParticleSystemPlaygroundPlugin:_generateCode[\s\S]*?\nend$/m.exec(source);
+  assert.ok(generator, '_generateCode not found');
+  const body = generator[0];
+
+  // The generator's job is to decide what to *omit* and to emit a data table.
+  // Every one of these was previously written out as generated Lua, which meant
+  // the file someone shipped ran a second implementation of the semantics.
+  // See V4-PARTICLES.md P5.
+  const mustNotDefine: Array<[string, RegExp]> = [
+    ['easing maths', /inSine|outBack|outElastic|easeOutBounce/],
+    ['keyframe evaluation', /evaluateKeyframes|evaluatePlannedLane|sampleTimelineLane/],
+    ['clip gating', /function clipAllowsEmission|function trackAllowsEmission/],
+    ['value clamping', /clampTimelineValue/],
+    ['change detection', /setTimelineValue/],
+    ['lane names', /"opacity"|"sizeScale"|"speedScale"/],
+  ];
+
+  for (const [what, pattern] of mustNotDefine) {
+    assert.ok(
+      !pattern.test(body),
+      `_generateCode still emits its own ${what}. It belongs in core.lua or apply.lua, ` +
+        'which the exported file embeds.',
+    );
+  }
+});
+
 test('the exported file embeds core.lua rather than a restatement of it', () => {
   const plugin = read('packages/runtime-lua/plugins/particle-system-playground/init.lua');
   assert.match(plugin, /coreSource\(\)/, 'the exporter must read core.lua to embed it');

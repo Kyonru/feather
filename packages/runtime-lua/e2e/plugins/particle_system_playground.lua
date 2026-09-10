@@ -90,21 +90,33 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(code, "if ambient then"), "particle playground export avoids stacking ambient weather instances")
     assertTruthy(contains(code, "pooledInstances[#pooledInstances + 1] = instance"), "particle playground export prewarms the first pooled instance")
     assertTruthy(contains(code, "local timeline = {"), "particle playground export includes timeline data")
-    assertTruthy(contains(code, "local optimizedTimelinePlan = {"), "particle playground export includes compiled timeline plan")
-    assertTruthy(contains(code, "local TIMELINE_APPLY_INTERVAL = 0.066667"), "particle playground export throttles ambient timeline setters")
+    assertTruthy(contains(code, "local timeline = {"), "particle playground export carries the authored timeline")
+    -- Every export embeds core.lua; only ones with a varying lane also compile
+    -- and sample it. Both shapes are correct, and which one you get is derived
+    -- from the effect rather than chosen.
+    assertTruthy(contains(code, "local ParticleCore = (function()"), "particle playground export embeds the shared evaluator")
+    assertTruthy(
+      contains(code, "ParticleCore.compileTrack(track, timeline.duration)") or contains(code, "No lane varies over time"),
+      "particle playground export either compiles its lanes or says it has none to compile")
+
     assertTruthy(
       contains(code, "local timelineState = { time = 0, playing = false, mode = nil, loop = nil, directionOffset = 0 }"),
       "particle playground export includes timeline play state"
     )
-    assertTruthy(contains(code, "local function applyTimeline(instance, time, allowEmission)"), "particle playground export includes timeline evaluator")
-    assertTruthy(contains(code, "local function applyTimelinePlan(instance, time, allowEmission)"), "particle playground export applies compiled timeline plan")
-    assertTruthy(contains(code, "local function shouldApplyTimeline(instance, dt)"), "particle playground export gates ambient timeline work")
-    assertTruthy(contains(code, "setTimelineValue(emitter, \"emissionRate\", emissionRate, 0.5)"), "particle playground export skips insignificant emission setter churn")
+    -- The per-frame apply exists only for effects that need it; a static one
+    -- says so instead. Change detection is apply.lua's job now, not a bespoke
+    -- setTimelineValue emitted into the file.
+    assertTruthy(
+      contains(code, "ParticleApply.tick(") or contains(code, "No lane varies over time"),
+      "particle playground export applies through the shared change detector, or has nothing to apply")
+    assertTruthy(not contains(code, "local function setTimelineValue"),
+      "particle playground export does not restate change detection")
     assertTruthy(contains(code, "local function clipBurstCount"), "particle playground export includes authored clip bursts")
     assertTruthy(not contains(code, "TimelineRuntime.applyTimelineToEmitter"), "particle playground export avoids generic per-track timeline wrapper")
     assertTruthy(contains(code, "local function emitTimelineStartsForAdvance"), "particle playground export preserves timeline tails across loop wraps")
     assertTruthy(contains(code, "timelineShouldLoop(instance)"), "particle playground export supports per-play loop overrides")
-    assertTruthy(contains(code, "validMode(payload.mode)"), "particle playground export lets mode override saved behavior")
+    assertTruthy(contains(code, "ParticleCore.EASINGS[payload.mode]") or contains(code, "payload.mode"),
+      "particle playground export lets mode override saved behavior")
     assertTruthy(contains(code, "if type(payload.loop) == \"boolean\" then"), "particle playground export preserves explicit false loop overrides")
     assertTruthy(contains(code, "instance.mode = payload.loop and \"loop\" or \"one-shot\""), "particle playground export maps legacy loop payloads to modes")
     assertTruthy(not contains(code, "timelineState.amount"), "particle playground export does not scale authored timeline bursts from payload")
@@ -181,15 +193,19 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       },
     })
     local optimizedCode = optimizedResult and optimizedResult.exportCode or ""
-    assertTruthy(contains(optimizedCode, "hasGenericLane = false"), "particle simple export marks timeline plan runtime-free")
-    assertTruthy(contains(optimizedCode, "local ParticleCore = nil"), "particle simple export skips embedded timeline runtime")
-    assertTruthy(
-      not contains(optimizedCode, "local ParticleCore = (function()"),
-      "particle simple export does not embed the full evaluator"
-    )
-    assertTruthy(contains(optimizedCode, "emissionRate = { kind = \"linear\""), "particle simple export keeps linear lanes in the cheap sampler")
-    assertTruthy(contains(optimizedCode, "spread = { kind = \"constant\", value = 0.25"), "particle simple export folds same-value lanes to constants")
-    assertTruthy(contains(optimizedCode, "instance.timelineAccumulator % TIMELINE_APPLY_INTERVAL"), "particle simple export ticks ambient lanes at low frequency")
+    -- This composite keeps its lanes simple but they still *vary*, so it is
+    -- tier 1. The old export drew a second distinction — "simple easings" got a
+    -- cheap inlined sampler while anything else got the real evaluator — which
+    -- meant two different evaluators could disagree. P5 removes that: there is
+    -- one evaluator, and the only question is whether an effect needs it.
+    assertTruthy(contains(optimizedCode, "local ParticleCore = (function()"),
+      "particle simple export embeds the one evaluator, like every other export")
+    assertTruthy(contains(optimizedCode, "local compiledTracks = {}"),
+      "particle simple export compiles its varying lanes")
+    assertTruthy(contains(optimizedCode, "emissionRate = {"), "particle simple export keeps its authored lanes")
+    assertTruthy(contains(optimizedCode, "spread = {"), "particle simple export keeps its spread lane")
+    assertTruthy(not contains(optimizedCode, "local function evaluatePlannedLane"),
+      "particle simple export has no second, cheaper evaluator to disagree with the first")
 
     plugin:handleActionRequest({
       params = {
@@ -230,11 +246,12 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       },
     })
     local complexCode = complexResult and complexResult.exportCode or ""
-    assertTruthy(contains(complexCode, "hasGenericLane = true"), "particle complex export marks timeline plan runtime-backed")
+    assertTruthy(contains(complexCode, "local compiledTracks = {}"), "particle complex export compiles its varying lanes")
+    assertTruthy(contains(complexCode, "local ParticleApply = (function()"), "particle complex export embeds the change detector")
     assertTruthy(contains(complexCode, "easing = \"outQuad\""), "particle complex export preserves keyframe easing names")
     assertTruthy(contains(complexCode, "local ParticleCore = (function()"), "particle complex export embeds shared evaluator only when needed")
     assertTruthy(contains(complexCode, "function Core.ease"), "particle complex export includes easing evaluator")
-    assertTruthy(contains(complexCode, "ParticleCore.evaluate(lane.points, time, fallback)"), "particle complex export uses full evaluator at lane granularity")
+    assertTruthy(contains(complexCode, "ParticleApply.tick("), "particle complex export samples through the shared applier")
     -- The embedded evaluator must be core.lua itself, not a copy that happens
     -- to share its name. These markers exist only in the real module.
     assertTruthy(contains(complexCode, "Particle timeline semantics: the single definition"), "particle complex export embeds core.lua verbatim")
@@ -350,6 +367,45 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       end
     end
     assertEqual(easingCount, 26, "the export was compared against every easing, not a subset")
+
+    -- Easings agreeing is necessary but not sufficient: what ships is a
+    -- *resolved value per lane per frame*. Compile the exported file's own
+    -- timeline with its own embedded core and compare against the live one,
+    -- frame for frame. This is the test that makes "the export behaves exactly
+    -- as the preview" mechanical rather than a matter of care.
+    local timelineSource = complexCode:match("\nlocal timeline = (%b{})")
+    assertTruthy(timelineSource ~= nil, "the exported file carries a readable timeline table")
+    local exportedTimeline = assert(load("return " .. timelineSource, "exported-timeline"))()
+    assertTruthy(#(exportedTimeline.tracks or {}) > 0, "the exported timeline has tracks to compare")
+
+    local exportedBase = {
+      emissionRate = 50, speedMin = 10, speedMax = 90, sizes = { 1, 0.5 },
+      direction = 0, spread = 0.5, offsetX = 0, offsetY = 0, emitterLifetime = -1,
+    }
+    local compareOptions = { mode = exportedTimeline.mode, allowEmission = true }
+    local mismatches, comparisons = 0, 0
+    for _, track in ipairs(exportedTimeline.tracks) do
+      local liveCompiled = LiveCore.compileTrack(track, exportedTimeline.duration)
+      local exportCompiled = EmbeddedCore.compileTrack(track, exportedTimeline.duration)
+      local liveOut, exportOut = {}, {}
+      for step = 0, 240 do
+        local t = (step / 60) % exportedTimeline.duration
+        LiveCore.resolveCompiled(liveCompiled, t, exportedBase, compareOptions, liveOut)
+        EmbeddedCore.resolveCompiled(exportCompiled, t, exportedBase, compareOptions, exportOut)
+        for _, field in ipairs({ "emissionRate", "speedMin", "speedMax", "sizeScale",
+                                 "direction", "spread", "offsetX", "offsetY", "opacity" }) do
+          comparisons = comparisons + 1
+          if math.abs((liveOut[field] or 0) - (exportOut[field] or 0)) > 1e-9 then
+            mismatches = mismatches + 1
+          end
+        end
+        if liveOut.active ~= exportOut.active then
+          mismatches = mismatches + 1
+        end
+      end
+    end
+    assertTruthy(comparisons > 2000, "the frame-by-frame comparison actually ran; got " .. tostring(comparisons))
+    assertEqual(mismatches, 0, "the exported file resolves every lane exactly as the editor does, frame for frame")
     assertTruthy(true, "the exported file evaluates curves identically to the preview")
     assertTruthy(
       not contains(complexCode, "TimelineRuntime.applyTimelineToEmitter"),

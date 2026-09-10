@@ -31,6 +31,18 @@ function M.coreSource()
   return nil
 end
 
+--- The text of `apply.lua`, for the exporter to embed alongside core.
+function M.applySource()
+  if not (love and love.filesystem and love.filesystem.read) then
+    return nil
+  end
+  local ok, contents = pcall(love.filesystem.read, "plugins/particle-system-playground/apply.lua")
+  if ok and type(contents) == "string" and #contents > 0 then
+    return contents
+  end
+  return nil
+end
+
 local Runtime = {}
 
 -- Re-exported so existing callers keep working while P1..P5 land. Every one of
@@ -47,6 +59,8 @@ Runtime.clipAllowsEmission = Core.clipAllowsEmission
 Runtime.trackAllowsEmission = Core.trackAllowsEmission
 Runtime.resolve = Core.resolve
 Runtime.resolveSizes = Core.resolveSizes
+Runtime.compileTrack = Core.compileTrack
+Runtime.trackIsStatic = Core.trackIsStatic
 
 local function resolveOption(option, emitter)
   if type(option) == "function" then
