@@ -49,6 +49,7 @@ local PreviewRuntime = require("shader-graph.preview_runtime")
 -- and the exported file. This preview used to carry its own copy, which
 -- clamped nothing. See V4-PARTICLES.md P1.
 local ParticleCore = require("plugins.particle-system-playground.core")
+local ParticleApply = require("plugins.particle-system-playground.apply")
 
 -- Minimal JSON parser
 
@@ -687,33 +688,35 @@ local function applyTimelineAt(time, allowEmission)
   if type(timeline) ~= "table" then
     return
   end
+  local duration = ParticleCore.normalizeDuration(timeline.duration, 3)
   for index, track in ipairs(timeline.tracks or {}) do
     local entry = particleState.systems[index]
     if entry and entry.ps and entry.enabled then
       local base = entry.base or {}
 
-      -- One call decides every lane, and clamps what it resolves. This block
-      -- used to evaluate the eight lanes inline with no clamping at all, which
-      -- is why an inElastic size lane showed negative sizes here and zero in
-      -- the game and the export. See V4-PARTICLES.md §4.3.
-      entry.resolved = ParticleCore.resolve(track, time, base, {
-        mode = timeline.mode,
-        allowEmission = allowEmission == true,
-      }, entry.resolved)
-      local resolved = entry.resolved
-
-      pcall(entry.ps.setEmissionRate, entry.ps, resolved.emissionRate)
-      pcall(entry.ps.setSpeed, entry.ps, resolved.speedMin, resolved.speedMax)
-
-      entry.sizeBuffer = entry.sizeBuffer or {}
-      local sizes, count = ParticleCore.resolveSizes(base, resolved.sizeScale, entry.sizeBuffer)
-      if count > 0 then
-        pcall(entry.ps.setSizes, entry.ps, unpack(sizes, 1, count))
+      -- Compile once per track, not per frame. The timeline table is replaced
+      -- when the payload changes, so a reference check is the invalidation
+      -- signal, and baking happens on edit rather than sixty times a second.
+      if entry.timelineTrack ~= track or entry.timelineDuration ~= duration then
+        entry.timelineCompiled = ParticleCore.compileTrack(track, duration)
+        entry.timelineTrack = track
+        entry.timelineDuration = duration
+        entry.applyState = ParticleApply.newState()
       end
+      entry.applyState = entry.applyState or ParticleApply.newState()
 
-      pcall(entry.ps.setDirection, entry.ps, resolved.direction)
-      pcall(entry.ps.setSpread, entry.ps, resolved.spread)
-      pcall(entry.ps.setOffset, entry.ps, resolved.offsetX, resolved.offsetY)
+      entry.tickOptions = entry.tickOptions or {}
+      entry.tickOptions.mode = timeline.mode
+      entry.tickOptions.allowEmission = allowEmission == true
+
+      local resolved = ParticleApply.tick(
+        entry.applyState,
+        entry.ps,
+        entry.timelineCompiled,
+        time,
+        base,
+        entry.tickOptions
+      )
       entry.opacity = resolved.opacity
     end
   end

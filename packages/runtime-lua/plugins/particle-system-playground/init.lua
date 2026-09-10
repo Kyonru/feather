@@ -619,6 +619,7 @@ local function resetParticleSystems(sys)
     pcall(ps.reset, ps)
     pcall(ps.start, ps)
   end
+  TimelineRuntime.invalidateEmitter(sys)
 end
 
 local function emitParticleSystems(sys, count)
@@ -1566,6 +1567,10 @@ end
 local function captureTimelineBase(sys)
   if sys and sys.system then
     sys._timelineBase = snapshotPS(sys.system)
+    -- The timeline applier only sends values that changed since last frame. A
+    -- fresh snapshot means the properties underneath were rewritten, so its
+    -- record of what it sent is stale and everything must go again.
+    TimelineRuntime.invalidateEmitter(sys)
   end
 end
 

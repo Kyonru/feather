@@ -466,21 +466,48 @@ Each was verified by breaking what it tests. Two findings from doing so:
    easings, and a deliberately drifted `inQuad` passed straight through it. It now iterates
    `Core.EASINGS` and asserts the count is 26, so a subset cannot silently be compared again.
 
-### P2 — Change detection
+### P2 — Change detection — **DONE 2026-09-10**
 
-Add `apply.lua`. It compares this frame's resolved values against last frame's and calls only what
-moved. Drop `pcall` from the per-frame path — construct the system once, validate there, then trust
-it. Keep `pcall` at the boundaries where input is authored outside this repo (imported projects,
-plugin manifests), per V4-STUDIO §8.
+`apply.lua` is now the only code that calls a setter, and it sends only what moved. Lanes are
+compiled once — constant lanes to a number, varying lanes to a baked lookup table — and cached
+against the track's own identity, so the expensive part happens on edit rather than per frame.
 
-Bake lanes to lookup tables at `resolution = ceil(duration * 120)` (§5.1), reuse the `sizes`
-buffer instead of allocating one per frame, and stop returning a result table nobody reads.
+Measured with `love scripts/bench-particle-timeline`, 600 frames, 8 lanes per emitter:
 
-*Done when:* a composite with no keyframed lanes issues **zero** setter calls per frame after the
-first, and per-frame allocation is flat — measured at ~1.4 MB/s today for 50 emitters.
+| Scene | Before | After |
+|---|---|---|
+| 6 emitters, curved | 0.038 ms/f · 368 KB · 3600 calls | 0.014 ms/f · **3.6 KB** · 3600 calls |
+| 6 emitters, **constant** | 0.015 ms/f · 368 KB · 3600 calls | 0.008 ms/f · 3.6 KB · **6 calls** |
+| 20 emitters, curved | 0.143 ms/f · 1,226 KB · 3600 calls | 0.046 ms/f · **12.0 KB** · 3600 calls |
+| 50 emitters, curved | 0.330 ms/f · 3,066 KB · 3600 calls | 0.111 ms/f · **30.1 KB** · 3600 calls |
 
-*Verify:* a counting stub for the ParticleSystem — `core.lua` and `apply.lua` never touch LÖVE, so
-this is a plain unit test, no graphics context.
+Allocation drops ~100x and time ~3x. The row that matters is the second: a composite with no
+keyframed lanes now issues **6 setter calls total** instead of 3,600, because after the first frame
+there is nothing to say.
+
+**`pcall` is gone from the per-frame path.** `apply.lua` calls methods on the object it is handed
+and never touches the `love` global, which is also what lets a counting stub stand in for a
+ParticleSystem in the tests. It is guarded: `particleCoreIsSingular.test.ts` fails if `pcall`
+reappears there.
+
+**Two allocations were found by measuring rather than reasoning.** The first was the benchmark's own
+options table, rebuilt per frame — the test allocating, not the code, which would have masked the
+thing being measured. The second was real: `resolveSizes` called `parseNumberList`, which builds a
+table, on every emitter every frame — 369 KB per 600 frames on the path whose whole purpose is to
+allocate nothing. It now reads a numeric list in place.
+
+**A behaviour fix fell out of dropping `pcall`.** LÖVE's `setSizes` accepts at most eight values,
+and a longer list used to raise inside the `pcall`, so **no sizes were applied at all**. `core.lua`
+now caps at eight, which applies the first eight instead of silently none.
+
+**Invalidation is the sharp edge.** A change detector is wrong the moment something else writes the
+system. `Runtime.invalidateEmitter` is called wherever the properties are re-snapshotted
+(`captureTimelineBase`) or the system is reset, and `Apply.invalidate` makes the next tick rewrite
+everything.
+
+*Cost to be aware of:* compiling 50 emitters × 8 varying lanes takes ~94 ms (6 emitters: ~11 ms).
+That is per edit, not per frame, and only varying lanes are baked — but it is why §5.1 says the
+editor must not bake while a keyframe is being dragged.
 
 ### P3 — Lifecycle: pool and warm
 

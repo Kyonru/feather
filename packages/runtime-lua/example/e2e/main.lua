@@ -1005,6 +1005,130 @@ return M
   ParticleCore.resolveSizes({ sizes = { 4 } }, 1, sizeBuffer)
   assertEqual(sizeBuffer[2], nil, "resolveSizes clears entries a shorter list no longer uses")
 
+  -- LÖVE takes at most eight sizes. This used to be wrapped in a pcall, so a
+  -- longer list silently applied *none* of them.
+  local manySizes, manyCount = ParticleCore.resolveSizes({ sizes = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } }, 1)
+  assertEqual(manyCount, 8, "resolveSizes caps at the eight sizes LOVE accepts")
+  assertEqual(manySizes[9], nil, "resolveSizes drops sizes past the cap")
+
+  -- --- compiled tracks and change detection (V4-PARTICLES P2) -----------
+  local ParticleApply = require("plugins.particle-system-playground.apply")
+
+  -- A counting stub. apply.lua calls methods on whatever it is handed and never
+  -- touches the love global, so no graphics context is needed here.
+  local function newCountingSystem()
+    local ps = { calls = 0, log = {} }
+    for _, name in ipairs({ "setEmissionRate", "setSpeed", "setSizes", "setDirection", "setSpread", "setOffset" }) do
+      ps[name] = function(self)
+        self.calls = self.calls + 1
+        self.log[#self.log + 1] = name
+        return true
+      end
+    end
+    return ps
+  end
+
+  local constantTrack = {
+    clips = { { start = 0, ["end"] = 3 } },
+    lanes = {
+      emissionRate = { { time = 0, value = 40, easing = "linear" }, { time = 3, value = 40, easing = "linear" } },
+      spread = { { time = 0, value = 0.25, easing = "linear" } },
+    },
+  }
+  local particleBase = {
+    emissionRate = 40, speedMin = 10, speedMax = 90, sizes = { 1, 0.5 },
+    direction = 0, spread = 0.25, offsetX = 0, offsetY = 0, emitterLifetime = -1,
+  }
+
+  -- Hoisted deliberately: a fresh table per frame here would be the test
+  -- allocating, not apply.lua, and would mask the very thing being measured.
+  local tickOptions = { mode = "loop", allowEmission = true }
+
+  local compiledConstant = ParticleCore.compileTrack(constantTrack, 3)
+  assertEqual(compiledConstant.varying, 0, "a track whose lanes never change compiles with no varying lanes")
+  assertEqual(ParticleCore.trackIsStatic(compiledConstant), true, "such a track is static")
+
+  local stubPs = newCountingSystem()
+  local applyState = ParticleApply.newState()
+  local firstCalls = select(2, ParticleApply.tick(applyState, stubPs, compiledConstant, 0, particleBase, tickOptions))
+  assertTruthy(firstCalls > 0, "the first frame sends the values")
+  local afterFirst = stubPs.calls
+  for step = 1, 180 do
+    ParticleApply.tick(applyState, stubPs, compiledConstant, (step / 60) % 3, particleBase, tickOptions)
+  end
+  assertEqual(stubPs.calls - afterFirst, 0, "a composite with no keyframed lanes issues zero setter calls after the first frame")
+
+  -- Allocation must be flat on that path: the tables are reused, not rebuilt.
+  collectgarbage("collect")
+  collectgarbage("stop")
+  local beforeKb = collectgarbage("count")
+  for step = 1, 600 do
+    ParticleApply.tick(applyState, stubPs, compiledConstant, (step / 60) % 3, particleBase, tickOptions)
+  end
+  local grewKb = collectgarbage("count") - beforeKb
+  collectgarbage("restart")
+  assertTruthy(grewKb < 8, "600 static frames allocate under 8 KB (was ~1,660 KB unconditionally); got " .. string.format("%.1f", grewKb))
+
+  -- A varying lane still drives setters, or change detection would be a bug.
+  local varyingTrack = {
+    clips = { { start = 0, ["end"] = 3 } },
+    lanes = {
+      emissionRate = {
+        { time = 0, value = 0, easing = "inOutCubic" },
+        { time = 3, value = 200, easing = "linear" },
+      },
+    },
+  }
+  local compiledVarying = ParticleCore.compileTrack(varyingTrack, 3)
+  assertEqual(compiledVarying.varying, 1, "a keyframed lane compiles as varying")
+  assertEqual(ParticleCore.trackIsStatic(compiledVarying), false, "a keyframed track is not static")
+  local varyingPs = newCountingSystem()
+  local varyingState = ParticleApply.newState()
+  for step = 0, 120 do
+    ParticleApply.tick(varyingState, varyingPs, compiledVarying, (step / 60) % 3, particleBase, tickOptions)
+  end
+  assertTruthy(varyingPs.calls > 100, "a varying lane keeps sending updates; got " .. tostring(varyingPs.calls))
+
+  -- The compiled path must agree with the exact path at the times a frame
+  -- actually lands on. This is what makes baking invisible.
+  local hardTrack = {
+    clips = { { start = 0, ["end"] = 3 } },
+    lanes = {
+      emissionRate = {
+        { time = 0, value = 0, easing = "hold" },
+        { time = 1.5, value = 100, easing = "hold" },
+        { time = 3, value = 0, easing = "linear" },
+      },
+      sizeScale = {
+        { time = 0, value = 0, easing = "outElastic" },
+        { time = 1.2, value = 2, easing = "inElastic" },
+        { time = 3, value = 1, easing = "linear" },
+      },
+    },
+  }
+  local compiledHard = ParticleCore.compileTrack(hardTrack, 3)
+  local exactOut, compiledOut = {}, {}
+  local worstRate, worstSize = 0, 0
+  for step = 0, 180 do
+    local t = (step / 60) % 3
+    ParticleCore.resolve(hardTrack, t, particleBase, { mode = "loop", allowEmission = true }, exactOut)
+    ParticleCore.resolveCompiled(compiledHard, t, particleBase, { mode = "loop", allowEmission = true }, compiledOut)
+    worstRate = math.max(worstRate, math.abs(exactOut.emissionRate - compiledOut.emissionRate))
+    worstSize = math.max(worstSize, math.abs(exactOut.sizeScale - compiledOut.sizeScale))
+  end
+  assertTruthy(worstRate < 0.01, "a baked hold step matches the exact curve at frame times; worst " .. string.format("%.6f", worstRate))
+  assertTruthy(worstSize < 0.01, "a baked elastic curve matches the exact curve at frame times; worst " .. string.format("%.6f", worstSize))
+
+  -- Resolution follows the frame rate, and is what makes the above true.
+  assertEqual(ParticleCore.bakeResolution(3), 360, "a 3s timeline bakes at 360 samples (two per frame at 60fps)")
+  assertTruthy(ParticleCore.bakeResolution(0.25) >= ParticleCore.MIN_SAMPLES, "a very short timeline still gets a usable resolution")
+  assertTruthy(ParticleCore.bakeResolution(600) <= ParticleCore.MAX_SAMPLES, "a very long timeline is capped")
+
+  -- Replacing the system underneath must re-send everything.
+  ParticleApply.invalidate(applyState)
+  local reissued = select(2, ParticleApply.tick(applyState, stubPs, compiledConstant, 0, particleBase, tickOptions))
+  assertTruthy(reissued > 0, "invalidate makes the next tick write every value again")
+
   print("[Lua E2E] LUA_E2E_PASS " .. tostring(#results) .. " assertions")
 end
 

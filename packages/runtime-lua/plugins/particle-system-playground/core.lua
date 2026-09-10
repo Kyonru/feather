@@ -60,6 +60,8 @@ Core.LANES = {
   "offsetY",
 }
 
+Core.MAX_SIZES = 8  -- LÖVE ParticleSystem:setSizes accepts at most eight
+
 Core.MIN_DURATION = 0.25
 Core.MAX_DURATION = 60
 
@@ -313,15 +315,186 @@ end
 -- and because reusing `out` is how the per-frame path stops allocating a table
 -- per emitter per frame.
 function Core.resolveSizes(base, sizeScale, out)
-  local sizes = Core.parseNumberList(base and base.sizes)
   out = out or {}
-  for i = 1, #sizes do
-    out[i] = math.max(0, sizes[i] * sizeScale)
+
+  -- Read a numeric list in place. `parseNumberList` builds a table, and this
+  -- runs per emitter per frame — it was allocating 369 KB per 600 frames on
+  -- the path P2 exists to make allocation-free.
+  local source = base and base.sizes
+  local count
+  if type(source) == "table" then
+    -- LÖVE's setSizes takes at most eight. A longer list used to be swallowed
+    -- by a pcall, which meant *no* sizes were applied at all; capping applies
+    -- the first eight, which is what the author can actually see.
+    count = math.min(#source, Core.MAX_SIZES)
+    for i = 1, count do
+      out[i] = math.max(0, Core.safeNumber(source[i], 0) * sizeScale)
+    end
+  else
+    local parsed = Core.parseNumberList(source)
+    count = math.min(#parsed, Core.MAX_SIZES)
+    for i = 1, count do
+      out[i] = math.max(0, parsed[i] * sizeScale)
+    end
   end
-  for i = #sizes + 1, #out do
+
+  for i = count + 1, #out do
     out[i] = nil
   end
-  return out, #sizes
+  return out, count
+end
+
+
+-- ---------------------------------------------------------------------------
+-- Compiled tracks
+-- ---------------------------------------------------------------------------
+-- A lane is a pure function of time: it reads no runtime state, so it can be
+-- sampled once and looked up thereafter. That turns a keyframe search plus a
+-- 25-branch easing chain into an array index and a lerp.
+--
+-- Resolution is the correctness argument. Sample at least once per displayed
+-- frame and the baked curve is exact where the frames land; undersample and a
+-- `hold` step smears across the gap and becomes a different animation. Measured
+-- over a 3s timeline: 64 samples puts a step 64% wrong, 180 (one per frame at
+-- 60fps) puts it at 0.000%. See V4-PARTICLES.md §5.1.
+
+Core.SAMPLES_PER_SECOND = 120  -- two per frame at 60fps, headroom for jitter
+Core.MIN_SAMPLES = 8
+Core.MAX_SAMPLES = 8192
+
+function Core.bakeResolution(duration)
+  local samples = math.ceil(Core.normalizeDuration(duration, 3) * Core.SAMPLES_PER_SECOND)
+  return Core.clamp(samples, Core.MIN_SAMPLES, Core.MAX_SAMPLES)
+end
+
+--- The single value a lane holds for its whole length, or nil if it varies.
+--
+-- Most lanes are constant. A constant lane needs no table, and an emitter whose
+-- lanes are all constant needs no per-frame work at all once it has been set.
+function Core.constantLaneValue(points)
+  if type(points) ~= "table" or #points == 0 then
+    return nil
+  end
+  local first = Core.safeNumber(points[1].value, 0)
+  for i = 2, #points do
+    if Core.safeNumber(points[i].value, 0) ~= first then
+      return nil
+    end
+  end
+  return first
+end
+
+function Core.bakeLane(points, duration, resolution)
+  duration = Core.normalizeDuration(duration, 3)
+  resolution = resolution or Core.bakeResolution(duration)
+  local lut = { n = resolution, duration = duration }
+  for i = 0, resolution do
+    lut[i] = Core.evaluate(points, (i / resolution) * duration, 0)
+  end
+  return lut
+end
+
+function Core.sampleLane(lut, time)
+  local x = (time / lut.duration) * lut.n
+  local i = math.floor(x)
+  if i < 0 then return lut[0] end
+  if i >= lut.n then return lut[lut.n] end
+  local a = lut[i]
+  return a + (lut[i + 1] - a) * (x - i)
+end
+
+--- Turn one authored track into the cheapest form that expresses it.
+--
+-- Constant lanes become a number; varying lanes become a lookup table. Absent
+-- lanes stay absent, so nothing is paid for a lane nobody authored. The
+-- `constant` count is what lets a caller tell whether an emitter needs any
+-- per-frame work at all (V4-PARTICLES.md §5.2, tier 0).
+function Core.compileTrack(track, duration, resolution)
+  duration = Core.normalizeDuration(duration, 3)
+  resolution = resolution or Core.bakeResolution(duration)
+
+  local compiled = {
+    duration = duration,
+    clips = (track and track.clips) or {},
+    lanes = {},
+    varying = 0,
+    constant = 0,
+  }
+
+  local lanes = (track and track.lanes) or {}
+  for _, name in ipairs(Core.LANES) do
+    local points = lanes[name]
+    if type(points) == "table" and #points > 0 then
+      local constant = Core.constantLaneValue(points)
+      if constant ~= nil then
+        compiled.lanes[name] = { kind = "constant", value = constant }
+        compiled.constant = compiled.constant + 1
+      else
+        compiled.lanes[name] = { kind = "baked", lut = Core.bakeLane(points, duration, resolution) }
+        compiled.varying = compiled.varying + 1
+      end
+    end
+  end
+
+  return compiled
+end
+
+--- True when nothing about this track changes over time.
+--
+-- Such a track is applied once and then never again — the property P2 exists
+-- to produce.
+function Core.trackIsStatic(compiled)
+  return compiled ~= nil and compiled.varying == 0
+end
+
+local function compiledLaneValue(compiled, name, time, fallback)
+  local lane = compiled.lanes[name]
+  if lane == nil then
+    return fallback
+  end
+  if lane.kind == "constant" then
+    return lane.value
+  end
+  return Core.sampleLane(lane.lut, time)
+end
+
+--- `Core.resolve`, against a compiled track.
+--
+-- Identical results, no keyframe search and no easing branch. The clamps are
+-- the same ones and are applied the same way, because they are the reason a
+-- host cannot be trusted to do this itself.
+function Core.resolveCompiled(compiled, time, base, options, out)
+  base = type(base) == "table" and base or {}
+  options = options or {}
+  out = out or {}
+
+  out.active = Core.trackAllowsEmission(
+    compiled,
+    time,
+    Core.safeNumber(base.emitterLifetime, -1),
+    options.mode or "one-shot"
+  )
+
+  out.emissionRate = math.max(0, compiledLaneValue(compiled, "emissionRate", time, Core.safeNumber(base.emissionRate, 0)))
+  if not out.active or options.allowEmission == false then
+    out.emissionRate = 0
+  end
+
+  out.speedScale = math.max(0, compiledLaneValue(compiled, "speedScale", time, 1))
+  out.speedMin = Core.safeNumber(base.speedMin, 0) * out.speedScale
+  out.speedMax = Core.safeNumber(base.speedMax, 0) * out.speedScale
+
+  out.sizeScale = math.max(0, compiledLaneValue(compiled, "sizeScale", time, 1))
+
+  out.direction = compiledLaneValue(compiled, "direction", time, Core.safeNumber(base.direction, 0))
+    + Core.safeNumber(options.directionOffset, 0)
+  out.spread = compiledLaneValue(compiled, "spread", time, Core.safeNumber(base.spread, 0))
+  out.offsetX = compiledLaneValue(compiled, "offsetX", time, Core.safeNumber(base.offsetX, 0))
+  out.offsetY = compiledLaneValue(compiled, "offsetY", time, Core.safeNumber(base.offsetY, 0))
+
+  out.opacity = Core.clamp(compiledLaneValue(compiled, "opacity", time, 1), 0, 1)
+
+  return out
 end
 
 return Core

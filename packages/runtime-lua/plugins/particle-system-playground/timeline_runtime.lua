@@ -11,6 +11,7 @@
 -- @module particle-system-playground.timeline_runtime
 
 local Core = require("plugins.particle-system-playground.core")
+local Apply = require("plugins.particle-system-playground.apply")
 
 local M = {}
 
@@ -47,14 +48,6 @@ Runtime.trackAllowsEmission = Core.trackAllowsEmission
 Runtime.resolve = Core.resolve
 Runtime.resolveSizes = Core.resolveSizes
 
-local function callParticle(ps, method, ...)
-  local fn = ps and ps[method]
-  if type(fn) ~= "function" then
-    return false
-  end
-  return pcall(fn, ps, ...)
-end
-
 local function resolveOption(option, emitter)
   if type(option) == "function" then
     return option(emitter)
@@ -62,13 +55,23 @@ local function resolveOption(option, emitter)
   return option
 end
 
-local unpackList = table.unpack or unpack
-
---- Apply one track's resolved values to an emitter's particle system.
+--- Forget what was last sent to this emitter's particle system.
 --
--- The decisions all happen in `Core.resolve`; this function only issues the
--- setters. P2 replaces the unconditional setter calls here with change
--- detection, and the reused buffers it needs are already in place.
+-- Whenever the system underneath is replaced, reset, or has its properties
+-- written directly, the change detector's record of what it sent is no longer
+-- true of the object. Not calling this leaves values silently unapplied.
+function Runtime.invalidateEmitter(emitter)
+  if type(emitter) == "table" and emitter._timelineApply then
+    Apply.invalidate(emitter._timelineApply)
+  end
+end
+
+--- Apply one track to an emitter, sending only what changed.
+--
+-- The track is compiled once and cached against its own identity: the plugin
+-- hands the same table every frame and replaces it on edit, so a reference
+-- check is exactly the right invalidation signal, and the expensive part
+-- (baking every varying lane) happens on edit rather than per frame.
 function Runtime.applyTimelineToEmitter(emitter, track, time, allowEmission, options)
   options = options or {}
   if type(emitter) ~= "table" then
@@ -83,25 +86,31 @@ function Runtime.applyTimelineToEmitter(emitter, track, time, allowEmission, opt
     base = emitter.base or emitter._timelineBase or {}
   end
 
-  local resolved = Core.resolve(track, time, base, {
-    mode = options.mode or Core.timelineMode(options.timeline),
-    allowEmission = allowEmission == true,
-    directionOffset = resolveOption(options.directionOffset, emitter),
-  }, emitter._timelineResolved)
-  emitter._timelineResolved = resolved
-
-  callParticle(ps, "setEmissionRate", resolved.emissionRate)
-  callParticle(ps, "setSpeed", resolved.speedMin, resolved.speedMax)
-
-  emitter._timelineSizes = emitter._timelineSizes or {}
-  local sizes, count = Core.resolveSizes(base, resolved.sizeScale, emitter._timelineSizes)
-  if count > 0 then
-    callParticle(ps, "setSizes", unpackList(sizes, 1, count))
+  local timeline = options.timeline
+  local duration = Core.normalizeDuration(timeline and timeline.duration, 3)
+  if emitter._timelineTrack ~= track or emitter._timelineDuration ~= duration then
+    emitter._timelineCompiled = Core.compileTrack(track, duration)
+    emitter._timelineTrack = track
+    emitter._timelineDuration = duration
+    Runtime.invalidateEmitter(emitter)
   end
 
-  callParticle(ps, "setDirection", resolved.direction)
-  callParticle(ps, "setSpread", resolved.spread)
-  callParticle(ps, "setOffset", resolved.offsetX, resolved.offsetY)
+  emitter._timelineApply = emitter._timelineApply or Apply.newState()
+
+  emitter._timelineOptions = emitter._timelineOptions or {}
+  local tickOptions = emitter._timelineOptions
+  tickOptions.mode = options.mode or Core.timelineMode(timeline)
+  tickOptions.allowEmission = allowEmission == true
+  tickOptions.directionOffset = resolveOption(options.directionOffset, emitter)
+
+  local resolved = Apply.tick(
+    emitter._timelineApply,
+    ps,
+    emitter._timelineCompiled,
+    time,
+    base,
+    tickOptions
+  )
 
   emitter[options.opacityField or "opacity"] = resolved.opacity
 

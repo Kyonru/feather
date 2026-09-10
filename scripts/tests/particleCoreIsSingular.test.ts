@@ -80,10 +80,35 @@ test('the preview ships core.lua rather than carrying its own copy', () => {
     'the preview must require the shared core',
   );
   assert.match(
+    build,
+    /plugins\/particle-system-playground\/apply\.lua/,
+    'the showcase .love must bundle apply.lua too, or the preview cannot require it',
+  );
+  assert.match(
     preview,
-    /ParticleCore\.resolve\(/,
-    'the preview must resolve through core, which is where the clamps live — ' +
-      'calling ParticleCore.evaluate directly skips them',
+    /ParticleApply\.tick\(/,
+    'the preview must go through apply.tick, which resolves through core (where the ' +
+      'clamps live) and sends only what changed',
+  );
+});
+
+test('apply.lua stays testable without a graphics context', () => {
+  const code = read('packages/runtime-lua/plugins/particle-system-playground/apply.lua')
+    .split('\n')
+    .filter((line) => !/^\s*--/.test(line))
+    .join('\n');
+
+  // It calls methods on the object it is handed, so a counting stub can stand
+  // in for a ParticleSystem. A `love.` reference would end that.
+  assert.ok(!/\blove\s*\./.test(code), 'apply.lua must not reference the love API');
+});
+
+test('the per-frame path does not pcall calls that cannot fail', () => {
+  const apply = read('packages/runtime-lua/plugins/particle-system-playground/apply.lua');
+  assert.ok(
+    !/pcall/.test(apply),
+    'apply.lua runs per frame on a system this code constructed; pcall there allocates ' +
+      'and hides errors (V4-PARTICLES.md §4.2)',
   );
 });
 
