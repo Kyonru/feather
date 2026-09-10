@@ -546,7 +546,7 @@ alone.
 | 6.6 | Assets | **PARTLY DONE** | Missing filter now truthful at scale; source-file path still open |
 | 6.7 | Plugins | **PARTLY DONE** | manifest values coerced (C5); generic renderer already well guarded |
 | 6.8 | Observability | **REVIEWED, NO CHANGE** | runtime pushes while interested; C2 covers dormancy |
-| 6.9 | Time Travel | NOT STARTED | |
+| 6.9 | Time Travel | **REVIEWED** | cost is shown and bounded; C0 regression in its indicators fixed |
 | 6.10 | Session Replay | **REVIEWED** | the 6 toasts are export/import feedback, not noise |
 | 6.11 | Compare | **DONE** | empty state names the command; stale-filter escape hatch |
 | 6.12 | Settings | NOT STARTED | |
@@ -924,6 +924,29 @@ and every state that reads persisted state inherits that.
 Console reviewed and unchanged. The open question was whether long results flood the pane; they do
 not — output is capped at a length limit, marked as truncated, and expandable. It remains the
 reference implementation the other panels were measured against.
+
+**2026-09-10 — 6.9 Time Travel, and a regression C0 caused.**
+
+Time Travel answers its own questions better than expected. Before you start it says what it records
+and why; while recording it shows `frames / bufferSize (pct%)` against a bounded ring buffer, which
+is the reassurance that matters — the cost is visible *and* capped. Nothing to change there.
+
+What I found instead was **my own C0 pass degrading the signal it was supposed to protect**. The
+mechanical migration mapped `bg-red-500` to `bg-danger-surface` everywhere, but a surface is a tint
+designed to sit *behind* text. On a 2px dot it is close to invisible. So the recording indicator, the
+progress bar fill, and eleven other status dots across Compare, Observability, the profiler and the
+debugger were all quietly washed out.
+
+The distinction the migration missed: **row and region tints want the surface; dots and bars want the
+foreground.** Both are correct uses of the same ramp, and only the second was broken. 13 indicators
+restored, row tints left alone, and `verify:enhanced` now fails on any `bg-*-surface` that sits on a
+small round element or a bar fill.
+
+Worth being blunt about how this happened. C0's own log entry said the mechanical part was mostly
+safe and listed five places where color was *claiming something untrue*. It did not consider that a
+correct token could be applied to the wrong role — the token was right, the surface/foreground choice
+was not, and nothing in the type system or the lint rule could see it. That class of error only
+shows up by looking at what a screen renders.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

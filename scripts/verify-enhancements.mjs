@@ -86,6 +86,27 @@ check('no raw Tailwind color literals outside the documented syntax exemption', 
   return 'every state color goes through a token';
 });
 
+check('state surfaces are not used as solid indicators', () => {
+  // A regression the C0 migration introduced: `bg-red-500` on a 2px dot became
+  // `bg-danger-surface`, and a surface is a tint meant to sit *behind* text — at
+  // that size it is invisible. Row tints are the correct use; indicators need
+  // the foreground.
+  const offenders = [];
+  for (const file of inspectorSources) {
+    const lines = readFileSync(file, 'utf8').split('\n');
+    lines.forEach((line, index) => {
+      if (!/bg-(?:ok|warn|danger|info)-surface/.test(line)) return;
+      const window = lines.slice(Math.max(0, index - 4), index + 1).join('\n');
+      const isDot = window.includes('rounded-full') && /\b(size-[0-9.]+|h-[0-9.]+ w-[0-9.]+)\b/.test(window);
+      if (isDot || window.includes('h-full rounded-full')) {
+        offenders.push(`${file.replace(`${ROOT}/`, '')}:${index + 1}`);
+      }
+    });
+  }
+  if (offenders.length) throw new Error(`invisible indicators:\n      ${offenders.join('\n      ')}`);
+  return 'dots and bars use the foreground, rows use the surface';
+});
+
 check('every shipped theme clears WCAG AA for all four states', () => {
   const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/themeSemanticColors.test.ts'], {
     cwd: ROOT,

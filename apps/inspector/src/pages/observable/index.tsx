@@ -138,7 +138,7 @@ export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => v
       subtitle={<span>{data.value.length.toLocaleString()} chars</span>}
       badges={
         <>
-          {data.changed && <span className="inline-block size-2 rounded-full bg-warn-surface" title="Value changed" />}
+          {data.changed && <span className="inline-block size-2 rounded-full bg-warn" title="Value changed" />}
           <Badge variant="secondary" className="font-mono text-[10px]">
             {data.type}
           </Badge>
@@ -154,7 +154,7 @@ export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => v
           <TabsList className="shrink-0">
             <TabsTrigger value="current">Current</TabsTrigger>
             <TabsTrigger value="diff" disabled={!showDiff}>
-              Diff {showDiff && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-warn-surface inline-block" />}
+              Diff {showDiff && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-warn inline-block" />}
             </TabsTrigger>
             <TabsTrigger value="history" disabled={data.history.length === 0}>
               History{' '}

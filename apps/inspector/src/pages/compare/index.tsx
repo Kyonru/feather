@@ -142,7 +142,7 @@ function SessionPicker({
         {sessions.map((session) => (
           <SelectItem key={session.id} value={session.id} disabled={session.id === excludeId}>
             <span className="flex items-center gap-2">
-              <span className="size-1.5 shrink-0 rounded-full bg-ok-surface" />
+              <span className="size-1.5 shrink-0 rounded-full bg-ok" />
               {sessionLabel(session)}
             </span>
           </SelectItem>

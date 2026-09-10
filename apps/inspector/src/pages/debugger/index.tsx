@@ -605,7 +605,7 @@ function SourceView({
                         )}
                       />
                     ) : (
-                      <span className="size-2 rounded-full opacity-0 group-hover:bg-danger-surface group-hover:opacity-60" />
+                      <span className="size-2 rounded-full opacity-0 group-hover:bg-danger group-hover:opacity-60" />
                     )}
                   </button>
                 </div>
