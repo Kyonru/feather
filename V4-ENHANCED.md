@@ -561,11 +561,15 @@ alone with the reason recorded.
 |---|---|---|---|
 | S1 | Mount the providers | NOT STARTED | Theme, QueryClient and Ui providers absent from `main.tsx` |
 | S2 | Shell, and mount the tools | NOT STARTED | 25,500 LOC unreachable; **Studio is unusable until this lands** |
-| S3 | Invert the session model | NOT STARTED | 24 branches on a concept that names Studio's default |
+| S3 | Invert the session model | NOT STARTED | 13 sites; Shader Graph is already the correct shape |
+| S3b | Workbench layout for the other two tools | NOT STARTED | Texture Lab is a page, Particles are cards |
 | S4 | Durable workspaces | NOT STARTED | losing a shader graph is not losing a filter |
 | S5 | Apply C0–C5 | NOT STARTED | 86 raw color literals waiting |
 
-Order is dependency order: S2 is what makes Studio exist, and it needs S1 to look like anything. C0 first because it is a
+Order is dependency order: S2 is what makes Studio exist, and it needs S1 to look like anything.
+V4-STUDIO §5 is the visual direction — *a workbench, not an instrument* — and S2 is where most of
+it lands. It deliberately departs from §4's direction for Inspector, because Studio's users are
+judging color they made and an interface with opinions about color lies to them. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
 most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 

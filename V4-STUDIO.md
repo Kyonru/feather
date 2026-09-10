@@ -10,7 +10,7 @@
 Read §1 and §2 first — they are short, and everything after them only makes sense once you know
 that **Studio currently cannot be opened and used at all**, and why.
 
-Then work §5 in order. Each step is self-contained: it names the files, the exact change, how to
+§5 is the visual direction; §6 is the work. Read §5 before S2 — the shell is where it lands. Each step is self-contained: it names the files, the exact change, how to
 check it, and what "done" means. Steps depend on the ones before them.
 
 Every factual claim here was verified against the repository on 2026-09-10 and carries a file
@@ -91,7 +91,7 @@ More than §9 of V4-ENHANCED first credited. Do not rebuild any of this.
 ### 3.1 The showcase is the working reference
 
 `apps/studio/src/showcase/` is Feather Studio running in a browser. It mounts the same tools from
-the same directories and it works. When something in §5 is unclear, look there first.
+the same directories and it works. When something in §6 is unclear, look there first.
 
 Two caveats:
 
@@ -144,7 +144,157 @@ the problem: tokens come from the provider at runtime, not from that file.
 
 ---
 
-## 5. The work
+## 5. The look: a workbench, not an instrument
+
+Inspector's visual direction is settled in V4-ENHANCED §4: *an instrument, not an interface* — color
+reserved as a signal channel, typography carrying hierarchy, rules instead of cards, motion only for
+causality. It is right for Inspector and **it is the wrong answer here**, which is worth stating
+plainly because the two applications share a component library and the temptation to share a look is
+strong.
+
+They are different species of tool:
+
+|  | Inspector | Studio |
+|---|---|---|
+| What you do | **read** it | **work on** it |
+| The product | the data it shows | the artifact you are making |
+| Success | you understand something | you made something you like |
+| The window's job | present state faithfully | stay out of the way of the work |
+| Color belongs to | the tool, as signal | **the artifact** |
+
+The last row is the one that changes everything. Inspector can spend color on state because nothing
+else in the window has any. Studio cannot: a texture, a gradient, a shader preview and a particle
+system are *made of* color, and every colored pixel of interface competes with them for the judgment
+the user is trying to make.
+
+### The metaphor
+
+**A workbench.** A large neutral surface, the work in the middle, tools within reach but out of the
+way, and good light.
+
+It is a useful metaphor because it decides things. A workbench is not decorated. Its surface is
+chosen so it does not lie to you about what you are making. Tools sit at the edges where your hand
+falls, not in the middle where the work goes. And nothing on a good workbench is more interesting to
+look at than the thing being built on it.
+
+### W1 — The artifact is the only thing allowed to be colorful
+
+The preview, the graph, the simulation get the space and the saturation. Everything else — panels,
+labels, controls, borders — is achromatic, or as close as it can get while staying legible.
+
+This is stricter than Inspector's D1, which reserves color for the four semantic states. Studio keeps
+that channel (a failed shader compile is still `danger`, and V4-ENHANCED **C0** still applies) but
+adds a rule above it: **state color is allowed; decorative color is not, and neither is accent color
+near a preview.** If a control needs emphasis next to the artifact, it gets it from weight, size or
+contrast, not from hue.
+
+*Concretely:* no colored panel backgrounds, no accent-tinted headers, no colored tool icons. The
+`--primary` rose is for focus and selection only, and it does not appear inside a preview region.
+
+### W2 — Dark by default, neutral by necessity
+
+Studio should open dark, regardless of the system preference, and it should let the user switch.
+This is a real departure from Inspector — `apps/studio/src/theme.tsx` currently follows the system —
+and the reason is not fashion.
+
+**You cannot judge a color against a surround that has its own.** Simultaneous contrast is a
+measurable perceptual effect: the same swatch reads lighter against dark, darker against light, and
+shifts hue against a tinted ground. A bright interface beside a texture you are authoring makes that
+texture look darker and more saturated than it is, and you will compensate — in the file, wrongly.
+Every tool where people judge color for a living defaults dark for this reason.
+
+Two rules follow:
+
+**The chrome is dark and desaturated.** Around `#242424` for the workbench surround — dark enough not
+to compete, light enough that a black artifact still reads against it. Pure black is worse than
+mid-dark: it maximizes contrast against everything, making previews look brighter and more saturated
+than they are.
+
+**The immediate surround of a preview is neutral and switchable.** Not the panel color — a dedicated
+ground, with the user able to choose it, because there is no single correct answer:
+
+| Ground | Value | For |
+|---|---|---|
+| Dark | `#141414` | judging bright artifacts, glows, additive particles |
+| **Neutral** | `#767676` | **the default** — true 18% grey, the least-biasing ground |
+| Light | `#d4d4d4` | judging dark artifacts and edges |
+| Checker | 8px `#5a5a5a`/`#6f6f6f` | judging alpha |
+
+`#767676` is not a taste: it is the sRGB value whose relative luminance is 0.18, the neutral
+photographers and colorists standardize on precisely because it biases perception least. The checker
+values are deliberately close together and mid-valued — a high-contrast black/white checker is itself
+a strong simultaneous-contrast stimulus and makes semi-transparent edges hard to read.
+
+The chosen ground is per tool and remembered (**C1**).
+
+### W3 — Parameters are handles, not forms
+
+Asset work is continuous adjustment: *a bit more, a bit less, no — back.* An interface built from
+text fields and Apply buttons makes that loop cost four actions instead of one.
+
+Every numeric parameter is **draggable to scrub**, click-to-type for precision, and arrow-key
+nudgeable (shift for coarse, alt for fine). Every color parameter opens its picker in place. Ranges
+show their bounds. Nothing needs confirming.
+
+*Concretely:* if a control has an Apply button beside it, the control is wrong. The exception is
+anything genuinely expensive or destructive — generating a large texture, deleting a workspace —
+where a deliberate act is the point.
+
+### W4 — Feedback follows the hand
+
+The preview updates **during** the drag, not on release. That loop — adjust, see, adjust — is the
+entire product, and its latency is the quality metric users will feel before they can name it.
+
+Where something cannot be instant (a heavy generation, a compile, a round trip to a live game), it
+says so with a progress affordance in place, and the last good result stays on screen until the new
+one arrives. A preview that blanks while recomputing is worse than one that is briefly stale, because
+blanking destroys the comparison you were in the middle of making.
+
+This is where Studio's motion budget goes. V4-ENHANCED **D4** says motion only for causality; here,
+causality *is* the interaction, so the propagation of a change through the graph and into the preview
+is worth animating. Nothing else is.
+
+### W5 — One workspace, not three pages
+
+Inspector is tabbed because you look at one thing at a time. Studio is not: you need the graph, the
+preview and the parameters **simultaneously**, because the whole job is relating them.
+
+Shader Graph already has this shape — palette | canvas | inspector, resizable, in the showcase's
+composition. The other two do not: Texture Lab is a page with a header
+(`tools/texture-lab/index.tsx:62`), and Particle Playground is built from Inspector's cards
+(`rounded-md border bg-card`). Both should become three-region workbenches:
+
+| Tool | Left | Center (the work) | Right |
+|---|---|---|---|
+| Shader Graph | node palette | node canvas + preview | node parameters |
+| Particle Playground | system / emitter list | **simulation preview** | emitter parameters + timeline |
+| Texture Lab | recipe / generator list | **texture preview** | generator parameters |
+
+Regions are resizable and their sizes persist per tool (**C1**). The center region is never smaller
+than the sum of the sides.
+
+### W6 — The work has a name
+
+An asset is a thing someone made, not a scratch buffer. Workspaces are named, listed, switchable,
+and saved continuously (**P3**, and S4 builds it). The name is visible while you work, because it is
+the answer to "which one is this?" — and it is the only place in Studio where a delete needs
+confirming.
+
+### What this means for the shell
+
+Applying W1–W6 to S2, the shell should be:
+
+- **A frame, not a page.** No large application header. Tool switching is a compact left rail or a
+  strip — enough to name where you are, not enough to take space from the work. Studio has three
+  tools; it does not need navigation furniture.
+- **Dark, achromatic, quiet.** The shell contributes no color at all.
+- **The tool fills the rest.** The tool owns the entire remaining window and manages its own regions.
+- **The Inspector connection lives at the edge.** A small status affordance, styled as chrome (**P2**
+  — its absence is not an error). It belongs near the tool switcher, not in a banner.
+- **The workspace name is visible**, in the same strip.
+---
+
+## 6. The work
 
 ### S1 — Mount the providers
 
@@ -158,6 +308,9 @@ Build a provider stack matching `showcase/providers.tsx`, with these differences
   lazily imports `@tauri-apps/*`. **Do not change it**; a web build must not pull Tauri in.
 - Keep the existing `setCreativeMcpTransport` wiring for the desktop case.
 - `UiProvider` needs the same three dependencies the showcase supplies.
+- **Studio opens dark by default**, not on the system preference (§5, **W2**). `theme.tsx` follows
+  the system today; give it a Studio default of dark with the system preference as a user choice
+  rather than the initial state. The reason is in W2 and it is perceptual, not aesthetic.
 
 **Acceptance:** a tool mounted anywhere in Studio renders with real card backgrounds, borders and
 muted text, in both light and dark, following the system preference.
@@ -174,9 +327,13 @@ should look like a tool, not unstyled markup. Revert the temporary render before
 **Files:** `apps/studio/src/StudioApp.tsx` (replace the placeholder), plus whatever navigation
 components you add.
 
+**Read §5 first.** It is the visual direction, and the shell is where most of it lands — a frame
+rather than a page, achromatic, with the tool owning everything below a compact strip.
+
 Requirements:
 
-1. **Navigation across the three tools.** Shader Graph, Particle Playground, Texture Lab.
+1. **Navigation across the three tools.** Shader Graph, Particle Playground, Texture Lab. A compact
+   left rail or top strip, not an application header — §5 explains why the work gets the space.
 2. **Mount the entry components.** All three export defaults:
    - `apps/studio/src/tools/shader-graph/index.tsx` → `ShaderGraph`
    - `apps/studio/src/tools/particle-system-playground/index.tsx` → `ParticleSystemPlaygroundPage`
@@ -208,7 +365,7 @@ existing tests, which assert the placeholder.
 
 **Goal:** the tools stop treating "no game" as degraded.
 
-This is where P1 becomes code. **Read §6.1 before starting** — the semantics are subtle and the
+This is where P1 becomes code. **Read §7.1 before starting** — the semantics are subtle and the
 existing predicates are easy to misread.
 
 **The defect, exactly.** Both Texture Lab and Particle Playground contain:
@@ -267,6 +424,27 @@ without `playgroundOverride`.
 state. `pnpm run test:showcase:e2e` still passes.
 
 ---
+
+### S3b — Give the other two tools the workbench shape
+
+**Goal:** §5 **W5**. All three tools are workspaces, not pages.
+
+Shader Graph is already right: palette | canvas | inspector, resizable, composed in
+`showcase/ShowcaseShaderGraph.tsx`. The other two are not, and both use Inspector idioms that no
+longer fit:
+
+- `tools/texture-lab/index.tsx:62` — a `<main>` with a `<header>`, i.e. a page.
+- `tools/particle-system-playground/index.tsx:32` — `rounded-md border bg-card`, Inspector's card.
+
+Rebuild both as three regions using `@feather/ui/resizable`, per the table in §5 **W5**, with the
+preview in the center. Add the neutral, switchable preview ground from **W2** — no preview should
+sit on the panel color.
+
+This is a layout change, not a rewrite: the panels inside each tool keep working. Do it after S3 so
+you are not moving components and changing their session behaviour at once.
+
+**Acceptance:** each tool shows its work, its parameters and its list at the same time, the regions
+resize, and the preview sits on a neutral ground the user can change.
 
 ### S4 — Durable workspaces
 
@@ -327,9 +505,9 @@ lint rule banning raw color literals covers `apps/studio/src` as it does `apps/i
 
 ---
 
-## 6. Reference
+## 7. Reference
 
-### 6.1 Session semantics — read before S3
+### 7.1 Session semantics — read before S3
 
 `apps/studio/src/session/index.ts` mirrors Inspector's session shape so 25,500 lines of tools could
 move without being rewritten. The mirror is fed **only** by `syncFromBridge`, from Inspector, over
@@ -344,7 +522,7 @@ Consequences, all true today:
 - So `!sessionSupportsRuntime(activeSession)` is the correct test for "local mode" today, which is
   why Shader Graph works standalone and the other two do not.
 
-### 6.2 The Inspector bridge
+### 7.2 The Inspector bridge
 
 `apps/studio/src/useInspectorBridge.ts` returns:
 
@@ -365,12 +543,12 @@ The contract lives in `packages/session-bridge/`, with 16 tests in
 `packages/session-bridge/test/bridge.test.mts`, most of them negative (forged capability, revoked,
 expired, incompatible peer, no session). Read them before changing anything about the connection.
 
-### 6.3 Ports
+### 7.3 Ports
 
 `4004` game WebSocket · `4005` Inspector MCP bridge · `4006` CLI MCP HTTP transport ·
 `4007` Studio creative MCP · `4008` Studio↔Inspector bridge · `1420` Inspector dev · `1430` Studio dev.
 
-### 6.4 Commands
+### 7.4 Commands
 
 ```sh
 pnpm run studio:dev            # Studio web dev server, port 1430
@@ -386,7 +564,7 @@ pnpm run verify:enhanced       # the V4-ENHANCED gate; extend it in S5
 
 ---
 
-## 7. Traps
+## 8. Traps
 
 Each of these has already cost time in this repository. They are listed so they cost it once.
 
@@ -420,7 +598,7 @@ payloads it sends. The values worth being strict about are the ones authored out
 
 ---
 
-## 8. Definition of done
+## 9. Definition of done
 
 Studio is finished as a tool when all of these are true:
 
@@ -430,8 +608,11 @@ Studio is finished as a tool when all of these are true:
 3. Connecting to Inspector **adds** live preview, and disconnecting removes it without losing work
    or showing an error.
 4. Every state color follows the user's theme and clears WCAG AA on it.
-5. `pnpm run verify:enhanced` covers Studio and passes.
-6. `pnpm run test` passes 7/7.
+5. Studio opens dark, contributes no color of its own, and every preview sits on a neutral ground the
+   user can change — so what someone sees while authoring is the artifact, not the interface's
+   opinion of it (§5).
+6. `pnpm run verify:enhanced` covers Studio and passes.
+7. `pnpm run test` passes 7/7.
 
 Then Studio gets its own feature-by-feature section in V4-ENHANCED, and the same lens (L1–L6) is
 applied to each of its three tools — which is where the real refinement of the creative work begins.
