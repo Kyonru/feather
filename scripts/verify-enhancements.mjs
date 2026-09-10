@@ -326,6 +326,27 @@ check('a profiler baseline survives the restart a comparison requires', () => {
   return `${pass} assertions — snapshots travel, live capture state does not`;
 });
 
+// --- C5 — third-party data cannot break first-party UI ---------------------
+
+section(
+  'C5',
+  'A plugin cannot take the app down with it',
+  'Hard to stage by hand — it needs a plugin with a malformed manifest. The unit test covers it;\n' +
+    '              what you can check is that your real plugins still list and filter normally in the sidebar.',
+);
+
+check('plugin-supplied values are coerced before first-party code uses them', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/pluginNavItems.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} plugin-manifest assertions failed`);
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  return `${pass} assertions — one odd manifest cannot break the sidebar`;
+});
+
 // --- summary ---------------------------------------------------------------
 
 process.stdout.write(

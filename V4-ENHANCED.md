@@ -324,6 +324,30 @@ has not been applied to every terminal state.
 exists, name it — ideally as something clickable or copyable, matching the empty state's approach
 of embedding the user's real project directory rather than a placeholder.
 
+### C5 — Third-party data reaching first-party code *(verified)*
+
+Two crashes this work has produced came from the same root: a value typed as one thing and never
+checked. The log search threw on `log.str.toLowerCase()` because `Log` promised a string that
+nothing validated. `use-ws-connection` carries **18 casts** of inbound payloads — `data as Log`,
+`data as PausedState`, `data as ProfilerState` — none of them checked.
+
+Auditing the consumers of those casts was more reassuring than expected, and the reason is worth
+recording. Feather's own runtime is disciplined: the Lua debugger falls back to `"?"` rather than
+sending a frame with no `file`, and filters C frames out entirely. Compare already coerces with
+`String(item.key)`. The plugin content renderer guards with `Array.isArray` and `.every`. Three
+candidate crash sites, two already defended.
+
+The one that was not defended is the one where the value comes from **outside this repo**. A plugin's
+`tabName` is written in its own Lua manifest, and `if (value.tabName)` admits any truthy value —
+so `tabName = 1234` gave the sidebar an item whose name was a number, and `.localeCompare` and
+`.toLowerCase()` both ran on it. That list *is* the navigation, so a single odd manifest took the
+whole app's sidebar down.
+
+**The rule this suggests:** blanket payload schemas are already declined (V4.md **D14**), and the
+audit says that decision is holding — the runtime is careful with its own messages. The seam to be
+strict at is narrower and clearer: **wherever a value authored outside this repository reaches
+first-party rendering.** Plugin manifests are that seam. Coerce there, not everywhere.
+
 ### C4 — Failures the user never learns about *(verified, needs triage)*
 
 44 instances of swallowed errors across Inspector. Some are correct — a clipboard write that fails
@@ -512,6 +536,7 @@ alone.
 | C1 | Panel state persistence | **DONE** | 13 filters persisted globally; `pnpm run verify:enhanced` |
 | C2 | Freshness and staleness | **DONE** | `useFreshness` + `<Freshness/>`; judged against the session, not the clock |
 | C3 | Next-action audit | **DONE (Session)** | 9/9 warnings actionable; other panels' empty states still to audit |
+| C5 | Third-party data safety | **DONE (plugins)** | 18 casts audited; the one unguarded seam was plugin manifests |
 | C4 | Swallowed-error triage | **MOSTLY DONE** | 44 → 27; 11 surface, 10 named deliberate; 27 left, mostly clipboard/invoke |
 | 6.1 | Logs | **MOSTLY DONE** | follow-tail fixed; scale measured; export of a filtered view still open |
 | 6.2 | Session | NOT STARTED | |
@@ -519,7 +544,7 @@ alone.
 | 6.4 | Debugger | **DONE** | problem counts navigable; source failure names the path and the fix; keyboard stepping pinned |
 | 6.5 | Console | NOT STARTED | Reference implementation |
 | 6.6 | Assets | NOT STARTED | |
-| 6.7 | Plugins | NOT STARTED | |
+| 6.7 | Plugins | **PARTLY DONE** | manifest values coerced (C5); generic renderer already well guarded |
 | 6.8 | Observability | NOT STARTED | |
 | 6.9 | Time Travel | NOT STARTED | |
 | 6.10 | Session Replay | NOT STARTED | |
@@ -823,6 +848,34 @@ that happened to touch the same mechanism.
 
 Still open on this surface: whether a capture's cost is obvious before starting it, and whether the
 panel distinguishes "cheap to leave open" from "actively measuring".
+
+**2026-09-09 — C5, found by asking why the same bug happened twice.**
+
+The log-search crash and the plugin-manifest crash share a root: a value typed as one thing and
+never checked. `use-ws-connection` holds 18 casts of inbound payloads, none validated, so the
+question was how many are live hazards.
+
+Fewer than feared, and the reason is the finding. Feather's own runtime is disciplined about what it
+sends — the Lua debugger falls back to `"?"` rather than emitting a frame without a `file`, and
+filters C frames out entirely; Compare already coerces with `String(item.key)`; the plugin content
+renderer guards with `Array.isArray` and `.every`. Three candidate crash sites, two already
+defended. V4.md **D14** declined blanket payload schemas, and this audit says that call is holding.
+
+The undefended one was the only one whose value is authored **outside this repository**. A plugin's
+`tabName` comes from its own Lua manifest, and the truthiness gate admitted any truthy value, so
+`tabName = 1234` produced a nav item whose name was a number — then `.localeCompare` sorted it and
+`.toLowerCase()` searched it. That list is the sidebar: one third-party plugin with an odd manifest
+took navigation down for the entire app.
+
+So the rule is narrower than "validate everything" and sharper than "trust the runtime": be strict
+**where somebody else's code decides what we render**. `pluginNavItems` is now a pure module doing
+exactly that, and it keeps the odd plugin visible rather than hiding it — showing "1234" is a better
+answer than silently dropping a plugin that exists.
+
+I could not get an e2e green for this one; the sidebar did not pick up an injected config through
+two different seed helpers, and rather than keep guessing I extracted the logic and tested it
+directly. That has now been the resolution three times in this work — extract the judgement, test the
+judgement — and it is faster than fighting the harness every time.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

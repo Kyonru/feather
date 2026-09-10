@@ -23,6 +23,7 @@ import { NavLink, useLocation } from 'react-router';
 import { useConfigStore } from '@/store/config';
 import { useSettingsStore } from '@/store/settings';
 import { useSessionStore } from '@/store/session';
+import { pluginNavItems } from './plugin-nav-items';
 import { useMemo, useState } from 'react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import { ChevronRight, PowerOffIcon, PuzzleIcon, SearchIcon, SlidersHorizontalIcon } from 'lucide-react';
@@ -36,25 +37,7 @@ export function NavPlugins() {
   const toggleHiddenPlugin = useSettingsStore((state) => state.toggleHiddenPlugin);
   const [search, setSearch] = useState('');
 
-  const items = useMemo(() => {
-    const pluginItems = [];
-
-    if (plugins) {
-      for (const [key, value] of Object.entries(plugins)) {
-        if (value.tabName) {
-          pluginItems.push({
-            id: key,
-            name: value.tabName,
-            url: `/plugins/${key}`,
-            icon: value.icon,
-            disabled: value.disabled || false,
-          });
-        }
-      }
-    }
-
-    return pluginItems.sort((a, b) => a.name.localeCompare(b.name));
-  }, [plugins]);
+  const items = useMemo(() => pluginNavItems(plugins), [plugins]);
 
   const disabledItems = useMemo(() => items.filter((item) => item.disabled), [items]);
 
