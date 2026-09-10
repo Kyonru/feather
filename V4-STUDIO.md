@@ -652,6 +652,20 @@ button and the note. S2 will break them, and that is correct — they encode the
 replacing. Rewrite them to assert the property you want, not the markup you have. This is V4.md
 **D43**: a test that asserts current behaviour locks in the thing you are trying to change.
 
+**An app's config is part of the migration.** When previews moved out of Inspector, the love.js Vite
+plugin was extracted so *"only Studio and the showcase consume this"* — its own words. The showcase
+got wired up; **Studio never did**. `apps/studio/vite.config.ts` had no plugin and no
+`publicDir`, so every preview iframe requested `/showcase-lovejs/...`, hit the SPA fallback, and
+rendered **Studio inside its own iframe**. Reported as *"the preview node... is currently displaying
+the page itself"*. Studio's `build` was missing the two asset steps too, so the packaged app shipped
+the same hole.
+
+This is the Phase 05c pattern again (§1): the code moved, the tests passed, and the product it
+moved *to* did not work. When a shared module names its consumers, check that each one actually
+imports it — and check the build output, not just the dev server. *Guarded by* `the love.js preview
+target is served, not the app itself`, which also asserts `showcase.love` and the player are there,
+since an entry page that resolves while its assets 404 is the same defect one level down.
+
 **Verify a test by breaking the thing it tests.** Three tests in this work passed against unfixed
 code before anyone noticed. The routine that catches it: make the fix, watch the test pass, revert
 the fix, watch it fail, restore. If it does not fail, it is not testing what you think.

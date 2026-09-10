@@ -79,10 +79,10 @@
       "inputs": ["apps/inspector/src/**", "apps/inspector/e2e/**", "packages/*/src/**", "apps/inspector/playwright.config.ts", "vite.config.ts"]
     },
     "//#test:studio:e2e": {
-      "inputs": ["apps/studio/**", "packages/*/src/**"]
+      "inputs": ["apps/studio/**", "packages/*/src/**", "scripts/vite-lovejs-plugin.mjs", "scripts/showcase-lovejs-utils.mjs", "scripts/prepare-lovejs-dist.mjs"]
     },
     "//#test:showcase:e2e": {
-      "inputs": ["apps/studio/src/**", "apps/showcase/**", "packages/*/src/**"]
+      "inputs": ["apps/studio/src/**", "apps/showcase/**", "packages/*/src/**", "scripts/vite-lovejs-plugin.mjs", "scripts/showcase-lovejs-utils.mjs", "scripts/prepare-lovejs-dist.mjs"]
     },
     "//#check:registry": {
       "inputs": ["catalog/packages/*.json", "scripts/generate-registry.mjs"]

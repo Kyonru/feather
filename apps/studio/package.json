@@ -2,11 +2,11 @@
   "name": "@feather/studio",
   "version": "0.1.0",
   "private": true,
-  "description": "Feather Studio — standalone creative tooling for LÖVE: shader graph, texture lab, particle playground",
+  "description": "Feather Studio \u2014 standalone creative tooling for L\u00d6VE: shader graph, texture lab, particle playground",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build": "tsc --noEmit -p tsconfig.json && vite build && node ../../scripts/prepare-lovejs-dist.mjs apps/studio/dist/showcase-lovejs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "tauri": "tauri",

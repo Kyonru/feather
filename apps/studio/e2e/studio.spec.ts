@@ -181,3 +181,30 @@ test('the three tools share one visual language', async ({ page }) => {
     expect(harsh, `${tool} draws borders in the text colour`).toEqual([]);
   }
 });
+
+test('the love.js preview target is served, not the app itself', async ({ page }) => {
+  await page.goto('/');
+
+  // Both preview entry points Studio embeds: the node probe inside the shader
+  // graph (webgl.html) and the floating preview (index.html).
+  for (const entry of ['showcase-lovejs/webgl.html', 'showcase-lovejs/index.html']) {
+    const response = await page.request.get(entry);
+    expect(response.status(), `${entry} is not served`).toBe(200);
+
+    const body = await response.text();
+
+    // The failure this guards is silent: Vite has no such file, the SPA
+    // fallback answers with index.html, and the iframe renders Studio inside
+    // itself. It looks like a broken preview, not a missing asset.
+    expect(body, `${entry} fell through to the SPA shell`).not.toContain('<div id="root">');
+    expect(body.toLowerCase()).toContain('preview');
+  }
+
+  // The player and the game payload it loads must be there too — an entry page
+  // that resolves while its assets 404 is the same defect one level down.
+  for (const asset of ['showcase-lovejs/showcase.love', 'showcase-lovejs/webgl-player.js']) {
+    const response = await page.request.get(asset);
+    expect(response.status(), `${asset} is not served`).toBe(200);
+    expect((await response.body()).byteLength, `${asset} is empty`).toBeGreaterThan(0);
+  }
+});
