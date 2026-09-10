@@ -231,6 +231,40 @@ a strong simultaneous-contrast stimulus and makes semi-transparent edges hard to
 
 The chosen ground is per tool and remembered (**C1**).
 
+### W2b — Regions are separated by value, not by lines
+
+*(Added 2026-09-10 on the owner's direction, after the first shell read as too heavy.)*
+
+Take the VS Code approach: regions differ by a half-step of **background value**, and drawn borders
+are reserved for things that need an affordance — inputs, buttons, anything you can click into.
+
+A border is a line you have to look at. A value step does the same job of saying *these are
+different regions* and then stops registering once you no longer need it, which is exactly the
+behaviour a workbench's chrome should have. Drawn edges everywhere also read as decoration, and W1
+has already spent the decoration budget at zero.
+
+*Concretely:* `border-r` / `border-b` between layout regions becomes `bg-sidebar` (or another step)
+on one side. A card sitting inside a tool that already owns the window loses its outline entirely —
+that outline was Inspector's idiom, where cards separated peers on a scrolling page; here the
+section is already inside its own region and the line has nothing to do. Grouping comes from a value
+step and a quiet heading.
+
+*What keeps its border:* form controls, and any element whose edge tells you where to click.
+
+### W2c — Navigation overlays; it does not occupy
+
+*(Added 2026-09-10 on the owner's direction.)*
+
+The tool switcher is a menu behind a hamburger, opening as an overlay, not a permanent rail.
+
+Three tools do not justify taking width from a node graph or a texture preview for the whole
+session — W1 says the artifact gets the space, and a rail contradicts it every minute it is on
+screen. What remains permanently is a thin strip: which tool you are in, and whether a game is
+attached. Everything else appears over the work when asked for and leaves when you have chosen.
+
+The cost is one extra click to switch tools, which is why the menu **closes on selection** — the
+interaction must not also charge a dismissal.
+
 ### W3 — Parameters are handles, not forms
 
 Asset work is continuous adjustment: *a bit more, a bit less, no — back.* An interface built from
@@ -288,9 +322,8 @@ confirming.
 
 Applying W1–W6 to S2, the shell should be:
 
-- **A frame, not a page.** No large application header. Tool switching is a compact left rail or a
-  strip — enough to name where you are, not enough to take space from the work. Studio has three
-  tools; it does not need navigation furniture.
+- **A frame, not a page.** No large application header. A thin strip names where you are; tool
+  switching lives in an overlay menu behind it (**W2c**).
 - **Dark, achromatic, quiet.** The shell contributes no color at all.
 - **The tool fills the rest.** The tool owns the entire remaining window and manages its own regions.
 - **The Inspector connection lives at the edge.** A small status affordance, styled as chrome (**P2**

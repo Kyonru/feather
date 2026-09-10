@@ -29,8 +29,12 @@ export type ParticleSystemPlaygroundController = ReturnType<typeof useParticleSy
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-3 rounded-md border bg-card p-3">
-      <h2 className="text-sm font-semibold">{title}</h2>
+    // A card inside a tool that already owns the window is Inspector's idiom:
+    // there, cards separated peers on a scrolling page. Here the section is
+    // already inside its own region, so the outline is a line with nothing to
+    // do. A value step and a quiet heading carry the grouping instead.
+    <section className="grid gap-2.5 rounded-sm bg-card/60 p-3">
+      <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{title}</h2>
       {children}
     </section>
   );
@@ -176,7 +180,7 @@ export default function ParticleSystemPlaygroundPage() {
             });
         }}
       />
-      <aside className="flex h-full min-h-0 flex-col border-r bg-muted/20">
+      <aside className="flex h-full min-h-0 flex-col bg-sidebar">
         <CompositeSelector
           composites={playground.composites}
           activeComposite={playground.activeComposite}

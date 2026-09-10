@@ -1,25 +1,32 @@
-import { BlendIcon, PlugZapIcon, SparklesIcon, WandSparklesIcon } from 'lucide-react';
+import { useState } from 'react';
+import { BlendIcon, MenuIcon, PlugZapIcon, SparklesIcon, WandSparklesIcon } from 'lucide-react';
 import type { ElementType } from 'react';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@feather/ui/sheet';
+import { cn } from '@feather/ui';
 
 import ParticleSystemPlayground from './tools/particle-system-playground';
 import ShaderGraph from './tools/shader-graph';
 import TextureLab from './tools/texture-lab';
 import { useInspectorBridge } from './useInspectorBridge';
-import { cn } from '@feather/ui';
 import { STUDIO_TOOLS, useStudioUiStore, type StudioToolId } from './store/studio-ui';
-
 
 /**
  * Feather Studio's shell.
  *
- * A frame, not a page. Studio is a workbench: the tool being used gets the whole
- * window below a compact rail, and the shell contributes no color of its own,
- * because the artifact someone is authoring is the only thing here that should
- * be colorful. See V4-STUDIO.md §5.
+ * A frame, not a page. The tool being used owns everything below a thin strip,
+ * and the shell contributes no color of its own, because the artifact someone is
+ * authoring is the only thing here that should be colorful. See V4-STUDIO.md §5.
  *
- * This replaces the Phase 05b placeholder, which announced that the tools would
- * "move here in Phase 05c" while 25,500 lines of them sat unreferenced in
- * `tools/`. They had already moved; only the shell was missing.
+ * **Regions are separated by background value, not borders.** A border is a line
+ * you have to look at; a half-step of value does the same job and stops
+ * registering once you no longer need it. This is the VS Code approach and it
+ * suits a workbench better than drawn edges — the eye should spend its contrast
+ * budget on the work.
+ *
+ * **Navigation overlays rather than occupying.** Three tools is not enough to
+ * justify a permanent rail eating width that a node graph or a texture preview
+ * would rather have. The strip keeps you oriented — which tool, is a game
+ * attached — and the menu appears over the work only when asked for.
  */
 
 const TOOLS: Record<StudioToolId, { label: string; icon: ElementType; render: () => React.ReactNode }> = {
@@ -29,13 +36,14 @@ const TOOLS: Record<StudioToolId, { label: string; icon: ElementType; render: ()
 };
 
 /**
- * The Inspector connection, at the edge and styled as chrome.
+ * The Inspector connection.
  *
  * Not connected is a neutral fact, never an error: Studio is a local authoring
- * tool and a game is an addition to it (V4-STUDIO.md **P2**). Connecting stays
- * an explicit act — Studio never probes loopback on its own.
+ * tool and a game is an addition to it (V4-STUDIO.md **P2**). The dot is
+ * achromatic for the same reason the rest of the shell is — connection is
+ * chrome, not state, and color near a preview competes with the artifact.
  */
-function InspectorStatus() {
+function InspectorStatus({ compact = false }: { compact?: boolean }) {
   const inspector = useInspectorBridge();
 
   const detail = inspector.connected
@@ -44,33 +52,44 @@ function InspectorStatus() {
       : 'No game attached'
     : 'Local only';
 
-  return (
-    <div className="grid gap-1 border-t px-2 py-3" data-testid="studio-inspector-status">
-      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+  if (compact) {
+    return (
+      <div
+        className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+        data-testid="studio-inspector-status"
+        title={inspector.connected ? detail : 'Studio works as a local editor. Connecting adds live preview in a game.'}
+      >
         <span
-          // Achromatic on purpose (§5 W1): connection is chrome, not state, and
-          // colour beside a preview competes with the artifact. The semantic
-          // ramps arrive in S5 and this still will not want one.
           className={cn(
             'size-1.5 shrink-0 rounded-full',
             inspector.connected ? 'bg-foreground' : 'bg-muted-foreground/40',
           )}
         />
-        <span className="truncate" title={detail}>
-          {detail}
-        </span>
+        <span className="truncate">{detail}</span>
       </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-2 px-3 py-3" data-testid="studio-inspector-detail">
+      <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Game</p>
+      <p className="text-xs">{detail}</p>
 
       {!inspector.connected && (
-        <button
-          type="button"
-          onClick={() => void inspector.connect()}
-          className="flex items-center gap-1.5 rounded-md px-1 py-1 text-left text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
-          title="Connecting lets you push work straight into a running game. Studio works without it."
-        >
-          <PlugZapIcon className="size-3.5 shrink-0" />
-          Connect Inspector
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => void inspector.connect()}
+            className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <PlugZapIcon className="size-3.5 shrink-0" />
+            Connect Inspector
+          </button>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Optional. Studio works as a local editor without it; connecting lets you push work straight into a running
+            game.
+          </p>
+        </>
       )}
 
       {inspector.error && (
@@ -82,20 +101,25 @@ function InspectorStatus() {
   );
 }
 
-export function StudioApp() {
-  const activeTool = useStudioUiStore((state) => state.activeTool);
-  const setActiveTool = useStudioUiStore((state) => state.setActiveTool);
+function ToolMenu({ activeTool, onSelect }: { activeTool: StudioToolId; onSelect: (tool: StudioToolId) => void }) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex h-screen min-h-0 w-full overflow-hidden bg-background text-foreground">
-      {/* The rail names where you are and gets out of the way. Studio has three
-          tools; it does not need navigation furniture. */}
-      <nav
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
+        data-testid="studio-menu-trigger"
         aria-label="Studio tools"
-        data-testid="studio-rail"
-        className="flex w-40 shrink-0 flex-col justify-between border-r bg-card"
+        className="flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
       >
-        <div className="grid gap-0.5 p-2">
+        <MenuIcon className="size-4" />
+      </SheetTrigger>
+
+      <SheetContent side="left" className="w-64 gap-0 border-r-0 p-0 sm:max-w-64" data-testid="studio-menu">
+        <SheetTitle className="px-3 pt-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+          Feather Studio
+        </SheetTitle>
+
+        <nav aria-label="Studio tools" className="grid gap-0.5 p-2">
           {STUDIO_TOOLS.map((id) => {
             const tool = TOOLS[id];
             const active = id === activeTool;
@@ -103,12 +127,21 @@ export function StudioApp() {
               <button
                 key={id}
                 type="button"
-                onClick={() => setActiveTool(id)}
+                onClick={() => {
+                  onSelect(id);
+                  setOpen(false);
+                }}
                 aria-current={active ? 'page' : undefined}
                 data-testid={`studio-tool-${id}`}
                 className={cn(
-                  'flex items-center gap-2 rounded-md px-2 py-2 text-left text-xs transition-colors',
-                  active ? 'bg-primary/10 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent',
+                  // The active marker is a left bar and a value step, the way an
+                  // editor marks its current file — no filled pill, no accent
+                  // wash. It reads at a glance and stops registering when you
+                  // are not looking for it.
+                  'flex items-center gap-2.5 rounded-sm border-l-2 px-2.5 py-2 text-left text-xs transition-colors',
+                  active
+                    ? 'border-l-primary bg-accent/60 font-medium text-foreground'
+                    : 'border-l-transparent text-muted-foreground hover:bg-accent/40 hover:text-foreground',
                 )}
               >
                 <tool.icon className="size-4 shrink-0" />
@@ -116,10 +149,33 @@ export function StudioApp() {
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        <InspectorStatus />
-      </nav>
+        <div className="mt-auto">
+          <InspectorStatus />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export function StudioApp() {
+  const activeTool = useStudioUiStore((state) => state.activeTool);
+  const setActiveTool = useStudioUiStore((state) => state.setActiveTool);
+
+  return (
+    <div className="flex h-screen min-h-0 w-full flex-col overflow-hidden bg-background text-foreground">
+      {/* One value step above the work, and no rule between them. Thin, because
+          the canvas wants the height as much as the width. */}
+      <header data-testid="studio-strip" className="flex h-9 shrink-0 items-center gap-2 bg-sidebar px-2 text-xs">
+        <ToolMenu activeTool={activeTool} onSelect={setActiveTool} />
+        <span className="truncate font-medium" data-testid="studio-current-tool">
+          {TOOLS[activeTool].label}
+        </span>
+        <div className="ml-auto flex items-center gap-3">
+          <InspectorStatus compact />
+        </div>
+      </header>
 
       <main className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden" data-testid="studio-tool-surface">
         {TOOLS[activeTool].render()}

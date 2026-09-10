@@ -60,7 +60,7 @@ export default function TextureLab() {
 
   return (
     <main className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden" data-testid="texture-lab-page">
-      <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b px-4 py-3">
+      <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 bg-sidebar px-4 py-3">
         <div className="grid gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Texture Lab</h1>
           <p className="max-w-3xl text-sm text-muted-foreground">

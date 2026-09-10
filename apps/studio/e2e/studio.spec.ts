@@ -22,12 +22,37 @@ const TOOLS = [
   { id: 'texture-lab', label: 'Texture Lab' },
 ] as const;
 
+/** Navigation overlays rather than occupying, so reaching a tool goes through it. */
+async function chooseTool(page: import('@playwright/test').Page, id: string) {
+  await page.getByTestId('studio-menu-trigger').click();
+  await page.getByTestId(`studio-tool-${id}`).click();
+  await expect(page.getByTestId('studio-menu')).toBeHidden();
+}
+
 test('Studio boots as a standalone application', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByTestId('studio-rail')).toBeVisible();
+  await expect(page.getByTestId('studio-strip')).toBeVisible();
+  await expect(page.getByTestId('studio-current-tool')).toBeVisible();
+
+  await page.getByTestId('studio-menu-trigger').click();
   for (const tool of TOOLS) {
     await expect(page.getByTestId(`studio-tool-${tool.id}`)).toBeVisible();
   }
+});
+
+test('the menu overlays the work and closes after choosing', async ({ page }) => {
+  // It is a menu rather than a rail because three tools do not justify taking
+  // width from a node graph permanently. The cost of that is one extra click,
+  // so it must not also cost a dismissal.
+  await page.goto('/');
+  await expect(page.getByTestId('studio-menu')).toHaveCount(0);
+
+  await page.getByTestId('studio-menu-trigger').click();
+  await expect(page.getByTestId('studio-menu')).toBeVisible();
+
+  await page.getByTestId('studio-tool-texture-lab').click();
+  await expect(page.getByTestId('studio-menu')).toBeHidden();
+  await expect(page.getByTestId('studio-current-tool')).toHaveText('Texture Lab');
 });
 
 test('every tool is usable with no Inspector and no game', async ({ page }) => {
@@ -42,7 +67,7 @@ test('every tool is usable with no Inspector and no game', async ({ page }) => {
   const surface = page.getByTestId('studio-tool-surface');
 
   for (const tool of TOOLS) {
-    await page.getByTestId(`studio-tool-${tool.id}`).click();
+    await chooseTool(page, tool.id);
     await expect(surface).toBeVisible();
     await expect(surface).not.toContainText('not available in this session');
     await expect(surface).not.toContainText('No session');
@@ -86,25 +111,33 @@ test('the tools are styled, not unstyled markup', async ({ page }) => {
 
 test('the chosen tool survives a reload', async ({ page }) => {
   await page.goto('/');
-  await page.getByTestId('studio-tool-texture-lab').click();
-  await expect(page.getByTestId('studio-tool-texture-lab')).toHaveAttribute('aria-current', 'page');
+  await chooseTool(page, 'texture-lab');
+  await expect(page.getByTestId('studio-current-tool')).toHaveText('Texture Lab');
 
   await page.reload();
-  await expect(page.getByTestId('studio-tool-texture-lab')).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByTestId('studio-current-tool')).toHaveText('Texture Lab');
 });
 
 test('no Inspector is a neutral fact, not an error', async ({ page }) => {
   await page.goto('/');
-  const status = page.getByTestId('studio-inspector-status');
 
-  await expect(status).toContainText('Local only');
-  await expect(status.getByRole('button', { name: /Connect Inspector/ })).toBeVisible();
+  // The strip says so without asking for anything: "Local only" is a state, not
+  // a prompt. Connecting is offered in the menu, where a deliberate act belongs.
+  await expect(page.getByTestId('studio-inspector-status')).toContainText('Local only');
+
+  await page.getByTestId('studio-menu-trigger').click();
+  const detail = page.getByTestId('studio-inspector-detail');
+  await expect(detail).toContainText('Local only');
+  await expect(detail.getByRole('button', { name: /Connect Inspector/ })).toBeVisible();
+  await expect(detail).toContainText('Studio works as a local editor without it');
 });
 
 test('a failed Inspector connection leaves Studio working', async ({ page }) => {
   await page.goto('/');
+  await page.getByTestId('studio-menu-trigger').click();
   // Nothing is listening on the bridge port in this suite, so connecting fails.
   await page.getByRole('button', { name: /Connect Inspector/ }).click();
+  await page.keyboard.press('Escape');
 
   // The tool keeps working, which is the property that matters — a failed
   // optional connection must not take the application with it.
