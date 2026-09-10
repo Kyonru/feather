@@ -218,6 +218,18 @@ check('every session warning carries an action', () => {
   return `${blocks.length} warnings, all actionable`;
 });
 
+check('session warnings lead with what to do first', () => {
+  // They rendered in the order the checks happen to run, so "Session
+  // disconnected" sat above "Review security" every time — the page led with
+  // what you already knew.
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/session/index.tsx'), 'utf8');
+  if (!source.includes('orderedWarnings')) throw new Error('warnings render in construction order again');
+  if (!/warnings\.map\(/.test(source) === false && /\{warnings\.map\(/.test(source)) {
+    throw new Error('the unsorted list is still being rendered');
+  }
+  return 'danger before warning, stable within a tone';
+});
+
 check('a breakpoint pause is not reported as a problem', () => {
   const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/session/index.tsx'), 'utf8');
   if (/if \(pausedState \|\| debuggerProblemCount > 0\)/.test(source)) {

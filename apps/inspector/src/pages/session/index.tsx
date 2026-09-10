@@ -431,6 +431,14 @@ export default function SessionPage() {
     });
   }
 
+  // Ordered by what to do first, not by the order the checks happen to run in.
+  // Construction order put "Session disconnected" above "Review security" every
+  // time, so the page led with the thing you already knew and buried the thing
+  // you did not. Stable within a tone, so related checks stay grouped.
+  const orderedWarnings = [...warnings].sort(
+    (a, b) => (a.tone === 'danger' ? 0 : 1) - (b.tone === 'danger' ? 0 : 1),
+  );
+
   const healthVerdict = deriveHealthVerdict(session, warnings);
   const actions: RecommendedAction[] = [];
   if (!session.connected && !session.kind) {
@@ -621,7 +629,7 @@ export default function SessionPage() {
               </div>
             ) : (
               <div className="grid gap-2">
-                {warnings.map((warning) => (
+                {orderedWarnings.map((warning) => (
                   <div
                     key={warning.id}
                     className={cn('rounded-md border px-3 py-2', {

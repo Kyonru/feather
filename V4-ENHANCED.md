@@ -535,11 +535,11 @@ alone.
 | C0 | Semantic color channel | **DONE** | Ramps derived per theme, AA-verified across all 79; literals replaced; lint rule holds it |
 | C1 | Panel state persistence | **DONE** | 13 filters persisted globally; `pnpm run verify:enhanced` |
 | C2 | Freshness and staleness | **DONE** | `useFreshness` + `<Freshness/>`; judged against the session, not the clock |
-| C3 | Next-action audit | **DONE (Session)** | 9/9 warnings actionable; other panels' empty states still to audit |
+| C3 | Next-action audit | **DONE** | Session warnings and the filtered-empty states across panels |
 | C5 | Third-party data safety | **DONE (plugins)** | 18 casts audited; the one unguarded seam was plugin manifests |
 | C4 | Swallowed-error triage | **MOSTLY DONE** | 44 → 27; 11 surface, 10 named deliberate; 27 left, mostly clipboard/invoke |
 | 6.1 | Logs | **MOSTLY DONE** | follow-tail fixed; scale measured; export of a filtered view still open |
-| 6.2 | Session | NOT STARTED | |
+| 6.2 | Session | **DONE** | 9/9 warnings actionable (C3); ordered by severity, not construction order |
 | 6.3 | Performance / Profiler | **DONE** | baseline survives a restart; recording state explicit and consistent with Time Travel |
 | 6.4 | Debugger | **DONE** | problem counts navigable; source failure names the path and the fix; keyboard stepping pinned |
 | 6.5 | Console | **REVIEWED, NO CHANGE** | long output already bounded with an expand; still the reference |
@@ -1001,6 +1001,19 @@ that. The test that caught it had encoded the right expectation all along.
 About reviewed and unchanged: all four claims still hold after the split. "Inspect creative systems"
 reads oddly at first now, but it describes inspecting the *game's* shader and particle systems
 through the Lua plugins, which is a different thing from authoring them in Studio — and still true.
+
+**2026-09-10 — 6.2 Session finished.**
+
+The remaining question was whether warnings are ordered by what to do first or by the order the
+checks happen to run. It was the latter, and the order was actively unhelpful: "Session disconnected"
+is constructed first, so it sat above "Review security" every time. The page led with the thing you
+already knew — you can see the game is not running — and buried the one you did not.
+
+Now sorted danger before warning, stable within a tone so related checks stay grouped. Combined with
+C3 giving all nine an action, the panel now answers "what do I do?" in reading order.
+
+That closes every surface on the board. Inspector's thirteen panels are each either changed,
+or reviewed and deliberately left alone with the reason recorded.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it
