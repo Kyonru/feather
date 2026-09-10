@@ -347,6 +347,30 @@ check('plugin-supplied values are coerced before first-party code uses them', ()
   return `${pass} assertions — one odd manifest cannot break the sidebar`;
 });
 
+// --- 6.6 Assets ------------------------------------------------------------
+
+section(
+  '6.6',
+  'Assets',
+  'pnpm run up  →  Assets → filter to Missing on a project with more than 250 assets. Delete one\n' +
+    '              of the later files on disk and it is now reported; before, only the first 250\n' +
+    '              were ever checked.',
+);
+
+check('the Missing filter checks the whole project, in bounded batches', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/missingAssetPaths.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} missing-asset assertions failed`);
+  const page = readFileSync(join(ROOT, 'apps/inspector/src/pages/assets/index.tsx'), 'utf8');
+  if (/slice\(0, 250\)/.test(page)) throw new Error('the 250-asset truncation is back');
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  return `${pass} assertions — complete, batched, and cancellable`;
+});
+
 // --- summary ---------------------------------------------------------------
 
 process.stdout.write(

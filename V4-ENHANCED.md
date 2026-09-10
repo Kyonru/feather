@@ -543,11 +543,11 @@ alone.
 | 6.3 | Performance / Profiler | **PARTLY DONE** | baseline survives a restart; capture cost and measuring-vs-idle still open |
 | 6.4 | Debugger | **DONE** | problem counts navigable; source failure names the path and the fix; keyboard stepping pinned |
 | 6.5 | Console | NOT STARTED | Reference implementation |
-| 6.6 | Assets | NOT STARTED | |
+| 6.6 | Assets | **PARTLY DONE** | Missing filter now truthful at scale; source-file path still open |
 | 6.7 | Plugins | **PARTLY DONE** | manifest values coerced (C5); generic renderer already well guarded |
-| 6.8 | Observability | NOT STARTED | |
+| 6.8 | Observability | **REVIEWED, NO CHANGE** | runtime pushes while interested; C2 covers dormancy |
 | 6.9 | Time Travel | NOT STARTED | |
-| 6.10 | Session Replay | NOT STARTED | |
+| 6.10 | Session Replay | **REVIEWED** | the 6 toasts are export/import feedback, not noise |
 | 6.11 | Compare | NOT STARTED | |
 | 6.12 | Settings | NOT STARTED | |
 | 6.13 | About | NOT STARTED | Smallest |
@@ -876,6 +876,32 @@ I could not get an e2e green for this one; the sidebar did not pick up an inject
 two different seed helpers, and rather than keep guessing I extracted the logic and tested it
 directly. That has now been the resolution three times in this work — extract the judgement, test the
 judgement — and it is faster than fighting the harness every time.
+
+**2026-09-10 — 6.6 Assets, plus two surfaces reviewed and left alone.**
+
+Assets offers a **Missing** filter: which of this project's assets are not on disk. The check behind
+it ran over `paths.slice(0, 250)` and presented the result as complete. On any project with more
+assets than that, a file absent from disk at position 400 was never checked, never flagged, and
+never appeared under the filter — the panel answered "is anything missing?" with a confident,
+incomplete "no". That is the L1 failure the lens calls non-negotiable, and it is worse than not
+offering the answer at all, because the confident answer stops you looking.
+
+The cap existed for a real reason, which is why the fix is not simply deleting it: one `stat` per
+asset fired at once on a large project exhausts file handles. `findMissingPaths` checks everything
+in bounded batches of 64, and re-checks cancellation *between* batches — on a big project this work
+outlives the panel that started it, and someone who navigated away should not keep the filesystem
+busy. All three properties are pinned by tests, including that batching did not quietly collapse to
+serial.
+
+Two surfaces reviewed and deliberately unchanged, which is worth recording so nobody re-opens them:
+
+- **Observability.** The question was what happens when a value changes faster than the panel
+  updates. It does not poll — the runtime pushes while the panel declares interest through
+  `cmd:runtime:interest`, so it is live while open, and C2's indicator now covers the dormant case.
+  Complete as it stands.
+- **Session Replay.** Flagged earlier for carrying the most toasts of any panel (6) against L6. They
+  are three success/failure pairs for export and import: user-initiated file operations whose
+  outcome is invisible otherwise. That is exactly what a toast is for. Not noise.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

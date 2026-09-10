@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { findMissingPaths } from './missing-paths';
 import { sendBackgroundCommand } from '@/lib/send-command';
 import { Freshness } from '@/components/freshness';
 import { sessionQueryKey } from '@/lib/session-query-keys';
@@ -145,7 +146,7 @@ function useMissingAssetPaths(rows: AssetRow[]) {
 
   useEffect(() => {
     let cancelled = false;
-    const paths = Array.from(new Set(rows.map((asset) => asset.path).filter((path): path is string => !!path))).slice(0, 250);
+    const paths = Array.from(new Set(rows.map((asset) => asset.path).filter((path): path is string => !!path)));
 
     if (paths.length === 0) {
       setMissingPaths(new Set());
@@ -157,18 +158,11 @@ function useMissingAssetPaths(rows: AssetRow[]) {
       return;
     }
 
-    Promise.all(
-      paths.map(async (path) => {
-        try {
-          await stat(resolveAssetPath(path, rootPath, manualRootPath));
-          return null;
-        } catch {
-          return path;
-        }
-      }),
-    ).then((results) => {
+    void findMissingPaths(paths, (path) => stat(resolveAssetPath(path, rootPath, manualRootPath)), {
+      isCancelled: () => cancelled,
+    }).then((missing) => {
       if (cancelled) return;
-      setMissingPaths(new Set(results.filter((path): path is string => !!path)));
+      setMissingPaths(missing);
     });
 
     return () => {
