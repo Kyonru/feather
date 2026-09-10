@@ -126,4 +126,94 @@ function Lifecycle.release(pool, instance)
   return true
 end
 
+--- Copy every authored property from one particle system to another.
+--
+-- Atlas "variants" playback fans one emitter into up to sixteen systems that
+-- differ only in which atlas frame they draw, and they have to be kept in step.
+-- Only the two variadic getters allocate; the rest read and write in place.
+--
+-- Like the rest of this module it calls methods on the objects it is handed and
+-- never touches the `love` global, so it is testable with stubs.
+function Lifecycle.copyProperties(from, to, skipQuads)
+  if not from or not to then
+    return
+  end
+
+  -- Reads and writes in one go, without a closure or a result table per
+  -- property. The previous version allocated both, twenty times per variant
+  -- per sync; with sixteen atlas variants that was 320 closures and 320 tables
+  -- for a frame in which usually nothing had changed.
+  local function copy(methodGet, methodSet)
+    local getter, setter = from[methodGet], to[methodSet]
+    if type(getter) ~= "function" or type(setter) ~= "function" then
+      return
+    end
+    setter(to, getter(from))
+  end
+
+  -- getLinearAcceleration returns four values (xmin, ymin, xmax, ymax). Copying
+  -- only two silently collapses the max bounds onto the min, which turns a
+  -- spread of accelerations into a single one — invisible until you compare a
+  -- variant against its source.
+  local function copyQuad(methodGet, methodSet)
+    local getter, setter = from[methodGet], to[methodSet]
+    if type(getter) ~= "function" or type(setter) ~= "function" then
+      return
+    end
+    local a, b, c, d = getter(from)
+    setter(to, a, b, c, d)
+  end
+
+  -- Properties whose getter returns exactly two values.
+  local function copyPair(methodGet, methodSet)
+    local getter, setter = from[methodGet], to[methodSet]
+    if type(getter) ~= "function" or type(setter) ~= "function" then
+      return
+    end
+    local a, b = getter(from)
+    setter(to, a, b)
+  end
+
+  -- getColors and getSizes are variadic, so these two do allocate. They are
+  -- the exception, not the rule.
+  do
+    local values = { from:getColors() }
+    if #values > 0 then to:setColors(unpack(values)) end
+  end
+  copy("getDirection", "setDirection")
+  copy("getEmissionRate", "setEmissionRate")
+  copy("getEmitterLifetime", "setEmitterLifetime")
+  copy("getInsertMode", "setInsertMode")
+  copyQuad("getLinearAcceleration", "setLinearAcceleration")
+  copyPair("getLinearDamping", "setLinearDamping")
+  copyPair("getOffset", "setOffset")
+  copyPair("getParticleLifetime", "setParticleLifetime")
+  copy("getRadialAcceleration", "setRadialAcceleration")
+  copy("getRotation", "setRotation")
+  do
+    local values = { from:getSizes() }
+    if #values > 0 then to:setSizes(unpack(values)) end
+  end
+  copy("getSizeVariation", "setSizeVariation")
+  copyPair("getSpeed", "setSpeed")
+  copyPair("getSpin", "setSpin")
+  copy("getSpinVariation", "setSpinVariation")
+  copy("getSpread", "setSpread")
+  copy("getTangentialAcceleration", "setTangentialAcceleration")
+
+  to:setRelativeRotation(from:hasRelativeRotation())
+
+  local dist, dx, dy, angle, relativeArea = from:getEmissionArea()
+  to:setEmissionArea(dist, dx, dy, angle, relativeArea)
+
+  if not skipQuads and from.getQuads and to.setQuads then
+    local okQuads, quads = pcall(function()
+      return { from:getQuads() }
+    end)
+    if okQuads and #quads > 0 then
+      pcall(to.setQuads, to, unpack(quads))
+    end
+  end
+end
+
 return Lifecycle

@@ -416,58 +416,7 @@ local function readFileBase64(path)
   return nil
 end
 
-local function copyParticleProperties(from, to, skipQuads)
-  if not from or not to then
-    return
-  end
-
-  local function copy(methodGet, methodSet)
-    local ok, values = pcall(function()
-      return { from[methodGet](from) }
-    end)
-    if ok then
-      pcall(to[methodSet], to, unpack(values))
-    end
-  end
-
-  copy("getColors", "setColors")
-  copy("getDirection", "setDirection")
-  copy("getEmissionRate", "setEmissionRate")
-  copy("getEmitterLifetime", "setEmitterLifetime")
-  copy("getInsertMode", "setInsertMode")
-  copy("getLinearAcceleration", "setLinearAcceleration")
-  copy("getLinearDamping", "setLinearDamping")
-  copy("getOffset", "setOffset")
-  copy("getParticleLifetime", "setParticleLifetime")
-  copy("getRadialAcceleration", "setRadialAcceleration")
-  copy("getRotation", "setRotation")
-  copy("getSizes", "setSizes")
-  copy("getSizeVariation", "setSizeVariation")
-  copy("getSpeed", "setSpeed")
-  copy("getSpin", "setSpin")
-  copy("getSpinVariation", "setSpinVariation")
-  copy("getSpread", "setSpread")
-  copy("getTangentialAcceleration", "setTangentialAcceleration")
-
-  local okRelative, relative = pcall(from.hasRelativeRotation, from)
-  if okRelative then
-    pcall(to.setRelativeRotation, to, relative)
-  end
-
-  local okArea, dist, dx, dy, angle, relativeArea = pcall(from.getEmissionArea, from)
-  if okArea then
-    pcall(to.setEmissionArea, to, dist, dx, dy, angle, relativeArea)
-  end
-
-  if not skipQuads and from.getQuads and to.setQuads then
-    local okQuads, quads = pcall(function()
-      return { from:getQuads() }
-    end)
-    if okQuads and #quads > 0 then
-      pcall(to.setQuads, to, unpack(quads))
-    end
-  end
-end
+local copyParticleProperties = Lifecycle.copyProperties
 
 local function clearAtlasVariantSystems(sys)
   if type(sys) ~= "table" or type(sys._atlasVariantSystems) ~= "table" then
@@ -1583,13 +1532,20 @@ local function applyTimelineToSystem(sys, track, time, allowEmission, timeline)
     captureTimelineBase(sys)
   end
   local base = sys._timelineBase or {}
-  TimelineRuntime.applyTimelineToEmitter(sys, track, time, allowEmission == true, {
+  local _, calls = TimelineRuntime.applyTimelineToEmitter(sys, track, time, allowEmission == true, {
     base = base,
     timeline = timeline,
     mode = timelineMode(timeline),
     opacityField = "_timelineOpacity",
   })
-  syncAtlasVariantSystems(sys)
+
+  -- Atlas "variants" fans one emitter into up to 16 systems, and keeping them
+  -- in step copies ~20 properties to each. Doing that every frame is 320
+  -- property copies per emitter — each allocating a closure and a table — for
+  -- values that usually did not change. Sync only when something moved.
+  if calls and calls > 0 then
+    syncAtlasVariantSystems(sys)
+  end
 end
 
 local function resetTimelineSystems(plugin, name)

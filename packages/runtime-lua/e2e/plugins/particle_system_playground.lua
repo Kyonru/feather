@@ -241,6 +241,79 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(complexCode, "Core.MAX_DURATION"), "particle complex export embeds core.lua's own constants")
 
     -- The export used to write kickStartSteps into its table and never read it.
+    -- Atlas variants keep up to 16 systems in step by copying ~20 properties
+    -- to each. That copy was rewritten to stop allocating a closure and a
+    -- table per property, so assert it still copies everything correctly.
+    do
+      local canvas = love.graphics.newCanvas(4, 4)
+      local source = love.graphics.newParticleSystem(canvas, 64)
+      source:setDirection(1.25)
+      source:setSpread(0.5)
+      source:setSpeed(11, 33)
+      source:setParticleLifetime(0.75, 2.25)
+      source:setLinearAcceleration(-1, -2, 3, 4)
+      source:setLinearDamping(0.1, 0.4)
+      source:setRadialAcceleration(7)
+      source:setTangentialAcceleration(9)
+      source:setSpin(0.2, 0.8)
+      source:setSpinVariation(0.3)
+      source:setSizeVariation(0.6)
+      source:setRotation(1.1)
+      source:setRelativeRotation(true)
+      source:setSizes(1, 0.5, 0.25)
+      source:setOffset(3, 4)
+      source:setEmissionRate(123)
+      source:setEmitterLifetime(2.5)
+      source:setEmissionArea("uniform", 5, 6, 0.25, true)
+
+      local copyTarget = love.graphics.newParticleSystem(canvas, 64)
+      local Lifecycle = require("plugins.particle-system-playground.lifecycle")
+      Lifecycle.copyProperties(source, copyTarget, true)
+
+      local function samePair(getter, label)
+        local a1, a2 = source[getter](source)
+        local b1, b2 = copyTarget[getter](copyTarget)
+        assertEqual(b1, a1, "variant copy preserves " .. label .. " (first)")
+        assertEqual(b2, a2, "variant copy preserves " .. label .. " (second)")
+      end
+      assertEqual(copyTarget:getDirection(), source:getDirection(), "variant copy preserves direction")
+      assertEqual(copyTarget:getSpread(), source:getSpread(), "variant copy preserves spread")
+      samePair("getSpeed", "speed")
+      samePair("getParticleLifetime", "particle lifetime")
+      samePair("getSpin", "spin")
+      assertEqual(copyTarget:getSpinVariation(), source:getSpinVariation(), "variant copy preserves spin variation")
+      assertEqual(copyTarget:getSizeVariation(), source:getSizeVariation(), "variant copy preserves size variation")
+      assertEqual(copyTarget:getRotation(), source:getRotation(), "variant copy preserves rotation")
+      assertEqual(copyTarget:hasRelativeRotation(), true, "variant copy preserves relative rotation")
+      assertEqual(copyTarget:getRadialAcceleration(), source:getRadialAcceleration(), "variant copy preserves radial acceleration")
+      assertEqual(copyTarget:getTangentialAcceleration(), source:getTangentialAcceleration(), "variant copy preserves tangential acceleration")
+      assertEqual(copyTarget:getEmissionRate(), source:getEmissionRate(), "variant copy preserves emission rate")
+      assertEqual(copyTarget:getEmitterLifetime(), source:getEmitterLifetime(), "variant copy preserves emitter lifetime")
+      samePair("getOffset", "offset")
+      samePair("getLinearDamping", "linear damping")
+
+      local sizesA = { source:getSizes() }
+      local sizesB = { copyTarget:getSizes() }
+      assertEqual(#sizesB, #sizesA, "variant copy preserves the number of sizes")
+      assertEqual(sizesB[2], sizesA[2], "variant copy preserves size values")
+
+      local ax1, ay1, ax2, ay2 = source:getLinearAcceleration()
+      local bx1, by1, bx2, by2 = copyTarget:getLinearAcceleration()
+      assertEqual(bx1 .. "," .. by1 .. "," .. bx2 .. "," .. by2,
+        ax1 .. "," .. ay1 .. "," .. ax2 .. "," .. ay2,
+        "variant copy preserves all four linear acceleration bounds")
+
+      local dA, dxA, dyA, angA, relA = source:getEmissionArea()
+      local dB, dxB, dyB, angB, relB = copyTarget:getEmissionArea()
+      assertEqual(tostring(dB) .. dxB .. dyB .. angB .. tostring(relB),
+        tostring(dA) .. dxA .. dyA .. angA .. tostring(relA),
+        "variant copy preserves the emission area")
+
+      source:release()
+      copyTarget:release()
+      canvas:release()
+    end
+
     assertTruthy(contains(complexCode, "local function warmEmitter(emitter)"), "particle export defines a warm step")
     assertTruthy(contains(complexCode, "warmEmitter(emitter)"), "particle export actually warms on start")
     assertTruthy(contains(complexCode, "warmSteps = "), "particle export records the resolved warm step count")

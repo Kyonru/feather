@@ -103,7 +103,7 @@ function Runtime.applyTimelineToEmitter(emitter, track, time, allowEmission, opt
   tickOptions.allowEmission = allowEmission == true
   tickOptions.directionOffset = resolveOption(options.directionOffset, emitter)
 
-  local resolved = Apply.tick(
+  local resolved, calls = Apply.tick(
     emitter._timelineApply,
     ps,
     emitter._timelineCompiled,
@@ -114,7 +114,11 @@ function Runtime.applyTimelineToEmitter(emitter, track, time, allowEmission, opt
 
   emitter[options.opacityField or "opacity"] = resolved.opacity
 
-  return resolved
+  -- The call count is not a diagnostic here. Callers with derived systems to
+  -- keep in step (atlas variants) use it to skip that work entirely when
+  -- nothing moved, which is the difference between 320 property copies per
+  -- frame and none.
+  return resolved, calls
 end
 
 M.runtime = Runtime

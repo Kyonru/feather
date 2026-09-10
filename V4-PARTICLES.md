@@ -541,13 +541,48 @@ teleports particles past their own lifetime and leaves the system *emptier* than
 Pooling is bounded and says so: `Lifecycle.release` returns false when the pool is full, so the
 caller knows it still owns what it holds. An unbounded pool is a leak with a friendly name.
 
-### P4 — Atlas variants without the fan-out
+### P4 — Atlas variants — **DONE 2026-09-10, but not as specified**
 
-Replace the up-to-16-systems path with one system and a shader that offsets texture coordinates per
-particle. Keep the multi-system path behind the existing project field until the shader path is
-proven, then migrate projects forward.
+**The specced fix is not possible on LÖVE 11.** This document said "picking a random atlas frame per
+particle is a texture-coordinate offset, which is a shader's job". A shader cannot do it, because it
+has nothing to key the choice on: LÖVE 11's `ParticleSystem` exposes **68 methods and not one of
+them provides per-particle data to a shader** — no `attachAttribute`, no custom vertex attributes,
+no seed. Verified by enumerating the metatable. Per-particle variation needs the mesh-and-instancing
+route, which is a different backend (see `V4-PARTICLES-GPU.md`), not a change to this one.
 
-*Done when:* a `variants` composite draws in one draw call. *Verify:* count draws in the preview.
+So the fan-out stays. What changed is its cost, and **the draw calls turned out not to be the
+expensive part.**
+
+Measured first, on a real LÖVE build, same particle count and emission rate in every row:
+
+| Systems | Particles | ms/frame | vs 1 |
+|---|---|---|---|
+| 1 | 3,509 | 0.119 | 1.0x |
+| 4 | 3,515 | 0.138 | 1.2x |
+| 16 | 3,507 | 0.301 | **2.5x** |
+
+2.5x for the draw path — real, not a crisis. Then the actual finding: keeping sixteen variants in
+step called `copyParticleProperties`, which ran ~20 property copies **per variant per frame**, each
+allocating a closure *and* a result table. That is 320 closures and 320 tables per emitter per
+frame, and it quietly undid all of P2.
+
+| 16 variants, 600 frames | Time | Garbage |
+|---|---|---|
+| before | 0.037 ms/f | **45,750 KB** |
+| after | 0.022 ms/f | 5,100 KB |
+
+1.7x faster and 9x less garbage — **and change detection now gates it entirely**, so an emitter
+whose values did not move syncs nothing at all. `Runtime.applyTimelineToEmitter` returns the setter
+count for exactly this, and `applyTimelineToSystem` skips the sync when it is zero.
+
+The copy moved to `lifecycle.lua` as `Lifecycle.copyProperties`, which made it testable — and the
+first test written against it **found a bug immediately**: `getLinearAcceleration` returns four
+values (xmin, ymin, xmax, ymax) and the rewrite copied two, silently collapsing the max bounds onto
+the min. A spread of accelerations became a single acceleration, on variants only, invisible unless
+you compared a variant against its source. Twenty-four assertions now check every copied property.
+
+*Still open, deliberately:* one emitter is still N draw calls when an atlas uses `variants`
+playback. Fixing that needs per-particle attributes, and that is the GPU backend.
 
 ### P5 — Generated code is the same program
 
