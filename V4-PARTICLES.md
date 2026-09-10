@@ -221,15 +221,30 @@ This is the one place where the GPU lever in §2(c) applies directly: picking a 
 per particle is a texture-coordinate offset, which is a shader's job. `setQuads` already handles the
 *animated* case natively in one system; only `variants` fans out.
 
-### 4.5 Nothing is warmed
+### 4.5 Warming is authored, exported, and honoured by nobody
 
-```sh
-grep -rniE "warm|prewarm|preheat" packages/runtime-lua/plugins/particle-system-playground/init.lua
-```
+*(An earlier draft of this section said "nothing is warmed", which was wrong — the mechanism is
+already there. What is missing is worse: it is wired up everywhere except where it counts.)*
 
-No hits. A looping ambient effect (snow, rain, embers) starts empty and fills over its particle
-lifetime, so the first seconds after `start()` do not look like the steady state the author tuned
-against. LÖVE has no native prewarm; it is `ps:update(n)` in fixed steps before the first draw.
+`kickStartSteps` and `kickStartDt` are real authored fields — they are in the Studio type, in the
+project file, and in the export. The names come from Hot Particles, whose model this tool's data
+was derived from. Where they are actually honoured:
+
+| Path | References | Applied? |
+|---|---|---|
+| Studio TS | 7 | authored, sent |
+| plugin `init.lua` | 9 | **only** on an explicit `"kick-start"` button action (`init.lua:3075`) |
+| exported code | 4 | written into the systems table and **never read** |
+| `showcase_preview/main.lua` | **0** | not implemented at all |
+
+So: you set a kick-start, the preview ignores it, the export records it as dead data, and the
+attached game applies it only if you press a button. A looping ambient effect (snow, rain, embers)
+therefore starts empty in every path that matters and fills over its particle lifetime, so the
+first seconds never look like the steady state you tuned against.
+
+LÖVE has no native prewarm; it is `ps:update(dt)` in fixed steps before the first draw — which is
+exactly what `init.lua:3079` already does. It just needs to happen on start, in all three hosts,
+instead of on a button in one.
 
 ---
 
@@ -303,6 +318,98 @@ project file. Baking is an implementation of `core.lua`, invisible above it. Aut
 untouched on disk, and `core.lua` keeps an exact evaluator for the editor and for tests to compare
 the baked path against.
 
+### 5.2 Hot Particles' performance, and how to have it *and* the timeline
+
+Hot Particles (ReFreezed) is the reference the owner named, so it is worth being precise about
+where its speed comes from. Read its export template — `exportTemplates/defaultLuaModule.lua`, 142
+lines — and the answer is immediate:
+
+```lua
+local ps = LG.newParticleSystem(image1, 256)
+ps:setColors(...)          ps:setDirection(...)     ps:setEmissionArea(...)
+ps:setEmissionRate(...)    ps:setEmitterLifetime(...)
+ps:setLinearAcceleration(...)  ps:setLinearDamping(...)
+ps:setParticleLifetime(...)    ps:setRadialAcceleration(...)
+ps:setSizes(...)           ps:setSpeed(...)         ps:setSpin(...)
+...20 setters in total, then:
+table.insert(particles, {system=ps, kickStartSteps=…, kickStartDt=…, emitAtStart=…, …})
+return particles
+```
+
+**There is no update function.** The exported module is configuration: twenty setters run once, and
+the consuming game calls `ps:update(dt)` and `love.graphics.draw(ps)`. Every animation Hot Particles
+can express is a *native per-particle* interpolation — eight colour stops, eight sizes, spin,
+accelerations, damping — stepped in C++ across the whole buffer. Per-frame Lua cost: **zero**.
+
+It is fast because its authoring model *is* LÖVE's ParticleSystem, one to one. That is a real
+design achievement and it is also the whole explanation. **Hot Particles has no timeline** — no
+emission-rate ramp over an effect's life, no bursts at authored times, no multi-emitter
+choreography. Our timeline is strictly more than it offers, and the honest reading of "the same
+performance" is therefore not "be as fast as Hot Particles at what Hot Particles does" — it is:
+
+> **An effect pays only for the tier it actually uses.**
+
+**Tier 0 — native.** Everything the effect does is expressible as native properties. Compiles to
+what Hot Particles emits: setters at load, zero per-frame Lua, and the exported file has no runtime
+attached to it at all. This is the default, and most effects live here.
+
+**Tier 1 — timeline.** The effect keyframes something over its own life. Costs one baked-LUT sample
+and a changed-value check per lane per frame — **0.006 ms/frame for six emitters** (§4.2), against
+0.045 unbaked. Only lanes that are actually keyframed exist; a constant lane is a number and
+collapses the emitter back toward tier 0.
+
+The tiering must be **derived, not declared**. Nobody picks a tier in the UI; the compiler looks at
+the effect and emits the cheapest form that expresses it. `timelineLanePlan` (`init.lua:3237`)
+already classifies lanes as constant / linear / generic — the classification exists and is thrown
+away. Keep it, and let it decide what gets emitted.
+
+The test that this is real: **an effect with no keyframes must export a file with no update loop in
+it**, byte-comparable in shape to Hot Particles' template. If it exports a timeline runtime that
+does nothing, the tiering is decorative.
+
+### 5.3 The authoring model
+
+*(The owner: "i'm okay with redesigning how particles are created, like the whole feature, as long
+as we achieve the same things with a more intuitive design.")*
+
+Hot Particles' UI is a flat panel of sliders in fixed groups, with min/max pairs and eight numbered
+colour slots — it mirrors the LÖVE API exactly, which makes it predictable and totally unmysterious,
+and also makes the user do the translation from "I want embers drifting up" to twenty parameters.
+Feather's editor went the other way: gizmos, curve editors, a timeline. Neither is wrong; they solve
+different halves.
+
+The redesign keeps both halves and orders them by how people actually work:
+
+**1. Start from an effect, not a parameter.** Templates already exist (`presets.ts`) and are the
+most-used entry point. Make them the opening screen rather than a dropdown — fire, smoke, sparks,
+rain, snow, explosion, trail — each a working effect the moment it is picked.
+
+**2. Shape it with direct manipulation.** The gizmos are the tool's real advantage over a slider
+panel and must survive: `DirectionSpreadGizmo`, `LinearAccelPlane`, `CircularForceGizmo`,
+`RotationSpinGizmo`, `TextureOffsetGizmo`, `SizeCurveEditor`, `ColorGradientEditor`,
+`DampingRangeEditor`. Drag on the preview, not in a form.
+
+**3. Expose the native model plainly underneath.** Every gizmo writes a named LÖVE property, and the
+panel should say which. Someone who knows `setLinearAcceleration` should be able to find it, and
+someone who does not should never have to. This is what makes the export legible to the person who
+receives it — it is the same vocabulary.
+
+**4. The timeline is a layer you add, not a surface that is always there.** Today every composite
+carries a timeline whether or not it uses one, which is why a constant-lane effect allocates as much
+as a keyframed one (§4.2). Make adding a lane an explicit act, show which lanes exist, and let an
+effect with none be visibly, structurally simpler — including in what it exports (§5.2).
+
+**What must survive the redesign**, because these are the capabilities Hot Particles does not have
+and they are the reason this tool exists: multi-emitter composites, the timeline with bursts and
+per-lane easing, live push into a running game, custom shaders per emitter, texture atlases with
+animated and variant playback, and project import/export.
+
+**What the redesign should remove:** the assumption that every effect needs every surface.
+
+**What the redesign owes the export:** kick-start applied on start rather than on a button (§4.5),
+and the tier-0 guarantee in §5.2 — the file someone ships should be the file they would have
+written.
+
 **What the generator still decides:** what to *omit*. A composite with no shaders should not carry
 shader plumbing. That is a data question — which fields are present — not a semantics question, so
 it is safe for the generator to answer and it keeps P3 honest.
@@ -345,11 +452,14 @@ this is a plain unit test, no graphics context.
 ### P3 — Lifecycle: pool and warm
 
 Move the pooling that exists only in generated strings into `lifecycle.lua`, so the plugin and the
-preview pool too. Add prewarm: `ps:update(step)` in fixed steps totalling the emitter's particle
-lifetime before the first draw, for `loop` and `ambient` modes.
+preview pool too.
 
-Prewarm is authored state — expose it, default it on for ambient, and put it in the project file.
-A hidden prewarm is a preview that lies in the other direction.
+Prewarm needs building, not designing: `kickStartSteps`/`kickStartDt` are already authored, already
+in the project file and already in the export (§4.5). Apply them **on start**, in all three hosts,
+instead of on a button in one — the loop at `init.lua:3079` is the implementation. Then make the
+exported code read the fields it already writes.
+
+Default it on for `ambient`, since that is the mode whose whole point is a steady state.
 
 *Done when:* an ambient composite looks the same in frame 1 as at t=10s, in all three hosts.
 
@@ -379,6 +489,9 @@ rather than a matter of care.
 
 - Rewriting the editor UI. This is the runtime and the export.
 - GPU-resident simulation. Not available in LÖVE 11.7 (§2).
+- Matching Hot Particles feature for feature. It is the performance reference (§5.2), not the
+  functional one — the timeline, multi-emitter composites and live push into a running game are
+  deliberately beyond it.
 - The 4609-line `init.lua` as a whole. P1–P5 remove its duplicated semantics; the remaining
   plugin/session plumbing is a separate concern.
 
@@ -414,3 +527,7 @@ rather than "the buffer is full".
 4. Ambient composites are warm on the first frame, in all three.
 5. `variants` atlases draw in one call.
 6. A test runs the exported file and `core.lua` over the same timeline and asserts they agree.
+7. An effect with no keyframed lanes exports a file with **no update loop in it** — setters at load
+   and a data table, the shape Hot Particles emits (§5.2). If it still ships a runtime, the tiering
+   is decorative.
+8. A kick-start set in the editor is visible in the preview, not only in an attached game (§4.5).
