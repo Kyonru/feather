@@ -923,6 +923,88 @@ return M
   testCliEffect125.init()
   testCliEffect125.release()
 
+  -- --- particle timeline semantics -------------------------------------
+  -- core.lua is the one definition of what a keyframe means, shared by the
+  -- in-game plugin, the love.js preview and the exported file. Before it
+  -- existed each had its own copy and they had drifted. See V4-PARTICLES.md.
+  local ParticleCore = require("plugins.particle-system-playground.core")
+
+  assertEqual(ParticleCore.normalizeEasing("outBounce"), "outBounce", "core keeps a known easing")
+  assertEqual(ParticleCore.normalizeEasing("nonsense"), "linear", "core falls back to linear")
+  assertEqual(ParticleCore.normalizeDuration(90), 60, "core clamps timeline duration to 60s")
+  assertEqual(ParticleCore.normalizeDuration(0.01), 0.25, "core clamps timeline duration to 0.25s floor")
+
+  -- The contract the TypeScript curve editor is held to by
+  -- scripts/tests/particleEasingContract.test.ts. Both read the same numbers,
+  -- so the curve you draw is the curve that plays.
+  local easingSamples = {
+    { "linear", 0.5, 0.5 },
+    { "hold", 0.5, 0 },
+    { "inQuad", 0.5, 0.25 },
+    { "outQuad", 0.5, 0.75 },
+  }
+  for _, sample in ipairs(easingSamples) do
+    local got = ParticleCore.ease(sample[1], sample[2])
+    if math.abs(got - sample[3]) > 1e-6 then
+      error(string.format("core.ease(%s, %s) expected %s, got %s",
+        sample[1], tostring(sample[2]), tostring(sample[3]), tostring(got)), 2)
+    end
+  end
+  record("core easing curves match their known values")
+
+  -- The overshoot easings leave [0,1] by design; that is why resolved values
+  -- are clamped rather than trusted.
+  assertTruthy(ParticleCore.ease("inElastic", 0.86) < -0.3, "inElastic undershoots below zero")
+  assertTruthy(ParticleCore.ease("outElastic", 0.14) > 1.3, "outElastic overshoots above one")
+
+  -- The divergence this module was created to close: a sizeScale lane eased
+  -- with inElastic drove sizes to -37% in the preview and 0 in the export.
+  -- Resolved values are clamped here, once, for every host.
+  local overshootTrack = {
+    clips = { { start = 0, ["end"] = 3 } },
+    lanes = {
+      sizeScale = {
+        { time = 0, value = 0, easing = "inElastic" },
+        { time = 3, value = 1, easing = "linear" },
+      },
+      emissionRate = {
+        { time = 0, value = 0, easing = "inElastic" },
+        { time = 3, value = 100, easing = "linear" },
+      },
+      opacity = {
+        { time = 0, value = 0, easing = "outElastic" },
+        { time = 3, value = 1, easing = "linear" },
+      },
+    },
+  }
+  local base = { emissionRate = 50, speedMin = 10, speedMax = 90, sizes = { 1, 0.5 }, emitterLifetime = -1 }
+  local sawNegativeSize, sawNegativeRate, sawOpacityAboveOne = false, false, false
+  for step = 0, 180 do
+    local resolved = ParticleCore.resolve(overshootTrack, (step / 60) % 3, base, { mode = "loop" })
+    if resolved.sizeScale < 0 then sawNegativeSize = true end
+    if resolved.emissionRate < 0 then sawNegativeRate = true end
+    if resolved.opacity > 1 then sawOpacityAboveOne = true end
+    local sizes = ParticleCore.resolveSizes(base, resolved.sizeScale)
+    for _, value in ipairs(sizes) do
+      if value < 0 then sawNegativeSize = true end
+    end
+  end
+  assertEqual(sawNegativeSize, false, "an inElastic size lane never resolves to a negative size")
+  assertEqual(sawNegativeRate, false, "an inElastic emission lane never resolves to a negative rate")
+  assertEqual(sawOpacityAboveOne, false, "an outElastic opacity lane never resolves above one")
+
+  -- resolveSizes fills a caller-owned table, so the per-frame path need not
+  -- allocate one per emitter per frame (V4-PARTICLES.md §4.2).
+  local sizeBuffer = {}
+  local filled, count = ParticleCore.resolveSizes({ sizes = { 2, 1 } }, 0.5, sizeBuffer)
+  assertEqual(filled, sizeBuffer, "resolveSizes fills the table it is given")
+  assertEqual(count, 2, "resolveSizes reports how many sizes are live")
+  assertEqual(sizeBuffer[1], 1, "resolveSizes scales the first size")
+
+  -- A shrinking size list must not leave stale entries behind in a reused buffer.
+  ParticleCore.resolveSizes({ sizes = { 4 } }, 1, sizeBuffer)
+  assertEqual(sizeBuffer[2], nil, "resolveSizes clears entries a shorter list no longer uses")
+
   print("[Lua E2E] LUA_E2E_PASS " .. tostring(#results) .. " assertions")
 end
 

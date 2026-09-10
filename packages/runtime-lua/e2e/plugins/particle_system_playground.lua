@@ -182,9 +182,9 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     })
     local optimizedCode = optimizedResult and optimizedResult.exportCode or ""
     assertTruthy(contains(optimizedCode, "hasGenericLane = false"), "particle simple export marks timeline plan runtime-free")
-    assertTruthy(contains(optimizedCode, "local TimelineRuntime = nil"), "particle simple export skips embedded timeline runtime")
+    assertTruthy(contains(optimizedCode, "local ParticleCore = nil"), "particle simple export skips embedded timeline runtime")
     assertTruthy(
-      not contains(optimizedCode, "local TimelineRuntime = (function()"),
+      not contains(optimizedCode, "local ParticleCore = (function()"),
       "particle simple export does not embed the full evaluator"
     )
     assertTruthy(contains(optimizedCode, "emissionRate = { kind = \"linear\""), "particle simple export keeps linear lanes in the cheap sampler")
@@ -232,9 +232,46 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     local complexCode = complexResult and complexResult.exportCode or ""
     assertTruthy(contains(complexCode, "hasGenericLane = true"), "particle complex export marks timeline plan runtime-backed")
     assertTruthy(contains(complexCode, "easing = \"outQuad\""), "particle complex export preserves keyframe easing names")
-    assertTruthy(contains(complexCode, "local TimelineRuntime = (function()"), "particle complex export embeds shared evaluator only when needed")
-    assertTruthy(contains(complexCode, "function Runtime.easeTimelineValue"), "particle complex export includes easing evaluator")
-    assertTruthy(contains(complexCode, "TimelineRuntime.evaluateKeyframes(lane.points, time, fallback)"), "particle complex export uses full evaluator at lane granularity")
+    assertTruthy(contains(complexCode, "local ParticleCore = (function()"), "particle complex export embeds shared evaluator only when needed")
+    assertTruthy(contains(complexCode, "function Core.ease"), "particle complex export includes easing evaluator")
+    assertTruthy(contains(complexCode, "ParticleCore.evaluate(lane.points, time, fallback)"), "particle complex export uses full evaluator at lane granularity")
+    -- The embedded evaluator must be core.lua itself, not a copy that happens
+    -- to share its name. These markers exist only in the real module.
+    assertTruthy(contains(complexCode, "Particle timeline semantics: the single definition"), "particle complex export embeds core.lua verbatim")
+    assertTruthy(contains(complexCode, "Core.MAX_DURATION"), "particle complex export embeds core.lua's own constants")
+
+    -- The exported file must be *loadable*, and the evaluator it carries must
+    -- agree with the one that produced the preview. This is the property the
+    -- whole single-core change exists for: what you ship is what you saw.
+    local chunk, loadErr = load(complexCode, "exported-particles")
+    assertTruthy(chunk ~= nil, "particle complex export is syntactically valid Lua: " .. tostring(loadErr))
+
+    local embedded = complexCode:match("local ParticleCore = %(function%(%)\n(.-)\nend%)%(%)")
+    assertTruthy(embedded ~= nil, "particle complex export exposes its embedded core for comparison")
+    local dedented = embedded:gsub("\n  ", "\n"):gsub("^  ", "")
+    local embeddedChunk = load(dedented, "embedded-core")
+    assertTruthy(embeddedChunk ~= nil, "the embedded core loads on its own")
+    local EmbeddedCore = embeddedChunk()
+    local LiveCore = require("plugins.particle-system-playground.core")
+    -- Every easing, not a hand-picked few: a sample set that misses one is a
+    -- test that passes while the export ships a different curve. (It did —
+    -- this loop covered six of twenty-six until a deliberately drifted copy
+    -- slipped through it.)
+    local easingCount = 0
+    for easing in pairs(LiveCore.EASINGS) do
+      easingCount = easingCount + 1
+      if not EmbeddedCore.EASINGS[easing] then
+        error("exported core is missing easing " .. easing, 2)
+      end
+      for step = 0, 20 do
+        local t = step / 20
+        if math.abs(EmbeddedCore.ease(easing, t) - LiveCore.ease(easing, t)) > 1e-9 then
+          error("exported easing " .. easing .. " disagrees with the live core at t=" .. tostring(t), 2)
+        end
+      end
+    end
+    assertEqual(easingCount, 26, "the export was compared against every easing, not a subset")
+    assertTruthy(true, "the exported file evaluates curves identically to the preview")
     assertTruthy(
       not contains(complexCode, "TimelineRuntime.applyTimelineToEmitter"),
       "particle complex export still avoids generic per-track timeline wrapper"

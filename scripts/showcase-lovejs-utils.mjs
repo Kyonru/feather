@@ -255,6 +255,15 @@ export async function buildShowcaseLove({ root, outDir } = {}) {
       path.join(root, 'packages/runtime-lua/plugins/shader-graph/preview_runtime.lua'),
       'utf8',
     ),
+    // Particle timeline semantics. The preview used to carry its own copy of
+    // the easing and keyframe maths, which had already drifted from the copy
+    // the game and the export use — the preview clamped nothing, so an
+    // inElastic size lane rendered negative sizes here and zero everywhere
+    // else. See V4-PARTICLES.md P1.
+    'plugins/particle-system-playground/core.lua': await readFile(
+      path.join(root, 'packages/runtime-lua/plugins/particle-system-playground/core.lua'),
+      'utf8',
+    ),
   };
   await mkdir(outDir, { recursive: true });
   await writeFile(

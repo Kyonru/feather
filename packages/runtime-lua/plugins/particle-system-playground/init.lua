@@ -6,7 +6,6 @@ local TimelineRuntimeBundle = require("plugins.particle-system-playground.timeli
 
 local ParticleSystemPlaygroundPlugin = Class({ __includes = Base })
 local TimelineRuntime = TimelineRuntimeBundle.runtime
-local TIMELINE_RUNTIME_SOURCE = TimelineRuntimeBundle.source
 
 local DEFAULT_BUFFER_SIZE = 1000
 local DEFAULT_X = 400
@@ -1457,7 +1456,7 @@ end
 local function normalizeTimeline(timeline, systems, template)
   local fallback = defaultTimelineForSystems(systems or {}, template)
   local raw = cloneTimeline(timeline) or fallback
-  local duration = math.max(0.25, math.min(60, safeNumber(raw.duration, DEFAULT_TIMELINE_DURATION)))
+  local duration = TimelineRuntime.normalizeDuration(raw.duration, DEFAULT_TIMELINE_DURATION)
   local mode = normalizeTimelineMode(raw.mode, raw.loop == true)
   local tracksByIndex = {}
   for _, track in ipairs(raw.tracks or {}) do
@@ -4008,11 +4007,18 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   if timelinePlan.hasGenericLane then
-    lines[#lines + 1] = "local TimelineRuntime = (function()"
-    appendIndentedSource(lines, TIMELINE_RUNTIME_SOURCE, "  ")
+    -- The exported file embeds core.lua verbatim rather than a restatement of
+    -- it, so the curve someone ships is evaluated by the same code that
+    -- evaluated it in the preview. See V4-PARTICLES.md P1.
+    local coreSource = TimelineRuntimeBundle.coreSource()
+    if not coreSource then
+      error("particle export: cannot read core.lua to embed; refusing to emit a stale copy")
+    end
+    lines[#lines + 1] = "local ParticleCore = (function()"
+    appendIndentedSource(lines, coreSource, "  ")
     lines[#lines + 1] = "end)()"
   else
-    lines[#lines + 1] = "local TimelineRuntime = nil"
+    lines[#lines + 1] = "local ParticleCore = nil"
   end
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function validMode(mode)"
@@ -4062,7 +4068,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "    end"
   lines[#lines + 1] = "    return points[count][2]"
   lines[#lines + 1] = "  end"
-  lines[#lines + 1] = "  return TimelineRuntime.evaluateKeyframes(lane.points, time, fallback)"
+  lines[#lines + 1] = "  return ParticleCore.evaluate(lane.points, time, fallback)"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
   lines[#lines + 1] = "local function clipAllowsEmission(clip, time, emitterLifetime, mode)"

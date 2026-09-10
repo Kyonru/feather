@@ -18,7 +18,8 @@ architecture built on the uncorrected version would optimise the wrong thing.
 ## 1. The situation
 
 Particles is the largest tool in Studio and the only one whose output is *code someone ships*. It is
-also the one with three separate implementations of the same behaviour:
+also the one with **four** separate implementations of the same behaviour — three in Lua, plus the
+TypeScript curve editor (`easing.ts`, 129 lines) that draws the curve you author:
 
 | # | Implementation | Lines | What it drives |
 |---|---|---|---|
@@ -420,18 +421,50 @@ it is safe for the generator to answer and it keeps P3 honest.
 
 Ordered so each phase is independently shippable and verifiable.
 
-### P1 — One semantic core *(largest, do first)*
+### P1 — One semantic core — **DONE 2026-09-10**
 
-Create `packages/runtime-lua/particles/core.lua` from `timeline_runtime.lua`, keeping its clamps.
-Point the plugin at it. Delete `showcase_preview/main.lua`'s `easeTimelineValue`,
-`evaluateKeyframes`, `normalizeTimeline` and `applyTimelineAt` and require the module instead, the
-way that file already requires `shader-graph.preview_runtime`.
+`packages/runtime-lua/plugins/particle-system-playground/core.lua` (327 lines) is now the only
+definition of what a keyframe means. All three hosts require it; none defines easing or keyframe
+evaluation locally.
 
-*Done when:* the preview clamps, and a `sizeScale` lane with `inElastic` looks identical in the
-love.js preview, an attached game, and the exported file.
+**Located in the plugin directory, not `packages/runtime-lua/particles/`** as this document
+originally said. `scripts/generate-manifest.sh` only walks `feather/` and `plugins/`, so a new
+top-level directory would never have been installed into a game. The plugin directory is also the
+precedent the tool next door set with `shader-graph/preview_runtime.lua`.
 
-*Verify:* a unit test over `core.lua` asserting the four clamps, plus a preview test authoring an
-`inElastic` size lane and asserting no negative size reaches a setter.
+What landed:
+
+- **`core.lua`** — pure Lua, no `love` reference, no `require`. `Core.resolve` returns every lane's
+  value for a frame *already clamped*, so no host can forget. `Core.resolveSizes` fills a
+  caller-owned table, which is the allocation fix P2 needs.
+- **`timeline_runtime.lua`** — 303 lines to 125, now only the setter half plus `coreSource()`. Its
+  semantics used to live inside a `[=[ ]=]` string, which is why **luacheck never saw them**: the
+  Lua lint went from 146 files to 147 by moving them into a real file.
+- **`showcase_preview/main.lua`** — 1237 lines to 1080. 151 lines of duplicated semantics deleted,
+  and `applyTimelineAt` now goes through `Core.resolve`, which is what actually fixes the reported
+  bug. It previously called the evaluator directly and clamped nothing.
+- **The duration clamp** — the plugin clamped to [0.25, 60] and the preview only to a 0.25 floor, so
+  a 90-second timeline looped at a different point in each. One rule now.
+- **A fourth implementation was found:** `apps/studio/src/tools/particle-system-playground/easing.ts`
+  (129 lines) draws the curve editor. It is not Lua, so it cannot require `core.lua` — it is pinned
+  instead by a generated contract (below). Checked numerically: all 26 easings already agreed, so
+  this divergence was latent, not shipped.
+
+*Verified by:*
+
+| Test | Asserts |
+|---|---|
+| Lua e2e, 13 new assertions | the clamps hold across 180 frames of an `inElastic` lane; `resolveSizes` reuses and truncates its buffer |
+| `particleEasingContract.test.ts` | `easing.ts` matches `core.lua` for all 26 easings × 21 samples |
+| `particleCoreIsSingular.test.ts` | no host re-defines the semantics; `core.lua` stays LÖVE-free; the preview bundles and resolves through it |
+| plugin e2e, export equivalence | the exported file's embedded core is loaded and compared against the live one — **all 26 easings**, 21 samples each |
+
+Each was verified by breaking what it tests. Two findings from doing so:
+
+1. Removing the clamps from `Core.resolve` fails the Lua e2e as intended.
+2. **The export-equivalence test was vacuous when first written.** It sampled six hand-picked
+   easings, and a deliberately drifted `inQuad` passed straight through it. It now iterates
+   `Core.EASINGS` and asserts the count is 26, so a subset cannot silently be compared again.
 
 ### P2 — Change detection
 
