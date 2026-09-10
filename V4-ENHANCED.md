@@ -552,13 +552,152 @@ alone.
 | 6.12 | Settings | **DONE** | findable from the palette; security toggles already explained their consequence |
 | 6.13 | About | **REVIEWED, NO CHANGE** | all four claims accurate after the split |
 
-Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → ~~6.1~~ → ~~6.4~~ → ~~6.3~~**, then the rest. C0 first because it is a
+**Inspector is closed.** Every surface above is either changed or reviewed and deliberately left
+alone with the reason recorded.
+
+### Feather Studio (§9)
+
+| # | Step | Pass | Notes |
+|---|---|---|---|
+| S1 | Tokens below the boundary | NOT STARTED | 394 token uses in the tools, 0 definitions in Studio |
+| S2 | Shell, and mount the tools | NOT STARTED | 25,500 LOC unreachable; **Studio is unusable until this lands** |
+| S3 | Invert the session model | NOT STARTED | 24 branches on a concept that names Studio's default |
+| S4 | Durable workspaces | NOT STARTED | losing a shader graph is not losing a filter |
+| S5 | Apply C0–C5 | NOT STARTED | 86 raw color literals waiting |
+
+Order is dependency order: S2 is what makes Studio exist, and it needs S1 to look like anything. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
 most friction per unit of work. Logs, Debugger and Performance are where users spend their time.
 
 ---
 
-## 9. Out of scope
+## 9. Feather Studio — making it a tool you can use
+
+Inspector's board is closed, so Studio gets its section, as §10 said it would. It needs a different
+kind of work: Inspector was a working product with rough edges, and Studio is not yet a product at
+all.
+
+### 9.1 What is actually there
+
+Four facts, each verified, and together they explain why Studio cannot be used today.
+
+**The shell never got built.** `StudioApp.tsx` is 60 lines and still the Phase 05b placeholder. It
+renders a header, an environment panel, and this:
+
+> "The shader graph, texture lab and particle playground move here in Phase 05c. They are still
+> served by Feather Inspector until then."
+
+They moved. **25,500 lines of them** sit in `apps/studio/src/tools/`, and nothing in Studio's shell
+imports any of it. Phase 05c moved the code and never wired the app — and because the move itself
+was verified (the LOC landed, the boundary held, the tests passed), nothing reported the gap.
+
+**The styling was never connected.** The tools reference shadcn design tokens — `bg-card`,
+`text-muted-foreground`, `border-border` — **394 times**. `apps/studio/src/studio.css` is 32 lines
+and defines **none of them**. If the shell rendered a tool tomorrow it would come up with every
+surface, border and muted label unresolved. The showcase escapes this only by carrying its own
+93-variable copy of Inspector's token block.
+
+**The tools still think like Inspector panels.** They branch on session state **24 times**, through
+`isCreativeSession`, `sessionSupportsRuntime` and `activeSession`. That model came from Inspector,
+where a "creative session" was the *exception*: a deliberately created gameless workspace, sitting
+among real game sessions.
+
+**And Studio never creates one.** `createCreativeSessionId` exists in `session/index.ts` and is
+called from nowhere; the store is only ever filled by `syncFromBridge` from Inspector. So in
+standalone Studio `activeSession` is `null`, which makes `isCreativeSession` false and
+`sessionSupportsRuntime` false — and the tools read that as *live mode with no game*, not as *local
+authoring*. `ParticleSystemPlaygroundPage` computes `localMode = standalone || creativeSession`,
+gets `false`, and reaches for the live controller that needs a game. The showcase works around this
+by injecting its own controller and passing `standalone` by hand.
+
+### 9.2 The design
+
+**Studio is a local authoring tool that can optionally reach a running game.**
+
+That sentence is the whole design, and it is the inverse of what the code currently assumes. Today
+"no game" is a degraded state the tools tolerate. In Studio it is the **normal, fully capable**
+state — someone opens Studio to build a shader, and whether a game is running is beside the point
+until they want to see it in one.
+
+Three consequences follow, and they settle most of the smaller questions:
+
+**D-S1 — Local is the default, not the fallback.** Studio always has a workspace. It never asks for
+a session before letting you work, never renders a session-required empty state, and never disables
+a control because no game is attached. The only things a game gates are the things that genuinely
+need one: pushing to a live preview, and reading back from a running system.
+
+**D-S2 — A game connection is an addition, and its absence is not an error.** "Not connected" is a
+neutral fact, styled like chrome, never `danger`. This is already right in the placeholder shell —
+*"Optional. Studio works as a local editor without it"* — and that sentence should survive into the
+real one, because it is the correct framing and it was written by someone who understood the product.
+
+**D-S3 — Work is kept, because losing it is unforgivable in an authoring tool.** Inspector can lose
+a filter and cost you a retype. Studio losing a shader graph costs you an afternoon. Authoring state
+is durable by default, per workspace, and survives restarts and crashes. This raises the bar above
+anything in Inspector's C1.
+
+### 9.3 What to build, in order
+
+Each step is usable on its own, which matters because Studio is unusable until step 2 lands and
+every step after that should keep it usable.
+
+**S1 — Give the tokens a home below the boundary.**
+The token block is currently defined twice (Inspector's `App.css`, the showcase's
+`showcase-app.css`) and Studio needs a third. A third copy guarantees drift, and the boundary rules
+forbid Studio importing Inspector's, so the block belongs in `packages/ui`, which all three already
+depend on. The C0 semantic ramps come along with it.
+
+The theme *registry* — 79 themes and the derivation in `semantic.ts` — is a separate question and
+lives in Inspector today. Studio does not need 79 themes to be usable; it needs light and dark that
+match Feather. Move the base tokens now, leave the registry where it is, and revisit only if Studio
+users ask for themes.
+
+*Acceptance:* one definition of the token block; Inspector and the showcase render identically to
+before; Studio renders a `bg-card` as a card.
+
+**S2 — Build the shell and mount the three tools.**
+Navigation across Shader Graph, Particle Playground and Texture Lab. Texture Lab and Particle
+Playground already export page components; Shader Graph is assembled from panels, and the showcase's
+composition is the working reference for how.
+
+*Acceptance:* open Studio with no Inspector and no game, reach all three tools, and use each one.
+
+**S3 — Invert the session model.**
+Replace the 24 `isCreativeSession` / `sessionSupportsRuntime` branches with one explicit mode
+derived from the bridge: `local` (always available) or `attached` (a game is reachable). Delete
+`createCreativeSessionId` and the creative-session vocabulary from Studio — it described Inspector's
+exception, and in Studio it names the default, which is why the code reads backwards. The
+`standalone` props and the showcase's controller injection go too: they are workarounds for the
+model being wrong, and they disappear when it is right.
+
+*Acceptance:* no tool asks whether a session is "creative"; standalone Studio uses the local
+controller because that is the default path, not because a prop said so.
+
+**S4 — Make workspaces real and durable.**
+Texture Lab already has a workspace concept; the other two do not. One shared notion: named, listed,
+switchable, saved on change. This is D-S3, and it is the difference between a demo and a tool.
+
+*Acceptance:* build something, force-quit Studio, reopen, and find it exactly as you left it.
+
+**S5 — Apply Inspector's answers without rediscovering them.**
+C0 (semantic color) arrives with S1, and Studio has **86 raw Tailwind literals** waiting for the same
+treatment. C1, C2, C3 and C5 all apply; the modules are already shared or trivially portable.
+`verify:enhanced` gains a Studio section.
+
+*Acceptance:* `pnpm run verify:enhanced` covers Studio, and the lint rule that bans raw color
+literals covers `apps/studio/src` too.
+
+### 9.4 What this is not
+
+- **Not new creative features.** No new node types, generators or emitters. Studio's feature set is
+  what moved out of Inspector; the work is making it reachable and dependable.
+- **Not a redesign of the tools.** Their internals are 25,500 lines that work. The shell around them
+  is what is missing.
+- **Not 79 themes.** See S1.
+
+---
+
+## 10. Out of scope
 
 Recording these so they stay decided rather than being relitigated each time someone reads this.
 
@@ -573,7 +712,7 @@ Recording these so they stay decided rather than being relitigated each time som
 
 ---
 
-## 10. Log
+## 11. Log
 
 Append findings, decisions and completed passes here so the next person inherits the reasoning and
 not just the diff.
@@ -1014,6 +1153,33 @@ C3 giving all nine an action, the panel now answers "what do I do?" in reading o
 
 That closes every surface on the board. Inspector's thirteen panels are each either changed,
 or reviewed and deliberately left alone with the reason recorded.
+
+**2026-09-10 — Studio designed (§9). It is not a product yet, and the reason is instructive.**
+
+Four verified facts, and the last one is the interesting one.
+
+`StudioApp.tsx` is still the Phase 05b placeholder, telling the reader the tools "move here in Phase
+05c" while 25,500 lines of them sit in `apps/studio/src/tools/` that nothing in the shell imports.
+The tools reference shadcn tokens 394 times and Studio's stylesheet defines none of them, so even a
+wired shell would render every surface and border unresolved. And the tools branch on session state
+24 times through a concept — "creative session" — that Studio never creates, so standalone Studio
+reads as *live mode with no game* rather than *local authoring*, and reaches for a controller that
+needs a game.
+
+The instructive part: **Phase 05c was verified and passed.** The 25,502 LOC landed, the boundary
+held, the lint guards stood, every suite went green. What nobody checked was whether the application
+could be opened and used, because the phase was defined as a move and the move was real. A migration
+that is complete by its own definition can still leave a product that does not exist.
+
+The design is one sentence: **Studio is a local authoring tool that can optionally reach a running
+game** — the inverse of what the code assumes. Today "no game" is a degraded state the tools
+tolerate; in Studio it is the normal, fully capable one. Three consequences (local is the default,
+a connection is an addition whose absence is not an error, and authoring work is durable because
+losing a shader graph is not losing a filter), and five steps in dependency order.
+
+Worth keeping from the placeholder: *"Optional. Studio works as a local editor without it."* That
+sentence is the correct framing of the whole product and it was already written, by someone who
+understood it, in the file that otherwise says the tools have not arrived.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it
