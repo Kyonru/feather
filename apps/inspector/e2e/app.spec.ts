@@ -1362,6 +1362,38 @@ test('typing in the log search survives a log the runtime sent without a message
   await expect(page.getByText('player spawned')).toBeVisible();
 });
 
+test('an empty panel caused by a stale filter offers a way out', async ({ page }) => {
+  // C1 made filters outlive the visit that set them, which created this: you can
+  // arrive at an empty panel because of a filter you set days ago. The state
+  // that reports it has to be the one that undoes it.
+  await seedSession(page);
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'feather-panel-state',
+      JSON.stringify({ state: { values: { 'observability.search': 'zzz-nothing-matches-this' } }, version: 1 }),
+    );
+  });
+  await page.goto('/observability');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  const clear = page.getByTestId('observability-clear-filters');
+  await expect(clear).toBeVisible();
+  await clear.click();
+
+  // The filter is actually gone, not merely the message hiding it. Reading the
+  // persisted store rather than the input, because with no observers attached
+  // the panel drops to a different empty state and the toolbar goes with it.
+  await expect(clear).toHaveCount(0);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem('feather-panel-state');
+        return raw ? (JSON.parse(raw).state.values['observability.search'] ?? '') : null;
+      }),
+    )
+    .toBe('');
+});
+
 test('panel filters survive leaving the panel and coming back', async ({ page }) => {
   // The most frequent cost this tool imposed: filter the log, step away to check
   // a number, come back to unfiltered output and type it again. V4-ENHANCED C1.

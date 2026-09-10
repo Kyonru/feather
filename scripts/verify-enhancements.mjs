@@ -125,6 +125,18 @@ check('the panels with real filter state use the persisted store', () => {
   return `${Object.values(expected).flat().length} filters persisted`;
 });
 
+check('an empty panel caused by a filter offers to clear it', () => {
+  // A consequence of C1 rather than a pre-existing gap: "no rows match the
+  // current filters" was self-explanatory when the filter was something you had
+  // just typed. It can now be days old.
+  const files = ['pages/compare/index.tsx', 'pages/observable/index.tsx'];
+  const missing = files.filter(
+    (file) => !readFileSync(join(ROOT, 'apps/inspector/src', file), 'utf8').includes('Clear filters'),
+  );
+  if (missing.length) throw new Error(`no escape hatch in:\n      ${missing.join('\n      ')}`);
+  return `${files.length} filtered-empty states can undo themselves`;
+});
+
 check('a persisted filter has a way out', () => {
   const table = readFileSync(join(ROOT, 'apps/inspector/src/pages/log/LogTable.tsx'), 'utf8');
   if (!table.includes('Clear log search')) throw new Error('log search has no clear control');

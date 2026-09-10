@@ -542,13 +542,13 @@ alone.
 | 6.2 | Session | NOT STARTED | |
 | 6.3 | Performance / Profiler | **PARTLY DONE** | baseline survives a restart; capture cost and measuring-vs-idle still open |
 | 6.4 | Debugger | **DONE** | problem counts navigable; source failure names the path and the fix; keyboard stepping pinned |
-| 6.5 | Console | NOT STARTED | Reference implementation |
+| 6.5 | Console | **REVIEWED, NO CHANGE** | long output already bounded with an expand; still the reference |
 | 6.6 | Assets | **PARTLY DONE** | Missing filter now truthful at scale; source-file path still open |
 | 6.7 | Plugins | **PARTLY DONE** | manifest values coerced (C5); generic renderer already well guarded |
 | 6.8 | Observability | **REVIEWED, NO CHANGE** | runtime pushes while interested; C2 covers dormancy |
 | 6.9 | Time Travel | NOT STARTED | |
 | 6.10 | Session Replay | **REVIEWED** | the 6 toasts are export/import feedback, not noise |
-| 6.11 | Compare | NOT STARTED | |
+| 6.11 | Compare | **DONE** | empty state names the command; stale-filter escape hatch |
 | 6.12 | Settings | NOT STARTED | |
 | 6.13 | About | NOT STARTED | Smallest |
 
@@ -902,6 +902,28 @@ Two surfaces reviewed and deliberately unchanged, which is worth recording so no
 - **Session Replay.** Flagged earlier for carrying the most toasts of any panel (6) against L6. They
   are three success/failure pairs for export and import: user-initiated file operations whose
   outcome is invisible otherwise. That is exactly what a toast is for. Not noise.
+
+**2026-09-10 — 6.11 Compare, 6.5 Console, and a gap C1 created.**
+
+Compare's empty state said "Compare needs at least two connected sessions / Connect another session
+to compare runtime data." That names the requirement, not the act — a second session means a second
+game, and the app has known the command for that since before this work began. It now shows
+`feather run <your project dir>`, the same shape the no-session empty state uses.
+
+**A gap this work introduced, found by auditing for C3 rather than by anyone hitting it.** Two panels
+report "No rows match the current filters." That was self-explanatory when a filter was always
+something you had just typed. C1 made filters outlive the visit, so you can now arrive at an empty
+panel because of a filter set days ago, on a different game, and the message tells you the cause
+while offering no way out. Both now carry a **Clear filters** button, and `TriageEmptyState` gained
+an `action` slot so the next one does too.
+
+Worth noting the shape of that mistake: C1 was a good change that quietly moved a cost somewhere
+else. Persisting state does not only preserve what the user wanted — it preserves what they forgot,
+and every state that reads persisted state inherits that.
+
+Console reviewed and unchanged. The open question was whether long results flood the pane; they do
+not — output is capped at a length limit, marked as truncated, and expandable. It remains the
+reference implementation the other panels were measured against.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it

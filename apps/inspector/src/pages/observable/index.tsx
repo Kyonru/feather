@@ -405,7 +405,25 @@ end`}
         />
       </div>
       {data.length === 0 ? (
-        <TriageEmptyState className="mx-4 flex-1" title="No observers match the current filters." />
+        <TriageEmptyState
+          className="mx-4 flex-1"
+          title="No observers match the current filters."
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              data-testid="observability-clear-filters"
+              onClick={() => {
+                setSearch('');
+                setTypeFilter('all');
+                setGroupFilter('all');
+                setChangedOnly(false);
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
       ) : (
         <SectionCards data={data} selected={selected} onSelect={onSelect} />
       )}

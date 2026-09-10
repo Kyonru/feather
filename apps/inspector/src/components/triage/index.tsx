@@ -137,15 +137,23 @@ export function TriageSummaryChips({ items }: { items: TriageSummaryItem[] }) {
   );
 }
 
+/**
+ * `action` exists because filters now outlive the visit that set them (C1).
+ * "No rows match the current filters" used to be self-explanatory — the filter
+ * was something you had just typed. It can now be days old, so the state that
+ * reports it should also be the one that undoes it.
+ */
 export function TriageEmptyState({
   title,
   description,
   icon,
+  action,
   className,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
   icon?: React.ReactNode;
+  action?: React.ReactNode;
   className?: string;
 }) {
   return (
@@ -154,6 +162,7 @@ export function TriageEmptyState({
         {icon ? <div className="text-muted-foreground">{icon}</div> : null}
         <p className="font-medium text-foreground">{title}</p>
         {description ? <p className="max-w-md text-xs text-muted-foreground">{description}</p> : null}
+        {action ? <div className="mt-1">{action}</div> : null}
       </div>
     </div>
   );

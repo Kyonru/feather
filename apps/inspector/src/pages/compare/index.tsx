@@ -14,6 +14,7 @@ import {
   TriageSummaryChip,
   TriageToolbar,
 } from '@/components/triage';
+import { useSettingsStore } from '@/store/settings';
 import { usePanelState } from '@/store/panel-state';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
 import { type PerformanceMetrics } from '@/hooks/use-performance';
@@ -293,6 +294,8 @@ export default function ComparePage() {
   const [search, setSearch] = usePanelState('compare.search', '');
   const [sortKey, setSortKey] = usePanelState<CompareSortKey>('compare.sortKey', 'status');
   const [sortDirection, setSortDirection] = usePanelState<SortDirection>('compare.sortDirection', 'asc');
+  const cliProjectDir = useSettingsStore((state) => state.cliProjectDir);
+  const runCommand = `feather run ${cliProjectDir || 'path/to/my-game'}`;
   const canCompare = connectedSessions.length >= 2;
 
   useEffect(() => {
@@ -387,7 +390,16 @@ export default function ComparePage() {
         <TriageEmptyState
           className="m-4 flex-1"
           title="Compare needs at least two connected sessions"
-          description="Connect another session to compare runtime data."
+          description={
+            // "Connect another session" names the requirement, not the act. A
+            // second session means a second game, and the app already knows the
+            // command for that — the no-session empty state has shown it with
+            // the user's own project directory since before this work started.
+            <span className="grid gap-1">
+              <span>Start a second game to compare two runs side by side.</span>
+              <code className="mx-auto rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{runCommand}</code>
+            </span>
+          }
         />
       ) : (
         <>
@@ -439,7 +451,24 @@ export default function ComparePage() {
               }
             />
           ) : filteredRows.length === 0 ? (
-            <TriageEmptyState className="m-4 flex-1" title="No compare rows match the current filters." />
+            <TriageEmptyState
+              className="m-4 flex-1"
+              title="No compare rows match the current filters."
+              action={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  data-testid="compare-clear-filters"
+                  onClick={() => {
+                    setFilter('all');
+                    setGroup('all');
+                    setSearch('');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              }
+            />
           ) : (
             <div className="h-0 flex-1 overflow-auto">
               <Table>
