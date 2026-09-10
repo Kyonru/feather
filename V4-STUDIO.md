@@ -1,7 +1,7 @@
 # V4 Studio — turning Feather Studio into a usable tool
 
 **Status:** specification, not started · **Written:** 2026-09-10
-**Companions:** [`V4.md`](./V4.md) (why Studio is a separate product) · [`V4-ENHANCED.md`](./V4-ENHANCED.md) §9 (the design this expands)
+**Companions:** [`V4.md`](./V4.md) (why Studio is a separate product) · [`V4-ENHANCED.md`](./V4-ENHANCED.md) — its §9 summarizes this
 
 ---
 
@@ -429,7 +429,7 @@ Studio is finished as a tool when all of these are true:
 2. Their work is still there after a force-quit and reopen.
 3. Connecting to Inspector **adds** live preview, and disconnecting removes it without losing work
    or showing an error.
-4. Every state colour follows the user's theme and clears WCAG AA on it.
+4. Every state color follows the user's theme and clears WCAG AA on it.
 5. `pnpm run verify:enhanced` covers Studio and passes.
 6. `pnpm run test` passes 7/7.
 
