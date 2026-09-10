@@ -559,7 +559,7 @@ alone with the reason recorded.
 
 | # | Step | Pass | Notes |
 |---|---|---|---|
-| S1 | Tokens below the boundary | NOT STARTED | 394 token uses in the tools, 0 definitions in Studio |
+| S1 | Mount the providers | NOT STARTED | Theme, QueryClient and Ui providers absent from `main.tsx` |
 | S2 | Shell, and mount the tools | NOT STARTED | 25,500 LOC unreachable; **Studio is unusable until this lands** |
 | S3 | Invert the session model | NOT STARTED | 24 branches on a concept that names Studio's default |
 | S4 | Durable workspaces | NOT STARTED | losing a shader graph is not losing a filter |
@@ -573,7 +573,8 @@ most friction per unit of work. Logs, Debugger and Performance are where users s
 
 ## 9. Feather Studio — making it a tool you can use
 
-Inspector's board is closed, so Studio gets its section, as §10 said it would. It needs a different
+Inspector's board is closed, so Studio gets its section, as §10 said it would. The full
+specification is [`V4-STUDIO.md`](./V4-STUDIO.md); this section is the summary. It needs a different
 kind of work: Inspector was a working product with rough edges, and Studio is not yet a product at
 all.
 
@@ -591,11 +592,13 @@ They moved. **25,500 lines of them** sit in `apps/studio/src/tools/`, and nothin
 imports any of it. Phase 05c moved the code and never wired the app — and because the move itself
 was verified (the LOC landed, the boundary held, the tests passed), nothing reported the gap.
 
-**The styling was never connected.** The tools reference shadcn design tokens — `bg-card`,
-`text-muted-foreground`, `border-border` — **394 times**. `apps/studio/src/studio.css` is 32 lines
-and defines **none of them**. If the shell rendered a tool tomorrow it would come up with every
-surface, border and muted label unresolved. The showcase escapes this only by carrying its own
-93-variable copy of Inspector's token block.
+**The providers were never mounted.** *(Corrected 2026-09-10 while writing V4-STUDIO.md — the
+first version of this paragraph said Studio had no design tokens. It has them.)* Studio owns a full
+theme registry and a `ThemeProvider` that writes every token onto the root element. What
+`main.tsx` mounts is `HostProvider` and nothing else — no `ThemeProvider`, no `QueryClientProvider`,
+no `UiProvider`, all three of which the showcase mounts to render these same tools. So the tools
+would come up with their 394 token references unresolved, and their React Query hooks throwing.
+The fix is a provider stack, not a token system.
 
 **The tools still think like Inspector panels.** They branch on session state **24 times**, through
 `isCreativeSession`, `sessionSupportsRuntime` and `activeSession`. That model came from Inspector,
@@ -641,19 +644,13 @@ anything in Inspector's C1.
 Each step is usable on its own, which matters because Studio is unusable until step 2 lands and
 every step after that should keep it usable.
 
-**S1 — Give the tokens a home below the boundary.**
-The token block is currently defined twice (Inspector's `App.css`, the showcase's
-`showcase-app.css`) and Studio needs a third. A third copy guarantees drift, and the boundary rules
-forbid Studio importing Inspector's, so the block belongs in `packages/ui`, which all three already
-depend on. The C0 semantic ramps come along with it.
+**S1 — Mount the providers.**
+`main.tsx` mounts `HostProvider` alone. `showcase/providers.tsx` renders the same tools successfully
+with four providers, and is the working reference. Studio's own `ThemeProvider` already exists and
+already writes the tokens; it is simply never mounted.
 
-The theme *registry* — 79 themes and the derivation in `semantic.ts` — is a separate question and
-lives in Inspector today. Studio does not need 79 themes to be usable; it needs light and dark that
-match Feather. Move the base tokens now, leave the registry where it is, and revisit only if Studio
-users ask for themes.
-
-*Acceptance:* one definition of the token block; Inspector and the showcase render identically to
-before; Studio renders a `bg-card` as a card.
+*Acceptance:* a tool mounted in Studio renders with real card backgrounds, borders and muted text,
+in light and dark.
 
 **S2 — Build the shell and mount the three tools.**
 Navigation across Shader Graph, Particle Playground and Texture Lab. Texture Lab and Particle

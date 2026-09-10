@@ -212,7 +212,9 @@ trouble writing through symlinks.
 
 Architecture, release trains, and the reasoning behind the split are in [`V4.md`](./V4.md).
 Feature-level refinement work — what each existing surface has to be good at, and where it is not
-yet — is in [`V4-ENHANCED.md`](./V4-ENHANCED.md).
+yet — is in [`V4-ENHANCED.md`](./V4-ENHANCED.md). Feather Studio has its own specification in
+[`V4-STUDIO.md`](./V4-STUDIO.md): it currently renders none of the tools it ships, and that document
+is the plan for making it usable.
 
 ## CLI-Managed Examples
 

@@ -16,8 +16,13 @@ UI.** It is the companion track: V4.md moves things, V4-ENHANCED refines them. I
 evaluation lens, the cross-cutting findings, and a per-surface status board. Its one hard rule is
 **refine, do not add** — a change that introduces a new capability does not belong to that work.
 
+**Read [`V4-STUDIO.md`](./V4-STUDIO.md) before touching `apps/studio/`.** Feather Studio ships
+25,500 lines of creative tools its shell never renders, so it cannot currently be opened and used.
+That document is the specification for fixing it, with the file-level detail to start from.
+
 `V4.md` governs *what to build and in what order*. `V4-ENHANCED.md` governs *how good the existing
-features have to be*. This file governs *how to work in this repo*. All three apply.
+features have to be*. `V4-STUDIO.md` governs *making Studio exist*. This file governs *how to work
+in this repo*. All four apply.
 
 ## Project Layout
 
