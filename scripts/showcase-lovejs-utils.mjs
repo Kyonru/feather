@@ -268,6 +268,10 @@ export async function buildShowcaseLove({ root, outDir } = {}) {
       path.join(root, 'packages/runtime-lua/plugins/particle-system-playground/apply.lua'),
       'utf8',
     ),
+    'plugins/particle-system-playground/lifecycle.lua': await readFile(
+      path.join(root, 'packages/runtime-lua/plugins/particle-system-playground/lifecycle.lua'),
+      'utf8',
+    ),
   };
   await mkdir(outDir, { recursive: true });
   await writeFile(

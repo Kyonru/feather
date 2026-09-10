@@ -509,19 +509,37 @@ everything.
 That is per edit, not per frame, and only varying lanes are baked — but it is why §5.1 says the
 editor must not bake while a keyframe is being dragged.
 
-### P3 — Lifecycle: pool and warm
+### P3 — Lifecycle: pool and warm — **DONE 2026-09-10**
 
-Move the pooling that exists only in generated strings into `lifecycle.lua`, so the plugin and the
-preview pool too.
+`lifecycle.lua` owns warming and pooling. Neither touches `love` — warming takes an updater
+function, pooling takes a factory — so both unit-test without a graphics context.
 
-Prewarm needs building, not designing: `kickStartSteps`/`kickStartDt` are already authored, already
-in the project file and already in the export (§4.5). Apply them **on start**, in all three hosts,
-instead of on a button in one — the loop at `init.lua:3079` is the implementation. Then make the
-exported code read the fields it already writes.
+**Warming now happens on start, in all three hosts**, instead of behind a button in one:
 
-Default it on for `ambient`, since that is the mode whose whole point is a steady state.
+- the plugin warms in `resetTimelineSystems`
+- the preview warms in `resetParticleSystems`, and now *carries* `kickStartSteps`/`kickStartDt`
+  through the payload at all — Studio had been sending them and this preview dropped them
+- the exported file gains a `warmEmitter` and calls it where an emitter starts
 
-*Done when:* an ambient composite looks the same in frame 1 as at t=10s, in all three hosts.
+**The rule lives in one place and the export carries the answer.** Rather than restate the warm rule
+in generated Lua, `_generateCode` asks `Lifecycle.warmStepsFor` at export time and emits the
+resolved `warmSteps`/`warmDt` as literals. The generated file runs a loop; it does not decide
+anything.
+
+The default: an authored `kickStartSteps` always wins **including an authored zero**, because
+turning warmup off is a decision rather than an absence. Otherwise `ambient` warms one particle
+lifetime and `loop`/`one-shot` do not, since their beginning is meant to be seen.
+
+*Verified on a real LÖVE particle system, not asserted:* an unwarmed ambient system holds **0**
+particles at frame 1; warmed it holds **208**; left to settle for 600 frames the same system holds
+**213**. Frame 1 is within 2.3% of the steady state.
+
+Two guards against the failure modes of a warmup loop: a runaway `kickStartSteps` is capped at
+`MAX_STEPS` (a hang is not a warmup), and a large `kickStartDt` is clamped to 1/10 — a huge step
+teleports particles past their own lifetime and leaves the system *emptier* than not warming.
+
+Pooling is bounded and says so: `Lifecycle.release` returns false when the pool is full, so the
+caller knows it still owns what it holds. An unbounded pool is a leak with a friendly name.
 
 ### P4 — Atlas variants without the fan-out
 

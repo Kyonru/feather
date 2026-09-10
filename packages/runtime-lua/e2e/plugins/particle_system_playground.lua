@@ -240,6 +240,12 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertTruthy(contains(complexCode, "Particle timeline semantics: the single definition"), "particle complex export embeds core.lua verbatim")
     assertTruthy(contains(complexCode, "Core.MAX_DURATION"), "particle complex export embeds core.lua's own constants")
 
+    -- The export used to write kickStartSteps into its table and never read it.
+    assertTruthy(contains(complexCode, "local function warmEmitter(emitter)"), "particle export defines a warm step")
+    assertTruthy(contains(complexCode, "warmEmitter(emitter)"), "particle export actually warms on start")
+    assertTruthy(contains(complexCode, "warmSteps = "), "particle export records the resolved warm step count")
+    assertTruthy(contains(complexCode, "warmDt = "), "particle export records the warm step size")
+
     -- The exported file must be *loadable*, and the evaluator it carries must
     -- agree with the one that produced the preview. This is the property the
     -- whole single-core change exists for: what you ship is what you saw.

@@ -1129,6 +1129,99 @@ return M
   local reissued = select(2, ParticleApply.tick(applyState, stubPs, compiledConstant, 0, particleBase, tickOptions))
   assertTruthy(reissued > 0, "invalidate makes the next tick write every value again")
 
+  -- --- lifecycle: warm and pool (V4-PARTICLES P3) -----------------------
+  local ParticleLifecycle = require("plugins.particle-system-playground.lifecycle")
+
+  -- An authored value always wins, including an authored zero: turning warmup
+  -- off is a decision, not an absence.
+  assertEqual(ParticleLifecycle.warmStepsFor({ kickStartSteps = 24 }, "ambient"), 24, "an authored kick-start wins")
+  assertEqual(ParticleLifecycle.warmStepsFor({ kickStartSteps = 0 }, "ambient"), 0, "an authored zero turns warmup off")
+  assertEqual(ParticleLifecycle.warmStepsFor({ kickStartSteps = -5 }, "loop"), 0, "a negative kick-start is treated as none")
+
+  -- Ambient warms by default because a steady state is the point of it; the
+  -- other modes are meant to be seen from their beginning.
+  assertEqual(ParticleLifecycle.warmStepsFor({}, "one-shot"), 0, "one-shot does not warm by default")
+  assertEqual(ParticleLifecycle.warmStepsFor({}, "loop"), 0, "loop does not warm by default")
+  assertTruthy(ParticleLifecycle.warmStepsFor({ particleLifetimeMax = 2 }, "ambient") > 100,
+    "ambient warms a full particle lifetime by default")
+  assertEqual(ParticleLifecycle.warmStepsFor({ particleLifetimeMax = 2 }, "ambient"), 120,
+    "a 2s particle lifetime warms 120 steps at 1/60")
+
+  -- A runaway value is a hang, not a warmup.
+  assertEqual(ParticleLifecycle.warmStepsFor({ kickStartSteps = 1e9 }, "ambient"), ParticleLifecycle.MAX_STEPS,
+    "an absurd kick-start is capped")
+  assertEqual(ParticleLifecycle.warmDtFor({ kickStartDt = 0 }), ParticleLifecycle.DEFAULT_DT,
+    "a zero dt falls back rather than dividing by zero")
+  assertTruthy(ParticleLifecycle.warmDtFor({ kickStartDt = 10 }) <= 1 / 10,
+    "a huge dt is clamped, because it teleports past the particle lifetime instead of warming")
+
+  local warmed = 0
+  local ranSteps = ParticleLifecycle.warm(function(dt)
+    warmed = warmed + dt
+  end, { kickStartSteps = 30, kickStartDt = 1 / 60 }, "ambient")
+  assertEqual(ranSteps, 30, "warm runs the requested number of steps")
+  assertTruthy(math.abs(warmed - 0.5) < 1e-9, "warm advances the requested amount of time")
+
+  assertEqual(ParticleLifecycle.warm(nil, { kickStartSteps = 10 }, "ambient"), 0, "warm without an updater does nothing")
+
+  -- Pool
+  local pool = ParticleLifecycle.newPool(2)
+  local builtCount = 0
+  local function factory()
+    builtCount = builtCount + 1
+    return { id = builtCount }
+  end
+  local first, reusedFirst = ParticleLifecycle.acquire(pool, factory)
+  assertEqual(reusedFirst, false, "an empty pool builds")
+  assertEqual(ParticleLifecycle.release(pool, first), true, "a released instance is kept")
+  local second, reusedSecond = ParticleLifecycle.acquire(pool, factory)
+  assertEqual(reusedSecond, true, "the next acquire reuses it")
+  assertEqual(second.id, first.id, "the reused instance is the same one")
+  assertEqual(builtCount, 1, "reuse does not build again")
+
+  ParticleLifecycle.release(pool, { id = "a" })
+  ParticleLifecycle.release(pool, { id = "b" })
+  assertEqual(ParticleLifecycle.release(pool, { id = "c" }), false,
+    "a full pool refuses, so the caller knows it still owns what it holds")
+  assertEqual(pool.dropped, 1, "the pool counts what it refused")
+
+  -- The property P3 exists for, on a real LOVE particle system: an ambient
+  -- effect must look at frame 1 like it looks once it has settled. Before this,
+  -- every host started empty and filled over a particle lifetime.
+  do
+    local image = love.graphics.newCanvas(4, 4)
+    local function newAmbientSystem()
+      local ps = love.graphics.newParticleSystem(image, 512)
+      ps:setEmissionRate(120)
+      ps:setParticleLifetime(1.5, 2.0)
+      ps:setEmitterLifetime(-1)
+      ps:setSpeed(20, 40)
+      ps:start()
+      return ps
+    end
+
+    local cold = newAmbientSystem()
+    assertEqual(cold:getCount(), 0, "an unwarmed ambient system starts empty")
+
+    local warmSys = newAmbientSystem()
+    local steps = ParticleLifecycle.warm(function(dt)
+      warmSys:update(dt)
+    end, { particleLifetimeMax = 2.0 }, "ambient")
+    assertTruthy(steps > 0, "an ambient system warms by default")
+    local warmCount = warmSys:getCount()
+    assertTruthy(warmCount > 0, "a warmed ambient system has particles on its first frame; got " .. tostring(warmCount))
+
+    -- And it must match the steady state, not merely be non-empty.
+    for _ = 1, 600 do
+      cold:update(1 / 60)
+    end
+    local settledCount = cold:getCount()
+    local drift = math.abs(warmCount - settledCount) / math.max(1, settledCount)
+    assertTruthy(drift < 0.2,
+      string.format("frame 1 of a warmed ambient system matches its settled state (warm %d vs settled %d)",
+        warmCount, settledCount))
+  end
+
   print("[Lua E2E] LUA_E2E_PASS " .. tostring(#results) .. " assertions")
 end
 

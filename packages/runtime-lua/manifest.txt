@@ -63,6 +63,7 @@ plugin:particle-editor:manifest.lua
 plugin:particle-system-playground:apply.lua
 plugin:particle-system-playground:core.lua
 plugin:particle-system-playground:init.lua
+plugin:particle-system-playground:lifecycle.lua
 plugin:particle-system-playground:manifest.lua
 plugin:particle-system-playground:timeline_runtime.lua
 plugin:physics-debug:init.lua

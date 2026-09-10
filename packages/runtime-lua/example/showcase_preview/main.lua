@@ -50,6 +50,7 @@ local PreviewRuntime = require("shader-graph.preview_runtime")
 -- clamped nothing. See V4-PARTICLES.md P1.
 local ParticleCore = require("plugins.particle-system-playground.core")
 local ParticleApply = require("plugins.particle-system-playground.apply")
+local ParticleLifecycle = require("plugins.particle-system-playground.lifecycle")
 
 -- Minimal JSON parser
 
@@ -786,12 +787,22 @@ end
 
 local function resetParticleSystems()
   particleState.lastBurstCount = 0
+  local mode = particleState.timeline and particleState.timeline.mode
   for _, entry in ipairs(particleState.systems) do
     if entry.ps then
       pcall(entry.ps.reset, entry.ps)
       local base = entry.base or {}
       pcall(entry.ps.setEmitterLifetime, entry.ps, tonumber(base.emitterLifetime) or -1)
       pcall(entry.ps.start, entry.ps)
+      if entry.applyState then
+        ParticleApply.invalidate(entry.applyState)
+      end
+      -- Warm to the steady state before the first draw, using the same rule
+      -- the game and the exported file use. This preview ignored kickStart
+      -- entirely, so an ambient effect always began empty here.
+      ParticleLifecycle.warm(function(dt)
+        pcall(entry.ps.update, entry.ps, dt)
+      end, entry.warm, mode)
     end
   end
 end
@@ -904,6 +915,15 @@ local function applyParticlePayload(payload)
             x = tonumber(sysData.x) or 0,
             y = tonumber(sysData.y) or 0,
             emitAtStart = tonumber(sysData.emitAtStart) or 0,
+            -- Carried through so the preview can warm the way the game and the
+            -- exported file do. These were authored in Studio and sent in the
+            -- payload, and this preview simply dropped them on the floor.
+            warm = {
+              kickStartSteps = sysData.kickStartSteps,
+              kickStartDt = sysData.kickStartDt,
+              particleLifetimeMin = tonumber(props.particleLifetimeMin),
+              particleLifetimeMax = tonumber(props.particleLifetimeMax),
+            },
             opacity = 1,
             base = {
               emissionRate = tonumber(props.emissionRate) or 100,

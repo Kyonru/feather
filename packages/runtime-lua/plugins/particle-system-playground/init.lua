@@ -3,6 +3,7 @@ local Base = require(FEATHER_PATH .. ".core.base")
 local base64 = require(FEATHER_PATH .. ".lib.base64")
 local json = require(FEATHER_PATH .. ".lib.json")
 local TimelineRuntimeBundle = require("plugins.particle-system-playground.timeline_runtime")
+local Lifecycle = require("plugins.particle-system-playground.lifecycle")
 
 local ParticleSystemPlaygroundPlugin = Class({ __includes = Base })
 local TimelineRuntime = TimelineRuntimeBundle.runtime
@@ -1592,6 +1593,7 @@ local function applyTimelineToSystem(sys, track, time, allowEmission, timeline)
 end
 
 local function resetTimelineSystems(plugin, name)
+  local entry = plugin.composites[name]
   for i = 1, plugin:_systemCount(name) do
     local sys = plugin:_getSystemEntry(name, i)
     if sys and sys.system and isSystemEnabled(sys, plugin:_meta(name, i)) then
@@ -1604,6 +1606,11 @@ local function resetTimelineSystems(plugin, name)
       pcall(sys.system.start, sys.system)
       syncAtlasVariantSystems(sys)
       resetParticleSystems(sys)
+      -- Warm on start, not on a button. An ambient effect that begins empty
+      -- never looks like the steady state it was tuned against.
+      Lifecycle.warm(function(dt)
+        updateParticleSystems(sys, dt)
+      end, sys, timelineMode(entry and entry.timeline))
     end
   end
 end
@@ -3954,6 +3961,13 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
         .. tostring(math.floor(safeNumber(sys.kickStartSteps, 0)))
         .. ", kickStartDt = "
         .. fmt(sys.kickStartDt or (1 / 60))
+        -- The *answer*, computed by lifecycle.lua at export time rather than
+        -- the rule restated in generated Lua. kickStartSteps above is kept for
+        -- round-tripping; warmSteps is what the file acts on.
+        .. ", warmSteps = "
+        .. tostring(Lifecycle.warmStepsFor(sys, timeline and timeline.mode))
+        .. ", warmDt = "
+        .. fmt(Lifecycle.warmDtFor(sys))
         .. ", emitAtStart = "
         .. tostring(math.floor(safeNumber(sys.emitAtStart, 0)))
         .. ", blendMode = "
@@ -4224,6 +4238,18 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "  return math.max(0, math.floor(base or 0))"
   lines[#lines + 1] = "end"
   lines[#lines + 1] = ""
+  -- Warming on start is what makes an ambient effect look, in its first frame,
+  -- like the steady state it was tuned against. The step count is resolved at
+  -- export time; this only runs it.
+  lines[#lines + 1] = "local function warmEmitter(emitter)"
+  lines[#lines + 1] = "  local steps = tonumber(emitter.warmSteps) or 0"
+  lines[#lines + 1] = "  if steps <= 0 then return end"
+  lines[#lines + 1] = "  local dt = tonumber(emitter.warmDt) or (1 / 60)"
+  lines[#lines + 1] = "  for _ = 1, steps do"
+  lines[#lines + 1] = "    for _, ps in ipairs(atlasSystems(emitter)) do ps:update(dt) end"
+  lines[#lines + 1] = "  end"
+  lines[#lines + 1] = "end"
+  lines[#lines + 1] = ""
   lines[#lines + 1] = "local function emitTimelineStarts(instance, previousTime, nextTime)"
   lines[#lines + 1] = "  if not instance then"
   lines[#lines + 1] = "    return"
@@ -4238,6 +4264,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "          emitter.system:setEmitterLifetime((emitter.base and emitter.base.emitterLifetime) or -1)"
   lines[#lines + 1] = "          emitter.system:start()"
   lines[#lines + 1] = "          if emitter.variantSystems then syncAtlasVariants(emitter) end"
+  lines[#lines + 1] = "          warmEmitter(emitter)"
   lines[#lines + 1] = "          if count > 0 then emitAtlasSystems(emitter, count) end"
   lines[#lines + 1] = "        end"
   lines[#lines + 1] = "      end"
